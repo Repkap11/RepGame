@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -73,9 +74,27 @@ struct FlyState {
     int rd_next = 0;
 };
 
+// --- Script mode (REPGAME_SCRIPT) --------------------------------------------
+// REPGAME_SCRIPT=<file>: a line-per-command scenario file executed by
+// src/common/harness/script.cpp each tick — waits and asserts go through the
+// results stream. REPGAME_SCRIPT_KEEP=1 keeps the game running (camera
+// released) when the script ends instead of exiting. pin_camera/cam_*/shot_*
+// are driven by script.cpp and consumed in game_tick/game_render.
+struct ScriptState {
+    bool enabled = false;
+    const char *path = nullptr;
+    bool keep = false;
+    bool pin_camera = false;
+    double cam_x = 0, cam_y = 0, cam_z = 0;
+    float cam_yaw = 0, cam_pitch = 0;
+    bool shot_pending = false;
+    std::string shot_name;
+};
+
 struct RunPolicy {
     CaptureState capture;
     FlyState fly;
+    ScriptState script;
 
     // REPGAME_WALKTEST: scripted walk — holds forward, logs a WT line per
     // tick, teleports via REPGAME_TELEPORT="x,y,z,angle,sprint,spin[,pitch]".
@@ -103,7 +122,7 @@ struct RunPolicy {
     // True while a scripted harness owns the camera — VR input, pointer lock
     // and HUD interaction are suppressed on these paths.
     bool camera_pinned( ) const {
-        return capture.enabled || fly.enabled;
+        return capture.enabled || fly.enabled || script.pin_camera;
     }
 };
 

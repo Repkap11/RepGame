@@ -32,6 +32,7 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | Reproduce an F12 screenshot | `rep-dbg shot "<f12 spec>"` → PNGs in `artifacts.screenshots` |
 | Bisect which subsystem changed a frame | `rep-dbg shot "<f12>" --flags-sweep` → `sweep.png` |
 | Did my change alter rendering | `rep-dbg shot "<f12>" --revs master,current`; `rep-dbg diff <a> <b>` (view-0 diffs are bistable — `--rerun` rechecks) |
+| Assert world state from a script | `rep-dbg script <file.rds>` (one cmd/line: wait_idle, setblock, assert_block/assert_light/...); seed scenarios in `tests/scenarios/`, run all with `make scenarios` |
 | IPC / cache misses | `rep-dbg perf stat stream-flight`, or `rep-dbg ab --perf-stat --metric perf.stat.ipc ...` |
 | List / export runs | `rep-dbg runs [--status failed] [--last N]`, `rep-dbg export <ids...> --csv` |
 | Old worktrees piling up | `rep-dbg wt list` / `rep-dbg wt prune` |

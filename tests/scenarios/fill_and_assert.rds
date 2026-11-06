@@ -1,0 +1,14 @@
+# Fill a 3x3x3 box on the flat floor, assert corners/inside, then carve one
+# cell back out. The flat floor is SANDSTONE at y=0; AIR starts at y=1.
+wait_idle 20 6000
+fill 10 1 10 12 3 12 STONE
+wait 10
+assert_block 10 1 10 STONE
+assert_block 11 2 11 STONE
+assert_block 12 3 12 STONE
+assert_block 13 2 12 AIR
+setblock 11 2 11 AIR
+wait 10
+assert_block 11 2 11 AIR
+assert_block 10 2 10 STONE
+echo fill_and_assert done

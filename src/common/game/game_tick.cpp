@@ -29,16 +29,13 @@
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/game/game_internal.hpp"
+#include "common/harness/debug_commands.hpp"
+#include "common/harness/script.hpp"
 
-// Shared idle predicate for the harness settle gates: true when the terrain
-// loader and light queues have no work outstanding. The fly-mode settle
-// gate and capture-mode readiness both wait on this.
-static bool loader_idle( ChunkLoader &loader ) {
-    LoaderDebugStats s;
-    loader.debug_loader_stats( &s );
-    return s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && s.light_jobs == 0 && s.light_pending == 0 &&
-           s.light_dirty == 0 && s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
-}
+// Shared idle predicate for the harness settle gates lives in
+// dbgcmd::loader_idle (debug_commands.cpp) — the fly-mode settle gate,
+// capture-mode readiness and script wait_idle all wait on it.
+using dbgcmd::loader_idle;
 
 void RepGame::tick( ) {
     if ( globalGameState.input.exitGame ) {
@@ -145,6 +142,21 @@ void RepGame::tick( ) {
             globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
             globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
         }
+    }
+
+    // Script mode: pin the camera to the script's `camera` view each tick —
+    // same fields the capture view pin sets, so movement/VR can't drift it.
+    if ( run_policy().script.pin_camera ) {
+        const ScriptState &sc = run_policy().script;
+        globalGameState.camera.pos = glm::dvec3( sc.cam_x, sc.cam_y, sc.cam_z );
+        globalGameState.camera.angle_H = sc.cam_yaw;
+        globalGameState.camera.angle_V = sc.cam_pitch;
+        globalGameState.input.player_flying = true;
+        globalGameState.input.no_clip = true;
+        globalGameState.camera.y_speed = 0.0;
+        globalGameState.input.movement.sizeH = 0.0f;
+        globalGameState.input.movement.jumpPressed = false;
+        globalGameState.input.movement.sneakPressed = false;
     }
 
     // Snapshot the camera transform as it was at the end of the previous tick, so the
@@ -535,6 +547,9 @@ void RepGame::tick( ) {
     // Multiplayer test harness: ctl commands + JSONL dumps (no-op without
     // REPGAME_MP_DUMP).
     mp_test::tick( globalGameState );
+
+    // Scenario runner: REPGAME_SCRIPT command file, no-op when unset.
+    script::tick( globalGameState, globalGameState.world.chunkLoader );
 }
 
 // Whether either cell a standing player would occupy at (x, y, z) is solid

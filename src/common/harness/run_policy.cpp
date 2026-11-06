@@ -99,6 +99,9 @@ static RunPolicy run_policy_parse( ) {
     // Periodic/anomaly readback scans work without REPGAME_CAPTURE too.
     p.capture_periodic = env_int( "REPGAME_CAPTURE_PERIODIC", 0 );
     p.capture_anomaly = env_int( "REPGAME_CAPTURE_ANOMALY", 0 );
+    p.script.path = env_get( "REPGAME_SCRIPT" );
+    p.script.enabled = p.script.path != nullptr && p.script.path[ 0 ] != '\0';
+    p.script.keep = env_int( "REPGAME_SCRIPT_KEEP", 0 ) != 0;
     p.results_path = env_get( "REPGAME_RESULTS" );
     p.results_every = env_long( "REPGAME_RESULTS_EVERY", 20 );
     p.git_sha = env_get( "REPGAME_GIT" );

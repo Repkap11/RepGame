@@ -122,6 +122,10 @@ Two line types:
 3. If you need a new ctl command, add it in `run_cmd`
    (`src/common/mp_test.cpp`) **and** the command list in
    `include/common/mp_test.hpp`; new state fields go in `dump_state`.
+   The world actions themselves live in `dbgcmd::`
+   (`src/common/harness/debug_commands.cpp`), shared with the
+   `REPGAME_SCRIPT` scenario runner — extend those when the action is
+   generally useful.
 
 ## Debugging
 

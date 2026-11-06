@@ -257,7 +257,7 @@ void results::event( long tick, const char *name, const char *fmt, ... ) {
         va_end( ap );
         detail = buf;
     }
-    if ( strcmp( name, "capture_shot" ) == 0 ) {
+    if ( strcmp( name, "capture_shot" ) == 0 || strcmp( name, "screenshot" ) == 0 ) {
         // Collect shot filenames for the summary record; the "file" detail
         // field holds the display image path.
         const std::string needle = "\"file\":\"";

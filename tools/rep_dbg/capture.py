@@ -137,6 +137,23 @@ def postprocess(run_dir, result, mode=None, log=sys.stderr):
         print(name, file=log)
 
 
+def postprocess_script(run_dir, result, mode=None, log=sys.stderr):
+    """script runs: every screenshots/*_display.tga -> PNG, listed in
+    artifacts.screenshots."""
+    shot_dir = os.path.join(run_dir, "screenshots")
+    entries = []
+    for fname in sorted(os.listdir(shot_dir)) if os.path.isdir(shot_dir) else []:
+        if not fname.endswith("_display.tga"):
+            continue
+        tga = "screenshots/" + fname
+        png = os.path.relpath(tga_to_png(os.path.join(shot_dir, fname)), run_dir)
+        entries.append({"file": png, "tga": tga,
+                        "name": fname[:-len("_display.tga")]})
+    result.setdefault("artifacts", {})["screenshots"] = entries
+    for e in entries:
+        print(e["file"], file=log)
+
+
 def rerun(result, root, log=sys.stderr):
     """Re-execute a recorded run once (same cmd/env) in a fresh run dir for
     the bistable-capture_0 recheck. Returns the new run dir."""

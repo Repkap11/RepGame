@@ -32,6 +32,8 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
 - `make server-test` — server self-test (`RepGameServer --selftest`)
 - `make test` — tests + server-test (`test-all` adds mp-test)
 - `make mp-test` — end-to-end multiplayer scenarios; see the `mp-test` skill
+- `make scenarios` — scripted game scenarios (`tests/scenarios/*.rds` via
+  `rep-dbg script`; `SCENARIOS="substr"` filters); part of `test-all`
 - `make check` — cppcheck over `src/`
 - `tools/rep-dbg` — structured headless runs (`fly`/`walk`/`run` presets)
   with per-run `result.json`/`results.jsonl` under `/tmp/rep-dbg`;

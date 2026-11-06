@@ -35,6 +35,11 @@
 // camera's chunk is CHUNK_LIVE + at least one CHUNK_ROLE grant applied),
 // cmd_error, explosion_received, pickup_result, player_hit_received,
 // entity_transfer, probe, quit.
+//
+// The world-action implementations (setblock/drop/mob/hit/fall/tnt/mode/
+// time/goto/probe + name lookups) live in common/harness/debug_commands
+// (dbgcmd::) so the REPGAME_SCRIPT runner shares them; mp_test keeps its
+// own line parsing, event stream and dump cadence.
 
 struct RepGameState;
 

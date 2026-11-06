@@ -47,6 +47,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( net_bodies ),         //
     MK_TEST( crafting ),         //
     MK_TEST( results ),          //
+    MK_TEST( script ),          //
     { nullptr, nullptr }
 
 };

@@ -131,6 +131,25 @@ check:
 # `make test-all` additionally runs the mp end-to-end scenarios (slow).
 test: tests server-test
 
-test-all: test mp-test
+# Scripted game scenarios: each tests/scenarios/*.rds through rep-dbg
+# script (kind "script", isolated HOME, flat world by default).
+# SCENARIOS="substr ..." limits to files containing a substring.
+scenarios: linux
+	@fail=0; \
+	for f in tests/scenarios/*.rds; do \
+		skip=0; \
+		if [ -n "$(SCENARIOS)" ]; then \
+			skip=1; \
+			for s in $(SCENARIOS); do \
+				case "$$f" in *$$s*) skip=0;; esac; \
+			done; \
+		fi; \
+		[ $$skip = 1 ] && continue; \
+		echo "=== $$f"; \
+		tools/rep-dbg script "$$f" || fail=1; \
+	done; \
+	exit $$fail
 
-.PHONY: check mobs-import blocks-import test test-all mc_pack_build
+test-all: test mp-test scenarios
+
+.PHONY: check mobs-import blocks-import test test-all scenarios mc_pack_build

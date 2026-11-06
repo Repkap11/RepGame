@@ -140,6 +140,11 @@ def _parser():
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
+    p = sub.add_parser("script", help="run a .rds scenario file (REPGAME_SCRIPT)")
+    p.add_argument("file", help="scenario file (one command per line)")
+    _add_run_args(p)
+    p.add_argument("--keep", action="store_true", help="REPGAME_SCRIPT_KEEP=1: stay running")
+
     p = sub.add_parser("diff", help="image diff: files or shot runs")
     p.add_argument("a")
     p.add_argument("b")
@@ -670,6 +675,68 @@ def _do_diff(opts):
     return 1 if any_changed else 0
 
 
+def _script_headers(path):
+    """#! world <name> | #! keep-world <path> | #! terrain | #! env K=V |
+    #! timeout S."""
+    hdr = {"env": []}
+    try:
+        with open(path, errors="replace") as f:
+            for line in f:
+                if not line.startswith("#!"):
+                    continue
+                parts = line[2:].split()
+                if len(parts) >= 2 and parts[0] == "world":
+                    hdr["world"] = parts[1]
+                elif len(parts) >= 2 and parts[0] == "keep-world":
+                    hdr["keep_world"] = parts[1]
+                elif parts and parts[0] == "terrain":
+                    hdr["terrain"] = True
+                elif len(parts) >= 3 and parts[0] == "env":
+                    hdr["env"].append("=".join(parts[1:]))
+                elif len(parts) >= 2 and parts[0] == "timeout":
+                    hdr["timeout"] = float(parts[1])
+    except OSError as e:
+        raise ValueError("script file: %s" % e)
+    return hdr
+
+
+def _do_script(opts):
+    from . import capture as capture_mod
+    try:
+        hdr = _script_headers(opts.file)
+    except ValueError as e:
+        print("rep-dbg: %s" % e, file=sys.stderr)
+        return 4
+    env = _env_pairs(hdr["env"], "#! env")
+    env.update(_env_pairs(opts.env))  # CLI --env wins over headers
+    env["REPGAME_SCRIPT"] = os.path.abspath(opts.file)
+    if opts.keep:
+        env["REPGAME_SCRIPT_KEEP"] = "1"
+    if opts.every is not None:
+        env["REPGAME_RESULTS_EVERY"] = str(opts.every)
+    # Default to a flat world; #! terrain/world/keep-world says otherwise.
+    flat = opts.flat or not (hdr.get("terrain") or hdr.get("world") or hdr.get("keep_world"))
+    ns = argparse.Namespace(
+        root=opts.root, env=["%s=%s" % kv for kv in env.items()],
+        rev=opts.rev, rev_arg=None, build=opts.build,
+        world=hdr.get("world") or opts.world, flat=flat,
+        keep_world=hdr.get("keep_world") or opts.keep_world,
+        timeout=opts.timeout or hdr.get("timeout"),
+        name=opts.name or os.path.splitext(os.path.basename(opts.file))[0],
+        kind="script", window=opts.window, extra=[],
+        ab_id=None, cfg=None,
+        postprocess_fn=lambda d, r, l: capture_mod.postprocess_script(d, r, log=l))
+    result, run_dir = runner_mod.run(ns, sys.stderr)
+    print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
+    for f_ in (result.get("asserts") or {}).get("failures", []):
+        print("%s:%s: %s — expected %s, actual %s" % (
+            opts.file, f_.get("line"), f_.get("cmd"), f_.get("expected"), f_.get("actual")),
+            file=sys.stderr)
+    if opts.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    return runner_mod.exit_code(result)
+
+
 def _do_run(opts):
     env = _preset_env(opts)
     # Preset pairs first so a user's --env overrides a preset default.
@@ -726,6 +793,9 @@ def main(argv):
 
     if opts.cmd == "shot":
         return _do_shot(opts)
+
+    if opts.cmd == "script":
+        return _do_script(opts)
 
     if opts.cmd == "diff":
         return _do_diff(opts)

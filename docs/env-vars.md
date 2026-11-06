@@ -67,6 +67,8 @@ the index, not the reference.
 | `REPGAME_RESULTS` | unset | all | JSONL event-stream path (header/metric/event/probe/assert/summary records); presence enables the results writer | docs/debug-tools.md |
 | `REPGAME_RESULTS_EVERY` | 20 | all | metric record cadence in ticks | docs/debug-tools.md |
 | `REPGAME_SCREENSHOT_TICK` | 0 (off) | all | request a framebuffer screenshot on tick n (`./screenshots/`); only consulted under `REPGAME_WALKTEST` | capture skill |
+| `REPGAME_SCRIPT` | unset | all | path to a `.rds` scripted-scenario file: one debug command per line, run one per tick until a blocking command stalls (set by rep-dbg `script`) | docs/debug-tools.md |
+| `REPGAME_SCRIPT_KEEP` | 0 | all | `1` keeps the game running (camera released) after the script ends instead of exiting | docs/debug-tools.md |
 | `REPGAME_SFX_VOLUME` | 1.0 | all | linear SFX gain 0..1 | docs/audio.md |
 | `REPGAME_TELEPORT` | unset | all | `"x,y,z,angle,sprint,spin_deg_per_tick[,pitch]"` — teleport on tick 1 then hold forward; only consulted under `REPGAME_WALKTEST` | capture skill |
 | `REPGAME_TEX_MIPMAPS` | 1 | all | `0` restores NEAREST minification of the block atlas | docs/rendering.md |

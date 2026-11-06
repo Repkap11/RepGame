@@ -325,6 +325,15 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                   static_cast<double>( render_angle_V ) );
     }
 
+    // Script mode: the `screenshot <name>` command was drawn this frame.
+    if ( run_policy().script.shot_pending ) {
+        run_policy().script.shot_pending = false;
+        const std::string name = run_policy().script.shot_name;
+        globalGameState.world.screenshot( "script_" + name );
+        results::event( globalGameState.tick_number, "screenshot",
+                        "\"name\":\"%s\",\"file\":\"screenshots/script_%s_display.tga\"", name.c_str(), name.c_str() );
+    }
+
     // Capture mode: the settled view was drawn this frame — shoot it and
     // advance to the next view (or exit after the last).
     if ( run_policy().capture.enabled && run_policy().capture.shot_pending ) {

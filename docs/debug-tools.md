@@ -261,6 +261,60 @@ Recipes:
   → look at the PNG, then `--flags-sweep` to bisect the subsystem.
 - "Did my change alter rendering?": `rep-dbg shot "<f12>" --revs master,current`.
 
+## Scripted scenarios
+
+`rep-dbg script <file.rds> [--world W] [--keep-world D] [--rev R] [--window]
+[--keep] [--timeout S] [--json]` runs a scripted scenario — a plain-text
+file of debug commands, one per line — as a normal indexed run with
+`kind:"script"`. Scenarios assert **state** (blocks, light, mob counts),
+never images.
+
+Each tick the game executes lines in order until one blocks; blocking
+commands resume on later ticks. `#` starts a comment. `#!` lines are
+headers read by rep-dbg, not the game:
+
+- `#! world <name>` — world name (default is a generated flat world)
+- `#! keep-world <path>` — reuse an existing world directory
+- `#! terrain` — normal terrain instead of the flat world
+- `#! env K=V` — extra env var (repeatable)
+- `#! timeout S` — run timeout
+
+Commands (coordinates are whitespace-separated ints unless noted):
+
+| Command | Effect |
+| --- | --- |
+| `wait <ticks>` | block for n ticks |
+| `wait_idle [streak=20] [timeout=6000]` | block until the chunk loader is idle `streak` ticks in a row; on timeout emits `wait_timeout` + a failed assert, then continues |
+| `camera x y z yaw pitch` / `release` | pin / unpin the camera (floats; same path as a capture view) |
+| `screenshot <name>` | block until the frame is drawn; writes `screenshots/script_<name>_display.tga` (→ PNG + `artifacts.screenshots`) and emits a `screenshot` event |
+| `quality low|medium|high|x_high`, `flags <u_DebugFlags int>`, `rd <n>` | same mechanisms as the capture views |
+| `time <ticks>`, `mode survival|creative` | world time / game mode |
+| `setblock x y z <block>`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; fill is inclusive, max 65536 cells |
+| `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
+| `probe x y z`, `probe_light x y z` | emit a results `probe` record (name + sky/block light) |
+| `assert_block x y z <name|id>` | assert the loaded block |
+| `assert_light x y z sky|block <op> <n>` | op is `== != < <= > >=` |
+| `assert_mob_count <op> <n> [type]` | count mobs, optionally filtered by type |
+| `echo <text...>` | `echo` event |
+| `dump` | force a metric record now |
+| `quit` | exit now (else the script exits at EOF) |
+
+Assert records carry readable `expected`/`actual` (e.g. `">= 12"`/`"9"`).
+Unknown commands and bad args emit `cmd_error` **and** count as failed
+asserts — scripts fail loudly. Asserts on unloaded chunks fail with actual
+`"unloaded"`: always `wait_idle` after edits before asserting. At EOF the
+run exits with `exit_reason:"script_done"` unless `REPGAME_SCRIPT_KEEP=1`
+(`--keep`), which stays up with the camera released — useful with
+`--window`. Script mode does not write `player.dat`.
+
+rep-dbg prints each failed assert as `file:line: cmd — expected X, actual
+Y` and exits 1. `make scenarios` runs every `tests/scenarios/*.rds`
+(`SCENARIOS="substr"` filters) — it's part of `make test-all`.
+
+Bug report → scenario recipe: reproduce the setup with `setblock`/`fill`/
+`mob` lines, `wait_idle`, then `assert_*` what the user observed; commit
+the `.rds` under `tests/scenarios/` so `make scenarios` keeps it green.
+
 ## Recipes
 
 - Reproduce an F12 view: `rep-dbg run --env REPGAME_CAPTURE="<spec>" --flat`

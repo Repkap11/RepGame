@@ -1,0 +1,187 @@
+#include "common/harness/debug_commands.hpp"
+
+#include <cstdlib>
+#include <cstring>
+#include <strings.h>
+
+#include "common/RepGame.hpp"
+#include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/item.hpp"
+#include "common/multiplayer.hpp"
+#include "common/net_entities.hpp"
+
+// Same name lookup item_entities uses for REPGAME_ITEM_TEST: every defined
+// block name plus the pure item names, case-insensitive.
+ItemID dbgcmd::item_from_name( const char *name ) {
+    for ( unsigned int id = 0; id < static_cast<unsigned int>( LAST_BLOCK_ID ); id++ ) {
+        if ( !block_id_defined( id ) ) {
+            continue;
+        }
+        const char *n = block_definition_get_name( static_cast<BlockID>( id ) );
+        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
+            return id;
+        }
+    }
+    for ( ItemID id = ITEM_ID_BASE; id < ITEM_ID_END; id++ ) {
+        const char *n = item_name( id );
+        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
+            return id;
+        }
+    }
+    return LAST_BLOCK_ID;
+}
+
+BlockID dbgcmd::block_from_name( const char *name ) {
+    char *end = nullptr;
+    const long id = strtol( name, &end, 10 );
+    if ( end != name && *end == '\0' && id >= 0 && id < static_cast<long>( LAST_BLOCK_ID ) &&
+         block_id_defined( static_cast<unsigned int>( id ) ) ) {
+        return static_cast<BlockID>( id );
+    }
+    return static_cast<BlockID>( item_from_name( name ) );
+}
+
+MobType dbgcmd::mob_from_name( const char *name ) {
+    for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+        if ( mob_types[ t ].name != nullptr && strcasecmp( mob_types[ t ].name, name ) == 0 ) {
+            return static_cast<MobType>( t );
+        }
+    }
+    return MOB_TYPE_COUNT;
+}
+
+bool dbgcmd::loader_idle( const ChunkLoader &loader ) {
+    LoaderDebugStats s;
+    loader.debug_loader_stats( &s );
+    return s.chunks_loading == 0 && s.terrain_queued == 0 && s.terrain_results == 0 && s.light_jobs == 0 && s.light_pending == 0 &&
+           s.light_dirty == 0 && s.light_bfs_active == 0 && s.light_seeds == 0 && s.light_stale_count == 0;
+}
+
+void dbgcmd::goto_( RepGameState &state, const glm::dvec3 &pos ) {
+    RepGame::mp_test_goto( state, pos );
+}
+
+bool dbgcmd::drop( RepGameState &state, const char *item, int count, const glm::dvec3 &pos, const glm::dvec3 &vel, std::string *err ) {
+    const ItemID id = item_from_name( item );
+    if ( id == LAST_BLOCK_ID ) {
+        *err = std::string( "unknown item " ) + item;
+        return false;
+    }
+    state.world.items.spawn( id, count > 0 ? count : 1, pos, vel, 10 );
+    return true;
+}
+
+bool dbgcmd::mob( RepGameState &state, const char *type, const glm::dvec3 &pos, std::string *err ) {
+    const MobType t = mob_from_name( type );
+    if ( t == MOB_TYPE_COUNT || !state.world.mobs.spawn( t, pos, 0.0f, 1 ) ) {
+        *err = std::string( "cannot spawn mob " ) + type;
+        return false;
+    }
+    return true;
+}
+
+// Player melee hit on the mob carrying `net_id` — same shape as the
+// left-click path: mirrors get local feedback + ENTITY_ACTION, owned take
+// real damage.
+bool dbgcmd::hit( RepGameState &state, const unsigned long long net_id, std::string *err ) {
+    MobManager &mobs = state.world.mobs;
+    for ( size_t i = 0; i < mobs.count( ); i++ ) {
+        if ( mobs.net_id_at( static_cast<int>( i ) ) != net_id ) {
+            continue;
+        }
+        if ( mobs.net_mirror_at( static_cast<int>( i ) ) ) {
+            mobs.mirror_hit_feedback( static_cast<int>( i ), state.camera.pos );
+            NetEntityActionPayload act{};
+            act.id = net_id;
+            act.action = NET_ACTION_HIT;
+            act.damage = state.game_mode == GameMode_Survival ? 4.0f : 1000.0f;
+            act.ax = static_cast<float>( state.camera.pos.x );
+            act.ay = static_cast<float>( state.camera.pos.y );
+            act.az = static_cast<float>( state.camera.pos.z );
+            act.attacker_survival = state.game_mode == GameMode_Survival ? 1 : 0;
+            state.multiplayer.entities.send_entity_action( act );
+        } else {
+            const bool killed = mobs.hurt( static_cast<int>( i ), state.game_mode == GameMode_Survival ? 4.0f : 1000.0f, state.camera.pos );
+            if ( killed && state.game_mode == GameMode_Survival ) {
+                RepGame::spawn_mob_drops( state, mobs.def_at( static_cast<int>( i ) ), mobs.pos_at( static_cast<int>( i ) ) );
+            }
+        }
+        return true;
+    }
+    *err = "hit: no mob with that net_id";
+    return false;
+}
+
+bool dbgcmd::fall( RepGameState &state, const char *item, const glm::ivec3 &pos, std::string *err ) {
+    const ItemID id = item_from_name( item );
+    if ( id == LAST_BLOCK_ID || !block_id_defined( id ) ) {
+        *err = std::string( "unknown block " ) + item;
+        return false;
+    }
+    const BlockState bs{ static_cast<BlockID>( id ), 0, 0, static_cast<BlockID>( id ), 0 };
+    state.world.bodies.spawn_falling( pos, bs, glm::dvec3( 0.0 ) );
+    return true;
+}
+
+bool dbgcmd::tnt( RepGameState &state, const glm::vec3 &center, std::string *err ) {
+    // The normal launch path: body + TntExplodeEvent at tick + fuse.
+    (void)err;
+    tnt_launch( state.blockUpdateQueue, state, center, glm::vec3( 0.0f, 4.0f, 0.0f ), TNT_FUSE_TICKS, false );
+    return true;
+}
+
+bool dbgcmd::setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err ) {
+    const ItemID id = item_from_name( block_name );
+    if ( id == LAST_BLOCK_ID ) {
+        *err = std::string( "unknown block " ) + block_name;
+        return false;
+    }
+    const BlockState bs{ static_cast<BlockID>( id ), 0, 0, static_cast<BlockID>( id ), 0 };
+    state.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( state.tick_number, pos, bs, false ) );
+    return true;
+}
+
+bool dbgcmd::fill( RepGameState &state, const glm::ivec3 &a, const glm::ivec3 &b, const char *block_name, std::string *err ) {
+    const ItemID id = item_from_name( block_name );
+    if ( id == LAST_BLOCK_ID ) {
+        *err = std::string( "unknown block " ) + block_name;
+        return false;
+    }
+    const glm::ivec3 lo( std::min( a.x, b.x ), std::min( a.y, b.y ), std::min( a.z, b.z ) );
+    const glm::ivec3 hi( std::max( a.x, b.x ), std::max( a.y, b.y ), std::max( a.z, b.z ) );
+    const glm::ivec3 size = hi - lo + glm::ivec3( 1 );
+    const long long cells = static_cast<long long>( size.x ) * size.y * size.z;
+    if ( cells > 65536 ) {
+        *err = "fill: volume exceeds 65536 cells";
+        return false;
+    }
+    const BlockState bs{ static_cast<BlockID>( id ), 0, 0, static_cast<BlockID>( id ), 0 };
+    for ( int x = lo.x; x <= hi.x; x++ ) {
+        for ( int y = lo.y; y <= hi.y; y++ ) {
+            for ( int z = lo.z; z <= hi.z; z++ ) {
+                state.blockUpdateQueue.addBlockUpdate(
+                    std::make_shared<PlayerBlockPlacedEvent>( state.tick_number, glm::ivec3( x, y, z ), bs, false ) );
+            }
+        }
+    }
+    return true;
+}
+
+bool dbgcmd::mode( RepGameState &state, const char *name, bool *force_survival, std::string *err ) {
+    if ( strcasecmp( name, "survival" ) != 0 && strcasecmp( name, "creative" ) != 0 ) {
+        *err = std::string( "mode: want survival|creative, got " ) + name;
+        return false;
+    }
+    const bool survival = strcasecmp( name, "survival" ) == 0;
+    if ( force_survival != nullptr ) {
+        *force_survival = survival;
+    }
+    state.game_mode = survival ? GameMode_Survival : GameMode_Creative;
+    return true;
+}
+
+void dbgcmd::set_time( RepGameState &state, const long ticks ) {
+    state.world_time = ticks;
+    state.multiplayer.send_world_time( state.world_time );
+}

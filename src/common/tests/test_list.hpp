@@ -34,3 +34,4 @@ int test_net_mobs( );
 int test_net_bodies( );
 int test_crafting( );
 int test_results( );
+int test_script( );

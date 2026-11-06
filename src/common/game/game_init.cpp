@@ -377,9 +377,9 @@ void RepGame::cleanup( ) {
     // Return any crafting-grid contents before the save so quitting with
     // items in the grid doesn't lose them.
     repgame_crafting_return_grid( globalGameState );
-    // Capture/fly mode never writes player.dat — it would store the teleported
-    // view over the user's save.
-    if ( !run_policy().capture.enabled && !run_policy().fly.enabled ) {
+    // Capture/fly/script mode never writes player.dat — it would store the
+    // teleported view over the user's save.
+    if ( !run_policy().capture.enabled && !run_policy().fly.enabled && !run_policy().script.enabled ) {
         save_player_data( );
     }
 

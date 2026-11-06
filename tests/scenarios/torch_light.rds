@@ -1,0 +1,13 @@
+# A torch on the flat floor: blocklight is 14 at the source and decays with
+# distance (measured: 13 at 1 cell, 12 at 2, 10 at 4). Bounds, not exacts —
+# the chamfer BFS values are documented in docs/lighting.md.
+wait_idle 20 6000
+setblock 5 1 5 TORCH
+wait 30
+wait_idle 20 6000
+assert_block 5 1 5 TORCH
+assert_light 5 1 5 block >= 14
+assert_light 6 1 5 block < 14
+assert_light 9 1 5 block < 12
+assert_light 6 1 5 block > 0
+echo torch_light done

@@ -1,4 +1,5 @@
 #include "common/mp_test.hpp"
+#include "common/harness/debug_commands.hpp"
 #include "common/utils/env_config.hpp"
 
 #include <cstdarg>
@@ -78,35 +79,9 @@ void mp_test::event( RepGameState *state, const char *name, const char *fmt, ...
     jflush( );
 }
 
-// Same name lookup item_entities uses for REPGAME_ITEM_TEST: every defined
-// block name plus the pure item names, case-insensitive.
-static ItemID mp_item_from_name( const char *name ) {
-    for ( unsigned int id = 0; id < static_cast<unsigned int>( LAST_BLOCK_ID ); id++ ) {
-        if ( !block_id_defined( id ) ) {
-            continue;
-        }
-        const char *n = block_definition_get_name( static_cast<BlockID>( id ) );
-        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
-            return id;
-        }
-    }
-    for ( ItemID id = ITEM_ID_BASE; id < ITEM_ID_END; id++ ) {
-        const char *n = item_name( id );
-        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
-            return id;
-        }
-    }
-    return LAST_BLOCK_ID;
-}
-
-static MobType mp_mob_from_name( const char *name ) {
-    for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
-        if ( mob_types[ t ].name != nullptr && strcasecmp( mob_types[ t ].name, name ) == 0 ) {
-            return static_cast<MobType>( t );
-        }
-    }
-    return MOB_TYPE_COUNT;
-}
+// The name lookups and world-action commands live in
+// common/harness/debug_commands.cpp so the REPGAME_SCRIPT runner can reuse
+// them — mp_test keeps its own parsing and REPGAME_MP_DUMP event stream.
 
 // --- State dump ------------------------------------------------------------
 
@@ -212,37 +187,6 @@ static void cmd_error( RepGameState &state, const char *line ) {
     mp_test::event( &state, "cmd_error", "\"line\":\"%.120s\"", line );
 }
 
-// Player melee hit on the mob carrying `id` — same shape as the left-click
-// path: mirrors get local feedback + ENTITY_ACTION, owned take real damage.
-static void cmd_hit( RepGameState &state, const unsigned long long net_id ) {
-    MobManager &mobs = state.world.mobs;
-    for ( size_t i = 0; i < mobs.count( ); i++ ) {
-        if ( mobs.net_id_at( static_cast<int>( i ) ) != net_id ) {
-            continue;
-        }
-        if ( mobs.net_mirror_at( static_cast<int>( i ) ) ) {
-            mobs.mirror_hit_feedback( static_cast<int>( i ), state.camera.pos );
-            NetEntityActionPayload act;
-            memset( &act, 0, sizeof( act ) );
-            act.id = net_id;
-            act.action = NET_ACTION_HIT;
-            act.damage = state.game_mode == GameMode_Survival ? 4.0f : 1000.0f;
-            act.ax = static_cast<float>( state.camera.pos.x );
-            act.ay = static_cast<float>( state.camera.pos.y );
-            act.az = static_cast<float>( state.camera.pos.z );
-            act.attacker_survival = state.game_mode == GameMode_Survival ? 1 : 0;
-            state.multiplayer.entities.send_entity_action( act );
-        } else {
-            const bool killed = mobs.hurt( static_cast<int>( i ), state.game_mode == GameMode_Survival ? 4.0f : 1000.0f, state.camera.pos );
-            if ( killed && state.game_mode == GameMode_Survival ) {
-                RepGame::spawn_mob_drops( state, mobs.def_at( static_cast<int>( i ) ), mobs.pos_at( static_cast<int>( i ) ) );
-            }
-        }
-        return;
-    }
-    mp_test::event( &state, "cmd_error", "\"line\":\"hit: no mob with that net_id\"" );
-}
-
 static void run_cmd( RepGameState &state, char *line ) {
     // Tokenize on whitespace.
     char *argv[ 16 ];
@@ -254,61 +198,49 @@ static void run_cmd( RepGameState &state, char *line ) {
         return;
     }
     const char *cmd = argv[ 0 ];
+    std::string err;
 
     if ( strcmp( cmd, "goto" ) == 0 && argc == 4 ) {
-        RepGame::mp_test_goto( state, glm::dvec3( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) ) );
+        dbgcmd::goto_( state, glm::dvec3( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) ) );
         return;
     }
     if ( strcmp( cmd, "drop" ) == 0 && ( argc == 6 || argc == 9 ) ) {
-        const ItemID item = mp_item_from_name( argv[ 1 ] );
-        if ( item == LAST_BLOCK_ID ) {
-            cmd_error( state, line );
-            return;
-        }
-        const int count = atoi( argv[ 2 ] );
         const glm::dvec3 pos( atof( argv[ 3 ] ), atof( argv[ 4 ] ), atof( argv[ 5 ] ) );
         const glm::dvec3 vel = argc == 9 ? glm::dvec3( atof( argv[ 6 ] ), atof( argv[ 7 ] ), atof( argv[ 8 ] ) )
                                         : glm::dvec3( 0.0 );
-        state.world.items.spawn( item, count > 0 ? count : 1, pos, vel, 10 );
+        if ( !dbgcmd::drop( state, argv[ 1 ], atoi( argv[ 2 ] ), pos, vel, &err ) ) {
+            cmd_error( state, line );
+        }
         return;
     }
     if ( strcmp( cmd, "mob" ) == 0 && argc == 5 ) {
-        const MobType type = mp_mob_from_name( argv[ 1 ] );
-        if ( type == MOB_TYPE_COUNT ||
-             !state.world.mobs.spawn( type, glm::dvec3( atof( argv[ 2 ] ), atof( argv[ 3 ] ), atof( argv[ 4 ] ) ), 0.0f, 1 ) ) {
+        if ( !dbgcmd::mob( state, argv[ 1 ], glm::dvec3( atof( argv[ 2 ] ), atof( argv[ 3 ] ), atof( argv[ 4 ] ) ), &err ) ) {
             cmd_error( state, line );
         }
         return;
     }
     if ( strcmp( cmd, "hit" ) == 0 && argc == 2 ) {
-        cmd_hit( state, strtoull( argv[ 1 ], nullptr, 10 ) );
+        if ( !dbgcmd::hit( state, strtoull( argv[ 1 ], nullptr, 10 ), &err ) ) {
+            mp_test::event( &state, "cmd_error", "\"line\":\"hit: no mob with that net_id\"" );
+        }
         return;
     }
     if ( strcmp( cmd, "fall" ) == 0 && argc == 5 ) {
-        const ItemID item = mp_item_from_name( argv[ 1 ] );
-        if ( item == LAST_BLOCK_ID || !block_id_defined( item ) ) {
+        if ( !dbgcmd::fall( state, argv[ 1 ], glm::ivec3( atoi( argv[ 2 ] ), atoi( argv[ 3 ] ), atoi( argv[ 4 ] ) ),
+                          &err ) ) {
             cmd_error( state, line );
-            return;
         }
-        const BlockState bs{ static_cast<BlockID>( item ), 0, 0, static_cast<BlockID>( item ), 0 };
-        state.world.bodies.spawn_falling( glm::ivec3( atoi( argv[ 2 ] ), atoi( argv[ 3 ] ), atoi( argv[ 4 ] ) ), bs, glm::dvec3( 0.0 ) );
         return;
     }
     if ( strcmp( cmd, "tnt" ) == 0 && argc == 4 ) {
-        // The normal launch path: body + TntExplodeEvent at tick + fuse.
-        const glm::vec3 center( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) );
-        tnt_launch( state.blockUpdateQueue, state, center, glm::vec3( 0.0f, 4.0f, 0.0f ), TNT_FUSE_TICKS, false );
+        dbgcmd::tnt( state, glm::vec3( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) ), &err );
         return;
     }
     if ( strcmp( cmd, "setblock" ) == 0 && argc == 5 ) {
-        const ItemID item = mp_item_from_name( argv[ 4 ] );
-        if ( item == LAST_BLOCK_ID ) {
+        if ( !dbgcmd::setblock( state, glm::ivec3( atoi( argv[ 1 ] ), atoi( argv[ 2 ] ), atoi( argv[ 3 ] ) ), argv[ 4 ],
+                                &err ) ) {
             cmd_error( state, line );
-            return;
         }
-        const glm::ivec3 pos( atoi( argv[ 1 ] ), atoi( argv[ 2 ] ), atoi( argv[ 3 ] ) );
-        const BlockState bs{ static_cast<BlockID>( item ), 0, 0, static_cast<BlockID>( item ), 0 };
-        state.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( state.tick_number, pos, bs, false ) );
         return;
     }
     if ( strcmp( cmd, "probe" ) == 0 && argc == 4 ) {
@@ -331,8 +263,7 @@ static void run_cmd( RepGameState &state, char *line ) {
         return;
     }
     if ( strcmp( cmd, "time" ) == 0 && argc == 2 ) {
-        state.world_time = atol( argv[ 1 ] );
-        state.multiplayer.send_world_time( state.world_time );
+        dbgcmd::set_time( state, atol( argv[ 1 ] ) );
         return;
     }
     if ( strcmp( cmd, "dump" ) == 0 ) {
