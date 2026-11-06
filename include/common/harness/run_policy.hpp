@@ -110,6 +110,12 @@ struct RunPolicy {
     // REPGAME_CAPTURE_ANOMALY: 1 = display outlier scan, 2 = +FBO alpha scan.
     int capture_anomaly = 0;
 
+    // REPGAME_DEBUG_CRASH=segv|abort[@tick]: deliberate crash at that tick
+    // (default 0) — a debug-tools self-test hook for rep-dbg --gdb and the
+    // sanitizer builds. 0=off, 1=segv (null write), 2=abort.
+    int debug_crash = 0;
+    long debug_crash_tick = 0;
+
     // REPGAME_RESULTS=<path>: structured JSONL event stream (header, metric,
     // event, probe, assert, summary records — see docs/debug-tools.md);
     // presence enables the results writer.

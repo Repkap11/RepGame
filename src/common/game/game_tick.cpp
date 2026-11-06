@@ -342,6 +342,15 @@ void RepGame::tick( ) {
         globalGameState.input.movement.jumpPressed = false;
         globalGameState.input.movement.sneakPressed = false;
     }
+    // REPGAME_DEBUG_CRASH=segv|abort[@tick]: deliberate crash to exercise the
+    // debug tooling (rep-dbg --gdb, sanitizer report collection).
+    // `segv` with no @tick crashes on the first tick (>= comparison).
+    if ( run_policy( ).debug_crash && globalGameState.tick_number >= run_policy( ).debug_crash_tick ) {
+        if ( run_policy( ).debug_crash == 2 ) {
+            abort( );
+        }
+        *reinterpret_cast<volatile int *>( static_cast<uintptr_t>( 0 ) ) = 0;
+    }
     // Fly mode: scripted no-clip flight over fresh terrain (metrics-only —
     // the camera itself is scripted just like capture mode). Flags and view
     // angles go in here; the position pin lands right after process_movement

@@ -102,6 +102,18 @@ static RunPolicy run_policy_parse( ) {
     p.script.path = env_get( "REPGAME_SCRIPT" );
     p.script.enabled = p.script.path != nullptr && p.script.path[ 0 ] != '\0';
     p.script.keep = env_int( "REPGAME_SCRIPT_KEEP", 0 ) != 0;
+    if ( const char *v = env_get( "REPGAME_DEBUG_CRASH" ) ) {
+        const char *at = strchr( v, '@' );
+        std::string mode( v, at ? ( size_t )( at - v ) : strlen( v ) );
+        if ( mode == "segv" ) {
+            p.debug_crash = 1;
+        } else if ( mode == "abort" ) {
+            p.debug_crash = 2;
+        }
+        if ( at ) {
+            p.debug_crash_tick = atol( at + 1 );
+        }
+    }
     p.results_path = env_get( "REPGAME_RESULTS" );
     p.results_every = env_long( "REPGAME_RESULTS_EVERY", 20 );
     p.git_sha = env_get( "REPGAME_GIT" );

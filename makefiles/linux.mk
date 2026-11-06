@@ -54,6 +54,19 @@ all: linux
 linux: $(LINUX_OUT)/release/$(TARGET)
 linux_debug: $(LINUX_OUT)/debug/$(TARGET)
 
+# Sanitizer variants: same client, REPGAME_SANITIZER picks the flags in
+# CMakeLists.txt. LTO forced off — the sanitizer runtimes don't need it.
+linux_asan: $(LINUX_OUT)/asan/$(TARGET)
+linux_tsan: $(LINUX_OUT)/tsan/$(TARGET)
+
+$(LINUX_OUT)/asan/$(TARGET): $(SOUND_OGGS) FORCE
+	$(call cmake_build,linux-asan,$(LINUX_OUT)/cmake-asan,$(CMAKE_CLIENT_DFLAGS) \
+		-DREPGAME_LTO=OFF -DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/asan)
+
+$(LINUX_OUT)/tsan/$(TARGET): $(SOUND_OGGS) FORCE
+	$(call cmake_build,linux-tsan,$(LINUX_OUT)/cmake-tsan,$(CMAKE_CLIENT_DFLAGS) \
+		-DREPGAME_LTO=OFF -DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/tsan)
+
 $(LINUX_OUT)/release/$(TARGET): $(SOUND_OGGS) $(OPENXR_DEP) FORCE
 	$(call cmake_build,linux-release,$(LINUX_OUT)/cmake-release,$(CMAKE_CLIENT_DFLAGS) \
 		-DREPGAME_OUTPUT_DIR=$(abspath $(LINUX_OUT))/release)
@@ -94,4 +107,4 @@ clean: clean-linux
 clean-linux:
 	rm -rf out/linux out/linux-portable
 
-.PHONY: linux linux_debug linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev tests
+.PHONY: linux linux_debug linux_asan linux_tsan linux-run linux-run2 linux-run-blocks clean-linux linux-deploy dev tests

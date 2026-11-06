@@ -22,6 +22,28 @@
       }
     },
     {
+      "name": "linux-asan",
+      "displayName": "Linux client (ASan+UBSan)",
+      "binaryDir": "${sourceDir}/out/linux/cmake-asan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "REPGAME_PLATFORM": "linux",
+        "REPGAME_BUILD_CLIENT": "ON",
+        "REPGAME_SANITIZER": "asan"
+      }
+    },
+    {
+      "name": "linux-tsan",
+      "displayName": "Linux client (TSan)",
+      "binaryDir": "${sourceDir}/out/linux/cmake-tsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "REPGAME_PLATFORM": "linux",
+        "REPGAME_BUILD_CLIENT": "ON",
+        "REPGAME_SANITIZER": "tsan"
+      }
+    },
+    {
       "name": "server",
       "displayName": "Dedicated server (debug)",
       "binaryDir": "${sourceDir}/out/server/cmake",
@@ -96,6 +118,8 @@
   "buildPresets": [
     { "name": "linux-release", "configurePreset": "linux-release" },
     { "name": "linux-debug", "configurePreset": "linux-debug" },
+    { "name": "linux-asan", "configurePreset": "linux-asan" },
+    { "name": "linux-tsan", "configurePreset": "linux-tsan" },
     { "name": "server", "configurePreset": "server" },
     { "name": "arm-release", "configurePreset": "arm-release" },
     { "name": "arm-debug", "configurePreset": "arm-debug" },

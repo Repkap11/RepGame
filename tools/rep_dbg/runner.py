@@ -114,10 +114,21 @@ def run(opts, log):
     env.update(repgame_env)
     repgame_env = {k: v for k, v in env.items() if k.startswith("REPGAME_")}
 
+    if opts.build in ("asan", "tsan"):
+        from . import sanitizer as sanitizer_mod
+        env.update(sanitizer_mod.sanitizer_env(opts.build, run_dir))
+
     # perf record/stat reps wrap the game argv; '{run_dir}' placeholders in
-    # the wrap argv get the just-created run dir.
+    # the wrap argv get the just-created run dir. --gdb wraps in batch gdb
+    # whose own output goes to crash.txt while the inferior's output is
+    # redirected (gdb `run >`) back into stdout.log.
+    gdb_mode = bool(getattr(opts, "gdb", False))
+    wrap = getattr(opts, "wrap", None)
+    if gdb_mode and wrap is None:
+        from . import crash as crash_mod
+        wrap = crash_mod.gdb_wrap()
     wrap = [w.replace("{run_dir}", run_dir)
-            for w in (getattr(opts, "wrap", None) or [])]
+            for w in (wrap or [])]
     argv = wrap + [binary, world] + list(opts.extra or [])
     print("rep-dbg: run %s" % " ".join(argv), file=log)
     for k in sorted(repgame_env):
@@ -131,15 +142,25 @@ def run(opts, log):
     started = time.time()
     result["started"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     timed_out = False
-    with open(os.path.join(run_dir, "stdout.log"), "w") as logf:
+    stdout_path = os.path.join(run_dir, "stdout.log")
+    # gdb mode: gdb's own stdout lands in crash.txt; the inferior's output is
+    # redirected by `run > stdout.log` inside gdb. Inferior stderr still
+    # arrives via the parent pipe, so append it to stdout.log.
+    out_path = os.path.join(run_dir, "crash.txt") if gdb_mode else stdout_path
+    with open(out_path, "w") as logf, \
+            open(stdout_path, "a") as errf:
         proc = subprocess.Popen(argv, cwd=run_dir, env=env,
-                                stdout=logf, stderr=subprocess.STDOUT)
+                                stdout=logf,
+                                stderr=errf if gdb_mode else subprocess.STDOUT)
         try:
             code = proc.wait(timeout=opts.timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            # perf reps want SIGINT so perf.data is finalized.
-            proc.send_signal(getattr(opts, "stop_signal", None) or signal.SIGTERM)
+            # perf reps want SIGINT so perf.data is finalized; gdb mode uses
+            # SIGINT so batch gdb interrupts the inferior and still runs the
+            # queued backtrace before quitting.
+            proc.send_signal(getattr(opts, "stop_signal", None) or
+                             (signal.SIGINT if gdb_mode else signal.SIGTERM))
             try:
                 code = proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
@@ -150,6 +171,11 @@ def run(opts, log):
                       "signal": -code if code < 0 else None}
 
     assemble_result(result, run_dir, timed_out=timed_out)
+    if gdb_mode:
+        from . import crash as crash_mod
+        crash_mod.postprocess(run_dir, result, log)
+    if opts.build in ("asan", "tsan"):
+        sanitizer_mod.postprocess(run_dir, result, log)
     if getattr(opts, "perf", None):
         from . import perf as perf_mod
         perf_mod.postprocess(run_dir, result, opts, log)

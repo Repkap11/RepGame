@@ -343,8 +343,66 @@ Subcommands (default human text, `--json` for one JSON object):
 Light is not persisted (it derives from blocks) — use `probe_light` in a
 rep-dbg script to inspect light in a live world.
 
+## Sanitizers & crashes
+
+`--build asan` and `--build tsan` select dedicated build variants
+(`make linux_asan` / `make linux_tsan`, binaries at
+`out/linux/asan/RepGame` and `out/linux/tsan/RepGame`). ASan builds also
+carry UBSan (`-fsanitize=address,undefined`, recovering —
+`halt_on_error=0`, one report per source location); both use `-O1 -g
+-fno-omit-frame-pointer`, no LTO, and drop the static
+libstdc++/libgcc link so the sanitizer runtimes work.
+
+The runner sets the right env per variant:
+
+- asan: `ASAN_OPTIONS=log_path=<run>/asan:detect_leaks=1:abort_on_error=0:halt_on_error=0`,
+  `LSAN_OPTIONS=suppressions=tools/sanitizers/lsan.supp`,
+  `UBSAN_OPTIONS=print_stacktrace=1:log_path=<run>/ubsan`
+- tsan: `TSAN_OPTIONS=log_path=<run>/tsan:suppressions=tools/sanitizers/tsan.supp:second_deadlock_stack=1`
+
+Reports land as `<run>/asan.<pid>` / `tsan.<pid>` / `ubsan.<pid>`, are
+listed in `result.json.artifacts.sanitizer`, and are summarized in
+`result.json.sanitizer = {asan_errors, ubsan_errors, tsan_warnings,
+leaks, top: [{kind, summary_line, first_repgame_frame}]}` — the first
+frame pointing into `src/`/`include/` is what to paste in a bug. Any
+unsuppressed report marks the run `failed`.
+
+**Suppression policy:** `tools/sanitizers/*.supp` exists for third-party
+noise only (Mesa/llvmpipe, SDL, imgui, libasound), one comment per entry.
+Never suppress RepGame frames — report them instead. TSan on GL drivers
+is noisy: races inside the driver threads are third-party and
+suppressible; races between `loader`/`light_worker` and the main thread
+are real and should be reported verbatim.
+
+**`rep-dbg tests --build asan|tsan|debug [filters]`** runs `RepGame
+--tests` as an indexed `tests` run under the same sanitizer env. The test
+binary has no results stream, so `result.json.tests = {passed, failed,
+failed_names}` is parsed from its stdout — the only log parse rep-dbg
+performs on output. Status is `failed` on test failures or reports.
+
+**`--gdb`** on `run`/`fly`/`walk` wraps the game in batch gdb:
+`gdb -q -batch -nx -ex "run > stdout.log" -ex "thread apply all bt full"`.
+The inferior's output still lands in `stdout.log`; gdb's own output —
+the signal line and every thread's full backtrace — lands in
+`<run>/crash.txt`. On a crash `result.json.crash = {signal, thread,
+top_frames}` (first ~8 frames of the crashing thread as
+`"func (file:line)"`) and status is `crashed`; a normal exit records
+`{signal: null, note: "no_crash"}` instead of misleading noise. On a
+timeout the runner sends SIGINT, which batch gdb treats as an interrupt:
+the queued `bt full` still runs, so even a hung run leaves an
+all-thread backtrace before gdb quits and kills the inferior.
+
+**Self-test hook:** `REPGAME_DEBUG_CRASH=segv|abort[@tick]` makes
+`RepGame::tick` crash deliberately (`segv` writes through a null
+pointer, `abort` calls `abort()`) at the given tick (default 0). Use it
+to verify `--gdb` and sanitizer report collection.
+
 ## Recipes
 
+- Headless crash triage: `rep-dbg fly --gdb --env REPGAME_DEBUG_CRASH=segv@60`,
+  then read `result.json.crash` and `<run>/crash.txt`.
+- Suspected light/loader race: `rep-dbg tests --build tsan light` or a
+  full `rep-dbg fly --build tsan`; findings land in `result.json.sanitizer`.
 - "User says block X at x,y,z is wrong": `rep-dbg inspect World1 block x y z`;
   surrounding layout via `rep-dbg inspect World1 slice y x-10 z-10 x+10 z+10 --png out.png`.
 - Inspect a scenario's world afterwards: `rep-dbg inspect last block 10 1 10`

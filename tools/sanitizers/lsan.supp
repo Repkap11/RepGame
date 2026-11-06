@@ -1,0 +1,13 @@
+# LeakSanitizer suppressions for RepGame (ASan build).
+# Policy: only third-party/driver noise goes here — never RepGame frames.
+# Keep every entry commented with where it comes from.
+
+# Mesa/llvmpipe GL driver allocations that outlive the context (system lib).
+leak:llvmpipe
+leak:libGLX_mesa
+# SDL3 video/audio subsystems hold singletons past SDL_Quit.
+leak:SDL3
+# imgui font atlas/context memory freed only on shutdown.
+leak:imgui
+# libasound mixer/device caches (audio runtime).
+leak:asound

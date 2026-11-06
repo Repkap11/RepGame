@@ -52,6 +52,7 @@ the index, not the reference.
 | `REPGAME_MP_DUMP` | unset | all | JSONL dump path; presence enables the mp-test client harness | mp-test skill |
 | `REPGAME_MP_DUMP_EVERY` | 5 | all | state-dump cadence in ticks | mp-test skill |
 | `REPGAME_MSAA` | on (4x) | WASM | `0` requests a non-antialiased WebGL context | capture skill |
+| `REPGAME_DEBUG_CRASH` | unset | all | `segv|abort[@tick]` — deliberate crash inside `RepGame::tick` at the first tick `>= @tick`; no `@tick` crashes on the first tick. A debug-tools self-test hook for `rep-dbg --gdb` and the sanitizer builds | docs/debug-tools.md |
 | `REPGAME_MUSIC` | on | all | `0` mutes music only (SFX still play) | docs/audio.md |
 | `REPGAME_MUSIC_GAP` | 240 | all | max seconds between tracks; gap uniform in `[gap/4, gap]`, `0` = continuous | docs/audio.md |
 | `REPGAME_MUSIC_VOLUME` | 0.5 | all | linear music gain 0..1 | docs/audio.md |
@@ -72,6 +73,7 @@ the index, not the reference.
 | `REPGAME_SFX_VOLUME` | 1.0 | all | linear SFX gain 0..1 | docs/audio.md |
 | `REPGAME_TELEPORT` | unset | all | `"x,y,z,angle,sprint,spin_deg_per_tick[,pitch]"` — teleport on tick 1 then hold forward; only consulted under `REPGAME_WALKTEST` | capture skill |
 | `REPGAME_TEX_MIPMAPS` | 1 | all | `0` restores NEAREST minification of the block atlas | docs/rendering.md |
+| `REPGAME_TRANSLUCENT_BLEND` | `alpha` | all | `legacy`/`alpha`/`multiply`: translucent-pass (stained glass, ice, ...) compositing — `legacy` = old depth-writing behaviour, `alpha` = no depth writes, `multiply` = order-independent colour-filter blend | docs/rendering.md |
 | `REPGAME_VALIDATE_INSTANCES` | off | all | when set, sanity-check every BlockCoords instance before GPU upload | docs/rendering.md |
 | `REPGAME_VR` | on (OpenXR builds) | OpenXR | `0` disables VR entirely | docs/vr.md |
 | `REPGAME_VR_MIRROR` | 1 desktop / 0 Steam Frame | OpenXR | blit eye 0 to the desktop window | docs/vr.md |

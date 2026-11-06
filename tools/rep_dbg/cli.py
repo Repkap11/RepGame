@@ -37,6 +37,8 @@ def _add_run_args(p):
     p.add_argument("--json", action="store_true", help="print result.json on stdout")
     p.add_argument("--root", default=None, help="run root (default /tmp/rep-dbg or REP_DBG_ROOT)")
     p.add_argument("--every", type=int, default=None, help="REPGAME_RESULTS_EVERY cadence")
+    p.add_argument("--gdb", action="store_true",
+                   help="wrap the game in batch gdb; signal + all-thread bt land in crash.txt")
 
 
 def _parser():
@@ -152,6 +154,15 @@ def _parser():
     p.add_argument("--out", help="output dir (default: new diff run dir)")
     p.add_argument("--rerun", action="store_true",
                    help="on a view-0 run diff, re-execute both runs once")
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--root", default=None)
+
+    p = sub.add_parser("tests", help="run rep_tests under a build variant")
+    p.add_argument("filters", nargs="*", help="test-name substrings")
+    p.add_argument("--build", default="debug", choices=["release", "debug", "asan", "tsan"])
+    p.add_argument("--env", action="append", metavar="K=V")
+    p.add_argument("--timeout", type=float, default=None)
+    p.add_argument("--name", default="tests")
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
@@ -748,6 +759,41 @@ def _do_script(opts):
     return runner_mod.exit_code(result)
 
 
+def _do_tests(opts):
+    """`rep-dbg tests`: RepGame --tests under the chosen build, as an
+    indexed run with kind "tests". The test binary has no results stream,
+    so pass/fail counts come from its stdout (see logparse.parse_rep_tests)."""
+    from . import logparse
+    env = _env_pairs(opts.env)
+
+    def _tests_result(run_dir, result, log):
+        try:
+            text = open(os.path.join(run_dir, "stdout.log"),
+                        errors="replace").read()
+        except OSError:
+            text = ""
+        result["tests"] = logparse.parse_rep_tests(text)
+        if result["tests"].get("failed") and result.get("status") == "ok":
+            result["status"] = "failed"
+        t = result["tests"]
+        print("rep-dbg: tests %d passed, %d failed%s"
+              % (t["passed"], t["failed"],
+                 " (%s)" % ", ".join(t["failed_names"]) if t["failed_names"] else ""),
+              file=log)
+
+    ns = argparse.Namespace(
+        root=opts.root, env=["%s=%s" % kv for kv in env.items()],
+        rev=None, rev_arg=None, build=opts.build, world="--tests",
+        flat=False, keep_world=None, timeout=opts.timeout,
+        name=opts.name, kind="tests", window=True, extra=list(opts.filters),
+        ab_id=None, cfg=None, postprocess_fn=_tests_result)
+    result, run_dir = runner_mod.run(ns, sys.stderr)
+    print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
+    if opts.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    return runner_mod.exit_code(result)
+
+
 def _do_run(opts):
     env = _preset_env(opts)
     # Preset pairs first so a user's --env overrides a preset default.
@@ -955,6 +1001,9 @@ def main(argv):
         else:
             print("rep-dbg: pruned %d worktree(s)" % len(removed))
         return 0
+
+    if opts.cmd == "tests":
+        return _do_tests(opts)
 
     if opts.cmd == "inspect":
         from . import inspect as inspect_mod

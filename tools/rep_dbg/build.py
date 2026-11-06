@@ -5,8 +5,8 @@ import subprocess
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-BUILD_DIRS = {"release": "release", "debug": "debug", "asan": "debug", "tsan": "debug"}
-MAKE_TARGETS = {"release": "linux", "debug": "linux_debug", "asan": "linux_debug", "tsan": "linux_debug"}
+BUILD_DIRS = {"release": "release", "debug": "debug", "asan": "asan", "tsan": "tsan"}
+MAKE_TARGETS = {"release": "linux", "debug": "linux_debug", "asan": "linux_asan", "tsan": "linux_tsan"}
 
 
 def git(tree, *args):
@@ -29,9 +29,6 @@ def binary_path(tree, build):
 
 def ensure_built(tree, build, log):
     """Run the make wrapper in `tree`; returns the binary path or None."""
-    if build in ("asan", "tsan"):
-        print("rep-dbg: --build %s needs the Phase 7 sanitizer targets" % build, file=log)
-        return None
     if subprocess.call(["make", MAKE_TARGETS[build]], cwd=tree, stdout=log, stderr=subprocess.STDOUT) != 0:
         return None
     path = binary_path(tree, build)

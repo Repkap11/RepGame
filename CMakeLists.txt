@@ -42,6 +42,7 @@ set(REPGAME_SOUND_OGG_DIR "${CMAKE_SOURCE_DIR}/out/sounds" CACHE PATH "Directory
 option(REPGAME_USE_LLD "Link with -fuse-ld=lld" ON)
 option(REPGAME_LTO "Link-time optimization for Release builds (linux client)" ON)
 option(REPGAME_FRAME_POINTERS "Keep frame pointers (perf --call-graph fp)" OFF)
+set(REPGAME_SANITIZER "" CACHE STRING "Sanitizer variant: '' or 'asan' or 'tsan'")
 # Real LTO via CMake's IPO support: clang gets -flto=thin on compile AND link,
 # gcc -flto/-fno-fat-lto-objects. Set globally before targets exist so RepGame
 # and the repgame_imgui OBJECT library both pick it up; Release config only.
@@ -92,6 +93,19 @@ target_compile_options(repgame_flags INTERFACE
 if(REPGAME_FRAME_POINTERS)
 	target_compile_options(repgame_flags INTERFACE
 		-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer)
+endif()
+# Sanitizer variants (make linux_asan / linux_tsan presets). Debug-ish -O1
+# keeps stacks readable; no LTO. When set, the linux link drops
+# -static-libgcc/-static-libstdc++ (see the RepGame link line).
+if(REPGAME_SANITIZER STREQUAL "asan")
+	target_compile_options(repgame_flags INTERFACE -O1 -g -fno-omit-frame-pointer
+		-fsanitize=address,undefined)
+	target_link_options(repgame_flags INTERFACE
+		-fsanitize=address,undefined)
+elseif(REPGAME_SANITIZER STREQUAL "tsan")
+	target_compile_options(repgame_flags INTERFACE -O1 -g -fno-omit-frame-pointer
+		-fsanitize=thread)
+	target_link_options(repgame_flags INTERFACE -fsanitize=thread)
 endif()
 # In release mode, don't check for GL errors. HW vsync is a runtime toggle on
 # the 'v' key (default on), not a compile flag.
@@ -337,7 +351,12 @@ if(REPGAME_BUILD_CLIENT)
 		# CMAKE_INTERPROCEDURAL_OPTIMIZATION (-flto=thin on compile+link).
 		target_link_libraries(RepGame PRIVATE
 			-lSDL3 -Wl,-Bstatic -lGLEW -Wl,-Bdynamic -lGL -lpthread -lm -ldl
-			-static-libgcc -static-libstdc++ -lwayland-client)
+			-lwayland-client)
+		# Sanitizer runtimes need the shared C++ runtime; the default builds
+		# keep the static link.
+		if(NOT REPGAME_SANITIZER)
+			target_link_libraries(RepGame PRIVATE -static-libgcc -static-libstdc++)
+		endif()
 	elseif(REPGAME_PLATFORM STREQUAL "arm")
 		# The old arm.mk's link-only -flto was a no-op (objects were never
 		# LTO-compiled) and is dropped here.

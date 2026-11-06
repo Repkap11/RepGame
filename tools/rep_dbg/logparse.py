@@ -91,6 +91,27 @@ def parse_lines(lines, git=""):
     return records
 
 
+# --- rep_tests output (the only other log parse: --tests has no results) --
+TEST_FAIL = re.compile(r'Test "(\w+)" failed')
+TEST_LISTED_FAIL = re.compile(r"^\s+(\w+)$", re.M)
+TEST_FAIL_HDR = re.compile(r"(\d+) of (\d+) test\(s\) failed:")
+TEST_ALL_PASS = re.compile(r"All (\d+) Rep Tests passed")
+
+
+def parse_rep_tests(text):
+    """rep_tests stdout -> {passed, failed, failed_names}."""
+    m = TEST_FAIL_HDR.search(text)
+    if m:
+        failed, run = int(m.group(1)), int(m.group(2))
+        names = TEST_LISTED_FAIL.findall(text[m.end():])[:failed]
+        return {"passed": run - failed, "failed": failed, "failed_names": names}
+    m = TEST_ALL_PASS.search(text)
+    if m:
+        return {"passed": int(m.group(1)), "failed": 0, "failed_names": []}
+    return {"passed": 0, "failed": 0, "failed_names": [],
+            "note": "no test summary found"}
+
+
 def convert(log_path, out_path, git=""):
     with open(log_path, "r", errors="replace") as f:
         records = parse_lines(f, git=git)

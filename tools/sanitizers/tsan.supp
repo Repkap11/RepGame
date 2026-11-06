@@ -1,0 +1,22 @@
+# ThreadSanitizer suppressions for RepGame (TSan build).
+# Policy: only third-party/driver noise goes here — never RepGame frames.
+# Keep every entry commented with where it comes from.
+
+# GL driver threads (Mesa/llvmpipe) race internally; not ours to fix.
+race:llvmpipe
+race:libGLX_mesa
+# SDL audio/video worker threads.
+race:SDL3
+# ROCm/HIP driver internals (amd::Monitor, amd::Command,
+# amd::ReferenceCountedObject, ...) race inside libamdhip64 on GPU init.
+called_from_lib:libamdhip64.so*
+race:amd::
+# ROCr HSA runtime (rocr::AMD::ScratchCache etc.) races on its own
+# internal structures; RepGame frames appear only as the calling thread.
+called_from_lib:libhsa-runtime*
+# Mesa/radeonsi GL driver worker threads (shader cache, util queue).
+called_from_lib:libgallium*
+# libdbus internal transport threads (SDL pulls it in via dbus).
+called_from_lib:libdbus*
+# SDL's rtkit thread-priority path trips a dbus mutex warning.
+mutex:SDL_DBus

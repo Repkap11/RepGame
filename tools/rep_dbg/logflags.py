@@ -6,6 +6,8 @@ import re
 
 PATTERNS = {
     "asan_errors": re.compile(r"(Address|Leak|Memory)Sanitizer"),
+    "tsan_warnings": re.compile(r"WARNING: ThreadSanitizer"),
+    "lsan_leaks": re.compile(r"ERROR: LeakSanitizer"),
     "ubsan_errors": re.compile(r"runtime error:"),
     "gl_errors": re.compile(r"GL Error"),
     "capture_timeouts": re.compile(r"TIMEOUT — loader still busy"),

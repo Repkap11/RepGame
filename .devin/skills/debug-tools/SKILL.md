@@ -24,7 +24,10 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | When did it settle? | `rep-dbg show last --field game.settle_tick` |
 | Which tick did the capture shoot? | `rep-dbg show last --field game.shots` / `r.events("capture_shot")` |
 | Regression vs another rev | `rep-dbg fly --rev <sha> ...` + `rep-dbg compare <idA> <idB>` |
-| Crash / hang | run with `--timeout S` → `status` is `crashed`/`timeout`, see `stdout.log` |
+| Crash / hang | `rep-dbg fly --gdb ...` → `crash.txt` all-thread bt + `result.json.crash` (`REPGAME_DEBUG_CRASH=segv@60` self-test hook); `--timeout S` alone gives `status=timeout` |
+| ASan/UBSan findings | `rep-dbg tests --build asan` or `rep-dbg fly --build asan` → `result.json.sanitizer`, reports as `asan.*`/`ubsan.*` in the run dir |
+| Data races | `rep-dbg tests --build tsan light` / `rep-dbg fly --build tsan` → `tsan.*` reports; suppressions in `tools/sanitizers/` (third-party noise only, never RepGame frames) |
+| rep_tests as a run | `rep-dbg tests --build debug|asan|tsan [filters]` → `result.json.tests {passed,failed,failed_names}` |
 | A/B an env toggle or branch | `rep-dbg ab --cfg a=rev:master --cfg b=current:REPGAME_LIGHT_SMOOTH=1 --reps 3 stream-flight` (scenarios: `cold-settle`, `stream-flight`, or preset args after `--`) |
 | Metric table / CSV / chart | `rep-dbg metrics <run> [--csv] [--plot loader.light_jobs,...] [--after-settle]` |
 | Where is CPU time going? | `rep-dbg perf record stream-flight` → `top.txt`, `flame.svg` in the run dir (needs `kernel.perf_event_paranoid<=1`; `--call-graph fp` wants `make linux PERF=1`) |
