@@ -61,6 +61,10 @@ void MapStorage::init( const char *world_name ) {
     free( dir );
 }
 
+void MapStorage::init_readonly( const char *map_dir ) {
+    snprintf( this->map_name, MAP_NAME_MAX_LENGTH, "%s", map_dir );
+}
+
 char *MapStorage::get_map_name( ) {
     return this->map_name;
 }

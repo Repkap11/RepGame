@@ -7,8 +7,8 @@ class Chunk;
 struct PlayerData;
 struct BlockState;
 
-#define MAP_NAME_MAX_LENGTH 200
-#define CHUNK_NAME_MAX_LENGTH 256
+#define MAP_NAME_MAX_LENGTH 512
+#define CHUNK_NAME_MAX_LENGTH 640
 #define FILE_ROOT_CHUNK "%s/chunk_%d_%d_%d"
 #define FILE_ROOT_CHEST "%s/chest_%d_%d_%d"
 #define FILE_ROOT_MOBS "%s/mobs_%d_%d_%d"
@@ -66,6 +66,9 @@ class MapStorage {
 
   public:
     void init( const char *world_name );
+    // Points map_name at an existing directory without creating anything —
+    // the offline inspector's read-only mode.
+    void init_readonly( const char *map_dir );
     // Reads `<world dir>/world_type`; a first token of `flat` sets
     // g_repgame_flat_world (sandstone-floor generator, see
     // MapGen::flat_world_id). Must run before init()/any chunk generation.

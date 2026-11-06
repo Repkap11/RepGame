@@ -8,6 +8,11 @@ on Linux, `.` on Android/Windows, the WasmFS virtual filesystem root on
 WASM. Below it, one directory per world (`MapStorage::init` mkdirs it),
 named by the `world_name` argument.
 
+To read these files without starting the game, use the offline inspector:
+`RepGame inspect <world> <sub>` or `rep-dbg inspect` (block/slice/column/
+chunk/entities/player — all through the real loaders, read-only; see
+`src/common/harness/inspect.cpp` and docs/debug-tools.md).
+
 ```
 <root>/<world>/
     world_type              optional; "flat" selects the flat generator

@@ -36,7 +36,9 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
   `rep-dbg script`; `SCENARIOS="substr"` filters); part of `test-all`
 - `make check` — cppcheck over `src/`
 - `tools/rep-dbg` — structured headless runs (`fly`/`walk`/`run` presets)
-  with per-run `result.json`/`results.jsonl` under `/tmp/rep-dbg`;
+  with per-run `result.json`/`results.jsonl` under `/tmp/rep-dbg`; `rep-dbg
+  inspect <world|run> <sub>` reads saved worlds offline (block/slice/chunk/
+  entities/player);
   `python3 -m unittest discover tools/rep_dbg/tests` covers the Python
   side. See docs/debug-tools.md and the `debug-tools` skill
 - Capture-diff caveat: `capture_0` flat captures are bistable run-to-run —

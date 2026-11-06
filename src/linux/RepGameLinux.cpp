@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "common/RepGame.hpp"
+#include "common/harness/inspect.hpp"
 
 int main( int argc, char **argv ) {
     const char *world_path;
@@ -8,6 +9,11 @@ int main( int argc, char **argv ) {
     bool connect_multi = true;
     int test_argc = 0;
     const char *const *test_argv = nullptr;
+    if ( argc >= 2 && strcmp( argv[ 1 ], "inspect" ) == 0 ) {
+        // `RepGame inspect <world> <sub> ...` — offline world-file inspector.
+        // Runs before SDL_Init: no window, no GL.
+        return inspect::run( argc - 2, argv + 2 );
+    }
     if ( argc >= 2 && strcmp( argv[ 1 ], "--tests" ) == 0 ) {
         // `RepGame --tests [filter ...]` — remaining args are test-name filters.
         world_path = argv[ 1 ];

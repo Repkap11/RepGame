@@ -195,6 +195,17 @@ def _parser():
     p.add_argument("action", choices=["list", "prune"])
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
+
+    p = sub.add_parser(
+        "inspect",
+        help="offline world inspector: block|slice|column|chunk|entities|player")
+    p.add_argument("target", help="world name, world-dir path, run id, run dir, or 'last'")
+    p.add_argument("args", nargs=argparse.REMAINDER,
+                   help="inspect subcommand + args, e.g. block 10 1 10; "
+                        "slice accepts --png out.png (rendered with PIL)")
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--binary", default=None, help="RepGame binary (default: release build)")
+    p.add_argument("--root", default=None)
     return ap
 
 
@@ -944,5 +955,9 @@ def main(argv):
         else:
             print("rep-dbg: pruned %d worktree(s)" % len(removed))
         return 0
+
+    if opts.cmd == "inspect":
+        from . import inspect as inspect_mod
+        return inspect_mod.do_inspect(opts)
 
     return 4

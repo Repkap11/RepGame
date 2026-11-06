@@ -315,8 +315,40 @@ Bug report → scenario recipe: reproduce the setup with `setblock`/`fill`/
 `mob` lines, `wait_idle`, then `assert_*` what the user observed; commit
 the `.rds` under `tests/scenarios/` so `make scenarios` keeps it green.
 
+## Inspecting saved worlds (`inspect`)
+
+`rep-dbg inspect <target> <sub> ...` runs the offline world inspector —
+the game binary's `inspect` subcommand (dispatched before SDL, no GL),
+which reads the same save files `MapStorage` writes, strictly read-only.
+`<target>` is a world name (under `$HOME/.repgame`), a path to a world
+dir, a run id, a run dir, or `last`; runs resolve to
+`<run>/home/.repgame/<world>` via the world in `result.json.cmd`. It
+creates no run and touches no index.
+
+Subcommands (default human text, `--json` for one JSON object):
+
+- `block x y z` — `{pos, chunk, local, id, name, rotation, redstone_power,
+  saved}`. `saved:false`/`id:null` means no chunk file: generated terrain
+  is not stored, so "no file" is not "air".
+- `slice y x1 z1 x2 z2 [--png out.png]` — an ASCII grid of one layer +
+  char→name legend, max 256×256. With `--png`, rep-dbg renders it with
+  PIL (one stable colour per block name, 8×, legend strip).
+- `column x z [--y0 a --y1 b]` — vertical run-length-encoded column.
+- `chunk cx cy cz` — file size, non-air count, top-20 block counts.
+- `entities [--near x y z --radius r]` — chests, mobs and dropped items
+  from `chest_*`/`mobs_*`/`items_*` files via the real loaders.
+- `player` — `player.dat` (pos/angles/mode/inventories), `world.dat`,
+  `world_type`.
+
+Light is not persisted (it derives from blocks) — use `probe_light` in a
+rep-dbg script to inspect light in a live world.
+
 ## Recipes
 
+- "User says block X at x,y,z is wrong": `rep-dbg inspect World1 block x y z`;
+  surrounding layout via `rep-dbg inspect World1 slice y x-10 z-10 x+10 z+10 --png out.png`.
+- Inspect a scenario's world afterwards: `rep-dbg inspect last block 10 1 10`
+  (run dirs keep their isolated `home/`).
 - Reproduce an F12 view: `rep-dbg run --env REPGAME_CAPTURE="<spec>" --flat`
 - Bisect a regression: `rep-dbg fly --rev <sha> --ticks 400` (old revs get
   a `log-shim` result.json).
