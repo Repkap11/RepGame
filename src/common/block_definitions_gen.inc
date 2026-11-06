@@ -15871,10 +15871,10 @@ block_definitions[ 1215 ].tex_offset = { -5, 0, -5 };
 // TALL_GRASS (1216)
 block_definitions[ 1216 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 1216 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1216 ].textures[ FACE_RIGHT ] = TEX_DOUBLE_PLANT_GRASS_CARRIED;
-block_definitions[ 1216 ].textures[ FACE_FRONT ] = TEX_DOUBLE_PLANT_GRASS_CARRIED;
-block_definitions[ 1216 ].textures[ FACE_LEFT ] = TEX_DOUBLE_PLANT_GRASS_CARRIED;
-block_definitions[ 1216 ].textures[ FACE_BACK ] = TEX_DOUBLE_PLANT_GRASS_CARRIED;
+block_definitions[ 1216 ].textures[ FACE_RIGHT ] = TEX_DOUBLE_PLANT_GRASS_BOTTOM;
+block_definitions[ 1216 ].textures[ FACE_FRONT ] = TEX_DOUBLE_PLANT_GRASS_BOTTOM;
+block_definitions[ 1216 ].textures[ FACE_LEFT ] = TEX_DOUBLE_PLANT_GRASS_BOTTOM;
+block_definitions[ 1216 ].textures[ FACE_BACK ] = TEX_DOUBLE_PLANT_GRASS_BOTTOM;
 block_definitions[ 1216 ].icon_texture = TEX_DOUBLE_PLANT_GRASS_CARRIED;
 block_definitions[ 1216 ].affected_by_redstone_power = false;
 block_definitions[ 1216 ].breaks_in_liquid = true;
@@ -15885,10 +15885,11 @@ block_definitions[ 1216 ].icon_is_isometric = false;
 block_definitions[ 1216 ].is_seethrough = true;
 block_definitions[ 1216 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1216 ].no_light = 0;
-block_definitions[ 1216 ].offset = { 5, 0, 5 };
+block_definitions[ 1216 ].offset = { 1, 0, 1 };
 block_definitions[ 1216 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 1216 ].scale = { 6, 11, 6 };
-block_definitions[ 1216 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1216 ].scale = { 14, 16, 14 };
+block_definitions[ 1216 ].tall_plant_partner = TALL_GRASS_UPPER;
+block_definitions[ 1216 ].tex_offset = { -1, 0, -1 };
 
 // TALLGRASS (1217)
 block_definitions[ 1217 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -18720,15 +18721,29 @@ block_definitions[ 1420 ].rotate_on_placement = true;
 block_definitions[ 1420 ].scale = { 16, 16, 3 };
 block_definitions[ 1420 ].tex_offset = { -13, 0, 0 };
 
-// undefined (1421)
+// TALL_GRASS_UPPER (1421)
 block_definitions[ 1421 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 1421 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1421 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1421 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1421 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1421 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1421 ].icon_texture = TEX_AIR;
+block_definitions[ 1421 ].textures[ FACE_RIGHT ] = TEX_DOUBLE_PLANT_GRASS_TOP;
+block_definitions[ 1421 ].textures[ FACE_FRONT ] = TEX_DOUBLE_PLANT_GRASS_TOP;
+block_definitions[ 1421 ].textures[ FACE_LEFT ] = TEX_DOUBLE_PLANT_GRASS_TOP;
+block_definitions[ 1421 ].textures[ FACE_BACK ] = TEX_DOUBLE_PLANT_GRASS_TOP;
+block_definitions[ 1421 ].icon_texture = TEX_DOUBLE_PLANT_GRASS_CARRIED;
+block_definitions[ 1421 ].affected_by_redstone_power = false;
+block_definitions[ 1421 ].breaks_in_liquid = true;
+block_definitions[ 1421 ].casts_shadow = false;
+block_definitions[ 1421 ].collides_with_player = false;
+block_definitions[ 1421 ].hardness = 0.0f;
+block_definitions[ 1421 ].icon_is_isometric = false;
 block_definitions[ 1421 ].is_pickable = false;
+block_definitions[ 1421 ].is_seethrough = true;
+block_definitions[ 1421 ].is_tall_plant_upper = true;
+block_definitions[ 1421 ].no_light = 0;
+block_definitions[ 1421 ].offset = { 1, 0, 1 };
+block_definitions[ 1421 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1421 ].scale = { 14, 16, 14 };
+block_definitions[ 1421 ].tall_plant_partner = TALL_GRASS;
+block_definitions[ 1421 ].tex_offset = { -1, 0, -1 };
 
 // undefined (1422)
 block_definitions[ 1422 ].textures[ FACE_TOP ] = TEX_AIR;

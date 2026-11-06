@@ -128,7 +128,10 @@ chunk borders — every chunk re-derives all trees whose parts could land in
 it from pure world-coord rolls and writes the cells it owns
 (`sgl_tree_suppressed` local-max rule). ~1 in 100 trees gets a glowstone
 top log ("Etho trees"). `FOREST_DEBUG` paints every column as a tree for
-debugging.
+debugging. The decoration pass (`sgl_is_long_grass_roll`) also plants
+two-block TALL_GRASS pairs (lower + `TALL_GRASS_UPPER` above, falling
+back to SHORT_GRASS when the cell above can't take it) — see
+`tall_plant_partner` in `docs/blocks.md`.
 
 ## New generator (`REPGAME_MAP_GEN_LEGACY=0`)
 

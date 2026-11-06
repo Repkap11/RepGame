@@ -1420,7 +1420,7 @@
     "WAXED_EXPOSED_COPPER_DOOR_UPPER",
     "WAXED_OXIDIZED_COPPER_DOOR_UPPER",
     "WAXED_WEATHERED_COPPER_DOOR_UPPER",
-    nullptr,
+    "TALL_GRASS_UPPER",
     nullptr,
     nullptr,
     nullptr,

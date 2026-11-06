@@ -214,6 +214,21 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
         return below.id != LAST_BLOCK_ID && block_definition_get_definition( below.id )->collides_with_player;
     }
+    if ( block_is_tall_plant( block ) ) {
+        // Tall plants are a lower+upper pair (tall grass): the upper needs
+        // its partner lower below and is then fine; the lower needs its
+        // partner upper above and falls through to the generic checks (its
+        // solid ground below). Breaking either half therefore pops the
+        // other through the neighbour-update kill path.
+        const glm::ivec3 partner_pos = block_pos + ( block->is_tall_plant_upper ? glm::ivec3( 0, -1, 0 ) : glm::ivec3( 0, 1, 0 ) );
+        const BlockState partner_state = world.get_loaded_block( partner_pos );
+        if ( partner_state.id != block->tall_plant_partner ) {
+            return false;
+        }
+        if ( block->is_tall_plant_upper ) {
+            return true;
+        }
+    }
     if ( block->is_piston_head ) {
         // A head survives only with a piston base directly behind it that is
         // still pointing at this cell.
@@ -235,6 +250,14 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
         return next_to_block_id != LAST_BLOCK_ID && block_definition_get_definition( next_to_block_id )->collides_with_player;
     }
+    return block_supports_present( world, block_pos, block_state );
+}
+
+// The generic needs_place_on_any_solid support check on its own — also used
+// by the tall-plant lower placement test, where the partner upper isn't
+// written yet so block_can_survive_at can't run.
+bool block_supports_present( World &world, const glm::ivec3 &block_pos, const BlockState &block_state ) {
+    const Block *block = block_definition_get_definition( block_state.id );
     bool block_is_ok_to_place = true;
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
         int rotated_face = get_rotated_face( face, block_state.rotation );

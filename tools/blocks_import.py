@@ -76,13 +76,14 @@ BOOL_FIELDS = {
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "falls_with_gravity", "spine_shell",
     "is_door", "is_door_upper", "door_redstone_only",
+    "is_tall_plant_upper",
 }
 INT_FIELDS = {"no_light", "flows", "initial_redstone_power", "emits_light", "light_absorb"}
 FLOAT_FIELDS = {"hardness", "fall_mass"}
 VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
-BLOCK_REF_FIELDS = {"door_partner"}
+BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative", "drops"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL | BLOCK_REF_FIELDS
@@ -446,6 +447,21 @@ def load_blocks():
             fail("%s: door_partner %s is not a door" % (b["_file"], partner))
         if bool(b.get("is_door_upper")) == bool(pb.get("is_door_upper")):
             fail("%s: door pair %s/%s needs exactly one is_door_upper" % (b["_file"], b["name"], partner))
+    # tall_plant_partner links a tall plant's two halves the same way:
+    # the named block must exist, point back, and carry the opposite
+    # is_tall_plant_upper flag.
+    for bid, b in blocks.items():
+        partner = b.get("tall_plant_partner")
+        if partner is None:
+            continue
+        pbid = names.get(partner)
+        if pbid is None:
+            fail("%s: tall_plant_partner %s not found" % (b["_file"], partner))
+        pb = blocks[pbid]
+        if pb.get("tall_plant_partner") != b["name"]:
+            fail("%s: tall_plant_partner %s does not point back" % (b["_file"], partner))
+        if bool(b.get("is_tall_plant_upper")) == bool(pb.get("is_tall_plant_upper")):
+            fail("%s: tall-plant pair %s/%s needs exactly one is_tall_plant_upper" % (b["_file"], b["name"], partner))
     return blocks
 
 

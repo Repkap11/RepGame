@@ -46,6 +46,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_door_upper = false;
         block->door_redstone_only = false;
         block->door_partner = LAST_BLOCK_ID;
+        block->is_tall_plant_upper = false;
+        block->tall_plant_partner = LAST_BLOCK_ID;
         block->emits_light = 0;
         block->is_button = false;
         block->is_pressure_plate = false;

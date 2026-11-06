@@ -154,7 +154,7 @@ void RepGame::break_selected_block( ) {
         // as an item entity at the broken cell with a small random hop.
         static uint32_t drop_rng_state = 0x9e3779b9u;
         ItemStack drops[ 8 ];
-        const int num_drops = block_roll_drops( door_item_id( previous_block ), &drop_rng_state, drops, 8 );
+        const int num_drops = block_roll_drops( block_item_id( previous_block ), &drop_rng_state, drops, 8 );
         const glm::dvec3 drop_pos = glm::dvec3( globalGameState.block_selection.pos_destroy ) + glm::dvec3( 0.5 );
         for ( int i = 0; i < num_drops; i++ ) {
             const ItemID drop_id = drops[ i ].item_id;
@@ -195,7 +195,7 @@ void RepGame::process_mouse_events( ) {
         pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         globalGameState.input.click_delay_middle = 30;
         // A door's upper half picks the lower's item.
-        const BlockID pick_id = blockState.id != LAST_BLOCK_ID ? door_item_id( blockState.id ) : LAST_BLOCK_ID;
+        const BlockID pick_id = blockState.id != LAST_BLOCK_ID ? block_item_id( blockState.id ) : LAST_BLOCK_ID;
         if ( globalGameState.game_mode == GameMode_Survival && pick_id != LAST_BLOCK_ID ) {
             // In survival mode, middle-clicking picks the block onto the
             // hotbar. If a non-full stack is already on the bar, just select

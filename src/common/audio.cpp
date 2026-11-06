@@ -59,6 +59,8 @@ static const char *block_material( int block_id ) {
     case RED_FLOWER_IN_POT:
     case GRASS_TUFT:
     case SHORT_GRASS:
+    case TALL_GRASS:
+    case TALL_GRASS_UPPER:
     case FERN:
     case GRASS_TUFT4:
     case WHEAT_0:

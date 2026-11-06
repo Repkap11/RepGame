@@ -68,6 +68,15 @@ static bool door_lower_can_place( World &world, const glm::ivec3 &pos ) {
            upper_current.id != LAST_BLOCK_ID && block_definition_get_definition( upper_current.id )->can_be_placed_in;
 }
 
+// Tall plants place as a lower+upper pair like doors: the lower needs its
+// normal ground support (checked ignoring the not-yet-written partner) and
+// the cell above must be replaceable for the upper half.
+static bool tall_plant_lower_can_place( World &world, const glm::ivec3 &pos, const BlockState &lower_state ) {
+    const BlockState upper_current = world.get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
+    return upper_current.id != LAST_BLOCK_ID && block_definition_get_definition( upper_current.id )->can_be_placed_in && //
+           block_supports_present( world, pos, lower_state );
+}
+
 bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockState &blockState ) {
     const BlockState current_block_state = world.get_loaded_block( pos );
     if ( current_block_state.id == LAST_BLOCK_ID ) {
@@ -83,6 +92,9 @@ bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockSta
     }
     if ( new_block->is_door && !new_block->is_door_upper ) {
         return door_lower_can_place( world, pos );
+    }
+    if ( block_is_tall_plant( new_block ) && !new_block->is_tall_plant_upper ) {
+        return tall_plant_lower_can_place( world, pos, blockState );
     }
     return block_can_survive_at( world, pos, blockState );
 }
@@ -158,6 +170,31 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         world.set_loaded_block( this->block_pos, lower_state );
         repGameState.multiplayer.set_block( this->block_pos, lower_state );
         repGameState.world.spawn_block_debris( this->block_pos, current_block_state, lower_state.id );
+        world.set_loaded_block( upper_pos, upper_state );
+        repGameState.multiplayer.set_block( upper_pos, upper_state );
+        repGameState.world.spawn_block_debris( upper_pos, upper_current, upper_state.id );
+        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, this->block_pos );
+        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, upper_pos );
+        return;
+    }
+    // Tall plants place as a lower+upper pair, same shape as the door
+    // branch minus the door rotation/hinge bookkeeping: the upper cell
+    // gets the partner block with a neutral rotation; a lone upper fails
+    // the survive check below.
+    if ( !this->state_update && this->blockState.id != AIR && block_is_tall_plant( new_block ) && !new_block->is_tall_plant_upper ) {
+        World &world = repGameState.world;
+        const glm::ivec3 upper_pos = this->block_pos + glm::ivec3( 0, 1, 0 );
+        const BlockState upper_current = world.get_loaded_block( upper_pos );
+        if ( !tall_plant_lower_can_place( world, this->block_pos, this->blockState ) ) {
+            return;
+        }
+        BlockState upper_state = this->blockState;
+        upper_state.id = new_block->tall_plant_partner;
+        upper_state.display_id = new_block->tall_plant_partner;
+        upper_state.rotation = BLOCK_ROTATE_0;
+        world.set_loaded_block( this->block_pos, this->blockState );
+        repGameState.multiplayer.set_block( this->block_pos, this->blockState );
+        repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
         world.set_loaded_block( upper_pos, upper_state );
         repGameState.multiplayer.set_block( upper_pos, upper_state );
         repGameState.world.spawn_block_debris( upper_pos, upper_current, upper_state.id );

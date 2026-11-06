@@ -218,7 +218,7 @@ int test_doors( ) {
                 block_definition_get_definition( IRON_DOOR_LOWER )->door_redstone_only &&
                     block_definition_get_definition( IRON_DOOR_UPPER )->door_redstone_only &&
                     !block_definition_get_definition( WOODEN_DOOR_LOWER )->door_redstone_only );
-    check_bool( "def: door_item_id maps upper to lower", door_item_id( WOODEN_DOOR_UPPER ) == WOODEN_DOOR_LOWER );
+    check_bool( "def: block_item_id maps upper to lower", block_item_id( WOODEN_DOOR_UPPER ) == WOODEN_DOOR_LOWER );
 
     // --- world ---------------------------------------------------------------
     RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_tnt
@@ -329,6 +329,100 @@ int test_doors( ) {
     place( glm::ivec3( 20, 13, 20 ), redstone_block );
     run( 10 );
     check_bool( "redstone: powering the upper opens", is_open( glm::ivec3( 20, 11, 20 ) ) );
+
+    // --- tall plants (TALL_GRASS / TALL_GRASS_UPPER) ----------------------
+    const Block *tg = block_definition_get_definition( TALL_GRASS );
+    const Block *tgu = block_definition_get_definition( TALL_GRASS_UPPER );
+    check_bool( "tall plant: partners point at each other",
+                tg->tall_plant_partner == TALL_GRASS_UPPER && tgu->tall_plant_partner == TALL_GRASS && block_is_tall_plant( tg ) && block_is_tall_plant( tgu ) );
+    check_bool( "tall plant: only the upper is flagged", !tg->is_tall_plant_upper && tgu->is_tall_plant_upper );
+    check_bool( "tall plant: upper hidden (not pickable)", !tgu->is_pickable && tg->is_pickable );
+    check_bool( "tall plant: upper maps to TALL_GRASS item", block_item_id( TALL_GRASS_UPPER ) == TALL_GRASS );
+
+    // Grass floor at y=10 (collides -> satisfies needs_place_on_any_solid
+    // top), a blocked upper cell above (33,12,30), and a spot with no floor.
+    const BlockState grass = { GRASS, 0, 0, GRASS, 0 };
+    for ( int x = 30; x <= 36; x++ ) {
+        for ( int z = 30; z <= 36; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), grass );
+        }
+    }
+    world.set_loaded_block( glm::ivec3( 33, 12, 30 ), stone );
+    const BlockState tall_grass = { TALL_GRASS, 0, 0, TALL_GRASS, 0 };
+    place( glm::ivec3( 30, 11, 30 ), tall_grass );
+    place( glm::ivec3( 33, 11, 30 ), tall_grass ); // blocked upper cell
+    place( glm::ivec3( 38, 11, 38 ), tall_grass ); // no floor
+    run( 2 );
+    failures += check_id( world, "tall plant: lower written", glm::ivec3( 30, 11, 30 ), TALL_GRASS );
+    failures += check_id( world, "tall plant: upper written", glm::ivec3( 30, 12, 30 ), TALL_GRASS_UPPER );
+    failures += check_id( world, "tall plant: blocked upper places nothing", glm::ivec3( 33, 11, 30 ), AIR );
+    failures += check_id( world, "tall plant: no floor places nothing", glm::ivec3( 38, 11, 38 ), AIR );
+
+    // The upper is !is_pickable (creative exclusion) but must still be
+    // targetable: a pick ray through the upper cross-quads hits it.
+    pick_out = glm::ivec3( -1, -1, -1 );
+    pick_face = -1;
+    RayTraversal::find_block_from_to( world, nullptr, glm::dvec3( 29.5, 12.5, 29.5 ), glm::dvec3( 31.5, 12.5, 31.5 ), pick_out, &pick_face, 0, 1, 0, 0 );
+    check_bool( "tall plant: pick ray hits the upper half", pick_out == glm::ivec3( 30, 12, 30 ) );
+
+    // Breaking either half pops the other through the survive check.
+    place( glm::ivec3( 30, 12, 30 ), BLOCK_STATE_AIR );
+    run( 2 );
+    failures += check_id( world, "tall plant: breaking upper removes lower", glm::ivec3( 30, 11, 30 ), AIR );
+    place( glm::ivec3( 30, 11, 30 ), tall_grass );
+    run( 2 );
+    failures += check_id( world, "tall plant: replanted", glm::ivec3( 30, 12, 30 ), TALL_GRASS_UPPER );
+    place( glm::ivec3( 30, 11, 30 ), BLOCK_STATE_AIR );
+    run( 2 );
+    failures += check_id( world, "tall plant: breaking lower removes upper", glm::ivec3( 30, 12, 30 ), AIR );
+    place( glm::ivec3( 30, 11, 30 ), tall_grass );
+    run( 2 );
+    place( glm::ivec3( 30, 10, 30 ), BLOCK_STATE_AIR ); // knock the ground out
+    run( 2 );
+    failures += check_id( world, "tall plant: ground gone pops lower", glm::ivec3( 30, 11, 30 ), AIR );
+    failures += check_id( world, "tall plant: ground gone pops upper", glm::ivec3( 30, 12, 30 ), AIR );
+
+    // Legacy gen: every TALL_GRASS in a generated chunk pairs with its
+    // upper and vice versa.
+#if REPGAME_MAP_GEN_LEGACY
+    {
+        bool pairs_ok = true;
+        int lowers = 0, uppers = 0;
+        for ( const glm::ivec3 cp : { glm::ivec3( 0, 0, 0 ), glm::ivec3( -1, 0, -1 ), glm::ivec3( 0, 0, -1 ) } ) {
+            Chunk chunk;
+            chunk.chunk_pos = cp;
+            chunk.cells = chunk_alloc_cells( );
+            chunk.extras = nullptr;
+            chunk.light_air_mask = nullptr;
+            chunk.light_shade_mask = nullptr;
+            MapGen::load_block_c( &chunk );
+            StructureGen::place( chunk );
+            for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+                for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
+                    for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                        const BlockID id = chunk.get_block( glm::ivec3( x, y, z ) ).id;
+                        if ( id == TALL_GRASS ) {
+                            lowers++;
+                            
+                            if ( chunk.get_block( glm::ivec3( x, y + 1, z ) ).id != TALL_GRASS_UPPER ) {
+                                pairs_ok = false;
+                            }
+                        }
+                        if ( id == TALL_GRASS_UPPER ) {
+                            uppers++;
+                            if ( y == 0 || chunk.get_block( glm::ivec3( x, y - 1, z ) ).id != TALL_GRASS ) {
+                                pairs_ok = false;
+                            }
+                        }
+                    }
+                }
+            }
+            chunk_free_cells( chunk.cells );
+        }
+        check_bool( "mapgen: tall-grass halves always paired", pairs_ok );
+        check_bool( "mapgen: tall grass actually generates", lowers > 0 && lowers == uppers );
+    }
+#endif
     return failures;
 }
 

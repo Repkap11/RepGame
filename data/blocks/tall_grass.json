@@ -4,6 +4,7 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "hardness": 0,
+  "icon": "double_plant_grass_carried",
   "icon_is_isometric": false,
   "id": 1216,
   "is_seethrough": true,
@@ -13,24 +14,25 @@
   },
   "no_light": 0,
   "offset": [
-    5,
+    1,
     0,
-    5
+    1
   ],
   "render_order": "Flowers",
   "scale": [
-    6,
-    11,
-    6
+    14,
+    16,
+    14
   ],
+  "tall_plant_partner": "TALL_GRASS_UPPER",
   "tex_offset": [
-    -5,
+    -1,
     0,
-    -5
+    -1
   ],
   "textures": {
     "bottom": "air",
-    "side": "double_plant_grass_carried",
+    "side": "double_plant_grass_bottom",
     "top": "air"
   }
 }

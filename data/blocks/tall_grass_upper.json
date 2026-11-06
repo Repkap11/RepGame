@@ -1,0 +1,37 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon": "double_plant_grass_carried",
+  "icon_is_isometric": false,
+  "id": 1421,
+  "is_pickable": false,
+  "is_seethrough": true,
+  "is_tall_plant_upper": true,
+  "name": "TALL_GRASS_UPPER",
+  "no_light": 0,
+  "offset": [
+    1,
+    0,
+    1
+  ],
+  "render_order": "Flowers",
+  "scale": [
+    14,
+    16,
+    14
+  ],
+  "tall_plant_partner": "TALL_GRASS",
+  "tex_offset": [
+    -1,
+    0,
+    -1
+  ],
+  "textures": {
+    "bottom": "air",
+    "side": "double_plant_grass_top",
+    "top": "air"
+  }
+}

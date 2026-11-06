@@ -198,6 +198,19 @@ one tick out, giving MC edge semantics — rising opens, falling closes, and
 a hand toggle in between persists. The full power model, dust shapes and
 the event queue everything rides on are in `docs/redstone.md`.
 
+Tall plants are the door pattern generalized to two-cell foliage (tall
+grass): a lower-half id and upper-half id linked by `tall_plant_partner`
+with exactly one `is_tall_plant_upper` (both importer-validated);
+`block_is_tall_plant` is the trait. Placement in
+`PlayerBlockPlacedEvent` writes both cells when the lower's normal
+support holds and the cell above is replaceable; a lone upper is
+unplaceable. `block_can_survive_at` requires the partner half, so
+breaking either half (or the ground) pops the other through the
+neighbour-update kill path. Uppers are `is_pickable: false` (hidden
+from creative) but stay raycast-targetable via `block_is_tall_plant` in
+`contains_block`, and drops/picks map through `block_item_id` (the
+generalized `door_item_id`).
+
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,
 water, mobs, persistence and multiplayer are all off — nothing is read or

@@ -308,11 +308,24 @@ static inline unsigned char door_facing( unsigned char lower_rot, unsigned char 
     return static_cast<unsigned char>( ( yaw + ( ( upper_rot & BLOCK_ROTATE_DOOR_FLAG ) ? 1 : 3 ) ) & 3 );
 }
 
-// The inventory block for a door cell: breaking or picking the upper half
-// gives the lower's item.
-static inline BlockID door_item_id( BlockID id ) {
+// A tall plant is a two-cell foliage pair (tall grass): the lower and
+// upper halves link through tall_plant_partner, exactly one flagged
+// is_tall_plant_upper.
+static inline bool block_is_tall_plant( const Block *b ) {
+    return b->tall_plant_partner != LAST_BLOCK_ID;
+}
+
+// The inventory block for a multi-cell block: breaking or picking a door's
+// or tall plant's upper half gives the lower's item.
+static inline BlockID block_item_id( BlockID id ) {
     const Block *b = block_definition_get_definition( id );
-    return b->is_door_upper ? b->door_partner : id;
+    if ( b->is_door_upper ) {
+        return b->door_partner;
+    }
+    if ( b->is_tall_plant_upper ) {
+        return b->tall_plant_partner;
+    }
+    return id;
 }
 
 // The yaw part of a rotation for single-box consumers (collision, raycast,

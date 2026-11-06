@@ -2628,6 +2628,14 @@
   "tall_dry_grass": {
     "source": "textures/blocks/tall_dry_grass"
   },
+  "double_plant_grass_bottom": {
+    "source": "textures/blocks/double_plant_grass_bottom.tga",
+    "tint": "#93E67D"
+  },
+  "double_plant_grass_top": {
+    "source": "textures/blocks/double_plant_grass_top.tga",
+    "tint": "#93E67D"
+  },
   "tallgrass_carried": {
     "source": "textures/blocks/tallgrass.tga",
     "tint": "#93E67D"

@@ -90,6 +90,13 @@ static BlockID sgl_is_long_grass_roll( int x, int z, int is_forest ) {
             return BLUE_ORCHID;
         }
 
+        // The top of the old SHORT_GRASS band (0.8, 0.91] becomes two-block
+        // tall grass: 0.87 keeps ~23% of the former short-grass cells (see
+        // docs/mapgen.md).
+        if ( noise2 > 0.87 ) {
+            return TALL_GRASS;
+        }
+
         if ( noise2 > 0.8 ) {
             return SHORT_GRASS;
         }
@@ -521,6 +528,20 @@ void StructureGen::place_legacy( Chunk &chunk ) {
                 if ( !sgl_is_next_to( chunk, x, y, z, SHORT_GRASS ) ) {
                     const int is_forest = sgl_is_forest( world_x, world_z );
                     BlockID grass_type = sgl_is_long_grass_roll( world_x, world_z, is_forest );
+                    if ( grass_type == TALL_GRASS ) {
+                        // Two-block plant: the upper half needs an in-chunk
+                        // air cell above (the pass never touches the +y
+                        // border); without room it degrades to short grass.
+                        const Block *upper = block_definition_get_definition( TALL_GRASS_UPPER );
+                        if ( y + 1 < CHUNK_SIZE_Y && chunk.get_block( glm::ivec3( x, y + 1, z ) ).id == AIR ) {
+                            const Block *lower = block_definition_get_definition( TALL_GRASS );
+                            chunk.set_block( glm::ivec3( x, y, z ), { TALL_GRASS, BLOCK_ROTATE_0, lower->initial_redstone_power, TALL_GRASS, 0 } );
+                            chunk.set_block( glm::ivec3( x, y + 1, z ), { TALL_GRASS_UPPER, BLOCK_ROTATE_0, upper->initial_redstone_power, TALL_GRASS_UPPER, 0 } );
+                            grass_type = AIR;
+                        } else {
+                            grass_type = SHORT_GRASS;
+                        }
+                    }
                     Block *grass_block = block_definition_get_definition( grass_type );
                     if ( grass_type != AIR ) {
                         chunk.set_block( glm::ivec3( x, y, z ), { grass_type, BLOCK_ROTATE_0, grass_block->initial_redstone_power, grass_type, 0 } );

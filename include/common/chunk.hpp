@@ -120,6 +120,7 @@ class Chunk {
     friend int test_structure_border( );
     friend int test_item_entities( );
     friend int test_mobs( );
+    friend int test_doors( );
 
     int load_state;
     int gl_initialized;

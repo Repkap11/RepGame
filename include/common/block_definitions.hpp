@@ -103,6 +103,14 @@ typedef struct {
     bool is_door_upper;
     bool door_redstone_only;
     BlockID door_partner;
+    // Tall plants (tall grass) are two-cell blocks like doors but without
+    // the door semantics: a lower half and an upper half linked by
+    // tall_plant_partner, with exactly one half carrying
+    // is_tall_plant_upper. Both halves are cross-quad foliage (no
+    // collision, no toggle); breaking either pops the other through the
+    // neighbour-update survive check.
+    bool is_tall_plant_upper;
+    BlockID tall_plant_partner;
     // Flood-fill light emitted by this block, 0-15 (torches 14, lava/lamps 15,
     // lit furnace 13, portal 11, redstone torch 7). Stored in the chunk's
     // light[] volume and sampled by the fragment shader — never baked into the

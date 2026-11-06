@@ -6,6 +6,9 @@
 // Returns false if a block with the given state couldn't survive at block_pos
 // (no required solid face/attachment).
 bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const BlockState &block_state );
+// The generic needs_place_on_any_solid part of block_can_survive_at —
+// exported for the tall-plant lower placement test (partner not yet placed).
+bool block_supports_present( World &world, const glm::ivec3 &block_pos, const BlockState &block_state );
 
 class BlockNextToChangeEvent : public BlockUpdateEvent {
   public:
