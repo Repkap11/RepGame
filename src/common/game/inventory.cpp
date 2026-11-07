@@ -837,7 +837,7 @@ void RepGame::process_inventory_events( ) {
                     break;
                 case PauseMenu::BUTTON_GRAPHICS:
                     // Same as the 'r' key.
-                    globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( ( globalGameState.input.worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
+                    globalGameState.input.worldDrawQuality = world_draw_quality_step( globalGameState.input.worldDrawQuality, 1 );
                     break;
                 case PauseMenu::BUTTON_SHADOW:
                     // Rebuild every live light texture under the new upload

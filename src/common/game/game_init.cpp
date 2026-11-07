@@ -212,7 +212,7 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.camera.angle_V = saved_data.angle_V;
         globalGameState.input.player_flying = saved_data.flying;
         globalGameState.input.no_clip = saved_data.no_clip;
-        globalGameState.input.worldDrawQuality = static_cast<WorldDrawQuality>( saved_data.worldDrawQuality );
+        globalGameState.input.worldDrawQuality = world_draw_quality_step( WorldDrawQuality::LOW, saved_data.worldDrawQuality );
         globalGameState.input.shadow_quality = static_cast<ShadowQuality>( saved_data.shadow_quality );
         light_shadow_smooth_set( globalGameState.input.shadow_quality == SHADOW_SMOOTH );
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );

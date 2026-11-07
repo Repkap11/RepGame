@@ -230,11 +230,7 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
         case 'r':
             if ( pressed ) {
-                if ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) {
-                    this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality - 1 + WorldDrawQuality::LAST ) % WorldDrawQuality::LAST );
-                } else {
-                    this->worldDrawQuality = static_cast<WorldDrawQuality>( ( this->worldDrawQuality + 1 ) % WorldDrawQuality::LAST );
-                }
+                this->worldDrawQuality = world_draw_quality_step( this->worldDrawQuality, ( SDL_GetModState( ) & SDL_KMOD_SHIFT ) ? -1 : 1 );
             }
             break;
 #ifdef REPGAME_WASM
