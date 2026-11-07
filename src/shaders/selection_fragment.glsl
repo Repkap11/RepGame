@@ -17,6 +17,7 @@ uniform float u_LineWidth;
 uniform float u_BreakProgress;
 
 in vec3 v_local_pos;
+in vec3 v_block_pos;
 flat in uint v_faceType;
 
 layout( location = 0 ) out vec4 color;
@@ -39,12 +40,16 @@ void main( ) {
 
     // Select the two face-plane axes based on which face this fragment is on.
     vec2 face_pos;
+    vec2 block_face_pos;
     if ( v_faceType == FACE_TOP || v_faceType == FACE_BOTTOM ) {
         face_pos = v_local_pos.xz;
+        block_face_pos = v_block_pos.xz;
     } else if ( v_faceType == FACE_RIGHT || v_faceType == FACE_LEFT ) {
         face_pos = v_local_pos.zy;
+        block_face_pos = v_block_pos.zy;
     } else { // FACE_FRONT, FACE_BACK
         face_pos = v_local_pos.xy;
+        block_face_pos = v_block_pos.xy;
     }
 
     // Distance (in local block space) to the nearest edge along each axis.
@@ -64,14 +69,15 @@ void main( ) {
     vec3 lineColor = vec3( 0.0f, 0.0f, 0.0f );
 
     // Damage overlay covering the whole face (0 alpha unless mining): the
-    // face is quantized into a 16x16 grid matching the block's texel grid,
-    // and cells crack in a fixed random order as u_BreakProgress advances.
+    // face is quantized into the block's 1/16 texel grid in block space (so
+    // a slab face gets 16x8 full-size cells, not 16x16 squished ones), and
+    // cells crack in a fixed random order as u_BreakProgress advances.
     float overlay_alpha = 0.0f;
     if ( u_BreakProgress > 0.0f ) {
-        // face_pos overshoots the face by SELECTION_SIZE_OFFSET on each side;
-        // clamp it so those slivers fold into the edge cells instead of
+        // v_block_pos is inset slightly in the vertex shader, so the box's
+        // SELECTION_SIZE_OFFSET overshoot folds into the edge cells instead of
         // hashing as separate cells and speckling the border.
-        vec2 cell = floor( clamp( face_pos, 0.0f, 1.0f ) * 16.0f );
+        vec2 cell = floor( block_face_pos * 16.0f );
         float h = fract( sin( dot( cell + vec2( float( v_faceType ) * 19.0f ), vec2( 12.9898f, 78.233f ) ) ) * 43758.5453f );
         // Cap coverage below 1.0 so the block breaks before the overlay fully
         // covers the face, like Minecraft's crack animation.

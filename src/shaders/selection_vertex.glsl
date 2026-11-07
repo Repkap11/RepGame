@@ -23,6 +23,9 @@ layout( location = 12 ) in ivec3 texCoords_offset;
 // Raw (pre-transform) position passed to the fragment shader so it can
 // compute screen-space distance to the cube edges (at -s and 1+s).
 out vec3 v_local_pos;
+// Block-space position (after the block's scale/offset), so the crack grid
+// lines up with the block's real texel grid on non-cube shapes (slabs etc).
+out vec3 v_block_pos;
 flat out uint v_faceType;
 
 #define BLOCK_ROTATE_0 0u
@@ -78,5 +81,8 @@ void main( ) {
     gl_Position.z -= 0.002f / gl_Position.w;
 
     v_local_pos = position;
+    // Inset (rather than the SELECTION_SIZE_OFFSET-grown box) so every
+    // interpolated value stays strictly inside the face's texel cells.
+    v_block_pos = clamp( position, 0.001f, 0.999f ) * blockCoords_scale_adjust + blockCoords_offset_adjust;
     v_faceType = faceType;
 }
