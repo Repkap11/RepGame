@@ -93,7 +93,7 @@ void UIOverlay::set_holding_item( ItemID holding_item ) {
     pair.second = vb_data_holding_block_instance;
 }
 
-void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, bool crafting_table_open, float held_block_light ) {
+void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, bool crafting_table_open, bool furnace_open, float held_block_light ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
 
@@ -114,7 +114,7 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
 
     const bool chest_open = chest_renderer != nullptr && chest_contents != nullptr;
     if ( input.inventory_open ) {
-        if ( game_mode == GameMode_Creative && !chest_open && !crafting_table_open ) {
+        if ( game_mode == GameMode_Creative && !chest_open && !crafting_table_open && !furnace_open ) {
             creative_inventory.draw( renderer, blocksTexture, this->shader );
         } else {
             survival_inventory.draw( renderer, blocksTexture, this->shader );

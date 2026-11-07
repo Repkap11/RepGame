@@ -77,7 +77,7 @@ class UIOverlay {
     // player inventory. held_block_light is the scene light sampled at the
     // camera (sky and torch light combined with the day/night factor), used
     // to shade the in-hand block like the world does.
-    void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, bool crafting_table_open, float held_block_light );
+    void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, bool crafting_table_open, bool furnace_open, float held_block_light );
     // Draws a panel plus the stack-size labels for its first n slots.
     void draw_slot_panel( InventoryRenderer &panel, const InventorySlot *slots, int n, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );

@@ -494,7 +494,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         // the day factor, torch light doesn't, min ambient lifts caves).
         const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
         const float held_block_light = glm::mix( imgui_overlay_get_imgui_debug_vars( ).min_ambient, 1.0f, glm::max( held_light.x * daylight, held_light.y ) );
-        globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, held_block_light );
+        globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );
         if ( repgame_crafting_grid_visible( globalGameState ) ) {
             const int dim = repgame_crafting_dim( globalGameState );
             InventoryRenderer &grid = repgame_crafting_grid( globalGameState );
