@@ -87,6 +87,7 @@ void Multiplayer::connect_async( const std::string &hostname ) {
         // Immediate success (e.g. localhost).
         this->framed_socket.adopt( this->sockfd );
         this->active = true;
+        this->ever_connected = true;
         return;
     }
     if ( rc < 0 && errno != EINPROGRESS ) {
@@ -125,6 +126,7 @@ void Multiplayer::connect_async( const std::string &hostname ) {
     // active==true, also sees the initialized socket.
     this->framed_socket.adopt( this->sockfd );
     this->active = true;
+    this->ever_connected = true;
 }
 
 void Multiplayer::flush_outbound( ) {

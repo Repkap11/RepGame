@@ -125,8 +125,9 @@ Items and mobs are chunk-owner simulated: the OWNER spawns, streams
 states, and sends removals (LANDED/DIED/DESPAWN/PICKED_UP/EXPLODED);
 everyone else holds easing mirrors. The server persists items and
 non-despawnable mobs in `items_`/`mobs_` sidecar files on uncover —
-client-side entity files are off whenever a hostname is given
-(`multiplayer_mode`). Natural mob spawning runs on the OWNER of an
+client-side entity files are off while the session is or was connected
+(`multiplayer_mode`; a never-connected session persists locally).
+Natural mob spawning runs on the OWNER of an
 unrolled chunk from `Chunk::spawn_mobs`'s seeded roll, announced with
 `NET_MOB_FLAG_NATURAL` and completed by CHUNK_POPULATED; the roll skips
 the grant's `removed_natural` indices and ids already live locally.

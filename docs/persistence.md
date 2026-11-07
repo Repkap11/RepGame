@@ -182,10 +182,14 @@ pre-2047 saves and is permanently reserved — never reuse it. On load:
 
 ## When persistence is bypassed
 
-- **Multiplayer**: once a hostname is given (`multiplayer_mode()`),
-  local `mobs_*`/`items_*` persistence is off for the session — entities
-  belong to the server (`docs/entities.md`, `docs/multiplayer.md`).
-  Chest/chunk state is server-side too.
+- **Multiplayer**: while the session is (or was) connected —
+  `multiplayer_mode()` is hostname + `connect_pending`/`ever_connected` —
+  local `mobs_*`/`items_*` persistence is off: entities belong to the
+  server (`docs/entities.md`, `docs/multiplayer.md`). A hostname whose
+  connect fails outright leaves a purely local session that persists
+  entities normally; a session that connected and then dropped stays in
+  multiplayer mode so server entities can't mix into local files.
+  Chest/chunk state is server-side while connected too.
 - **Block world** (`REPGAME_BLOCK_WORLD`) touches no files at all —
   `MapStorage` methods early-out and no map dir is created.
 - **Flat worlds** keep chunk saves (the sandstone floor is regenerable,

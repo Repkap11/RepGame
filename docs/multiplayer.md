@@ -52,9 +52,11 @@ per-platform transport files:
 
 `Multiplayer::active` flips true only after the connect completes;
 `connect_pending` distinguishes "connecting" from "disconnected" for the
-overlay. `multiplayer_mode()` is the weaker "a hostname was given at
-all" check that disables local entity-file persistence for the whole
-session (see `docs/persistence.md`).
+overlay, and `ever_connected` latches on the first success.
+`multiplayer_mode()` — hostname + (`connect_pending` or
+`ever_connected`) — disables local entity-file persistence while the
+session participates in server entity state; a connect that fails
+outright leaves the session purely local (see `docs/persistence.md`).
 
 ## Session handshake
 

@@ -49,6 +49,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( net_item_mirror_visuals ), //
     MK_TEST( net_mobs ),          //
     MK_TEST( net_bodies ),         //
+    MK_TEST( net_multiplayer_mode ), //
     MK_TEST( crafting ),         //
     MK_TEST( results ),          //
     MK_TEST( script ),          //

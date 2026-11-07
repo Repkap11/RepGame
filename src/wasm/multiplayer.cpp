@@ -25,6 +25,7 @@ struct WasmMultiplayerHooks {
         pr_debug( "Multiplayer websocket connected" );
         mp->framed_socket.adopt_manual( );
         mp->active = true;
+        mp->ever_connected = true;
         mp->connect_pending = false;
         return true;
     }

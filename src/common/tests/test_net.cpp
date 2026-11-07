@@ -544,3 +544,60 @@ int test_net_item_mirror_visuals( ) {
     return failures;
 }
 
+#if defined( __unix__ ) || defined( __APPLE__ )
+#include <unistd.h>
+#endif
+
+// multiplayer_mode() gates local entity-file persistence. It must report
+// multiplayer only while the session is (or was) actually connected: a
+// hostname whose connect fails outright leaves a purely local session, and
+// gating on the hostname alone silently loses every drop/mob at logout.
+// The ever_connected latch keeps a connected-then-dropped session
+// multiplayer so server entities still can't mix into local files.
+int test_net_multiplayer_mode( ) {
+    int failures = 0;
+    const auto report = [ &failures ]( const char *name, bool ok ) {
+        pr_test( "  %-55s %s", name, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    { // No hostname: never multiplayer.
+        Multiplayer mp;
+        report( "mode: no hostname is local", !mp.multiplayer_mode( ) );
+    }
+
+    { // connect_pending holds the gate while resolution is in flight.
+        Multiplayer mp;
+        mp.hostname = "example.test";
+        mp.connect_pending = true;
+        report( "mode: pending connect is mp", mp.multiplayer_mode( ) );
+        mp.connect_pending = false;
+        report( "mode: failed connect is local", !mp.multiplayer_mode( ) );
+    }
+
+    { // Connected then dropped: the latch keeps the session multiplayer.
+        Multiplayer mp;
+        mp.hostname = "example.test";
+        mp.active = true;
+        mp.ever_connected = true;
+        report( "mode: connected is mp", mp.multiplayer_mode( ) );
+        mp.disconnect( );
+        report( "mode: dropped stays mp", mp.multiplayer_mode( ) && !mp.is_active( ) );
+    }
+
+#if defined( __unix__ ) || defined( __APPLE__ )
+    { // Real refused connect resolves to a local session.
+        Multiplayer mp;
+        mp.init( "127.0.0.1", 1 ); // port 1: nothing listens.
+        for ( int i = 0; i < 10000 && mp.is_connecting( ); i++ ) {
+            usleep( 1000 );
+        }
+        report( "mode: refused connect resolves", !mp.is_connecting( ) );
+        report( "mode: refused connect is local", !mp.multiplayer_mode( ) && !mp.is_active( ) );
+        mp.cleanup( );
+    }
+#endif
+    return failures;
+}

@@ -15,6 +15,7 @@ class ChunkLoader;
 struct RepGameState;
 
 class Multiplayer {
+    friend int test_net_multiplayer_mode( );
     FramedSocket framed_socket;
     glm::vec3 prev_player_pos;
     glm::mat4 prev_rotation;
@@ -35,6 +36,13 @@ class Multiplayer {
     // on every failure path. Lets the overlay show "connecting" vs
     // "disconnected" during the bounded connect window.
     std::atomic<bool> connect_pending{ false };
+    // Latched when the connection first comes up; never cleared. Lets
+    // multiplayer_mode() tell "was connected and dropped" (still server
+    // entities — don't touch local files) from "connect failed outright"
+    // (purely local session — local entity files must stay on or every
+    // drop/mob is lost at logout). Set wherever a transport assigns
+    // active=true.
+    std::atomic<bool> ever_connected{ false };
     std::thread connect_thread;
     // Peer protocol version from a frame that forced a disconnect; -1 when
     // the connection ended (or is running) without a mismatch. Read by the
@@ -84,10 +92,16 @@ class Multiplayer {
     // this Multiplayer at construction; NetEntities::handle is called from
     // handle_frame for the entity-protocol message types.
     NetEntities entities{ this };
-    // Multiplayer was started at all (a server hostname was given) — NOT
-    // is_active(). Local entity file persistence keys off this so single
-    // player and multiplayer saves never mix.
-    bool multiplayer_mode( ) const { return !this->hostname.empty( ); }
+    // Multiplayer entity mode: a hostname was given AND the connect is
+    // still in flight or ever succeeded. Local entity file persistence
+    // keys off this so single player and multiplayer saves never mix.
+    // Once connected the mode latches for the session — even across a
+    // later drop — while a hostname whose connect failed outright leaves
+    // a purely local session that must persist entities locally.
+    bool multiplayer_mode( ) const {
+        return !this->hostname.empty( ) &&
+               ( this->connect_pending.load( ) || this->active.load( ) || this->ever_connected.load( ) );
+    }
     // Queue + flush one typed payload; disconnects on send error. Used by
     // NetEntities and the chest_*-style helpers.
     void send_payload( NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
