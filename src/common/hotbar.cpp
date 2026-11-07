@@ -121,7 +121,6 @@ bool Hotbar::addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selec
     }
 
     int remaining = quantity;
-    int affected_slot = -1;
 
     if ( prefer_selected_slot ) {
         // First, try to add to the selected slot if it has the same item.
@@ -133,7 +132,6 @@ bool Hotbar::addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selec
                 slot.quantity += to_add;
                 remaining -= to_add;
                 this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
-                affected_slot = this->selected_slot;
             }
         }
     }
@@ -148,7 +146,6 @@ bool Hotbar::addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selec
             slot.quantity += to_add;
             remaining -= to_add;
             this->inventory_renderer.changeSlotItem( i, slot );
-            if ( affected_slot < 0 ) affected_slot = i;
         }
     }
 
@@ -163,7 +160,6 @@ bool Hotbar::addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selec
                 itemId_to_slot_map.emplace( itemId, this->selected_slot );
                 remaining -= to_add;
                 this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
-                if ( affected_slot < 0 ) affected_slot = this->selected_slot;
             }
         }
     }
@@ -179,12 +175,7 @@ bool Hotbar::addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selec
             itemId_to_slot_map.emplace( itemId, i );
             remaining -= to_add;
             this->inventory_renderer.changeSlotItem( i, slot );
-            if ( affected_slot < 0 ) affected_slot = i;
         }
-    }
-
-    if ( affected_slot >= 0 && prefer_selected_slot ) {
-        this->setSelectedSlot( affected_slot );
     }
 
     return remaining == 0;

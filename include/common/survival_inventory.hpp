@@ -29,7 +29,7 @@ class SurvivalInventory {
 
     // Moves the entire stack from the given slot to the hotbar. Returns true if
     // the move succeeded. prefer_selected_slot is forwarded to
-    // Hotbar::addItemWithQuantity (also selects the slot that received items).
+    // Hotbar::addItemWithQuantity (fills the selected hotbar slot first).
     bool moveToHotbar( int slot_index, class Hotbar &hotbar, bool prefer_selected_slot );
 
     // Finds the given item in the inventory and moves the stack to the

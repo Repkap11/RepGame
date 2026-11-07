@@ -211,18 +211,25 @@ void RepGame::process_mouse_events( ) {
             // whole stack when the bar's stacks are full (or the block isn't
             // on the bar at all).
             int bar_slot = globalGameState.hotbar.findSlotWithItem( pick_id, true );
+            if ( bar_slot < 0 ) {
+                globalGameState.survival_inventory.moveItemToHotbar( pick_id, globalGameState.hotbar, true );
+                // The moved stack, or an existing (full) stack on the bar.
+                bar_slot = globalGameState.hotbar.findSlotWithItem( pick_id, false );
+            }
             if ( bar_slot >= 0 ) {
                 globalGameState.hotbar.setSelectedSlot( bar_slot );
-            } else if ( !globalGameState.survival_inventory.moveItemToHotbar( pick_id, globalGameState.hotbar, true ) ) {
-                // Nothing to move: select an existing (full) stack on the bar.
-                int full_slot = globalGameState.hotbar.findSlotWithItem( pick_id, false );
-                if ( full_slot >= 0 ) {
-                    globalGameState.hotbar.setSelectedSlot( full_slot );
-                }
             }
             // Debug feature: also give 1 of the picked block so spamming
             // middle-click restocks the bar without mining.
             globalGameState.hotbar.addItemWithQuantity( pick_id, 1 );
+            if ( bar_slot < 0 ) {
+                // Nothing was on the bar: the restock may have created a
+                // stack elsewhere. Select it so pick-block still works.
+                const int restock_slot = globalGameState.hotbar.findSlotWithItem( pick_id, false );
+                if ( restock_slot >= 0 ) {
+                    globalGameState.hotbar.setSelectedSlot( restock_slot );
+                }
+            }
             ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
             globalGameState.ui.overlay.set_holding_item( selectedBlock );
         } else if ( pick_id != LAST_BLOCK_ID ) {
