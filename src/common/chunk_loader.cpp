@@ -808,26 +808,34 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
     }
     for ( int i = 0; i < this->num_drawable; i++ ) {
         int final_is_visible = 1;
+        int full_inside = CULL_NON_VISIBLE ? 1 : 0;
         Chunk *chunk = this->drawable_chunks[ i ];
         if constexpr ( CULL_NON_VISIBLE ) {
             const glm::vec4 chunk_coords = glm::vec4( chunk->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 - renderOrigin, 1 );
             for ( int p = 0; p < 6; p++ ) {
-                if ( glm::dot( chunk_coords, planes[ p ] ) < -scaled_radius[ p ] ) {
+                const float d = glm::dot( chunk_coords, planes[ p ] );
+                if ( d < -scaled_radius[ p ] ) {
                     final_is_visible = 0;
-                    break;
+                }
+                if ( d < scaled_radius[ p ] ) {
+                    full_inside = 0;
                 }
             }
         }
         if ( saveAsReflection ) {
             chunk->cached_cull_reflect = !final_is_visible;
         } else {
+            // A probe whose box sat fully inside the frustum tested every
+            // face, so its verdict survives rotations at a fixed eye
+            // position; a straddler was only probed on its on-screen part.
+            chunk->occl.in_full = full_inside;
             // Re-entering the frustum invalidates the stale occl verdict:
             // while the chunk was culled the camera may have moved, so a
             // still-hidden chunk leaves a hole until the fresh probe lands.
             // Draw it instead — overdraw at worst — and let this frame's
             // probe re-hide it if it's still occluded.
             if ( chunk->cached_cull_normal && final_is_visible ) {
-                chunk->occl_fails = 0;
+                chunk->occl.reset_streak( );
             }
             chunk->cached_cull_normal = !final_is_visible;
         }
@@ -915,38 +923,39 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
         return e.x > -1.0f && e.x < CHUNK_SIZE_X + 1.0f && e.y > -1.0f && e.y < CHUNK_SIZE_Y + 1.0f && e.z > -1.0f && e.z < CHUNK_SIZE_Z + 1.0f;
     };
 
-    // Occlusion verdicts are view-relative: a box probe measures coverage
-    // against THIS frame's depth buffer, so a verdict earned under a
-    // different camera view proves nothing (the covering occluder may have
-    // left the frustum, or parallax may have uncovered the box). Bumping
-    // occl_view_gen when the view moves invalidates per-chunk fails_gen /
-    // probe_gen tagged with older generations — hidden chunks draw while
-    // fresh probes re-verify them instead of trusting verdicts measured
-    // under a view where they were occluded. That trades a few frames of
-    // overdraw after a fast camera move for never leaving a see-through
-    // hole while a stale "occluded" result drains through the query queue.
-    // Rotation columns (0-2) carry no translation; column 3 carries it, so
-    // a tighter epsilon there doubles as the ~0.3-block move threshold.
+    // Occlusion verdicts are position-relative: a probe only proves coverage
+    // against the depth buffer seen from the eye position it ran under.
+    // occl_view_gen bumps when the camera moves >0.3 blocks, invalidating
+    // every verdict; occl_rot_gen bumps on a >0.02 rotation-column change
+    // (or alongside a position bump) and only invalidates verdicts earned
+    // while the chunk wasn't fully inside the frustum — a full-box probe
+    // stays valid under any rotation from the same eye position. See
+    // chunk_occlusion.hpp for how ChunkOcclState applies the two.
     long occl_view_gen = 0;
+    long occl_rot_gen = 0;
     if ( occlusion_enabled( ) && !draw_reflect ) {
         // Non-probe passes (the second stereo eye) reuse the current
-        // generation without comparing/bumping it against their own mvp.
+        // generations without comparing/bumping them against their own mvp.
         if ( this->occl_probe_pass ) {
-            bool view_changed = false;
-            for ( int c = 0; c < 3 && !view_changed; c++ ) {
-                for ( int r = 0; r < 4 && !view_changed; r++ ) {
-                    view_changed = fabsf( mvp[ c ][ r ] - this->occl_last_view_mvp[ c ][ r ] ) > 0.02f;
+            const glm::vec3 d = cam_abs - this->occl_last_cam;
+            bool pos_changed = glm::dot( d, d ) > 0.3f * 0.3f;
+            bool rot_changed = pos_changed;
+            for ( int c = 0; c < 3 && !rot_changed; c++ ) {
+                for ( int r = 0; r < 4 && !rot_changed; r++ ) {
+                    rot_changed = fabsf( mvp[ c ][ r ] - this->occl_last_rot_mvp[ c ][ r ] ) > 0.02f;
                 }
             }
-            for ( int r = 0; r < 4 && !view_changed; r++ ) {
-                view_changed = fabsf( mvp[ 3 ][ r ] - this->occl_last_view_mvp[ 3 ][ r ] ) > 0.4f;
-            }
-            if ( view_changed ) {
-                this->occl_last_view_mvp = mvp;
+            if ( pos_changed ) {
+                this->occl_last_cam = cam_abs;
                 this->occl_view_gen++;
+            }
+            if ( rot_changed ) {
+                this->occl_last_rot_mvp = mvp;
+                this->occl_rot_gen++;
             }
         }
         occl_view_gen = this->occl_view_gen;
+        occl_rot_gen = this->occl_rot_gen;
     }
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
@@ -976,7 +985,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
             // Occlusion probes run only in the normal pass (the reflection
             // clears depth and rebuilds it from a mirrored view — its
             // visibility set is different, so it draws everything the
-            // frustum keeps). The occl_fails gate still applies to every
+            // frustum keeps). The occl hide gate still applies to every
             // order here and to the stencil-water pass: a chunk whose whole
             // box is occluded can't show water or flowers either.
             const bool occl = occlusion_enabled( ) && !draw_reflect;
@@ -1016,7 +1025,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                 // buffer. (2) Probe every frustum-visible chunk's box
                 // against that depth with all writes masked. A failed probe
                 // means the content (confined to [0,CHUNK_SIZE)) can't be
-                // visible; occl_fails >= OCCL_HIDE_FRAMES gates it out.
+                // visible; the occl streak gates it out (ChunkOcclState).
                 for ( int i = 0; i < this->num_drawable; i++ ) {
                     Chunk &chunk = *this->drawable_chunks[ i ];
                     if ( chunk.cached_cull_normal ) {
@@ -1024,30 +1033,19 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     }
                     // Non-probe passes leave pending queries in flight — the
                     // next probe pass consumes them.
-                    if ( this->occl_probe_pass && chunk.occl_pending ) {
+                    if ( this->occl_probe_pass && chunk.occl.pending ) {
                         GLuint available = 0;
-                        glGetQueryObjectuiv( chunk.occl_query, GL_QUERY_RESULT_AVAILABLE, &available );
+                        glGetQueryObjectuiv( chunk.occl.query, GL_QUERY_RESULT_AVAILABLE, &available );
                         if ( available ) {
                             GLuint passed = 0;
-                            glGetQueryObjectuiv( chunk.occl_query, GL_QUERY_RESULT, &passed );
-                            chunk.occl_pending = 0;
-                            // Retire every finished query, but only trust the
-                            // verdict if it was issued under the current view:
-                            // a result from before the camera moved describes
-                            // depth that may no longer exist.
-                            if ( chunk.occl_probe_gen == occl_view_gen ) {
-                                if ( chunk.occl_fails_gen != occl_view_gen ) {
-                                    chunk.occl_fails = 0;
-                                    chunk.occl_fails_gen = occl_view_gen;
-                                }
-                                chunk.occl_fails = passed ? 0 : chunk.occl_fails + 1;
-                            }
+                            glGetQueryObjectuiv( chunk.occl.query, GL_QUERY_RESULT, &passed );
+                            chunk.occl.record( passed, occl_view_gen, occl_rot_gen );
                         }
                     }
                     if ( cam_in_box( chunk ) ) {
-                        chunk.occl_fails = 0;
+                        chunk.occl.reset_streak( );
                     }
-                    if ( chunk.occl_fails_gen != occl_view_gen || chunk.occl_fails < OCCL_HIDE_FRAMES ) {
+                    if ( !this->occl_hides( chunk ) ) {
                         chunk.light_ensure_texture( this );
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
@@ -1070,19 +1068,18 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     glDepthMask( GL_FALSE );
                     for ( int i = 0; i < this->num_drawable; i++ ) {
                         Chunk &chunk = *this->drawable_chunks[ i ];
-                        if ( chunk.cached_cull_normal || chunk.occl_pending || cam_in_box( chunk ) ) {
+                        if ( chunk.cached_cull_normal || chunk.occl.pending || cam_in_box( chunk ) ) {
                             continue;
                         }
-                        if ( chunk.occl_query == 0 ) {
-                            glGenQueries( 1, &chunk.occl_query );
+                        if ( chunk.occl.query == 0 ) {
+                            glGenQueries( 1, &chunk.occl.query );
                         }
                         const glm::vec3 box_min = glm::vec3( chunk.chunk_pos * CHUNK_SIZE_I ) - render_origin;
                         glUniform3f( box_min_loc, box_min.x, box_min.y, box_min.z );
-                        glBeginQuery( GL_ANY_SAMPLES_PASSED, chunk.occl_query );
+                        glBeginQuery( GL_ANY_SAMPLES_PASSED, chunk.occl.query );
                         glDrawArrays( GL_TRIANGLES, 0, 36 );
                         glEndQuery( GL_ANY_SAMPLES_PASSED );
-                        chunk.occl_pending = 1;
-                        chunk.occl_probe_gen = occl_view_gen;
+                        chunk.occl.mark_probe_issued( occl_view_gen, occl_rot_gen );
                     }
                     glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 #if ( SUPPORTS_FRAME_BUFFER )
@@ -1114,7 +1111,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         }
                     } else {
                         if ( chunk.cached_cull_normal ||
-                             ( occl && chunk.occl_fails_gen == occl_view_gen && chunk.occl_fails >= OCCL_HIDE_FRAMES && !cam_in_box( chunk ) ) ) {
+                             ( occl && this->occl_hides( chunk ) && !cam_in_box( chunk ) ) ) {
                             continue;
                         }
                         chunk.light_ensure_texture( this );

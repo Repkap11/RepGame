@@ -283,13 +283,13 @@ void Chunk::release_terrain( ) {
         glDeleteTextures( 1, &this->light_texture );
         this->light_texture = 0;
     }
-    if ( this->occl_query ) {
-        glDeleteQueries( 1, &this->occl_query );
-        this->occl_query = 0;
+    if ( this->occl.query ) {
+        glDeleteQueries( 1, &this->occl.query );
+        this->occl.query = 0;
     }
-    // unprogram_terrain keeps occl_pending (the query object survives a
+    // unprogram_terrain keeps occl.pending (the query object survives a
     // reposition); here the query is gone, so the pending flag must be too.
-    this->occl_pending = 0;
+    this->occl.pending = 0;
     // Light bookkeeping for a volume that no longer exists. light_pending_
     // listed / light_upload_listed stay whatever they were — their drain
     // loops own those flags and skip non-live chunks after clearing them.
@@ -1631,10 +1631,10 @@ void Chunk::program_terrain( ) {
 void Chunk::unprogram_terrain( ) {
     this->set_should_render( 0 );
     // Slot is moving to a new chunk_pos: assume visible until its own
-    // probes say otherwise. occl_pending may still be in flight; its stale
-    // result shifts occl_fails by at most one, under the hide threshold.
-    this->occl_fails = 0;
-    this->occl_fails_gen = 0;
+    // probes say otherwise. occl.pending may still be in flight; its stale
+    // result shifts occl.fails by at most one, under the hide threshold.
+    this->occl.reset_streak( );
+    this->occl.fails_gen = 0;
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         RenderLayer &renderLayer = this->layers[ renderOrder ];
         if ( renderLayer.populated_blocks ) {

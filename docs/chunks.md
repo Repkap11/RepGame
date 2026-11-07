@@ -61,7 +61,10 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    chunks; `calculate_cull` does frustum culling plus hardware occlusion
    probes (`REPGAME_OCCLUSION` kill switch, cached in
    `cached_cull_normal`/`cached_cull_reflect`); `draw` issues the
-   instanced draws.
+   instanced draws. Occlusion verdicts (`ChunkOcclState`) are invalidated
+   by any camera move; a pure rotation only invalidates verdicts earned
+   while the chunk wasn't fully inside the frustum — a full-box probe is
+   rotation-invariant from a fixed eye position.
 5. **Edits.** A block write (`World::set_loaded_block`) dirties the
    chunk (`dirty`, `needs_repopulation`) and enqueues it on
    `repop_must` — the must-remesh queue that also pulls dirty

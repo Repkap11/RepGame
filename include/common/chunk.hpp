@@ -8,6 +8,7 @@
 
 #include "block.hpp"
 #include "common/chest.hpp"
+#include "common/chunk_occlusion.hpp"
 #include "common/utils/map_storage.hpp"
 #include "renderer/renderer.hpp"
 #include "server/server.hpp"
@@ -49,11 +50,6 @@ class WorkingSpace {
 // Empty sentinel for Chunk::light_dirty_box — min fields = 255 > max = 0, so
 // any decoded box with min > max on an axis is "nothing dirty".
 #define LIGHT_BOX_EMPTY 0xFFFFFFULL
-
-// Consecutive failed AABB probes before a chunk is treated as occluded (see
-// Chunk::occl_fails). >1 absorbs a stale in-flight result read after slot
-// reuse, at the cost of one extra frame of overdraw on real occlusion.
-#define OCCL_HIDE_FRAMES 2
 
 // Fixed-size chunk-buffer pool (chunk.cpp). cells[]/extras[]/light[]/
 // light_columns[] are always allocated at their full size and never resized,
@@ -207,25 +203,10 @@ class Chunk {
     // slot's buffer release, so a stale deferred entry (slot re-entered
     // and re-parked before the old one fired) can't release fresh data.
     unsigned int park_release_gen;
-    // AABB occlusion-probe state (ChunkLoader::draw, normal pass only). Each
-    // frustum-visible chunk probes its [0,CHUNK_SIZE) bounding box against
-    // the opaque depth buffer once per frame (GL_ANY_SAMPLES_PASSED).
-    // occl_fails counts consecutive failed probes; at OCCL_HIDE_FRAMES every
-    // render layer skips the chunk — conservative, since its content is
-    // confined to the box. Hidden chunks keep probing, so a reveal un-hides
-    // them the frame the box reappears. occl_query is lazily created on the
-    // GL thread and persists across slot reuse.
-    // Verdicts are view-relative: a probe only proves coverage against the
-    // depth buffer of the view it was issued under. occl_probe_gen /
-    // occl_fails_gen tag the ChunkLoader::draw view generation each piece of
-    // state was earned under — after the camera moves, stale results are
-    // discarded and stale fails stop hiding, so a fast turn re-tests
-    // instead of leaving a see-through hole while verdicts drain.
-    unsigned int occl_query;
-    int occl_pending;
-    int occl_fails;
-    long occl_probe_gen;
-    long occl_fails_gen;
+    // AABB occlusion-probe state — see ChunkOcclState
+    // (common/chunk_occlusion.hpp) for the position/rotation/full verdict
+    // validity rules.
+    ChunkOcclState occl;
     int needs_repopulation;
     // Set while this chunk sits in ChunkLoader::repop_must (dedupes the
     // enqueue). Cleared when the queue pops it, remeshed or not.

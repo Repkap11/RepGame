@@ -85,20 +85,28 @@ class ChunkLoader {
 
     // AABB occlusion probing: minimal pos-only shader + unit-cube VBO used
     // to draw each chunk's bounding box inside GL_ANY_SAMPLES_PASSED queries
-    // (ChunkLoader::draw, opaque order, normal pass). See Chunk::occl_*.
+    // (ChunkLoader::draw, opaque order, normal pass). See ChunkOcclState.
     Shader occl_shader;
     VertexArray occl_va;
     VertexBuffer occl_vb;
-    // View generation + last probed mvp: verdicts (occl_fails_gen /
-    // occl_probe_gen) are tagged with the view they were earned under.
-    // Were function-statics in draw(); members now so the second VR eye can
-    // reuse eye 0's generation (occl_probe_pass=false) instead of
-    // invalidating it with a slightly different mvp.
+    // Position + rotation generations and their last snapshots: verdicts
+    // (ChunkOcclState::fails_gen/probe_gen, fails_rot/probe_rot) are tagged
+    // with the generations they were earned under. A position bump
+    // invalidates every verdict; a rotation bump only invalidates partial
+    // (not fully in-frustum) ones — see chunk_occlusion.hpp. Were
+    // function-statics in draw(); members now so the second VR eye can
+    // reuse eye 0's generations (occl_probe_pass=false) instead of
+    // invalidating them with a slightly different mvp.
     long occl_view_gen = 0;
-    glm::mat4 occl_last_view_mvp = glm::mat4( 0.0f );
+    long occl_rot_gen = 0;
+    glm::vec3 occl_last_cam = glm::vec3( 0.0f );
+    glm::mat4 occl_last_rot_mvp = glm::mat4( 0.0f );
+    bool occl_hides( const Chunk &c ) const {
+        return c.occl.hides( this->occl_view_gen, this->occl_rot_gen );
+    }
     // When false, draw() neither consumes probe results nor issues new
     // probes (and skips that block's GL state changes) — it only applies the
-    // existing occl_fails verdicts. Used for the second stereo eye.
+    // existing occl verdicts. Used for the second stereo eye.
     bool occl_probe_pass = true;
 
     // Compact list of chunks that are loaded and should be rendered, kept

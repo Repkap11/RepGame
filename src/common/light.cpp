@@ -5030,7 +5030,13 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
         if ( this->chunkArray[ i ].load_state == CHUNK_LOADING ) {
             out->chunks_loading++;
         }
-        if ( this->chunkArray[ i ].occl_fails >= OCCL_HIDE_FRAMES ) {
+    }
+    // Count only chunks actually skipped this frame: drawable AND in the
+    // frustum. Off-frustum chunks keep stale verdicts (reset on re-entry),
+    // which would inflate the count with chunks nobody is hiding.
+    for ( int i = 0; i < this->num_drawable; i++ ) {
+        const Chunk &chunk = *this->drawable_chunks[ i ];
+        if ( !chunk.cached_cull_normal && this->occl_hides( chunk ) ) {
             out->chunks_occluded++;
         }
     }

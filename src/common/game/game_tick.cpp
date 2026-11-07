@@ -318,13 +318,16 @@ void RepGame::tick( ) {
             results::note_exit_reason( "walktest_ticks" );
             globalGameState.input.exitGame = true;
         }
-        // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick[,pitch]": teleport on
-        // the first tick, then hold forward each tick (angle optionally spins).
+        // REPGAME_TELEPORT="x,y,z,angle,sprint,spin_deg_per_tick[,pitch[,walk]]":
+        // teleport on the first tick, then hold forward each tick (angle
+        // optionally spins). walk=0 suppresses the held-forward input so the
+        // camera pans in place instead of translating.
         const char *tp = run_policy( ).teleport;
+        int tp_walk = 1;
         if ( tp ) {
             float tx, ty, tz, ta, spin = 0.0f, pitch = 0.0f;
             int sprint = 0;
-            if ( sscanf( tp, "%f,%f,%f,%f,%d,%f,%f", &tx, &ty, &tz, &ta, &sprint, &spin, &pitch ) >= 4 ) {
+            if ( sscanf( tp, "%f,%f,%f,%f,%d,%f,%f,%d", &tx, &ty, &tz, &ta, &sprint, &spin, &pitch, &tp_walk ) >= 4 ) {
                 if ( globalGameState.tick_number == 1 ) {
                     globalGameState.camera.pos = glm::dvec3( tx, ty, tz );
                     globalGameState.camera.angle_V = pitch;
@@ -339,7 +342,7 @@ void RepGame::tick( ) {
         if ( run_policy( ).screenshot_tick > 0 && globalGameState.tick_number == run_policy( ).screenshot_tick ) {
             globalGameState.input.screenshot_requested = true;
         }
-        globalGameState.input.movement.sizeH = 1.0f;
+        globalGameState.input.movement.sizeH = static_cast<float>( tp_walk );
         globalGameState.input.movement.angleH = 0.0f;
         globalGameState.input.movement.jumpPressed = false;
         globalGameState.input.movement.sneakPressed = false;
