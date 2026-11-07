@@ -284,7 +284,9 @@ void RepGame::process_mouse_events( ) {
                 }
                 globalGameState.block_mining.pos = target_pos;
                 globalGameState.block_mining.id = target_state.id;
-                globalGameState.block_mining.progress_ticks += 1.0f;
+                // A matching tool (pickaxe on stone, axe on wood, ...) adds
+                // its tier multiplier per tick instead of 1.
+                globalGameState.block_mining.progress_ticks += item_mining_speed( globalGameState.hotbar.getSelectedItem( ), target_state.id );
                 if ( globalGameState.block_mining.progress_ticks >= target_def->hardness * static_cast<float>( UPS_RATE ) ) {
                     break_selected_block( );
                     globalGameState.block_mining.progress_ticks = 0.0f;

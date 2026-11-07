@@ -1,9 +1,7 @@
 #include <cstdlib>
-#include <cstring>
 
 #include "common/block_definitions.hpp"
 #include "common/renderer/texture.hpp"
-#include "common/RepGame.hpp"
 
 Block *block_definitions;
 
@@ -37,6 +35,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->can_float_on_water = false;
         block->can_be_placed_in = false;
         block->hardness = 1.5f;
+        block->mineable = MINEABLE_NONE;
         block->connects_to_redstone_dust = false;
         block->is_redstone_dust = false;
         block->is_fence = false;

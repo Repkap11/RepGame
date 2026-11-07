@@ -25,6 +25,17 @@ const char *item_name( ItemID id ) {
     return item_id_defined( id ) ? ITEM_NAMES[ id - ITEM_ID_BASE ] : nullptr;
 }
 
+float item_mining_speed( ItemID id, BlockID block_id ) {
+    if ( item_is_block( id ) || !item_id_defined( id ) || block_id >= LAST_BLOCK_ID ) {
+        return 1.0f;
+    }
+    const ItemGenDef &def = ITEM_DEFINITIONS[ id - ITEM_ID_BASE ];
+    if ( def.tool_class != MINEABLE_NONE && def.tool_class == block_definitions[ block_id ].mineable ) {
+        return def.mine_speed;
+    }
+    return 1.0f;
+}
+
 #include "block_drops_gen.inc"
 
 int block_roll_drops( BlockID id, uint32_t *rng_state, ItemStack *out, int max_out ) {

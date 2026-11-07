@@ -39,6 +39,18 @@ reseed for reproducible tests). Examples in tree: stone→cobblestone,
 grass→dirt, ores→their item (lapis 4-8), leaves→sapling 5% + stick 2%
 (+apple 0.5% oak/dark oak), gravel→flint 10% else gravel.
 
+
+Mining speed: `ItemGenDef` carries `tool_class` (the `MineableClass` the
+item accelerates) and `mine_speed` (per-tick multiplier). Optional item
+JSON keys `"tool"` (`"pickaxe"`/`"axe"`/`"shovel"`/`"shears"`) and
+`"mining_speed"` override the importer's name-derived defaults: a
+`*_PICKAXE`/`_AXE`/`_SHOVEL` suffix gives the class and the material
+prefix the speed (`TOOL_TIER_SPEED` — wooden 2, stone 4, iron 6, diamond
+8; `SHEARS` is shears at 8). `item_mining_speed(item, block)`
+(`src/common/item.cpp`) returns the multiplier when the tool's class
+matches the target's `Block::mineable`, else 1 — see "Mining" in
+`docs/player.md`.
+
 Mob drops live in `MobTypeDef::drops` (`MobDrop[2]` of
 `{ ItemID item; int min; int max; }`, `LAST_BLOCK_ID` = unused slot).
 

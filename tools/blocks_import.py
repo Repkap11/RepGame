@@ -88,10 +88,108 @@ VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
 BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
-               "render_order", "needs_place_on_any_solid", "creative", "drops"}
+               "render_order", "needs_place_on_any_solid", "creative", "drops",
+               "mineable"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL | BLOCK_REF_FIELDS
 
-ITEM_KNOWN_KEYS = {"id", "name", "icon", "max_stack", "aliases"}
+ITEM_KNOWN_KEYS = {"id", "name", "icon", "max_stack", "aliases", "tool",
+                   "mining_speed"}
+
+# "mineable" block classes / "tool" item classes: the tool family that speeds
+# up survival mining (see MINEABLE_* in block_definitions.hpp).
+MINEABLE_CLASSES = ("pickaxe", "axe", "shovel", "shears")
+
+# mineable derivation: ordered name-substring -> class rules, first match
+# wins; an explicit "mineable" JSON key overrides the whole table. Class
+# order matters: pickaxe keywords first so IRON_DOOR / NETHER_BRICK_FENCE /
+# COPPER_CHEST / RED_SANDSTONE stay pickaxe, shears before shovel/axe so
+# OAK_LEAVES aren't claimed by the OAK species keyword, shovel before axe so
+# MANGROVE_ROOTS isn't claimed by MANGROVE.
+MINEABLE_PICKAXE_KW = [
+    "STONE", "ORE", "BRICK", "COBBLE", "DEEPSLATE", "OBSIDIAN", "BASALT",
+    "BLACKSTONE", "PRISMARINE", "PURPUR", "SANDSTONE", "GRANITE", "DIORITE",
+    "ANDESITE", "CALCITE", "TUFF", "DRIPSTONE", "AMETHYST", "QUARTZ",
+    "MAGMA", "NETHERRACK", "NYLIUM", "DEBRIS", "FURNACE", "SMOKER",
+    "DISPENSER", "DROPPER", "OBSERVER", "PISTON", "HOPPER", "CAULDRON",
+    "CHAIN", "BELL", "RAIL", "BARS", "CONDUIT", "BEACON", "LODESTONE",
+    "RESPAWN_ANCHOR", "ENCHANTING", "STONECUTTER", "GRINDSTONE", "BREWING",
+    "BONE_BLOCK", "SHULKER", "TERRACOTTA", "HARDENED_CLAY", "GLAZED",
+    "GLOWSTONE", "ANVIL", "CINNABAR", "SULFUR", "RESIN", "CORAL_BLOCK",
+    "ICE", "COPPER", "IRON", "DIAMOND", "EMERALD", "LAPIS", "NETHERITE",
+    "COAL", "CRAFTER", "SPAWNER", "LIGHTNING_ROD", "NETHERREACTOR",
+    "LANTERN", "CONCRETE", "GILDED", "GOLD_ORE", "GOLD_BLOCK",
+    "NETHER_GOLD", "WEIGHTED", "CHISELED",
+]
+MINEABLE_SHEARS_KW = [
+    "LEAVES", "WOOL", "CARPET", "VINE", "WEB", "LICHEN", "AZALEA",
+]
+MINEABLE_SHOVEL_KW = [
+    "SAND", "GRAVEL", "SOIL", "DIRT", "MUD", "ROOTS", "SNOW", "CLAY",
+    "PODZOL", "MYCELIUM", "FARMLAND", "PATH", "GRASS", "MOSS",
+]
+MINEABLE_AXE_KW = [
+    "LOG", "STEM", "HYPHAE", "WOOD", "PLANKS", "FENCE", "DOOR", "SIGN",
+    "SHELF", "CHEST", "BARREL", "BOOKSHELF", "LECTERN", "JUKEBOX",
+    "NOTEBLOCK", "NOTE_BLOCK", "COMPOSTER", "LADDER", "SCAFFOLD",
+    "PUMPKIN", "MELON", "MUSHROOM", "BAMBOO", "CAMPFIRE", "BANNER",
+    "LOOM", "DAYLIGHT", "CHORUS", "CREAKING", "TABLE", "CRAFTING",
+    "BEEHIVE", "BEE_NEST",
+    # Wood species so <SPECIES>_STAIRS/SLAB/etc. count without a shape word.
+    "OAK", "BIRCH", "SPRUCE", "JUNGLE", "ACACIA", "MANGROVE", "CHERRY",
+    "CRIMSON", "WARPED", "POPLAR",
+]
+MINEABLE_RULES = (
+    # Exceptions that must beat a keyword below: concrete powder digs,
+    # chiseled bookshelf is wood, the ender chest is obsidian.
+    [("POWDER", "shovel"), ("SUSPICIOUS", "shovel"),
+     ("BOOKSHELF", "axe"), ("ENDER_CHEST", "pickaxe"),
+     ("JACK_O_LANTERN", "axe")]
+    + [(kw, "pickaxe") for kw in MINEABLE_PICKAXE_KW]
+    + [(kw, "shears") for kw in MINEABLE_SHEARS_KW]
+    + [(kw, "shovel") for kw in MINEABLE_SHOVEL_KW]
+    + [(kw, "axe") for kw in MINEABLE_AXE_KW]
+)
+
+
+def classify_mineable(name):
+    """First matching name-substring rule wins; "none" = no tool helps."""
+    for pat, cls in MINEABLE_RULES:
+        if pat in name:
+            return cls
+    return "none"
+
+
+# Item tool derivation: kind from an optional "tool" key or the
+# *_PICKAXE/_AXE/_SHOVEL/SHEARS name; speed from "mining_speed" or the
+# material prefix (MC tiers: wood 2, stone 4, iron 6, diamond 8, shears 8).
+TOOL_TIER_SPEED = {"WOODEN": 2.0, "STONE": 4.0, "IRON": 6.0, "DIAMOND": 8.0}
+
+
+def item_tool(it):
+    """(mineable class or "none", mine_speed) for a data/items entry."""
+    cls = it.get("tool")
+    name = it["name"]
+    if cls is None:
+        if name == "SHEARS":
+            cls = "shears"
+        else:
+            for suffix in MINEABLE_CLASSES:
+                if name.endswith("_" + suffix.upper()):
+                    cls = suffix
+                    break
+    if cls is None:
+        return "none", 1.0
+    speed = it.get("mining_speed")
+    if speed is None:
+        if name == "SHEARS":
+            speed = 8.0
+        else:
+            speed = 2.0
+            for tier, s in TOOL_TIER_SPEED.items():
+                if name.startswith(tier + "_"):
+                    speed = s
+                    break
+    return cls, float(speed)
 DROP_KEYS = {"item", "min", "max", "chance"}
 RECIPE_KEYS = {"pattern", "key", "ingredients", "result", "count"}
 
@@ -405,6 +503,9 @@ def load_blocks():
                 fail("%s: bad aliases" % fname)
         if "creative" in b and not isinstance(b["creative"], bool):
             fail("%s: creative must be a bool" % fname)
+        if "mineable" in b and b["mineable"] not in MINEABLE_CLASSES + ("none",):
+            fail("%s: bad mineable %r (need one of %s or \"none\")" %
+                 (fname, b["mineable"], MINEABLE_CLASSES))
         if "drops" in b:
             if not isinstance(b["drops"], list):
                 fail("%s: drops must be a list" % fname)
@@ -504,6 +605,12 @@ def load_items(block_names):
             ms = it["max_stack"]
             if not isinstance(ms, int) or not (1 <= ms <= 127):
                 fail("%s: bad max_stack %r (need 1-127)" % (fname, ms))
+        if "tool" in it and it["tool"] not in MINEABLE_CLASSES:
+            fail("%s: bad tool %r (need one of %s)" % (fname, it["tool"], MINEABLE_CLASSES))
+        if "mining_speed" in it:
+            sp = it["mining_speed"]
+            if not isinstance(sp, (int, float)) or float(sp) <= 0:
+                fail("%s: bad mining_speed %r (need a positive number)" % (fname, sp))
         if "aliases" in it:
             if not isinstance(it["aliases"], list) or not all(re.match(r"^[A-Z][A-Z0-9_]*$", a) for a in it["aliases"]):
                 fail("%s: bad aliases" % fname)
@@ -920,6 +1027,10 @@ def main():
             d["_id"] = iid
 
     item_tags = load_item_tags(block_names, item_names)
+    # mineable class: an explicit "mineable" key wins, else classify the name.
+    for bid, b in blocks.items():
+        if "mineable" not in b:
+            b["mineable"] = classify_mineable(b["name"])
     emit_recipes(load_recipes(item_tags, blocks, items), blocks, items)
     emit_smelt(load_smelt(item_tags, blocks, items), blocks, items)
 
@@ -1100,15 +1211,19 @@ def main():
     with open(OUT_ITEM_IDS, "w") as f:
         f.writelines(out)
 
-    # src/common/item_definitions_gen.inc — icon layer + max stack per item,
-    # indexed by id - ITEM_ID_BASE.
+    # src/common/item_definitions_gen.inc — icon layer, max stack and tool
+    # class/speed per item, indexed by id - ITEM_ID_BASE.
     out = [HEADER]
     for iid in range(ITEM_ID_BASE, item_id_end):
         it = items.get(iid)
         if it is None:
-            out.append("    { TEX_AIR, 0 },\n")
+            out.append("    { TEX_AIR, 0, MINEABLE_NONE, 1.0f },\n")
             continue
-        out.append("    { TEX_%s, %d },\n" % (it["icon"].upper(), it.get("max_stack", 64)))
+        cls, speed = item_tool(it)
+        cls_enum = "MINEABLE_" + cls.upper()
+        out.append("    { TEX_%s, %d, %s, %sf },\n" %
+                   (it["icon"].upper(), it.get("max_stack", 64), cls_enum,
+                    fmt_float(speed)))
     with open(OUT_ITEM_INC, "w") as f:
         f.writelines(out)
 
@@ -1221,6 +1336,9 @@ def main():
                 out.append("%s%s = %s;\n" % (prefix, key, "true" if val else "false"))
             elif key in FLOAT_FIELDS:
                 out.append("%s%s = %sf;\n" % (prefix, key, fmt_float(val)))
+            elif key == "mineable":
+                if val != "none":
+                    out.append("%smineable = MINEABLE_%s;\n" % (prefix, val.upper()))
             else:
                 out.append("%s%s = %s;\n" % (prefix, key, val))
     with open(OUT_INC, "w") as f:

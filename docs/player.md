@@ -101,11 +101,14 @@ against the water surface works. `World::set_selected_block` feeds the
 mob pre-empt the block target for left clicks.
 
 - **Mining.** Survival: holding left click accumulates
-  `block_mining.progress_ticks` against `def->hardness * UPS_RATE`
-  (`hardness < 0` is unbreakable); retargeting resets progress.
-  Creative breaks instantly. `break_selected_block` plays the dig sound,
-  rolls drops (`block_roll_drops` — survival only, spawned as item
-  entities), and loots chest contents.
+  `block_mining.progress_ticks` by `item_mining_speed(held, block)` per
+  tick until `def->hardness * UPS_RATE` (`hardness < 0` is unbreakable);
+  a matching tool class (pickaxe on `MINEABLE_PICKAXE` blocks, axe on
+  `MINEABLE_AXE`, shovel on `MINEABLE_SHOVEL`, shears on `MINEABLE_SHEARS`)
+  multiplies the rate — anything else mines at 1. Retargeting resets
+  progress. Creative breaks instantly. `break_selected_block` plays the
+  dig sound, rolls drops (`block_roll_drops` — survival only, spawned as
+  item entities), and loots chest contents.
 - **Placement.** `change_block` rejects positions that would intersect
   the player AABB (`check_collides_with_block`, including the cell a
   door's upper half occupies) and runs `player_placement_valid` /

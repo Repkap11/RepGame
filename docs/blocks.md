@@ -95,6 +95,15 @@ hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
 flags (`no_light`, `casts_shadow:false`); see existing `data/blocks/*.json`
 for the emitted levels.
 
+`"mineable"` (optional, `"pickaxe"`/`"axe"`/`"shovel"`/`"shears"`/`"none"`)
+sets the tool family that speeds up survival mining of the block
+(`Block::mineable`, `MINEABLE_*`). When absent the importer derives it from
+the block name via the ordered `MINEABLE_RULES` substring table in
+`tools/blocks_import.py` — first match wins — so `<SPECIES>_*` families land
+on axe, stone/mineral/metal names on pickaxe, dirt/sand/powder on shovel
+and leaves/wool/vines on shears; everything unmatched (plants, decorations,
+unbreakables) stays none. Only set the key when the heuristic is wrong.
+
 `blocks_light_down` (derived, no JSON key): bottom-aligned partial blocks —
 casts_shadow, opaque, scale.x/z=16, offset 0, scale.y<16, e.g. bottom slabs
 and grass path. The post-pass clears `casts_shadow` (cell holds light,

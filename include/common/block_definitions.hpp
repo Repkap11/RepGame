@@ -14,6 +14,16 @@
 // BlockID — a block's textures[]/icon_texture hold layers, not block ids.
 typedef uint16_t TextureID;
 
+// Which tool family speeds up survival mining of a block. Derived in
+// tools/blocks_import.py from the block name (an optional "mineable" JSON
+// key overrides) — see docs/blocks.md. MINEABLE_NONE means no tool helps.
+typedef enum {
+    MINEABLE_NONE = 0,
+    MINEABLE_PICKAXE, // stone/mineral/metal-like
+    MINEABLE_AXE,     // wood-like
+    MINEABLE_SHOVEL,  // dirt/sand/gravel/snow-like
+    MINEABLE_SHEARS,  // leaves/wool/carpet/vines
+} MineableClass;
 
 typedef struct {
     BlockID id;
@@ -68,6 +78,9 @@ typedef struct {
     // Seconds to break by hand in survival mode. 0 breaks instantly,
     // negative means unbreakable (e.g. bedrock).
     float hardness;
+    // Tool family that speeds up breaking (MineableClass). Derived, with a
+    // per-block "mineable" JSON override; MINEABLE_NONE by default.
+    unsigned char mineable;
     struct {
         bool can_mesh_x;
         bool can_mesh_y;

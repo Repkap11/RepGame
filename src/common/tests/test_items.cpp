@@ -93,6 +93,33 @@ int test_items( ) {
         }
         check_bool( "drops: oak leaves at most one item", leaves_ok );
     }
+
+    // Mining tool classes: Block::mineable is importer-derived from block
+    // names; item_mining_speed returns the tool's multiplier only when its
+    // tool_class matches the target's class.
+    check_bool( "mineable: stone -> pickaxe", block_definitions[ STONE ].mineable == MINEABLE_PICKAXE );
+    check_bool( "mineable: cobblestone -> pickaxe", block_definitions[ COBBLESTONE ].mineable == MINEABLE_PICKAXE );
+    check_bool( "mineable: iron door -> pickaxe", block_definitions[ IRON_DOOR_LOWER ].mineable == MINEABLE_PICKAXE );
+    check_bool( "mineable: nether brick fence -> pickaxe", block_definitions[ NETHER_BRICK_FENCE ].mineable == MINEABLE_PICKAXE );
+    check_bool( "mineable: concrete -> pickaxe", block_definitions[ BLACK_CONCRETE ].mineable == MINEABLE_PICKAXE );
+    check_bool( "mineable: oak log -> axe", block_definitions[ OAK_LOG ].mineable == MINEABLE_AXE );
+    check_bool( "mineable: oak stairs -> axe", block_definitions[ OAK_STAIRS ].mineable == MINEABLE_AXE );
+    check_bool( "mineable: chiseled bookshelf -> axe", block_definitions[ CHISELED_BOOKSHELF ].mineable == MINEABLE_AXE );
+    check_bool( "mineable: dirt -> shovel", block_definitions[ DIRT ].mineable == MINEABLE_SHOVEL );
+    check_bool( "mineable: grass block -> shovel", block_definitions[ GRASS ].mineable == MINEABLE_SHOVEL );
+    check_bool( "mineable: concrete powder -> shovel", block_definitions[ BLACK_CONCRETE_POWDER ].mineable == MINEABLE_SHOVEL );
+    check_bool( "mineable: oak leaves -> shears", block_definitions[ OAK_LEAVES ].mineable == MINEABLE_SHEARS );
+    check_bool( "mineable: wool -> shears", block_definitions[ WHITE_WOOL ].mineable == MINEABLE_SHEARS );
+    check_bool( "mineable: air -> none", block_definitions[ AIR ].mineable == MINEABLE_NONE );
+    check_bool( "tool speed: iron pickaxe on stone = 6", item_mining_speed( IRON_PICKAXE, STONE ) == 6.0f );
+    check_bool( "tool speed: wooden pickaxe on stone = 2", item_mining_speed( WOODEN_PICKAXE, STONE ) == 2.0f );
+    check_bool( "tool speed: diamond axe on log = 8", item_mining_speed( DIAMOND_AXE, OAK_LOG ) == 8.0f );
+    check_bool( "tool speed: stone shovel on dirt = 4", item_mining_speed( STONE_SHOVEL, DIRT ) == 4.0f );
+    check_bool( "tool speed: wrong tool = 1", item_mining_speed( IRON_PICKAXE, OAK_LOG ) == 1.0f );
+    check_bool( "tool speed: axe on stone = 1", item_mining_speed( STONE_AXE, STONE ) == 1.0f );
+    check_bool( "tool speed: sword = 1", item_mining_speed( IRON_SWORD, STONE ) == 1.0f );
+    check_bool( "tool speed: block item = 1", item_mining_speed( STONE, STONE ) == 1.0f );
+    check_bool( "tool speed: empty hand = 1", item_mining_speed( LAST_BLOCK_ID, STONE ) == 1.0f );
     return failures;
 }
 

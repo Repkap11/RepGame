@@ -29,6 +29,11 @@ static inline int item_id_valid( ItemID id ) {
 typedef struct {
     TextureID icon_texture;
     unsigned char max_stack;
+    // Tool classification for survival mining speed: the MineableClass this
+    // item accelerates (MINEABLE_NONE = not a tool) and the multiplier it
+    // mines at when the target block's mineable matches.
+    unsigned char tool_class;
+    float mine_speed;
 } ItemGenDef;
 
 static const ItemGenDef ITEM_DEFINITIONS[ ITEM_ID_END - ITEM_ID_BASE ] = {
@@ -49,6 +54,10 @@ TextureID item_icon_texture( ItemID id );
 // Pure items always draw flat (non-isometric); blocks forward icon_is_isometric.
 int item_icon_is_isometric( ItemID id );
 const char *item_name( ItemID id );
+
+// Per-tick mining-speed multiplier for survival block breaking: the item's
+// mine_speed when its tool_class matches the block's mineable class, else 1.
+float item_mining_speed( ItemID id, BlockID block_id );
 
 // Generated block drop table ("drops" in data/blocks/*.json). Blocks with no
 // "drops" key are absent from BLOCK_DROP_TABLE and drop themselves.
