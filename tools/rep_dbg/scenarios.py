@@ -21,4 +21,26 @@ SCENARIOS = {
         "REPGAME_FLY_FLY_TICKS": "600",
         "REPGAME_FLY_TICKS": "900",
     },
+    # Parked flat-world idle: settles, then rep-dbg holds a timed window.
+    # No FLY_TICKS — the runner stops the game after the window.
+    "idle": {
+        "REPGAME_FLY": "1000,80,1000,0,0,0",
+        "REPGAME_FLY_SETTLE": "20",
+        "REPGAME_FLY_SETTLE_TIMEOUT": "6000",
+        "REPGAME_FLY_METRICS": "20",
+        "REPGAME_PROFILE": "1",
+    },
 }
+
+# Scenarios that run under a fixed-duration window (runner opts.window):
+# reps measure the window only; wall_s is fixed by rep-dbg, so the
+# interesting numbers are window.fps and window.prof.*.us_per_call.
+WINDOWS = {
+    "idle": {"after_event": "fly_settled", "warmup_s": 2, "window_s": 10},
+}
+
+WINDOW_METRICS = [
+    "window.fps",
+    "window.prof.draw_frame.us_per_call",
+    "window.prof.tick.us_per_call",
+]

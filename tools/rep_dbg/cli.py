@@ -71,7 +71,7 @@ def _parser():
 
     p = sub.add_parser("ab", help="interleaved A/B reps across cfgs")
     p.add_argument("scenario", nargs="?",
-                   help="scenario shortcut (cold-settle|stream-flight); or pass preset args after --")
+                   help="scenario shortcut (cold-settle|stream-flight|idle); or pass preset args after --")
     p.add_argument("--cfg", action="append", required=True, metavar="NAME=SPEC",
                    help="SPEC: [rev:<ref>|worktree:<path>|current][:K=V[:K=V...]]")
     p.add_argument("--reps", type=int, default=3)
@@ -90,18 +90,33 @@ def _parser():
                    help="run each rep under perf stat (perf.stat.* metrics)")
     p.add_argument("--profile", action="store_true",
                    help="REPGAME_PROFILE=1 for all cfgs")
+    p.add_argument("--duration", type=float,
+                   help="windowed scenarios: window_s override (seconds)")
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
-    p = sub.add_parser("perf", help="perf record/attach/stat/diff")
-    p.add_argument("action", choices=["record", "attach", "stat", "diff"])
+    p = sub.add_parser("perf", help="perf record/attach/stat/diff/idle")
+    p.add_argument("action", choices=["record", "attach", "stat", "diff", "idle"])
     p.add_argument("args", nargs="*",
                    help="record/stat: [scenario]; attach: <pid|name>; diff: <runA> <runB>")
-    p.add_argument("--freq", type=int, default=999)
+    p.add_argument("--freq", type=int, default=499)
     p.add_argument("--call-graph", default="dwarf", choices=["dwarf", "fp", "lbr"],
-                   help="fp needs `make linux PERF=1`; dwarf bounds at 16KB stacks")
+                   help="fp needs `make linux PERF=1`; dwarf bounds at --stack bytes")
+    p.add_argument("--stack", type=int, default=8192,
+                   help="dwarf call-graph stack bytes")
     p.add_argument("--duration", type=float,
-                   help="record/stat: the run timeout; attach: seconds to record (default 15)")
+                   help="record/stat: the run timeout; attach/idle: seconds to record (default 15/8)")
+    p.add_argument("--warmup", type=float, default=2.0,
+                   help="idle: seconds between fly_settled and recording")
+    p.add_argument("--spec", default="0.5,80,0.5,0,0",
+                   help="idle: REPGAME_FLY camera spec (speed forced to 0)")
+    p.add_argument("--settle", type=int, default=20, help="idle: REPGAME_FLY_SETTLE")
+    p.add_argument("--settle-timeout", type=int, default=6000,
+                   help="idle: REPGAME_FLY_SETTLE_TIMEOUT")
+    p.add_argument("--no-profile", action="store_true",
+                   help="idle: don't set REPGAME_PROFILE=1")
+    p.add_argument("--keep-data", action="store_true",
+                   help="keep perf.data after postprocess (default: delete)")
     p.add_argument("--threads", action="store_true", help="per-thread flame-<comm>.svg")
     p.add_argument("--events", help="perf stat -e event list")
     p.add_argument("--top", type=int, default=15, help="diff: rows to print")
@@ -208,6 +223,19 @@ def _parser():
 
     p = sub.add_parser("wt", help="manage --rev worktrees")
     p.add_argument("action", choices=["list", "prune"])
+    p.add_argument("--older-than", type=float, default=3,
+                   help="prune: minimum age by last use, days (default 3)")
+    p.add_argument("--all", action="store_true", help="prune every managed worktree")
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--root", default=None)
+
+    p = sub.add_parser("gc", help="reclaim the run root (old runs, perf.data, worktrees)")
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--keep-days", type=float)
+    p.add_argument("--max-gb", type=float)
+    p.add_argument("--perf-data-hours", type=float)
+    p.add_argument("--wt-days", type=float)
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
@@ -280,10 +308,16 @@ def _scenario_env(opts):
 
 def _do_ab(opts):
     from . import ab as ab_mod
+    from . import scenarios
 
     try:
         scenario_env, scenario_kind = _scenario_env(opts)
         user_env = _env_pairs(opts.env)
+        window = None
+        if opts.scenario in scenarios.WINDOWS:
+            window = dict(scenarios.WINDOWS[opts.scenario])
+            if opts.duration is not None:
+                window["window_s"] = opts.duration
         if opts.perf_stat:
             from . import perf as perf_mod
             if not perf_mod.preflight(sys.stderr):
@@ -339,16 +373,27 @@ def _do_ab(opts):
             rev=None, rev_arg=(cfg["tree_spec"][4:]
                                if cfg["tree_spec"].startswith("rev:") else None),
             build=opts.build, world=opts.world, flat=opts.flat,
-            keep_world=opts.keep_world, timeout=opts.timeout,
+            keep_world=opts.keep_world,
+            timeout=opts.timeout or (600 if window else None),
             name="%s-%s" % (opts.name, cfg["name"]), kind="ab-rep",
-            window=opts.window, extra=[], tree=trees[cfg["tree_spec"]],
+            window=opts.window,
+            timed_window=window,
+            extra=[], tree=trees[cfg["tree_spec"]],
             ab_id=ab_id, cfg=cfg["name"], **wrap_ns)
         result, rep_dir = runner_mod.run(ns, sys.stderr)
         rep_runs[cfg["name"]].append({"id": result["id"], "status": result["status"],
                                       "dir": os.path.relpath(rep_dir, opts.root)})
         rep_results[cfg["name"]].append(result)
 
-    fields = opts.metric or ab_mod.DEFAULT_METRICS
+    if opts.metric:
+        fields = opts.metric
+    elif window:
+        fields = scenarios.WINDOW_METRICS
+    else:
+        fields = list(ab_mod.DEFAULT_METRICS)
+        if opts.profile:
+            fields += ["stats.metric.prof.draw_frame.us_per_call.mean",
+                       "stats.metric.prof.tick.us_per_call.mean"]
     per_metric = {}
     for field in fields:
         per_cfg = {}
@@ -411,23 +456,39 @@ def _do_perf(opts):
             print("rep-dbg: perf diff wants <runA> <runB>", file=sys.stderr)
             return 4
         try:
-            tops = []
+            tops, metas = [], []
             for ref in opts.args:
                 r = results_mod.load(ref, opts.root)
-                top = (r.result.get("perf") or {}).get("top")
-                if top is None:
+                perf = r.result.get("perf") or {}
+                if perf.get("top") is None:
                     raise ValueError("%s has no perf.top (not a perf record run)" % ref)
-                tops.append(top)
+                tops.append(perf["top"])
+                metas.append(perf)
         except (LookupError, OSError, ValueError) as e:
             print("rep-dbg: %s" % e, file=sys.stderr)
             return 4
-        rows = perf_mod.top_diff(tops[0], tops[1], opts.top)
+        rows = perf_mod.top_diff(tops[0], tops[1], opts.top,
+                                 meta_a=metas[0], meta_b=metas[1])
         if opts.json:
             print(json.dumps(rows, indent=2, sort_keys=True))
         else:
             for r in rows:
-                print("%6.2f -> %6.2f  %+6.2f  %-16s %s" % (
-                    r["a_pct"], r["b_pct"], r["delta"], r["thread"] or "-", r["symbol"]))
+                line = "%6.2f -> %6.2f  %+6.2f  " % (
+                    r["a_pct"], r["b_pct"], r["delta"])
+                if r.get("norm_kind") == "us_per_frame":
+                    chg = r.get("norm_change_pct")
+                    line += "%8.1f -> %8.1f us/fr (%s%%)  " % (
+                        r["a_norm"], r["b_norm"],
+                        "%+.1f" % chg if chg is not None else "-")
+                elif r.get("norm_kind") == "ms_per_s":
+                    chg = r.get("norm_change_pct")
+                    line += "%8.1f -> %8.1f ms/s (%s%%)  " % (
+                        r["a_norm"], r["b_norm"],
+                        "%+.1f" % chg if chg is not None else "-")
+                if r.get("share_only"):
+                    line += "share-only  "
+                line += "%-16s %s" % (r["thread"] or "-", r["symbol"])
+                print(line)
         return 0
 
     if not perf_mod.preflight(sys.stderr):
@@ -449,13 +510,50 @@ def _do_perf(opts):
                   "attach": {"pid": pid, "target": name,
                              "duration_s": duration, "freq": opts.freq,
                              "call_graph": opts.call_graph},
+                  "perf": {"duration_s": duration, "freq": opts.freq},
                   "started": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}
-        perf_mod.attach(pid, duration, opts.freq, opts.call_graph, opts.threads,
-                        run_dir, run_id, result, sys.stderr)
+        perf_mod.attach(pid, duration, opts.freq, opts.call_graph, opts.stack,
+                        run_dir, result, sys.stderr)
         perf_mod.postprocess(run_dir, result, opts, sys.stderr)
         with open(os.path.join(run_dir, "result.json"), "w") as f:
             json.dump(result, f, indent=2, sort_keys=True)
         index_mod.append(opts.root, index_mod.index_entry(result, run_dir, opts.root))
+        print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
+        if opts.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        return runner_mod.exit_code(result)
+
+    if opts.action == "idle":
+        # Stationary settle, then a timed window with perf attached:
+        # settle -> warmup_s -> record window_s -> SIGTERM.
+        parts = opts.spec.split(",")
+        spec = ",".join((parts + ["0"] * 6)[:5] + ["0"])
+        env = {"REPGAME_FLY": spec,
+               "REPGAME_FLY_SETTLE": str(opts.settle),
+               "REPGAME_FLY_SETTLE_TIMEOUT": str(opts.settle_timeout),
+               "REPGAME_FLY_METRICS": "20"}
+        if not opts.no_profile:
+            env["REPGAME_PROFILE"] = "1"
+        env.update(_env_pairs(opts.env))
+        if opts.every is not None:
+            env["REPGAME_RESULTS_EVERY"] = str(opts.every)
+        duration = opts.duration or 8
+        window = {"after_event": "fly_settled", "warmup_s": opts.warmup,
+                  "window_s": duration,
+                  "on_start": lambda pid, rd: perf_mod.attach_start(
+                      pid, opts.freq, opts.call_graph, opts.stack, rd),
+                  "on_end": perf_mod.attach_stop}
+        ns = argparse.Namespace(
+            root=opts.root, env=["%s=%s" % kv for kv in env.items()],
+            rev=opts.rev, rev_arg=None, build=opts.build, world=opts.world,
+            flat=opts.flat, keep_world=opts.keep_world,
+            timeout=opts.timeout or 600,
+            name=opts.name or "perf-idle", kind="perf",
+            window=None, timed_window=window, extra=[], wrap=None, perf=True,
+            freq=opts.freq, threads=opts.threads,
+            keep_data=opts.keep_data,
+            stop_signal=None, ab_id=None, cfg=None)
+        result, run_dir = runner_mod.run(ns, sys.stderr)
         print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
         if opts.json:
             print(json.dumps(result, indent=2, sort_keys=True))
@@ -474,7 +572,7 @@ def _do_perf(opts):
             print("rep-dbg: note: fp call graphs want a frame-pointer build"
                   " (`make linux PERF=1`); unoptimized-out frames show as"
                   " truncated stacks", file=sys.stderr)
-        wrap = perf_mod.record_wrap(opts.freq, opts.call_graph)
+        wrap = perf_mod.record_wrap(opts.freq, opts.call_graph, opts.stack)
         name = opts.name or "perf"
     else:
         wrap = perf_mod.stat_wrap(opts.events)
@@ -487,6 +585,7 @@ def _do_perf(opts):
         flat=opts.flat, keep_world=opts.keep_world,
         timeout=opts.duration or opts.timeout, name=name, kind="perf",
         window=opts.window, extra=[], wrap=wrap, perf=True,
+        freq=opts.freq, keep_data=opts.keep_data,
         stop_signal=signal.SIGINT, ab_id=None, cfg=None, threads=opts.threads)
     result, run_dir = runner_mod.run(ns, sys.stderr)
     print("rep-dbg: %s %s" % (result["status"], run_dir), file=sys.stderr)
@@ -840,6 +939,10 @@ def main(argv):
     opts.extra = extra
     opts.root = opts.root or results_mod.default_root()
 
+    if opts.cmd in ("run", "fly", "walk", "ab", "perf", "shot", "script", "tests"):
+        from . import gc as gc_mod
+        gc_mod.auto(opts.root)
+
     if opts.cmd in ("run", "fly", "walk"):
         opts.env_pairs = {}
         for kv in opts.env or []:
@@ -996,18 +1099,39 @@ def main(argv):
 
     if opts.cmd == "wt":
         if opts.action == "list":
-            shas = worktree_mod.list(opts.root)
+            rows = worktree_mod.list(opts.root)
             if opts.json:
-                print(json.dumps(shas))
+                print(json.dumps(rows, indent=2, sort_keys=True))
             else:
-                for sha in shas:
-                    print(os.path.join(worktree_mod.wt_root(opts.root), sha))
+                for e in rows:
+                    age = (time.time() - e["last_used"]) / 86400
+                    print("%-70s %.0f MB  used %.1fd ago  %s%s%s" % (
+                        e["path"], e["size"] / 1e6, age, e["head"][:12],
+                        "  registered" if e["registered"] else "  orphan",
+                        "  dirty" if e["dirty"] else ""))
             return 0
-        removed = worktree_mod.prune(opts.root, sys.stderr)
+        freed = worktree_mod.prune(opts.root, sys.stderr,
+                                   older_than_days=None if opts.all else opts.older_than,
+                                   all=opts.all, dry_run=opts.dry_run)
         if opts.json:
-            print(json.dumps(removed))
+            print(json.dumps({"freed_bytes": freed, "dry_run": opts.dry_run}))
         else:
-            print("rep-dbg: pruned %d worktree(s)" % len(removed))
+            print("rep-dbg: %spruned %.1f MB" % (
+                "would have " if opts.dry_run else "", freed / 1e6))
+        return 0
+
+    if opts.cmd == "gc":
+        from . import gc as gc_mod
+        try:
+            out = gc_mod.gc(opts.root, dry_run=opts.dry_run,
+                            keep_days=opts.keep_days, max_gb=opts.max_gb,
+                            perf_data_hours=opts.perf_data_hours,
+                            wt_days=opts.wt_days)
+        except ValueError as e:
+            print("rep-dbg: %s" % e, file=sys.stderr)
+            return 4
+        if opts.json:
+            print(json.dumps(out, indent=2, sort_keys=True))
         return 0
 
     if opts.cmd == "tests":

@@ -75,7 +75,19 @@ Assembled by the runner in the run dir (`<root>/<name>/<ts>-<n>/`):
  "log_flags":{"asan_errors":0,"ubsan_errors":0,"gl_errors":0,"capture_timeouts":0,"aborts":0}}
 ```
 
-`stats` aggregates every numeric leaf of every metric record automatically;
+Windowed runs (the `idle` scenario, `perf idle`) add a `"window"` object:
+`{after_event, warmup_s, seconds, start_tick, end_tick, frames, fps,
+prof:{<scope>:{us_per_call, n}}}` — a fixed wall-clock measurement window
+that starts `warmup_s` after the named `results.jsonl` event, ends
+`window_s` later (the game is then SIGTERMed, which does not count as a
+timeout), and aggregates `prof` over metric records in `(start_tick,
+end_tick]`. `frames`/`fps`/`prof` are null/empty without
+`REPGAME_PROFILE`. A window that can't complete fails the run with
+`window.error`.
+
+`stats` aggregates every numeric leaf of every metric record automatically
+(including a derived `prof.<scope>.us_per_call = us/n` per record, skipped
+when `n` is 0);
 when a `fly_settled` happened, `<key>_after_settle` variants cover the
 post-settle metrics only. `log_flags` is the only log scraping — patterns
 live in `tools/rep_dbg/logflags.py`. Artifact paths are relative to the run
@@ -141,8 +153,29 @@ one out — see *Sanitizers & crashes*.
 - `rep-dbg show <id|dir|last> [--json] [--field stats.metric.loader.light_jobs.max]`
 - `rep-dbg compare <id> <id> ...` — side-by-side stats table + status.
 - `rep-dbg export <ids...> --csv|--json`
-- `rep-dbg wt list|prune` — list/remove `--rev` worktrees (only ever
-  touches `<root>/wt/`).
+- `rep-dbg wt list [--json]` — managed worktrees: git-registered
+  worktrees inside `<root>` plus unregistered dirs under `<root>/wt/`
+  (orphans). Shows path, head sha, size, last-used, registered, dirty.
+- `rep-dbg wt prune [--older-than DAYS (3)] [--all] [--dry-run]` —
+  registered → `git worktree remove --force`; orphan dirs → symlink-safe
+  rmtree; then `git worktree prune` drops stale registrations. Last-use
+  is tracked by a `<root>/wt/.used/<sha>` stamp touched on every
+  `--rev`/`worktree:` reuse (dir mtime as fallback). Age-based prune
+  keeps *dirty* worktrees that live outside `<root>/wt/` (hand-made ones
+  may hold uncommitted work — `rep-dbg: keeping dirty worktree …`);
+  `--all` removes them.
+- `rep-dbg gc [--dry-run] [--keep-days 7] [--max-gb 20]
+  [--perf-data-hours 24] [--wt-days 3] [--json]` — housekeeping for the
+  root: deletes kept `perf.data` older than `--perf-data-hours` (marks
+  `perf.data_deleted` in result.json), run dirs older than `--keep-days`,
+  oldest run dirs over the `--max-gb` total cap (never younger than 1 h),
+  and worktrees idle `--wt-days` — then rebuilds the index. Safety: only
+  deletes realpaths inside the root, refuses `/`, `$HOME` and the repo,
+  and never descends into symlinks. Run-creating commands first call the
+  same gc automatically at most once/hour (stamp `<root>/.gc-stamp`);
+  defaults overridable via `REP_DBG_KEEP_DAYS`, `REP_DBG_MAX_GB`,
+  `REP_DBG_PERF_DATA_HOURS`, `REP_DBG_WT_DAYS`, and `REP_DBG_AUTO_GC=0`
+  disables it (one stderr line, only when it removed something).
 - `rep-dbg metrics <run|results.jsonl|stdout.log> [--fields a,b] [--csv]
   [--plot a,b] [--after-settle]` — per-field stats table for one run;
   `--csv` dumps flattened per-tick metric rows, `--plot` writes a PNG line
@@ -173,7 +206,12 @@ one out — see *Sanitizers & crashes*.
   `stddev/|mean|` exceeds 10 %, or when the spread between the most
   separated cfg medians is smaller than the larger of those two cfgs'
   `max-min` range (i.e. the ranges overlap and the medians don't clear
-  the noise).
+  the noise). Each metric gets a `verdict`: `"noisy"` (any cfg
+  `stddev/|mean|` > 10 %), `"within_noise"` (median gap inside the larger
+  max-min spread), else `"clear"`; `summary.md` marks `**noisy**` and
+  `(within noise)` accordingly. `--profile` also appends
+  `stats.metric.prof.draw_frame.us_per_call.mean` and
+  `...tick.us_per_call.mean` to the default metrics.
 
   Scenario shortcuts (`tools/rep_dbg/scenarios.py` — adding one is a
   single dict entry):
@@ -183,6 +221,11 @@ one out — see *Sanitizers & crashes*.
     is `game.settle_tick`.
   - `stream-flight` — same settle, then `REPGAME_FLY_FLY_TICKS=600`
     inside `REPGAME_FLY_TICKS=900` (settle → stream → hover).
+  - `idle` — parked flat-world run with `REPGAME_PROFILE=1` and a
+    `fly_settled` window (2 s warmup + `window_s` measurement; default
+    10 s, override with `ab --duration S`). Default metrics are the
+    window fields: `window.fps`, `window.prof.draw_frame.us_per_call`,
+    `window.prof.tick.us_per_call`.
 
   Or pass preset args literally after `--`, e.g.
   `rep-dbg ab --cfg a=current --cfg b=current --reps 2 -- fly --ticks
@@ -242,10 +285,19 @@ echo 'kernel.perf_event_paranoid=1' | sudo tee /etc/sysctl.d/99-perf.conf  # per
 
 Commands:
 
-- `rep-dbg perf record [--freq 999] [--call-graph dwarf|fp|lbr] [--threads]
-  [--duration S] [cold-settle|stream-flight|-- <preset args>]` — a normal
-  preset run (kind `"perf"`) wrapped in `perf record`; `--duration` is the
-  run timeout, and a timeout SIGINTs perf so `perf.data` is finalized.
+- `rep-dbg perf record [--freq 499] [--call-graph dwarf|fp|lbr]
+  [--stack 8192] [--threads] [--duration S]
+  [cold-settle|stream-flight|-- <preset args>]` — a normal preset run
+  (kind `"perf"`) wrapped in `perf record`; `--duration` is the run
+  timeout, and a timeout SIGINTs perf so `perf.data` is finalized.
+- `rep-dbg perf idle [--duration 8] [--warmup 2] [--spec
+  0.5,80,0.5,0,0] [--settle 20] [--settle-timeout 6000] [--no-profile]`
+  — one command for "where does a settled, stationary game spend CPU":
+  a parked flat/`-flat` run (fly speed forced to 0, never exits),
+  `REPGAME_PROFILE=1`, `perf record -p` attached for `--duration`
+  seconds once `fly_settled` + `--warmup` have passed, then SIGTERM.
+  `result.json.window` holds fps + per-scope `us_per_call` for the
+  measured window.
 - `rep-dbg perf attach <pid|name> [--duration 15]` — `perf record -p` a
   running game (name resolved via `pgrep -x`; errors on 0 or >1 match).
 - `rep-dbg perf stat <scenario args> [--events ...]` — `perf stat -x,` with
@@ -255,16 +307,26 @@ Commands:
 - `rep-dbg ab --perf-stat` — runs every rep under `perf stat`, so
   `perf.stat.*` works as `--metric` fields.
 - `rep-dbg perf diff <runA> <runB> [--top N]` — biggest self% deltas per
-  symbol between two record runs, both directions.
+  symbol between two record runs. When both runs carry
+  `perf.samples`/`freq`/`duration_s` (and `window.frames`) the table
+  adds a normalised column — `us/frame` preferred, else `ms CPU/s` —
+  and sorts by it; symbols whose share rose but whose normalised cost
+  moved < 5 % are tagged `share-only` (share inflation, not real
+  growth). Old runs without those fields fall back to self% only.
 
-Outputs in the run dir (registered under `artifacts.perf`): `perf.data`
-(size printed on stderr), `top.txt` (top 40 by self time plus a
-per-thread `comm,sym` section; parsed to `perf.top`), `folded.txt` and
-`flame.svg` (collapsed `perf script` stacks → icicle SVG with hover
-titles; `--threads` adds `flame-<comm>.svg`).
+Outputs in the run dir (registered under `artifacts.perf`): `top.txt`
+(top 40 by self time plus a per-thread `comm,sym` section; parsed to
+`perf.top`), `folded.txt` and `flame.svg` (collapsed `perf script`
+stacks → icicle SVG with hover titles; `--threads` adds
+`flame-<comm>.svg`). `perf.data` is **deleted after postprocess**
+(`perf.data_size_bytes` + `perf.data_deleted` recorded in result.json,
+`artifacts.perf.data` removed) unless `--keep-data`; `perf diff` only
+needs `perf.top`. `perf.samples` (total folded-stack weight), `freq`,
+`duration_s` and `frames` are kept for diff normalisation.
 
-Call-graph modes: `dwarf` works on any binary but copies 16 KB of stack
-per sample (big perf.data — lower `--freq` or bound `--duration`); `fp`
+Call-graph modes: `dwarf` works on any binary but copies `--stack` bytes
+(default 8 KB) of stack per sample (big perf.data — lower `--freq` or
+bound `--duration`); `fp`
 needs a frame-pointer build (`make linux PERF=1`, which adds
 `-fno-omit-frame-pointer -mno-omit-leaf-frame-pointer` via
 `REPGAME_FRAME_POINTERS`; default builds are unaffected and `record

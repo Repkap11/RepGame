@@ -31,8 +31,10 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | A/B an env toggle or branch | `rep-dbg ab --cfg a=rev:master --cfg b=current:REPGAME_LIGHT_SMOOTH=1 --reps 3 stream-flight` (scenarios: `cold-settle`, `stream-flight`, or preset args after `--`) |
 | Metric table / CSV / chart | `rep-dbg metrics <run> [--csv] [--plot loader.light_jobs,...] [--after-settle]` |
 | Where is CPU time going? | `rep-dbg perf record stream-flight` → `top.txt`, `flame.svg` in the run dir (needs `kernel.perf_event_paranoid<=1`; `--call-graph fp` wants `make linux PERF=1`) |
-| Per-tick subsystem budgets | `rep-dbg fly --profile` (`REPGAME_PROFILE=1`) → `stats.metric.prof.<name>.{n,us,max_us}`; `metrics <run> --fields 'prof.*'` / `--plot prof.tick.us`; `ab --profile` to A/B budgets |
+| Where does an idle game spend CPU? | `rep-dbg perf idle --flat --duration 8` — parked settled run, perf attach + `result.json.window` (fps, `prof.<scope>.us_per_call`); `perf diff` two idle runs for normalised `us/frame` deltas (`share-only` flags share inflation) |
+| Per-tick subsystem budgets | `rep-dbg fly --profile` (`REPGAME_PROFILE=1`) → `stats.metric.prof.<name>.{n,us,max_us}` + derived `us_per_call`; `metrics <run> --fields 'prof.*'` / `--plot prof.tick.us`; `ab --profile` to A/B budgets |
 | Profile a running game | `rep-dbg perf attach RepGame --duration 20` |
+| A/B frame cost | `rep-dbg ab --cfg base=rev:A --cfg fix=rev:B --reps 3 --flat idle` — windowed: `window.fps`, `window.prof.*.us_per_call` (`--duration S` resizes) |
 | Reproduce an F12 screenshot | `rep-dbg shot "<f12 spec>"` → PNGs in `artifacts.screenshots` |
 | Bisect which subsystem changed a frame | `rep-dbg shot "<f12>" --flags-sweep` → `sweep.png` |
 | Did my change alter rendering | `rep-dbg shot "<f12>" --revs master,current`; `rep-dbg diff <a> <b>` (view-0 diffs are bistable — `--rerun` rechecks) |
@@ -40,7 +42,8 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | What's actually saved on disk | `rep-dbg inspect <world|run|last> block|slice|column|chunk|entities|player` — read-only; `slice --png` renders with PIL; `saved:false` = generated terrain, not stored |
 | IPC / cache misses | `rep-dbg perf stat stream-flight`, or `rep-dbg ab --perf-stat --metric perf.stat.ipc ...` |
 | List / export runs | `rep-dbg runs [--status failed] [--last N]`, `rep-dbg export <ids...> --csv` |
-| Old worktrees piling up | `rep-dbg wt list` / `rep-dbg wt prune` |
+| Old worktrees piling up | `rep-dbg wt list` / `rep-dbg wt prune [--older-than D] [--all] [--dry-run]` |
+| /tmp filling up | `rep-dbg gc [--dry-run]` — old run dirs, stale perf.data, size cap, idle worktrees; auto-runs hourly (REP_DBG_AUTO_GC=0 off) |
 
 ## Conventions
 
@@ -69,7 +72,11 @@ results.query(name="fly", status="ok")
 
 - perf: `kernel.perf_event_paranoid > 1` refuses with exit 4 — agents
   can't `sudo`; ask the user to run the sysctl line printed by
-  `docs/debug-tools.md`.
+  `docs/debug-tools.md`. `perf.data` is deleted after postprocess unless
+  `--keep-data` (diff only needs `perf.top`); defaults `--freq 499`,
+  dwarf stack 8 KB (`--stack`).
+- A/B metrics carry a `verdict`: `noisy` / `within_noise` / `clear` —
+  don't read small deltas on `noisy`/`within_noise` rows as regressions.
 - `capture_0` flat captures are bistable — rerun a view-0 diff once
   (`rep-dbg diff --rerun`) before calling it a regression.
 - Sanitizer known findings as of commit ab63d8c (verify before

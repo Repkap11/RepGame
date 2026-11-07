@@ -79,6 +79,78 @@ class TestExitCodes(unittest.TestCase):
         self.assertEqual(runner.exit_code({"status": "build_failed"}), 3)
 
 
+FAKE_GAME = """#!/bin/sh
+R="$REPGAME_RESULTS"
+echo '{"type":"header","schema":1}' >> "$R"
+metric() { echo "{\\"type\\":\\"metric\\",\\"tick\\":$1,\\"prof\\":{\\"draw_frame\\":{\\"n\\":10,\\"us\\":1000,\\"max_us\\":200}}}" >> "$R"; }
+trap 'echo "{\\"type\\":\\"summary\\",\\"tick\\":999,\\"ticks\\":999,\\"exit_reason\\":\\"signal\\",\\"asserts\\":{\\"total\\":0,\\"failed\\":0},\\"shots\\":[],\\"settle_tick\\":0}" >> "$R"; exit 0' TERM INT
+metric 20
+echo '{"type":"event","tick":20,"name":"fly_settled"}' >> "$R"
+t=40
+while true; do metric $t; t=$((t+20)); sleep 0.05; done
+"""
+
+FAKE_GAME_EARLY_EXIT = """#!/bin/sh
+echo '{"type":"header","schema":1}' >> "$REPGAME_RESULTS"
+exit 0
+"""
+
+
+class TestWindow(unittest.TestCase):
+    def _opts(self, root, script_path, timed_window):
+        import argparse
+        return argparse.Namespace(
+            root=root, env=[], rev=None, rev_arg=None, build="release",
+            world="W", flat=True, keep_world=None, timeout=30,
+            name="win", kind="run", window=None, timed_window=timed_window,
+            extra=[], tree=None, ab_id=None, cfg=None)
+
+    def _fake_binary(self, text):
+        import stat
+        td = tempfile.mkdtemp()
+        path = os.path.join(td, "fakegame")
+        with open(path, "w") as f:
+            f.write(text)
+        os.chmod(path, os.stat(path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        return path
+
+    def _run(self, script, window):
+        from rep_dbg import build as build_mod
+        old = build_mod.ensure_built
+        build_mod.ensure_built = lambda tree, build, log: self._fake_binary(script)
+        try:
+            root = tempfile.mkdtemp()
+            import io
+            result, run_dir = runner.run(self._opts(root, None, window), io.StringIO())
+            return result, run_dir
+        finally:
+            build_mod.ensure_built = old
+
+    def test_window_ok(self):
+        calls = {}
+        window = {"after_event": "fly_settled", "warmup_s": 0.05, "window_s": 0.3,
+                  "on_start": lambda pid, rd: calls.setdefault("pid", pid),
+                  "on_end": lambda h: calls.setdefault("end", True)}
+        result, run_dir = self._run(FAKE_GAME, window)
+        self.assertEqual(result["status"], "ok")
+        w = result["window"]
+        self.assertIsNone(w.get("error"))
+        self.assertIsInstance(calls.get("pid"), int)
+        self.assertTrue(calls.get("end"))
+        self.assertGreater(w["frames"], 0)
+        self.assertGreater(w["fps"], 0)
+        self.assertAlmostEqual(w["prof"]["draw_frame"]["us_per_call"], 100.0)
+        self.assertGreater(w["seconds"], 0.1)
+        self.assertLess(w["start_tick"], w["end_tick"])
+
+    def test_window_early_exit(self):
+        window = {"after_event": "fly_settled", "warmup_s": 0.05, "window_s": 0.3}
+        result, run_dir = self._run(FAKE_GAME_EARLY_EXIT, window)
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("error", result["window"])
+        self.assertIsNone(result["window"]["frames"])
+
+
 class TestLogflags(unittest.TestCase):
     def test_flags(self):
         from rep_dbg import logflags

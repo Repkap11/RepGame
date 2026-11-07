@@ -51,11 +51,15 @@ def preflight(log=sys.stderr):
     return True
 
 
-def record_wrap(run_freq, call_graph):
+def _cg(call_graph, stack):
+    return "dwarf,%d" % (stack or 8192) if call_graph == "dwarf" else call_graph
+
+
+def record_wrap(run_freq, call_graph, stack=None):
     """argv prefix for `perf record`; '{run_dir}' is filled by runner."""
-    cg = "dwarf,16384" if call_graph == "dwarf" else call_graph
     return ["perf", "record", "-F", str(run_freq),
-            "--call-graph", cg, "-o", "{run_dir}/perf.data", "--"]
+            "--call-graph", _cg(call_graph, stack),
+            "-o", "{run_dir}/perf.data", "--"]
 
 
 def stat_wrap(events):
@@ -105,18 +109,57 @@ def parse_stat_csv(text):
     return stat
 
 
-def top_diff(top_a, top_b, n=15):
-    """Biggest self_pct deltas per symbol, both directions."""
+def top_diff(top_a, top_b, n=15, meta_a=None, meta_b=None):
+    """Biggest deltas per symbol, both directions. meta_* carry the run's
+    perf.samples/freq/duration_s/frames; when both sides have them the rows
+    gain normalised cost columns (us/frame > CPU-ms per wall-s > share %)
+    and sort by the best available measure."""
     def key(r):
         return (r.get("symbol"), r.get("thread"))
     a = {key(r): r["self_pct"] for r in top_a}
     b = {key(r): r["self_pct"] for r in top_b}
+
+    def normer(meta, side):
+        """pct -> (kind, normalised value) for this run, or None."""
+        if not meta:
+            return None
+        samples = meta.get("samples")
+        freq = meta.get("freq")
+        if not samples or not freq:
+            return None
+        if meta.get("frames"):
+            def f(pct):
+                return pct / 100.0 * samples / freq / meta["frames"] * 1e6
+            return "us_per_frame", f
+        if meta.get("duration_s"):
+            def f(pct):
+                return pct / 100.0 * samples / freq / meta["duration_s"] * 1000
+            return "ms_per_s", f
+        return None
+
+    na, nb = normer(meta_a, "a"), normer(meta_b, "b")
+    kind = na[0] if na and nb and na[0] == nb[0] else None
     rows = []
     for k in set(a) | set(b):
-        rows.append({"symbol": k[0], "thread": k[1],
-                     "a_pct": a.get(k, 0.0), "b_pct": b.get(k, 0.0),
-                     "delta": b.get(k, 0.0) - a.get(k, 0.0)})
-    rows.sort(key=lambda r: abs(r["delta"]), reverse=True)
+        row = {"symbol": k[0], "thread": k[1],
+               "a_pct": a.get(k, 0.0), "b_pct": b.get(k, 0.0),
+               "delta": b.get(k, 0.0) - a.get(k, 0.0)}
+        if kind:
+            row["norm_kind"] = kind
+            row["a_norm"] = na[1](row["a_pct"])
+            row["b_norm"] = nb[1](row["b_pct"])
+            row["norm_delta"] = row["b_norm"] - row["a_norm"]
+            if row["a_norm"] > 0:
+                row["norm_change_pct"] = row["norm_delta"] / row["a_norm"] * 100
+            # pct rose but the normalised cost didn't: share inflation.
+            row["share_only"] = (row["delta"] > 0 and
+                                 row.get("norm_change_pct") is not None and
+                                 row["norm_change_pct"] < 5)
+        rows.append(row)
+    if kind:
+        rows.sort(key=lambda r: abs(r["norm_delta"]), reverse=True)
+    else:
+        rows.sort(key=lambda r: abs(r["delta"]), reverse=True)
     return rows[:n]
 
 
@@ -140,7 +183,6 @@ def postprocess(run_dir, result, opts, log=sys.stderr):
     size = os.path.getsize(data)
     result.setdefault("perf", {})["data_size_bytes"] = size
     print("rep-dbg: perf.data %.1f MB" % (size / 1e6), file=log)
-    artifacts["data"] = "perf.data"
 
     rep = subprocess.run(["perf", "report", "--stdio", "--no-children",
                           "--sort", "sym", "-i", data],
@@ -159,6 +201,22 @@ def postprocess(run_dir, result, opts, log=sys.stderr):
     scr = subprocess.run(["perf", "script", "-i", data],
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     collapsed, by_thread = flame_mod.collapse(scr.stdout)
+    # Normalisation inputs for `perf diff`: total sample weight, the
+    # recording rate, and how long the window ran. frames comes from a
+    # windowed run's result["window"]["frames"].
+    result["perf"]["samples"] = sum(collapsed.values())
+    result["perf"]["freq"] = getattr(opts, "freq", None) or result["perf"].get("freq")
+    # duration_s: the measured window when there is one, else whatever the
+    # caller preset (attach records it), else wall_s — never opts.duration,
+    # which is the record/idle *timeout* and wrong when the run ends early.
+    duration = None
+    if isinstance(result.get("window"), dict):
+        duration = result["window"].get("seconds")
+    if duration is None:
+        duration = result["perf"].get("duration_s") or result.get("wall_s")
+    result["perf"]["duration_s"] = duration
+    if isinstance(result.get("window"), dict) and result["window"].get("frames"):
+        result["perf"]["frames"] = result["window"]["frames"]
     with open(os.path.join(run_dir, "folded.txt"), "w") as f:
         for stack, w in sorted(collapsed.items()):
             f.write("%s %d\n" % (stack, w))
@@ -175,22 +233,48 @@ def postprocess(run_dir, result, opts, log=sys.stderr):
         artifacts["flames_by_thread"] = flames
     result.setdefault("artifacts", {}).setdefault("perf", artifacts)
 
+    # perf.data is huge and postprocess already extracted everything; drop
+    # it unless explicitly kept (gc also sweeps stragglers).
+    if getattr(opts, "keep_data", False):
+        artifacts["data"] = "perf.data"
+    else:
+        os.unlink(data)
+        result["perf"]["data_deleted"] = True
 
-def attach(pid, duration, freq, call_graph, threads, run_dir, run_id, result, log):
+
+def attach_start(pid, freq, call_graph, stack, run_dir):
+    """Launch `perf record -p <pid>` into <run_dir>/perf.data. Returns the
+    Popen handle (a context for attach_stop)."""
+    argv = ["perf", "record", "-F", str(freq), "--call-graph",
+            _cg(call_graph, stack), "-p", str(pid),
+            "-o", os.path.join(run_dir, "perf.data")]
+    logf = open(os.path.join(run_dir, "stdout.log"), "a")
+    proc = subprocess.Popen(argv, stdout=logf, stderr=subprocess.STDOUT)
+    proc._rep_dbg_logf = logf
+    return proc
+
+
+def attach_stop(proc, timeout=15):
+    """SIGINT perf so perf.data is finalized, then wait (kill on stall)."""
+    if proc is None:
+        return
+    if proc.poll() is None:
+        proc.send_signal(signal.SIGINT)
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+    logf = getattr(proc, "_rep_dbg_logf", None)
+    if logf:
+        logf.close()
+
+
+def attach(pid, duration, freq, call_graph, stack, run_dir, result, log):
     """perf record -p <pid> for `duration` seconds, stopped via SIGINT."""
-    cg = "dwarf,16384" if call_graph == "dwarf" else call_graph
-    argv = ["perf", "record", "-F", str(freq), "--call-graph", cg,
-            "-p", str(pid), "-o", os.path.join(run_dir, "perf.data")]
-    with open(os.path.join(run_dir, "stdout.log"), "w") as logf:
-        proc = subprocess.Popen(argv, stdout=logf, stderr=subprocess.STDOUT)
-        time.sleep(duration)
-        if proc.poll() is None:
-            proc.send_signal(signal.SIGINT)
-        try:
-            proc.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait()
+    proc = attach_start(pid, freq, call_graph, stack, run_dir)
+    time.sleep(duration)
+    attach_stop(proc)
     data = os.path.join(run_dir, "perf.data")
     result["status"] = "ok" if os.path.exists(data) and os.path.getsize(data) else "failed"
     return result

@@ -47,24 +47,40 @@ def _agg(vals):
     return ab.aggregate(vals)
 
 
-class TestNoise(unittest.TestCase):
-    def test_clean(self):
+class TestVerdict(unittest.TestCase):
+    def test_clear(self):
         per_cfg = {"a": _agg([10, 10.2, 9.9]), "b": _agg([14, 14.2, 13.9])}
-        self.assertFalse(ab.noise_flag(per_cfg))
+        self.assertEqual(ab.verdict(per_cfg), "clear")
 
-    def test_high_variance(self):
+    def test_noisy(self):
         per_cfg = {"a": _agg([1, 20, 5, 40]), "b": _agg([30, 31, 29])}
-        self.assertTrue(ab.noise_flag(per_cfg))
+        self.assertEqual(ab.verdict(per_cfg), "noisy")
 
-    def test_overlapping_ranges(self):
-        per_cfg = {"a": _agg([10, 15, 20]), "b": _agg([12, 14, 16])}
-        self.assertTrue(ab.noise_flag(per_cfg))
+    def test_within_noise(self):
+        # Medians differ but each cfg's own min-max spread is bigger.
+        per_cfg = {"a": _agg([10, 10.4, 10.8]), "b": _agg([10.3, 10.6, 10.9])}
+        self.assertEqual(ab.verdict(per_cfg), "within_noise")
 
     def test_metric_table(self):
         per_metric = {"m": {"a": _agg([1, 2, 3, 30]), "b": _agg([50, 51, 52])}}
         table = ab.metric_table(per_metric)
+        self.assertEqual(table["m"]["verdict"], "noisy")
         self.assertTrue(table["m"]["noisy"])
         self.assertIn("a", table["m"]["cfgs"])
+
+    def test_summary_md_markers(self):
+        result = {"cfg_order": ["a", "b"], "metrics": {
+            "loud": {"verdict": "noisy", "noisy": True,
+                     "cfgs": {"a": _agg([1, 30]), "b": _agg([40, 41])}},
+            "close": {"verdict": "within_noise", "noisy": False,
+                      "cfgs": {"a": _agg([10, 10.4, 10.8]), "b": _agg([10.3, 10.6, 10.9])}},
+            "win": {"verdict": "clear", "noisy": False,
+                    "cfgs": {"a": _agg([10, 10.1, 9.9]), "b": _agg([20, 20.1, 19.9])}},
+        }}
+        md = ab.summary_md(result)
+        self.assertIn("loud **noisy**", md)
+        self.assertIn("close (within noise)", md)
+        self.assertIn("| win |", md)
 
 
 if __name__ == "__main__":

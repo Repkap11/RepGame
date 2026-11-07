@@ -24,6 +24,16 @@ class ProfStatsTest(unittest.TestCase):
         self.assertEqual(out["metric.prof.world_draw.us"]["mean"], 12000)
         self.assertEqual(out["metric.prof.world_draw.n"]["mean"], 15)
 
+    def test_us_per_call(self):
+        recs = [{"type": "metric", "tick": 20,
+                 "prof": {"draw_frame": {"n": 4, "us": 1000, "max_us": 400},
+                          "zero": {"n": 0, "us": 0, "max_us": 0}}}]
+        out = stats.compute_stats(recs)
+        self.assertEqual(out["metric.prof.draw_frame.us_per_call"]["mean"], 250)
+        self.assertNotIn("metric.prof.zero.us_per_call", out)
+        # records are not mutated
+        self.assertNotIn("us_per_call", recs[0]["prof"]["draw_frame"])
+
 
 if __name__ == "__main__":
     unittest.main()

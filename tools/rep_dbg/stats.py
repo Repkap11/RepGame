@@ -45,6 +45,12 @@ def compute_stats(metrics, settle_tick=None):
     for rec in metrics:
         flat = {}
         _flatten({k: v for k, v in rec.items() if k not in ("type", "tick")}, "", flat)
+        # Derived prof rate: us per scope call, so us_per_call reads as a
+        # per-frame cost for frame scopes (records stay unmodified).
+        for scope, pv in (rec.get("prof") or {}).items():
+            if isinstance(pv, dict) and pv.get("n"):
+                flat.setdefault("prof.%s.us_per_call" % scope, []).append(
+                    pv["us"] / pv["n"])
         for path, vals in flat.items():
             key = "metric." + path
             values.setdefault(key, []).extend(vals)

@@ -72,26 +72,27 @@ def aggregate(values):
             "min": vals[0], "max": vals[-1], "n": n}
 
 
-def noise_flag(per_cfg):
-    """'noisy' when any cfg's stddev/|mean| exceeds 10%, or when the
-    difference between the two most-separated medians is smaller than the
-    larger cfg's (max-min) spread."""
+def verdict(per_cfg):
+    """'noisy' when any cfg's stddev/|mean| exceeds 10%; 'within_noise'
+    when the difference between the two most-separated medians is smaller
+    than the larger cfg's (max-min) spread; else 'clear'."""
     for agg in per_cfg.values():
         if agg["mean"] != 0 and agg["stddev"] / abs(agg["mean"]) > 0.10:
-            return True
+            return "noisy"
     aggs = sorted((a for a in per_cfg.values()), key=lambda a: a["median"])
     if len(aggs) >= 2:
         spread = max(aggs[0]["max"] - aggs[0]["min"], aggs[-1]["max"] - aggs[-1]["min"])
         if aggs[-1]["median"] - aggs[0]["median"] < spread:
-            return True
-    return False
+            return "within_noise"
+    return "clear"
 
 
 def metric_table(per_metric):
-    """per_metric: {field: {cfg: agg}} — attach the noisy flag per field."""
+    """per_metric: {field: {cfg: agg}} — attach the verdict per field."""
     out = {}
     for field, per_cfg in per_metric.items():
-        out[field] = {"cfgs": per_cfg, "noisy": noise_flag(per_cfg)}
+        v = verdict(per_cfg)
+        out[field] = {"cfgs": per_cfg, "verdict": v, "noisy": v == "noisy"}
     return out
 
 
@@ -110,6 +111,8 @@ def summary_md(result):
             if cfg != cfgs[0] and med0 != 0:
                 cell += " (%+.1f%%)" % ((agg["median"] - med0) / abs(med0) * 100)
             cells.append(cell)
-        name = field + (" **noisy**" if entry["noisy"] else "")
+        name = field + (" **noisy**" if entry["verdict"] == "noisy"
+                        else " (within noise)" if entry["verdict"] == "within_noise"
+                        else "")
         lines.append("| " + name + " | " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"

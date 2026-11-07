@@ -152,25 +152,43 @@ def run(opts, log):
         proc = subprocess.Popen(argv, cwd=run_dir, env=env,
                                 stdout=logf,
                                 stderr=errf if gdb_mode else subprocess.STDOUT)
-        try:
-            code = proc.wait(timeout=opts.timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            # perf reps want SIGINT so perf.data is finalized; gdb mode uses
-            # SIGINT so batch gdb interrupts the inferior and still runs the
-            # queued backtrace before quitting.
-            proc.send_signal(getattr(opts, "stop_signal", None) or
-                             (signal.SIGINT if gdb_mode else signal.SIGTERM))
-            try:
-                code = proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                proc.kill()
+        window_info = None
+        if isinstance(getattr(opts, "timed_window", None), dict):
+            timed_out, window_info = _window_loop(
+                proc, opts.timed_window, run_dir, opts.timeout, started, log)
+            if proc.poll() is None:
+                # The window completed: rep-dbg stops the game itself (clean
+                # SIGTERM exit — not a timeout).
+                proc.send_signal(signal.SIGTERM)
+                try:
+                    code = proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    code = proc.wait()
+            else:
                 code = proc.wait()
+        else:
+            try:
+                code = proc.wait(timeout=opts.timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                # perf reps want SIGINT so perf.data is finalized; gdb mode
+                # uses SIGINT so batch gdb interrupts the inferior and still
+                # runs the queued backtrace before quitting.
+                proc.send_signal(getattr(opts, "stop_signal", None) or
+                                 (signal.SIGINT if gdb_mode else signal.SIGTERM))
+                try:
+                    code = proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    code = proc.wait()
     result["wall_s"] = round(time.time() - started, 2)
     result["exit"] = {"code": code if code >= 0 else None,
                       "signal": -code if code < 0 else None}
 
     assemble_result(result, run_dir, timed_out=timed_out)
+    if isinstance(getattr(opts, "timed_window", None), dict):
+        _window_result(result, run_dir, window_info, timed_out)
     if gdb_mode:
         from . import crash as crash_mod
         crash_mod.postprocess(run_dir, result, log)
@@ -181,13 +199,109 @@ def run(opts, log):
         perf_mod.postprocess(run_dir, result, opts, log)
         if result["status"] == "ok" and \
                 (result.get("perf") or {}).get("stat") is None and \
-                "data" not in (result.get("artifacts") or {}).get("perf", {}):
+                not (result.get("perf") or {}).get("data_size_bytes"):
             result["status"] = "failed"
     post_fn = getattr(opts, "postprocess_fn", None)
     if post_fn:
         post_fn(run_dir, result, log)
     _finish(run_dir, result)
     return result, run_dir
+
+
+def _max_tick(records):
+    return max((r.get("tick", 0) for r in records), default=0)
+
+
+def _window_loop(proc, win, run_dir, timeout, started, log):
+    """Drive a fixed-duration window: wait for win['after_event'] in
+    results.jsonl, warm up, run win['window_s'] seconds between on_start/
+    on_end. Returns (timed_out, info)."""
+    results_path = os.path.join(run_dir, "results.jsonl")
+    event = win["after_event"]
+    warmup_s = win.get("warmup_s", 0)
+    window_s = win["window_s"]
+    deadline = (started + timeout) if timeout else None
+    info = {"event": event, "warmup_s": warmup_s, "error": None,
+            "start_tick": None, "end_tick": None,
+            "start_wall": None, "end_wall": None}
+
+    # Wait for the event record (the game fflushes per record).
+    seen = False
+    while not seen:
+        if proc.poll() is not None:
+            return False, {**info, "error": "game exited before '%s'" % event}
+        if deadline is not None and time.time() > deadline:
+            return True, {**info, "error": "'%s' never arrived" % event}
+        for r in _jsonl(results_path):
+            if r.get("type") == "event" and r.get("name") == event:
+                seen = True
+                break
+        if not seen:
+            time.sleep(0.2)
+
+    if _sleep_checking(proc, warmup_s):
+        return False, {**info, "error": "game exited during warmup"}
+    info["start_tick"] = _max_tick(_jsonl(results_path))
+    info["start_wall"] = time.time()
+
+    handle = None
+    try:
+        if win.get("on_start"):
+            handle = win["on_start"](proc.pid, run_dir)
+        if _sleep_checking(proc, window_s):
+            return False, {**info, "error": "game exited mid-window"}
+    finally:
+        info["end_wall"] = time.time()
+        info["end_tick"] = _max_tick(_jsonl(results_path))
+        if win.get("on_end"):
+            win["on_end"](handle)
+    return False, info
+
+
+def _sleep_checking(proc, seconds):
+    """Sleep up to `seconds`; True when proc exited during the sleep."""
+    end = time.time() + seconds
+    while time.time() < end:
+        if proc.poll() is not None:
+            return True
+        time.sleep(min(0.1, end - time.time()))
+    return proc.poll() is not None
+
+
+def _window_result(result, run_dir, info, timed_out):
+    """Fill result['window'] from the metric records inside the window."""
+    info = info or {}
+    win = {"after_event": info.get("event"), "warmup_s": info.get("warmup_s"),
+           "start_tick": info.get("start_tick"), "end_tick": info.get("end_tick"),
+           "seconds": None, "frames": None, "fps": None, "prof": {}}
+    if info.get("start_tick") is not None and info.get("end_tick") is not None:
+        seconds = (info["end_wall"] - info["start_wall"]) if info.get("end_wall") else None
+        sums = {}
+        n_frames = 0
+        for r in _jsonl(os.path.join(run_dir, "results.jsonl")):
+            if r.get("type") != "metric":
+                continue
+            if not (info["start_tick"] < r.get("tick", 0) <= info["end_tick"]):
+                continue
+            for scope, pv in (r.get("prof") or {}).items():
+                if not isinstance(pv, dict) or not pv.get("n"):
+                    continue
+                acc = sums.setdefault(scope, {"us": 0.0, "n": 0})
+                acc["us"] += pv.get("us", 0)
+                acc["n"] += pv["n"]
+                if scope == "draw_frame":
+                    n_frames += pv["n"]
+        win["prof"] = {scope: {"us_per_call": acc["us"] / acc["n"] if acc["n"] else None,
+                               "n": acc["n"]}
+                       for scope, acc in sums.items()}
+        win["seconds"] = round(seconds, 3) if seconds is not None else None
+        win["frames"] = n_frames if sums else None
+        win["fps"] = round(n_frames / seconds, 2) if n_frames and seconds else None
+    if info.get("error"):
+        win["error"] = info["error"]
+        if not timed_out and result.get("status") in (None, "ok"):
+            result["status"] = "failed"
+    result["window"] = win
 
 
 def _result_base(run_id, opts, info, run_dir, build):
