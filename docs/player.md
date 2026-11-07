@@ -122,9 +122,11 @@ mob pre-empt the block target for left clicks.
 Creative: instant break, unlimited placement, the creative palette
 inventory. Survival: timed mining, item consumption, drops, chest
 loot, mob `HIT_DAMAGE` melee with knockback (`player_hurt` — there is
-no player health yet; damage is only forwarded). `NET_PLAYER_FLAG_TARGETABLE`
-gates remote mob targeting on `survival && !no_clip`
-(`docs/multiplayer.md`).
+no player health yet; damage is only forwarded). Whether hostile mobs
+target the player is a separate `state.peaceful` toggle (pause menu
+"Mobs" button, `peaceful` key in `player.dat`, `RepGame::player_targetable`
+= `!peaceful && !no_clip`); `NET_PLAYER_FLAG_TARGETABLE` carries it to
+remote clients (`docs/multiplayer.md`).
 
 ## Scripted/debug paths
 

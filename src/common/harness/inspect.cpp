@@ -400,12 +400,12 @@ inspect::Result inspect::player( const char *dir ) {
         return "[" + out + "]";
     };
     r.json = jf( "{\"player_dat\":%s,\"pos\":[%.4f,%.4f,%.4f],\"angle_h\":%.2f,\"angle_v\":%.2f,"
-                 "\"flying\":%s,\"no_clip\":%s,\"quality\":%d,\"game_mode\":\"%s\",\"render_distance\":%d,"
+                 "\"flying\":%s,\"no_clip\":%s,\"quality\":%d,\"game_mode\":\"%s\",\"peaceful\":%s,\"render_distance\":%d,"
                  "\"min_ambient\":%.3f,\"world_time\":%lld,\"world_type\":\"%s\","
                  "\"hotbar\":%s,\"survival\":%s}",
                  has_player ? "true" : "false", pd.world_x, pd.world_y, pd.world_z, pd.angle_H, pd.angle_V,
                  pd.flying ? "true" : "false", pd.no_clip ? "true" : "false", pd.worldDrawQuality,
-                 pd.game_mode == GameMode_Survival ? "survival" : "creative", pd.render_distance,
+                 pd.game_mode == GameMode_Survival ? "survival" : "creative", pd.peaceful ? "true" : "false", pd.render_distance,
                  pd.min_ambient, static_cast<long long>( has_time ? world_time : pd.world_time ),
                  world_type.c_str( ), slots_json( pd.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT ).c_str( ),
                  slots_json( pd.survival_inventory, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ).c_str( ) );

@@ -52,6 +52,10 @@ struct RepGameState {
     Multiplayer multiplayer;
     BlockUpdateQueue blockUpdateQueue;
     GameMode game_mode;
+    // Peaceful (default) = hostile mobs never target the local player;
+    // hostile = they do. Game mode no longer factors in (see
+    // RepGame::player_targetable). Persisted in player.dat.
+    bool peaceful;
     long tick_number;
     // Day/night clock in ticks (see DAY_LENGTH_TICKS in light.hpp).
     // Persisted in player.dat via PlayerData::world_time.

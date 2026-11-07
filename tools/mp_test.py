@@ -739,7 +739,8 @@ def sc_mob_hit_kill(run, A, B):
 def sc_hostile_targets_remote(run, A, B):
     gy = settle(run, A, B)
     A.cmd("time 140000")  # deep night (day = 172800 ticks; 13000 burned it)
-    B.cmd("mode survival")  # only walking-survival players are targetable
+    B.cmd("mode survival")  # survival + walking so the avatar is a real player
+    B.cmd("peaceful off")   # only non-peaceful players are targetable
     run.sleep_ticks(30)
     # Zombie in A's chunk (A simulates it). B walks next to it — the mob is
     # A-owned, so melee lands as PLAYER_HIT on B.

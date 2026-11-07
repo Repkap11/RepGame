@@ -241,6 +241,12 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    if ( strcmp( cmd, "peaceful" ) == 0 && argc == 2 ) {
+        if ( !dbgcmd::peaceful( state, argv[ 1 ].c_str( ), &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
     if ( strcmp( cmd, "setblock" ) == 0 && argc == 5 ) {
         if ( !dbgcmd::setblock( state, glm::ivec3( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) ), argv[ 4 ].c_str( ), &err ) ) {
             cmd_error( state, line, err.c_str( ) );

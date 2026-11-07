@@ -218,6 +218,7 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
         globalGameState.game_mode = saved_data.game_mode;
+        globalGameState.peaceful = saved_data.peaceful;
         globalGameState.survival_inventory.applySavedInventory( saved_data.survival_inventory );
         globalGameState.world_time = saved_data.world_time;
         // Saved render distance wins over the default but not over an
@@ -316,6 +317,9 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.ui.crafting.grid3.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 3, 3 );
     globalGameState.ui.crafting.output.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 1, 1 );
     globalGameState.game_mode = GameMode_Creative;
+    // Fresh worlds (and block/flat worlds) default to peaceful; a save may
+    // overwrite this below.
+    globalGameState.peaceful = true;
     globalGameState.ui.held_slot.item_id = LAST_BLOCK_ID;
     globalGameState.ui.held_slot.quantity = 0;
     globalGameState.ui.holding_slot = false;
@@ -360,6 +364,7 @@ void RepGame::save_player_data( ) {
     globalGameState.hotbar.saveInventory( saved_data.hotbar_inventory );
     saved_data.selected_hotbar_slot = globalGameState.hotbar.getSelectedSlot( );
     saved_data.game_mode = globalGameState.game_mode;
+    saved_data.peaceful = globalGameState.peaceful;
     globalGameState.survival_inventory.saveInventory( saved_data.survival_inventory );
     saved_data.world_time = globalGameState.world_time;
     saved_data.render_distance = globalGameState.input.render_distance;

@@ -59,6 +59,7 @@ Artifacts land in `/tmp/mptest_<scenario>_*` and contain `server.log` plus
 | `probe x y z` | emit a `probe` event with the block at that cell |
 | `role x y z` | emit a `role` event with the client's role for that chunk |
 | `mode survival\|creative` | pin game mode each tick (survival also pins walking — the FLY pin can't undo it) |
+| `peaceful on\|off` | hostile-mob targeting (off = targetable; survival alone no longer does it) |
 | `time <ticks>` | set world time and broadcast it |
 | `dump [tag]` | force a state dump now |
 | `quit` | clean exit through the normal path |

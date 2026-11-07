@@ -19,6 +19,7 @@
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
 #include "common/mp_test.hpp"
+#include "common/harness/debug_commands.hpp"
 #include "common/harness/run_policy.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/light.hpp"
@@ -867,6 +868,22 @@ void RepGame::process_inventory_events( ) {
                     break;
                 case PauseMenu::BUTTON_BRIGHT_RESET:
                     imgui_overlay_get_imgui_debug_vars( ).min_ambient = MIN_AMBIENT_DEFAULT;
+                    break;
+                case PauseMenu::BUTTON_TIME_MINUS:
+                    // Same as PageDown: consumed by the world-time nudge in
+                    // draw_frame, which wraps the day and broadcasts it.
+                    globalGameState.input.time_skip_hours -= 1;
+                    break;
+                case PauseMenu::BUTTON_TIME_PLUS:
+                    // Same as PageUp.
+                    globalGameState.input.time_skip_hours += 1;
+                    break;
+                case PauseMenu::BUTTON_TIME_RESET:
+                    // Morning: one clock hour after sunrise (world_time 0).
+                    dbgcmd::set_time( globalGameState, DAY_LENGTH_TICKS / 24 );
+                    break;
+                case PauseMenu::BUTTON_PEACEFUL:
+                    globalGameState.peaceful = !globalGameState.peaceful;
                     break;
                 case PauseMenu::BUTTON_DEBUG_VIEW:
                     globalGameState.input.debug_mode = !globalGameState.input.debug_mode;

@@ -96,6 +96,10 @@ class RepGame {
     void save_player_data( );
     Input &getInputState( );
     GameMode getGameMode( ) const;
+    // True while hostile mobs may target the local player — not peaceful
+    // and not no-clip. Drives MobTickInput.player_targetable and the
+    // NET_PLAYER_FLAG_TARGETABLE sent to other clients.
+    static bool player_targetable( const RepGameState &state );
 
     void changeSize( int x, int y );
     void get_screen_size( int *width, int *height ) const;

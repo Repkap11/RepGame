@@ -396,10 +396,11 @@ void RepGame::tick( ) {
     RepGame::process_movement( );
     // Mob physics + wander/chase AI run on the same tick cadence as the
     // player. Frozen in capture mode and when the feet chunk isn't live.
-    // The input marks the player targetable only in walking survival, and
-    // the output carries melee hits + creeper explosions back here.
+    // The input marks the player targetable only when hostile mobs are
+    // enabled and the player isn't no-clipping; the output carries melee
+    // hits + creeper explosions back here.
     MobTickInput mob_in;
-    mob_in.player_targetable = globalGameState.game_mode == GameMode_Survival && !globalGameState.input.no_clip;
+    mob_in.player_targetable = RepGame::player_targetable( globalGameState );
     mob_in.world_time = globalGameState.world_time;
     mob_in.player_eye_height = PLAYER_EYE_HEIGHT - ( globalGameState.input.movement.sneakPressed ? PLAYER_SNEAK_EYE_DROP : 0.0f );
     // Owned hostiles also consider remote players (positions + targetable

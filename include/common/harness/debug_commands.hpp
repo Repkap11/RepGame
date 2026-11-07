@@ -39,5 +39,7 @@ bool fill( RepGameState &state, const glm::ivec3 &a, const glm::ivec3 &b, const 
 // `mode survival|creative`; force_survival (when non-null) also reasserts
 // the mode each tick (mp_test semantics).
 bool mode( RepGameState &state, const char *name, bool *force_survival, std::string *err );
+// `peaceful on|off` — off makes the player targetable by hostile mobs.
+bool peaceful( RepGameState &state, const char *name, std::string *err );
 void set_time( RepGameState &state, long ticks );
 } // namespace dbgcmd

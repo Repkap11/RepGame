@@ -14,8 +14,9 @@ fuse flash). Mobs are drawn in both the main
 and reflection passes and share the chunk light sampling.
 
 Hostiles target the player only while targetable
-(`MobTickInput.player_targetable` = survival + not no-clip; in-game that
-means `GameMode_Survival && !no_clip` — `MobTickInput`/`MobTickOutput`
+(`MobTickInput.player_targetable` = not peaceful + not no-clip; in-game
+that means `RepGame::player_targetable` — `state.peaceful` is the pause
+menu "Mobs" toggle, persisted in `player.dat`. `MobTickInput`/`MobTickOutput`
 carry `player_hits` and `explosions` per tick). They acquire within 16
 blocks, drop past 24, and chase at `chase_speed` (10°/tick max turn);
 untargeted hostiles wander like passives but don't panic when hit.

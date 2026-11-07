@@ -110,7 +110,7 @@ enum NetEntityAction : uint8_t {
     NET_ACTION_HIT = 0,
 };
 
-// NetPlayerPayload flags (bit0: targetable = survival && !no_clip).
+// NetPlayerPayload flags (bit0: targetable = !peaceful && !no_clip).
 static constexpr uint8_t NET_PLAYER_FLAG_TARGETABLE = 0x1;
 
 // NetEntityRecord.flags / NetEntityStateEntry.flags bits for MOB entities.

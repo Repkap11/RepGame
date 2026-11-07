@@ -14,10 +14,11 @@
 
 static const char *const quality_names[] = { "LOW", "MEDIUM", "HIGH", "X_HIGH" };
 
-// Both -/+ stepper rows (render distance, cave brightness) share the
-// [-] [label] [+] layout; stepper_ids maps a row kind to its button ids.
+// The -/+ stepper rows (render distance, cave brightness, time of day)
+// share the [-] [label] [+] layout; stepper_ids maps a row kind to its
+// button ids.
 static bool is_stepper_row( const int button ) {
-    return button == PauseMenu::BUTTON_RENDER_ROW || button == PauseMenu::BUTTON_BRIGHT_ROW;
+    return button == PauseMenu::BUTTON_RENDER_ROW || button == PauseMenu::BUTTON_BRIGHT_ROW || button == PauseMenu::BUTTON_TIME_ROW;
 }
 
 static void stepper_ids( const int row_button, int &minus, int &reset, int &plus ) {
@@ -25,10 +26,14 @@ static void stepper_ids( const int row_button, int &minus, int &reset, int &plus
         minus = PauseMenu::BUTTON_RENDER_MINUS;
         reset = PauseMenu::BUTTON_RENDER_RESET;
         plus = PauseMenu::BUTTON_RENDER_PLUS;
-    } else {
+    } else if ( row_button == PauseMenu::BUTTON_BRIGHT_ROW ) {
         minus = PauseMenu::BUTTON_BRIGHT_MINUS;
         reset = PauseMenu::BUTTON_BRIGHT_RESET;
         plus = PauseMenu::BUTTON_BRIGHT_PLUS;
+    } else {
+        minus = PauseMenu::BUTTON_TIME_MINUS;
+        reset = PauseMenu::BUTTON_TIME_RESET;
+        plus = PauseMenu::BUTTON_TIME_PLUS;
     }
 }
 
@@ -79,11 +84,11 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
 #endif
     lines[ nl++ ] = Line{ { BUTTON_RENDER_ROW }, 1 };
     lines[ nl++ ] = Line{ { BUTTON_BRIGHT_ROW }, 1 };
-    lines[ nl++ ] = Line{ { BUTTON_GAME_MODE, BUTTON_FLYING }, 2 };
+    lines[ nl++ ] = Line{ { BUTTON_TIME_ROW }, 1 };
+    lines[ nl++ ] = Line{ { BUTTON_GAME_MODE, BUTTON_PEACEFUL }, 2 };
+    lines[ nl++ ] = Line{ { BUTTON_FLYING, BUTTON_DEBUG_VIEW }, 2 };
 #if SUPPORTS_IMGUI_OVERLAY
-    lines[ nl++ ] = Line{ { BUTTON_DEBUG_VIEW, BUTTON_IMGUI }, 2 };
-#else
-    lines[ nl++ ] = Line{ { BUTTON_DEBUG_VIEW }, 1 };
+    lines[ nl++ ] = Line{ { BUTTON_IMGUI }, 1 };
 #endif
     lines[ nl++ ] = Line{ { BUTTON_EXIT }, 1 };
 
@@ -106,10 +111,14 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
                 return buf;
             case BUTTON_BRIGHT_ROW:
                 return "Cave Brightness: 100%";
+            case BUTTON_TIME_ROW:
+                return "Time of Day: 00:00";
             case BUTTON_DEBUG_VIEW:
                 return "Block Debug View: Off";
             case BUTTON_GAME_MODE:
                 return "Game Mode: Survival";
+            case BUTTON_PEACEFUL:
+                return "Mobs: Peaceful";
             case BUTTON_FLYING:
                 return "Flying: Off";
             case BUTTON_IMGUI:
@@ -300,11 +309,22 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
             case BUTTON_BRIGHT_ROW:
                 snprintf( buf, sizeof( buf ), "Cave Brightness: %d%%", ( int )lroundf( imgui_overlay_get_imgui_debug_vars( ).min_ambient * 100.0f ) );
                 break;
+            case BUTTON_TIME_ROW: {
+                // Same clock as the ImGui overlay: ticks within the day
+                // mapped onto 24*60 minutes.
+                const long time_of_day = state.world_time % DAY_LENGTH_TICKS;
+                const int clock_minutes = static_cast<int>( time_of_day * 24 * 60 / DAY_LENGTH_TICKS );
+                snprintf( buf, sizeof( buf ), "Time of Day: %02d:%02d", clock_minutes / 60, clock_minutes % 60 );
+                break;
+            }
             case BUTTON_DEBUG_VIEW:
                 snprintf( buf, sizeof( buf ), "Block Debug View: %s", state.input.debug_mode ? "On" : "Off" );
                 break;
             case BUTTON_GAME_MODE:
                 snprintf( buf, sizeof( buf ), "Game Mode: %s", state.game_mode == GameMode_Creative ? "Creative" : "Survival" );
+                break;
+            case BUTTON_PEACEFUL:
+                snprintf( buf, sizeof( buf ), "Mobs: %s", state.peaceful ? "Peaceful" : "Hostile" );
                 break;
             case BUTTON_FLYING:
                 snprintf( buf, sizeof( buf ), "Flying: %s", state.input.player_flying ? "On" : "Off" );

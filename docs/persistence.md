@@ -116,6 +116,7 @@ flying <0|1>
 no_clip <0|1>
 draw_quality <int>
 game_mode <int>
+peaceful <0|1>
 world_time <int64>
 render_distance <int>
 min_ambient <float>

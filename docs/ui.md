@@ -85,8 +85,11 @@ matching and the output slot are documented with the item/recipe data in
 - `PauseMenu` lays out buttons in centered coords (`hitTest` returns
   `BUTTON_*`), grouped into lines of one or two side-by-side cells; line
   contents are compile-time-gated
-  (`SUPPORTS_FRAME_BUFFER`/`SUPPORTS_IMGUI_OVERLAY`) and the steppers
-  reuse `min_ambient_step`. `input.menu_open` swallows gameplay input
+  (`SUPPORTS_FRAME_BUFFER`/`SUPPORTS_IMGUI_OVERLAY`). Three `[-][label][+]`
+  stepper rows cover render distance, cave brightness
+  (`min_ambient_step`), and time of day (`input.time_skip_hours`, same
+  path as PgUp/PgDn); a "Mobs: Peaceful/Hostile" button flips
+  `state.peaceful`. `input.menu_open` swallows gameplay input
   while it's up.
 - `ImGuiOverlay` (`SUPPORTS_IMGUI_OVERLAY` platforms): `shown` toggled
   by 'g' or `SHOW_IMGUI` at start; `ImGuiDebugVars` (position, world

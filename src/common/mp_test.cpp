@@ -262,6 +262,12 @@ static void run_cmd( RepGameState &state, char *line ) {
         state.game_mode = g_force_survival ? GameMode_Survival : GameMode_Creative;
         return;
     }
+    if ( strcmp( cmd, "peaceful" ) == 0 && argc == 2 ) {
+        if ( !dbgcmd::peaceful( state, argv[ 1 ], &err ) ) {
+            cmd_error( state, line );
+        }
+        return;
+    }
     if ( strcmp( cmd, "time" ) == 0 && argc == 2 ) {
         dbgcmd::set_time( state, atol( argv[ 1 ] ) );
         return;

@@ -62,6 +62,7 @@ int test_player_data( ) {
     in.flying = true;
     in.worldDrawQuality = 2;
     in.game_mode = GameMode_Survival;
+    in.peaceful = false;
     in.world_time = 123456789012345LL;
     in.render_distance = 8;
     in.min_ambient = 0.4f;
@@ -76,7 +77,8 @@ int test_player_data( ) {
     check_bool( "player: pos exact", out.world_x == in.world_x && out.world_y == in.world_y && out.world_z == in.world_z );
     check_bool( "player: angles exact", out.angle_H == in.angle_H && out.angle_V == in.angle_V );
     check_bool( "player: flags+quality+mode",
-                out.flying == in.flying && out.no_clip == in.no_clip && out.worldDrawQuality == in.worldDrawQuality && out.game_mode == in.game_mode );
+                out.flying == in.flying && out.no_clip == in.no_clip && out.worldDrawQuality == in.worldDrawQuality && out.game_mode == in.game_mode &&
+                    out.peaceful == in.peaceful );
     check_bool( "player: time+rd+ambient", out.world_time == in.world_time && out.render_distance == in.render_distance && out.min_ambient == in.min_ambient );
     check_bool( "player: slots round trip",
                 out.hotbar_inventory[ 3 ].item_id == STICK && out.hotbar_inventory[ 3 ].quantity == 17 &&
@@ -98,6 +100,7 @@ int test_player_data( ) {
     check_bool( "player: loose pos+angles", loose_out.world_x == 1.5 && loose_out.world_y == 2.5 && loose_out.world_z == 3.5 &&
                                               loose_out.angle_H == 10.0f && loose_out.angle_V == 20.0f );
     check_bool( "player: oob+malformed slots ignored", loose_out.hotbar_inventory[ 0 ].item_id == LAST_BLOCK_ID );
+    check_bool( "player: missing peaceful key defaults on", loose_out.peaceful );
 
     // --- rejection: no pos, no format, garbage ------------------------------
     const char *no_pos = "format 1\nflying 1\n";
@@ -148,7 +151,7 @@ int test_player_data( ) {
     check_bool( "player: binary latest fields",
                 b5.world_x == 10.5 && b5.world_y == 40.25 && b5.world_z == -20.5 && b5.flying && b5.world_time == 987654 &&
                     b5.render_distance == 12 && b5.min_ambient == 0.25f && b5.hotbar_inventory[ 2 ].quantity == 7 &&
-                    b5.survival_inventory[ 5 ].item_id == STICK && b5.selected_hotbar_slot == 2 );
+                    b5.survival_inventory[ 5 ].item_id == STICK && b5.selected_hotbar_slot == 2 && b5.peaceful );
 
     struct __attribute__( ( packed ) ) LegacyBinNoAmbient {
         int reserved;

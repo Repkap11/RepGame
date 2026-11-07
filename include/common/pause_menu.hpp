@@ -30,8 +30,15 @@ class PauseMenu {
         BUTTON_BRIGHT_MINUS,
         BUTTON_BRIGHT_PLUS,
         BUTTON_BRIGHT_RESET,
+        // Marks the time-of-day row; like the other stepper rows its
+        // buttons return BUTTON_TIME_MINUS / _RESET / _PLUS.
+        BUTTON_TIME_ROW,
+        BUTTON_TIME_MINUS,
+        BUTTON_TIME_PLUS,
+        BUTTON_TIME_RESET,
         BUTTON_DEBUG_VIEW,
         BUTTON_GAME_MODE,
+        BUTTON_PEACEFUL,
         BUTTON_FLYING,
         BUTTON_IMGUI,
         BUTTON_EXIT,
@@ -52,7 +59,7 @@ class PauseMenu {
         float left_cx;  // stepper rows only: minus-button center x
         float right_cx; // stepper rows only: plus-button center x
     };
-    static constexpr int MAX_ROWS = 16;
+    static constexpr int MAX_ROWS = 24;
 
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_quads;
     // Single-instance chain redrawn each frame over the hovered button

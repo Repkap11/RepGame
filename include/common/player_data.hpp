@@ -37,6 +37,8 @@ struct PlayerData {
     InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
     int selected_hotbar_slot = 0;
     GameMode game_mode = GameMode_Creative;
+    // Absent in old saves -> peaceful (hostile mobs don't target the player).
+    bool peaceful = true;
     InventorySlot survival_inventory[ SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT ];
     int64_t world_time = 0;
     // 0 = absent (old saves) -> the default render distance is used.

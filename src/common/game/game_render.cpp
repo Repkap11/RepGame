@@ -121,9 +121,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     // eye height consistently with the rest of the packet.
     const float send_eye_height = run_policy().capture.enabled ? static_cast<float>( globalGameState.camera.eye_height )
                                                     : static_cast<float>( globalGameState.camera.eye_height_render );
-    const uint8_t send_flags = ( globalGameState.game_mode == GameMode_Survival && !globalGameState.input.no_clip )
-                                   ? NET_PLAYER_FLAG_TARGETABLE
-                                   : 0;
+    const uint8_t send_flags = RepGame::player_targetable( globalGameState ) ? NET_PLAYER_FLAG_TARGETABLE : 0;
     if ( !globalGameState.spawn_pending ) {
         globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height, send_flags );
     }

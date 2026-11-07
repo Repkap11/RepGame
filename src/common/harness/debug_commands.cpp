@@ -181,6 +181,15 @@ bool dbgcmd::mode( RepGameState &state, const char *name, bool *force_survival, 
     return true;
 }
 
+bool dbgcmd::peaceful( RepGameState &state, const char *name, std::string *err ) {
+    if ( strcasecmp( name, "on" ) != 0 && strcasecmp( name, "off" ) != 0 ) {
+        *err = std::string( "peaceful: want on|off, got " ) + name;
+        return false;
+    }
+    state.peaceful = strcasecmp( name, "on" ) == 0;
+    return true;
+}
+
 void dbgcmd::set_time( RepGameState &state, const long ticks ) {
     state.world_time = ticks;
     state.multiplayer.send_world_time( state.world_time );

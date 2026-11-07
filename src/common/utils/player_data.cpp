@@ -8,6 +8,7 @@
 //   no_clip <0|1>
 //   draw_quality <int>
 //   game_mode <int>
+//   peaceful <0|1>
 //   world_time <int64>
 //   render_distance <int>
 //   min_ambient <float>
@@ -191,6 +192,8 @@ std::string player_data_serialize( const PlayerData &data ) {
     out += line;
     snprintf( line, sizeof( line ), "game_mode %d\n", static_cast<int>( data.game_mode ) );
     out += line;
+    snprintf( line, sizeof( line ), "peaceful %d\n", data.peaceful ? 1 : 0 );
+    out += line;
     snprintf( line, sizeof( line ), "world_time %lld\n", static_cast<long long>( data.world_time ) );
     out += line;
     snprintf( line, sizeof( line ), "render_distance %d\n", data.render_distance );
@@ -334,6 +337,10 @@ static bool player_data_parse_text( const char *buf, size_t len, PlayerData &out
         } else if ( key_len == 9 && memcmp( s, "game_mode", 9 ) == 0 ) {
             if ( parse_int( v, &v, iv ) && iv >= 0 && iv <= GameMode_Survival ) {
                 out.game_mode = static_cast<GameMode>( iv );
+            }
+        } else if ( key_len == 8 && memcmp( s, "peaceful", 8 ) == 0 ) {
+            if ( parse_int( v, &v, iv ) ) {
+                out.peaceful = iv != 0;
             }
         } else if ( key_len == 10 && memcmp( s, "world_time", 10 ) == 0 ) {
             if ( parse_int( v, &v, iv ) ) {

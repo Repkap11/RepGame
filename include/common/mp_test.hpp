@@ -27,6 +27,8 @@
 //   mode survival|creative         pin the game mode each tick (survival
 //                                  also pins walking state so the
 //                                  REPGAME_FLY pin can't undo it)
+//   peaceful on|off                off makes the player hostile-mob
+//                                  targetable (survival alone no longer does)
 //   time <ticks>                   set world time (and broadcast it)
 //   dump [tag]                     force a state dump right now
 //   quit                           clean exit through the normal path

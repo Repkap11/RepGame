@@ -114,6 +114,10 @@ GameMode RepGame::getGameMode( ) const {
     return globalGameState.game_mode;
 }
 
+bool RepGame::player_targetable( const RepGameState &state ) {
+    return !state.peaceful && !state.input.no_clip;
+}
+
 Input &RepGame::getInputState( ) {
     return globalGameState.input;
 }
