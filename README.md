@@ -8,7 +8,7 @@ RepGame is a Minecraft clone written by @Repkap11 in C++.
 Build artifacts are available on https://www.repkap11.com/repgame
 
 Windows: https://repkap11.com/repgame/RepGame.exe \
-Linux: https://repkap11.com/repgame/RepGame \
+Linux: https://repkap11.com/repgame/RepGame-1-x86_64.AppImage \
 Web (Web Assembly): https://repkap11.com/repgame \
 Android: https://repkap11.com/repgame/RepGame.apk
 
