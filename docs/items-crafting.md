@@ -90,7 +90,10 @@ Sources: survival block-break rolls `block_roll_drops` and spawns each
 result at the cell center with a small random hop (creative keeps the block
 instead); survival mob kills spawn the type's drops at the mob's center.
 `Q` throws one of the selected hotbar item, `Ctrl+Q` the whole stack
-(from eye + 0.3·look, velocity look·0.045 + up 0.01, ~3 blocks on flat ground). While the inventory is open
+(from eye + 0.3·look, velocity look·0.045 + up 0.01, ~3 blocks on flat ground).
+Only the key down-edge throws; holding Q repeats at a tick-limited
+`DROP_ITEM_REPEAT_TICKS` cadence in `inventory.cpp` (OS key-repeat events
+don't reach the throw). While the inventory is open
 and a stack rides the cursor, a left click outside every visible panel
 throws the whole stack, a right click throws one — "outside" is decided by
 `InventoryRenderer::containsPoint` over the chest (if open), survival or

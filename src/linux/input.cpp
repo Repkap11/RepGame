@@ -124,7 +124,13 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
 
     switch ( key ) {
         case 'q':
-            this->drop_item = true;
+            // Down edge only: the release and OS key-repeat (pressed while
+            // already held) must not arm a throw. Held repeats are
+            // tick-rate-limited via drop_item_delay instead.
+            if ( pressed && !this->drop_item_held ) {
+                this->drop_item = true;
+            }
+            this->drop_item_held = pressed;
             break;
         case SDLK_ESCAPE: // escape
             if ( pressed ) {
@@ -299,6 +305,7 @@ void Input::onMenuClicked( ) {
             // Drop held keys so a key held across the open doesn't keep the
             // player moving while the menu is up.
             front = back = left = right = up = down = false;
+            this->drop_item_held = false;
             this->player_sprinting = false;
             this->processMovement( );
         }

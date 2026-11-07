@@ -67,7 +67,15 @@ class Input {
     // adjusted live with =/- (numpad +/- too), applied to ChunkLoader each
     // frame. CHUNK_RADIUS_* remains the compiled-in torus capacity.
     int render_distance;
+    // Armed on the Q down edge; consumed by the inventory tick to throw one
+    // item (Ctrl: the whole stack). The release must not arm it.
     bool drop_item;
+    // Q's physical held state, tracked separately so OS key-repeat (which
+    // arrives as pressed while held) can't re-arm drop_item. Held repeats
+    // instead fire through drop_item_delay at a fixed tick rate.
+    bool drop_item_held;
+    // Ticks until the next held-Q repeat throw may fire.
+    int drop_item_delay;
     // Ctrl modifier state, sampled like shift_held — Ctrl+Q throws the whole
     // selected stack instead of one item.
     bool ctrl_held;

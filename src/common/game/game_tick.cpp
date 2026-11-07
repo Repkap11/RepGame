@@ -301,6 +301,7 @@ void RepGame::tick_input_latches( ) {
     in.click_delay_right = in.click_delay_right > 0 ? in.click_delay_right - 1 : 0;
     in.click_delay_left = in.click_delay_left > 0 ? in.click_delay_left - 1 : 0;
     in.click_delay_middle = in.click_delay_middle > 0 ? in.click_delay_middle - 1 : 0;
+    in.drop_item_delay = in.drop_item_delay > 0 ? in.drop_item_delay - 1 : 0;
 
     in.mouse.previousPosition.x = in.mouse.currentPosition.x;
     in.mouse.previousPosition.y = in.mouse.currentPosition.y;

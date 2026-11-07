@@ -1172,8 +1172,12 @@ void RepGame::process_inventory_events( ) {
             pr_debug( "Debug-spawned %s", mob_types[ type ].name );
         }
     }
-    if ( globalGameState.input.drop_item ) {
+    // Held-Q repeat: ~3 throws/s, down from the ~25/s OS key-repeat rate
+    // that used to drive held throws.
+    static constexpr int DROP_ITEM_REPEAT_TICKS = UPS_RATE / 3;
+    if ( globalGameState.input.drop_item || ( globalGameState.input.drop_item_held && globalGameState.input.drop_item_delay == 0 ) ) {
         globalGameState.input.drop_item = false;
+        globalGameState.input.drop_item_delay = DROP_ITEM_REPEAT_TICKS;
         // Q throws one of the selected item; Ctrl+Q throws the whole stack.
         const int qty = globalGameState.input.ctrl_held ? globalGameState.hotbar.getSelectedQuantity( ) : 1;
         const ItemID held = globalGameState.hotbar.getSelectedItem( );
