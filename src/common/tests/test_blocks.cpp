@@ -372,6 +372,27 @@ int test_waterlog( ) {
     // Breaking a waterlogged block leaves its water behind.
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
     failures += check_id( world, "breaking waterlogged plant leaves water", glm::ivec3( 10, 10, 10 ), WATER );
+
+    // Diagonal flow regression: breaking the block at (31,10,30) queues a
+    // diagonal dust wake whose updating cell is the water at (30,11,30) —
+    // down-and-over, not a face neighbor — and the expansion used to run on
+    // it anyway, putting water where no face path reaches. The +x face of
+    // the water stays open: that corner cell (31,11,30) is what gates the
+    // up-and-over wake in queue_neighbor_block_updates, so sealing it would
+    // never queue the diagonal event the regression needs.
+    world.set_loaded_block( glm::ivec3( 30, 10, 30 ), stone );                  // floor under the water
+    world.set_loaded_block( glm::ivec3( 30, 11, 30 ), { WATER, 0, 0, WATER, 0 } );
+    world.set_loaded_block( glm::ivec3( 29, 11, 30 ), stone );                  // -x face sealed
+    world.set_loaded_block( glm::ivec3( 30, 11, 29 ), stone );                  // -z face sealed
+    world.set_loaded_block( glm::ivec3( 30, 11, 31 ), stone );                  // +z face sealed
+    world.set_loaded_block( glm::ivec3( 31, 10, 30 ), stone );                  // diagonal cell to break
+    place( glm::ivec3( 31, 10, 30 ), BLOCK_STATE_AIR );
+    for ( int i = 0; i < 60; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    }
+    failures += check_id( world, "water does not flow diagonally", glm::ivec3( 31, 10, 30 ), AIR );
+    failures += check_id( world, "diagonal source water remains", glm::ivec3( 30, 11, 30 ), WATER );
     return failures;
 }
 

@@ -314,8 +314,11 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
 
     // Water flow needs to start when a block next to water is broken. An
     // already-waterlogged cell already contains water — expanding into it
-    // would re-queue forever since the plant is never replaced.
-    if ( updateing_block->flows != 0 && affecting_block->breaks_in_liquid && !affecting_block_state.waterlogged && affecting_block_pos.y <= block_pos.y ) {
+    // would re-queue forever since the plant is never replaced. Only face
+    // neighbors: diagonal dust wakes also reach here and must not carry water.
+    const glm::ivec3 flow_delta = glm::abs( affecting_block_pos - block_pos );
+    const bool face_adjacent = flow_delta.x + flow_delta.y + flow_delta.z == 1;
+    if ( face_adjacent && updateing_block->flows != 0 && affecting_block->breaks_in_liquid && !affecting_block_state.waterlogged && affecting_block_pos.y <= block_pos.y ) {
         pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", block_pos.x, block_pos.y, block_pos.z, affecting_block_pos.x, affecting_block_pos.y, affecting_block_pos.z );
         BlockState new_block_state = updateing_block_state;
         auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + updateing_block->flows, affecting_block_pos, new_block_state, false );
