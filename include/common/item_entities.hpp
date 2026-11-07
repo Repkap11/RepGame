@@ -97,15 +97,15 @@ class ItemEntities {
     static void render_pose( const ItemEntity &it, float alpha, float *yaw, float *bob );
     void draw( const Renderer &renderer, const Shader &block_object_shader, const Shader &item_sprite_shader );
 
-    // The in-hand flat item: same extruded-sprite mesh and shader as the
-    // dropped items, drawn in camera space from draw_ui_pass once depth is
-    // cleared (isometric held blocks stay on the UIOverlay icon path).
-    // set_held_item no-ops while the item is unchanged; update_held takes
-    // the eye light sample (the camera-space pose rides in u_MVP — the
-    // shader already applies the per-instance transform).
+    // The in-hand item: same meshes and shaders as the dropped items —
+    // extruded sprite for flat items, small cube for isometric block
+    // icons — drawn in camera space from draw_ui_pass once depth is
+    // cleared. set_held_item no-ops while the item is unchanged;
+    // update_held takes the eye light sample (the camera-space poses ride
+    // in u_MVP — the shaders already apply the per-instance transform).
     void set_held_item( ItemID item );
     void update_held( const glm::vec2 &light );
-    void draw_held( const Renderer &renderer, const Shader &item_sprite_shader );
+    void draw_held( const Renderer &renderer, const Shader &item_sprite_shader, const Shader &block_object_shader );
 
     size_t count( ) const { return this->items.size( ); }
     void cleanup( );
@@ -182,8 +182,11 @@ class ItemEntities {
     // draws as an extruded sprite.
     RenderChain<ParticleVertex, BlockObjectInstance> render_cube;
     RenderChain<ParticleVertex, ItemSpriteInstance> render_sprite;
-    // Single-instance chain for the first-person held sprite (draw_ui_pass).
+    // Single-instance chains for the first-person held item (draw_ui_pass):
+    // extruded sprite for flat items, cube for isometric block icons.
     RenderChain<ParticleVertex, ItemSpriteInstance> render_held;
+    RenderChain<ParticleVertex, BlockObjectInstance> render_held_block;
     ItemID held_item_id = LAST_BLOCK_ID;
     entt::entity held_entity = entt::null;
+    entt::entity held_block_entity = entt::null;
 };

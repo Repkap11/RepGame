@@ -39,6 +39,10 @@ struct ImGuiDebugVars {
     glm::vec3 held_pos = glm::vec3( 0.35f, -0.16f, -0.46f );
     glm::vec3 held_rot = glm::vec3( 0.0f, -70.0f, 0.0f ); // pitch, yaw, roll
     float held_scale = 0.2f;
+    // Same pose controls for the held isometric block (perspective cube).
+    glm::vec3 held_block_pos = glm::vec3( 0.47f, -0.26f, -0.59f );
+    glm::vec3 held_block_rot = glm::vec3( 0.0f, 50.0f, 10.0f ); // pitch, yaw, roll
+    float held_block_scale = 0.18f;
 };
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) || defined( REPGAME_WASM ) )

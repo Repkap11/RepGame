@@ -150,6 +150,7 @@ void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const Vert
     this->render_cube.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_sprite.init( vbl_object_vertex, vbl_item_instance, item_sprite_vb, ITEM_SPRITE_VERTS, item_sprite_ib, ITEM_SPRITE_INDICES );
     this->render_held.init( vbl_object_vertex, vbl_item_instance, item_sprite_vb, ITEM_SPRITE_VERTS, item_sprite_ib, ITEM_SPRITE_INDICES );
+    this->render_held_block.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_inited = true;
 
     // REPGAME_ITEM_TEST="name,x,y,z[,count];..." — exact spawns for
@@ -891,10 +892,23 @@ void ItemEntities::set_held_item( ItemID item ) {
     }
     this->held_item_id = item;
     this->held_entity = entt::null;
+    this->held_block_entity = entt::null;
     this->render_held.clear( );
-    // Isometric block icons stay on the flat UIOverlay quad; the extruded
-    // sprite only replaces flat item sprites.
-    if ( !item_id_valid( item ) || item == LAST_BLOCK_ID || ( item_is_block( item ) && item_icon_is_isometric( item ) ) ) {
+    this->render_held_block.clear( );
+    if ( !item_id_valid( item ) || item == LAST_BLOCK_ID ) {
+        return;
+    }
+    if ( item_is_block( item ) && item_icon_is_isometric( item ) ) {
+        // Isometric block icon: the same cube mesh dropped block items draw.
+        const std::pair<entt::entity, BlockObjectInstance &> data = this->render_held_block.create_instance( );
+        this->held_block_entity = data.first;
+        const Block *block = block_definition_get_definition( static_cast<BlockID>( item ) );
+        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+            data.second.face[ f ] = block->textures[ f ];
+        }
+        block_object_shape( block, true, data.second.shape_scale, data.second.shape_offset, data.second.shape_tex_offset );
+        data.second.transform = glm::mat4( 0.0f ); // hidden until update_held
+        data.second.light = glm::vec2( 1.0f );
         return;
     }
     const std::pair<entt::entity, ItemSpriteInstance &> data = this->render_held.create_instance( );
@@ -905,24 +919,32 @@ void ItemEntities::set_held_item( ItemID item ) {
 }
 
 void ItemEntities::update_held( const glm::vec2 &light ) {
-    if ( this->held_entity == entt::null ) {
-        return;
+    if ( this->held_entity != entt::null ) {
+        ItemSpriteInstance &inst = this->render_held.get_instance( this->held_entity );
+        inst.transform = glm::mat4( 1.0f );
+        inst.light = light;
+        this->render_held.invalidate_all( );
     }
-    ItemSpriteInstance &inst = this->render_held.get_instance( this->held_entity );
-    inst.transform = glm::mat4( 1.0f );
-    inst.light = light;
-    this->render_held.invalidate_all( );
+    if ( this->held_block_entity != entt::null ) {
+        BlockObjectInstance &inst = this->render_held_block.get_instance( this->held_block_entity );
+        inst.transform = glm::mat4( 1.0f );
+        inst.light = light;
+        this->render_held_block.invalidate_all( );
+    }
 }
 
-void ItemEntities::draw_held( const Renderer &renderer, const Shader &item_sprite_shader ) {
+void ItemEntities::draw_held( const Renderer &renderer, const Shader &item_sprite_shader, const Shader &block_object_shader ) {
     if ( !this->render_inited ) {
         return;
     }
     this->render_held.draw( renderer, item_sprite_shader );
+    this->render_held_block.draw( renderer, block_object_shader );
 }
 
 void ItemEntities::cleanup( ) {
     this->render_cube.clear( );
     this->render_sprite.clear( );
+    this->render_held.clear( );
+    this->render_held_block.clear( );
     this->items.clear( );
 }

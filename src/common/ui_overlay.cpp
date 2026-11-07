@@ -79,23 +79,10 @@ void UIOverlay::set_holding_item( ItemID holding_item ) {
         return;
     }
 
-    vb_data_holding_block_instance.width = this->screen_width / 4.0f;
-    vb_data_holding_block_instance.height = this->screen_width / 4.0f;
-
-    vb_data_holding_block_instance.screen_x = 0.7 * this->screen_width / 2;
-    vb_data_holding_block_instance.screen_y = -1.3 * this->screen_height / 2;
-    vb_data_holding_block_instance.screen_z = 0;
-
-    set_item_icon( vb_data_holding_block_instance, this->heldItemID );
-
+    // The held item draws through ItemEntities::draw_held from
+    // draw_ui_pass (extruded sprite for flat items, perspective cube for
+    // isometric block icons); the overlay chain only tracks the id.
     this->render_chain_held_block.clear( );
-    // Flat held sprites are drawn by the real extruded-sprite path
-    // (ItemEntities::draw_held from draw_ui_pass); the overlay chain only
-    // carries isometric block icons.
-    if ( vb_data_holding_block_instance.is_isometric != 0 ) {
-        auto pair = this->render_chain_held_block.create_instance( );
-        pair.second = vb_data_holding_block_instance;
-    }
 }
 
 void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, bool crafting_table_open, bool furnace_open, float held_block_light ) {

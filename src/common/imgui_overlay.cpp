@@ -250,6 +250,12 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
                 ImGui::DragFloat( "Pitch", &debug_vars.held_rot.x, 0.5f );
                 ImGui::DragFloat( "Roll", &debug_vars.held_rot.z, 0.5f );
                 ImGui::DragFloat( "Scale", &debug_vars.held_scale, 0.005f, 0.01f, 2.0f );
+                ImGui::SeparatorText( "Held Block" );
+                ImGui::DragFloat3( "B-Position", &debug_vars.held_block_pos.x, 0.01f );
+                ImGui::DragFloat( "B-Yaw", &debug_vars.held_block_rot.y, 0.5f );
+                ImGui::DragFloat( "B-Pitch", &debug_vars.held_block_rot.x, 0.5f );
+                ImGui::DragFloat( "B-Roll", &debug_vars.held_block_rot.z, 0.5f );
+                ImGui::DragFloat( "B-Scale", &debug_vars.held_block_scale, 0.005f, 0.01f, 2.0f );
             }
 
             // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
