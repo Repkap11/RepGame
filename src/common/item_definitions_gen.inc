@@ -41,3 +41,8 @@
     { TEX_PORKCHOP_COOKED, 64 },
     { TEX_CHICKEN_COOKED, 64 },
     { TEX_MUTTON_COOKED, 64 },
+    { TEX_IRON_PICKAXE, 1 },
+    { TEX_IRON_AXE, 1 },
+    { TEX_IRON_SHOVEL, 1 },
+    { TEX_IRON_HOE, 1 },
+    { TEX_IRON_SWORD, 1 },

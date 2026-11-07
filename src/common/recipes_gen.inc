@@ -15,20 +15,21 @@ static const ItemID RECIPE_OPTS_12[] = { DARK_OAK_PLANKS };
 static const ItemID RECIPE_OPTS_13[] = { DIAMOND };
 static const ItemID RECIPE_OPTS_14[] = { STICK };
 static const ItemID RECIPE_OPTS_15[] = { COBBLESTONE, COBBLED_DEEPSLATE };
-static const ItemID RECIPE_OPTS_16[] = { JUNGLE_LOG, STRIPPED_JUNGLE_LOG, JUNGLE_WOOD, STRIPPED_JUNGLE_WOOD };
-static const ItemID RECIPE_OPTS_17[] = { JUNGLE_PLANKS };
-static const ItemID RECIPE_OPTS_18[] = { MANGROVE_LOG, STRIPPED_MANGROVE_LOG, MANGROVE_WOOD, STRIPPED_MANGROVE_WOOD };
-static const ItemID RECIPE_OPTS_19[] = { MANGROVE_PLANKS };
-static const ItemID RECIPE_OPTS_20[] = { OAK_LOG, STRIPPED_OAK_LOG, OAK_WOOD, STRIPPED_OAK_WOOD };
-static const ItemID RECIPE_OPTS_21[] = { OAK_PLANKS };
-static const ItemID RECIPE_OPTS_22[] = { PALE_OAK_LOG, STRIPPED_PALE_OAK_LOG, PALE_OAK_WOOD, STRIPPED_PALE_OAK_WOOD };
-static const ItemID RECIPE_OPTS_23[] = { PALE_OAK_PLANKS };
-static const ItemID RECIPE_OPTS_24[] = { POPLAR_LOG, STRIPPED_POPLAR_LOG, POPLAR_WOOD, STRIPPED_POPLAR_WOOD };
-static const ItemID RECIPE_OPTS_25[] = { POPLAR_PLANKS };
-static const ItemID RECIPE_OPTS_26[] = { SPRUCE_LOG, STRIPPED_SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_WOOD };
-static const ItemID RECIPE_OPTS_27[] = { SPRUCE_PLANKS };
-static const ItemID RECIPE_OPTS_28[] = { COAL };
-static const ItemID RECIPE_OPTS_29[] = { WARPED_PLANKS };
+static const ItemID RECIPE_OPTS_16[] = { IRON_INGOT };
+static const ItemID RECIPE_OPTS_17[] = { JUNGLE_LOG, STRIPPED_JUNGLE_LOG, JUNGLE_WOOD, STRIPPED_JUNGLE_WOOD };
+static const ItemID RECIPE_OPTS_18[] = { JUNGLE_PLANKS };
+static const ItemID RECIPE_OPTS_19[] = { MANGROVE_LOG, STRIPPED_MANGROVE_LOG, MANGROVE_WOOD, STRIPPED_MANGROVE_WOOD };
+static const ItemID RECIPE_OPTS_20[] = { MANGROVE_PLANKS };
+static const ItemID RECIPE_OPTS_21[] = { OAK_LOG, STRIPPED_OAK_LOG, OAK_WOOD, STRIPPED_OAK_WOOD };
+static const ItemID RECIPE_OPTS_22[] = { OAK_PLANKS };
+static const ItemID RECIPE_OPTS_23[] = { PALE_OAK_LOG, STRIPPED_PALE_OAK_LOG, PALE_OAK_WOOD, STRIPPED_PALE_OAK_WOOD };
+static const ItemID RECIPE_OPTS_24[] = { PALE_OAK_PLANKS };
+static const ItemID RECIPE_OPTS_25[] = { POPLAR_LOG, STRIPPED_POPLAR_LOG, POPLAR_WOOD, STRIPPED_POPLAR_WOOD };
+static const ItemID RECIPE_OPTS_26[] = { POPLAR_PLANKS };
+static const ItemID RECIPE_OPTS_27[] = { SPRUCE_LOG, STRIPPED_SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_WOOD };
+static const ItemID RECIPE_OPTS_28[] = { SPRUCE_PLANKS };
+static const ItemID RECIPE_OPTS_29[] = { COAL };
+static const ItemID RECIPE_OPTS_30[] = { WARPED_PLANKS };
 
 const CraftRecipe CRAFT_RECIPES[] = {
     { 0, 0, 0, { { RECIPE_OPTS_0, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, ACACIA_PLANKS, 4 },
@@ -58,24 +59,29 @@ const CraftRecipe CRAFT_RECIPES[] = {
     { 1, 1, 3, { { RECIPE_OPTS_13, 1 }, { RECIPE_OPTS_14, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, DIAMOND_SHOVEL, 1 },
     { 1, 1, 3, { { RECIPE_OPTS_13, 1 }, { RECIPE_OPTS_13, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, DIAMOND_SWORD, 1 },
     { 1, 3, 3, { { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { nullptr, 0 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 } }, FURNACE, 1 },
-    { 0, 0, 0, { { RECIPE_OPTS_16, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, JUNGLE_PLANKS, 4 },
-    { 1, 3, 1, { { RECIPE_OPTS_17, 1 }, { RECIPE_OPTS_17, 1 }, { RECIPE_OPTS_17, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, JUNGLE_SLAB, 6 },
-    { 1, 3, 3, { { RECIPE_OPTS_17, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_17, 1 }, { RECIPE_OPTS_17, 1 }, { nullptr, 0 }, { RECIPE_OPTS_17, 1 }, { RECIPE_OPTS_17, 1 }, { RECIPE_OPTS_17, 1 } }, JUNGLE_STAIRS, 4 },
-    { 0, 0, 0, { { RECIPE_OPTS_18, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, MANGROVE_PLANKS, 4 },
-    { 1, 3, 1, { { RECIPE_OPTS_19, 1 }, { RECIPE_OPTS_19, 1 }, { RECIPE_OPTS_19, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, MANGROVE_SLAB, 6 },
-    { 1, 3, 3, { { RECIPE_OPTS_19, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_19, 1 }, { RECIPE_OPTS_19, 1 }, { nullptr, 0 }, { RECIPE_OPTS_19, 1 }, { RECIPE_OPTS_19, 1 }, { RECIPE_OPTS_19, 1 } }, MANGROVE_STAIRS, 4 },
-    { 0, 0, 0, { { RECIPE_OPTS_20, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, OAK_PLANKS, 4 },
-    { 1, 3, 1, { { RECIPE_OPTS_21, 1 }, { RECIPE_OPTS_21, 1 }, { RECIPE_OPTS_21, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, OAK_SLAB, 6 },
-    { 1, 3, 3, { { RECIPE_OPTS_21, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_21, 1 }, { RECIPE_OPTS_21, 1 }, { nullptr, 0 }, { RECIPE_OPTS_21, 1 }, { RECIPE_OPTS_21, 1 }, { RECIPE_OPTS_21, 1 } }, OAK_STAIRS, 4 },
-    { 0, 0, 0, { { RECIPE_OPTS_22, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, PALE_OAK_PLANKS, 4 },
-    { 1, 3, 1, { { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, PALE_OAK_SLAB, 6 },
-    { 1, 3, 3, { { RECIPE_OPTS_23, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { nullptr, 0 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 } }, PALE_OAK_STAIRS, 4 },
-    { 0, 0, 0, { { RECIPE_OPTS_24, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, POPLAR_PLANKS, 4 },
-    { 1, 3, 1, { { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, POPLAR_SLAB, 6 },
-    { 1, 3, 3, { { RECIPE_OPTS_25, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { nullptr, 0 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 } }, POPLAR_STAIRS, 4 },
-    { 0, 0, 0, { { RECIPE_OPTS_26, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, SPRUCE_PLANKS, 4 },
-    { 1, 3, 1, { { RECIPE_OPTS_27, 1 }, { RECIPE_OPTS_27, 1 }, { RECIPE_OPTS_27, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, SPRUCE_SLAB, 6 },
-    { 1, 3, 3, { { RECIPE_OPTS_27, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_27, 1 }, { RECIPE_OPTS_27, 1 }, { nullptr, 0 }, { RECIPE_OPTS_27, 1 }, { RECIPE_OPTS_27, 1 }, { RECIPE_OPTS_27, 1 } }, SPRUCE_STAIRS, 4 },
+    { 1, 2, 3, { { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, IRON_AXE, 1 },
+    { 1, 2, 3, { { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_16, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, IRON_HOE, 1 },
+    { 1, 3, 3, { { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_16, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 } }, IRON_PICKAXE, 1 },
+    { 1, 1, 3, { { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_14, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, IRON_SHOVEL, 1 },
+    { 1, 1, 3, { { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_16, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, IRON_SWORD, 1 },
+    { 0, 0, 0, { { RECIPE_OPTS_17, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, JUNGLE_PLANKS, 4 },
+    { 1, 3, 1, { { RECIPE_OPTS_18, 1 }, { RECIPE_OPTS_18, 1 }, { RECIPE_OPTS_18, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, JUNGLE_SLAB, 6 },
+    { 1, 3, 3, { { RECIPE_OPTS_18, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_18, 1 }, { RECIPE_OPTS_18, 1 }, { nullptr, 0 }, { RECIPE_OPTS_18, 1 }, { RECIPE_OPTS_18, 1 }, { RECIPE_OPTS_18, 1 } }, JUNGLE_STAIRS, 4 },
+    { 0, 0, 0, { { RECIPE_OPTS_19, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, MANGROVE_PLANKS, 4 },
+    { 1, 3, 1, { { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, MANGROVE_SLAB, 6 },
+    { 1, 3, 3, { { RECIPE_OPTS_20, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 }, { nullptr, 0 }, { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 } }, MANGROVE_STAIRS, 4 },
+    { 0, 0, 0, { { RECIPE_OPTS_21, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, OAK_PLANKS, 4 },
+    { 1, 3, 1, { { RECIPE_OPTS_22, 1 }, { RECIPE_OPTS_22, 1 }, { RECIPE_OPTS_22, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, OAK_SLAB, 6 },
+    { 1, 3, 3, { { RECIPE_OPTS_22, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_22, 1 }, { RECIPE_OPTS_22, 1 }, { nullptr, 0 }, { RECIPE_OPTS_22, 1 }, { RECIPE_OPTS_22, 1 }, { RECIPE_OPTS_22, 1 } }, OAK_STAIRS, 4 },
+    { 0, 0, 0, { { RECIPE_OPTS_23, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, PALE_OAK_PLANKS, 4 },
+    { 1, 3, 1, { { RECIPE_OPTS_24, 1 }, { RECIPE_OPTS_24, 1 }, { RECIPE_OPTS_24, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, PALE_OAK_SLAB, 6 },
+    { 1, 3, 3, { { RECIPE_OPTS_24, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_24, 1 }, { RECIPE_OPTS_24, 1 }, { nullptr, 0 }, { RECIPE_OPTS_24, 1 }, { RECIPE_OPTS_24, 1 }, { RECIPE_OPTS_24, 1 } }, PALE_OAK_STAIRS, 4 },
+    { 0, 0, 0, { { RECIPE_OPTS_25, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, POPLAR_PLANKS, 4 },
+    { 1, 3, 1, { { RECIPE_OPTS_26, 1 }, { RECIPE_OPTS_26, 1 }, { RECIPE_OPTS_26, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, POPLAR_SLAB, 6 },
+    { 1, 3, 3, { { RECIPE_OPTS_26, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_26, 1 }, { RECIPE_OPTS_26, 1 }, { nullptr, 0 }, { RECIPE_OPTS_26, 1 }, { RECIPE_OPTS_26, 1 }, { RECIPE_OPTS_26, 1 } }, POPLAR_STAIRS, 4 },
+    { 0, 0, 0, { { RECIPE_OPTS_27, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, SPRUCE_PLANKS, 4 },
+    { 1, 3, 1, { { RECIPE_OPTS_28, 1 }, { RECIPE_OPTS_28, 1 }, { RECIPE_OPTS_28, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, SPRUCE_SLAB, 6 },
+    { 1, 3, 3, { { RECIPE_OPTS_28, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_28, 1 }, { RECIPE_OPTS_28, 1 }, { nullptr, 0 }, { RECIPE_OPTS_28, 1 }, { RECIPE_OPTS_28, 1 }, { RECIPE_OPTS_28, 1 } }, SPRUCE_STAIRS, 4 },
     { 1, 1, 2, { { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, STICK, 4 },
     { 1, 2, 3, { { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, STONE_AXE, 1 },
     { 1, 2, 3, { { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, STONE_HOE, 1 },
@@ -83,9 +89,9 @@ const CraftRecipe CRAFT_RECIPES[] = {
     { 1, 1, 3, { { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_14, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, STONE_SHOVEL, 1 },
     { 1, 3, 3, { { RECIPE_OPTS_9, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_9, 1 }, { RECIPE_OPTS_9, 1 }, { nullptr, 0 }, { RECIPE_OPTS_9, 1 }, { RECIPE_OPTS_9, 1 }, { RECIPE_OPTS_9, 1 } }, STONE_STAIRS, 4 },
     { 1, 1, 3, { { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_15, 2 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, STONE_SWORD, 1 },
-    { 1, 1, 2, { { RECIPE_OPTS_28, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, TORCH, 4 },
-    { 1, 3, 1, { { RECIPE_OPTS_29, 1 }, { RECIPE_OPTS_29, 1 }, { RECIPE_OPTS_29, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, WARPED_SLAB, 6 },
-    { 1, 3, 3, { { RECIPE_OPTS_29, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_29, 1 }, { RECIPE_OPTS_29, 1 }, { nullptr, 0 }, { RECIPE_OPTS_29, 1 }, { RECIPE_OPTS_29, 1 }, { RECIPE_OPTS_29, 1 } }, WARPED_STAIRS, 4 },
+    { 1, 1, 2, { { RECIPE_OPTS_29, 1 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, TORCH, 4 },
+    { 1, 3, 1, { { RECIPE_OPTS_30, 1 }, { RECIPE_OPTS_30, 1 }, { RECIPE_OPTS_30, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, WARPED_SLAB, 6 },
+    { 1, 3, 3, { { RECIPE_OPTS_30, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_30, 1 }, { RECIPE_OPTS_30, 1 }, { nullptr, 0 }, { RECIPE_OPTS_30, 1 }, { RECIPE_OPTS_30, 1 }, { RECIPE_OPTS_30, 1 } }, WARPED_STAIRS, 4 },
     { 1, 2, 3, { { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, WOODEN_AXE, 1 },
     { 1, 2, 3, { { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, WOODEN_HOE, 1 },
     { 1, 3, 3, { { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_14, 1 }, { nullptr, 0 } }, WOODEN_PICKAXE, 1 },

@@ -41,3 +41,8 @@
     "COOKED_PORKCHOP",
     "COOKED_CHICKEN",
     "COOKED_MUTTON",
+    "IRON_PICKAXE",
+    "IRON_AXE",
+    "IRON_SHOVEL",
+    "IRON_HOE",
+    "IRON_SWORD",
