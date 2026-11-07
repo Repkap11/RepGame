@@ -1,5 +1,3 @@
-#include <vector>
-
 #include "common/block_update_events/PistonEvent.hpp"
 #include "common/RepGame.hpp"
 #include "common/multiplayer.hpp"

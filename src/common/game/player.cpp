@@ -1,10 +1,6 @@
 // RepGame member functions: block interaction, camera/movement input, mouse events.
 
 #include <cmath>
-#include <ctime>
-#include <string>
-#include <unistd.h>
-#include <chrono>
 #include <stdlib.h>
 
 #include "common/RepGame.hpp"
@@ -13,21 +9,14 @@
 #include "common/utils/map_storage.hpp"
 #include "common/utils/profile.hpp"
 #include "common/renderer/texture.hpp"
-#include "common/renderer/frame_buffer.hpp"
 #include "common/world.hpp"
-#include "common/renderer/vertex_buffer_layout.hpp"
-#include "common/utils/ray_traversal.hpp"
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
 #include "common/mp_test.hpp"
 #include "common/harness/run_policy.hpp"
-#include "common/utils/env_config.hpp"
-#include "common/light.hpp"
-#include "common/map_gen.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
-#include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/game/game_internal.hpp"
 
 // Left-click damage to a mob in survival (creative kills in one hit).

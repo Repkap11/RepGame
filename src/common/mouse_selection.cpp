@@ -1,8 +1,5 @@
-#include "common/RepGame.hpp"
 #include "common/mouse_selection.hpp"
 #include "common/block.hpp"
-#include "common/block_update_events/BlockNextToChangeEvent.hpp"
-#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 
 MK_SHADER( selection_vertex );
 MK_SHADER( selection_fragment );

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
 #include "common/net/framed_socket.hpp"
@@ -13,6 +12,7 @@
 #include <vector>
 
 class ChunkLoader;
+struct RepGameState;
 
 class Multiplayer {
     FramedSocket framed_socket;

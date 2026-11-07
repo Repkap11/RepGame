@@ -2,7 +2,6 @@
 
 #include "common/RepGame.hpp"
 #include "common/world.hpp"
-#include "common/render_order.hpp"
 #include "common/utils/ray_traversal.hpp"
 
 // https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default

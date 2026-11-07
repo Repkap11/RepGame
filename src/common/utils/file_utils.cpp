@@ -1,14 +1,11 @@
 #include "common/utils/file_utils.hpp"
 #include "common/RepGame.hpp"
-#include <libgen.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #if defined( REPGAME_LINUX )
-#include <unistd.h>
 #include <pwd.h>
-#include <stdio.h>
 #include <stdlib.h>
 char *getRepGamePath( ) {
     char buffer[ BUFSIZ ];

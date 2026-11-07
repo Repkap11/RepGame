@@ -25,9 +25,7 @@
 
 #if REPGAME_MAP_GEN_LEGACY
 
-#include "common/RepGame.hpp"
 #include "common/perlin_noise.hpp"
-#include "common/constants.hpp"
 #include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
 #include <math.h>

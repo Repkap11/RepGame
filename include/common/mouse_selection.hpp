@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/block.hpp"
 #include "common/RenderChain.hpp"
 #include "common/renderer/shader.hpp"
 
