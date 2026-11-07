@@ -15,9 +15,9 @@
 // Face indices used to look up block textures for isometric icons.
 constexpr static int inventory_isometric_face[] = { FACE_TOP, FACE_FRONT, FACE_RIGHT };
 
-// Vertex buffer for the in-hand held-block icon (lower-left corner). The
-// non-isometric quad section uses adjusted coordinates so flat icons are
-// positioned like the player's hand view.
+// Vertex buffer for the in-hand held-block icon (lower-right corner). The
+// non-isometric quad section is unused: flat held items draw through the
+// extruded-sprite path (ItemEntities::draw_held).
 #define VB_ISOMETRIC_QUAD_SIZE 16
 // Isometric UVs match the chunk mesh's vd_data_solid conventions so icons
 // sample textures the same way the world does: TOP u=x/v=z, FRONT u=1-x/v=y,
@@ -40,10 +40,9 @@ constexpr static UIOverlayVertex vb_isometric_quad_held[ VB_ISOMETRIC_QUAD_SIZE 
     { 1.0f, 0.1875f, { 0, 0 }, 1, ISO_FACE_RIGHT, { 1, 0, 0 } }, // 6
     { 1.0f, 0.8125f, { 0, 1 }, 1, ISO_FACE_RIGHT, { 1, 1, 0 } }, // e
 
-    // Quad (adjusted for the in-hand held-block icon). UVs are the icon's
-    // transpose ((u,v) -> (1-v,1-u)): a diagonal mirror that swaps the
-    // sprite's top-left and bottom-right, so the blade faces screen center
-    // while the handle still reaches the hand in the lower-left.
+    // Quad — unused; flat held items draw through the extruded-sprite
+    // path (ItemEntities::draw_held), the overlay chain only carries
+    // isometric icons.
     { 0.5f, 0.0f + 0.24, { 1, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },    //
     { 0.5f, 0.625f + 0.24, { 0, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },  //
     { 1.0f, 0.1875f + 0.24, { 1, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //

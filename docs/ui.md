@@ -108,13 +108,13 @@ matching and the output slot are documented with the item/recipe data in
 - `UIOverlay` draws the crosshair, the in-hand block (shaded by
   `held_block_light` sampled at the camera), and the dragged item — all
   through the shared ui_overlay shader that `PauseMenu` also borrows via
-  `get_shader`. The in-hand icon sits in the lower-left (left hand).
+  `get_shader`. The in-hand icon sits in the lower-right (right hand).
   Flat held sprites are drawn by `ItemEntities::draw_held` from
   `draw_ui_pass`: the same extruded 16x16 mesh the dropped items use,
   posed in camera space after the depth clear over the same screen
   region the held block occupies — a yaw/pitch/roll that leans the
-  head up-right away from the player while the handle reaches the
-  lower-left hand, with real 1-pixel-thick edge faces. Isometric
+  head up-left away from the player while the handle reaches the
+  lower-right hand, with real 1-pixel-thick edge faces. Isometric
   held blocks stay on `vb_isometric_quad_held` through `UIOverlay`.
   The pose comes from `ImGuiDebugVars::held_pos/held_rot/held_scale`,
   tunable live in the ImGui overlay's "Held Item" section — open the

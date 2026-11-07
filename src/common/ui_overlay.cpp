@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include "common/RepGame.hpp"
+#include "common/RepGame.hpp" // IWYU pragma: keep -- include order only, see ui_overlay_buffers.hpp
 #include "common/ui_overlay.hpp"
 #include "common/ui_overlay_buffers.hpp"
 #include "common/renderer/shader.hpp"
@@ -82,7 +82,7 @@ void UIOverlay::set_holding_item( ItemID holding_item ) {
     vb_data_holding_block_instance.width = this->screen_width / 4.0f;
     vb_data_holding_block_instance.height = this->screen_width / 4.0f;
 
-    vb_data_holding_block_instance.screen_x = -1.2 * this->screen_width / 2;
+    vb_data_holding_block_instance.screen_x = 0.7 * this->screen_width / 2;
     vb_data_holding_block_instance.screen_y = -1.3 * this->screen_height / 2;
     vb_data_holding_block_instance.screen_z = 0;
 

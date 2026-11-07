@@ -497,13 +497,13 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         // The in-hand flat item is the same extruded sprite the dropped-item
         // entities draw, posed in camera space right after the depth clear —
         // real 1-texel edge faces like ground items, never clipped by the
-        // world. The mesh shows the icon horizontally mirrored (the atlas
-        // stores tiles x-mirrored), so the sprite is flipped 180° about the
-        // local y-axis: the back face then displays the icon un-mirrored,
-        // head up-right pointing away, handle to the lower-left hand. The
-        // slight yaw exposes the edge faces. The pose rides in u_MVP only —
-        // the shader already applies the per-instance transform. Isometric
-        // held blocks stay on the UIOverlay icon path.
+        // world. The pose (ImGuiDebugVars::held_*, tunable live in the
+        // overlay) turns the sprite edge-on to the right, foreshortened
+        // like a tool angled away from the player in the right hand — the
+        // front face natively shows the icon mirrored, which is the correct
+        // right-hand orientation. The pose rides in u_MVP only — the shader
+        // already applies the per-instance transform. Isometric held blocks
+        // stay on the UIOverlay icon path.
         if ( !globalGameState.vr.active ) {
             ItemEntities &items = globalGameState.world.items;
             items.set_held_item( globalGameState.ui.overlay.held_item( ) );
