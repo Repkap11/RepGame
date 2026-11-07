@@ -94,7 +94,7 @@ Non-`REPGAME_*` env seams used by tests: `SDL_VIDEODRIVER=offscreen` +
 `SDL_AUDIODRIVER=dummy` for headless runs (the dummy audio driver keeps test
 runs from playing music/sfx).
 
-Compile-time tunables that are NOT env vars (formerly configurable, now
-`#define`s at the top of `src/shaders/chunk_fragment.glsl`):
-`LIGHT_LOD_BIAS` / `LIGHT_FAR_AO` and `CUTOUT_FADE_START` /
-`CUTOUT_FADE_END` — see docs/rendering.md.
+Compile-time tunables that are NOT env vars (`#define`s at the top of
+`src/shaders/chunk_fragment.glsl`): `LIGHT_LOD_BIAS` / `LIGHT_FAR_AO` /
+`LIGHT_FAR_OCC` and `CUTOUT_FADE_START` / `CUTOUT_FADE_END` — see
+docs/rendering.md.

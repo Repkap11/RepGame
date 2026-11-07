@@ -60,10 +60,19 @@ is `docs/chunks.md`; the light model these tunables feed is
   at compile time. The chosen radius persists in `player.dat`
   (`PlayerData::render_distance`, clamped to 1..max on load — absent in
   old saves); `REPGAME_RENDER_DISTANCE` overrides it when set.
-- `LIGHT_LOD_BIAS` / `LIGHT_FAR_AO` — footprint-mipmapped light tunables
-  (3.0 / 0.1), compile-time `#define`s at the top of
-  `src/shaders/chunk_fragment.glsl`. The effective mip level is capped at
-  `LIGHT_LOD_MAX`, so raising the bias past the cap has no further effect.
+- `LIGHT_LOD_BIAS` / `LIGHT_FAR_AO` / `LIGHT_FAR_OCC` — footprint-mipmapped
+  light tunables, compile-time defines at the top of
+  `src/shaders/chunk_fragment.glsl` (1.5 / 0.0 / 0.5). `LIGHT_LOD_BIAS`
+  shifts the LOD higher, `LIGHT_FAR_AO` blends toward the solid-inclusive
+  average (0: its height-parity-dependent signal aliases at distance),
+  `LIGHT_FAR_OCC` is the strength of a band-limited occlusion term: the
+  level-1 air fraction sampled `LIGHT_OCC_OFFSET` cells further out along
+  the face normal darkens `light_far` where the volume reads concave
+  (remapped via `smoothstep(0.4, 0.875, b)`, faded out between 2 and 1
+  px/block since the fixed mip-1 probe aliases past ~1 px; probes outside
+  the light volume are treated as open). The effective mip level is capped
+  at `LIGHT_LOD_MAX`, so raising the bias past the cap has no further
+  effect.
 - `REPGAME_NIGHT_AMBIENT` / `REPGAME_MIN_AMBIENT` — night brightness floors
   (0-1, defaults 0.20 / 0.05). `night_ambient` is the moonlight floor on the
   daylight factor (outdoor night: terrain, sky, mobs, fog all scale by it);

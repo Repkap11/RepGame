@@ -9,15 +9,22 @@
 #define LIGHT_VOLUME_DIM vec3( float( CHUNK_SIZE_INTERNAL_X ), float( CHUNK_SIZE_INTERNAL_Y ), float( CHUNK_SIZE_INTERNAL_Z ) )
 // Hard cap on the mip level sampled from the light volume (see light_lod).
 #define LIGHT_LOD_MAX 1.0
-// Footprint-mipmapped light tuning (the light_lod expression below): the
-// bias shifts the LOD higher (blurs the per-block light pattern at closer
-// range); far_ao adds a small deliberate blend toward the solid-inclusive
-// average as distant AO (0 = air cells only). far_ao stays small on
-// purpose: a surface-straddling texel's air fraction reflects where the
-// texel landed as much as real occlusion, so a large blend darkens even
-// flat unoccluded ground. Compile-time so the bias folds into the log2.
-#define LIGHT_LOD_BIAS 3.0
-#define LIGHT_FAR_AO 0.1
+// Footprint-mipmapped light tuning (the light_lod expression below):
+// LIGHT_LOD_BIAS shifts the LOD higher (blurs the per-block light pattern
+// at closer range); LIGHT_FAR_AO adds a small deliberate blend toward the
+// solid-inclusive average as distant AO (0 = air cells only). It is kept
+// small on purpose: a surface-straddling texel's air fraction reflects
+// where the texel landed as much as real occlusion, so a large blend
+// darkens even flat unoccluded ground — and it is now 0 because that
+// height-parity-dependent signal aliases into moire at distance anyway.
+// LIGHT_FAR_OCC is the strength (0..1) of the band-limited occlusion term
+// applied to light_far below.
+#define LIGHT_LOD_BIAS 1.5
+#define LIGHT_FAR_AO 0.0
+#define LIGHT_FAR_OCC 0.5
+// How many cells further out along the face normal the occlusion probe
+// samples (see the LIGHT_FAR_OCC branch below).
+#define LIGHT_OCC_OFFSET 1.0
 // Flowers sample the light volume inside their own cell, so GL_LINEAR blends
 // in the adjacent ground/wall cells (which hold 0 light); dividing by the
 // base-level air mask (B) averages only cells that can hold light.
@@ -383,6 +390,32 @@ void main() {
         vec3 light_mip = textureLod(u_LightTex, light_coord, light_lod).rgb;
         vec2 light_air = light_mip.rg / max(light_mip.b, 1.0 / 255.0);
         vec2 light_far = min(mix(light_air, light_mip.rg, LIGHT_FAR_AO), vec2(1.0));
+        // Band-limited occlusion: the level-1 air fraction sampled
+        // LIGHT_OCC_OFFSET cells further out along the face normal (1.5 cells
+        // from the face in total). Out there, flat open ground reads b
+        // ~0.875..1.0 depending on height parity, so the remap's upper edge
+        // sits at 0.875 to keep flat terraces from banding; concave spots
+        // (valleys, wall bases, gaps between terraces) read lower.
+        // The probe is a fixed mip-1 read, so its signal has a ~2-block
+        // period; once a block covers less than ~1-2 px that signal aliases
+        // (shimmer), so the term fades out between 2 px/block and 1 px/block
+        // (log2(footprint) -1 -> 0).
+        float occ_strength = LIGHT_FAR_OCC * (1.0 - smoothstep(-1.0, 0.0, log2(max(light_footprint, 1e-4))));
+        if(occ_strength > 0.0) {
+            vec3 occ_pos = v_light_pos + v_face_normal * LIGHT_OCC_OFFSET;
+            vec3 occ_uv = (occ_pos - u_LightBase + 1.0) / LIGHT_VOLUME_DIM;
+            // Faces in the outermost ~1.5 cells of a chunk send the probe
+            // past the halo; the edge mip texel then folds the face's own
+            // solid row into the read (~0.5 on flat surfaces that straddle
+            // a chunk boundary — pond beds at a y seam, ridge crests), so
+            // out-of-volume probes report "open" rather than borrowing the
+            // clamped texel's phantom occlusion.
+            float occ_b = 1.0;
+            if(all(greaterThan(occ_uv, vec3(0.0))) && all(lessThan(occ_uv, vec3(1.0)))) {
+                occ_b = textureLod(u_LightTex, occ_uv, 1.0).b;
+            }
+            light_far *= mix(1.0, smoothstep(0.4, 0.875, occ_b), occ_strength);
+        }
         light_sample = mix(light_sample, light_far, clamp(light_lod, 0.0, 1.0));
     }
     // u_MinAmbient lifts the result linearly (0 -> m, 1 -> 1): cells with no
