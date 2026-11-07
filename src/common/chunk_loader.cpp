@@ -329,6 +329,8 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     const VertexBuffer &vb_block_water = this->water.vb_block;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         this->chunkArray[ i ].slot_flags = &this->slot_want[ i ];
+        this->chunkArray[ i ].light_stale_word = &this->light_stale_bits[ i >> 6 ];
+        this->chunkArray[ i ].light_stale_bit = 1ull << ( i & 63 );
         this->chunkArray[ i ].init( vb_block_solid, vb_block_water, vbl_block, vbl_coords );
     }
 

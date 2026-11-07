@@ -36,6 +36,8 @@ struct LightRemoveSeed {
 // workers claim the nearest non-empty slot.
 #define LIGHT_COL_QUEUE_COUNT ( ( 2 * CHUNK_RADIUS_XZ + 1 ) * ( 2 * CHUNK_RADIUS_XZ + 1 ) )
 
+#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_XZ + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_XZ + 1 ) )
+
 // Snapshot of chunk-loading and lighting work-queue depth for the debug
 // overlay. All fields are point-in-time reads — the counts can race the
 // worker pools by a frame, which is fine for a HUD.
@@ -63,6 +65,7 @@ class ChunkLoader {
     friend class World;
     friend void test_setup_world( World &world );
     friend int test_lighting( );
+    friend int test_light_stale( );
     friend int test_falling_blocks( );
     friend void light_fill_chunk( Chunk &chunk );
 
@@ -150,6 +153,12 @@ class ChunkLoader {
     // near chunk with queued incident seed work may take one near-lane
     // re-finalize so flying up to a half-lit region converges it promptly.
     int light_heal_budget = 0;
+    // light_stale flags as a per-slot atomic bitset (one bit per chunkArray
+    // slot; Chunk::light_stale_word/_bit bind into it in init). light_heal_
+    // idle walks words and skips zeros instead of probing every Chunk
+    // record (see light_heal_idle in light.cpp).
+    static constexpr int LIGHT_STALE_WORDS = ( MAX_LOADED_CHUNKS + 63 ) / 64;
+    std::atomic<uint64_t> light_stale_bits[ LIGHT_STALE_WORDS ]{};
 
     // Runtime render distance: horizontal (x/z) active radius in chunks,
     // 1..RENDER_RADIUS_MAX. The torus stays allocated at the compile-time
@@ -359,8 +368,6 @@ class ChunkLoader {
 // default). Always Before when REPGAME_TRANSLUCENT_BLEND=legacy.
 enum class TranslucentWaterOrder { Before, After, Split };
 TranslucentWaterOrder translucent_water_order( );
-
-#define MAX_LOADED_CHUNKS ( ( 2 * CHUNK_RADIUS_XZ + 1 ) * ( 2 * CHUNK_RADIUS_Y + 1 ) * ( 2 * CHUNK_RADIUS_XZ + 1 ) )
 
 // The chunk grid is a torus of size (2*R+1)^3. Each chunk's chunk_mod (which is
 // invariant for its slot) uniquely maps to an array index, giving O(1) lookup.

@@ -295,7 +295,7 @@ void Chunk::release_terrain( ) {
     // loops own those flags and skip non-live chunks after clearing them.
     this->light_pending_count = 0;
     this->light_reseed = 0;
-    this->light_stale.store( 0, std::memory_order_relaxed );
+    this->light_stale_clear( );
     this->light_upload_defers = 0;
     this->light_uploaded_once = 0;
     // Staged upload in flight: bump the generation so the worker's publish
@@ -643,7 +643,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     }
     this->light_pending_count = 0;
     this->light_reseed = 0;
-    this->light_stale = 0;
+    this->light_stale_clear( );
     this->light_pending_listed = 0;
     this->light_upload_listed = 0;
     this->light_write_tick.store( 0, std::memory_order_relaxed );

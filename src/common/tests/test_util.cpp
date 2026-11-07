@@ -15,6 +15,10 @@ static int unsetenv( const char *name ) {
 void test_setup_world( World &world ) {
     ChunkLoader &cl = world.chunkLoader;
     cl.chunkArray = new Chunk[ MAX_LOADED_CHUNKS ]( );
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        cl.chunkArray[ i ].light_stale_word = &cl.light_stale_bits[ i >> 6 ];
+        cl.chunkArray[ i ].light_stale_bit = 1ull << ( i & 63 );
+    }
     Chunk &chunk = cl.chunkArray[ chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) ];
     chunk.chunk_pos = glm::ivec3( 0, 0, 0 );
     chunk.chunk_mod = glm::ivec3( 0, 0, 0 );

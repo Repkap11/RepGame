@@ -627,7 +627,7 @@ int ChunkLoader::light_seed_gate( const glm::ivec3 &block_pos, const bool near, 
     }
     const bool refuse = internal ? ( pend > LIGHT_BFS_CAP_FLOOD ) : ( !near && pend > LIGHT_BFS_CAP_ALL );
     if ( refuse ) {
-        c->light_stale.store( 1, std::memory_order_relaxed );
+        c->light_stale_set( );
         // Set at flag time (not heal time) so ANY finalize landing before
         // the heal scan — e.g. a pending-diff drain — already does the full
         // wipe + emitter refill. Benign racy int write: producers on worker
@@ -2222,7 +2222,7 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
         // The wipe+refill already re-derived the whole volume — a stale flag
         // left over from cap refusals is superseded (racy refusals during
         // this run re-flag it, which is fine: the next heal re-derives).
-        chunk.light_stale.store( 0, std::memory_order_relaxed );
+        chunk.light_stale_clear( );
     }
     // Convert pending diff indices into rechecks (world positions).
     for ( int i = 0; i < chunk.light_pending_count; i++ ) {
@@ -2831,7 +2831,7 @@ void ChunkLoader::light_process_pending_chunk( Chunk &chunk ) {
         // whole volume was rewritten, so mark it all dirty for upload.
         light_fill_chunk( chunk );
         chunk.light_reseed = 0;
-        chunk.light_stale.store( 0, std::memory_order_relaxed );
+        chunk.light_stale_clear( );
         this->light_cascade_columns( chunk );
         // Always scan — the refill's optimistic sky_open_above leaves the
         // cascade with nothing to fill, but shaded columns still need seeds.
@@ -4304,7 +4304,7 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
     if ( chunk.load_state || !light_near_col( center, chunk.chunk_pos ) ) {
         return;
     }
-    if ( chunk.light_stale.load( std::memory_order_relaxed ) ) {
+    if ( chunk.light_stale_get( ) ) {
         // Don't heal mid-flood: the re-finalize's own propagation seeds
         // would be refused above the cap and the flag would just re-set —
         // churn. Leave the flag set; the next shift retries. Share the
@@ -4314,7 +4314,7 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
         // finalize actually lands.
         if ( light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_BFS_CAP_FLOOD ||
              this->light_heal_budget <= 0 ||
-             !chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
+             !chunk.light_stale_take( ) ) {
             return;
         }
         this->light_heal_budget--;
@@ -4342,19 +4342,28 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
 // pushes seeds back over the gate, so this self-throttles — leftover far
 // light converges in small waves instead of one monolithic plateau, and
 // flagged chunks the player never re-approaches still heal eventually.
+// The stale flags live in light_stale_bits (64 slots per word): the scan
+// skips whole empty words instead of probing every Chunk record. A set bit
+// on a loading chunk stays set, same as before.
 void ChunkLoader::light_heal_idle( ) {
     if ( light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_HEAL_FEED ) {
         return;
     }
     int healed = 0;
-    for ( int i = 0; i < MAX_LOADED_CHUNKS && healed < LIGHT_HEAL_PER_FRAME; i++ ) {
-        Chunk &chunk = this->chunkArray[ i ];
-        // Load first: the common case is flag=0, and an unconditional exchange
-        // would pay an atomic RMW per slot per frame for nothing.
-        if ( !chunk.load_state && chunk.light_stale.load( std::memory_order_relaxed ) &&
-             chunk.light_stale.exchange( 0, std::memory_order_relaxed ) ) {
-            this->light_submit_finalize( chunk );
-            healed++;
+    for ( int word_idx = 0; word_idx < LIGHT_STALE_WORDS && healed < LIGHT_HEAL_PER_FRAME; word_idx++ ) {
+        uint64_t bits = this->light_stale_bits[ word_idx ].load( std::memory_order_relaxed );
+        while ( bits && healed < LIGHT_HEAL_PER_FRAME ) {
+            const int bit = __builtin_ctzll( bits );
+            bits &= bits - 1;
+            const int i = ( word_idx << 6 ) + bit;
+            if ( i >= MAX_LOADED_CHUNKS ) {
+                break;
+            }
+            Chunk &chunk = this->chunkArray[ i ];
+            if ( !chunk.load_state && chunk.light_stale_take( ) ) {
+                this->light_submit_finalize( chunk );
+                healed++;
+            }
         }
     }
 }
@@ -5012,12 +5021,14 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
     memset( out, 0, sizeof( *out ) );
     this->terrain_loading_thread.queue_sizes( &out->terrain_queued, &out->terrain_results );
     out->chunks_drawable = this->num_drawable;
+    for ( int w = 0; w < LIGHT_STALE_WORDS; w++ ) {
+        out->light_stale_count += __builtin_popcountll( this->light_stale_bits[ w ].load( std::memory_order_relaxed ) );
+    }
+    // Tail bits past MAX_LOADED_CHUNKS can't be set (no slot binds them),
+    // so the raw popcount is exact.
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         if ( this->chunkArray[ i ].load_state == CHUNK_LOADING ) {
             out->chunks_loading++;
-        }
-        if ( this->chunkArray[ i ].light_stale.load( std::memory_order_relaxed ) ) {
-            out->light_stale_count++;
         }
         if ( this->chunkArray[ i ].occl_fails >= OCCL_HIDE_FRAMES ) {
             out->chunks_occluded++;

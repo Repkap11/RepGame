@@ -157,6 +157,17 @@ exist; a chunk finalized early with optimistic assumptions is flagged
 and later re-finalized ("healed", `light_heal_chunk`, bounded by
 `LIGHT_HEAL_PER_SHIFT` per grid shift plus `light_heal_idle`).
 
+The same stale flag is also set by `light_seed_gate` when a propagation
+seed is refused under the backlog caps. The flags live in a per-slot
+atomic bitset, `ChunkLoader::light_stale_bits` (64 chunk slots per
+`uint64_t` word), bound to each chunk as `light_stale_word` /
+`light_stale_bit`; chunks outside the loader array (TNT temps, test
+chunks) are unbound and their helpers no-op. `light_heal_idle` walks the
+words each frame, skips whole empty words, and re-finalizes up to
+`LIGHT_HEAL_PER_FRAME` flagged live chunks per frame, throttled by the
+`LIGHT_HEAL_FEED` backlog gate; `debug_loader_stats` reports the count
+as a popcount over the words.
+
 ## Execution model
 
 `LIGHT_ON_THREAD`: on native builds a lighting thread runs

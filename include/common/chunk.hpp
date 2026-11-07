@@ -134,6 +134,7 @@ class Chunk {
     friend int test_mobs( );
     friend int test_doors( );
     friend int test_chunk_sort( );
+    friend int test_light_stale( );
     friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, bool full_prefix, std::vector<ChunkSortKey> &scratch );
 
     int load_state;
@@ -295,8 +296,38 @@ class Chunk {
     // Set by a light worker when a seed targeting this chunk was refused
     // under the backlog cap (also sets light_reseed so the heal relights
     // fully); healed by a re-finalize on near-radius entry or the render
-    // thread's idle scan (light_heal_* in light.cpp).
-    std::atomic<int> light_stale;
+    // thread's idle scan (light_heal_* in light.cpp). The flag itself is one
+    // bit in ChunkLoader::light_stale_bits (64 slots per word) — the heal
+    // scan then skips empty words instead of probing every Chunk record.
+    // Bound in ChunkLoader::init / test_setup_world; unbound chunks
+    // (hand-built, TNT temps) no-op on set/clear and read false.
+    std::atomic<uint64_t> *light_stale_word = nullptr;
+    uint64_t light_stale_bit = 0;
+    bool light_stale_get( ) const {
+        return this->light_stale_word != nullptr && //
+               ( this->light_stale_word->load( std::memory_order_relaxed ) & this->light_stale_bit ) != 0;
+    }
+    void light_stale_set( ) {
+        if ( this->light_stale_word == nullptr ) {
+            return;
+        }
+        // Load first: light_seed_gate is hot under flood, and a blind
+        // fetch_or would pay an RMW on a word shared by 64 chunks.
+        if ( this->light_stale_word->load( std::memory_order_relaxed ) & this->light_stale_bit ) {
+            return;
+        }
+        this->light_stale_word->fetch_or( this->light_stale_bit, std::memory_order_relaxed );
+    }
+    bool light_stale_take( ) {
+        return this->light_stale_word != nullptr && //
+               ( this->light_stale_word->fetch_and( ~this->light_stale_bit, std::memory_order_relaxed ) & this->light_stale_bit ) != 0;
+    }
+    void light_stale_clear( ) {
+        if ( this->light_stale_word != nullptr && //
+             ( this->light_stale_word->load( std::memory_order_relaxed ) & this->light_stale_bit ) != 0 ) {
+            this->light_stale_word->fetch_and( ~this->light_stale_bit, std::memory_order_relaxed );
+        }
+    }
     // Set while the chunk sits in the pending-light drain list (see
     // light_pending_enqueue) so producers don't enqueue it twice.
     int light_pending_listed;
