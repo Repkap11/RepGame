@@ -768,7 +768,7 @@ void RepGame::process_movement( ) {
             const glm::ivec3 under_pos = glm::ivec3( glm::round( glm::dvec3( globalGameState.camera.pos.x, feet_y - 0.05, globalGameState.camera.pos.z ) - 0.5 ) );
             const BlockState under = globalGameState.world.get_loaded_block( under_pos );
             if ( under.id != AIR && under.id != LAST_BLOCK_ID && block_definition_get_definition( under.id )->flows == 0 ) {
-                audio_play_sfx( audio_block_step_pool( under.id ) );
+                audio_play_sfx_gain( audio_block_step_pool( under.id ), 0.75f );
             }
         }
     }
