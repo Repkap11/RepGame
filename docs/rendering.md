@@ -141,6 +141,13 @@ selects the compositing mode:
   `src/shaders/chunk_fragment.glsl`) instead of a lit colour, so draw order
   doesn't matter at all and the tint can't go black at night.
 
+Under `alpha`/`multiply` the depth-mask-off chunk order is the compositing
+order, so `ChunkLoader::draw` sorts drawable chunks back-to-front by
+squared distance to the camera with a deterministic chunk_pos tie-break
+(ties were common around the render-origin corner, and unstable sort order
+flickered whenever the drawable list rebuilt). Faces *within* one chunk are
+still in mesh order — they are not view-sorted.
+
 `REPGAME_TRANSLUCENT_AFTER_WATER` (ignored under `legacy`) moves
 the translucent order out of the main Blocks draw (`order_mask` bit
 argument; glass keeps stencil writes off so it can't mark water pixels for

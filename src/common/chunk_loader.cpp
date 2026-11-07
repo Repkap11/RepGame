@@ -769,17 +769,35 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     // early-z kills occluded fragments (and, later, so occluders are in the
     // depth buffer before occlusion queries test farther chunks). Blended
     // layers iterate the same array in reverse (back-to-front) for correct
-    // alpha compositing. Sorting by distance to the real camera is exact for
-    // the reflected pass too — the mirror is an isometry. Re-sorted only
-    // when rebuild_drawable_list ran (i.e. the camera's tick processed);
-    // nothing else consumes the list's order.
+    // alpha compositing. The blended translucent pass writes no depth, so
+    // overlapping glass from different chunks composites in exactly this
+    // order: sort by distance to the camera (not the chunk-snapped render
+    // origin — that corner produces masses of exact ties and jumps 16
+    // blocks at chunk boundaries), and break remaining ties on chunk_pos so
+    // the strict total order never reshuffles with the drawable list's
+    // input order. Distance to the real camera is exact for the reflected
+    // pass too — the mirror is an isometry. Re-sorted only when
+    // rebuild_drawable_list ran (i.e. the camera's tick processed); nothing
+    // else consumes the list's order.
     if ( this->sorted_generation != this->drawable_generation ) {
         this->sorted_generation = this->drawable_generation;
         const glm::vec3 ro = render_origin;
-        std::sort( this->drawable_chunks, this->drawable_chunks + this->num_drawable, [ ro ]( const Chunk *a, const Chunk *b ) {
-            const glm::vec3 da = glm::vec3( a->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro;
-            const glm::vec3 db = glm::vec3( b->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro;
-            return glm::dot( da, da ) < glm::dot( db, db );
+        const glm::vec3 cam = camera_pos;
+        std::sort( this->drawable_chunks, this->drawable_chunks + this->num_drawable, [ ro, cam ]( const Chunk *a, const Chunk *b ) {
+            const glm::vec3 da = glm::vec3( a->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro - cam;
+            const glm::vec3 db = glm::vec3( b->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro - cam;
+            const float dist_a = glm::dot( da, da );
+            const float dist_b = glm::dot( db, db );
+            if ( dist_a != dist_b ) {
+                return dist_a < dist_b;
+            }
+            if ( a->chunk_pos.x != b->chunk_pos.x ) {
+                return a->chunk_pos.x < b->chunk_pos.x;
+            }
+            if ( a->chunk_pos.y != b->chunk_pos.y ) {
+                return a->chunk_pos.y < b->chunk_pos.y;
+            }
+            return a->chunk_pos.z < b->chunk_pos.z;
         } );
     }
 
