@@ -102,6 +102,21 @@ typedef struct {
     float flash;                              // 0/1 white-flash toggle from the fuse age
 } PrimedTntInstance;
 
+// Per-instance data for a non-full-cube block drawn through
+// block_object_vertex.glsl: dropped block items (ItemEntities render_cube)
+// and falling/landed block bodies (BlockBodies render_falling). Same fields
+// as ParticlePosition plus the block's pixel-space (0-16) shape, which the
+// shader folds into the unit cube before applying transform and uses to
+// crop each face's UV window (chunk_vertex's scale/offset/tex_offset math).
+typedef struct {
+    unsigned short face[ NUM_FACES_IN_CUBE ]; // texture layer per face (packed uvec3)
+    glm::mat4 transform;                      // unit cell [0,1]^3 -> world
+    glm::vec2 light;                          // flood-fill light: x=sky, y=block, [0,1]
+    glm::vec3 shape_scale;                    // Block::scale, pixels
+    glm::vec3 shape_offset;                   // Block::offset (or recentred for items), pixels
+    glm::vec3 shape_tex_offset;               // Block::tex_offset, pixels
+} BlockObjectInstance;
+
 // Per-instance data for one mob part (one cube of a Bedrock bone). A mob uses
 // as many instances as its model has cubes; MobManager rebuilds every
 // transform each frame (CPU-side bone animation), so updates go through

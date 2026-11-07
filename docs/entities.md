@@ -55,8 +55,12 @@ spawn at the cap leaves the block in place.
 
 Rendering is client-side instances rebuilt per frame in `update_render`
 (interpolating `prev_min`→`min` by alpha, per-body light sampling): falling
-blocks draw through `render_falling` + `object_shader`
-(`ParticlePosition`), primed TNT through `render_tnt` +
+blocks draw through `render_falling` + `block_object_shader`
+(`BlockObjectInstance`: transform + light + the block's pixel-space
+shape_scale/offset/tex_offset, folded into the unit cube by
+`block_object_vertex.glsl` with cropped per-face UVs — the literal
+`Block::offset`, so a non-full body matches the block it lands as), primed
+TNT through `render_tnt` +
 `primed_tnt_shader` (`PrimedTntInstance`: transform + light + CPU fuse-blink
 `flash`, same shader file `primed_tnt_vertex.glsl` reworked to consume the
 instance transform). Chains are only touched after `init()`/`render_inited`,

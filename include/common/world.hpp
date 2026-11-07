@@ -40,6 +40,7 @@ class World {
     VertexBufferLayout vbl_object_position;
     VertexBufferLayout vbl_debris_instance;
     VertexBufferLayout vbl_primed_tnt_instance;
+    VertexBufferLayout vbl_block_object_instance;
     VertexBufferLayout vbl_mob_instance;
     VertexBufferLayout vbl_item_instance;
     Texture reflectionTexture;
@@ -64,6 +65,7 @@ class World {
     Shader object_shader;
     Shader debris_shader;
     Shader primed_tnt_shader;
+    Shader block_object_shader;
     Shader mob_shader;
     Shader item_sprite_shader;
 

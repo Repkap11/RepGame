@@ -145,9 +145,9 @@ static ItemID item_id_from_name( const char *name ) {
     return LAST_BLOCK_ID;
 }
 
-void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position, const VertexBufferLayout &vbl_item_instance ) {
+void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_item_instance ) {
     build_item_sprite_mesh( );
-    this->render_cube.init( vbl_object_vertex, vbl_object_position, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
+    this->render_cube.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_sprite.init( vbl_object_vertex, vbl_item_instance, item_sprite_vb, ITEM_SPRITE_VERTS, item_sprite_ib, ITEM_SPRITE_INDICES );
     this->render_inited = true;
 
@@ -838,13 +838,16 @@ void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_lo
         render_pose( it, alpha, &yaw, &bob );
         if ( cube ) {
             if ( it.entity == entt::null ) {
-                const std::pair<entt::entity, ParticlePosition &> data = this->render_cube.create_instance( );
+                const std::pair<entt::entity, BlockObjectInstance &> data = this->render_cube.create_instance( );
                 it.entity = data.first;
                 for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                     data.second.face[ f ] = it.face[ f ];
                 }
+                // The block's shape recentred on the spin axis: a slab rests
+                // on the ground, a chest keeps its proportions centered.
+                block_object_shape( block_definition_get_definition( static_cast<BlockID>( it.item ) ), true, data.second.shape_scale, data.second.shape_offset, data.second.shape_tex_offset );
             }
-            ParticlePosition &inst = this->render_cube.get_instance( it.entity );
+            BlockObjectInstance &inst = this->render_cube.get_instance( it.entity );
             const float s = static_cast<float>( ITEM_SIZE );
             glm::mat4 m = glm::translate( glm::mat4( 1.0f ), glm::vec3( rpos ) + glm::vec3( 0.0f, bob + s * 0.5f, 0.0f ) );
             m = glm::rotate( m, yaw, glm::vec3( 0.0f, 1.0f, 0.0f ) );
@@ -873,11 +876,11 @@ void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_lo
     this->render_sprite.invalidate_all( );
 }
 
-void ItemEntities::draw( const Renderer &renderer, const Shader &object_shader, const Shader &item_sprite_shader ) {
+void ItemEntities::draw( const Renderer &renderer, const Shader &block_object_shader, const Shader &item_sprite_shader ) {
     if ( !this->render_inited ) {
         return;
     }
-    this->render_cube.draw( renderer, object_shader );
+    this->render_cube.draw( renderer, block_object_shader );
     this->render_sprite.draw( renderer, item_sprite_shader );
 }
 

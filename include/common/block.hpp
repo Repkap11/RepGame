@@ -175,6 +175,22 @@ static inline void piston_head_shape( unsigned char rotation, short scale[ 3 ], 
     }
 }
 
+// Fills the BlockObjectInstance shape vectors (pixels 0-16, matching
+// Block::scale/offset/tex_offset) for a non-full-cube block drawn through
+// block_object_vertex.glsl. item_centered recentres the box on the item
+// entity's spin axis — x/z centred on (16-scale)/2, y at 0 so a slab rests
+// on the ground — instead of the block's in-world offset; false uses the
+// literal Block::offset so a falling body matches the block it lands as.
+static inline void block_object_shape( const Block *b, const bool item_centered, glm::vec3 &scale, glm::vec3 &offset, glm::vec3 &tex_offset ) {
+    scale = glm::vec3( static_cast<float>( b->scale.x ), static_cast<float>( b->scale.y ), static_cast<float>( b->scale.z ) );
+    if ( item_centered ) {
+        offset = glm::vec3( ( 16.0f - scale.x ) * 0.5f, 0.0f, ( 16.0f - scale.z ) * 0.5f );
+    } else {
+        offset = glm::vec3( static_cast<float>( b->offset.x ), static_cast<float>( b->offset.y ), static_cast<float>( b->offset.z ) );
+    }
+    tex_offset = glm::vec3( static_cast<float>( b->tex_offset.x ), static_cast<float>( b->tex_offset.y ), static_cast<float>( b->tex_offset.z ) );
+}
+
 // The cell-boundary face of an extended piston base that still fully covers
 // its boundary: the one opposite the head end. Given as a def-space face index
 // (the rotated_face/opposing_face space the meshers' coverage checks use):

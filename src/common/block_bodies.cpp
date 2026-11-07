@@ -35,8 +35,8 @@
 // Grid-alignment tolerance for settling (position vs the centered cell).
 #define BODY_ALIGN_EPS 0.05
 
-void BlockBodies::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position, const VertexBufferLayout &vbl_primed_tnt_instance ) {
-    this->render_falling.init( vbl_object_vertex, vbl_object_position, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
+void BlockBodies::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_primed_tnt_instance ) {
+    this->render_falling.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_tnt.init( vbl_object_vertex, vbl_primed_tnt_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_inited = true;
 }
@@ -223,6 +223,7 @@ uint32_t BlockBodies::spawn_primed_tnt( RepGameState &state, const glm::dvec3 &c
                     Landed l;
                     l.min = b.min;
                     l.cell = rest_cell( b.min );
+                    l.id = b.state.id;
                     l.entity = b.entity;
                     memcpy( l.face, b.face, sizeof( l.face ) );
                     b.entity = entt::null;
@@ -503,6 +504,7 @@ void BlockBodies::tick( RepGameState &state ) {
             Landed l;
             l.min = b.min;
             l.cell = rest_cell( b.min );
+            l.id = b.state.id;
             l.entity = b.entity;
             memcpy( l.face, b.face, sizeof( l.face ) );
             b.entity = entt::null;
@@ -520,11 +522,14 @@ void BlockBodies::update_render( const float alpha, const ChunkLoader &chunk_loa
     for ( Body &b : this->bodies ) {
         if ( b.entity == entt::null ) {
             if ( b.kind == BODY_FALLING ) {
-                const std::pair<entt::entity, ParticlePosition &> data = this->render_falling.create_instance( );
+                const std::pair<entt::entity, BlockObjectInstance &> data = this->render_falling.create_instance( );
                 b.entity = data.first;
                 for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                     data.second.face[ f ] = b.face[ f ];
                 }
+                // The block's own shape, literal offset: the drawn body must
+                // match the block it lands as.
+                block_object_shape( block_definition_get_definition( b.state.id ), false, data.second.shape_scale, data.second.shape_offset, data.second.shape_tex_offset );
             } else {
                 const std::pair<entt::entity, PrimedTntInstance &> data = this->render_tnt.create_instance( );
                 b.entity = data.first;
@@ -537,7 +542,7 @@ void BlockBodies::update_render( const float alpha, const ChunkLoader &chunk_loa
         const glm::mat4 transform = glm::scale( glm::translate( glm::mat4( 1.0f ), glm::vec3( rmin ) ), scale_v );
         const glm::vec2 light = chunk_loader.light_sample( glm::vec3( body_center( b ) ) );
         if ( b.kind == BODY_FALLING ) {
-            ParticlePosition &inst = this->render_falling.get_instance( b.entity );
+            BlockObjectInstance &inst = this->render_falling.get_instance( b.entity );
             inst.transform = transform;
             inst.light = light;
         } else {
@@ -565,13 +570,14 @@ void BlockBodies::update_render( const float alpha, const ChunkLoader &chunk_loa
             continue;
         }
         if ( l.entity == entt::null ) {
-            const std::pair<entt::entity, ParticlePosition &> data = this->render_falling.create_instance( );
+            const std::pair<entt::entity, BlockObjectInstance &> data = this->render_falling.create_instance( );
             l.entity = data.first;
             for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                 data.second.face[ f ] = l.face[ f ];
             }
+            block_object_shape( block_definition_get_definition( l.id ), false, data.second.shape_scale, data.second.shape_offset, data.second.shape_tex_offset );
         }
-        ParticlePosition &inst = this->render_falling.get_instance( l.entity );
+        BlockObjectInstance &inst = this->render_falling.get_instance( l.entity );
         inst.transform = glm::scale( glm::translate( glm::mat4( 1.0f ), glm::vec3( l.min ) ), scale_v );
         inst.light = chunk_loader.light_sample( glm::vec3( l.cell ) + glm::vec3( 0.5f ) );
         i++;
@@ -581,11 +587,11 @@ void BlockBodies::update_render( const float alpha, const ChunkLoader &chunk_loa
     this->render_tnt.invalidate_all( );
 }
 
-void BlockBodies::draw( const Renderer &renderer, const Shader &object_shader, const Shader &primed_tnt_shader ) {
+void BlockBodies::draw( const Renderer &renderer, const Shader &block_object_shader, const Shader &primed_tnt_shader ) {
     if ( !this->render_inited ) {
         return;
     }
-    this->render_falling.draw( renderer, object_shader );
+    this->render_falling.draw( renderer, block_object_shader );
     this->render_tnt.draw( renderer, primed_tnt_shader );
 }
 

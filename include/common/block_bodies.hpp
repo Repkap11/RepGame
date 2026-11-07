@@ -57,7 +57,7 @@ class BlockBodies {
         NetSync net;
     };
 
-    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position, const VertexBufferLayout &vbl_primed_tnt_instance );
+    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_primed_tnt_instance );
 
     // Per-game-tick simulation. Frozen in capture mode, and per body while
     // the chunk at its center is not CHUNK_LIVE.
@@ -83,7 +83,7 @@ class BlockBodies {
     // Rebuilds both instance buffers for this frame (called where
     // mobs.update_render runs). alpha interpolates prev_min -> min.
     void update_render( float alpha, const ChunkLoader &chunk_loader );
-    void draw( const Renderer &renderer, const Shader &object_shader, const Shader &primed_tnt_shader );
+    void draw( const Renderer &renderer, const Shader &block_object_shader, const Shader &primed_tnt_shader );
 
     size_t count_falling( ) const;
     size_t count_tnt( ) const;
@@ -150,12 +150,13 @@ class BlockBodies {
     struct Landed {
         glm::dvec3 min;
         glm::ivec3 cell;
+        BlockID id; // shape source — the state is consumed by the write
         unsigned short face[ NUM_FACES_IN_CUBE ];
         entt::entity entity;
     };
     std::vector<Landed> landed;
 
     bool render_inited = false;
-    RenderChain<ParticleVertex, ParticlePosition> render_falling;
+    RenderChain<ParticleVertex, BlockObjectInstance> render_falling;
     RenderChain<ParticleVertex, PrimedTntInstance> render_tnt;
 };

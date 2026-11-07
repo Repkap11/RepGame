@@ -79,8 +79,13 @@ AABB (expanded 1.0 xz / 0.5 y) is collected via
 `RepGame::give_item_to_player` — which returns the count that didn't fit,
 leaving the remainder on the ground. A `pop` sfx plays on pickup.
 
-Rendering: isometric block items draw as a 0.25 cube through the
-falling-block path (`ParticlePosition`, `object_shader`); everything else
+Rendering: isometric block items draw as a 0.25 cube shaped by the block's
+pixel-space scale/offset (`BlockObjectInstance`,
+`block_object_vertex.glsl` + `object_fragment`) — the shader folds the unit
+cube into the block's sub-box and crops each face's UV window
+(`block_object_shape(..., item_centered=true)` recentres x/z on the spin
+axis so a slab rests on the ground and a chest stays centred); everything
+else
 (pure items, sprite-icon blocks) draws as an extruded sprite — one shared
 1536-quad mesh (per-texel front/back cells + per-texel-column/row edge
 slices, 1/16 deep — every quad pinned to one texel's center uv so the

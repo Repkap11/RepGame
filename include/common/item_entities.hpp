@@ -71,7 +71,7 @@ class ItemEntities {
         int net_sent_count = 0; // count streamed with the last ENTITY_STATE
     };
 
-    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position, const VertexBufferLayout &vbl_item_instance );
+    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_item_instance );
 
     // Per-game-tick simulation. Frozen in capture mode, and per item while
     // the chunk at its center is not CHUNK_LIVE (age also freezes).
@@ -95,7 +95,7 @@ class ItemEntities {
     // bob): shared by update_render and the mp_test dump so mirrors and
     // owners report comparable values.
     static void render_pose( const ItemEntity &it, float alpha, float *yaw, float *bob );
-    void draw( const Renderer &renderer, const Shader &object_shader, const Shader &item_sprite_shader );
+    void draw( const Renderer &renderer, const Shader &block_object_shader, const Shader &item_sprite_shader );
 
     size_t count( ) const { return this->items.size( ); }
     void cleanup( );
@@ -167,8 +167,9 @@ class ItemEntities {
     long now_tick = 0;
 
     bool render_inited = false;
-    // Isometric block items draw as a small textured cube through the
-    // falling-block path; everything else draws as an extruded sprite.
-    RenderChain<ParticleVertex, ParticlePosition> render_cube;
+    // Isometric block items draw as a small textured cube shaped by the
+    // block's scale/offset (block_object_vertex.glsl); everything else
+    // draws as an extruded sprite.
+    RenderChain<ParticleVertex, BlockObjectInstance> render_cube;
     RenderChain<ParticleVertex, ItemSpriteInstance> render_sprite;
 };

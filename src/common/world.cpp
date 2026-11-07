@@ -19,6 +19,7 @@ MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 MK_SHADER( debris_vertex );
 MK_SHADER( primed_tnt_vertex );
+MK_SHADER( block_object_vertex );
 MK_SHADER( mob_vertex );
 MK_SHADER( item_sprite_vertex );
 
@@ -80,6 +81,17 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_primed_tnt_instance.push_float( 2 );        // light (sky, block)
     this->vbl_primed_tnt_instance.push_float( 1 );        // flash
 
+    // These are from BlockObjectInstance
+    this->vbl_block_object_instance.push_unsigned_int( 3 ); // which texture
+    this->vbl_block_object_instance.push_float( 4 );        // transform
+    this->vbl_block_object_instance.push_float( 4 );        // transform
+    this->vbl_block_object_instance.push_float( 4 );        // transform
+    this->vbl_block_object_instance.push_float( 4 );        // transform
+    this->vbl_block_object_instance.push_float( 2 );        // light (sky, block)
+    this->vbl_block_object_instance.push_float( 3 );        // shape scale (pixels)
+    this->vbl_block_object_instance.push_float( 3 );        // shape offset (pixels)
+    this->vbl_block_object_instance.push_float( 3 );        // texture shape offset (pixels)
+
     // These are from MobPartInstance
     this->vbl_mob_instance.push_float( 4 ); // transform
     this->vbl_mob_instance.push_float( 4 ); // transform
@@ -103,14 +115,15 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->object_shader.init( &object_vertex, &object_fragment );
     this->debris_shader.init( &debris_vertex, &object_fragment );
     this->primed_tnt_shader.init( &primed_tnt_vertex, &object_fragment );
+    this->block_object_shader.init( &block_object_vertex, &object_fragment );
     this->mob_shader.init( &mob_vertex, &object_fragment );
     this->item_sprite_shader.init( &item_sprite_vertex, &object_fragment );
 
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
     this->multiplayer_avatars.init( &this->mobs );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
-    this->bodies.init( this->vbl_object_vertex, this->vbl_object_position, this->vbl_primed_tnt_instance );
-    this->items.init( this->vbl_object_vertex, this->vbl_object_position, this->vbl_item_instance );
+    this->bodies.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_primed_tnt_instance );
+    this->items.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_item_instance );
     // The sprite program alpha-tests the atlas at exact texels (no mip bleed).
     this->item_sprite_shader.set_uniform1i( "u_ExactTexel", 1 );
     this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance );
@@ -383,6 +396,19 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", min_ambient );
     this->primed_tnt_shader.set_uniform1f( "u_Time", time_s );
 
+    // Block objects (non-full-cube items + falling blocks) share
+    // object_fragment.glsl too — same fog/water set, no u_Time.
+    this->block_object_shader.set_uniform1f( "u_FogNear", fog_near );
+    this->block_object_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->block_object_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->block_object_shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->block_object_shader.set_uniform1i( "u_Underwater", underwater_wash );
+    this->block_object_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->block_object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
+    this->block_object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->block_object_shader.set_uniform1f( "u_Daylight", daylight );
+    this->block_object_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+
     // Item sprites also share object_fragment.glsl — same fog/water set.
     this->item_sprite_shader.set_uniform1f( "u_FogNear", fog_near );
     this->item_sprite_shader.set_uniform1f( "u_FogFar", fog_far );
@@ -472,6 +498,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform1i( "u_IsSky", 0 );
     this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
 
+    this->block_object_shader.set_uniform1i( "u_DrawToReflection", 0 );
+    this->block_object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+    this->block_object_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+    this->block_object_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+    this->block_object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+    this->block_object_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->block_object_shader.set_uniform1i( "u_IsSky", 0 );
+    this->block_object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+
     this->item_sprite_shader.set_uniform1i( "u_DrawToReflection", 0 );
     this->item_sprite_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
     this->item_sprite_shader.set_uniform1f( "u_ReflectionHeight", 0 );
@@ -530,8 +565,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // Rebuild the dropped-item transforms (cubes + extruded sprites).
     this->items.update_render( alpha, this->chunkLoader );
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
-    this->bodies.draw( this->renderer, this->object_shader, this->primed_tnt_shader ); // Falling blocks + ignited TNT
-    this->items.draw( this->renderer, this->object_shader, this->item_sprite_shader ); // Dropped items
+    this->bodies.draw( this->renderer, this->block_object_shader, this->primed_tnt_shader ); // Falling blocks + ignited TNT
+    this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Dropped items
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
 
     this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
@@ -712,6 +747,14 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->primed_tnt_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
         this->primed_tnt_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->primed_tnt_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+        this->block_object_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+        this->block_object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+        this->block_object_shader.set_uniform1i( "u_DrawToReflection", 1 );
+        this->block_object_shader.set_uniform1i( "u_IsSky", 0 );
+        this->block_object_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->block_object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        this->block_object_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
+        this->block_object_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
         this->item_sprite_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
         this->item_sprite_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
         this->item_sprite_shader.set_uniform1i( "u_DrawToReflection", 1 );
@@ -720,8 +763,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->item_sprite_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
         this->item_sprite_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->item_sprite_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
-        this->bodies.draw( this->renderer, this->object_shader, this->primed_tnt_shader ); // Reflected bodies
-        this->items.draw( this->renderer, this->object_shader, this->item_sprite_shader ); // Reflected items
+        this->bodies.draw( this->renderer, this->block_object_shader, this->primed_tnt_shader ); // Reflected bodies
+        this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Reflected items
 
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
@@ -841,6 +884,7 @@ void World::cleanup( MapStorage &map_storage ) {
     this->mouseSelection.destroy( );
     this->debris_shader.destroy( );
     this->primed_tnt_shader.destroy( );
+    this->block_object_shader.destroy( );
     this->mob_shader.destroy( );
     this->mobsTexture.destroy( );
 
