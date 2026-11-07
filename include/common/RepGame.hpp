@@ -45,6 +45,28 @@ class RepGame {
     // Input fields — movement stick, jump/sneak/sprint, hotbar steps, mouse
     // buttons, snap/smooth turn. Called at the top of tick() in VR.
     void process_vr_input( );
+    // tick() phases — called in this order from tick(). Gameplay phases live
+    // in game_tick.cpp, harness-only phases in game_harness.cpp, VR phases
+    // in vr.cpp.
+    // True while the tracked head pose owns the camera (vr.active and no
+    // capture/fly harness pin) — checked at both VR use sites in tick().
+    bool vr_drives_camera( ) const;
+    void update_vr_ui_pointer( );
+    void apply_vr_head_angles( );
+    void advance_clocks( );
+    void resolve_pending_spawn( );
+    void apply_harness_camera_pins( );
+    void process_hotbar_scroll( );
+    void close_out_of_reach_containers( );
+    void update_block_selection( );
+    void apply_mouse_look( );
+    void update_break_progress( );
+    void recenter_mouse( );
+    void apply_harness_input_overrides( );
+    void tick_entities( );
+    void tick_fly_flight( );
+    void tick_input_latches( );
+    void tick_harness_reporting( );
     // The UI draw sequence shared by the flat tail and draw_vr_ui: atlas
     // bind + CLAMP wrap, depth/stencil clear, ui_overlay + held item +
     // VR pointer marker. Caller owns the FBO/bind/blend state. draw_imgui

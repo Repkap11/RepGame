@@ -28,6 +28,7 @@
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/game/game_internal.hpp"
+#include "common/utils/angles.hpp"
 
 // VR UI quad placement tunables: REPGAME_VR_UI_WIDTH (meters wide, default
 // 1.0; height keeps the screen aspect — the layer texture is eye-sized) and
@@ -69,6 +70,69 @@ bool RepGame::consume_vr_haptic( ) {
     const bool pending = globalGameState.vr.haptic_pending;
     globalGameState.vr.haptic_pending = false;
     return pending;
+}
+
+// True while the tracked head pose owns the camera this tick — capture and
+// fly modes pin the camera themselves. NOTE: script.pin_camera is not part
+// of the predicate, so VR input keeps being processed while a script pins
+// the camera (pre-existing quirk, kept as-is).
+bool RepGame::vr_drives_camera( ) const {
+    return globalGameState.vr.active && !run_policy().capture.enabled && !run_policy().fly.enabled;
+}
+
+// UI quad anchor + laser pointer: opening the inventory (any source) pins
+// the panel in LOCAL space in front of wherever the head is looking (yaw
+// only); closing it hands it back to head-locked mode. Then the aim ray is
+// intersected with the world-locked UI quad so this tick's click handling
+// sees this tick's position.
+void RepGame::update_vr_ui_pointer( ) {
+    VrState &vr = globalGameState.vr;
+    const bool inv_open = globalGameState.input.inventory_open;
+    if ( inv_open && !vr.prev_inventory_open ) {
+        const glm::vec3 f = vr.head * glm::vec3( 0.0f, 0.0f, -1.0f );
+        const float h = atan2f( f.x, -f.z );
+        vr.ui_orientation = glm::angleAxis( -h, glm::vec3( 0.0f, 1.0f, 0.0f ) );
+        vr.ui_position = vr.head_pos + vr.ui_orientation * glm::vec3( 0.0f, -0.15f, -repgame_vr_ui_dist( ) );
+        vr.ui_world_locked = true;
+    } else if ( !inv_open && vr.prev_inventory_open ) {
+        vr.ui_world_locked = false;
+    }
+    vr.prev_inventory_open = inv_open;
+
+    vr.pointer_on_ui = false;
+    if ( inv_open && vr.ui_world_locked && vr.input.aim_valid ) {
+        const glm::vec2 ui_size = repgame_vr_ui_size( globalGameState.screen.width, globalGameState.screen.height );
+        const glm::vec3 o = vr.input.aim_position;
+        const glm::vec3 d = vr.input.aim_orientation * glm::vec3( 0.0f, 0.0f, -1.0f );
+        const glm::vec3 n = vr.ui_orientation * glm::vec3( 0.0f, 0.0f, 1.0f );
+        const float denom = glm::dot( d, n );
+        if ( fabsf( denom ) > 1e-4f ) {
+            const float t = glm::dot( vr.ui_position - o, n ) / denom;
+            if ( t > 0.0f ) {
+                const glm::vec3 q = glm::inverse( vr.ui_orientation ) * ( o + t * d - vr.ui_position );
+                const float u = q.x / ui_size.x + 0.5f;
+                const float v = q.y / ui_size.y + 0.5f;
+                if ( u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f ) {
+                    // Top-left origin, y down — same as SDL mouse.
+                    globalGameState.input.mouse.absPosition.x = static_cast<int>( u * globalGameState.screen.width );
+                    globalGameState.input.mouse.absPosition.y = static_cast<int>( ( 1.0f - v ) * globalGameState.screen.height );
+                    vr.pointer_on_ui = true;
+                }
+            }
+        }
+    }
+}
+
+// Folds the tracked head pose into the camera angles so block raycasts,
+// movement direction and remote-avatar facing all follow where the head
+// actually points. body_yaw (mouse) supplies the yaw base.
+void RepGame::apply_vr_head_angles( ) {
+    VrState &vr = globalGameState.vr;
+    const glm::vec3 f = vr.head * glm::vec3( 0.0f, 0.0f, -1.0f );
+    const float head_yaw = glm::degrees( atan2f( f.x, -f.z ) );
+    const float head_pitch = glm::degrees( -asinf( glm::clamp( f.y, -1.0f, 1.0f ) ) );
+    globalGameState.camera.angle_H = wrap_degrees_360( vr.body_yaw + head_yaw );
+    globalGameState.camera.angle_V = head_pitch;
 }
 
 // Applies this frame's synced controller state onto the shared Input fields.
@@ -166,13 +230,7 @@ void RepGame::process_vr_input( ) {
             globalGameState.vr.turn_armed = true;
         }
     }
-    float &yaw = globalGameState.vr.body_yaw;
-    while ( yaw >= 360.0f ) {
-        yaw -= 360.0f;
-    }
-    while ( yaw < 0.0f ) {
-        yaw += 360.0f;
-    }
+    globalGameState.vr.body_yaw = wrap_degrees_360( globalGameState.vr.body_yaw );
 
     globalGameState.vr.prev_input = globalGameState.vr.input;
 }

@@ -270,7 +270,7 @@ int test_doors( ) {
     // targetable: a horizontal pick ray through the upper slab hits it.
     glm::ivec3 pick_out( -1, -1, -1 );
     int pick_face = -1;
-    RayTraversal::find_block_from_to( world, nullptr, glm::dvec3( 10.5, 12.5, 9.5 ), glm::dvec3( 10.5, 12.5, 11.5 ), pick_out, &pick_face, 0, 1, 0, 0 );
+    RayTraversal::find_block_from_to( world, glm::dvec3( 10.5, 12.5, 9.5 ), glm::dvec3( 10.5, 12.5, 11.5 ), pick_out, &pick_face );
     check_bool( "pick: ray hits the upper half", pick_out == glm::ivec3( 10, 12, 10 ) );
 
     // A second door on the first's right becomes the pair's hinge-right
@@ -362,7 +362,7 @@ int test_doors( ) {
     // targetable: a pick ray through the upper cross-quads hits it.
     pick_out = glm::ivec3( -1, -1, -1 );
     pick_face = -1;
-    RayTraversal::find_block_from_to( world, nullptr, glm::dvec3( 29.5, 12.5, 29.5 ), glm::dvec3( 31.5, 12.5, 31.5 ), pick_out, &pick_face, 0, 1, 0, 0 );
+    RayTraversal::find_block_from_to( world, glm::dvec3( 29.5, 12.5, 29.5 ), glm::dvec3( 31.5, 12.5, 31.5 ), pick_out, &pick_face );
     check_bool( "tall plant: pick ray hits the upper half", pick_out == glm::ivec3( 30, 12, 30 ) );
 
     // Breaking either half pops the other through the survive check.

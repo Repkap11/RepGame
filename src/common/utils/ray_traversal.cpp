@@ -13,7 +13,7 @@ typedef struct {
     float z;
 } RayTemp;
 
-int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::dvec3 &block, int *which_face ) {
+static int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::dvec3 &block, int *which_face ) {
     // r.dir is unit direction vector of ray
     double dirfrac_x = 1.0 / dir.x;
     double dirfrac_y = 1.0 / dir.y;
@@ -180,19 +180,14 @@ int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec
     return true;
 }
 
-int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int collide_with_unloaded, int is_pick, int pick_water, int *which_face ) {
+static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int pick_water, int *which_face ) {
     BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
-        return collide_with_unloaded;
+        return 1;
     }
     Block *block = block_definition_get_definition( blockID );
-    bool result;
-    if ( is_pick ) {
-        result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || ( pick_water && blockID == WATER );
-    } else {
-        result = block->collides_with_player;
-    }
+    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || ( pick_water && blockID == WATER );
     if ( result && ( block->non_full_size || ( block->is_piston && blockState.current_redstone_power > 0 ) ) ) {
         return contains_pixel( block, blockState, dir, initial, glm::dvec3( block_pos ), which_face );
     } else {
@@ -200,27 +195,36 @@ int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initi
     }
 }
 
-int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
-                                      const glm::dvec3 &v1,                   //
-                                      const glm::dvec3 &v2,                   //
-                                      glm::ivec3 &out,                        //
-                                      int *out_whichFace, int flag, int is_pick, int is_pixel, int pick_water ) {
+// Cell on the other side of `face` from `hit` — the placement position for
+// a ray hit. This traversal's face convention has FRONT on the cell's -z
+// side and BACK on +z, so z maps as +(BACK)-(FRONT); do NOT substitute
+// FACE_DIR_*_OFFSETS (mesh_gen_shared.hpp), whose z sign is opposite
+// (FRONT=+1, BACK=-1) — swapping it in would flip z-face placement.
+glm::ivec3 RayTraversal::placement_cell( const glm::ivec3 &hit, int face ) {
+    glm::ivec3 out = hit;
+    out.x += ( face == FACE_RIGHT ) - ( face == FACE_LEFT );
+    out.y += ( face == FACE_TOP ) - ( face == FACE_BOTTOM );
+    out.z += ( face == FACE_BACK ) - ( face == FACE_FRONT );
+    return out;
+}
 
-    glm::dvec3 dir = v2 - v1;
+bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, bool pick_water ) {
+
+    glm::dvec3 dir = to - from;
     // dir = glm::normalize(dir);
     double length = sqrt( dir.x * dir.x + dir.y * dir.y + dir.z * dir.z );
     dir /= length;
 
-    // glm::ivec3 offset = glm::floor(v1);
-    glm::ivec3 offset( ( int )floor( v1.x ), ( int )floor( v1.y ), ( int )floor( v1.z ) );
+    // glm::ivec3 offset = glm::floor(from);
+    glm::ivec3 offset( ( int )floor( from.x ), ( int )floor( from.y ), ( int )floor( from.z ) );
 
     // TODO do this math with glm vec types.
-    const double x1 = v1.x;
-    const double y1 = v1.y;
-    const double z1 = v1.z;
-    const double x2 = v2.x;
-    const double y2 = v2.y;
-    const double z2 = v2.z;
+    const double x1 = from.x;
+    const double y1 = from.y;
+    const double z1 = from.z;
+    const double x2 = to.x;
+    const double y2 = to.y;
+    const double z2 = to.z;
 
     const int iend = ( int )floor( x2 );
     const int jend = ( int )floor( y2 );
@@ -262,18 +266,14 @@ int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
     }
     for ( ;; ) {
         int which_face = -1;
-        int hit_block = contains_block( world, dir, v1, offset, 1, is_pick, pick_water, &which_face );
+        int hit_block = contains_block( world, dir, from, offset, pick_water, &which_face );
         if ( which_face != -1 ) {
             face = which_face;
         }
         if ( hit_block ) {
             out = offset;
-            if ( !flag ) {
-                *out_whichFace = face;
-                return 1;
-            } else {
-                out_whichFace[ face ] = 1;
-            }
+            *out_face = face;
+            return true;
         }
 
         if ( tx <= ty && tx <= tz ) {
@@ -313,5 +313,5 @@ int RayTraversal::find_block_from_to( World &world, Block *pixel_block, //
             }
         }
     }
-    return 0;
+    return false;
 }

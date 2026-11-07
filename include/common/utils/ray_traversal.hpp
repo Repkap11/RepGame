@@ -6,11 +6,13 @@
 
 class RayTraversal {
   public:
-    static int find_block_from_to( World &world, Block *pixel_block, //
-                                   const glm::dvec3 &v1,             //
-                                   const glm::dvec3 &v2,             //
-                                   glm::ivec3 &out,                  //
-                                   int *out_whichFace, int flag, int is_pick, int is_pixel, int pick_water );
+    // Pick raycast: walks the voxel grid from `from` to `to` and returns the
+    // first pickable cell (block entities, doors, tall plants; plus water
+    // when pick_water). `out` gets the hit cell, `out_face` the entry face.
+    static bool find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, bool pick_water = false );
+    // Cell on the other side of `face` from `hit` — the placement position
+    // for a ray hit.
+    static glm::ivec3 placement_cell( const glm::ivec3 &hit, int face );
     // Slab test of `origin + t*dir` against the AABB [bmin, bmax]. True when
     // the ray's box entry is at t <= max_t; *out_t gets the entry distance
     // (0 when the ray starts inside the box).

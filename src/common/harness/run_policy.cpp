@@ -88,13 +88,33 @@ static void fly_parse( RunPolicy &p ) {
               p.fly.fly_ticks );
 }
 
+TeleportSpec parse_teleport( const char *spec ) {
+    TeleportSpec tp;
+    if ( spec == nullptr ) {
+        return tp;
+    }
+    float x, y, z, angle, spin = 0.0f, pitch = 0.0f;
+    int sprint = 0, walk = 1;
+    if ( sscanf( spec, "%f,%f,%f,%f,%d,%f,%f,%d", &x, &y, &z, &angle, &sprint, &spin, &pitch, &walk ) >= 4 ) {
+        tp.valid = true;
+        tp.pos = glm::dvec3( x, y, z );
+        tp.angle = angle;
+        tp.spin = spin;
+        tp.pitch = pitch;
+        tp.sprint = sprint != 0;
+        tp.walk = walk;
+    }
+    return tp;
+}
+
 static RunPolicy run_policy_parse( ) {
     RunPolicy p;
     capture_parse( p );
     fly_parse( p );
     p.walktest = env_is_set( "REPGAME_WALKTEST" );
     p.walktest_ticks = env_long( "REPGAME_WALKTEST_TICKS", 0 );
-    p.teleport = env_get( "REPGAME_TELEPORT" );
+    p.teleport = parse_teleport( env_get( "REPGAME_TELEPORT" ) );
+    p.light_verify = env_int( "REPGAME_LIGHT_VERIFY", 0 );
     p.screenshot_tick = env_long( "REPGAME_SCREENSHOT_TICK", 0 );
     // Periodic/anomaly readback scans work without REPGAME_CAPTURE too.
     p.capture_periodic = env_int( "REPGAME_CAPTURE_PERIODIC", 0 );

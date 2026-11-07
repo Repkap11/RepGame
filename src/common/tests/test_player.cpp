@@ -120,7 +120,7 @@ int test_torch_pick( ) {
     auto ray = [ & ]( const char *name, const glm::dvec3 &from, const glm::dvec3 &to, const glm::ivec3 &expect, bool expect_hit ) {
         glm::ivec3 out( -1, -1, -1 );
         int which_face = -1;
-        RayTraversal::find_block_from_to( world, nullptr, from, to, out, &which_face, 0, 1, 0, 0 );
+        RayTraversal::find_block_from_to( world, from, to, out, &which_face );
         const bool ok = ( out == expect ) == expect_hit;
         pr_test( "  %-55s hit=(%d,%d,%d)  %s", name, out.x, out.y, out.z, ok ? "PASS" : "FAIL" );
         if ( !ok ) {
@@ -133,6 +133,46 @@ int test_torch_pick( ) {
     ray( "floor torch: x + 5.5px outside pick box", glm::dvec3( 10.34375, mid_y, 9.5 ), glm::dvec3( 10.34375, mid_y, 11.5 ), glm::ivec3( 10, 11, 10 ), false );
     // Wall torch pushed to the cell's -x edge: pick box spans x 0..4 px.
     ray( "wall torch (rot 4): x + 3.5px inside pick box", glm::dvec3( 20.21875, mid_y, 9.5 ), glm::dvec3( 20.21875, mid_y, 11.5 ), glm::ivec3( 20, 11, 10 ), true );
+
+    return failures;
+}
+
+// pos_create convention: the cell on the other side of the hit face must be
+// the cell the ray came from. The z mapping is the subtle one — FRONT is the
+// -z side of the cell in RayTraversal's convention (opposite sign from
+// FACE_DIR_Z_OFFSETS in mesh_gen_shared.hpp), so this locks it in.
+int test_ray_face_neighbor( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), stone );
+
+    int failures = 0;
+    auto ray = [ & ]( const char *name, const glm::dvec3 &from, const glm::ivec3 &expect_create ) {
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        RayTraversal::find_block_from_to( world, from, glm::dvec3( 10.5, 10.5, 10.5 ), out, &which_face );
+        const glm::ivec3 create = RayTraversal::placement_cell( out, which_face );
+        const bool ok = out == glm::ivec3( 10, 10, 10 ) && create == expect_create;
+        pr_test( "  %-45s hit=(%d,%d,%d) face=%d create=(%d,%d,%d)  %s", name, out.x, out.y, out.z, which_face, create.x, create.y, create.z,
+                 ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+    ray( "-x approach enters FACE_RIGHT", glm::dvec3( 12.5, 10.5, 10.5 ), glm::ivec3( 11, 10, 10 ) );
+    ray( "+x approach enters FACE_LEFT", glm::dvec3( 8.5, 10.5, 10.5 ), glm::ivec3( 9, 10, 10 ) );
+    ray( "from above enters FACE_TOP", glm::dvec3( 10.5, 12.5, 10.5 ), glm::ivec3( 10, 11, 10 ) );
+    ray( "from below enters FACE_BOTTOM", glm::dvec3( 10.5, 8.5, 10.5 ), glm::ivec3( 10, 9, 10 ) );
+    ray( "+z approach enters FACE_FRONT", glm::dvec3( 10.5, 10.5, 8.5 ), glm::ivec3( 10, 10, 9 ) );
+    ray( "-z approach enters FACE_BACK", glm::dvec3( 10.5, 10.5, 12.5 ), glm::ivec3( 10, 10, 11 ) );
 
     return failures;
 }

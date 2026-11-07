@@ -30,7 +30,6 @@ struct CaptureState {
     bool enabled = false;
     std::vector<CaptureView> views;
     int view_index = 0;
-    int applied_view = -1; // last view whose prev_* camera snapshot was synced
     long ticks_in_view = 0;
     long idle_streak = 0;
     bool shot_pending = false;
@@ -72,6 +71,9 @@ struct FlyState {
     int rd_radius[ RD_SCHEDULE_MAX ] = { 0 };
     int rd_count = 0;
     int rd_next = 0;
+    // REPGAME_LIGHT_VERIFY post-flight hover check: counts the idle streak
+    // once phase 2 is reached; -1 = the check already fired (sentinel).
+    int verify_hover_streak = 0;
 };
 
 // --- Script mode (REPGAME_SCRIPT) --------------------------------------------
@@ -91,6 +93,23 @@ struct ScriptState {
     std::string shot_name;
 };
 
+// Parsed REPGAME_TELEPORT spec ("x,y,z,angle,sprint,spin[,pitch[,walk]]"):
+// valid iff at least the 4 leading fields parsed; spin/pitch/sprint default
+// to 0 and walk defaults to 1 (also when the spec is missing/invalid, so
+// walktest still holds forward).
+struct TeleportSpec {
+    bool valid = false;
+    glm::dvec3 pos{ 0 };
+    float angle = 0;
+    float spin = 0;
+    float pitch = 0;
+    bool sprint = false;
+    int walk = 1;
+};
+
+// Parses a REPGAME_TELEPORT spec string (nullptr-safe) into TeleportSpec.
+TeleportSpec parse_teleport( const char *spec );
+
 struct RunPolicy {
     CaptureState capture;
     FlyState fly;
@@ -101,8 +120,11 @@ struct RunPolicy {
     bool walktest = false;
     // REPGAME_WALKTEST_TICKS=n: quit after n ticks.
     long walktest_ticks = 0;
-    // REPGAME_TELEPORT raw spec; parsed per tick at the use site.
-    const char *teleport = nullptr;
+    // REPGAME_TELEPORT spec, parsed once at startup.
+    TeleportSpec teleport;
+    // REPGAME_LIGHT_VERIFY=n: fly-mode light_debug_verify calls — 1 checks
+    // at settle, >0 checks again once the post-flight hover drains.
+    int light_verify = 0;
     // REPGAME_SCREENSHOT_TICK=n: framebuffer screenshot on tick n.
     long screenshot_tick = 0;
     // REPGAME_CAPTURE_PERIODIC=n: FBO+display dump every n frames.

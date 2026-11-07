@@ -246,10 +246,7 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.spawn_pending = false;
     }
     // Seed the interpolation snapshot so the first rendered frame doesn't blend from zeroes.
-    globalGameState.camera.prev_pos = globalGameState.camera.pos;
-    globalGameState.camera.prev_eye_height = globalGameState.camera.eye_height;
-    globalGameState.camera.prev_angle_H = globalGameState.camera.angle_H;
-    globalGameState.camera.prev_angle_V = globalGameState.camera.angle_V;
+    globalGameState.camera.snapshot_prev( );
     ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
     globalGameState.ui.overlay.set_holding_item( selectedBlock );
 }

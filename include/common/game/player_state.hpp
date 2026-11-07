@@ -40,6 +40,14 @@ struct CameraState {
     double prev_eye_height = PLAYER_EYE_HEIGHT;
     float prev_angle_H;
     float prev_angle_V;
+    // Copies the current transform into the prev_* interpolation snapshot —
+    // once per tick, and wherever a pin/teleport must not blend across.
+    void snapshot_prev( ) {
+        prev_pos = pos;
+        prev_eye_height = eye_height;
+        prev_angle_H = angle_H;
+        prev_angle_V = angle_V;
+    }
 };
 
 // The block/mob under the crosshair this tick: block cell selection plus

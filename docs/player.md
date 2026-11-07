@@ -7,7 +7,10 @@ velocities, pose heights — `include/common/game/player_state.hpp`),
 `src/common/game/game_tick.cpp` (`RepGame::tick`) and
 `src/common/game/player.cpp`; this doc covers the desktop keyboard/mouse
 path — VR bindings are `docs/vr.md`, and Android/touch has its own input
-file under its platform dir.
+file under its platform dir. `RepGame::tick` itself is a short ordered
+list of named phases: gameplay phases live in `game_tick.cpp`, the
+scripted/debug-only phases (capture, fly, walktest, results, script) in
+`src/common/game/game_harness.cpp`, and the VR phases in `vr.cpp`.
 
 ## Key bindings (Linux/SDL, `src/linux/input.cpp`)
 
@@ -130,8 +133,9 @@ remote clients (`docs/multiplayer.md`).
 
 ## Scripted/debug paths
 
-`RepGame::tick` can override input each tick: `REPGAME_TELEPORT`
-(position/angle/spin), `REPGAME_FLY` and walktest (`RunPolicy`,
+`RepGame::tick` can override input each tick (`apply_harness_input_overrides`
+in `game_harness.cpp`): `REPGAME_TELEPORT` (position/angle/spin — parsed
+once into `RunPolicy::teleport`), `REPGAME_FLY` and walktest (`RunPolicy`,
 `src/common/harness/`) drive deterministic stress runs — see `docs/env-vars.md`
 and the `capture` skill. `WT` log lines from walktest print position,
 velocity and standing state per tick.

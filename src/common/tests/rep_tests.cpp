@@ -21,8 +21,11 @@ typedef struct Test {
 constexpr Test all_tests[] = {  //
     MK_TEST( vr_projection ),   //
     MK_TEST( min_ambient_step ), //
+    MK_TEST( angle_wrap ),       //
+    MK_TEST( teleport_parse ),   //
     MK_TEST( redstone ),        //
     MK_TEST( torch_pick ),      //
+    MK_TEST( ray_face_neighbor ), //
     MK_TEST( player_placement_valid ), //
     MK_TEST( sneak ),           //
     MK_TEST( items ),          //

@@ -36,7 +36,6 @@ static inline glm::dvec3 repgame_item_drop_hop( ) {
     return glm::dvec3( ( r( ) - 0.5 ) * 0.008, 0.018 + r( ) * 0.007, ( r( ) - 0.5 ) * 0.008 );
 }
 
-// VR UI quad placement (defined in vr.cpp; tick() uses them for the laser
-// pointer math).
+// VR UI quad placement (defined in vr.cpp).
 float repgame_vr_ui_dist( );
 glm::vec2 repgame_vr_ui_size( float screen_w, float screen_h );

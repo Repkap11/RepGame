@@ -63,8 +63,9 @@ See `docs/models.md`.
 - `src/common/` — platform-independent game code (world, mobs, items,
   bodies, crafting, light, net sync)
 - `src/common/game/` — the `RepGame` member-function implementation,
-  split by concern (player input/physics, inventory+crafting UI, tick,
-  init/save, render, VR); `src/common/RepGame.cpp` keeps only the thin
+  split by concern (player input/physics, inventory+crafting UI, tick +
+  game_harness.cpp for the scripted/debug tick phases, init/save, render,
+  VR); `src/common/RepGame.cpp` keeps only the thin
   harness/state accessors. `include/common/game/` holds the matching state
   types — `RepGame.hpp` is the API; `game_state.hpp` carries
   `RepGameState` + `ScreenState`, with `player_state.hpp`, `ui_state.hpp`,

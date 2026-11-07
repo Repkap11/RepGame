@@ -16,21 +16,12 @@
 #include "common/net_entities.hpp"
 #include "common/utils/collision.hpp"
 #include "common/utils/ray_traversal.hpp"
+#include "common/utils/angles.hpp"
 #include "common/world.hpp"
 
 // Bedrock modified_distance_moved / Java limbSwing advance about 4 units per
 // block; the quadruped walk anim's 38.17°/unit is calibrated against that.
 #define MOB_GAIT_UNITS_PER_BLOCK 4.0f
-
-static float wrap_degrees( float deg ) {
-    while ( deg > 180.0f ) {
-        deg -= 360.0f;
-    }
-    while ( deg < -180.0f ) {
-        deg += 360.0f;
-    }
-    return deg;
-}
 
 MobManager::MobManager( ) {
     this->enabled = env_bool( "REPGAME_MOBS", true );
@@ -278,16 +269,16 @@ void MobManager::tick_remote( Mob &mob ) {
     if ( hd > 1e-4 ) {
         // While moving, the body eases toward the travel direction.
         const float want_yaw = static_cast<float>( atan2( moved.x, -moved.z ) * ( 180.0 / M_PI ) );
-        mob.yaw += wrap_degrees( want_yaw - mob.yaw ) * 0.2f;
+        mob.yaw += wrap_degrees_180( want_yaw - mob.yaw ) * 0.2f;
     }
     // The head can't lead the body by more than 50°: drag the body along.
-    const float lead = wrap_degrees( mob.look_yaw - mob.yaw );
+    const float lead = wrap_degrees_180( mob.look_yaw - mob.yaw );
     if ( lead > 50.0f ) {
-        mob.yaw = wrap_degrees( mob.look_yaw - 50.0f );
+        mob.yaw = wrap_degrees_180( mob.look_yaw - 50.0f );
     } else if ( lead < -50.0f ) {
-        mob.yaw = wrap_degrees( mob.look_yaw + 50.0f );
+        mob.yaw = wrap_degrees_180( mob.look_yaw + 50.0f );
     }
-    mob.head_yaw = wrap_degrees( mob.look_yaw - mob.yaw );
+    mob.head_yaw = wrap_degrees_180( mob.look_yaw - mob.yaw );
     // angle_V > 0 looks down; the head animator's pitch > 0 looks up.
     mob.head_pitch = -mob.look_pitch;
 }
@@ -386,7 +377,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         float want_yaw = 0.0f, want_pitch = 0.0f;
         if ( glm::length( to_player ) < 8.0 && dist_xz > 1e-3 ) {
             const float pyaw = static_cast<float>( atan2( to_player.x, -to_player.z ) * ( 180.0 / M_PI ) );
-            want_yaw = glm::clamp( wrap_degrees( pyaw - mob.yaw ), -45.0f, 45.0f );
+            want_yaw = glm::clamp( wrap_degrees_180( pyaw - mob.yaw ), -45.0f, 45.0f );
             want_pitch = glm::clamp( static_cast<float>( atan2( to_player.y, dist_xz ) * ( 180.0 / M_PI ) ), -45.0f, 45.0f );
         }
         mob.head_yaw += ( want_yaw - mob.head_yaw ) * 0.2f;
@@ -398,7 +389,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         // Chase: face the target's feet, turning at most 10°/tick.
         const glm::dvec2 to_player( target_feet.x - mob.pos.x, target_feet.z - mob.pos.z );
         const float want_yaw = static_cast<float>( atan2( to_player.x, -to_player.y ) * ( 180.0 / M_PI ) );
-        mob.yaw += glm::clamp( wrap_degrees( want_yaw - mob.yaw ), -10.0f, 10.0f );
+        mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -10.0f, 10.0f );
         speed = def.chase_speed;
         if ( def.ai == MOB_AI_HOSTILE_MELEE ) {
             // Melee reach: just past the hitbox edge, with a 1 s cooldown.
@@ -467,7 +458,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             const glm::dvec2 to_target( mob.target.x - mob.pos.x, mob.target.z - mob.pos.z );
             const double dist = glm::length( to_target );
             const float want_yaw = static_cast<float>( atan2( to_target.x, -to_target.y ) * ( 180.0 / M_PI ) );
-            const float dyaw = wrap_degrees( want_yaw - mob.yaw );
+            const float dyaw = wrap_degrees_180( want_yaw - mob.yaw );
             mob.yaw += glm::clamp( dyaw, -4.0f, 4.0f );
             speed = def.walk_speed;
             if ( dist < 0.6 || --mob.ai_ticks <= 0 ) {
@@ -1136,7 +1127,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
         const MobModelDef &model = mob_models[ def.model ];
 
         const glm::dvec3 rpos = glm::mix( mob.prev_pos, mob.pos, static_cast<double>( alpha ) );
-        const float ryaw = mob.prev_yaw + wrap_degrees( mob.yaw - mob.prev_yaw ) * alpha;
+        const float ryaw = mob.prev_yaw + wrap_degrees_180( mob.yaw - mob.prev_yaw ) * alpha;
 
         // entity_T * yaw_R * scale(1/16): the model's -Z front lands on the
         // mob's forward direction (sin(yaw), 0, -cos(yaw)) — the same
@@ -1308,7 +1299,7 @@ void MobManager::tick_mirror( Mob &mob, const glm::dvec3 &player_pos ) {
     } else {
         mob.pos += delta * 0.35;
     }
-    mob.yaw += wrap_degrees( mob.net_yaw - mob.yaw ) * 0.35f;
+    mob.yaw += wrap_degrees_180( mob.net_yaw - mob.yaw ) * 0.35f;
     mob.vel = mob.net.vel;
     const glm::dvec3 moved = mob.pos - mob.prev_pos;
     const double hd = std::hypot( moved.x, moved.z );

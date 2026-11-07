@@ -8,8 +8,11 @@
 int test_ecs( );
 int test_vr_projection( );
 int test_min_ambient_step( );
+int test_angle_wrap( );
+int test_teleport_parse( );
 int test_redstone( );
 int test_torch_pick( );
+int test_ray_face_neighbor( );
 int test_player_placement_valid( );
 int test_sneak( );
 int test_items( );

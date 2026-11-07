@@ -18,6 +18,7 @@
 #include "common/world.hpp"
 #include "common/renderer/vertex_buffer_layout.hpp"
 #include "common/utils/ray_traversal.hpp"
+#include "common/utils/angles.hpp"
 #include "common/utils/collision.hpp"
 #include "common/multiplayer.hpp"
 #include "common/mp_test.hpp"
@@ -71,20 +72,8 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     render_pos.y = glm::mix( prev_feet_y, feet_y, static_cast<double>( alpha ) ) + globalGameState.camera.eye_height_render;
     float render_angle_V = glm::mix( globalGameState.camera.prev_angle_V, globalGameState.camera.angle_V, alpha );
     // angle_H wraps around 360, so interpolate along the shortest angular path.
-    float angle_diff = globalGameState.camera.angle_H - globalGameState.camera.prev_angle_H;
-    while ( angle_diff > 180.0f ) {
-        angle_diff -= 360.0f;
-    }
-    while ( angle_diff < -180.0f ) {
-        angle_diff += 360.0f;
-    }
-    float render_angle_H = globalGameState.camera.prev_angle_H + angle_diff * alpha;
-    while ( render_angle_H < 0.0f ) {
-        render_angle_H += 360.0f;
-    }
-    while ( render_angle_H >= 360.0f ) {
-        render_angle_H -= 360.0f;
-    }
+    const float angle_diff = wrap_degrees_180( globalGameState.camera.angle_H - globalGameState.camera.prev_angle_H );
+    float render_angle_H = wrap_degrees_360( globalGameState.camera.prev_angle_H + angle_diff * alpha );
     if ( run_policy().capture.enabled && run_policy().capture.view_index < static_cast<int>( run_policy().capture.views.size( ) ) ) {
         // Draw the capture view exactly, bypassing tick interpolation and
         // eye-height easing, so the rendered camera is bit-identical to the
