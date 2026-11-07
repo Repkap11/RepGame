@@ -149,6 +149,7 @@ void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const Vert
     build_item_sprite_mesh( );
     this->render_cube.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_sprite.init( vbl_object_vertex, vbl_item_instance, item_sprite_vb, ITEM_SPRITE_VERTS, item_sprite_ib, ITEM_SPRITE_INDICES );
+    this->render_held.init( vbl_object_vertex, vbl_item_instance, item_sprite_vb, ITEM_SPRITE_VERTS, item_sprite_ib, ITEM_SPRITE_INDICES );
     this->render_inited = true;
 
     // REPGAME_ITEM_TEST="name,x,y,z[,count];..." — exact spawns for
@@ -882,6 +883,42 @@ void ItemEntities::draw( const Renderer &renderer, const Shader &block_object_sh
     }
     this->render_cube.draw( renderer, block_object_shader );
     this->render_sprite.draw( renderer, item_sprite_shader );
+}
+
+void ItemEntities::set_held_item( ItemID item ) {
+    if ( !this->render_inited || item == this->held_item_id ) {
+        return;
+    }
+    this->held_item_id = item;
+    this->held_entity = entt::null;
+    this->render_held.clear( );
+    // Isometric block icons stay on the flat UIOverlay quad; the extruded
+    // sprite only replaces flat item sprites.
+    if ( !item_id_valid( item ) || item == LAST_BLOCK_ID || ( item_is_block( item ) && item_icon_is_isometric( item ) ) ) {
+        return;
+    }
+    const std::pair<entt::entity, ItemSpriteInstance &> data = this->render_held.create_instance( );
+    this->held_entity = data.first;
+    data.second.tex_layer = item_icon_texture( item );
+    data.second.transform = glm::mat4( 0.0f ); // hidden until update_held
+    data.second.light = glm::vec2( 1.0f );
+}
+
+void ItemEntities::update_held( const glm::vec2 &light ) {
+    if ( this->held_entity == entt::null ) {
+        return;
+    }
+    ItemSpriteInstance &inst = this->render_held.get_instance( this->held_entity );
+    inst.transform = glm::mat4( 1.0f );
+    inst.light = light;
+    this->render_held.invalidate_all( );
+}
+
+void ItemEntities::draw_held( const Renderer &renderer, const Shader &item_sprite_shader ) {
+    if ( !this->render_inited ) {
+        return;
+    }
+    this->render_held.draw( renderer, item_sprite_shader );
 }
 
 void ItemEntities::cleanup( ) {

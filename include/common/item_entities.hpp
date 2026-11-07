@@ -97,6 +97,16 @@ class ItemEntities {
     static void render_pose( const ItemEntity &it, float alpha, float *yaw, float *bob );
     void draw( const Renderer &renderer, const Shader &block_object_shader, const Shader &item_sprite_shader );
 
+    // The in-hand flat item: same extruded-sprite mesh and shader as the
+    // dropped items, drawn in camera space from draw_ui_pass once depth is
+    // cleared (isometric held blocks stay on the UIOverlay icon path).
+    // set_held_item no-ops while the item is unchanged; update_held takes
+    // the eye light sample (the camera-space pose rides in u_MVP — the
+    // shader already applies the per-instance transform).
+    void set_held_item( ItemID item );
+    void update_held( const glm::vec2 &light );
+    void draw_held( const Renderer &renderer, const Shader &item_sprite_shader );
+
     size_t count( ) const { return this->items.size( ); }
     void cleanup( );
     // Test/debug: snapshot of every live item entity.
@@ -172,4 +182,8 @@ class ItemEntities {
     // draws as an extruded sprite.
     RenderChain<ParticleVertex, BlockObjectInstance> render_cube;
     RenderChain<ParticleVertex, ItemSpriteInstance> render_sprite;
+    // Single-instance chain for the first-person held sprite (draw_ui_pass).
+    RenderChain<ParticleVertex, ItemSpriteInstance> render_held;
+    ItemID held_item_id = LAST_BLOCK_ID;
+    entt::entity held_entity = entt::null;
 };

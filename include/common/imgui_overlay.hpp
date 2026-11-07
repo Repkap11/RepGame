@@ -33,6 +33,12 @@ struct ImGuiDebugVars {
     int primed_tnt;
     int falling_blocks;
     int item_entities;
+    // In-hand flat item pose (camera space), tuned live from the ImGui
+    // overlay: translate, euler rotation in degrees (applied yaw about Y,
+    // then pitch about X, then roll about Z), and uniform scale.
+    glm::vec3 held_pos = glm::vec3( -0.35f, -0.16f, -0.46f );
+    glm::vec3 held_rot = glm::vec3( 0.0f, 250.0f, 0.0f ); // pitch, yaw, roll
+    float held_scale = 0.2f;
 };
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) || defined( REPGAME_WASM ) )

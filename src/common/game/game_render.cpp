@@ -494,6 +494,40 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         // the day factor, torch light doesn't, min ambient lifts caves).
         const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
         const float held_block_light = glm::mix( imgui_overlay_get_imgui_debug_vars( ).min_ambient, 1.0f, glm::max( held_light.x * daylight, held_light.y ) );
+        // The in-hand flat item is the same extruded sprite the dropped-item
+        // entities draw, posed in camera space right after the depth clear —
+        // real 1-texel edge faces like ground items, never clipped by the
+        // world. The mesh shows the icon horizontally mirrored (the atlas
+        // stores tiles x-mirrored), so the sprite is flipped 180° about the
+        // local y-axis: the back face then displays the icon un-mirrored,
+        // head up-right pointing away, handle to the lower-left hand. The
+        // slight yaw exposes the edge faces. The pose rides in u_MVP only —
+        // the shader already applies the per-instance transform. Isometric
+        // held blocks stay on the UIOverlay icon path.
+        if ( !globalGameState.vr.active ) {
+            ItemEntities &items = globalGameState.world.items;
+            items.set_held_item( globalGameState.ui.overlay.held_item( ) );
+            const glm::vec3 &held_rot = imgui_overlay_get_imgui_debug_vars( ).held_rot;
+            glm::mat4 held_pose = glm::translate( glm::mat4( 1.0f ), imgui_overlay_get_imgui_debug_vars( ).held_pos );
+            held_pose = glm::rotate( held_pose, glm::radians( held_rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            held_pose = glm::rotate( held_pose, glm::radians( held_rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+            held_pose = glm::rotate( held_pose, glm::radians( held_rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+            held_pose = glm::scale( held_pose, glm::vec3( imgui_overlay_get_imgui_debug_vars( ).held_scale ) );
+            held_pose = glm::translate( held_pose, glm::vec3( -0.5f, -0.5f, -0.03125f ) );
+            items.update_held( held_light );
+
+            Shader &sprite_shader = globalGameState.world.item_sprite_shader;
+            sprite_shader.set_uniform1i( "u_DrawToReflection", 0 );
+            sprite_shader.set_uniform1i_texture( "u_Texture", globalGameState.blocksTexture );
+            sprite_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+            sprite_shader.set_uniform1i( "u_TintUnderWater", 0 );
+            sprite_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+            sprite_shader.set_uniform_mat4f( "u_MVP", globalGameState.screen.proj * held_pose );
+            sprite_shader.set_uniform1i( "u_IsSky", 0 );
+            sprite_shader.set_uniform3f( "u_Origin", 0.0f, 0.0f, 0.0f );
+            sprite_shader.set_uniform3f( "u_CameraPos", 0.0f, 0.0f, 0.0f );
+            items.draw_held( globalGameState.world.renderer, sprite_shader );
+        }
         globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );
         if ( repgame_crafting_grid_visible( globalGameState ) ) {
             const int dim = repgame_crafting_dim( globalGameState );
