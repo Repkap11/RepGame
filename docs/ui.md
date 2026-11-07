@@ -115,10 +115,7 @@ matching and the output slot are documented with the item/recipe data in
   faces); isometric block icons use the same cube mesh as dropped
   block items (`block_object_shader` + `BlockObjectInstance`), shaped
   by the block's scale/offset. The poses come from
-  `ImGuiDebugVars::held_*`/`held_block_*`, tunable live in the ImGui
-  overlay's "Held Item" section — open the inventory or pause menu to
-  free the cursor and make ImGui interactive (`NoMouse`/`NoInputs`
-  lift while `inventory_open` or `menu_open` is set).
+  `ImGuiDebugVars::held_*`/`held_block_*`.
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
   (`item_name`) just above the hotbar, black-outlined via
   `FontRenderer::drawStringOutlined`; empty slots show nothing.

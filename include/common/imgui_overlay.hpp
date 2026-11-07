@@ -33,13 +33,13 @@ struct ImGuiDebugVars {
     int primed_tnt;
     int falling_blocks;
     int item_entities;
-    // In-hand flat item pose (camera space), tuned live from the ImGui
-    // overlay: translate, euler rotation in degrees (applied yaw about Y,
-    // then pitch about X, then roll about Z), and uniform scale.
+    // In-hand flat item pose (camera space): translate, euler rotation in
+    // degrees (applied yaw about Y, then pitch about X, then roll about Z),
+    // and uniform scale. Consumed by draw_ui_pass.
     glm::vec3 held_pos = glm::vec3( 0.35f, -0.16f, -0.46f );
     glm::vec3 held_rot = glm::vec3( 0.0f, -70.0f, 0.0f ); // pitch, yaw, roll
     float held_scale = 0.2f;
-    // Same pose controls for the held isometric block (perspective cube).
+    // Same pose values for the held isometric block (perspective cube).
     glm::vec3 held_block_pos = glm::vec3( 0.47f, -0.26f, -0.59f );
     glm::vec3 held_block_rot = glm::vec3( 0.0f, 50.0f, 10.0f ); // pitch, yaw, roll
     float held_block_scale = 0.18f;
