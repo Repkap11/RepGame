@@ -27,5 +27,6 @@
       "max": 1,
       "chance": 0.005
     }
-  ]
+  ],
+  "persistent_variant": "DARK_OAK_LEAVES_PERSISTENT"
 }

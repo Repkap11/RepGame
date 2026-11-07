@@ -57,6 +57,11 @@ constexpr Test all_tests[] = {  //
     MK_TEST( chunk_sort ),       //
     MK_TEST( chunk_occlusion ),  //
     MK_TEST( light_stale ),      //
+    MK_TEST( leaf_decay ),       //
+    MK_TEST( support_drops ),    //
+    MK_TEST( sapling_grow ),     //
+    MK_TEST( leaf_placement ),   //
+    MK_TEST( shears_bonemeal ),  //
     { nullptr, nullptr }
 
 };

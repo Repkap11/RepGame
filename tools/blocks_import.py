@@ -86,7 +86,8 @@ FLOAT_FIELDS = {"hardness", "fall_mass"}
 VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
-BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner"}
+BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner",
+                    "persistent_variant", "natural_variant"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative", "drops",
                "mineable"}
@@ -566,6 +567,33 @@ def load_blocks():
             fail("%s: tall_plant_partner %s does not point back" % (b["_file"], partner))
         if bool(b.get("is_tall_plant_upper")) == bool(pb.get("is_tall_plant_upper")):
             fail("%s: tall-plant pair %s/%s needs exactly one is_tall_plant_upper" % (b["_file"], b["name"], partner))
+    # persistent_variant / natural_variant link a natural leaf block to its
+    # player-placed twin: each must point back at the other, and the six face
+    # textures must match so the pair looks identical in the world.
+    for bid, b in blocks.items():
+        partner = b.get("persistent_variant")
+        if partner is None:
+            continue
+        pbid = names.get(partner)
+        if pbid is None:
+            fail("%s: persistent_variant %s not found" % (b["_file"], partner))
+        pb = blocks[pbid]
+        if pb.get("natural_variant") != b["name"]:
+            fail("%s: persistent_variant %s does not point back" % (b["_file"], partner))
+        if resolve_faces(b["name"].lower(), b) != resolve_faces(pb["name"].lower(), pb):
+            fail("%s: persistent_variant %s face textures differ" % (b["_file"], partner))
+    for bid, b in blocks.items():
+        partner = b.get("natural_variant")
+        if partner is None:
+            continue
+        pbid = names.get(partner)
+        if pbid is None:
+            fail("%s: natural_variant %s not found" % (b["_file"], partner))
+        pb = blocks[pbid]
+        if pb.get("persistent_variant") != b["name"]:
+            fail("%s: natural_variant %s does not point back" % (b["_file"], partner))
+        if resolve_faces(b["name"].lower(), b) != resolve_faces(pb["name"].lower(), pb):
+            fail("%s: natural_variant %s face textures differ" % (b["_file"], partner))
     return blocks
 
 
@@ -1027,6 +1055,11 @@ def main():
             d["_id"] = iid
 
     item_tags = load_item_tags(block_names, item_names)
+    # Derived flag (never a JSON key): every member of the "logs" item tag is
+    # a trunk block that holds up nearby leaves for decay purposes.
+    for bid, b in blocks.items():
+        if b["name"] in item_tags.get("logs", []):
+            b["is_log"] = True
     # mineable class: an explicit "mineable" key wins, else classify the name.
     for bid, b in blocks.items():
         if "mineable" not in b:
@@ -1332,7 +1365,7 @@ def main():
                 out.append("%s%s = { %s };\n" % (prefix, key, ", ".join("true" if x else "false" for x in val)))
             elif key in BLOCK_REF_FIELDS:
                 out.append("%s%s = %s;\n" % (prefix, key, val))
-            elif key in BOOL_FIELDS:
+            elif key in BOOL_FIELDS or key == "is_log":
                 out.append("%s%s = %s;\n" % (prefix, key, "true" if val else "false"))
             elif key in FLOAT_FIELDS:
                 out.append("%s%s = %sf;\n" % (prefix, key, fmt_float(val)))

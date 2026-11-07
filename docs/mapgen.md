@@ -268,3 +268,19 @@ Two non-terrain generators bypass the above entirely in `load_terrain`:
   pieces.
 - Verify with `make tests` (`test_mapgen`); on WASM, `MAPGEN_VERIFY=1`
   diffs CPU vs. WebGPU output per chunk.
+
+## Shared tree shapes
+
+The tree builders (`TreeShape`/`TreeSpec`, canopy writers, hangers, bee
+nests, `sg_place_tree` and the `sg_*` write helpers) live in
+`include/common/tree_shapes.hpp` — always compiled, templated over a
+`Target` with `get_block`/`set_block`. `structure_gen.cpp` calls them
+with a `Chunk&`; `tree_grow.cpp` calls them with a world-space target for
+sapling growth (`docs/blocks.md` — same code path, identical shapes).
+Chunk-local callers pass the chunk origin `co`; world callers pass
+`co = (0,0,0)`, so the canopy hash inputs stay world coords either way.
+
+The new generator no longer places saplings in decorations — saplings
+exist only as items from leaf drops and grow via `tree_grow_try`.
+`BAMBOO_SAPLING` and `DARK_DEAD_SAPLING` remain as decor (they never
+grow).

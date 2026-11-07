@@ -234,3 +234,42 @@ a T and a + junction, a lone post, a fence against planks, an oak fence
 against nether brick (must not connect), and a nether brick run. The ImGui debug overlay
 shows the targeted block's `NAME (id)` ("Looking At"); spawn is
 (0.5, y=2, 0.5) facing +x/+z in creative mode.
+
+## Trees & leaves
+
+`BlockCell` has no spare bits for a placed/natural flag, so leaves come in
+two ids per species: the natural `<NAME>` block the generator and grown
+trees write, and a `<NAME>_PERSISTENT` twin (`natural_variant` /
+`persistent_variant` importer-validated ref fields — each points back and
+all six face textures must match). Placing a leaf item writes the
+persistent variant (`block_placed_leaf_id` in the placement path);
+`block_item_id` maps persistent leaves back to the natural item, so picks,
+drops and shears always yield the natural leaf. Helpers in
+`block.hpp`: `block_is_natural_leaf`, `block_is_persistent_leaf`,
+`block_is_leaf`, `block_natural_leaf_id`. `Block::is_log` is a derived
+flag (no JSON key): members of the `"logs"` item tag hold leaves up.
+
+Decay: when a neighbour change may have removed a natural leaf's support,
+`BlockNextToChangeEvent` queues a jittered `LeafDecayEvent` (0.5–2.5 s,
+deduped through `RepGameState::pending_leaf_decay`). The event BFSes
+face-adjacent leaf cells of any species up to `LEAF_DECAY_RANGE` = 6
+(`leaf_has_log_support`); an `is_log` face neighbour or an unloaded cell
+(`LAST_BLOCK_ID`) counts as supported. Unsupported leaves get an AIR
+write with `BreakDrops::Always`, whose neighbour updates wake the next
+leaves — a severed canopy unravels over a few seconds. Persistent leaves
+never decay; breaking leaves (or shears on them) keeps the normal drop
+rolls.
+
+Growth: saplings grow on random ticks (`World::process_random_ticks` —
+24 samples/chunk, live chunks within 2 XZ / 1 Y of the player, light ≥ 9,
+1/3 grow chance ≈ 3.5 min mean) or instantly on bone meal. `tree_grow_try`
+(`tree_grow.cpp`) resolves the `TreeSpec` from the sapling's world
+position and writes it through the shared builders in
+`include/common/tree_shapes.hpp` — the same code the new terrain
+generator runs, so shapes are a pure function of position and two clients
+grow identical cells. Random ticks are off in capture mode, fly mode, the
+block world and flat worlds. Bamboo, dead, garbage and potted saplings
+and the mangrove propagule never grow.
+
+Old-save caveat: leaves placed before persistent variants existed save as
+the natural id and may decay once disturbed when no log is within range.

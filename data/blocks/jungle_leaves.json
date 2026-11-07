@@ -27,5 +27,6 @@
       "max": 1,
       "chance": 0.02
     }
-  ]
+  ],
+  "persistent_variant": "JUNGLE_LEAVES_PERSISTENT"
 }

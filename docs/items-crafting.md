@@ -39,6 +39,18 @@ reseed for reproducible tests). Examples in tree: stone→cobblestone,
 grass→dirt, ores→their item (lapis 4-8), leaves→sapling 5% + stick 2%
 (+apple 0.5% oak/dark oak), gravel→flint 10% else gravel.
 
+Non-mining breaks go through the same helper: `break_drops`
+(`include/common/break_drops.hpp`) rolls `block_item_id`'s drops and
+spawns the stacks — used by the player destroy path, support-loss kills
+(`PlayerBlockPlacedEvent` `BreakDrops::Survival`, so they drop only in
+survival) and leaf decay (`BreakDrops::Always`). Shears held while
+breaking leaves skip the roll and drop the leaf item itself.
+
+Tools and consumables: `SHEARS` (`shears` icon, `max_stack` 1, recipe
+two iron ingots diagonal) harvests leaf blocks; `BONE` drops from
+zombies; `BONE_MEAL` (`dye_powder_white_new` icon, shapeless 1 bone ->
+3 meal) grows a sapling instantly on right-click (`tree_grow_try`),
+consuming one in survival.
 
 Mining speed: `ItemGenDef` carries `tool_class` (the `MineableClass` the
 item accelerates) and `mine_speed` (per-tick multiplier). Optional item

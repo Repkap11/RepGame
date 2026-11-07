@@ -124,6 +124,16 @@ typedef struct {
     // neighbour-update survive check.
     bool is_tall_plant_upper;
     BlockID tall_plant_partner;
+    // Leaf variant pairing, like the partner fields above: natural
+    // (generator-grown) leaves point at their player-placed twin via
+    // persistent_variant; the persistent twin points back via
+    // natural_variant. LAST_BLOCK_ID means "not part of a pair". The pair
+    // shares face textures — they differ only in decay behaviour.
+    BlockID persistent_variant;
+    BlockID natural_variant;
+    // Derived (no JSON key): the block is a member of the "logs" item tag —
+    // a trunk block that holds up nearby leaves for decay purposes.
+    bool is_log;
     // Flood-fill light emitted by this block, 0-15 (torches 14, lava/lamps 15,
     // lit furnace 13, portal 11, redstone torch 7). Stored in the chunk's
     // light[] volume and sampled by the fragment shader — never baked into the

@@ -115,6 +115,7 @@ int test_items( ) {
     check_bool( "tool speed: wooden pickaxe on stone = 2", item_mining_speed( WOODEN_PICKAXE, STONE ) == 2.0f );
     check_bool( "tool speed: diamond axe on log = 8", item_mining_speed( DIAMOND_AXE, OAK_LOG ) == 8.0f );
     check_bool( "tool speed: stone shovel on dirt = 4", item_mining_speed( STONE_SHOVEL, DIRT ) == 4.0f );
+    check_bool( "tool speed: shears on leaves = 8", item_mining_speed( SHEARS, OAK_LEAVES ) == 8.0f );
     check_bool( "tool speed: wrong tool = 1", item_mining_speed( IRON_PICKAXE, OAK_LOG ) == 1.0f );
     check_bool( "tool speed: axe on stone = 1", item_mining_speed( STONE_AXE, STONE ) == 1.0f );
     check_bool( "tool speed: sword = 1", item_mining_speed( IRON_SWORD, STONE ) == 1.0f );

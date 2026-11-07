@@ -1,6 +1,7 @@
 #pragma once
 
 class World;
+struct RepGameState;
 
 #include "common/Platforms.hpp"
 #include "block.hpp"
@@ -32,6 +33,9 @@ class World {
     friend int test_falling_blocks( );
 
     ChunkLoader chunkLoader;
+    // World-owned xorshift state for random ticks — kept off rand() so debug
+    // callers seeding rand() can't perturb growth timing.
+    uint32_t random_tick_state = 0x243F6A88u;
     // Back-pointer to the owning RepGameState's Multiplayer, bound after
     // world.init(): lets an edit into a not-yet-live slot queue itself as a
     // pending diff so it lands at the next load's finalize (the sender's own
@@ -92,6 +96,9 @@ class World {
 
     // Non-const: block edits seed the light propagation queues on chunkLoader.
     void set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState );
+    // Like set_loaded_block but restores the owning chunk's player_edited
+    // flag: used by natural growth (random ticks), which isn't a player edit.
+    void set_loaded_block_natural( const glm::ivec3 &block_pos, BlockState blockState );
 
     // Chest containers. Contents for the chest at block_pos, or nullptr when
     // the block isn't a chest, its chunk isn't loaded, or no contents exist.
@@ -136,7 +143,10 @@ class World {
     void render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
     void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
                WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s, float daylight, float min_ambient, float alpha );
-    void process_random_ticks( );
+    // Random ticks: samples a handful of cells per nearby live chunk each
+    // game tick — currently the only effect is sapling growth. Gated off by
+    // the caller in capture/fly/flat/block-world runs (same gates mobs use).
+    void process_random_ticks( RepGameState &state );
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
     void screenshot( const std::string &prefix ) const;
     // Binds u_DebugFlags on the chunk shader: REPGAME_CAPTURE per-view flags,

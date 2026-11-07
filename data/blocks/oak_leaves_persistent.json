@@ -1,0 +1,19 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.349999994,
+  "id": 1432,
+  "is_seethrough": true,
+  "light_absorb": 6,
+  "name": "OAK_LEAVES_PERSISTENT",
+  "no_light": 6815743,
+  "textures": {
+    "back": "leaves_oak_carried",
+    "bottom": "leaves_oak_carried",
+    "front": "leaves_oak_carried",
+    "left": "leaves_oak_carried",
+    "right": "leaves_oak_carried",
+    "top": "leaves_oak_carried"
+  },
+  "natural_variant": "OAK_LEAVES",
+  "creative": false
+}

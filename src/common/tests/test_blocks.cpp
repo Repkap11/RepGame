@@ -1,5 +1,8 @@
 // Block behaviour tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
+#include "common/block_update_events/LeafDecayEvent.hpp"
+#include "common/tree_grow.hpp"
+#include "common/break_drops.hpp"
 // Fences and fence gates: connection rules, box geometry, the right-click
 // toggle rotation, the generated definitions, creative listing, and the
 // block-world showcase layout.
@@ -714,3 +717,372 @@ int test_falling_blocks( ) {
     return failures;
 }
 
+
+// Count live item entities carrying `item` (sum of stack counts).
+static int test_count_items( World &world, const ItemID item ) {
+    int total = 0;
+    for ( const auto &it : world.items.debug_items( ) ) {
+        if ( it.item == item ) {
+            total += it.count;
+        }
+    }
+    return total;
+}
+
+// Leaf decay: a severed trunk's natural leaves decay through LeafDecayEvent;
+// persistent (player-placed) leaves never do; leaves within LEAF_DECAY_RANGE
+// of a second trunk stay; decays drop their rolled items.
+int test_leaf_decay( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.game_mode = GameMode_Survival;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto tick = [ & ]( ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            tick( );
+        }
+    };
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+    };
+    const BlockState log = { OAK_LOG, 0, 0, OAK_LOG, 0 };
+    const BlockState leaf = { OAK_LEAVES, 0, 0, OAK_LEAVES, 0 };
+    const BlockState pleaf = { OAK_LEAVES_PERSISTENT, 0, 0, OAK_LEAVES_PERSISTENT, 0 };
+
+    // Tree 1: trunk at x=10 (y 10-13), a leaf cell above it and a horizontal
+    // leaf chain out to x=18 at y=14. Tree 2's trunk at x=20 with its own
+    // leaves at x=19..20 touches the chain end — after tree 1 falls, chain
+    // leaves close enough to trunk 2 (x=14..18 within 6 of its canopy) keep
+    // their support while the near end (x=10..13) decays.
+    for ( int y = 10; y <= 13; y++ ) {
+        world.set_loaded_block( glm::ivec3( 10, y, 10 ), log );
+        world.set_loaded_block( glm::ivec3( 20, y, 10 ), log );
+    }
+    for ( int x = 10; x <= 18; x++ ) {
+        world.set_loaded_block( glm::ivec3( x, 14, 10 ), leaf );
+    }
+    // Extra leaf mass around the trunk so at least one drop roll lands (leaf
+    // drop chances are 2-7.5%; ~40 cells make a dry run essentially
+    // impossible).
+    for ( int x = 9; x <= 11; x++ ) {
+        for ( int z = 9; z <= 11; z++ ) {
+            for ( int y = 14; y <= 16; y++ ) {
+                const glm::ivec3 p( x, y, z );
+                if ( world.get_loaded_block( p ).id == AIR ) {
+                    world.set_loaded_block( p, leaf );
+                }
+            }
+        }
+    }
+    // A player-placed leaf beyond the canopy edge: unsupported, but
+    // persistent variants never decay.
+    world.set_loaded_block( glm::ivec3( 10, 17, 10 ), pleaf );
+    world.set_loaded_block( glm::ivec3( 19, 14, 10 ), leaf );
+    world.set_loaded_block( glm::ivec3( 20, 14, 10 ), leaf );
+
+    check_bool( "decay: supported leaf before break", leaf_has_log_support( world, glm::ivec3( 11, 14, 10 ) ) );
+    check_bool( "decay: unloaded edge counts as supported", leaf_has_log_support( world, glm::ivec3( 61, 30, 10 ) ) );
+
+    // Fell the whole trunk — four separate AIR writes, logs don't collapse.
+    for ( int y = 10; y <= 13; y++ ) {
+        place( glm::ivec3( 10, y, 10 ), BLOCK_STATE_AIR );
+    }
+    // ~20 s: each cascade hop lands 0.5-2.5 s after the leaf before it.
+    run( 20 * UPS_RATE );
+
+    failures += check_id( world, "decay: leaf at dead trunk gone", glm::ivec3( 10, 14, 10 ), AIR );
+    failures += check_id( world, "decay: near-end chain leaf gone", glm::ivec3( 12, 14, 10 ), AIR );
+    failures += check_id( world, "decay: canopy mass leaf gone", glm::ivec3( 10, 16, 10 ), AIR );
+    failures += check_id( world, "decay: persistent leaf stays", glm::ivec3( 10, 17, 10 ), OAK_LEAVES_PERSISTENT );
+    failures += check_id( world, "decay: leaf near second trunk stays", glm::ivec3( 18, 14, 10 ), OAK_LEAVES );
+    failures += check_id( world, "decay: leaf in range of second stays", glm::ivec3( 16, 14, 10 ), OAK_LEAVES );
+    failures += check_id( world, "decay: second trunk leaf stays", glm::ivec3( 20, 14, 10 ), OAK_LEAVES );
+    check_bool( "decay: at least one item dropped", world.items.count( ) >= 1 );
+    check_bool( "decay: no checks left pending", gs.pending_leaf_decay.empty( ) );
+    return failures;
+}
+
+// Support-loss drops (BreakDrops::Survival on the queued AIR write): torches
+// and both halves of a two-cell door each yield exactly one item per break,
+// nothing in creative.
+int test_support_drops( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.game_mode = GameMode_Survival;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto tick = [ & ]( ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            tick( );
+        }
+    };
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+    };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+
+    // --- Torch on stone: breaking the support drops exactly one torch. ---
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), stone );
+    world.set_loaded_block( glm::ivec3( 10, 11, 10 ), { TORCH, 0, 0, TORCH, 0 } );
+    int before = test_count_items( world, TORCH );
+    place( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
+    run( 20 );
+    check_bool( "support: torch dropped exactly once", test_count_items( world, TORCH ) - before == 1 );
+    failures += check_id( world, "support: torch cell cleared", glm::ivec3( 10, 11, 10 ), AIR );
+
+    // --- Door, three ways. Each scenario stands a fresh lower+upper pair on
+    // a stone floor, removes one piece, and expects exactly one door item.
+    const BlockState door_lower = { WOODEN_DOOR_LOWER, 0, 0, WOODEN_DOOR_LOWER, 0 };
+    const BlockState door_upper = { WOODEN_DOOR_UPPER, 0, 0, WOODEN_DOOR_UPPER, 0 };
+    auto door_case = [ & ]( const char *name, const glm::ivec3 &base, const glm::ivec3 &kill_pos, const bool kill_is_door ) {
+        world.set_loaded_block( base + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( base, door_lower );
+        world.set_loaded_block( base + glm::ivec3( 0, 1, 0 ), door_upper );
+        const int had = test_count_items( world, WOODEN_DOOR_LOWER );
+        // The AIR write carries BreakDrops::Survival like the player/support
+        // paths; a floor break goes through the support-loss kill instead.
+        if ( kill_is_door ) {
+            gs.blockUpdateQueue.addBlockUpdate(
+                std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, kill_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival ) );
+        } else {
+            place( kill_pos, BLOCK_STATE_AIR );
+        }
+        run( 20 );
+        char label[ 96 ];
+        snprintf( label, sizeof( label ), "support: %s drops exactly one door item", name );
+        check_bool( label, test_count_items( world, WOODEN_DOOR_LOWER ) - had == 1 );
+        snprintf( label, sizeof( label ), "support: %s lower cleared", name );
+        failures += check_id( world, label, base, AIR );
+        snprintf( label, sizeof( label ), "support: %s upper cleared", name );
+        failures += check_id( world, label, base + glm::ivec3( 0, 1, 0 ), AIR );
+    };
+    // Remove the lower half directly: the upper pops partnerless.
+    door_case( "lower break", glm::ivec3( 10, 21, 20 ), glm::ivec3( 10, 21, 20 ), true );
+    // Remove the upper half directly: the lower pops partnerless.
+    door_case( "upper break", glm::ivec3( 14, 21, 20 ), glm::ivec3( 14, 22, 20 ), true );
+    // Break the floor: the lower fails its ground check (drops), the upper
+    // then finds no partner (no drop).
+    door_case( "floor break", glm::ivec3( 18, 21, 20 ), glm::ivec3( 18, 20, 20 ), false );
+
+    // --- Creative: support loss spawns nothing. ---
+    gs.game_mode = GameMode_Creative;
+    world.set_loaded_block( glm::ivec3( 30, 10, 30 ), stone );
+    world.set_loaded_block( glm::ivec3( 30, 11, 30 ), { TORCH, 0, 0, TORCH, 0 } );
+    before = test_count_items( world, TORCH );
+    place( glm::ivec3( 30, 10, 30 ), BLOCK_STATE_AIR );
+    run( 20 );
+    check_bool( "support: creative torch drops nothing", test_count_items( world, TORCH ) - before == 0 );
+    return failures;
+}
+
+// Sapling growth: tree_grow_try writes the shared tree shapes; the shape is
+// a pure function of position, natural leaves are used, and bad placements
+// fail cleanly.
+int test_sapling_grow( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.game_mode = GameMode_Survival;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    const BlockState grass = { GRASS, 0, 0, GRASS, 0 };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState sapling = { OAK_SAPLING, 0, 0, OAK_SAPLING, 0 };
+
+    // --- Oak on grass under open sky. ---
+    const glm::ivec3 pos( 10, 11, 10 );
+    world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( pos, sapling );
+    check_bool( "grow: oak sapling grows", tree_grow_try( gs, pos ) );
+    check_bool( "grow: sapling cell is now a log", world.get_loaded_block( pos ).id == OAK_LOG );
+    // Trunk column: logs up through the spec's height.
+    TreeSpec spec;
+    check_bool( "grow: oak spec resolved", tree_spec_for_sapling( OAK_SAPLING, pos, &spec ) );
+    bool trunk_ok = world.get_loaded_block( pos + glm::ivec3( 0, spec.trunk_h - 1, 0 ) ).id == OAK_LOG;
+    check_bool( "grow: trunk column filled with logs", trunk_ok );
+    bool natural_leaf_found = false;
+    for ( int dy = spec.trunk_h - 3; dy <= spec.trunk_h + 2 && !natural_leaf_found; dy++ ) {
+        for ( int dx = -spec.canopy_r; dx <= spec.canopy_r && !natural_leaf_found; dx++ ) {
+            for ( int dz = -spec.canopy_r; dz <= spec.canopy_r && !natural_leaf_found; dz++ ) {
+                if ( world.get_loaded_block( pos + glm::ivec3( dx, dy, dz ) ).id == OAK_LEAVES ) {
+                    natural_leaf_found = true;
+                }
+            }
+        }
+    }
+    check_bool( "grow: canopy uses natural (not persistent) leaves", natural_leaf_found );
+
+    // --- Determinism: snapshot, replant at the same position, regrow. ---
+    std::vector<BlockID> first_ids;
+    const glm::ivec3 lo( -5, 0, -5 ), hi( 5, spec.trunk_h + 5, 5 );
+    for ( int x = lo.x; x <= hi.x; x++ ) {
+        for ( int y = lo.y; y <= hi.y; y++ ) {
+            for ( int z = lo.z; z <= hi.z; z++ ) {
+                first_ids.push_back( world.get_loaded_block( pos + glm::ivec3( x, y, z ) ).id );
+            }
+        }
+    }
+    for ( int x = lo.x; x <= hi.x; x++ ) {
+        for ( int y = lo.y; y <= hi.y; y++ ) {
+            for ( int z = lo.z; z <= hi.z; z++ ) {
+                world.set_loaded_block( pos + glm::ivec3( x, y, z ), BLOCK_STATE_AIR );
+            }
+        }
+    }
+    world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( pos, sapling );
+    check_bool( "grow: replanted oak grows again", tree_grow_try( gs, pos ) );
+    bool same = true;
+    int idx = 0;
+    for ( int x = lo.x; x <= hi.x; x++ ) {
+        for ( int y = lo.y; y <= hi.y; y++ ) {
+            for ( int z = lo.z; z <= hi.z; z++ ) {
+                if ( world.get_loaded_block( pos + glm::ivec3( x, y, z ) ).id != first_ids[ idx++ ] ) {
+                    same = false;
+                }
+            }
+        }
+    }
+    check_bool( "grow: same position writes the same cells", same );
+
+    // --- Rejections. ---
+    // Stone under the sapling: no soil.
+    const glm::ivec3 bad_soil( 30, 11, 30 );
+    world.set_loaded_block( bad_soil + glm::ivec3( 0, -1, 0 ), stone );
+    world.set_loaded_block( bad_soil, sapling );
+    check_bool( "grow: stone underneath fails", !tree_grow_try( gs, bad_soil ) );
+    // A stone cell inside the future trunk.
+    const glm::ivec3 blocked( 40, 11, 40 );
+    world.set_loaded_block( blocked + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( blocked, sapling );
+    world.set_loaded_block( blocked + glm::ivec3( 0, 2, 0 ), stone );
+    check_bool( "grow: blocked trunk fails", !tree_grow_try( gs, blocked ) );
+    // Bamboo never grows into a tree.
+    check_bool( "grow: bamboo returns false", !tree_spec_for_sapling( BAMBOO_SAPLING, pos, &spec ) );
+    const glm::ivec3 bamboo( 50, 11, 50 );
+    world.set_loaded_block( bamboo + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( bamboo, { BAMBOO_SAPLING, 0, 0, BAMBOO_SAPLING, 0 } );
+    check_bool( "grow: bamboo sapling fails", !tree_grow_try( gs, bamboo ) );
+    return failures;
+}
+
+// Placing natural leaves from the hotbar writes the persistent variant;
+// block_item_id maps persistent blocks back to the natural leaf item.
+int test_leaf_placement( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    check_bool( "place: natural leaf maps to persistent", block_placed_leaf_id( OAK_LEAVES ) == OAK_LEAVES_PERSISTENT );
+    check_bool( "place: persistent leaf maps to natural item", block_item_id( OAK_LEAVES_PERSISTENT ) == OAK_LEAVES );
+    check_bool( "place: natural leaf is a leaf", block_is_leaf( OAK_LEAVES ) );
+    check_bool( "place: persistent leaf is a leaf", block_is_leaf( OAK_LEAVES_PERSISTENT ) );
+    check_bool( "place: persistent is not natural", !block_is_natural_leaf( block_definition_get_definition( OAK_LEAVES_PERSISTENT ) ) );
+
+    // The hotbar path runs the item through block_placed_leaf_id before the
+    // queued write — replicate that and land it through the normal event.
+    const BlockID placed_id = block_placed_leaf_id( OAK_LEAVES );
+    const glm::ivec3 pos( 10, 11, 10 );
+    world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), { STONE, 0, 0, STONE, 0 } );
+    gs.blockUpdateQueue.addBlockUpdate(
+        std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, BlockState{ placed_id, 0, 0, placed_id, 0 }, false ) );
+    const glm::ivec3 pos2( 12, 11, 10 );
+    gs.blockUpdateQueue.addBlockUpdate(
+        std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BlockState{ OAK_LEAVES, 0, 0, OAK_LEAVES, 0 }, false ) );
+    gs.tick_number++;
+    gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    failures += check_id( world, "place: cell holds persistent leaves", pos, OAK_LEAVES_PERSISTENT );
+    failures += check_id( world, "place: natural id lands as-is", pos2, OAK_LEAVES );
+    return failures;
+}
+
+// Shears harvest the leaf item itself; bone meal grows a sapling instantly
+// and consumes one in survival.
+int test_shears_bonemeal( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.game_mode = GameMode_Survival;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    test_setup_inventories( gs );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    // Shears: the player path calls break_drops with force_item = the leaf
+    // item (block_item_id maps both variants to the natural one).
+    world.set_loaded_block( glm::ivec3( 10, 11, 10 ), { OAK_LEAVES_PERSISTENT, 0, 0, OAK_LEAVES_PERSISTENT, 0 } );
+    const int had_leaves = test_count_items( world, OAK_LEAVES );
+    break_drops( gs, glm::ivec3( 10, 11, 10 ), OAK_LEAVES_PERSISTENT, block_item_id( OAK_LEAVES_PERSISTENT ) );
+    check_bool( "shears: leaf item dropped", test_count_items( world, OAK_LEAVES ) - had_leaves == 1 );
+
+    // Bone meal: grows the sapling immediately and consumes one.
+    gs.hotbar.addItemWithQuantity( BONE_MEAL, 3, true );
+    const glm::ivec3 pos( 20, 11, 20 );
+    world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), { GRASS, 0, 0, GRASS, 0 } );
+    world.set_loaded_block( pos, { BIRCH_SAPLING, 0, 0, BIRCH_SAPLING, 0 } );
+    check_bool( "bonemeal: sapling grows", tree_grow_try( gs, pos ) );
+    check_bool( "bonemeal: trunk wrote logs", world.get_loaded_block( pos ).id == BIRCH_LOG );
+    check_bool( "bonemeal: one consumed", gs.hotbar.consumeSelected( 1 ) && gs.hotbar.getSelectedQuantity( ) == 2 );
+    return failures;
+}

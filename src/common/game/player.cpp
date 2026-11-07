@@ -18,6 +18,8 @@
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/game/game_internal.hpp"
+#include "common/break_drops.hpp"
+#include "common/tree_grow.hpp"
 
 // Left-click damage to a mob in survival (creative kills in one hit).
 #define HIT_DAMAGE 4.0f
@@ -26,6 +28,10 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
 
     glm::ivec3 block;
     if ( place ) {
+        // Placing a leaf item writes the player-placed (persistent) variant —
+        // only generator-grown leaves decay.
+        blockState.id = block_placed_leaf_id( blockState.id );
+        blockState.display_id = blockState.id;
         block = globalGameState.block_selection.pos_create;
         const Block *placed_def = block_definition_get_definition( blockState.id );
         if ( placed_def->collides_with_player ) {
@@ -156,24 +162,14 @@ void RepGame::break_selected_block( ) {
         }
     }
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
-        // A door's upper half drops the lower's item. Blocks with a "drops"
-        // table roll it; the rest drop themselves (kept behind the pickable /
-        // render-order gate). See block_roll_drops. Each rolled drop spawns
-        // as an item entity at the broken cell with a small random hop.
-        static uint32_t drop_rng_state = 0x9e3779b9u;
-        ItemStack drops[ 8 ];
-        const int num_drops = block_roll_drops( block_item_id( previous_block ), &drop_rng_state, drops, 8 );
-        const glm::dvec3 drop_pos = glm::dvec3( globalGameState.block_selection.pos_destroy ) + glm::dvec3( 0.5 );
-        for ( int i = 0; i < num_drops; i++ ) {
-            const ItemID drop_id = drops[ i ].item_id;
-            if ( item_is_block( drop_id ) ) {
-                const Block *blockDef = block_definition_get_definition( static_cast<BlockID>( drop_id ) );
-                if ( !blockDef->is_pickable || blockDef->renderOrder == RenderOrder_Transparent || blockDef->renderOrder == RenderOrder_Water ) {
-                    continue;
-                }
-            }
-            globalGameState.world.items.spawn( drop_id, drops[ i ].count, drop_pos, repgame_item_drop_hop( ), 10 );
+        // Shears harvest leaves as the leaf item itself (natural or
+        // persistent — block_item_id maps both to the natural item);
+        // everything else rolls the shared drops.
+        ItemID force_item = LAST_BLOCK_ID;
+        if ( globalGameState.hotbar.getSelectedItem( ) == SHEARS && block_is_leaf( previous_block ) ) {
+            force_item = block_item_id( previous_block );
         }
+        break_drops( globalGameState, globalGameState.block_selection.pos_destroy, previous_block, force_item );
     }
 }
 
@@ -381,6 +377,25 @@ void RepGame::process_mouse_events( ) {
             if ( target->is_door && !target->door_redstone_only ) {
                 auto toggleEvent = std::make_shared<DoorEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, DoorEvent::TOGGLE );
                 globalGameState.blockUpdateQueue.addBlockUpdate( toggleEvent );
+                globalGameState.input.click_delay_right = 30;
+            }
+        }
+    }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
+        // Bone meal on a sapling grows it immediately — before the placement
+        // path below, and skipped while sneaking like the other block
+        // interactions. It ignores the light check random ticks apply; only
+        // a successful grow consumes one.
+        if ( globalGameState.hotbar.getSelectedItem( ) == BONE_MEAL && !globalGameState.input.movement.sneakPressed ) {
+            const glm::ivec3 &pos = globalGameState.block_selection.pos_destroy;
+            const BlockState target_state = globalGameState.world.get_loaded_block( pos );
+            TreeSpec spec;
+            if ( target_state.id != LAST_BLOCK_ID && tree_spec_for_sapling( target_state.id, pos, &spec ) && tree_grow_try( globalGameState, pos ) ) {
+                audio_play_sfx( audio_block_dig_pool( target_state.id ) );
+                if ( globalGameState.game_mode == GameMode_Survival ) {
+                    globalGameState.hotbar.consumeSelected( 1 );
+                    globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+                }
                 globalGameState.input.click_delay_right = 30;
             }
         }
@@ -808,9 +823,12 @@ void RepGame::process_movement( ) {
 
 void RepGame::process_block_updates( ) {
     PROFILE_SCOPE( "block_updates" );
-    // for ( size_t i = 0; i < 20; i++ ) {
-    //     world_process_random_ticks( &globalGameState.world );
-    // }
+    // Random ticks (sapling growth) stay off in capture/fly/flat/block-world
+    // runs — the same gates the mob sim uses — so captures stay
+    // deterministic.
+    if ( !RepGame::capture_mode( ) && !RepGame::fly_mode( ) && !repgame_block_world( ) && !repgame_flat_world( ) ) {
+        globalGameState.world.process_random_ticks( globalGameState );
+    }
     globalGameState.blockUpdateQueue.processAllBlockUpdates( globalGameState, globalGameState.tick_number );
 }
 

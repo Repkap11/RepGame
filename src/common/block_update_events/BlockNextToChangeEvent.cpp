@@ -7,6 +7,7 @@
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/FallingBlockEvent.hpp"
+#include "common/block_update_events/LeafDecayEvent.hpp"
 
 BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset ) : BlockUpdateEvent( tick_number ), block_pos( pos + offset ), affecting_block_pos( pos ) {
     this->name = "BlockNextToChangeEvent";
@@ -607,7 +608,8 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     }
 
     if ( !block_can_survive_at( world, block_pos, updateing_block_state ) ) {
-        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false );
+        // Support-loss breaks drop the broken block's items in survival.
+        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival );
         blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
     }
 
@@ -622,6 +624,10 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     }
 }
 
+// A local xorshift for the decay-check jitter — rand() is for gameplay
+// randomness callers can seed, and this stream must stay uncorrelated.
+static uint32_t leaf_decay_rng_state = 0x2545F491u;
+
 void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
 
     perform_checks( blockUpdateQueue, repGameState.world, this->tick_number, //
@@ -630,4 +636,22 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     perform_checks( blockUpdateQueue, repGameState.world, this->tick_number, //
                     this->affecting_block_pos,                               //
                     this->block_pos );
+
+    // A changed cell may have been a natural leaf's supporting log — queue a
+    // jittered decay check for either position holding natural leaves. The
+    // pending set keeps at most one check per leaf.
+    for ( const glm::ivec3 &pos : { this->block_pos, this->affecting_block_pos } ) {
+        const BlockState state = repGameState.world.get_loaded_block( pos );
+        if ( state.id == LAST_BLOCK_ID || !block_is_natural_leaf( block_definition_get_definition( state.id ) ) ) {
+            continue;
+        }
+        if ( repGameState.pending_leaf_decay.insert( pos ).second ) {
+            leaf_decay_rng_state ^= leaf_decay_rng_state << 13;
+            leaf_decay_rng_state ^= leaf_decay_rng_state >> 17;
+            leaf_decay_rng_state ^= leaf_decay_rng_state << 5;
+            const long delay = LEAF_DECAY_MIN_TICKS +
+                               (long)( leaf_decay_rng_state % ( LEAF_DECAY_MAX_TICKS - LEAF_DECAY_MIN_TICKS ) );
+            blockUpdateQueue.addBlockUpdate( std::make_shared<LeafDecayEvent>( this->tick_number + delay, pos ) );
+        }
+    }
 }

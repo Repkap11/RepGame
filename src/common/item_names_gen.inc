@@ -46,3 +46,6 @@
     "IRON_SHOVEL",
     "IRON_HOE",
     "IRON_SWORD",
+    "BONE",
+    "BONE_MEAL",
+    "SHEARS",

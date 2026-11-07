@@ -331,8 +331,39 @@ static inline bool block_is_tall_plant( const Block *b ) {
     return b->tall_plant_partner != LAST_BLOCK_ID;
 }
 
+// Natural (decaying) leaves point at their player-placed twin.
+static inline bool block_is_natural_leaf( const Block *b ) {
+    return b->persistent_variant != LAST_BLOCK_ID;
+}
+
+// Player-placed (persistent) leaves point back at the natural variant.
+static inline bool block_is_persistent_leaf( const Block *b ) {
+    return b->natural_variant != LAST_BLOCK_ID;
+}
+
+// Any leaf, natural or persistent.
+static inline bool block_is_leaf( BlockID id ) {
+    const Block *b = block_definition_get_definition( id );
+    return block_is_natural_leaf( b ) || block_is_persistent_leaf( b );
+}
+
+// The natural id a placed/persistent leaf decays-as: natural leaves map to
+// themselves, persistent leaves to their twin.
+static inline BlockID block_natural_leaf_id( BlockID id ) {
+    const Block *b = block_definition_get_definition( id );
+    return block_is_persistent_leaf( b ) ? b->natural_variant : id;
+}
+
+// The block actually written to the world when a leaf item is placed:
+// placing natural leaves always stores the persistent variant.
+static inline BlockID block_placed_leaf_id( BlockID id ) {
+    const Block *b = block_definition_get_definition( id );
+    return block_is_natural_leaf( b ) ? b->persistent_variant : id;
+}
+
 // The inventory block for a multi-cell block: breaking or picking a door's
-// or tall plant's upper half gives the lower's item.
+// or tall plant's upper half gives the lower's item; persistent leaves
+// give the natural leaf item.
 static inline BlockID block_item_id( BlockID id ) {
     const Block *b = block_definition_get_definition( id );
     if ( b->is_door_upper ) {
@@ -340,6 +371,9 @@ static inline BlockID block_item_id( BlockID id ) {
     }
     if ( b->is_tall_plant_upper ) {
         return b->tall_plant_partner;
+    }
+    if ( block_is_persistent_leaf( b ) ) {
+        return b->natural_variant;
     }
     return id;
 }

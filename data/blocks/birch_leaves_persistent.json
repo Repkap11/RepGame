@@ -1,0 +1,19 @@
+{
+  "casts_shadow": false,
+  "hardness": 0.349999994,
+  "id": 1425,
+  "is_seethrough": true,
+  "light_absorb": 6,
+  "name": "BIRCH_LEAVES_PERSISTENT",
+  "no_light": 6815743,
+  "textures": {
+    "back": "leaves_birch_carried",
+    "bottom": "leaves_birch_carried",
+    "front": "leaves_birch_carried",
+    "left": "leaves_birch_carried",
+    "right": "leaves_birch_carried",
+    "top": "leaves_birch_carried"
+  },
+  "natural_variant": "BIRCH_LEAVES",
+  "creative": false
+}

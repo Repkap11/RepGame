@@ -21,5 +21,6 @@
       "max": 1,
       "chance": 0.02
     }
-  ]
+  ],
+  "persistent_variant": "PALE_OAK_LEAVES_PERSISTENT"
 }

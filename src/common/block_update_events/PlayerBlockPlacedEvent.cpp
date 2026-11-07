@@ -7,13 +7,14 @@
 #include "common/block_update_events/PistonEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/break_drops.hpp"
 
 static float frand( ) {
     return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
 }
 
-PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &offset, BlockState blockState, bool state_update ) //
-    : BlockUpdateEvent( tick_number ), block_pos( offset ), blockState( blockState ), state_update( state_update ) {
+PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &offset, BlockState blockState, bool state_update, BreakDrops drops ) //
+    : BlockUpdateEvent( tick_number ), block_pos( offset ), blockState( blockState ), state_update( state_update ), drops( drops ) {
     this->name = "PlayerBlockPlacedEvent";
 }
 
@@ -224,6 +225,15 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
 
     repGameState.world.set_loaded_block( this->block_pos, this->blockState );
     repGameState.multiplayer.set_block( this->block_pos, this->blockState );
+    // Removal writes requested drops (support loss in survival, natural leaf
+    // decay in either mode): the cell just went AIR while something real was
+    // there. Reading the partner cell live means a two-cell block drops
+    // exactly once — the half that goes second sees an empty partner.
+    const bool drops_ok = this->drops == BreakDrops::Always || //
+                          ( this->drops == BreakDrops::Survival && repGameState.game_mode == GameMode_Survival );
+    if ( drops_ok && this->blockState.id == AIR && current_block_state.id != AIR && current_block_state.id != LAST_BLOCK_ID ) {
+        break_drops( repGameState, this->block_pos, current_block_state.id );
+    }
     // Water flowing into a waterloggable block waterlogs it instead of
     // breaking it — no debris, nothing was destroyed.
     if ( !( this->blockState.id == WATER && current_block->waterloggable ) ) {

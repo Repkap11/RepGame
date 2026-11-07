@@ -179,4 +179,5 @@ Hitting: left click raycasts mobs (`MobManager::raycast`, AABB slab test)
 against `block_selection.ray_origin/ray_dir`; a mob nearer than the
 selected block takes `HIT_DAMAGE` (4.0, creative kills in one hit), gets
 knockback + a 0.3 s red flash + 5 s panic, and rolls `MobTypeDef::drops`
-in survival when killed.
+in survival when killed (zombies: rotten flesh 0-2 plus bones 0-2 — the
+bone feeds the bone-meal recipe).

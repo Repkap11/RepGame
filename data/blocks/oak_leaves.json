@@ -33,5 +33,6 @@
       "max": 1,
       "chance": 0.005
     }
-  ]
+  ],
+  "persistent_variant": "OAK_LEAVES_PERSISTENT"
 }

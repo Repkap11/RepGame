@@ -5,6 +5,9 @@
 #include "common/utils/env_config.hpp"
 #include "common/utils/profile.hpp"
 #include "common/renderer/screenshot.hpp"
+#include "common/RepGame.hpp"
+#include "common/tree_grow.hpp"
+#include "common/light.hpp"
 
 #include <stdlib.h>
 #include <string>
@@ -1495,20 +1498,66 @@ bool World::process_random_ticks_on_chunk( const Chunk &chunk ) {
     return anyBlockStateChanged;
 }
 
-void World::process_random_ticks( ) {
-    pr_debug( "Tick" );
-    srand( counter );
-    counter += 1;
+void World::set_loaded_block_natural( const glm::ivec3 &block_pos, BlockState blockState ) {
+    Chunk *chunk = this->get_loaded_chunk( block_pos );
+    const uint8_t was_edited = chunk != nullptr ? chunk->player_edited : 0;
+    this->set_loaded_block( block_pos, blockState );
+    if ( chunk != nullptr ) {
+        chunk->player_edited = was_edited;
+    }
+}
+
+// Chunks within this many of the player get random ticks.
+#define RANDOM_TICK_RADIUS_XZ 2
+#define RANDOM_TICK_RADIUS_Y 1
+// Cells sampled per live chunk per game tick: ~1 tick per cell every
+// (62*62*62 / 24) / 144 s ≈ 69 s.
+#define RANDOM_TICKS_PER_CHUNK 24
+// Fraction of sapling random ticks that grow: ~3.5 min mean under 9+ light.
+#define SAPLING_GROW_CHANCE_NUM 1
+#define SAPLING_GROW_CHANCE_DEN 3
+// Minimum sky or block light level (of 15) for a sapling to grow.
+#define SAPLING_GROW_MIN_LIGHT ( 9.0f / 15.0f )
+
+void World::process_random_ticks( RepGameState &state ) {
+    const glm::ivec3 center_chunk( static_cast<int>( floor( state.camera.pos.x / CHUNK_SIZE_X ) ),
+                                   static_cast<int>( floor( state.camera.pos.y / CHUNK_SIZE_Y ) ),
+                                   static_cast<int>( floor( state.camera.pos.z / CHUNK_SIZE_Z ) ) );
+    const glm::ivec3 chunk_size( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        // TODO randomly pick chunks.
         Chunk &chunk = this->chunkLoader.chunkArray[ i ];
-        if ( !chunk.load_state ) {
-            bool anyStateChanged = false;
-            anyStateChanged |= process_random_ticks_on_chunk( chunk );
-            if ( anyStateChanged ) {
-                chunk.dirty = 1;
-                chunk.needs_repopulation = 1;
+        if ( chunk.load_state != CHUNK_LIVE ) {
+            continue;
+        }
+        const glm::ivec3 d = chunk.chunk_pos - center_chunk;
+        if ( abs( d.x ) > RANDOM_TICK_RADIUS_XZ || abs( d.z ) > RANDOM_TICK_RADIUS_XZ || abs( d.y ) > RANDOM_TICK_RADIUS_Y ) {
+            continue;
+        }
+        const glm::ivec3 chunk_origin = chunk.chunk_pos * chunk_size;
+        for ( int s = 0; s < RANDOM_TICKS_PER_CHUNK; s++ ) {
+            this->random_tick_state ^= this->random_tick_state << 13;
+            this->random_tick_state ^= this->random_tick_state >> 17;
+            this->random_tick_state ^= this->random_tick_state << 5;
+            const glm::ivec3 local( this->random_tick_state % CHUNK_SIZE_X,
+                                    ( this->random_tick_state >> 8 ) % CHUNK_SIZE_Y,
+                                    ( this->random_tick_state >> 16 ) % CHUNK_SIZE_Z );
+            const BlockState cell = chunk.get_block( local );
+            TreeSpec spec;
+            const glm::ivec3 world_pos = chunk_origin + local;
+            if ( !tree_spec_for_sapling( cell.id, world_pos, &spec ) ) {
+                continue;
             }
+            const glm::vec2 light = this->chunkLoader.light_sample( glm::vec3( world_pos ) + 0.5f );
+            if ( light.x < SAPLING_GROW_MIN_LIGHT && light.y < SAPLING_GROW_MIN_LIGHT ) {
+                continue;
+            }
+            this->random_tick_state ^= this->random_tick_state << 13;
+            this->random_tick_state ^= this->random_tick_state >> 17;
+            this->random_tick_state ^= this->random_tick_state << 5;
+            if ( this->random_tick_state % SAPLING_GROW_CHANCE_DEN >= SAPLING_GROW_CHANCE_NUM ) {
+                continue;
+            }
+            tree_grow_try( state, world_pos, true );
         }
     }
 }

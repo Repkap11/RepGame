@@ -321,6 +321,7 @@ block_definitions[ 21 ].hardness = 0.35f;
 block_definitions[ 21 ].is_seethrough = true;
 block_definitions[ 21 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 21 ].no_light = 6815743;
+block_definitions[ 21 ].persistent_variant = ACACIA_LEAVES_PERSISTENT;
 
 // ACACIA_SHELF (22)
 block_definitions[ 22 ].textures[ FACE_TOP ] = TEX_ACACIA_SHELF;
@@ -416,6 +417,7 @@ block_definitions[ 29 ].textures[ FACE_BACK ] = TEX_LOG_OAK;
 block_definitions[ 29 ].icon_texture = TEX_LOG_OAK;
 block_definitions[ 29 ].hardness = 2.0f;
 block_definitions[ 29 ].icon_is_isometric = true;
+block_definitions[ 29 ].is_log = true;
 block_definitions[ 29 ].mineable = MINEABLE_AXE;
 
 // ACACIA_TRAPDOOR (30)
@@ -1024,6 +1026,7 @@ block_definitions[ 70 ].hardness = 0.35f;
 block_definitions[ 70 ].is_seethrough = true;
 block_definitions[ 70 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 70 ].no_light = 6815743;
+block_definitions[ 70 ].persistent_variant = AZALEA_LEAVES_PERSISTENT;
 
 // AZALEA_LEAVES_FLOWERED (71)
 block_definitions[ 71 ].textures[ FACE_TOP ] = TEX_AZALEA_LEAVES_FLOWERS;
@@ -1038,6 +1041,7 @@ block_definitions[ 71 ].hardness = 0.35f;
 block_definitions[ 71 ].is_seethrough = true;
 block_definitions[ 71 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 71 ].no_light = 6815743;
+block_definitions[ 71 ].persistent_variant = AZALEA_LEAVES_FLOWERED_PERSISTENT;
 
 // BAMBOO (72)
 block_definitions[ 72 ].textures[ FACE_TOP ] = TEX_BAMBOO;
@@ -1137,6 +1141,7 @@ block_definitions[ 77 ].is_seethrough = true;
 block_definitions[ 77 ].light_absorb = 6;
 block_definitions[ 77 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 77 ].no_light = 6815743;
+block_definitions[ 77 ].persistent_variant = OAK_LEAVES_PERSISTENT;
 
 // BAMBOO_DOUBLE_SLAB (78)
 block_definitions[ 78 ].textures[ FACE_TOP ] = TEX_BAMBOO_PLANKS;
@@ -2144,6 +2149,7 @@ block_definitions[ 140 ].is_seethrough = true;
 block_definitions[ 140 ].light_absorb = 6;
 block_definitions[ 140 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 140 ].no_light = 6815743;
+block_definitions[ 140 ].persistent_variant = BIRCH_LEAVES_PERSISTENT;
 
 // PISTON (141)
 block_definitions[ 141 ].textures[ FACE_TOP ] = TEX_PISTON_SIDE_UP;
@@ -2919,6 +2925,7 @@ block_definitions[ 197 ].is_seethrough = true;
 block_definitions[ 197 ].light_absorb = 6;
 block_definitions[ 197 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 197 ].no_light = 6815743;
+block_definitions[ 197 ].persistent_variant = SPRUCE_LEAVES_PERSISTENT;
 
 // BONE_BLOCK (198)
 block_definitions[ 198 ].textures[ FACE_TOP ] = TEX_BONE_BLOCK_TOP;
@@ -3895,6 +3902,7 @@ block_definitions[ 265 ].hardness = 0.35f;
 block_definitions[ 265 ].is_seethrough = true;
 block_definitions[ 265 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 265 ].no_light = 6815743;
+block_definitions[ 265 ].persistent_variant = CHERRY_LEAVES_PERSISTENT;
 
 // CHERRY_LOG (266)
 block_definitions[ 266 ].textures[ FACE_TOP ] = TEX_CHERRY_LOG_TOP;
@@ -3904,6 +3912,7 @@ block_definitions[ 266 ].textures[ FACE_FRONT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 266 ].textures[ FACE_LEFT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 266 ].textures[ FACE_BACK ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 266 ].icon_texture = TEX_CHERRY_LOG_TOP;
+block_definitions[ 266 ].is_log = true;
 block_definitions[ 266 ].mineable = MINEABLE_AXE;
 
 // CHERRY_PLANKS (267)
@@ -4259,6 +4268,7 @@ block_definitions[ 293 ].is_seethrough = true;
 block_definitions[ 293 ].light_absorb = 6;
 block_definitions[ 293 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 293 ].no_light = 6815743;
+block_definitions[ 293 ].persistent_variant = JUNGLE_LEAVES_PERSISTENT;
 
 // CHISELED_TUFF_BRICKS (294)
 block_definitions[ 294 ].textures[ FACE_TOP ] = TEX_CHISELED_TUFF_BRICKS_TOP;
@@ -5906,6 +5916,7 @@ block_definitions[ 401 ].textures[ FACE_FRONT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 401 ].textures[ FACE_LEFT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 401 ].textures[ FACE_BACK ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 401 ].icon_texture = TEX_CRIMSON_LOG_SIDE;
+block_definitions[ 401 ].is_log = true;
 block_definitions[ 401 ].mineable = MINEABLE_AXE;
 
 // CRIMSON_NYLIUM (402)
@@ -5982,6 +5993,7 @@ block_definitions[ 406 ].textures[ FACE_BACK ] = TEX_LOG_ACACIA;
 block_definitions[ 406 ].icon_texture = TEX_LOG_ACACIA;
 block_definitions[ 406 ].hardness = 2.0f;
 block_definitions[ 406 ].icon_is_isometric = true;
+block_definitions[ 406 ].is_log = true;
 block_definitions[ 406 ].mineable = MINEABLE_AXE;
 
 // CRIMSON_SHELF (407)
@@ -6004,6 +6016,7 @@ block_definitions[ 408 ].textures[ FACE_BACK ] = TEX_LOG_BIG_OAK;
 block_definitions[ 408 ].icon_texture = TEX_LOG_BIG_OAK;
 block_definitions[ 408 ].hardness = 2.0f;
 block_definitions[ 408 ].icon_is_isometric = true;
+block_definitions[ 408 ].is_log = true;
 block_definitions[ 408 ].mineable = MINEABLE_AXE;
 
 // CRIMSON_SLAB (409)
@@ -6077,6 +6090,7 @@ block_definitions[ 414 ].textures[ FACE_FRONT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 414 ].textures[ FACE_LEFT ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 414 ].textures[ FACE_BACK ] = TEX_CRIMSON_LOG_SIDE;
 block_definitions[ 414 ].icon_texture = TEX_CRIMSON_LOG_TOP;
+block_definitions[ 414 ].is_log = true;
 block_definitions[ 414 ].mineable = MINEABLE_AXE;
 
 // CRIMSON_TRAPDOOR (415)
@@ -6350,6 +6364,7 @@ block_definitions[ 436 ].textures[ FACE_BACK ] = TEX_LOG_BIRCH;
 block_definitions[ 436 ].icon_texture = TEX_LOG_BIRCH;
 block_definitions[ 436 ].hardness = 2.0f;
 block_definitions[ 436 ].icon_is_isometric = true;
+block_definitions[ 436 ].is_log = true;
 block_definitions[ 436 ].mineable = MINEABLE_AXE;
 
 // CYAN_SHULKER_BOX (437)
@@ -6372,6 +6387,7 @@ block_definitions[ 438 ].textures[ FACE_BACK ] = TEX_LOG_JUNGLE;
 block_definitions[ 438 ].icon_texture = TEX_LOG_JUNGLE;
 block_definitions[ 438 ].hardness = 2.0f;
 block_definitions[ 438 ].icon_is_isometric = true;
+block_definitions[ 438 ].is_log = true;
 block_definitions[ 438 ].mineable = MINEABLE_AXE;
 
 // CYAN_STAINED_GLASS (439)
@@ -6551,6 +6567,7 @@ block_definitions[ 451 ].hardness = 0.35f;
 block_definitions[ 451 ].is_seethrough = true;
 block_definitions[ 451 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 451 ].no_light = 6815743;
+block_definitions[ 451 ].persistent_variant = DARK_OAK_LEAVES_PERSISTENT;
 
 // DARK_OAK_SHELF (452)
 block_definitions[ 452 ].textures[ FACE_TOP ] = TEX_DARK_OAK_SHELF;
@@ -9596,6 +9613,7 @@ block_definitions[ 674 ].hardness = 0.35f;
 block_definitions[ 674 ].is_seethrough = true;
 block_definitions[ 674 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 674 ].no_light = 6815743;
+block_definitions[ 674 ].persistent_variant = LEAVES_PERSISTENT;
 
 // LEAVES2 (675)
 block_definitions[ 675 ].textures[ FACE_TOP ] = TEX_LEAVES_ACACIA_CARRIED;
@@ -9610,6 +9628,7 @@ block_definitions[ 675 ].hardness = 0.35f;
 block_definitions[ 675 ].is_seethrough = true;
 block_definitions[ 675 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 675 ].no_light = 6815743;
+block_definitions[ 675 ].persistent_variant = LEAVES2_PERSISTENT;
 
 // LECTERN (676)
 block_definitions[ 676 ].textures[ FACE_TOP ] = TEX_LECTERN_TOP;
@@ -10348,6 +10367,7 @@ block_definitions[ 735 ].textures[ FACE_FRONT ] = TEX_LOG_OAK;
 block_definitions[ 735 ].textures[ FACE_LEFT ] = TEX_LOG_OAK;
 block_definitions[ 735 ].textures[ FACE_BACK ] = TEX_LOG_OAK;
 block_definitions[ 735 ].icon_texture = TEX_LOG_OAK_TOP;
+block_definitions[ 735 ].is_log = true;
 block_definitions[ 735 ].mineable = MINEABLE_AXE;
 
 // LOG2 (736)
@@ -10358,6 +10378,7 @@ block_definitions[ 736 ].textures[ FACE_FRONT ] = TEX_LOG_ACACIA;
 block_definitions[ 736 ].textures[ FACE_LEFT ] = TEX_LOG_ACACIA;
 block_definitions[ 736 ].textures[ FACE_BACK ] = TEX_LOG_ACACIA;
 block_definitions[ 736 ].icon_texture = TEX_LOG_ACACIA_TOP;
+block_definitions[ 736 ].is_log = true;
 block_definitions[ 736 ].mineable = MINEABLE_AXE;
 
 // LOOM (737)
@@ -10712,6 +10733,7 @@ block_definitions[ 762 ].hardness = 0.35f;
 block_definitions[ 762 ].is_seethrough = true;
 block_definitions[ 762 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 762 ].no_light = 6815743;
+block_definitions[ 762 ].persistent_variant = MANGROVE_LEAVES_PERSISTENT;
 
 // MANGROVE_LOG (763)
 block_definitions[ 763 ].textures[ FACE_TOP ] = TEX_MANGROVE_LOG_TOP;
@@ -10721,6 +10743,7 @@ block_definitions[ 763 ].textures[ FACE_FRONT ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 763 ].textures[ FACE_LEFT ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 763 ].textures[ FACE_BACK ] = TEX_MANGROVE_LOG_SIDE;
 block_definitions[ 763 ].icon_texture = TEX_MANGROVE_LOG_TOP;
+block_definitions[ 763 ].is_log = true;
 block_definitions[ 763 ].mineable = MINEABLE_AXE;
 
 // MANGROVE_PLANKS (764)
@@ -11813,6 +11836,7 @@ block_definitions[ 842 ].hardness = 0.35f;
 block_definitions[ 842 ].is_seethrough = true;
 block_definitions[ 842 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 842 ].no_light = 6815743;
+block_definitions[ 842 ].persistent_variant = ORANGE_POPLAR_LEAVES_PERSISTENT;
 
 // ORANGE_SHULKER_BOX (843)
 block_definitions[ 843 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_ORANGE;
@@ -12499,6 +12523,7 @@ block_definitions[ 887 ].hardness = 0.35f;
 block_definitions[ 887 ].is_seethrough = true;
 block_definitions[ 887 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 887 ].no_light = 6815743;
+block_definitions[ 887 ].persistent_variant = PALE_OAK_LEAVES_PERSISTENT;
 
 // PALE_OAK_LOG (888)
 block_definitions[ 888 ].textures[ FACE_TOP ] = TEX_PALE_OAK_LOG_TOP;
@@ -12508,6 +12533,7 @@ block_definitions[ 888 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 888 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 888 ].textures[ FACE_BACK ] = TEX_PALE_OAK_LOG_SIDE;
 block_definitions[ 888 ].icon_texture = TEX_PALE_OAK_LOG_TOP;
+block_definitions[ 888 ].is_log = true;
 block_definitions[ 888 ].mineable = MINEABLE_AXE;
 
 // PALE_OAK_PLANKS (889)
@@ -13677,6 +13703,7 @@ block_definitions[ 975 ].textures[ FACE_FRONT ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 975 ].textures[ FACE_LEFT ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 975 ].textures[ FACE_BACK ] = TEX_POPLAR_LOG_SIDE;
 block_definitions[ 975 ].icon_texture = TEX_POPLAR_LOG_TOP;
+block_definitions[ 975 ].is_log = true;
 block_definitions[ 975 ].mineable = MINEABLE_AXE;
 
 // POPLAR_PLANKS (976)
@@ -15080,6 +15107,7 @@ block_definitions[ 1074 ].hardness = 0.35f;
 block_definitions[ 1074 ].is_seethrough = true;
 block_definitions[ 1074 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 1074 ].no_light = 6815743;
+block_definitions[ 1074 ].persistent_variant = RED_POPLAR_LEAVES_PERSISTENT;
 
 // RED_SANDSTONE_DOUBLE_SLAB (1075)
 block_definitions[ 1075 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -16042,6 +16070,7 @@ block_definitions[ 1149 ].textures[ FACE_FRONT ] = TEX_LOG_SPRUCE;
 block_definitions[ 1149 ].textures[ FACE_LEFT ] = TEX_LOG_SPRUCE;
 block_definitions[ 1149 ].textures[ FACE_BACK ] = TEX_LOG_SPRUCE;
 block_definitions[ 1149 ].icon_texture = TEX_LOG_SPRUCE_TOP;
+block_definitions[ 1149 ].is_log = true;
 block_definitions[ 1149 ].mineable = MINEABLE_AXE;
 
 // SPRUCE_SAPLING (1150)
@@ -16372,6 +16401,7 @@ block_definitions[ 1174 ].textures[ FACE_FRONT ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1174 ].textures[ FACE_LEFT ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1174 ].textures[ FACE_BACK ] = TEX_STRIPPED_ACACIA_LOG;
 block_definitions[ 1174 ].icon_texture = TEX_STRIPPED_ACACIA_LOG_TOP;
+block_definitions[ 1174 ].is_log = true;
 block_definitions[ 1174 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_ACACIA_WOOD (1175)
@@ -16402,6 +16432,7 @@ block_definitions[ 1177 ].textures[ FACE_FRONT ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1177 ].textures[ FACE_LEFT ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1177 ].textures[ FACE_BACK ] = TEX_STRIPPED_BIRCH_LOG;
 block_definitions[ 1177 ].icon_texture = TEX_STRIPPED_BIRCH_LOG_TOP;
+block_definitions[ 1177 ].is_log = true;
 block_definitions[ 1177 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_BIRCH_WOOD (1178)
@@ -16422,6 +16453,7 @@ block_definitions[ 1179 ].textures[ FACE_FRONT ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1179 ].textures[ FACE_LEFT ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1179 ].textures[ FACE_BACK ] = TEX_STRIPPED_CHERRY_LOG_SIDE;
 block_definitions[ 1179 ].icon_texture = TEX_STRIPPED_CHERRY_LOG_TOP;
+block_definitions[ 1179 ].is_log = true;
 block_definitions[ 1179 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_CHERRY_WOOD (1180)
@@ -16442,6 +16474,7 @@ block_definitions[ 1181 ].textures[ FACE_FRONT ] = TEX_STRIPPED_CRIMSON_STEM_SID
 block_definitions[ 1181 ].textures[ FACE_LEFT ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1181 ].textures[ FACE_BACK ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1181 ].icon_texture = TEX_STRIPPED_CRIMSON_STEM_SIDE;
+block_definitions[ 1181 ].is_log = true;
 block_definitions[ 1181 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_CRIMSON_STEM (1182)
@@ -16452,6 +16485,7 @@ block_definitions[ 1182 ].textures[ FACE_FRONT ] = TEX_STRIPPED_CRIMSON_STEM_SID
 block_definitions[ 1182 ].textures[ FACE_LEFT ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1182 ].textures[ FACE_BACK ] = TEX_STRIPPED_CRIMSON_STEM_SIDE;
 block_definitions[ 1182 ].icon_texture = TEX_STRIPPED_CRIMSON_STEM_TOP;
+block_definitions[ 1182 ].is_log = true;
 block_definitions[ 1182 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_DARK_OAK_LOG (1183)
@@ -16462,6 +16496,7 @@ block_definitions[ 1183 ].textures[ FACE_FRONT ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1183 ].textures[ FACE_LEFT ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1183 ].textures[ FACE_BACK ] = TEX_STRIPPED_DARK_OAK_LOG;
 block_definitions[ 1183 ].icon_texture = TEX_STRIPPED_DARK_OAK_LOG_TOP;
+block_definitions[ 1183 ].is_log = true;
 block_definitions[ 1183 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_DARK_OAK_WOOD (1184)
@@ -16482,6 +16517,7 @@ block_definitions[ 1185 ].textures[ FACE_FRONT ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1185 ].textures[ FACE_LEFT ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1185 ].textures[ FACE_BACK ] = TEX_STRIPPED_JUNGLE_LOG;
 block_definitions[ 1185 ].icon_texture = TEX_STRIPPED_JUNGLE_LOG_TOP;
+block_definitions[ 1185 ].is_log = true;
 block_definitions[ 1185 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_JUNGLE_WOOD (1186)
@@ -16502,6 +16538,7 @@ block_definitions[ 1187 ].textures[ FACE_FRONT ] = TEX_STRIPPED_MANGROVE_LOG_SID
 block_definitions[ 1187 ].textures[ FACE_LEFT ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
 block_definitions[ 1187 ].textures[ FACE_BACK ] = TEX_STRIPPED_MANGROVE_LOG_SIDE;
 block_definitions[ 1187 ].icon_texture = TEX_STRIPPED_MANGROVE_LOG_TOP;
+block_definitions[ 1187 ].is_log = true;
 block_definitions[ 1187 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_MANGROVE_WOOD (1188)
@@ -16522,6 +16559,7 @@ block_definitions[ 1189 ].textures[ FACE_FRONT ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1189 ].textures[ FACE_LEFT ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1189 ].textures[ FACE_BACK ] = TEX_STRIPPED_OAK_LOG;
 block_definitions[ 1189 ].icon_texture = TEX_STRIPPED_OAK_LOG_TOP;
+block_definitions[ 1189 ].is_log = true;
 block_definitions[ 1189 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_OAK_WOOD (1190)
@@ -16542,6 +16580,7 @@ block_definitions[ 1191 ].textures[ FACE_FRONT ] = TEX_STRIPPED_PALE_OAK_LOG_SID
 block_definitions[ 1191 ].textures[ FACE_LEFT ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
 block_definitions[ 1191 ].textures[ FACE_BACK ] = TEX_STRIPPED_PALE_OAK_LOG_SIDE;
 block_definitions[ 1191 ].icon_texture = TEX_STRIPPED_PALE_OAK_LOG_TOP;
+block_definitions[ 1191 ].is_log = true;
 block_definitions[ 1191 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_PALE_OAK_WOOD (1192)
@@ -16562,6 +16601,7 @@ block_definitions[ 1193 ].textures[ FACE_FRONT ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1193 ].textures[ FACE_LEFT ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1193 ].textures[ FACE_BACK ] = TEX_STRIPPED_POPLAR_LOG_SIDE;
 block_definitions[ 1193 ].icon_texture = TEX_STRIPPED_POPLAR_LOG_TOP;
+block_definitions[ 1193 ].is_log = true;
 block_definitions[ 1193 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_POPLAR_WOOD (1194)
@@ -16582,6 +16622,7 @@ block_definitions[ 1195 ].textures[ FACE_FRONT ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1195 ].textures[ FACE_LEFT ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1195 ].textures[ FACE_BACK ] = TEX_STRIPPED_SPRUCE_LOG;
 block_definitions[ 1195 ].icon_texture = TEX_STRIPPED_SPRUCE_LOG_TOP;
+block_definitions[ 1195 ].is_log = true;
 block_definitions[ 1195 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_SPRUCE_WOOD (1196)
@@ -16602,6 +16643,7 @@ block_definitions[ 1197 ].textures[ FACE_FRONT ] = TEX_STRIPPED_WARPED_STEM_SIDE
 block_definitions[ 1197 ].textures[ FACE_LEFT ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1197 ].textures[ FACE_BACK ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1197 ].icon_texture = TEX_STRIPPED_WARPED_STEM_SIDE;
+block_definitions[ 1197 ].is_log = true;
 block_definitions[ 1197 ].mineable = MINEABLE_AXE;
 
 // STRIPPED_WARPED_STEM (1198)
@@ -16612,6 +16654,7 @@ block_definitions[ 1198 ].textures[ FACE_FRONT ] = TEX_STRIPPED_WARPED_STEM_SIDE
 block_definitions[ 1198 ].textures[ FACE_LEFT ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1198 ].textures[ FACE_BACK ] = TEX_STRIPPED_WARPED_STEM_SIDE;
 block_definitions[ 1198 ].icon_texture = TEX_STRIPPED_WARPED_STEM_TOP;
+block_definitions[ 1198 ].is_log = true;
 block_definitions[ 1198 ].mineable = MINEABLE_AXE;
 
 // STRUCTURE_BLOCK (1199)
@@ -17735,6 +17778,7 @@ block_definitions[ 1272 ].textures[ FACE_FRONT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1272 ].textures[ FACE_LEFT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1272 ].textures[ FACE_BACK ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1272 ].icon_texture = TEX_WARPED_STEM_SIDE;
+block_definitions[ 1272 ].is_log = true;
 block_definitions[ 1272 ].mineable = MINEABLE_AXE;
 
 // WARPED_NYLIUM (1273)
@@ -17860,6 +17904,7 @@ block_definitions[ 1281 ].textures[ FACE_FRONT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1281 ].textures[ FACE_LEFT ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1281 ].textures[ FACE_BACK ] = TEX_WARPED_STEM_SIDE;
 block_definitions[ 1281 ].icon_texture = TEX_WARPED_STEM_TOP;
+block_definitions[ 1281 ].is_log = true;
 block_definitions[ 1281 ].mineable = MINEABLE_AXE;
 
 // WARPED_TRAPDOOR (1282)
@@ -19404,6 +19449,7 @@ block_definitions[ 1397 ].hardness = 0.35f;
 block_definitions[ 1397 ].is_seethrough = true;
 block_definitions[ 1397 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 1397 ].no_light = 6815743;
+block_definitions[ 1397 ].persistent_variant = YELLOW_POPLAR_LEAVES_PERSISTENT;
 
 // YELLOW_SHULKER_BOX (1398)
 block_definitions[ 1398 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_YELLOW;
@@ -19900,165 +19946,249 @@ block_definitions[ 1421 ].scale = { 14, 16, 14 };
 block_definitions[ 1421 ].tall_plant_partner = TALL_GRASS;
 block_definitions[ 1421 ].tex_offset = { -1, 0, -1 };
 
-// undefined (1422)
-block_definitions[ 1422 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1422 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1422 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1422 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1422 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1422 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1422 ].icon_texture = TEX_AIR;
-block_definitions[ 1422 ].is_pickable = false;
+// ACACIA_LEAVES_PERSISTENT (1422)
+block_definitions[ 1422 ].textures[ FACE_TOP ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1422 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1422 ].textures[ FACE_RIGHT ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1422 ].textures[ FACE_FRONT ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1422 ].textures[ FACE_LEFT ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1422 ].textures[ FACE_BACK ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1422 ].icon_texture = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1422 ].casts_shadow = false;
+block_definitions[ 1422 ].hardness = 0.35f;
+block_definitions[ 1422 ].is_seethrough = true;
+block_definitions[ 1422 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1422 ].natural_variant = ACACIA_LEAVES;
+block_definitions[ 1422 ].no_light = 6815743;
 
-// undefined (1423)
-block_definitions[ 1423 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1423 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1423 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1423 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1423 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1423 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1423 ].icon_texture = TEX_AIR;
-block_definitions[ 1423 ].is_pickable = false;
+// AZALEA_LEAVES_PERSISTENT (1423)
+block_definitions[ 1423 ].textures[ FACE_TOP ] = TEX_AZALEA_LEAVES;
+block_definitions[ 1423 ].textures[ FACE_BOTTOM ] = TEX_AZALEA_LEAVES;
+block_definitions[ 1423 ].textures[ FACE_RIGHT ] = TEX_AZALEA_LEAVES;
+block_definitions[ 1423 ].textures[ FACE_FRONT ] = TEX_AZALEA_LEAVES;
+block_definitions[ 1423 ].textures[ FACE_LEFT ] = TEX_AZALEA_LEAVES;
+block_definitions[ 1423 ].textures[ FACE_BACK ] = TEX_AZALEA_LEAVES;
+block_definitions[ 1423 ].icon_texture = TEX_AZALEA_LEAVES;
+block_definitions[ 1423 ].casts_shadow = false;
+block_definitions[ 1423 ].hardness = 0.35f;
+block_definitions[ 1423 ].is_seethrough = true;
+block_definitions[ 1423 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1423 ].natural_variant = AZALEA_LEAVES;
+block_definitions[ 1423 ].no_light = 6815743;
 
-// undefined (1424)
-block_definitions[ 1424 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1424 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1424 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1424 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1424 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1424 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1424 ].icon_texture = TEX_AIR;
-block_definitions[ 1424 ].is_pickable = false;
+// AZALEA_LEAVES_FLOWERED_PERSISTENT (1424)
+block_definitions[ 1424 ].textures[ FACE_TOP ] = TEX_AZALEA_LEAVES_FLOWERS;
+block_definitions[ 1424 ].textures[ FACE_BOTTOM ] = TEX_AZALEA_LEAVES_FLOWERS;
+block_definitions[ 1424 ].textures[ FACE_RIGHT ] = TEX_AZALEA_LEAVES_FLOWERS;
+block_definitions[ 1424 ].textures[ FACE_FRONT ] = TEX_AZALEA_LEAVES_FLOWERS;
+block_definitions[ 1424 ].textures[ FACE_LEFT ] = TEX_AZALEA_LEAVES_FLOWERS;
+block_definitions[ 1424 ].textures[ FACE_BACK ] = TEX_AZALEA_LEAVES_FLOWERS;
+block_definitions[ 1424 ].icon_texture = TEX_AZALEA_LEAVES_FLOWERS;
+block_definitions[ 1424 ].casts_shadow = false;
+block_definitions[ 1424 ].hardness = 0.35f;
+block_definitions[ 1424 ].is_seethrough = true;
+block_definitions[ 1424 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1424 ].natural_variant = AZALEA_LEAVES_FLOWERED;
+block_definitions[ 1424 ].no_light = 6815743;
 
-// undefined (1425)
-block_definitions[ 1425 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1425 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1425 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1425 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1425 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1425 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1425 ].icon_texture = TEX_AIR;
-block_definitions[ 1425 ].is_pickable = false;
+// BIRCH_LEAVES_PERSISTENT (1425)
+block_definitions[ 1425 ].textures[ FACE_TOP ] = TEX_LEAVES_BIRCH_CARRIED;
+block_definitions[ 1425 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_BIRCH_CARRIED;
+block_definitions[ 1425 ].textures[ FACE_RIGHT ] = TEX_LEAVES_BIRCH_CARRIED;
+block_definitions[ 1425 ].textures[ FACE_FRONT ] = TEX_LEAVES_BIRCH_CARRIED;
+block_definitions[ 1425 ].textures[ FACE_LEFT ] = TEX_LEAVES_BIRCH_CARRIED;
+block_definitions[ 1425 ].textures[ FACE_BACK ] = TEX_LEAVES_BIRCH_CARRIED;
+block_definitions[ 1425 ].icon_texture = TEX_LEAVES_BIRCH_CARRIED;
+block_definitions[ 1425 ].casts_shadow = false;
+block_definitions[ 1425 ].hardness = 0.349999994f;
+block_definitions[ 1425 ].is_seethrough = true;
+block_definitions[ 1425 ].light_absorb = 6;
+block_definitions[ 1425 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1425 ].natural_variant = BIRCH_LEAVES;
+block_definitions[ 1425 ].no_light = 6815743;
 
-// undefined (1426)
-block_definitions[ 1426 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1426 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1426 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1426 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1426 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1426 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1426 ].icon_texture = TEX_AIR;
-block_definitions[ 1426 ].is_pickable = false;
+// CHERRY_LEAVES_PERSISTENT (1426)
+block_definitions[ 1426 ].textures[ FACE_TOP ] = TEX_CHERRY_LEAVES;
+block_definitions[ 1426 ].textures[ FACE_BOTTOM ] = TEX_CHERRY_LEAVES;
+block_definitions[ 1426 ].textures[ FACE_RIGHT ] = TEX_CHERRY_LEAVES;
+block_definitions[ 1426 ].textures[ FACE_FRONT ] = TEX_CHERRY_LEAVES;
+block_definitions[ 1426 ].textures[ FACE_LEFT ] = TEX_CHERRY_LEAVES;
+block_definitions[ 1426 ].textures[ FACE_BACK ] = TEX_CHERRY_LEAVES;
+block_definitions[ 1426 ].icon_texture = TEX_CHERRY_LEAVES;
+block_definitions[ 1426 ].casts_shadow = false;
+block_definitions[ 1426 ].hardness = 0.35f;
+block_definitions[ 1426 ].is_seethrough = true;
+block_definitions[ 1426 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1426 ].natural_variant = CHERRY_LEAVES;
+block_definitions[ 1426 ].no_light = 6815743;
 
-// undefined (1427)
-block_definitions[ 1427 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1427 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1427 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1427 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1427 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1427 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1427 ].icon_texture = TEX_AIR;
-block_definitions[ 1427 ].is_pickable = false;
+// DARK_OAK_LEAVES_PERSISTENT (1427)
+block_definitions[ 1427 ].textures[ FACE_TOP ] = TEX_LEAVES_BIG_OAK_CARRIED;
+block_definitions[ 1427 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_BIG_OAK_CARRIED;
+block_definitions[ 1427 ].textures[ FACE_RIGHT ] = TEX_LEAVES_BIG_OAK_CARRIED;
+block_definitions[ 1427 ].textures[ FACE_FRONT ] = TEX_LEAVES_BIG_OAK_CARRIED;
+block_definitions[ 1427 ].textures[ FACE_LEFT ] = TEX_LEAVES_BIG_OAK_CARRIED;
+block_definitions[ 1427 ].textures[ FACE_BACK ] = TEX_LEAVES_BIG_OAK_CARRIED;
+block_definitions[ 1427 ].icon_texture = TEX_LEAVES_BIG_OAK_CARRIED;
+block_definitions[ 1427 ].casts_shadow = false;
+block_definitions[ 1427 ].hardness = 0.35f;
+block_definitions[ 1427 ].is_seethrough = true;
+block_definitions[ 1427 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1427 ].natural_variant = DARK_OAK_LEAVES;
+block_definitions[ 1427 ].no_light = 6815743;
 
-// undefined (1428)
-block_definitions[ 1428 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1428 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1428 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1428 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1428 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1428 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1428 ].icon_texture = TEX_AIR;
-block_definitions[ 1428 ].is_pickable = false;
+// JUNGLE_LEAVES_PERSISTENT (1428)
+block_definitions[ 1428 ].textures[ FACE_TOP ] = TEX_LEAVES_JUNGLE_CARRIED;
+block_definitions[ 1428 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_JUNGLE_CARRIED;
+block_definitions[ 1428 ].textures[ FACE_RIGHT ] = TEX_LEAVES_JUNGLE_CARRIED;
+block_definitions[ 1428 ].textures[ FACE_FRONT ] = TEX_LEAVES_JUNGLE_CARRIED;
+block_definitions[ 1428 ].textures[ FACE_LEFT ] = TEX_LEAVES_JUNGLE_CARRIED;
+block_definitions[ 1428 ].textures[ FACE_BACK ] = TEX_LEAVES_JUNGLE_CARRIED;
+block_definitions[ 1428 ].icon_texture = TEX_LEAVES_JUNGLE_CARRIED;
+block_definitions[ 1428 ].casts_shadow = false;
+block_definitions[ 1428 ].hardness = 0.349999994f;
+block_definitions[ 1428 ].is_seethrough = true;
+block_definitions[ 1428 ].light_absorb = 6;
+block_definitions[ 1428 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1428 ].natural_variant = JUNGLE_LEAVES;
+block_definitions[ 1428 ].no_light = 6815743;
 
-// undefined (1429)
-block_definitions[ 1429 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1429 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1429 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1429 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1429 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1429 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1429 ].icon_texture = TEX_AIR;
-block_definitions[ 1429 ].is_pickable = false;
+// LEAVES_PERSISTENT (1429)
+block_definitions[ 1429 ].textures[ FACE_TOP ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1429 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1429 ].textures[ FACE_RIGHT ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1429 ].textures[ FACE_FRONT ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1429 ].textures[ FACE_LEFT ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1429 ].textures[ FACE_BACK ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1429 ].icon_texture = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1429 ].casts_shadow = false;
+block_definitions[ 1429 ].hardness = 0.35f;
+block_definitions[ 1429 ].is_seethrough = true;
+block_definitions[ 1429 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1429 ].natural_variant = LEAVES;
+block_definitions[ 1429 ].no_light = 6815743;
 
-// undefined (1430)
-block_definitions[ 1430 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1430 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1430 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1430 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1430 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1430 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1430 ].icon_texture = TEX_AIR;
-block_definitions[ 1430 ].is_pickable = false;
+// LEAVES2_PERSISTENT (1430)
+block_definitions[ 1430 ].textures[ FACE_TOP ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1430 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1430 ].textures[ FACE_RIGHT ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1430 ].textures[ FACE_FRONT ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1430 ].textures[ FACE_LEFT ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1430 ].textures[ FACE_BACK ] = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1430 ].icon_texture = TEX_LEAVES_ACACIA_CARRIED;
+block_definitions[ 1430 ].casts_shadow = false;
+block_definitions[ 1430 ].hardness = 0.35f;
+block_definitions[ 1430 ].is_seethrough = true;
+block_definitions[ 1430 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1430 ].natural_variant = LEAVES2;
+block_definitions[ 1430 ].no_light = 6815743;
 
-// undefined (1431)
-block_definitions[ 1431 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1431 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1431 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1431 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1431 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1431 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1431 ].icon_texture = TEX_AIR;
-block_definitions[ 1431 ].is_pickable = false;
+// MANGROVE_LEAVES_PERSISTENT (1431)
+block_definitions[ 1431 ].textures[ FACE_TOP ] = TEX_MANGROVE_LEAVES_CARRIED;
+block_definitions[ 1431 ].textures[ FACE_BOTTOM ] = TEX_MANGROVE_LEAVES_CARRIED;
+block_definitions[ 1431 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_LEAVES_CARRIED;
+block_definitions[ 1431 ].textures[ FACE_FRONT ] = TEX_MANGROVE_LEAVES_CARRIED;
+block_definitions[ 1431 ].textures[ FACE_LEFT ] = TEX_MANGROVE_LEAVES_CARRIED;
+block_definitions[ 1431 ].textures[ FACE_BACK ] = TEX_MANGROVE_LEAVES_CARRIED;
+block_definitions[ 1431 ].icon_texture = TEX_MANGROVE_LEAVES_CARRIED;
+block_definitions[ 1431 ].casts_shadow = false;
+block_definitions[ 1431 ].hardness = 0.35f;
+block_definitions[ 1431 ].is_seethrough = true;
+block_definitions[ 1431 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1431 ].natural_variant = MANGROVE_LEAVES;
+block_definitions[ 1431 ].no_light = 6815743;
 
-// undefined (1432)
-block_definitions[ 1432 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1432 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1432 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1432 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1432 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1432 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1432 ].icon_texture = TEX_AIR;
-block_definitions[ 1432 ].is_pickable = false;
+// OAK_LEAVES_PERSISTENT (1432)
+block_definitions[ 1432 ].textures[ FACE_TOP ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1432 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1432 ].textures[ FACE_RIGHT ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1432 ].textures[ FACE_FRONT ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1432 ].textures[ FACE_LEFT ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1432 ].textures[ FACE_BACK ] = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1432 ].icon_texture = TEX_LEAVES_OAK_CARRIED;
+block_definitions[ 1432 ].casts_shadow = false;
+block_definitions[ 1432 ].hardness = 0.349999994f;
+block_definitions[ 1432 ].is_seethrough = true;
+block_definitions[ 1432 ].light_absorb = 6;
+block_definitions[ 1432 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1432 ].natural_variant = OAK_LEAVES;
+block_definitions[ 1432 ].no_light = 6815743;
 
-// undefined (1433)
-block_definitions[ 1433 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1433 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1433 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1433 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1433 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1433 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1433 ].icon_texture = TEX_AIR;
-block_definitions[ 1433 ].is_pickable = false;
+// ORANGE_POPLAR_LEAVES_PERSISTENT (1433)
+block_definitions[ 1433 ].textures[ FACE_TOP ] = TEX_ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].textures[ FACE_BOTTOM ] = TEX_ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].textures[ FACE_RIGHT ] = TEX_ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].textures[ FACE_FRONT ] = TEX_ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].textures[ FACE_LEFT ] = TEX_ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].textures[ FACE_BACK ] = TEX_ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].icon_texture = TEX_ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].casts_shadow = false;
+block_definitions[ 1433 ].hardness = 0.35f;
+block_definitions[ 1433 ].is_seethrough = true;
+block_definitions[ 1433 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1433 ].natural_variant = ORANGE_POPLAR_LEAVES;
+block_definitions[ 1433 ].no_light = 6815743;
 
-// undefined (1434)
-block_definitions[ 1434 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1434 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1434 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1434 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1434 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1434 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1434 ].icon_texture = TEX_AIR;
-block_definitions[ 1434 ].is_pickable = false;
+// PALE_OAK_LEAVES_PERSISTENT (1434)
+block_definitions[ 1434 ].textures[ FACE_TOP ] = TEX_PALE_OAK_LEAVES;
+block_definitions[ 1434 ].textures[ FACE_BOTTOM ] = TEX_PALE_OAK_LEAVES;
+block_definitions[ 1434 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_LEAVES;
+block_definitions[ 1434 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_LEAVES;
+block_definitions[ 1434 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_LEAVES;
+block_definitions[ 1434 ].textures[ FACE_BACK ] = TEX_PALE_OAK_LEAVES;
+block_definitions[ 1434 ].icon_texture = TEX_PALE_OAK_LEAVES;
+block_definitions[ 1434 ].casts_shadow = false;
+block_definitions[ 1434 ].hardness = 0.35f;
+block_definitions[ 1434 ].is_seethrough = true;
+block_definitions[ 1434 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1434 ].natural_variant = PALE_OAK_LEAVES;
+block_definitions[ 1434 ].no_light = 6815743;
 
-// undefined (1435)
-block_definitions[ 1435 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1435 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1435 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1435 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1435 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1435 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1435 ].icon_texture = TEX_AIR;
-block_definitions[ 1435 ].is_pickable = false;
+// RED_POPLAR_LEAVES_PERSISTENT (1435)
+block_definitions[ 1435 ].textures[ FACE_TOP ] = TEX_RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].textures[ FACE_BOTTOM ] = TEX_RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].textures[ FACE_RIGHT ] = TEX_RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].textures[ FACE_FRONT ] = TEX_RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].textures[ FACE_LEFT ] = TEX_RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].textures[ FACE_BACK ] = TEX_RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].icon_texture = TEX_RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].casts_shadow = false;
+block_definitions[ 1435 ].hardness = 0.35f;
+block_definitions[ 1435 ].is_seethrough = true;
+block_definitions[ 1435 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1435 ].natural_variant = RED_POPLAR_LEAVES;
+block_definitions[ 1435 ].no_light = 6815743;
 
-// undefined (1436)
-block_definitions[ 1436 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1436 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1436 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1436 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1436 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1436 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1436 ].icon_texture = TEX_AIR;
-block_definitions[ 1436 ].is_pickable = false;
+// SPRUCE_LEAVES_PERSISTENT (1436)
+block_definitions[ 1436 ].textures[ FACE_TOP ] = TEX_LEAVES_SPRUCE_CARRIED;
+block_definitions[ 1436 ].textures[ FACE_BOTTOM ] = TEX_LEAVES_SPRUCE_CARRIED;
+block_definitions[ 1436 ].textures[ FACE_RIGHT ] = TEX_LEAVES_SPRUCE_CARRIED;
+block_definitions[ 1436 ].textures[ FACE_FRONT ] = TEX_LEAVES_SPRUCE_CARRIED;
+block_definitions[ 1436 ].textures[ FACE_LEFT ] = TEX_LEAVES_SPRUCE_CARRIED;
+block_definitions[ 1436 ].textures[ FACE_BACK ] = TEX_LEAVES_SPRUCE_CARRIED;
+block_definitions[ 1436 ].icon_texture = TEX_LEAVES_SPRUCE_CARRIED;
+block_definitions[ 1436 ].casts_shadow = false;
+block_definitions[ 1436 ].hardness = 0.349999994f;
+block_definitions[ 1436 ].is_seethrough = true;
+block_definitions[ 1436 ].light_absorb = 6;
+block_definitions[ 1436 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1436 ].natural_variant = SPRUCE_LEAVES;
+block_definitions[ 1436 ].no_light = 6815743;
 
-// undefined (1437)
-block_definitions[ 1437 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1437 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1437 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1437 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1437 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1437 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1437 ].icon_texture = TEX_AIR;
-block_definitions[ 1437 ].is_pickable = false;
+// YELLOW_POPLAR_LEAVES_PERSISTENT (1437)
+block_definitions[ 1437 ].textures[ FACE_TOP ] = TEX_YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].textures[ FACE_BOTTOM ] = TEX_YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].textures[ FACE_RIGHT ] = TEX_YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].textures[ FACE_FRONT ] = TEX_YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].textures[ FACE_LEFT ] = TEX_YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].textures[ FACE_BACK ] = TEX_YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].icon_texture = TEX_YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].casts_shadow = false;
+block_definitions[ 1437 ].hardness = 0.35f;
+block_definitions[ 1437 ].is_seethrough = true;
+block_definitions[ 1437 ].mineable = MINEABLE_SHEARS;
+block_definitions[ 1437 ].natural_variant = YELLOW_POPLAR_LEAVES;
+block_definitions[ 1437 ].no_light = 6815743;
 
 // undefined (1438)
 block_definitions[ 1438 ].textures[ FACE_TOP ] = TEX_AIR;

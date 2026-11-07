@@ -158,12 +158,23 @@ sync: `docs/entities.md`.
 
 ## Other event behaviours
 
-`perform_checks` also drives non-redstone reactions: **water spread**
+`perform_checks` also drives non-redstone reactions: **leaf decay**
+(each `BlockNextToChangeEvent` ends by queueing a jittered
+`LeafDecayEvent` for either of its two positions holding natural leaves,
+deduped through `RepGameState::pending_leaf_decay` — see
+`docs/blocks.md`), **water spread**
 (`flows != 0` water next to a `breaks_in_liquid` cell queues a placement
 `flows` ticks out — already-`waterlogged` cells are skipped so plants
 don't loop) and **support kills** (`block_can_survive_at` fails → an AIR
 write: torches losing their attachment, doors/piston-heads losing their
-partner, `needs_place_on_any_solid` faces). Right-click interactions
+partner, `needs_place_on_any_solid` faces). Support kills carry
+`BreakDrops::Survival`: the queued `PlayerBlockPlacedEvent` AIR write
+spawns the broken block's drops through `break_drops`
+(`include/common/break_drops.hpp`, shared with the player break path and
+leaf decay). Two-cell blocks (doors, tall plants) drop only while their
+partner cell still holds the partner — whichever half goes second sees
+an empty partner, so a pair yields exactly one item. `BreakDrops` modes:
+`None` (default), `Survival`, `Always`. Right-click interactions
 (buttons, chest open, crafting table, gate/door toggles, dust dot
 toggle) all live in the right-click chain in
 `src/common/game/player.cpp`; sneak+right-click skips them and places

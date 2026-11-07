@@ -47,6 +47,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->door_partner = LAST_BLOCK_ID;
         block->is_tall_plant_upper = false;
         block->tall_plant_partner = LAST_BLOCK_ID;
+        block->persistent_variant = LAST_BLOCK_ID;
+        block->natural_variant = LAST_BLOCK_ID;
+        block->is_log = false;
         block->emits_light = 0;
         block->is_button = false;
         block->is_pressure_plate = false;
