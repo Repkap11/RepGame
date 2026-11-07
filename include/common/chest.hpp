@@ -51,10 +51,10 @@ struct ChestContents {
 
 // Chests are identified by block id, not a Block-definition flag, so the
 // server (which never initializes the GL-backed block_definitions table) can
-// answer the same question. Only the single chest is a container; the
+// answer the same question. Only CHEST is a container; the
 // DOUBLE_CHEST_* halves stay decorative.
 static inline bool block_is_chest( BlockID id ) {
-    return id == SINGLE_CHEST_LATCH;
+    return id == CHEST;
 }
 
 // Chest contents keyed by world block position (file + server form). The

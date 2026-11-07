@@ -2351,14 +2351,14 @@ block_definitions[ 163 ].textures[ FACE_LEFT ] = TEX_HARDENED_CLAY_STAINED_BLACK
 block_definitions[ 163 ].textures[ FACE_BACK ] = TEX_HARDENED_CLAY_STAINED_BLACK;
 block_definitions[ 163 ].icon_texture = TEX_HARDENED_CLAY_STAINED_BLACK;
 
-// SINGLE_CHEST_LATCH (164)
-block_definitions[ 164 ].textures[ FACE_TOP ] = TEX_CHEST_TOP;
-block_definitions[ 164 ].textures[ FACE_BOTTOM ] = TEX_CHEST_TOP;
-block_definitions[ 164 ].textures[ FACE_RIGHT ] = TEX_CHEST_SIDE;
-block_definitions[ 164 ].textures[ FACE_FRONT ] = TEX_CHEST_FRONT;
-block_definitions[ 164 ].textures[ FACE_LEFT ] = TEX_CHEST_SIDE;
-block_definitions[ 164 ].textures[ FACE_BACK ] = TEX_CHEST_SIDE;
-block_definitions[ 164 ].icon_texture = TEX_CHEST_FRONT;
+// CHEST (164)
+block_definitions[ 164 ].textures[ FACE_TOP ] = TEX_SINGLE_CHEST_TOP;
+block_definitions[ 164 ].textures[ FACE_BOTTOM ] = TEX_SINGLE_CHEST_TOP;
+block_definitions[ 164 ].textures[ FACE_RIGHT ] = TEX_SINGLE_CHEST_SIDE;
+block_definitions[ 164 ].textures[ FACE_FRONT ] = TEX_SINGLE_CHEST_LATCH;
+block_definitions[ 164 ].textures[ FACE_LEFT ] = TEX_SINGLE_CHEST_SIDE;
+block_definitions[ 164 ].textures[ FACE_BACK ] = TEX_SINGLE_CHEST_SIDE;
+block_definitions[ 164 ].icon_texture = TEX_SINGLE_CHEST_LATCH;
 block_definitions[ 164 ].hardness = 2.0f;
 block_definitions[ 164 ].icon_is_isometric = true;
 block_definitions[ 164 ].offset = { 1, 0, 1 };
@@ -2370,9 +2370,9 @@ block_definitions[ 164 ].tex_offset = { -1, 0, -1 };
 // DOUBLE_CHEST_LEFT_LATCH (165)
 block_definitions[ 165 ].textures[ FACE_TOP ] = TEX_DOUBLE_CHEST_LEFT_TOP;
 block_definitions[ 165 ].textures[ FACE_BOTTOM ] = TEX_DOUBLE_CHEST_LEFT_TOP;
-block_definitions[ 165 ].textures[ FACE_RIGHT ] = TEX_CHEST_SIDE;
+block_definitions[ 165 ].textures[ FACE_RIGHT ] = TEX_SINGLE_CHEST_SIDE;
 block_definitions[ 165 ].textures[ FACE_FRONT ] = TEX_DOUBLE_CHEST_LEFT_LATCH;
-block_definitions[ 165 ].textures[ FACE_LEFT ] = TEX_CHEST_SIDE;
+block_definitions[ 165 ].textures[ FACE_LEFT ] = TEX_SINGLE_CHEST_SIDE;
 block_definitions[ 165 ].textures[ FACE_BACK ] = TEX_DOUBLE_CHEST_LEFT_BACK;
 block_definitions[ 165 ].icon_texture = TEX_DOUBLE_CHEST_LEFT_TOP;
 block_definitions[ 165 ].hardness = 2.0f;
@@ -3882,14 +3882,15 @@ block_definitions[ 278 ].textures[ FACE_LEFT ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 278 ].textures[ FACE_BACK ] = TEX_CHERRY_LOG_SIDE;
 block_definitions[ 278 ].icon_texture = TEX_CHERRY_LOG_SIDE;
 
-// CHEST (279)
-block_definitions[ 279 ].textures[ FACE_TOP ] = TEX_CHEST_TOP;
-block_definitions[ 279 ].textures[ FACE_BOTTOM ] = TEX_CHEST_TOP;
-block_definitions[ 279 ].textures[ FACE_RIGHT ] = TEX_CHEST_SIDE;
-block_definitions[ 279 ].textures[ FACE_FRONT ] = TEX_CHEST_FRONT;
-block_definitions[ 279 ].textures[ FACE_LEFT ] = TEX_CHEST_SIDE;
-block_definitions[ 279 ].textures[ FACE_BACK ] = TEX_CHEST_SIDE;
-block_definitions[ 279 ].icon_texture = TEX_CHEST_TOP;
+// undefined (279)
+block_definitions[ 279 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 279 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 279 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 279 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 279 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 279 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 279 ].icon_texture = TEX_AIR;
+block_definitions[ 279 ].is_pickable = false;
 
 // CHIPPED_ANVIL (280)
 block_definitions[ 280 ].textures[ FACE_TOP ] = TEX_ANVIL_TOP_DAMAGED_1;

@@ -23,8 +23,8 @@
     "back": "double_chest_left_back",
     "bottom": "double_chest_left_top",
     "front": "double_chest_left_latch",
-    "left": "chest_side",
-    "right": "chest_side",
+    "left": "single_chest_side",
+    "right": "single_chest_side",
     "top": "double_chest_left_top"
   }
 }

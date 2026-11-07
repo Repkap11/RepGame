@@ -1,12 +1,32 @@
 {
- "id": 279,
- "name": "CHEST",
- "textures": {
-  "back": "chest_side",
-  "bottom": "chest_top",
-  "front": "chest_front",
-  "left": "chest_side",
-  "right": "chest_side",
-  "top": "chest_top"
- }
+  "hardness": 2,
+  "icon": "single_chest_latch",
+  "icon_is_isometric": true,
+  "id": 164,
+  "name": "CHEST",
+  "offset": [
+    1,
+    0,
+    1
+  ],
+  "piston_immovable": true,
+  "rotate_on_placement": true,
+  "scale": [
+    14,
+    15,
+    14
+  ],
+  "tex_offset": [
+    -1,
+    0,
+    -1
+  ],
+  "textures": {
+    "back": "single_chest_side",
+    "bottom": "single_chest_top",
+    "front": "single_chest_latch",
+    "left": "single_chest_side",
+    "right": "single_chest_side",
+    "top": "single_chest_top"
+  }
 }

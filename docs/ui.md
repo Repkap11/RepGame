@@ -49,7 +49,7 @@ UI/world boundary don't double-fire (`docs/player.md`).
 
 ## Chests
 
-A placed `SINGLE_CHEST_LATCH` block is a 9×3 container
+A placed `CHEST` block is a 9×3 container
 (`include/common/chest.hpp`; `DOUBLE_CHEST_*` halves are decorative,
 `block_is_chest` is the only identity check — it's by block id so the
 GL-less server can call it). Contents live in the owning `Chunk`

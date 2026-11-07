@@ -531,7 +531,7 @@ int test_crafting( ) {
         ItemID ring[ 9 ] = { OAK_PLANKS, OAK_PLANKS, OAK_PLANKS,
                              OAK_PLANKS, LAST_BLOCK_ID, OAK_PLANKS,
                              OAK_PLANKS, OAK_PLANKS, OAK_PLANKS };
-        expect( "chest ring in 3x3 -> SINGLE_CHEST_LATCH", ring, 3, SINGLE_CHEST_LATCH, 1 );
+        expect( "chest ring in 3x3 -> CHEST", ring, 3, CHEST, 1 );
         ItemID filled[ 9 ] = { OAK_PLANKS, OAK_PLANKS, OAK_PLANKS,
                                OAK_PLANKS, OAK_PLANKS, OAK_PLANKS,
                                OAK_PLANKS, OAK_PLANKS, OAK_PLANKS };
@@ -540,7 +540,7 @@ int test_crafting( ) {
         // exceed the grid).
         int chest_idx = -1;
         for ( int i = 0; i < CRAFT_RECIPE_COUNT; i++ ) {
-            if ( CRAFT_RECIPES[ i ].result == SINGLE_CHEST_LATCH ) {
+            if ( CRAFT_RECIPES[ i ].result == CHEST ) {
                 chest_idx = i;
             }
         }

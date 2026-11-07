@@ -42,7 +42,7 @@ const CraftRecipe CRAFT_RECIPES[] = {
     { 0, 0, 0, { { RECIPE_OPTS_5, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, CHERRY_PLANKS, 4 },
     { 1, 3, 1, { { RECIPE_OPTS_6, 1 }, { RECIPE_OPTS_6, 1 }, { RECIPE_OPTS_6, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, CHERRY_SLAB, 6 },
     { 1, 3, 3, { { RECIPE_OPTS_6, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_6, 1 }, { RECIPE_OPTS_6, 1 }, { nullptr, 0 }, { RECIPE_OPTS_6, 1 }, { RECIPE_OPTS_6, 1 }, { RECIPE_OPTS_6, 1 } }, CHERRY_STAIRS, 4 },
-    { 1, 3, 3, { { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { nullptr, 0 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 } }, SINGLE_CHEST_LATCH, 1 },
+    { 1, 3, 3, { { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { nullptr, 0 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 }, { RECIPE_OPTS_7, 14 } }, CHEST, 1 },
     { 1, 3, 1, { { RECIPE_OPTS_8, 1 }, { RECIPE_OPTS_8, 1 }, { RECIPE_OPTS_8, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, COBBLED_DEEPSLATE_SLAB, 6 },
     { 1, 3, 3, { { RECIPE_OPTS_8, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_8, 1 }, { RECIPE_OPTS_8, 1 }, { nullptr, 0 }, { RECIPE_OPTS_8, 1 }, { RECIPE_OPTS_8, 1 }, { RECIPE_OPTS_8, 1 } }, COBBLED_DEEPSLATE_STAIRS, 4 },
     { 1, 3, 1, { { RECIPE_OPTS_9, 1 }, { RECIPE_OPTS_9, 1 }, { RECIPE_OPTS_9, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, COBBLESTONE_SLAB, 6 },

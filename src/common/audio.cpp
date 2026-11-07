@@ -146,7 +146,7 @@ static const char *block_material( int block_id ) {
     case CACTUS_IN_POT:
 
 
-    case SINGLE_CHEST_LATCH:
+    case CHEST:
     case DOUBLE_CHEST_LEFT_LATCH:
     case DOUBLE_CHEST_RIGHT_LATCH:
 
