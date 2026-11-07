@@ -1,0 +1,8 @@
+---
+CompileFlags:
+  CompilationDatabase: out/linux/cmake-debug
+---
+If:
+  PathMatch: src/server/.*
+CompileFlags:
+  CompilationDatabase: out/server/cmake
