@@ -10,20 +10,20 @@ MODEL_PY := $(MODEL_VENV)/bin/python
 # CAR_GLB ?= $(sort $(wildcard $(HOME)/Downloads/cars/*.glb))
 # CAR_WORLD ?= ModelCars
 
-# CAR_GLB ?= $(HOME)/Downloads/ferrari-daytona-sp3-wwwvecarzcom/source/Ferrari_Daytona_SP3_Body_Smooth版2_上传100MB/fixV.glb
-# CAR_WORLD ?= ModelFerrari
-# CAR_COLORS ?= --color Carpaint=\#8E2323
-# # Object_423/426 are the gas cap and its ring (part names, not materials).
-# CAR_PREFER ?= --prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,Ferrari_Logo_Side,Grill,Carpaint
+CAR_GLB ?= $(HOME)/Downloads/cars/Ferrari_Daytona_SP3.glb
+CAR_WORLD ?= ModelFerrari
+CAR_COLORS ?= --color Carpaint=\#8E2323
+# Object_423/426 are the gas cap and its ring (part names, not materials).
+CAR_PREFER ?= --prefer Object_423,Object_426,Metal_Brushed,Ferrari_Logo_Front,Ferrari_Logo_Side,Grill,Carpaint
 
 # CAR_GLB ?= /home/paul/Downloads/2021_alfa_romeo_giulia_gtam.glb
 # CAR_WORLD ?= ModelAlfa
 
 
 # CAR_GLB ?= $(sort $(wildcard $(HOME)/Downloads/dogs/*.glb))
-CAR_GLB ?= $(HOME)/Downloads/dogs/Go2.glb
-CAR_WORLD ?= ModelDog
-CAR_ROTATE ?= --rotate x-90
+# # CAR_GLB ?= $(HOME)/Downloads/dogs/Go2.glb
+# CAR_WORLD ?= ModelDog
+# CAR_ROTATE ?= --rotate x-90
 
 
 # Applies to every model in CAR_GLB — match names vary per file; run
@@ -35,7 +35,7 @@ CAR_ROTATE ?=
 
 
 CAR_WORLD_DIR := $(HOME)/.repgame/$(CAR_WORLD)
-CAR_SIZE ?= 256
+CAR_SIZE ?= 1024
 CAR_GAP ?= 8
 
 # Args stamp: regenerates the world when CAR_SIZE/CAR_GAP/CAR_COLORS/
