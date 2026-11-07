@@ -40,10 +40,13 @@ constexpr static UIOverlayVertex vb_isometric_quad_held[ VB_ISOMETRIC_QUAD_SIZE 
     { 1.0f, 0.1875f, { 0, 0 }, 1, ISO_FACE_RIGHT, { 1, 0, 0 } }, // 6
     { 1.0f, 0.8125f, { 0, 1 }, 1, ISO_FACE_RIGHT, { 1, 1, 0 } }, // e
 
-    // Quad (adjusted for the in-hand held-block icon)
+    // Quad (adjusted for the in-hand held-block icon). UVs are the icon's
+    // transpose ((u,v) -> (1-v,1-u)): a diagonal mirror that swaps the
+    // sprite's top-left and bottom-right, so the blade faces screen center
+    // while the handle still reaches the hand in the lower-left.
     { 0.5f, 0.0f + 0.24, { 1, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },    //
-    { 0.5f, 0.625f + 0.24, { 1, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },  //
-    { 1.0f, 0.1875f + 0.24, { 0, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
+    { 0.5f, 0.625f + 0.24, { 0, 0 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } },  //
+    { 1.0f, 0.1875f + 0.24, { 1, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }, //
     { 1.0f, 0.8125f + 0.24, { 0, 1 }, 0, ISO_FACE_FRONT, { 0, 0, 0 } }  //
 };
 

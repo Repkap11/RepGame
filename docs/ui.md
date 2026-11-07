@@ -108,7 +108,10 @@ matching and the output slot are documented with the item/recipe data in
 - `UIOverlay` draws the crosshair, the in-hand block (shaded by
   `held_block_light` sampled at the camera), and the dragged item — all
   through the shared ui_overlay shader that `PauseMenu` also borrows via
-  `get_shader`.
+  `get_shader`. The in-hand icon sits in the lower-left (left hand):
+  `vb_isometric_quad_held`'s flat quad draws the sprite mirrored across
+  its diagonal (uv transposed), so the handle reaches the bottom-left
+  hand while the head faces screen center.
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
   (`item_name`) just above the hotbar, black-outlined via
   `FontRenderer::drawStringOutlined`; empty slots show nothing.
