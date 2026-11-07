@@ -19,7 +19,7 @@ bool furnace_tick( FurnaceContents &f, bool *changed ) {
     *changed = false;
 
     InventorySlot &input = f.slots[ FURNACE_SLOT_INPUT ];
-    const ItemID result = input.item_id == LAST_BLOCK_ID ? LAST_BLOCK_ID : smelt_result_item( input.item_id );
+    const ItemID result = input.item_id == LAST_BLOCK_ID ? static_cast<ItemID>( LAST_BLOCK_ID ) : smelt_result_item( input.item_id );
 
     if ( f.burn_ticks <= 0 && result != LAST_BLOCK_ID ) {
         InventorySlot &fuel = f.slots[ FURNACE_SLOT_FUEL ];

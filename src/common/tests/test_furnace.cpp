@@ -1,6 +1,6 @@
 // Furnace tests: smelting/fuel tables, furnace_tick progression, and the
 // FURNACE_* wire payloads.
-#include "test_util.hpp"
+#include "test_util.hpp" // IWYU pragma: keep -- shared test preamble (packet.hpp et al via RepGame.hpp)
 #include "common/furnace.hpp"
 #include "common/smelting.hpp"
 
@@ -155,8 +155,7 @@ int test_furnace( ) {
         net_serialize_furnace_contents( w, out_p );
         std::vector<uint8_t> buf = w.take_buf( );
         PacketReader r( buf.data( ), buf.size( ) );
-        NetFurnaceContentsPayload in_p;
-        memset( &in_p, 0, sizeof( in_p ) );
+        NetFurnaceContentsPayload in_p = {};
         check_bool( "net furnace contents: deserialize", net_deserialize_furnace_contents( r, in_p ) );
         check_bool( "net furnace contents: slots+progress",
                     in_p.contents.slots[ 0 ].item_id == RAW_IRON && in_p.contents.slots[ 0 ].quantity == 3 &&
