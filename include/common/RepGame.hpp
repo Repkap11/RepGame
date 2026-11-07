@@ -12,6 +12,7 @@ struct RepGameState;
 #include "common/game/game_state.hpp"
 #include "common/mob_types.hpp" // MobTypeDef
 #include "common/chest.hpp"     // ChestContents
+#include "common/furnace.hpp"   // FurnaceContents
 
 #define DEBUG 1
 
@@ -37,6 +38,9 @@ class RepGame {
     // Chest open/close (sends CHEST_OPEN/CHEST_CLOSE when connected).
     void open_chest( const glm::ivec3 &pos );
     void close_chest( );
+    // Furnace open/close (sends FURNACE_OPEN/FURNACE_CLOSE when connected).
+    void open_furnace( const glm::ivec3 &pos );
+    void close_furnace( );
     // Shared body of draw()/draw_vr(): everything once per frame, then the
     // world-draw section once per view (flat: a single pass with the screen
     // projection and interpolated camera).
@@ -162,3 +166,5 @@ class RepGame {
 // (survival first, hotbar for the overflow). Used for chest-break looting;
 // the multiplayer packet path calls this with the server's snapshot.
 void repgame_loot_chest_contents( RepGameState &state, const ChestContents &contents );
+// Same for a broken/open furnace's three slots.
+void repgame_loot_furnace_contents( RepGameState &state, const FurnaceContents &contents );

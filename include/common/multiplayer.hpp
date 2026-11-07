@@ -73,6 +73,10 @@ class Multiplayer {
     void chest_open( const glm::ivec3 &chest_pos );
     void chest_close( const glm::ivec3 &chest_pos );
     void chest_set_slot( const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value );
+    // Furnace container protocol — same optimistic per-slot model as chests.
+    void furnace_open( const glm::ivec3 &furnace_pos );
+    void furnace_close( const glm::ivec3 &furnace_pos );
+    void furnace_set_slot( const glm::ivec3 &furnace_pos, uint32_t slot_index, const InventorySlot &value );
     // Send a world-time set request to the server (PageUp/PgDn skips). The
     // server adopts the value and broadcasts it back to all clients.
     void send_world_time( long world_time );

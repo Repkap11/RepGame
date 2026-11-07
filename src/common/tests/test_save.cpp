@@ -24,7 +24,9 @@ int test_save_migration( ) {
     }
     check_bool( "slot: an undefined id exists below LAST_BLOCK_ID", undefined_id < LAST_BLOCK_ID );
     check_bool( "slot: undefined id loads empty", undefined_id < LAST_BLOCK_ID && save_slot_id_is_empty( undefined_id ) );
-    check_bool( "slot: out-of-range id loads empty", save_slot_id_is_empty( LAST_BLOCK_ID + 42 ) );
+    // An id past every defined item is out of range (LAST_BLOCK_ID + 42 used
+    // to qualify but new pure items keep extending that range).
+    check_bool( "slot: out-of-range id loads empty", save_slot_id_is_empty( ITEM_ID_END + 1 ) );
     check_bool( "slot: real block survives", !save_slot_id_is_empty( GRASS ) );
     check_bool( "slot: pure item survives", !save_slot_id_is_empty( STICK ) );
     check_bool( "slot: undefined item id loads empty", save_slot_id_is_empty( ITEM_ID_END ) );

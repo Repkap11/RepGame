@@ -47,7 +47,9 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.inventory_open = false;
     globalGameState.input.menu_open = false;
     globalGameState.ui.chest.open = false;
+    globalGameState.ui.furnace.open = false;
     globalGameState.pending_chest_loot.clear( );
+    globalGameState.pending_furnace_loot.clear( );
     globalGameState.input.no_clip = false;
     globalGameState.input.mouse.smoothed_dx = 0.0f;
     globalGameState.input.mouse.smoothed_dy = 0.0f;
@@ -310,6 +312,9 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.survival_inventory.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, SURVIVAL_INVENTORY_WIDTH, SURVIVAL_INVENTORY_HEIGHT );
     globalGameState.hotbar.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, HOTBAR_WIDTH, HOTBAR_HEIGHT );
     globalGameState.ui.chest.inventory_renderer.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, CHEST_INVENTORY_WIDTH, CHEST_INVENTORY_HEIGHT );
+    globalGameState.ui.furnace.input.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 1, 1 );
+    globalGameState.ui.furnace.fuel.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 1, 1 );
+    globalGameState.ui.furnace.output.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 1, 1 );
     globalGameState.ui.crafting.grid2.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 2, 2 );
     globalGameState.ui.crafting.grid3.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 3, 3 );
     globalGameState.ui.crafting.output.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance, 1, 1 );

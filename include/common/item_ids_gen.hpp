@@ -36,14 +36,22 @@ typedef enum {
     STONE_HOE = 2079,
     DIAMOND_AXE = 2080,
     DIAMOND_HOE = 2081,
+    IRON_INGOT = 2082,
+    GOLD_INGOT = 2083,
+    COPPER_INGOT = 2084,
+    CHARCOAL = 2085,
+    COOKED_BEEF = 2086,
+    COOKED_PORKCHOP = 2087,
+    COOKED_CHICKEN = 2088,
+    COOKED_MUTTON = 2089,
 
     ITEM_ID_BASE = 2048,
-    ITEM_ID_END = 2082,
+    ITEM_ID_END = 2090,
 } ItemEnum;
 
-#define ITEM_DEFINED_BITS_LEN 5
+#define ITEM_DEFINED_BITS_LEN 6
 static const unsigned char ITEM_DEFINED_BITS[ITEM_DEFINED_BITS_LEN] = {
-0xff,0xff,0xff,0xff,0x03,
+0xff,0xff,0xff,0xff,0xff,0x03,
 };
 static inline int item_id_defined( unsigned int id ) {
     return id >= (unsigned int)ITEM_ID_BASE && id < (unsigned int)ITEM_ID_END && ( ITEM_DEFINED_BITS[ ( id - ITEM_ID_BASE ) >> 3 ] & ( 1u << ( ( id - ITEM_ID_BASE ) & 7 ) ) ) != 0;

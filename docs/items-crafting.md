@@ -171,3 +171,24 @@ grid slots only: holding a stack and dragging with the left button splits it
 evenly across the slots (right button places one each) via the pure
 `crafting_drag_distribute` helper, re-applied from a drag-start snapshot each
 tick for a live preview.
+
+## Smelting
+
+`data/smelting.json` drives the furnace: `{"smelt_ticks": <n>,
+"recipes": [{"input": <ing>, "output": <name>}], "fuels":
+[{"item": <ing>, "ticks": <n>}]}`. `<ing>` uses the same name/`#tag`/
+option-list syntax as recipe ingredients (`data/item_tags.json` —
+`#logs`/`#planks` cover every wood variant). `make blocks-import` emits
+`src/common/smelting_gen.inc` (`SMELT_RECIPES`, `FURNACE_FUELS`,
+`SMELT_TICKS`); `src/common/smelting.cpp` exposes the pure lookups
+`smelt_result_item` / `furnace_fuel_ticks` (no GL — shared by client,
+tests and server).
+
+A smelt row's `input`/`output` may be a block id or a pure item id; ores
+are listed both ways (the ore *block* and its `RAW_*` item) so mining
+drops and furnace input agree. Cooked foods (`BEEF`→`COOKED_BEEF`, etc.)
+and logs→`CHARCOAL` are recipes like any other; fuel covers coal,
+charcoal, every log/plank family and sticks, with `ticks` in UPS_RATE
+units. Ore *blocks* drop themselves (not `RAW_*`) via their `"drops"`
+entries; the raw items remain valid furnace input for saves/mining tools
+that produce them.

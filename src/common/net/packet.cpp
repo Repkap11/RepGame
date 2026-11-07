@@ -371,6 +371,50 @@ bool net_deserialize_chest_set_slot( PacketReader &r, NetChestSetSlotPayload &p 
     return true;
 }
 
+void net_serialize_furnace_contents( PacketWriter &w, const NetFurnaceContentsPayload &p ) {
+    w.write_i32( p.x );
+    w.write_i32( p.y );
+    w.write_i32( p.z );
+    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
+        net_write_inventory_slot( w, p.contents.slots[ i ] );
+    }
+    w.write_i32( p.contents.cook_progress );
+    w.write_i32( p.contents.burn_ticks );
+}
+
+bool net_deserialize_furnace_contents( PacketReader &r, NetFurnaceContentsPayload &p ) {
+    if ( !r.read_i32( p.x ) ) return false;
+    if ( !r.read_i32( p.y ) ) return false;
+    if ( !r.read_i32( p.z ) ) return false;
+    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
+        if ( !net_read_inventory_slot( r, p.contents.slots[ i ] ) ) return false;
+    }
+    if ( !r.read_i32( p.contents.cook_progress ) ) return false;
+    if ( !r.read_i32( p.contents.burn_ticks ) ) return false;
+    return true;
+}
+
+void net_serialize_furnace_set_slot( PacketWriter &w, const NetFurnaceSetSlotPayload &p ) {
+    w.write_i32( p.x );
+    w.write_i32( p.y );
+    w.write_i32( p.z );
+    w.write_u32( p.slot_index );
+    net_write_inventory_slot( w, p.slot_value );
+}
+
+bool net_deserialize_furnace_set_slot( PacketReader &r, NetFurnaceSetSlotPayload &p ) {
+    if ( !r.read_i32( p.x ) ) return false;
+    if ( !r.read_i32( p.y ) ) return false;
+    if ( !r.read_i32( p.z ) ) return false;
+    if ( !r.read_u32( p.slot_index ) ) return false;
+    if ( p.slot_index >= static_cast<uint32_t>( FURNACE_INVENTORY_SLOTS ) ) {
+        net_pr_debug( "FURNACE_SET_SLOT bad slot_index:%u (max:%d)", p.slot_index, FURNACE_INVENTORY_SLOTS );
+        return false;
+    }
+    if ( !net_read_inventory_slot( r, p.slot_value ) ) return false;
+    return true;
+}
+
 void net_serialize_world_time( PacketWriter &w, const NetWorldTimePayload &p ) {
     w.write_i64( p.world_time );
 }

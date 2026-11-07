@@ -102,6 +102,20 @@ class World {
     bool set_chest_slot( const glm::ivec3 &block_pos, int slot, const InventorySlot &value );
     // Full-state write (CHEST_CONTENTS packet / local open); null when not a chest.
     void set_chest_contents( const glm::ivec3 &block_pos, const ChestContents &contents );
+
+    // Furnace containers — same shape as the chest API above. The lit
+    // (LIT_FURNACE) and unlit (FURNACE) blocks share one contents entry.
+    const FurnaceContents *get_furnace_contents( const glm::ivec3 &block_pos ) const;
+    FurnaceContents *get_or_create_furnace_contents( const glm::ivec3 &block_pos );
+    // Optimistic per-slot write; false when not a furnace / chunk unloaded.
+    bool set_furnace_slot( const glm::ivec3 &block_pos, int slot, const InventorySlot &value );
+    // Full-state write (FURNACE_CONTENTS packet / local open); null when not a furnace.
+    void set_furnace_contents( const glm::ivec3 &block_pos, const FurnaceContents &contents );
+    // Advances every loaded chunk's furnaces one tick (fuel burn, cook
+    // progress, output). Singleplayer only — in multiplayer the server is
+    // authoritative and pushes state via FURNACE_CONTENTS. Swaps
+    // FURNACE<->LIT_FURNACE blocks as furnaces light/extinguish.
+    void tick_furnaces( );
     // Spawns break particles if prev_state was a real block that new_id
     // removed. No-op for air, same-id state changes, and liquids.
     void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id, int num_particles = DEBRIS_PER_BLOCK );

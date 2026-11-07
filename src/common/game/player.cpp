@@ -148,6 +148,24 @@ void RepGame::break_selected_block( ) {
             globalGameState.input.inventory_open = false;
         }
     }
+    if ( block_is_furnace( previous_block ) ) {
+        const glm::ivec3 furnace_pos = globalGameState.block_selection.pos_destroy;
+        if ( globalGameState.multiplayer.is_active( ) ) {
+            // The server answers the block removal with a FURNACE_CONTENTS
+            // snapshot to loot — contents are server-authoritative.
+            globalGameState.pending_furnace_loot.insert( furnace_pos );
+        } else {
+            const FurnaceContents *contents = globalGameState.world.get_furnace_contents( furnace_pos );
+            if ( contents != nullptr ) {
+                repgame_loot_furnace_contents( globalGameState, *contents );
+            }
+            // The chunk erases the map entry when the block write lands.
+        }
+        if ( globalGameState.ui.furnace.open && globalGameState.ui.furnace.pos == furnace_pos ) {
+            this->close_furnace( );
+            globalGameState.input.inventory_open = false;
+        }
+    }
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {
         // A door's upper half drops the lower's item. Blocks with a "drops"
         // table roll it; the rest drop themselves (kept behind the pickable /
@@ -333,6 +351,12 @@ void RepGame::process_mouse_events( ) {
             globalGameState.ui.crafting.table_pos = globalGameState.block_selection.pos_destroy;
             globalGameState.input.inventory_open = true;
             repgame_crafting_layout( globalGameState );
+            globalGameState.input.click_delay_right = 30;
+        }
+        // Right-clicking a furnace (lit or unlit) opens its smelt UI instead
+        // of placing against it. Sneaking skips the interaction.
+        if ( block_is_furnace( target_state.id ) && !globalGameState.input.movement.sneakPressed ) {
+            this->open_furnace( globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
     }

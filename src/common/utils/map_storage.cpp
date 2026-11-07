@@ -156,6 +156,19 @@ void MapStorage::persist_chunk( const Chunk &chunk ) {
             }
             this->persist_chests( chunk.chunk_pos, chest_world_map );
         }
+        if ( chunk.furnaces_loaded ) {
+            // Furnace sidecar file, same world-pos keying as chests.
+            FurnaceContentsMap furnace_world_map;
+            const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
+            for ( const auto &pair : chunk.furnaces ) {
+                const int index = pair.first;
+                const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
+                                               ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
+                                               ( index % CHUNK_SIZE_INTERNAL_Z ) - 1 );
+                furnace_world_map[ chunk_origin + internal_pos ] = pair.second;
+            }
+            this->persist_furnaces( chunk.chunk_pos, furnace_world_map );
+        }
     }
 }
 
@@ -264,6 +277,134 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
             memcpy( contents.slots, record + slot_prefix, slot_bytes );
         }
         for ( int s = 0; s < CHEST_SLOTS; s++ ) {
+            if ( save_slot_id_is_empty( contents.slots[ s ].item_id ) ) {
+                contents.slots[ s ].item_id = LAST_BLOCK_ID;
+                contents.slots[ s ].quantity = 0;
+            }
+        }
+        out[ pos ] = contents;
+    }
+    free( raw );
+    return 1;
+}
+
+// Furnace file layout: same envelope as the chest file — u32 record_size,
+// u32 num_furnaces, then per furnace:
+//   { i32 x, i32 y, i32 z, InventorySlot slots[FURNACE_INVENTORY_SLOTS],
+//     i32 cook_progress, i32 burn_ticks }.
+struct __attribute__( ( packed ) ) FurnaceFileRecord {
+    int x;
+    int y;
+    int z;
+    InventorySlot slots[ FURNACE_INVENTORY_SLOTS ];
+    int cook_progress;
+    int burn_ticks;
+};
+
+// A furnace with no items and no lit/progress state carries nothing worth
+// a record — persist_furnaces drops these so emptied furnaces don't leave
+// junk behind (and an all-empty map removes the file like chests).
+static bool furnace_contents_empty( const FurnaceContents &fc ) {
+    if ( fc.cook_progress != 0 || fc.burn_ticks != 0 ) {
+        return false;
+    }
+    for ( int s = 0; s < FURNACE_INVENTORY_SLOTS; s++ ) {
+        if ( fc.slots[ s ].item_id != LAST_BLOCK_ID && fc.slots[ s ].quantity > 0 ) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const FurnaceContentsMap &furnaces ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_FURNACE, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    uint32_t num_furnaces = 0;
+    for ( const auto &pair : furnaces ) {
+        if ( !furnace_contents_empty( pair.second ) ) {
+            num_furnaces++;
+        }
+    }
+    if ( num_furnaces == 0 ) {
+        remove( file_name );
+        return;
+    }
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( write_ptr == NULL ) {
+        pr_debug( "fopen failed for furnace file:%s", file_name );
+        return;
+    }
+    uint32_t record_size = sizeof( FurnaceFileRecord );
+    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
+    fwrite( &num_furnaces, sizeof( uint32_t ), 1, write_ptr );
+    for ( const auto &pair : furnaces ) {
+        if ( furnace_contents_empty( pair.second ) ) {
+            continue;
+        }
+        FurnaceFileRecord record;
+        record.x = pair.first.x;
+        record.y = pair.first.y;
+        record.z = pair.first.z;
+        memcpy( record.slots, pair.second.slots, sizeof( record.slots ) );
+        record.cook_progress = pair.second.cook_progress;
+        record.burn_ticks = pair.second.burn_ticks;
+        fwrite( &record, sizeof( FurnaceFileRecord ), 1, write_ptr );
+    }
+#if defined( REPGAME_WASM )
+    fdatasync( fileno( write_ptr ) );
+#endif
+    fclose( write_ptr );
+}
+
+int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMap &out ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_FURNACE, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( read_ptr == NULL ) {
+        return 0;
+    }
+    uint32_t record_size = 0;
+    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
+        fclose( read_ptr );
+        return 0;
+    }
+    uint32_t num_furnaces = 0;
+    if ( fread( &num_furnaces, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_furnaces > CHUNK_BLOCK_SIZE ) {
+        fclose( read_ptr );
+        return 0;
+    }
+    // Read whatever the file's record holds; older/newer builds may have a
+    // different record size, so copy only the shared prefix per record.
+    const int slot_prefix = offsetof( FurnaceFileRecord, slots );
+    const int tail_prefix = offsetof( FurnaceFileRecord, cook_progress );
+    char *raw = static_cast<char *>( calloc( num_furnaces, record_size ) );
+    size_t num_read = fread( raw, record_size, num_furnaces, read_ptr );
+    fclose( read_ptr );
+    for ( size_t i = 0; i < num_read; i++ ) {
+        const char *record = &raw[ i * record_size ];
+        FurnaceContents contents; // default: empty + zeroed progress
+        glm::ivec3 pos( 0 );
+        memcpy( &pos, record, sizeof( glm::ivec3 ) <= (size_t)record_size ? sizeof( glm::ivec3 ) : (size_t)record_size );
+        if ( record_size > (uint32_t)slot_prefix ) {
+            int slot_bytes = record_size - slot_prefix;
+            if ( slot_bytes > (int)sizeof( contents.slots ) ) {
+                slot_bytes = (int)sizeof( contents.slots );
+            }
+            memcpy( contents.slots, record + slot_prefix, slot_bytes );
+        }
+        // Progress fields only exist in current-format records; partial
+        // tails leave them zeroed rather than overreading the buffer.
+        if ( record_size >= (uint32_t)( tail_prefix + 2 * sizeof( int ) ) ) {
+            memcpy( &contents.cook_progress, record + tail_prefix, sizeof( contents.cook_progress ) );
+            memcpy( &contents.burn_ticks, record + tail_prefix + sizeof( contents.cook_progress ), sizeof( contents.burn_ticks ) );
+        }
+        for ( int s = 0; s < FURNACE_INVENTORY_SLOTS; s++ ) {
             if ( save_slot_id_is_empty( contents.slots[ s ].item_id ) ) {
                 contents.slots[ s ].item_id = LAST_BLOCK_ID;
                 contents.slots[ s ].quantity = 0;

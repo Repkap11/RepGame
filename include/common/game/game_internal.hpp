@@ -23,6 +23,14 @@ bool repgame_crafting_grid_visible( const RepGameState &state );
 InventoryRenderer &repgame_crafting_grid( RepGameState &state );
 void repgame_crafting_layout( RepGameState &state );
 
+// Furnace panel layout shared by the inventory UI, changeSize(), and the
+// overlay draw (all in inventory.cpp / game_render.cpp).
+void repgame_furnace_layout( RepGameState &state );
+
+// Repaints open-furnace slot icons when the world contents changed without
+// a click handler (tick-driven smelts/fuel). Called from RepGame::tick.
+void repgame_furnace_sync_icons( RepGameState &state );
+
 static inline long long repgame_now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );

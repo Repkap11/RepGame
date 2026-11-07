@@ -4,6 +4,7 @@
 #include "common/block.hpp"
 #include "common/chest.hpp"
 #include "common/constants.hpp"
+#include "common/furnace.hpp"
 #include "common/net/framed_socket.hpp"
 #include "common/utils/map_storage.hpp"
 #include "server/server_entities.hpp"
@@ -47,6 +48,20 @@ struct ChestChunkState {
     ChestContentsMap chests;
 };
 
+// All furnace contents in one chunk, keyed by world block position (the
+// same shape MapStorage's furnace file uses). `progress_dirty` tracks which
+// furnaces changed since the last throttled FURNACE_CONTENTS broadcast so
+// viewers see cook/burn progress without a packet per tick.
+struct FurnaceChunkState {
+    bool loaded = false;
+    bool dirty = false;
+    std::set<glm::ivec3, Compare_I_Vec3> progress_dirty;
+    FurnaceContentsMap furnaces;
+    // Last-known BlockState per furnace (placement updates + lit swaps), so
+    // the server can flip FURNACE<->LIT_FURNACE without losing rotation.
+    std::map<glm::ivec3, BlockState, Compare_I_Vec3> states;
+};
+
 class ServerLogic {
     MapStorage map_storage;
     // Entity arbitration: chunk ownership, sidecar persistence, pickup
@@ -66,6 +81,16 @@ class ServerLogic {
     // client; reverse index below).
     std::map<glm::ivec3, std::set<int>, Compare_I_Vec3> chest_subscribers;
     std::map<int, glm::ivec3> client_open_chest;
+
+    // Furnaces: same lazy per-chunk cache + subscriber model as chests, but
+    // the server also ticks them (fuel burn, cook progress, lit-block swap)
+    // and pushes throttled progress snapshots to viewers.
+    std::map<glm::ivec3, FurnaceChunkState, Compare_I_Vec3> furnace_chunks;
+    std::map<glm::ivec3, std::set<int>, Compare_I_Vec3> furnace_subscribers;
+    std::map<int, glm::ivec3> client_open_furnace;
+    // Furnace tick schedule (UPS_RATE cadence) + progress broadcast throttle.
+    std::chrono::steady_clock::time_point next_furnace_tick;
+    int furnace_broadcast_countdown = 0;
 
     // Sorted wake-up schedule: time -> set of chunk positions whose idle
     // timer expires at that time. This is the "sorted list of times to
@@ -109,6 +134,24 @@ class ServerLogic {
     void handleChestOpen( Server &server, int client_fd, const glm::ivec3 &chest_pos );
     void handleChestSetSlot( Server &server, int client_fd, const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value );
     void handleChestRemoved( Server &server, int client_fd, const glm::ivec3 &chest_pos );
+
+    // Furnaces
+    FurnaceChunkState &ensureFurnaceChunk( const glm::ivec3 &chunk_pos );
+    void persistFurnaceChunk( const glm::ivec3 &chunk_pos );
+    bool furnaceChunkHasSubscribers( const glm::ivec3 &chunk_pos ) const;
+    void sendFurnaceContents( Server &server, int client_fd, const glm::ivec3 &furnace_pos, const FurnaceContents &contents );
+    void unsubscribeFurnace( int client_fd );
+    void handleFurnaceOpen( Server &server, int client_fd, const glm::ivec3 &furnace_pos );
+    void handleFurnaceSetSlot( Server &server, int client_fd, const glm::ivec3 &furnace_pos, uint32_t slot_index, const InventorySlot &value );
+    void handleFurnaceRemoved( Server &server, int client_fd, const glm::ivec3 &furnace_pos );
+    // Advance every cached furnace one tick; called from processTimers at
+    // UPS_RATE while any furnace chunk is cached. Broadcasts lit-state block
+    // updates and throttled progress snapshots.
+    void tickFurnaces( Server &server );
+    // True when any cached furnace can still change (burning, or holding
+    // fuel to ignite). Gates the UPS_RATE wake so idle cached furnaces
+    // don't keep epoll waking at tick rate.
+    bool anyFurnaceActive( ) const;
 
   public:
     void init( const char *world_name );

@@ -20,6 +20,7 @@ chunk/entities/player — all through the real loaders, read-only; see
     world.dat               server-side world clock (int64)
     chunk_<x>_<y>_<z>       RLE BlockState volume per chunk
     chest_<x>_<y>_<z>       chest contents for a chunk
+    furnace_<x>_<y>_<z>     furnace contents+progress for a chunk
     mobs_<x>_<y>_<z>        mob records for a chunk
     items_<x>_<y>_<z>       dropped-item records for a chunk
 ```
@@ -67,6 +68,26 @@ record: { i32 x, y, z        // world block position
 Same record-size prefix trick; readers copy the `slots` prefix only.
 `persist_chests` *removes* the file when the map is empty — a missing
 file and "no chests" are equivalent, so deleted chests can't resurrect.
+
+## Furnace files (`furnace_x_y_z`)
+
+Same envelope as the chest file:
+
+```
+u32 record_size              // sizeof(FurnaceFileRecord)
+u32 num_furnaces
+record: { i32 x, y, z        // world block position
+          InventorySlot slots[FURNACE_INVENTORY_SLOTS]  // input/fuel/output
+          i32 cook_progress
+          i32 burn_ticks }
+```
+
+Readers copy the slots prefix and the progress tail independently, so
+records from either side of the progress-fields addition still parse.
+`persist_furnaces` removes the file when empty, like chests. Both
+`FURNACE` and `LIT_FURNACE` blocks share one entry (keyed by position);
+the lit state itself lives in the chunk's block data, while
+`burn_ticks > 0` is what makes a loaded furnace resume burning.
 
 ## Mob / item sidecars (`mobs_*`, `items_*`)
 

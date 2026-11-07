@@ -95,6 +95,7 @@ void RepGame::changeSize( const int w, const int h ) {
         globalGameState.ui.chest.inventory_renderer.onSizeChange( w, h, chest_contents->slots );
     }
     repgame_crafting_layout( globalGameState );
+    repgame_furnace_layout( globalGameState );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, CAMERA_FAR_PLANE );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );

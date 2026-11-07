@@ -5,6 +5,7 @@
 #include "common/RepGame.hpp"
 #include "common/light.hpp"
 #include "common/net/packet.hpp"
+#include "common/smelting.hpp"
 
 #include <climits>
 #include <stdio.h>
@@ -366,6 +367,258 @@ void ServerLogic::handleChestRemoved( Server &server, int client_fd, const glm::
     }
 }
 
+// ---------------------------------------------------------------------------
+// Furnaces: same optimistic per-slot + subscriber model as chests, plus
+// authoritative ticking. The server has no terrain view, so furnace blocks
+// are learned from FURNACE_OPEN and BLOCK_UPDATE placements; the sidecar
+// file supplies pre-existing furnaces when a chunk is first touched.
+// ---------------------------------------------------------------------------
+
+FurnaceChunkState &ServerLogic::ensureFurnaceChunk( const glm::ivec3 &chunk_pos ) {
+    FurnaceChunkState &fs = this->furnace_chunks[ chunk_pos ];
+    if ( !fs.loaded ) {
+        fs.loaded = true;
+        this->map_storage.load_furnaces( chunk_pos, fs.furnaces );
+    }
+    return fs;
+}
+
+void ServerLogic::persistFurnaceChunk( const glm::ivec3 &chunk_pos ) {
+    auto it = this->furnace_chunks.find( chunk_pos );
+    if ( it == this->furnace_chunks.end( ) || !it->second.dirty ) {
+        return;
+    }
+    this->map_storage.persist_furnaces( chunk_pos, it->second.furnaces );
+    it->second.dirty = false;
+    it->second.progress_dirty.clear( );
+}
+
+bool ServerLogic::furnaceChunkHasSubscribers( const glm::ivec3 &chunk_pos ) const {
+    const auto cit = this->furnace_chunks.find( chunk_pos );
+    if ( cit == this->furnace_chunks.end( ) ) {
+        return false;
+    }
+    for ( const auto &pair : cit->second.furnaces ) {
+        const auto sit = this->furnace_subscribers.find( pair.first );
+        if ( sit != this->furnace_subscribers.end( ) && !sit->second.empty( ) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ServerLogic::sendFurnaceContents( Server &server, int client_fd, const glm::ivec3 &furnace_pos, const FurnaceContents &contents ) {
+    NetFurnaceContentsPayload p;
+    p.x = furnace_pos.x;
+    p.y = furnace_pos.y;
+    p.z = furnace_pos.z;
+    p.contents = contents;
+    PacketWriter w;
+    net_serialize_furnace_contents( w, p );
+    server.queue_message( client_fd, NetMsgType::FURNACE_CONTENTS, 0, w.take_buf( ) );
+}
+
+void ServerLogic::unsubscribeFurnace( int client_fd ) {
+    const auto it = this->client_open_furnace.find( client_fd );
+    if ( it == this->client_open_furnace.end( ) ) {
+        return;
+    }
+    const glm::ivec3 furnace_pos = it->second;
+    this->client_open_furnace.erase( it );
+    const auto sit = this->furnace_subscribers.find( furnace_pos );
+    if ( sit != this->furnace_subscribers.end( ) ) {
+        sit->second.erase( client_fd );
+        if ( sit->second.empty( ) ) {
+            this->furnace_subscribers.erase( sit );
+        }
+    }
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( furnace_pos ) / CHUNK_SIZE_F );
+    if ( !this->furnaceChunkHasSubscribers( chunk_pos ) ) {
+        const auto cit = this->furnace_chunks.find( chunk_pos );
+        if ( cit != this->furnace_chunks.end( ) && !cit->second.dirty ) {
+            this->furnace_chunks.erase( cit );
+        } else if ( cit != this->furnace_chunks.end( ) ) {
+            this->scheduleChunkSave( chunk_pos );
+        }
+    }
+}
+
+void ServerLogic::handleFurnaceOpen( Server &server, int client_fd, const glm::ivec3 &furnace_pos ) {
+    // A client can only have one furnace open; swap subscriptions. (A client
+    // with a chest open that opens a furnace is handled client-side by
+    // closing the chest first.)
+    this->unsubscribeFurnace( client_fd );
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( furnace_pos ) / CHUNK_SIZE_F );
+    FurnaceChunkState &fs = this->ensureFurnaceChunk( chunk_pos );
+    // Trust the client that a furnace block is here — the server has no
+    // terrain view. Empty default entry for a furnace first opened before
+    // anything was put in it.
+    FurnaceContents &contents = fs.furnaces[ furnace_pos ];
+    this->furnace_subscribers[ furnace_pos ].insert( client_fd );
+    this->client_open_furnace[ client_fd ] = furnace_pos;
+    this->sendFurnaceContents( server, client_fd, furnace_pos, contents );
+}
+
+void ServerLogic::handleFurnaceSetSlot( Server &server, int client_fd, const glm::ivec3 &furnace_pos, uint32_t slot_index, const InventorySlot &value ) {
+    const auto it = this->client_open_furnace.find( client_fd );
+    if ( it == this->client_open_furnace.end( ) || it->second != furnace_pos ) {
+        pr_debug( "FURNACE_SET_SLOT from unsubscribed client:%d", client_fd );
+        return;
+    }
+    InventorySlot clean = value;
+    if ( !item_id_valid( clean.item_id ) || clean.quantity <= 0 ) {
+        clean.item_id = LAST_BLOCK_ID;
+        clean.quantity = 0;
+    } else if ( clean.quantity > item_max_stack( clean.item_id ) ) {
+        clean.quantity = item_max_stack( clean.item_id );
+    }
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( furnace_pos ) / CHUNK_SIZE_F );
+    FurnaceChunkState &fs = this->ensureFurnaceChunk( chunk_pos );
+    fs.furnaces[ furnace_pos ].slots[ slot_index ] = clean;
+    fs.dirty = true;
+    this->scheduleChunkSave( chunk_pos );
+
+    // Broadcast the slot write to the other viewers.
+    NetFurnaceSetSlotPayload p;
+    p.x = furnace_pos.x;
+    p.y = furnace_pos.y;
+    p.z = furnace_pos.z;
+    p.slot_index = slot_index;
+    p.slot_value = clean;
+    PacketWriter w;
+    net_serialize_furnace_set_slot( w, p );
+    const auto sit = this->furnace_subscribers.find( furnace_pos );
+    if ( sit != this->furnace_subscribers.end( ) ) {
+        for ( int fd : sit->second ) {
+            if ( fd != client_fd ) {
+                server.queue_message( fd, NetMsgType::FURNACE_SET_SLOT, client_fd, w.buf( ) );
+            }
+        }
+    }
+}
+
+// A block update turned a furnace into something else. Send the contents to
+// the breaker so it can loot them, drop the entry, and persist.
+void ServerLogic::handleFurnaceRemoved( Server &server, int client_fd, const glm::ivec3 &furnace_pos ) {
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( furnace_pos ) / CHUNK_SIZE_F );
+    FurnaceChunkState &fs = this->ensureFurnaceChunk( chunk_pos );
+    const auto it = fs.furnaces.find( furnace_pos );
+    if ( it == fs.furnaces.end( ) ) {
+        return;
+    }
+    this->sendFurnaceContents( server, client_fd, furnace_pos, it->second );
+    fs.furnaces.erase( it );
+    fs.progress_dirty.erase( furnace_pos );
+    fs.dirty = true;
+    this->scheduleChunkSave( chunk_pos );
+    const auto sit = this->furnace_subscribers.find( furnace_pos );
+    if ( sit != this->furnace_subscribers.end( ) ) {
+        for ( int fd : sit->second ) {
+            this->client_open_furnace.erase( fd );
+        }
+        this->furnace_subscribers.erase( sit );
+    }
+}
+
+bool ServerLogic::anyFurnaceActive( ) const {
+    for ( const auto &chunk_pair : this->furnace_chunks ) {
+        for ( const auto &pair : chunk_pair.second.furnaces ) {
+            const FurnaceContents &f = pair.second;
+            if ( f.burn_ticks > 0 ) {
+                return true;
+            }
+            const InventorySlot &input = f.slots[ FURNACE_SLOT_INPUT ];
+            const bool has_work = input.item_id != LAST_BLOCK_ID && smelt_result_item( input.item_id ) != LAST_BLOCK_ID;
+            const InventorySlot &fuel = f.slots[ FURNACE_SLOT_FUEL ];
+            if ( has_work && fuel.item_id != LAST_BLOCK_ID && fuel.quantity > 0 && furnace_fuel_ticks( fuel.item_id ) > 0 ) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void ServerLogic::tickFurnaces( Server &server ) {
+    // Broadcast throttle: progress snapshots go out every
+    // FURNACE_BROADCAST_INTERVAL ticks rather than per-tick.
+    static constexpr int FURNACE_BROADCAST_INTERVAL = 5;
+    for ( auto &chunk_pair : this->furnace_chunks ) {
+        FurnaceChunkState &fs = chunk_pair.second;
+        if ( !fs.loaded ) {
+            continue;
+        }
+        for ( auto &pair : fs.furnaces ) {
+            const bool was_lit = pair.second.burn_ticks > 0;
+            bool changed = false;
+            const bool lit_changed = furnace_tick( pair.second, &changed );
+            if ( !changed && !lit_changed ) {
+                continue;
+            }
+            fs.dirty = true;
+            fs.progress_dirty.insert( pair.first );
+            this->scheduleChunkSave( chunk_pair.first );
+            if ( lit_changed ) {
+                // Swap FURNACE<->LIT_FURNACE for every client and record the
+                // edit so it persists in the chunk diff (record_block also
+                // updates the neighboring chunk caches). Rotation/extras
+                // come from the last-known block state; a furnace the server
+                // has never seen placed falls back to canonical.
+                const glm::ivec3 &pos = pair.first;
+                BlockState state{ AIR, 0, 0, AIR, 0 };
+                const auto sit = fs.states.find( pos );
+                if ( sit != fs.states.end( ) ) {
+                    state = sit->second;
+                } else {
+                    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( pos ) / CHUNK_SIZE_F );
+                    const glm::ivec3 diff = pos - chunk_pos * CHUNK_SIZE_I;
+                    const int index = Chunk::get_index_from_coords( diff );
+                    const auto cit = this->world_cache.find( chunk_pos );
+                    if ( cit != this->world_cache.end( ) ) {
+                        const auto bit = cit->second.blocks.find( index );
+                        if ( bit != cit->second.blocks.end( ) ) {
+                            state = bit->second;
+                        }
+                    }
+                }
+                state.id = was_lit ? FURNACE : LIT_FURNACE;
+                state.display_id = state.id;
+                fs.states[ pos ] = state;
+                this->record_block( pos, state );
+                NetBlockUpdatePayload bp;
+                bp.x = pos.x;
+                bp.y = pos.y;
+                bp.z = pos.z;
+                bp.blockState = state;
+                PacketWriter w;
+                net_serialize_block_update( w, bp );
+                for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+                    if ( server.get_data_if_client_connected( fd ) != NULL ) {
+                        server.queue_message( fd, NetMsgType::BLOCK_UPDATE, 0, w.buf( ) );
+                    }
+                }
+            }
+        }
+    }
+    // Throttled progress broadcast to viewers.
+    if ( --this->furnace_broadcast_countdown <= 0 ) {
+        this->furnace_broadcast_countdown = FURNACE_BROADCAST_INTERVAL;
+        for ( auto &chunk_pair : this->furnace_chunks ) {
+            FurnaceChunkState &fs = chunk_pair.second;
+            for ( const glm::ivec3 &pos : fs.progress_dirty ) {
+                const auto fit = fs.furnaces.find( pos );
+                const auto sit = this->furnace_subscribers.find( pos );
+                if ( fit == fs.furnaces.end( ) || sit == this->furnace_subscribers.end( ) ) {
+                    continue;
+                }
+                for ( int fd : sit->second ) {
+                    this->sendFurnaceContents( server, fd, pos, fit->second );
+                }
+            }
+            fs.progress_dirty.clear( );
+        }
+    }
+}
+
 void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
     auto it = this->world_cache.find( chunk_pos );
     if ( it != this->world_cache.end( ) && !it->second.blocks.empty( ) ) {
@@ -383,6 +636,7 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
     // Chest sidecar is independent of the block cache — a chunk can have
     // chest edits without block edits (pure inventory changes).
     this->persistChestChunk( chunk_pos );
+    this->persistFurnaceChunk( chunk_pos );
 }
 
 void ServerLogic::persistAll( ) {
@@ -404,6 +658,14 @@ void ServerLogic::persistAll( ) {
     this->chest_chunks.clear( );
     this->chest_subscribers.clear( );
     this->client_open_chest.clear( );
+    // Furnace chunks likewise; progress_dirty is cleared by persist.
+    for ( const auto &[ chunk_pos, entry ] : this->furnace_chunks ) {
+        (void)entry;
+        this->persistFurnaceChunk( chunk_pos );
+    }
+    this->furnace_chunks.clear( );
+    this->furnace_subscribers.clear( );
+    this->client_open_furnace.clear( );
     pr_debug( "World saved (%zu chunks)", saved );
     this->world_cache.clear( );
     this->wake_schedule.clear( );
@@ -430,6 +692,29 @@ void ServerLogic::processTimers( Server &server ) {
         if ( !this->chestChunkHasSubscribers( chunk_pos ) ) {
             this->chest_chunks.erase( chunk_pos );
         }
+        if ( !this->furnaceChunkHasSubscribers( chunk_pos ) ) {
+            const auto fit = this->furnace_chunks.find( chunk_pos );
+            if ( fit != this->furnace_chunks.end( ) && !fit->second.dirty ) {
+                this->furnace_chunks.erase( fit );
+            }
+        }
+    }
+    // Furnace ticking runs at UPS_RATE, but only while some furnace can
+    // still change — an idle cached furnace doesn't earn a wake. When a
+    // message wakes the loop anyway, up to 8 catch-up ticks run.
+    if ( this->anyFurnaceActive( ) ) {
+        const auto tick_interval = std::chrono::microseconds( 1000000 / UPS_RATE );
+        int catch_up = 0;
+        while ( now >= this->next_furnace_tick && catch_up < 8 ) {
+            this->tickFurnaces( server );
+            this->next_furnace_tick += tick_interval;
+            catch_up++;
+        }
+        if ( now >= this->next_furnace_tick ) {
+            this->next_furnace_tick = now + tick_interval;
+        }
+    } else {
+        this->next_furnace_tick = std::chrono::steady_clock::now( ) + std::chrono::microseconds( 1000000 / UPS_RATE );
     }
     if ( this->world_time_running && now >= this->next_time_broadcast ) {
         this->next_time_broadcast += std::chrono::seconds( WORLD_TIME_SYNC_SECONDS );
@@ -449,6 +734,9 @@ int ServerLogic::nextWakeTimeoutMs( ) const {
     }
     if ( this->world_time_running && this->next_time_broadcast < wake ) {
         wake = this->next_time_broadcast;
+    }
+    if ( this->anyFurnaceActive( ) && this->next_furnace_tick < wake ) {
+        wake = this->next_furnace_tick;
     }
     if ( wake == std::chrono::steady_clock::time_point::max( ) ) {
         return -1;
@@ -531,6 +819,20 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
                 this->handleChestRemoved( server, client_fd, block_pos );
             }
         }
+        // Same for furnaces: learn placements (for lit-swap state and ticking
+        // once opened) and hand contents to the breaker on removal.
+        {
+            const glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
+            FurnaceChunkState &fs = this->ensureFurnaceChunk( chunk_pos );
+            if ( block_is_furnace( bu.blockState.id ) ) {
+                fs.states[ block_pos ] = bu.blockState;
+            } else {
+                fs.states.erase( block_pos );
+                if ( fs.furnaces.find( block_pos ) != fs.furnaces.end( ) ) {
+                    this->handleFurnaceRemoved( server, client_fd, block_pos );
+                }
+            }
+        }
         this->record_block( block_pos, bu.blockState );
 
         // Forward to all other clients.
@@ -603,6 +905,27 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
             return;
         }
         this->handleChestSetSlot( server, client_fd, glm::ivec3( p.x, p.y, p.z ), p.slot_index, p.slot_value );
+    } else if ( type == NetMsgType::FURNACE_OPEN ) {
+        NetChestPosPayload p;
+        if ( !net_deserialize_chest_pos( r, p ) ) {
+            pr_debug( "Malformed FURNACE_OPEN from:%d", client_fd );
+            return;
+        }
+        this->handleFurnaceOpen( server, client_fd, glm::ivec3( p.x, p.y, p.z ) );
+    } else if ( type == NetMsgType::FURNACE_CLOSE ) {
+        NetChestPosPayload p;
+        if ( !net_deserialize_chest_pos( r, p ) ) {
+            pr_debug( "Malformed FURNACE_CLOSE from:%d", client_fd );
+            return;
+        }
+        this->unsubscribeFurnace( client_fd );
+    } else if ( type == NetMsgType::FURNACE_SET_SLOT ) {
+        NetFurnaceSetSlotPayload p;
+        if ( !net_deserialize_furnace_set_slot( r, p ) ) {
+            pr_debug( "Malformed FURNACE_SET_SLOT from:%d", client_fd );
+            return;
+        }
+        this->handleFurnaceSetSlot( server, client_fd, glm::ivec3( p.x, p.y, p.z ), p.slot_index, p.slot_value );
     } else if ( type == NetMsgType::WORLD_TIME ) {
         NetWorldTimePayload p;
         if ( !net_deserialize_world_time( r, p ) ) {
@@ -629,6 +952,7 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
 
 void ServerLogic::on_client_disconnected( Server &server, int client_fd ) {
     this->unsubscribeChest( client_fd );
+    this->unsubscribeFurnace( client_fd );
     this->entities.on_client_disconnected( server, client_fd );
     for ( int prop_id = 0; prop_id < MAX_CLIENT_FDS; prop_id++ ) {
         if ( prop_id == client_fd ) {

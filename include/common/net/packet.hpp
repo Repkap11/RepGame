@@ -19,6 +19,7 @@
 #include "common/block.hpp"
 #include "common/chest.hpp"
 #include "common/constants.hpp"
+#include "common/furnace.hpp"
 
 // CHUNK_BLOCK_SIZE is defined in chunk.hpp as (CHUNK_SIZE_INTERNAL_X *
 // CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_Z) = 34*34*34 = 39304. We avoid
@@ -28,7 +29,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 6;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 7;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -63,6 +64,10 @@ enum class NetMsgType : uint8_t {
     PLAYER_HIT = 22,
     EXPLOSION = 23,
     CHUNK_POPULATED = 24,
+    FURNACE_OPEN = 25,
+    FURNACE_CLOSE = 26,
+    FURNACE_CONTENTS = 27,
+    FURNACE_SET_SLOT = 28,
 };
 
 // ---------------------------------------------------------------------------
@@ -321,6 +326,28 @@ struct NetChestSetSlotPayload {
 };
 void net_serialize_chest_set_slot( PacketWriter &w, const NetChestSetSlotPayload &p );
 bool net_deserialize_chest_set_slot( PacketReader &r, NetChestSetSlotPayload &p );
+
+// FURNACE_OPEN / FURNACE_CLOSE share the chest pos payload shape.
+// (net_serialize_chest_pos / net_deserialize_chest_pos are reused.)
+
+// FURNACE_CONTENTS (server -> client): full FurnaceContents — the three
+// slots plus cook/burn progress so viewers see the smelt advance.
+struct NetFurnaceContentsPayload {
+    int32_t x, y, z;
+    FurnaceContents contents;
+};
+void net_serialize_furnace_contents( PacketWriter &w, const NetFurnaceContentsPayload &p );
+bool net_deserialize_furnace_contents( PacketReader &r, NetFurnaceContentsPayload &p );
+
+// FURNACE_SET_SLOT (both directions): one optimistic slot write. Progress
+// fields are not carried here; FURNACE_CONTENTS snapshots refresh them.
+struct NetFurnaceSetSlotPayload {
+    int32_t x, y, z;
+    uint32_t slot_index;
+    InventorySlot slot_value;
+};
+void net_serialize_furnace_set_slot( PacketWriter &w, const NetFurnaceSetSlotPayload &p );
+bool net_deserialize_furnace_set_slot( PacketReader &r, NetFurnaceSetSlotPayload &p );
 
 // WORLD_TIME (both directions): server -> client is an authoritative sync of
 // the day/night clock; client -> server is a set request (e.g. PageUp/PgDn).

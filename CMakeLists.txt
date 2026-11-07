@@ -459,8 +459,10 @@ if(REPGAME_BUILD_SERVER)
 		src/common/utils/map_storage.cpp
 		src/common/utils/player_data.cpp
 		src/common/chunk_buffer_pool.cpp
+		src/common/furnace.cpp
 		src/common/net/packet.cpp
-		src/common/net/framed_socket.cpp)
+		src/common/net/framed_socket.cpp
+		src/common/smelting.cpp)
 	add_executable(RepGameServer ${server_srcs} ${server_common})
 	target_link_libraries(RepGameServer PRIVATE repgame_flags repgame_platform)
 	set_target_properties(RepGameServer PROPERTIES

@@ -8,6 +8,7 @@
 
 #include "block.hpp"
 #include "common/chest.hpp"
+#include "common/furnace.hpp"
 #include "common/chunk_occlusion.hpp"
 #include "common/utils/map_storage.hpp"
 #include "renderer/renderer.hpp"
@@ -158,6 +159,12 @@ class Chunk {
     // load_terrain/afterwards — persist_chests only runs when set so a chunk
     // whose chest file failed to read doesn't get its file clobbered.
     mutable int chests_loaded;
+    // Furnace contents for furnace blocks in this chunk, keyed by in-chunk
+    // block index — same pattern as chests[] above, backed by the chunk's
+    // furnace sidecar file. FURNACE and LIT_FURNACE share one entry; the
+    // lit swap never erases it.
+    mutable std::map<int, FurnaceContents> furnaces;
+    mutable int furnaces_loaded;
     // Mob sidecar data, filled by load_terrain on the worker and drained by
     // MobManager::adopt_chunk after finalize: records loaded from the mobs
     // file or produced by the natural-spawn roll, whether the file existed,

@@ -1,0 +1,20 @@
+{
+  "smelt_ticks": 1440,
+  "recipes": [
+    { "input": [ "IRON_ORE", "DEEPSLATE_IRON_ORE", "RAW_IRON" ], "output": "IRON_INGOT" },
+    { "input": [ "GOLD_ORE", "DEEPSLATE_GOLD_ORE", "NETHER_GOLD_ORE", "RAW_GOLD" ], "output": "GOLD_INGOT" },
+    { "input": [ "COPPER_ORE", "DEEPSLATE_COPPER_ORE", "RAW_COPPER" ], "output": "COPPER_INGOT" },
+    { "input": "#logs", "output": "CHARCOAL" },
+    { "input": "BEEF", "output": "COOKED_BEEF" },
+    { "input": "PORKCHOP", "output": "COOKED_PORKCHOP" },
+    { "input": "CHICKEN", "output": "COOKED_CHICKEN" },
+    { "input": "MUTTON", "output": "COOKED_MUTTON" }
+  ],
+  "fuels": [
+    { "item": "COAL", "ticks": 11520 },
+    { "item": "CHARCOAL", "ticks": 11520 },
+    { "item": "#logs", "ticks": 2160 },
+    { "item": "#planks", "ticks": 2160 },
+    { "item": "STICK", "ticks": 720 }
+  ]
+}

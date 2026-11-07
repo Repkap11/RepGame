@@ -15,6 +15,7 @@ UiState
 ├── pause      PauseMenu     Esc menu: buttons + stepper rows
 ├── held_slot / holding_slot  stack currently dragged by the mouse
 ├── chest      ChestUi       open chest panel (at most one)
+├── furnace    FurnaceUi     open furnace panel: input/fuel/output 1x1s
 └── crafting   CraftingUi    2x2/3x3 grid + output + drag-split state
 ```
 
@@ -63,6 +64,35 @@ the panel live. Every local mutation funnels through `chest_sync_slot`:
 write the chunk, repaint the slot, send `CHEST_SET_SLOT`. Breaking an
 open chest loots it (`repgame_loot_chest_contents` locally, or
 `pending_chest_loot` + a server snapshot in MP — `docs/multiplayer.md`).
+
+## Furnaces
+
+A placed `FURNACE`/`LIT_FURNACE` block is a 3-slot container
+(`include/common/furnace.hpp`): input, fuel, output plus `cook_progress`
+and `burn_ticks` (in UPS_RATE ticks). `block_is_furnace` is the identity
+check — by block id so the GL-less server can call it; the two ids share
+one contents entry and the lit variant only changes the rendered block.
+Contents live in the owning `Chunk` (`World::get_furnace_contents`/
+`get_or_create_furnace_contents`/`set_furnace_slot`/`set_furnace_contents`,
+keyed by in-chunk index, `furnaces_loaded` flag, persisted per chunk —
+`docs/persistence.md`).
+
+`RepGame::open_furnace`/`close_furnace` mirror the chest flow: opening
+sets `ui.furnace.{open,pos}`, raises `inventory_open`, and sends
+`FURNACE_OPEN`; `FURNACE_CONTENTS` snapshots repaint the three panels.
+Every local mutation funnels through `furnace_sync_slot` (world write +
+repaint + `FURNACE_SET_SLOT`). Furnace panels are three 1x1
+`InventoryRenderer`s laid out by `repgame_furnace_layout` — input and
+output on the top row, fuel centered below, pinned above the survival
+inventory (`repgame_furnace_layout` runs from `changeSize` too). The
+draw pass adds a cook-progress percent and remaining burn seconds
+between the input/output panels. `World::tick_furnaces` advances every
+loaded furnace each tick in singleplayer (fuel burn → cook progress →
+output, lit-block swap via `set_loaded_block`); in multiplayer the
+server ticks them instead (`docs/multiplayer.md`). Smelt/fuel tables are
+data-driven — `docs/items-crafting.md` "Smelting". Breaking a furnace
+loots all three slots (`repgame_loot_furnace_contents`, or
+`pending_furnace_loot` + a server snapshot in MP).
 
 ## Crafting
 

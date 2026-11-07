@@ -31,6 +31,7 @@
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/smelting.hpp"
 #include "common/game/game_internal.hpp"
 
 void RepGame::draw( float alpha ) {
@@ -517,6 +518,34 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             const float arrow_y = ( grid.getInvTop( ) + grid.getInvBottom( ) ) / 2.0f - arrow_size / 2.0f;
             const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
             globalGameState.ui.font.drawString( globalGameState.world.renderer, "->", arrow_x, arrow_y, arrow_size, white, globalGameState.screen.ortho_center );
+        }
+        if ( globalGameState.ui.furnace.open ) {
+            const FurnaceContents *contents = globalGameState.world.get_furnace_contents( globalGameState.ui.furnace.pos );
+            if ( contents != nullptr ) {
+                globalGameState.ui.overlay.draw_slot_panel( globalGameState.ui.furnace.input, &contents->slots[ FURNACE_SLOT_INPUT ], 1, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
+                globalGameState.ui.overlay.draw_slot_panel( globalGameState.ui.furnace.fuel, &contents->slots[ FURNACE_SLOT_FUEL ], 1, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
+                globalGameState.ui.overlay.draw_slot_panel( globalGameState.ui.furnace.output, &contents->slots[ FURNACE_SLOT_OUTPUT ], 1, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
+                // Smelt progress + remaining burn time, centered in the gap
+                // between the input and output panels.
+                const float mid_x = ( globalGameState.ui.furnace.input.getInvRight( ) + globalGameState.ui.furnace.output.getInvLeft( ) ) / 2.0f;
+                const float mid_y = ( globalGameState.ui.furnace.input.getInvTop( ) + globalGameState.ui.furnace.input.getInvBottom( ) ) / 2.0f;
+                const float text_size = 20.0f;
+                const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                const float dim[ 4 ] = { 1.0f, 1.0f, 1.0f, 0.55f };
+                if ( contents->cook_progress > 0 || contents->burn_ticks > 0 ) {
+                    char buf[ 32 ];
+                    const int pct = contents->cook_progress * 100 / SMELT_TICKS;
+                    snprintf( buf, sizeof( buf ), "%d%%", pct );
+                    const float tx = mid_x - globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;
+                    globalGameState.ui.font.drawStringOutlined( globalGameState.world.renderer, buf, tx, mid_y - text_size / 2.0f, text_size, white, globalGameState.screen.ortho_center );
+                }
+                if ( contents->burn_ticks > 0 ) {
+                    char buf[ 32 ];
+                    snprintf( buf, sizeof( buf ), "%ds", contents->burn_ticks / UPS_RATE );
+                    const float tx = mid_x - globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;
+                    globalGameState.ui.font.drawString( globalGameState.world.renderer, buf, tx, mid_y + text_size * 0.6f, text_size * 0.8f, dim, globalGameState.screen.ortho_center );
+                }
+            }
         }
         {
             // Name the item in the selected hotbar slot (empty slot: nothing).

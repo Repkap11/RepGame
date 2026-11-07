@@ -28,6 +28,8 @@
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/furnace.hpp"
+#include "common/smelting.hpp"
 #include "common/game/game_internal.hpp"
 
 void RepGame::add_to_hotbar( const bool alsoSelect, const ItemID itemId ) {
@@ -64,6 +66,9 @@ void repgame_loot_chest_contents( RepGameState &state, const ChestContents &cont
 }
 
 void RepGame::open_chest( const glm::ivec3 &pos ) {
+    if ( globalGameState.ui.furnace.open ) {
+        this->close_furnace( );
+    }
     if ( globalGameState.ui.chest.open && globalGameState.ui.chest.pos != pos ) {
         // Unsubscribes from the previous chest in multiplayer.
         this->close_chest( );
@@ -312,6 +317,372 @@ static void hotbar_slot_to_chest( RepGameState &state, int slot_index, bool half
     state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
+// --- Furnace helpers -------------------------------------------------------
+// Same interaction model as the chest helpers above: every mutation funnels
+// through furnace_sync_slot so the chunk gets dirtied, the icon repaints,
+// and the server hears about it. Slot indices: 0=input, 1=fuel, 2=output.
+
+static InventoryRenderer &furnace_slot_renderer( RepGameState &state, int slot ) {
+    switch ( slot ) {
+        case FURNACE_SLOT_INPUT: return state.ui.furnace.input;
+        case FURNACE_SLOT_FUEL: return state.ui.furnace.fuel;
+        default: return state.ui.furnace.output;
+    }
+}
+
+static void furnace_sync_slot( RepGameState &state, int slot_index, const InventorySlot &slot ) {
+    state.world.set_furnace_slot( state.ui.furnace.pos, slot_index, slot );
+    furnace_slot_renderer( state, slot_index ).changeSlotItem( 0, slot );
+    state.ui.furnace.drawn[ slot_index ] = slot;
+    state.multiplayer.furnace_set_slot( state.ui.furnace.pos, static_cast<uint32_t>( slot_index ), slot );
+}
+
+static void furnace_pickup_or_swap( RepGameState &state, int slot_index ) {
+    // The output slot only gives items back — nothing may be inserted.
+    if ( slot_index == FURNACE_SLOT_OUTPUT && state.ui.holding_slot ) {
+        return;
+    }
+    FurnaceContents *contents = state.world.get_or_create_furnace_contents( state.ui.furnace.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot &held = state.ui.held_slot;
+    if ( !state.ui.holding_slot ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return;
+        }
+        held = slot;
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+        state.ui.holding_slot = true;
+    } else if ( slot.item_id == held.item_id && slot.quantity > 0 && slot.quantity < item_max_stack( held.item_id ) ) {
+        const int space = item_max_stack( held.item_id ) - slot.quantity;
+        const int to_move = held.quantity < space ? held.quantity : space;
+        slot.quantity += to_move;
+        held.quantity -= to_move;
+        if ( held.quantity <= 0 ) {
+            held.item_id = LAST_BLOCK_ID;
+            state.ui.holding_slot = false;
+        }
+    } else {
+        const InventorySlot tmp = slot;
+        slot = held;
+        held = tmp;
+        if ( held.item_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
+            state.ui.holding_slot = false;
+        }
+    }
+    furnace_sync_slot( state, slot_index, slot );
+}
+
+static void furnace_right_click( RepGameState &state, int slot_index ) {
+    if ( slot_index == FURNACE_SLOT_OUTPUT && state.ui.holding_slot ) {
+        return;
+    }
+    FurnaceContents *contents = state.world.get_or_create_furnace_contents( state.ui.furnace.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot &held = state.ui.held_slot;
+    if ( !state.ui.holding_slot ) {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            return;
+        }
+        const int take = ( slot.quantity + 1 ) / 2;
+        held.item_id = slot.item_id;
+        held.quantity = take;
+        slot.quantity -= take;
+        if ( slot.quantity <= 0 ) {
+            slot.item_id = LAST_BLOCK_ID;
+            slot.quantity = 0;
+        }
+        state.ui.holding_slot = true;
+    } else {
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            slot.item_id = held.item_id;
+            slot.quantity = 1;
+            held.quantity--;
+        } else if ( slot.item_id == held.item_id && slot.quantity < item_max_stack( held.item_id ) ) {
+            slot.quantity++;
+            held.quantity--;
+        } else {
+            return;
+        }
+        if ( held.quantity <= 0 ) {
+            held.item_id = LAST_BLOCK_ID;
+            state.ui.holding_slot = false;
+        }
+    }
+    furnace_sync_slot( state, slot_index, slot );
+}
+
+// Merge a stack into one furnace slot (shift-click from a player inventory).
+// Returns the leftover count that didn't fit.
+static int furnace_add_to_slot( RepGameState &state, int slot_index, ItemID item_id, int quantity ) {
+    FurnaceContents *contents = state.world.get_or_create_furnace_contents( state.ui.furnace.pos );
+    if ( contents == nullptr || slot_index == FURNACE_SLOT_OUTPUT ) {
+        return quantity;
+    }
+    int remaining = quantity;
+    InventorySlot &slot = contents->slots[ slot_index ];
+    if ( slot.item_id == item_id && slot.quantity > 0 && slot.quantity < item_max_stack( item_id ) ) {
+        const int space = item_max_stack( item_id ) - slot.quantity;
+        const int to_add = remaining < space ? remaining : space;
+        slot.quantity += to_add;
+        remaining -= to_add;
+    }
+    if ( remaining > 0 && ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) ) {
+        const int to_add = remaining < item_max_stack( item_id ) ? remaining : item_max_stack( item_id );
+        slot.item_id = item_id;
+        slot.quantity = to_add;
+        remaining -= to_add;
+    }
+    if ( remaining != quantity ) {
+        furnace_sync_slot( state, slot_index, slot );
+    }
+    return remaining;
+}
+
+// Shift-click routing: anything that burns goes to the fuel slot — items
+// that are both fuel and smeltable (logs → charcoal) default to fuel —
+// everything else lands in the input slot (the furnace accepts junk there
+// harmlessly). The output slot never receives items.
+static int furnace_add( RepGameState &state, ItemID item_id, int quantity ) {
+    const int target = furnace_fuel_ticks( item_id ) > 0 ? FURNACE_SLOT_FUEL : FURNACE_SLOT_INPUT;
+    int remaining = furnace_add_to_slot( state, target, item_id, quantity );
+    if ( remaining > 0 && target != FURNACE_SLOT_INPUT ) {
+        // Preferred slot full: fall back to the input slot.
+        remaining = furnace_add_to_slot( state, FURNACE_SLOT_INPUT, item_id, remaining );
+    }
+    return remaining;
+}
+
+// Shift-click on a furnace slot: move the stack to the player (survival,
+// then hotbar); any leftover stays in the furnace.
+static void furnace_slot_to_player( RepGameState &state, int slot_index ) {
+    FurnaceContents *contents = state.world.get_or_create_furnace_contents( state.ui.furnace.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
+    if ( leftover > 0 ) {
+        const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
+        const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
+        if ( to_hotbar > 0 ) {
+            state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
+            leftover -= to_hotbar;
+        }
+    }
+    if ( leftover <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    } else {
+        slot.quantity = leftover;
+    }
+    furnace_sync_slot( state, slot_index, slot );
+}
+
+static void furnace_move_to_player( RepGameState &state, int slot_index, bool half ) {
+    if ( !half ) {
+        furnace_slot_to_player( state, slot_index );
+        return;
+    }
+    FurnaceContents *contents = state.world.get_or_create_furnace_contents( state.ui.furnace.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    InventorySlot slot = contents->slots[ slot_index ];
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = ( slot.quantity + 1 ) / 2;
+    int moved = want - state.survival_inventory.addItem( slot.item_id, want );
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    furnace_sync_slot( state, slot_index, slot );
+}
+
+// Shift-click on a survival-inventory slot while a furnace is open.
+static void survival_slot_to_furnace( RepGameState &state, int slot_index, bool half ) {
+    InventorySlot &slot = state.survival_inventory.getSlotsMut( )[ slot_index ];
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
+    const int moved = want - furnace_add( state, slot.item_id, want );
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    state.survival_inventory.inventory_renderer.changeSlotItem( slot_index, slot );
+}
+
+static void hotbar_slot_to_furnace( RepGameState &state, int slot_index, bool half ) {
+    InventorySlot slot = state.hotbar.getSlotContents( slot_index );
+    if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+        return;
+    }
+    const int want = half ? ( slot.quantity + 1 ) / 2 : slot.quantity;
+    const int moved = want - furnace_add( state, slot.item_id, want );
+    if ( moved <= 0 ) {
+        return;
+    }
+    slot.quantity -= moved;
+    if ( slot.quantity <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    state.hotbar.setSlotContents( slot_index, slot );
+    state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+}
+
+// Which furnace slot (0..2) a screen point hits, or -1.
+static int furnace_slot_clicked( RepGameState &state, int screen_x, int screen_y ) {
+    const int mx = screen_x;
+    const int my = screen_y;
+    if ( state.ui.furnace.input.whichSlotClicked( mx, my ) >= 0 ) {
+        return FURNACE_SLOT_INPUT;
+    }
+    if ( state.ui.furnace.fuel.whichSlotClicked( mx, my ) >= 0 ) {
+        return FURNACE_SLOT_FUEL;
+    }
+    if ( state.ui.furnace.output.whichSlotClicked( mx, my ) >= 0 ) {
+        return FURNACE_SLOT_OUTPUT;
+    }
+    return -1;
+}
+
+void RepGame::open_furnace( const glm::ivec3 &pos ) {
+    if ( globalGameState.ui.chest.open ) {
+        // One container UI at a time (the panels would overlap).
+        this->close_chest( );
+    }
+    if ( globalGameState.ui.furnace.open && globalGameState.ui.furnace.pos != pos ) {
+        this->close_furnace( );
+    }
+    globalGameState.ui.furnace.open = true;
+    globalGameState.ui.furnace.pos = pos;
+    globalGameState.input.inventory_open = true;
+    audio_play_sfx( "chest" );
+    globalGameState.pending_furnace_loot.erase( pos );
+    if ( globalGameState.multiplayer.is_active( ) ) {
+        globalGameState.multiplayer.furnace_open( pos );
+    }
+    // Ensure a local entry exists (empty until FURNACE_CONTENTS arrives in
+    // multiplayer; the furnace file contents in singleplayer) and repaint.
+    const FurnaceContents *contents = globalGameState.world.get_or_create_furnace_contents( pos );
+    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
+        const InventorySlot slot = contents != nullptr ? contents->slots[ i ] : InventorySlot{ LAST_BLOCK_ID, 0 };
+        furnace_slot_renderer( globalGameState, i ).changeSlotItem( 0, slot );
+        globalGameState.ui.furnace.drawn[ i ] = slot;
+    }
+}
+
+// Repaints furnace slot icons whose world contents changed since the last
+// push — furnace_tick mutates the chunk contents directly (fuel consumed,
+// smelts completing), bypassing the click handlers that normally repaint.
+void repgame_furnace_sync_icons( RepGameState &state ) {
+    if ( !state.ui.furnace.open ) {
+        return;
+    }
+    const FurnaceContents *contents = state.world.get_furnace_contents( state.ui.furnace.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
+        const InventorySlot &slot = contents->slots[ i ];
+        if ( slot.item_id != state.ui.furnace.drawn[ i ].item_id || slot.quantity != state.ui.furnace.drawn[ i ].quantity ) {
+            furnace_slot_renderer( state, i ).changeSlotItem( 0, slot );
+            state.ui.furnace.drawn[ i ] = slot;
+        }
+    }
+}
+
+void RepGame::close_furnace( ) {
+    if ( !globalGameState.ui.furnace.open ) {
+        return;
+    }
+    globalGameState.ui.furnace.open = false;
+    audio_play_sfx( "chest_close" );
+    if ( globalGameState.multiplayer.is_active( ) ) {
+        globalGameState.multiplayer.furnace_close( globalGameState.ui.furnace.pos );
+    }
+}
+
+// Moves every non-empty furnace slot into the player inventories (survival
+// first, hotbar for overflow). Used for furnace-break looting and the
+// multiplayer FURNACE_CONTENTS loot snapshot.
+void repgame_loot_furnace_contents( RepGameState &state, const FurnaceContents &contents ) {
+    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
+        const InventorySlot &slot = contents.slots[ i ];
+        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+            continue;
+        }
+        int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
+        if ( leftover > 0 ) {
+            const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
+            const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
+            if ( to_hotbar > 0 ) {
+                state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
+            }
+        }
+    }
+    state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+}
+
+// Lay out the three 1x1 furnace panels: input and output on the top row,
+// fuel centered below them, all pinned above the survival inventory.
+void repgame_furnace_layout( RepGameState &state ) {
+    const int w = static_cast<int>( state.screen.width );
+    const int h = static_cast<int>( state.screen.height );
+    const float stride = state.survival_inventory.inventory_renderer.getCellStride( );
+    const float surv_top = state.survival_inventory.inventory_renderer.getItemsTop( );
+    struct {
+        InventoryRenderer *panel;
+        float center_x;
+        float bottom_y;
+    } panels[] = {
+        { &state.ui.furnace.input, -stride * 1.45f, surv_top + stride * 2.45f },
+        { &state.ui.furnace.output, stride * 1.45f, surv_top + stride * 2.45f },
+        { &state.ui.furnace.fuel, 0.0f, surv_top + stride * 1.15f },
+    };
+    for ( auto &p : panels ) {
+        p.panel->options.fixed_cell_stride = stride;
+        p.panel->options.center_x = static_cast<int>( p.center_x );
+        p.panel->options.pin_bottom_y = static_cast<int>( p.bottom_y );
+        // The renderer rebuilds icons from its slots pointer; use the live
+        // furnace contents when one is open, an empty furnace otherwise.
+        static const FurnaceContents empty_furnace;
+        const FurnaceContents *contents = &empty_furnace;
+        if ( state.ui.furnace.open ) {
+            if ( const FurnaceContents *live = state.world.get_furnace_contents( state.ui.furnace.pos ) ) {
+                contents = live;
+            }
+        }
+        const int slot_index = p.panel == &state.ui.furnace.input   ? FURNACE_SLOT_INPUT
+                               : p.panel == &state.ui.furnace.fuel ? FURNACE_SLOT_FUEL
+                                                                  : FURNACE_SLOT_OUTPUT;
+        const InventorySlot *slots = &contents->slots[ slot_index ];
+        p.panel->onSizeChange( w, h, slots );
+    }
+}
+
 // --- Crafting helpers -----------------------------------------------------
 // The crafting grid is 2x2 in the survival inventory and 3x3 while a
 // crafting table is open (either mode). Slots live in renderer order (slot
@@ -322,7 +693,7 @@ int repgame_crafting_dim( const RepGameState &state ) {
 }
 
 bool repgame_crafting_grid_visible( const RepGameState &state ) {
-    return state.input.inventory_open && !state.ui.chest.open && ( state.ui.crafting.table_open || state.game_mode == GameMode_Survival );
+    return state.input.inventory_open && !state.ui.chest.open && !state.ui.furnace.open && ( state.ui.crafting.table_open || state.game_mode == GameMode_Survival );
 }
 
 InventoryRenderer &repgame_crafting_grid( RepGameState &state ) {
@@ -715,6 +1086,11 @@ static bool off_inventory_panels( RepGameState &state ) {
     if ( state.ui.chest.open && state.ui.chest.inventory_renderer.containsPoint( x, y ) ) {
         return false;
     }
+    if ( state.ui.furnace.open &&
+         ( state.ui.furnace.input.containsPoint( x, y ) || state.ui.furnace.fuel.containsPoint( x, y ) ||
+           state.ui.furnace.output.containsPoint( x, y ) ) ) {
+        return false;
+    }
     if ( repgame_crafting_grid_visible( state ) &&
          ( repgame_crafting_grid( state ).containsPoint( x, y ) || state.ui.crafting.output.containsPoint( x, y ) ) ) {
         return false;
@@ -955,6 +1331,9 @@ void RepGame::process_inventory_events( ) {
                 craft_out = 0;
             }
         }
+        const int furnace_slot = globalGameState.ui.furnace.open
+                                     ? furnace_slot_clicked( globalGameState, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y )
+                                     : -1;
         if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_pressed_in_ui && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
             if ( !screen_tap && globalGameState.ui.holding_slot && off_inventory_panels( globalGameState ) ) {
@@ -1003,6 +1382,34 @@ void RepGame::process_inventory_events( ) {
                         if ( hotbar_slot >= 0 ) {
                             if ( globalGameState.input.shift_held ) {
                                 hotbar_slot_to_chest( globalGameState, hotbar_slot, false );
+                            } else {
+                                globalGameState.hotbar.pickupOrSwapSlot( hotbar_slot, globalGameState.ui.held_slot, globalGameState.ui.holding_slot );
+                            }
+                            globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+                        }
+                    }
+                }
+            } else if ( globalGameState.ui.furnace.open ) {
+                // Furnace UI: furnace slots win, then survival, then hotbar.
+                if ( furnace_slot >= 0 ) {
+                    if ( globalGameState.input.shift_held ) {
+                        furnace_slot_to_player( globalGameState, furnace_slot );
+                    } else {
+                        furnace_pickup_or_swap( globalGameState, furnace_slot );
+                    }
+                } else {
+                    const int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( slot >= 0 ) {
+                        if ( globalGameState.input.shift_held ) {
+                            survival_slot_to_furnace( globalGameState, slot, false );
+                        } else {
+                            globalGameState.survival_inventory.pickupOrSwapSlot( slot, globalGameState.ui.held_slot, globalGameState.ui.holding_slot );
+                        }
+                    } else {
+                        const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                        if ( hotbar_slot >= 0 ) {
+                            if ( globalGameState.input.shift_held ) {
+                                hotbar_slot_to_furnace( globalGameState, hotbar_slot, false );
                             } else {
                                 globalGameState.hotbar.pickupOrSwapSlot( hotbar_slot, globalGameState.ui.held_slot, globalGameState.ui.holding_slot );
                             }
@@ -1078,6 +1485,10 @@ void RepGame::process_inventory_events( ) {
                 if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
                     chest_slot_to_player( globalGameState, chest_slot );
                 }
+            } else if ( globalGameState.ui.furnace.open ) {
+                if ( furnace_slot >= 0 ) {
+                    furnace_slot_to_player( globalGameState, furnace_slot );
+                }
             } else if ( globalGameState.game_mode == GameMode_Survival ) {
                 // Survival mode: middle-clicking a survival inventory slot moves
                 // the stack to the hotbar.
@@ -1139,6 +1550,34 @@ void RepGame::process_inventory_events( ) {
                         }
                     }
                 }
+            } else if ( globalGameState.ui.furnace.open ) {
+                const int fslot = furnace_slot;
+                if ( fslot >= 0 ) {
+                    if ( globalGameState.input.shift_held ) {
+                        furnace_move_to_player( globalGameState, fslot, true );
+                    } else {
+                        furnace_right_click( globalGameState, fslot );
+                    }
+                } else {
+                    const int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    if ( slot >= 0 ) {
+                        if ( globalGameState.input.shift_held ) {
+                            survival_slot_to_furnace( globalGameState, slot, true );
+                        } else {
+                            globalGameState.survival_inventory.rightClickSlot( slot, globalGameState.ui.held_slot, globalGameState.ui.holding_slot );
+                        }
+                    } else {
+                        const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                        if ( hotbar_slot >= 0 ) {
+                            if ( globalGameState.input.shift_held ) {
+                                hotbar_slot_to_furnace( globalGameState, hotbar_slot, true );
+                            } else {
+                                globalGameState.hotbar.rightClickSlot( hotbar_slot, globalGameState.ui.held_slot, globalGameState.ui.holding_slot );
+                            }
+                            globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+                        }
+                    }
+                }
             } else if ( globalGameState.game_mode == GameMode_Survival || craft_ui ) {
                 int slot = globalGameState.survival_inventory.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
                 if ( globalGameState.input.shift_held ) {
@@ -1192,10 +1631,11 @@ void RepGame::process_inventory_events( ) {
         globalGameState.input.mouse.buttons.left_click_handled = true;
         globalGameState.input.mouse.buttons.right_click_handled = true;
         globalGameState.input.mouse.buttons.middle_click_handled = true;
-        // Closing the inventory (E / tap) also closes any open chest and
-        // returns any crafting-grid contents to the player (idempotent —
+        // Closing the inventory (E / tap) also closes any open chest/furnace
+        // and returns any crafting-grid contents to the player (idempotent —
         // this branch runs every tick while the inventory is closed).
         this->close_chest( );
+        this->close_furnace( );
         repgame_crafting_return_grid( globalGameState );
         // If we were holding an inventory item when the inventory closed, return
         // it to the survival inventory to avoid item loss.

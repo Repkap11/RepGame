@@ -1041,6 +1041,100 @@ void World::set_chest_contents( const glm::ivec3 &block_pos, const ChestContents
     }
 }
 
+const FurnaceContents *World::get_furnace_contents( const glm::ivec3 &block_pos ) const {
+    if ( const Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        const Chunk &chunk = *chunk_prt;
+        if ( chunk.load_state ) {
+            return nullptr;
+        }
+        const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
+        const auto it = chunk.furnaces.find( Chunk::get_index_from_coords( diff ) );
+        return it == chunk.furnaces.end( ) ? nullptr : &it->second;
+    }
+    return nullptr;
+}
+
+FurnaceContents *World::get_or_create_furnace_contents( const glm::ivec3 &block_pos ) {
+    if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        Chunk &chunk = *chunk_prt;
+        if ( chunk.load_state ) {
+            return nullptr;
+        }
+        if ( !block_is_furnace( get_block_from_chunk( chunk, block_pos ).id ) ) {
+            return nullptr;
+        }
+        const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
+        const int index = Chunk::get_index_from_coords( diff );
+        chunk.furnaces_loaded = 1;
+        return &chunk.furnaces[ index ]; // default-constructs an empty furnace
+    }
+    return nullptr;
+}
+
+bool World::set_furnace_slot( const glm::ivec3 &block_pos, int slot, const InventorySlot &value ) {
+    if ( slot < 0 || slot >= FURNACE_INVENTORY_SLOTS ) {
+        return false;
+    }
+    FurnaceContents *contents = this->get_or_create_furnace_contents( block_pos );
+    if ( contents == nullptr ) {
+        return false;
+    }
+    contents->slots[ slot ] = value;
+    if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        chunk_prt->dirty = 1;
+    }
+    return true;
+}
+
+void World::set_furnace_contents( const glm::ivec3 &block_pos, const FurnaceContents &contents ) {
+    FurnaceContents *dst = this->get_or_create_furnace_contents( block_pos );
+    if ( dst == nullptr ) {
+        return;
+    }
+    *dst = contents;
+    if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        chunk_prt->dirty = 1;
+    }
+}
+
+void World::tick_furnaces( ) {
+    // Scan every chunk slot: furnaces are rare, so the per-slot check is a
+    // map-empty test on chunks that have any furnace data at all.
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk &chunk = this->chunkLoader.chunkArray[ i ];
+        if ( chunk.load_state || chunk.furnaces.empty( ) ) {
+            continue;
+        }
+        const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
+        for ( auto &pair : chunk.furnaces ) {
+            const int index = pair.first;
+            const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
+                                           ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
+                                           ( index % CHUNK_SIZE_INTERNAL_Z ) - 1 );
+            const glm::ivec3 block_pos = chunk_origin + internal_pos;
+            // The block may have been replaced without going through
+            // Chunk::set_block (e.g. an unloaded-chunk diff): drop stale
+            // contents rather than ticking a phantom furnace.
+            if ( !block_is_furnace( chunk.state_at( index ).id ) ) {
+                pair.second.clear( );
+                continue;
+            }
+            bool changed = false;
+            const bool lit_changed = furnace_tick( pair.second, &changed );
+            if ( changed ) {
+                chunk.dirty = 1;
+            }
+            if ( lit_changed ) {
+                BlockState state = chunk.state_at( index );
+                state.id = state.id == FURNACE ? LIT_FURNACE : FURNACE;
+                // display_id drives the mesh/light lookup — keep it canonical.
+                state.display_id = state.id;
+                this->set_loaded_block( block_pos, state );
+            }
+        }
+    }
+}
+
 void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, const BlockID new_id, const int num_particles ) {
     if ( prev_state.id == AIR || prev_state.id == LAST_BLOCK_ID || prev_state.id == new_id ) {
         return;

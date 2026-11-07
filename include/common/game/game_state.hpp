@@ -75,6 +75,9 @@ struct RepGameState {
     // the block removal with a CHEST_CONTENTS snapshot used for looting, so
     // contents are never lost to a client that never opened the chest.
     std::unordered_set<glm::ivec3> pending_chest_loot;
+    // Same for furnaces broken while connected: the server answers with a
+    // FURNACE_CONTENTS snapshot used for looting.
+    std::unordered_set<glm::ivec3> pending_furnace_loot;
 
     // Local player: input, camera, block interaction, and the player's own
     // inventories (persisted in player.dat; the panels in `ui` render them).

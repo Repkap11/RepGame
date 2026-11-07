@@ -13,6 +13,7 @@
 #include "common/pause_menu.hpp"
 #include "common/inventory_renderer.hpp"
 #include "common/block_definitions.hpp" // InventorySlot
+#include "common/furnace.hpp"
 
 // Chest container the player currently has open (at most one). Contents
 // live in the owning chunk (World::get_chest_contents); this renderer
@@ -46,6 +47,21 @@ struct CraftingUi {
     } drag;
 };
 
+// Furnace container the player currently has open (at most one). Contents
+// live in the owning chunk (World::get_furnace_contents); the three 1x1
+// renderers draw the input/fuel/output slots in a triangle above the
+// player inventory.
+struct FurnaceUi {
+    bool open;
+    glm::ivec3 pos;
+    InventoryRenderer input, fuel, output;
+    // Last slot values pushed to the renderers. Furnace contents also change
+    // from ticking (fuel consumed, smelts completing), so the tick loop
+    // repaints through repgame_furnace_sync_icons when the world contents
+    // differ from this snapshot.
+    InventorySlot drawn[ FURNACE_INVENTORY_SLOTS ];
+};
+
 // The panel/window layer drawn into the UI pass: inventory grids,
 // overlays, menus, and the mouse-dragged stack. Distinct from the player
 // inventories in RepGameState, which are game data these panels render.
@@ -62,4 +78,5 @@ struct UiState {
     bool holding_slot;
     ChestUi chest;
     CraftingUi crafting;
+    FurnaceUi furnace;
 };

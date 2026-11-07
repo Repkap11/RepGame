@@ -25,6 +25,7 @@ BLOCKS_DIR = os.path.join(DATA_DIR, "blocks")
 ITEMS_DIR = os.path.join(DATA_DIR, "items")
 RECIPES_DIR = os.path.join(DATA_DIR, "recipes")
 ITEM_TAGS_JSON = os.path.join(DATA_DIR, "item_tags.json")
+SMELTING_JSON = os.path.join(DATA_DIR, "smelting.json")
 TEXTURES_DIR = os.path.join(DATA_DIR, "textures")
 TEXTURES_JSON = os.path.join(DATA_DIR, "textures.json")
 if OUT_DIR:
@@ -36,6 +37,7 @@ if OUT_DIR:
     OUT_ITEM_NAMES = os.path.join(OUT_DIR, "item_names_gen.inc")
     OUT_DROPS = os.path.join(OUT_DIR, "block_drops_gen.inc")
     OUT_RECIPES = os.path.join(OUT_DIR, "recipes_gen.inc")
+    OUT_SMELT = os.path.join(OUT_DIR, "smelting_gen.inc")
     OUT_PNG = os.path.join(OUT_DIR, "blocks.png")
 else:
     OUT_IDS = os.path.join(ROOT, "include", "common", "block_ids_gen.hpp")
@@ -46,6 +48,7 @@ else:
     OUT_ITEM_NAMES = os.path.join(ROOT, "src", "common", "item_names_gen.inc")
     OUT_DROPS = os.path.join(ROOT, "src", "common", "block_drops_gen.inc")
     OUT_RECIPES = os.path.join(ROOT, "src", "common", "recipes_gen.inc")
+    OUT_SMELT = os.path.join(ROOT, "src", "common", "smelting_gen.inc")
     OUT_PNG = os.path.join(ROOT, "bitmaps", "blocks.png")
 
 LAST_BLOCK_ID = 2047
@@ -631,6 +634,101 @@ def load_recipes(tags, blocks, items):
     return recipes
 
 
+def load_smelt(tags, blocks, items):
+    """data/smelting.json — furnace smelt recipes and fuel values.
+    {"smelt_ticks": int, "recipes": [{"input": name|#tag|[...], "output":
+    name}], "fuels": [{"item": name|#tag, "ticks": int}]}. Returns
+    {"smelt_ticks": int, "recipes": [(input_id, output_id), ...],
+    "fuels": [(item_id, ticks), ...]}."""
+    if not os.path.exists(SMELTING_JSON):
+        return {"smelt_ticks": 0, "recipes": [], "fuels": []}
+    with open(SMELTING_JSON) as f:
+        s = json.load(f)
+    if not isinstance(s, dict):
+        fail("smelting.json: must be an object")
+    unknown = set(s) - {"smelt_ticks", "recipes", "fuels"}
+    if unknown:
+        fail("smelting.json: unknown keys %s" % sorted(unknown))
+    block_names = {b["name"]: bid for bid, b in blocks.items()}
+    item_names = {it["name"]: iid for iid, it in items.items()}
+    for b in blocks.values():
+        for a in b.get("aliases", []):
+            block_names.setdefault(a, b["id"])
+    for it in items.values():
+        for a in it.get("aliases", []):
+            item_names.setdefault(a, it["id"])
+
+    def resolve_name(name, what):
+        iid = block_names.get(name)
+        if iid is None:
+            iid = item_names.get(name)
+        if iid is None:
+            fail("%s: %r is not a block or item name" % (what, name))
+        return iid
+
+    def input_ids(ing, what):
+        # <ing> := "NAME" | "#tag" | [ "NAME" | "#tag", ... ] -> id list.
+        if isinstance(ing, str):
+            opts = [ing]
+        elif isinstance(ing, list) and ing and all(isinstance(x, str) for x in ing):
+            opts = ing
+        else:
+            fail("%s: bad input %r" % (what, ing))
+        ids = []
+        for o in opts:
+            if o.startswith("#"):
+                tag = o[1:]
+                if tag not in tags:
+                    fail("%s: unknown item tag %r" % (what, o))
+                ids.extend(resolve_name(m, what) for m in tags[tag])
+            else:
+                ids.append(resolve_name(o, what))
+        seen = set()
+        return [i for i in ids if not (i in seen or seen.add(i))]
+
+    smelt_ticks = s.get("smelt_ticks", 0)
+    if not isinstance(smelt_ticks, int) or smelt_ticks <= 0:
+        fail("smelting.json: smelt_ticks must be a positive int")
+    recipes = []
+    for rec in s.get("recipes", []):
+        if not isinstance(rec, dict) or set(rec) - {"input", "output"} or "input" not in rec or "output" not in rec:
+            fail("smelting.json: recipe must be {input, output}: %r" % (rec,))
+        output = resolve_name(rec["output"], "smelting.json")
+        for iid in input_ids(rec["input"], "smelting.json"):
+            if iid == output:
+                fail("smelting.json: %r smelts to itself" % (rec["input"],))
+            recipes.append((iid, output))
+    fuels = []
+    for fu in s.get("fuels", []):
+        if not isinstance(fu, dict) or set(fu) - {"item", "ticks"} or "item" not in fu or "ticks" not in fu:
+            fail("smelting.json: fuel must be {item, ticks}: %r" % (fu,))
+        ticks = fu["ticks"]
+        if not isinstance(ticks, int) or ticks <= 0:
+            fail("smelting.json: fuel ticks must be a positive int")
+        for iid in input_ids(fu["item"], "smelting.json"):
+            fuels.append((iid, ticks))
+    return {"smelt_ticks": smelt_ticks, "recipes": recipes, "fuels": fuels}
+
+
+def emit_smelt(smelt, blocks, items):
+    """src/common/smelting_gen.inc — SMELT_RECIPES (input -> output, one row
+    per accepted input), FURNACE_FUELS (item -> burn ticks), SMELT_TICKS."""
+    def id_name(iid):
+        return blocks[iid]["name"] if iid < LAST_BLOCK_ID else items[iid]["name"]
+
+    out = [HEADER]
+    out.append("const SmeltRecipe SMELT_RECIPES[] = {\n")
+    for input_id, output_id in smelt["recipes"]:
+        out.append("    { %s, %s },\n" % (id_name(input_id), id_name(output_id)))
+    out.append("};\n\nconst FurnaceFuel FURNACE_FUELS[] = {\n")
+    for item_id, ticks in smelt["fuels"]:
+        out.append("    { %s, %d },\n" % (id_name(item_id), ticks))
+    out.append("};\n")
+    out.append("const int SMELT_TICKS = %d;\n" % smelt["smelt_ticks"])
+    with open(OUT_SMELT, "w") as f:
+        f.writelines(out)
+
+
 def emit_recipes(recipes, blocks, items):
     """src/common/recipes_gen.inc — option arrays (RECIPE_OPTS_<n>, deduped
     by first use) then CRAFT_RECIPES entries with cells packed dense
@@ -821,7 +919,9 @@ def main():
                 fail("%s: drops item %r is not a block or item name" % (b["_file"], d["item"]))
             d["_id"] = iid
 
-    emit_recipes(load_recipes(load_item_tags(block_names, item_names), blocks, items), blocks, items)
+    item_tags = load_item_tags(block_names, item_names)
+    emit_recipes(load_recipes(item_tags, blocks, items), blocks, items)
+    emit_smelt(load_smelt(item_tags, blocks, items), blocks, items)
 
     tex_meta = {}
     if os.path.exists(TEXTURES_JSON):

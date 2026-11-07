@@ -139,6 +139,29 @@ side):
 Server logic lives in `ServerLogic`'s chest handlers and per-chunk
 `chest_*` files (`docs/persistence.md`).
 
+## Furnaces
+
+Furnaces reuse the chest subscription model and add authoritative
+ticking (`ServerLogic` furnace handlers, `furnace_*` files):
+
+- `FURNACE_OPEN`/`FURNACE_CLOSE` subscribe/unsubscribe exactly like
+  chests; the server answers opens with `FURNACE_CONTENTS`, which
+  carries the full `FurnaceContents` — three slots *plus* `cook_progress`
+  and `burn_ticks` so viewers see the smelt advance.
+- `FURNACE_SET_SLOT` is the same optimistic single-slot write, relayed
+  to other subscribers (slot indices < `FURNACE_INVENTORY_SLOTS`).
+- The server ticks every cached furnace at `UPS_RATE`
+  (`ServerLogic::tickFurnaces` → shared `furnace_tick`), driven by the
+  epoll wake schedule. Slot/progress changes mark the chunk dirty and
+  are persisted through the same idle-save path as chests; lit-state
+  flips broadcast a `BLOCK_UPDATE` (`FURNACE`↔`LIT_FURNACE`, rotation
+  preserved via the last-known block state) and are recorded as chunk
+  edits. Progress snapshots to subscribers are throttled to every few
+  ticks.
+- A broken furnace triggers a `FURNACE_CONTENTS` snapshot consumed via
+  `RepGameState::pending_furnace_loot`, and clients never tick furnaces
+  locally while connected — the server is authoritative.
+
 ## World time
 
 `WORLD_TIME` flows both ways: the server broadcasts it on connect, after

@@ -11,6 +11,7 @@ struct BlockState;
 #define CHUNK_NAME_MAX_LENGTH 640
 #define FILE_ROOT_CHUNK "%s/chunk_%d_%d_%d"
 #define FILE_ROOT_CHEST "%s/chest_%d_%d_%d"
+#define FILE_ROOT_FURNACE "%s/furnace_%d_%d_%d"
 #define FILE_ROOT_MOBS "%s/mobs_%d_%d_%d"
 #define FILE_ROOT_ITEMS "%s/items_%d_%d_%d"
 #define FILE_ROOT_PLAYER_DATA "%s/player.dat"
@@ -18,6 +19,7 @@ struct BlockState;
 #include <glm.hpp>
 
 #include "common/chest.hpp"
+#include "common/furnace.hpp"
 #include "common/item.hpp"
 
 // Save migration (pre-2047 format): LEGACY_EMPTY_BLOCK_ID was the empty-slot
@@ -85,6 +87,10 @@ class MapStorage {
     // Loads all chest contents stored for a chunk into `out` (keyed by world
     // block position). Returns 1 when a chest file existed, 0 otherwise.
     int load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out );
+    // Same for furnace contents (slots + cook/burn progress). Keys are world
+    // block positions.
+    void persist_furnaces( const glm::ivec3 &chunk_offset, const FurnaceContentsMap &furnaces );
+    int load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMap &out );
     // Writes the chunk's mob records plus the tombstoned natural-roll
     // indices (`removed`). A file's existence no longer marks the chunk
     // populated — the deterministic roll always runs on load — so when

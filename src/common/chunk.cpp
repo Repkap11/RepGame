@@ -313,6 +313,8 @@ void Chunk::release_terrain( ) {
     this->dirty = 0;
     this->chests.clear( );
     this->chests_loaded = 0;
+    this->furnaces.clear( );
+    this->furnaces_loaded = 0;
     this->pending_mobs.clear( );
     this->mobs_file_present = 0;
     this->mobs_spawned = 0;
@@ -430,6 +432,9 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
     if ( block_is_chest( old_state.id ) && !block_is_chest( blockState.id ) ) {
         this->chests.erase( index );
     }
+    if ( block_is_furnace( old_state.id ) && !block_is_furnace( blockState.id ) ) {
+        this->furnaces.erase( index );
+    }
     this->store_state( index, block_state_normalize( old_state, blockState ) );
     light_air_mask_set( *this, index, this->id_at( index ) );
 }
@@ -466,6 +471,9 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
     }
     if ( block_is_chest( oldBlockState.id ) && !block_is_chest( blockState->id ) ) {
         this->chests.erase( index );
+    }
+    if ( block_is_furnace( oldBlockState.id ) && !block_is_furnace( blockState->id ) ) {
+        this->furnaces.erase( index );
     }
     this->store_state( index, *blockState );
     light_air_mask_set( *this, index, blockState->id );
@@ -855,6 +863,18 @@ skip_to_mesh:
             continue;
         }
         this->chests[ Chunk::get_index_from_coords( diff ) ] = pair.second;
+    }
+    // Furnace contents: same sidecar pattern as chests, world-pos keyed
+    // file converted to in-chunk block indices.
+    this->furnaces.clear( );
+    FurnaceContentsMap furnace_world_map;
+    this->furnaces_loaded = map_storage.load_furnaces( this->chunk_pos, furnace_world_map ) ? 1 : 0;
+    for ( const auto &pair : furnace_world_map ) {
+        const glm::ivec3 diff = pair.first - this->chunk_pos * CHUNK_SIZE_I;
+        if ( diff.x < 0 || diff.x >= CHUNK_SIZE_X || diff.y < 0 || diff.y >= CHUNK_SIZE_Y || diff.z < 0 || diff.z >= CHUNK_SIZE_Z ) {
+            continue;
+        }
+        this->furnaces[ Chunk::get_index_from_coords( diff ) ] = pair.second;
     }
     // Mob sidecar (same pattern as chests): file records load first, then the
     // deterministic natural roll always runs — pristine naturals are never

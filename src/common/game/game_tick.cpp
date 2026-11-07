@@ -73,6 +73,15 @@ void RepGame::tick( ) {
     RepGame::process_camera_angle( );
     RepGame::process_movement( );
     tick_entities( );
+    // Furnaces burn and cook only in singleplayer; in multiplayer the server
+    // ticks them authoritatively and streams FURNACE_CONTENTS + lit-state
+    // BLOCK_UPDATEs back.
+    if ( !globalGameState.multiplayer.is_active( ) ) {
+        globalGameState.world.tick_furnaces( );
+    }
+    // Tick-driven furnace changes (singleplayer) and any missed repaint
+    // (multiplayer) converge here: icons follow the live contents.
+    repgame_furnace_sync_icons( globalGameState );
     RepGame::process_pressure_plates( );
     tick_fly_flight( );
     tick_input_latches( );
@@ -139,6 +148,18 @@ void RepGame::close_out_of_reach_containers( ) {
         const double dist = glm::length( globalGameState.camera.pos - chest_center );
         if ( !block_is_chest( chest_state.id ) || dist > REACH_DISTANCE + 2.0 ) {
             this->close_chest( );
+            in.inventory_open = false;
+        }
+    }
+
+    // Same for an open furnace: closes when the block is gone (broken by
+    // anyone), its chunk unloaded, or the player walks out of reach.
+    if ( globalGameState.ui.furnace.open ) {
+        const BlockState furnace_state = globalGameState.world.get_loaded_block( globalGameState.ui.furnace.pos );
+        const glm::dvec3 furnace_center = glm::dvec3( globalGameState.ui.furnace.pos ) + glm::dvec3( 0.5 );
+        const double dist = glm::length( globalGameState.camera.pos - furnace_center );
+        if ( !block_is_furnace( furnace_state.id ) || dist > REACH_DISTANCE + 2.0 ) {
+            this->close_furnace( );
             in.inventory_open = false;
         }
     }

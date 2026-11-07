@@ -169,6 +169,50 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             break;
         }
+        case NetMsgType::FURNACE_CONTENTS: {
+            NetFurnaceContentsPayload p;
+            if ( !net_deserialize_furnace_contents( r, p ) ) {
+                pr_debug( "Malformed FURNACE_CONTENTS, skipping" );
+                return;
+            }
+            const glm::ivec3 furnace_pos( p.x, p.y, p.z );
+            // Same two roles as CHEST_CONTENTS: open answer vs break-loot
+            // snapshot. The pending flag is consumed either way.
+            if ( state.pending_furnace_loot.erase( furnace_pos ) ) {
+                if ( !block_is_furnace( world.get_loaded_block( furnace_pos ).id ) ) {
+                    repgame_loot_furnace_contents( state, p.contents );
+                }
+            } else if ( block_is_furnace( world.get_loaded_block( furnace_pos ).id ) ) {
+                world.set_furnace_contents( furnace_pos, p.contents );
+                if ( state.ui.furnace.open && state.ui.furnace.pos == furnace_pos ) {
+                    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
+                        InventoryRenderer *panel = i == FURNACE_SLOT_INPUT   ? &state.ui.furnace.input
+                                                   : i == FURNACE_SLOT_FUEL ? &state.ui.furnace.fuel
+                                                                             : &state.ui.furnace.output;
+                        panel->changeSlotItem( 0, p.contents.slots[ i ] );
+                        state.ui.furnace.drawn[ i ] = p.contents.slots[ i ];
+                    }
+                }
+            }
+            break;
+        }
+        case NetMsgType::FURNACE_SET_SLOT: {
+            NetFurnaceSetSlotPayload p;
+            if ( !net_deserialize_furnace_set_slot( r, p ) ) {
+                pr_debug( "Malformed FURNACE_SET_SLOT, skipping" );
+                return;
+            }
+            const glm::ivec3 furnace_pos( p.x, p.y, p.z );
+            if ( world.set_furnace_slot( furnace_pos, static_cast<int>( p.slot_index ), p.slot_value ) &&
+                 state.ui.furnace.open && state.ui.furnace.pos == furnace_pos ) {
+                InventoryRenderer *panel = p.slot_index == FURNACE_SLOT_INPUT   ? &state.ui.furnace.input
+                                           : p.slot_index == FURNACE_SLOT_FUEL ? &state.ui.furnace.fuel
+                                                                               : &state.ui.furnace.output;
+                panel->changeSlotItem( 0, p.slot_value );
+                state.ui.furnace.drawn[ p.slot_index ] = p.slot_value;
+            }
+            break;
+        }
         case NetMsgType::WORLD_TIME: {
             NetWorldTimePayload p;
             if ( !net_deserialize_world_time( r, p ) ) {
@@ -334,6 +378,62 @@ void Multiplayer::chest_set_slot( const glm::ivec3 &chest_pos, uint32_t slot_ind
     this->flush_outbound( );
     if ( this->framed_socket.had_error( ) ) {
         pr_debug( "Multiplayer send error in chest_set_slot, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::furnace_open( const glm::ivec3 &furnace_pos ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetChestPosPayload p;
+    p.x = furnace_pos.x;
+    p.y = furnace_pos.y;
+    p.z = furnace_pos.z;
+    PacketWriter w;
+    net_serialize_chest_pos( w, p );
+    this->framed_socket.send_message( NetMsgType::FURNACE_OPEN, 0, w.take_buf( ) );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in furnace_open, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::furnace_close( const glm::ivec3 &furnace_pos ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetChestPosPayload p;
+    p.x = furnace_pos.x;
+    p.y = furnace_pos.y;
+    p.z = furnace_pos.z;
+    PacketWriter w;
+    net_serialize_chest_pos( w, p );
+    this->framed_socket.send_message( NetMsgType::FURNACE_CLOSE, 0, w.take_buf( ) );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in furnace_close, disconnecting" );
+        this->disconnect( );
+    }
+}
+
+void Multiplayer::furnace_set_slot( const glm::ivec3 &furnace_pos, uint32_t slot_index, const InventorySlot &value ) {
+    if ( !this->active ) {
+        return;
+    }
+    NetFurnaceSetSlotPayload p;
+    p.x = furnace_pos.x;
+    p.y = furnace_pos.y;
+    p.z = furnace_pos.z;
+    p.slot_index = slot_index;
+    p.slot_value = value;
+    PacketWriter w;
+    net_serialize_furnace_set_slot( w, p );
+    this->framed_socket.send_message( NetMsgType::FURNACE_SET_SLOT, 0, w.take_buf( ) );
+    this->flush_outbound( );
+    if ( this->framed_socket.had_error( ) ) {
+        pr_debug( "Multiplayer send error in furnace_set_slot, disconnecting" );
         this->disconnect( );
     }
 }
