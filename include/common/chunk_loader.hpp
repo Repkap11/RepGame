@@ -11,6 +11,7 @@
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/seed_fifo.hpp"
+#include "common/chunk_sort.hpp"
 
 class Multiplayer;
 class World;
@@ -97,18 +98,40 @@ class ChunkLoader {
     // existing occl_fails verdicts. Used for the second stereo eye.
     bool occl_probe_pass = true;
 
-    // Compact list of chunks that are loaded and should be rendered.
-    // Rebuilt once per frame in render_chunks; iterated by calculate_cull/draw
-    // instead of scanning all MAX_LOADED_CHUNKS slots every pass.
+    // Compact list of chunks that are loaded and should be rendered, kept
+    // sorted front-to-back by camera distance (chunk_pos tie-break). Iterated
+    // by calculate_cull/draw instead of scanning all MAX_LOADED_CHUNKS slots
+    // every pass. rebuild_drawable_list maintains it incrementally from the
+    // slot_want/slot_listed byte mirror: entries [0,drawable_sorted_n) keep
+    // the previous sorted order and newcomers append to the tail, so draw
+    // merge-sorts instead of starting from slot order — see ChunkLoader::draw.
     Chunk **drawable_chunks;
     int num_drawable;
-    // Sort caching: rebuild_drawable_list bumps drawable_generation; draw
-    // re-sorts only when it changes, so the (up to) 3 passes per frame share
-    // one front-to-back ordering — exact for the reflected pass too since
-    // mirroring is an isometry. A stale ordering only costs early-z
-    // efficiency, never correctness.
-    int drawable_generation = 0;
-    int sorted_generation = -1;
+    int drawable_sorted_n = 0;
+    // The drawable subset with any blended geometry (Translucent or Water
+    // layer num_instances != 0), same incremental sort/gating scheme. Water
+    // and Translucent passes iterate this back-to-front instead of the full
+    // list: their draw order is the compositing order and must stay exact.
+    Chunk **blended_chunks;
+    int num_blended;
+    int blended_sorted_n = 0;
+    // Per-slot membership mirror: slot_want[i] is the SLOT_DRAWABLE/
+    // SLOT_BLENDED bits recomputed by Chunk::refresh_slot_flags on every
+    // write to load_state/should_render/num_instances (each chunk's
+    // slot_flags points at its own byte); slot_listed[i] is what the lists
+    // currently hold. rebuild_drawable_list diffs the two byte arrays, so a
+    // no-change call never touches a Chunk record. A debug-build verify in
+    // rebuild re-derives slot_want from the truth fields periodically.
+    uint8_t *slot_want;
+    uint8_t *slot_listed;
+    int compact_slot_list( Chunk **list, int *n, int sorted_n, uint8_t bit );
+    // Absolute camera position (render_origin + camera_pos) at the last sort
+    // of each list; tracking absolute coords keeps a render-origin snap from
+    // looking like movement.
+    glm::vec3 last_full_sort_cam = glm::vec3( 0.0f );
+    glm::vec3 last_blended_sort_cam = glm::vec3( 0.0f );
+    // Precomputed-key scratch for sort_chunks_by_distance.
+    std::vector<ChunkSortKey> sort_scratch;
     // Must-remesh queue: chunks dirtied by live edits (World::set_loaded_block
     // and its boundary fixup writes) are enqueued here so every mesh touched
     // by one edit is rebuilt in the same render pass — splitting them across

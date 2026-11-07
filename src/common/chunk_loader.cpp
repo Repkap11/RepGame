@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -128,6 +129,12 @@ static constexpr long long CHUNK_REMESH_BUDGET_US = 2000; // 2 ms
 // thread; overflow keeps needs_repopulation and drains via the scan below.
 static constexpr long long REPOP_MUST_BUDGET_US = 8000; // 8 ms
 
+// How far the camera may drift (blocks) before the full drawable list is
+// re-sorted. Opaque/Flowers ordering only affects early-z and occlusion
+// efficiency, so it may lag the camera; the blended subset list re-sorts on
+// any move at all because its order is the composited colour.
+static constexpr float CHUNK_SORT_RESORT_DIST = 2.0f;
+
 // Bound the per-frame light propagation work: edit seeds are tiny, but chunk
 // load-in border syncs can enqueue large BFS fronts — spreading them over a
 // few frames keeps load-in smooth.
@@ -203,10 +210,10 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
         // memory under the worker.
         if ( chunk.load_state == CHUNK_LIVE ) {
             if ( chunk.dirty ) {
-                chunk.load_state = CHUNK_LOADING;
+                chunk.set_load_state( CHUNK_LOADING );
                 this->terrain_loading_thread.enqueue( &chunk, chunk.chunk_pos, 1 );
             } else {
-                chunk.load_state = CHUNK_PARKED;
+                chunk.set_load_state( CHUNK_PARKED );
                 this->defer_release( chunk );
             }
         } else if ( chunk.load_state == CHUNK_LOADING ) {
@@ -214,7 +221,7 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
             // position's edits already persisted on the worker (and a dirty
             // park's just did), while freshly generated terrain is
             // reproducible — drop everything.
-            chunk.load_state = CHUNK_PARKED;
+            chunk.set_load_state( CHUNK_PARKED );
             this->defer_release( chunk );
         }
         return 2;
@@ -229,7 +236,7 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
     // CHUNK_PARKED re-entering the window, or the slot's nearest position
     // moved: (re)load through the normal queue.
     chunk.unprogram_terrain( );
-    chunk.load_state = CHUNK_LOADING;
+    chunk.set_load_state( CHUNK_LOADING );
     this->terrain_loading_thread.enqueue( &chunk, new_chunk, 1 );
     return 1;
 }
@@ -248,7 +255,7 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     // Publish before the finalize work (the old dequeue path cleared
     // is_loading first): light jobs and seeds popped mid-finalize see the
     // chunk as loaded rather than missing.
-    chunk.load_state = CHUNK_LIVE;
+    chunk.set_load_state( CHUNK_LIVE );
     // Lazily create this chunk's GL objects on first load so the startup
     // loop doesn't block the first frame.
     chunk.ensure_gl_init( );
@@ -287,8 +294,12 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     }
     this->chunkArray = static_cast<Chunk *>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk ) ) );
     this->drawable_chunks = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
+    this->blended_chunks = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
+    this->slot_want = static_cast<uint8_t *>( calloc( MAX_LOADED_CHUNKS, sizeof( uint8_t ) ) );
+    this->slot_listed = static_cast<uint8_t *>( calloc( MAX_LOADED_CHUNKS, sizeof( uint8_t ) ) );
     this->repop_must = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
     this->num_drawable = 0;
+    this->num_blended = 0;
     this->num_repop_must = 0;
     this->light_thread_start( );
     showErrors( );
@@ -317,6 +328,7 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     const VertexBuffer &vb_block_solid = this->solid.vb_block;
     const VertexBuffer &vb_block_water = this->water.vb_block;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        this->chunkArray[ i ].slot_flags = &this->slot_want[ i ];
         this->chunkArray[ i ].init( vb_block_solid, vb_block_water, vbl_block, vbl_coords );
     }
 
@@ -363,13 +375,13 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
                             chunk.chunk_mod = chunk_mod;
 
                             if ( this->pos_in_window( camera_chuck, chunk_pos ) ) {
-                                chunk.load_state = CHUNK_LOADING;
+                                chunk.set_load_state( CHUNK_LOADING );
                                 this->terrain_loading_thread.enqueue( &chunk, chunk.chunk_pos, 0 );
                             } else {
                                 // Outside the active render window: park the
                                 // slot until the radius grows over it. It has
                                 // no cells, so re-entry enqueues a real load.
-                                chunk.load_state = CHUNK_PARKED;
+                                chunk.set_load_state( CHUNK_PARKED );
                             }
                             nextChunk = ( nextChunk + 1 );
                         }
@@ -681,15 +693,90 @@ void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *b
     }
 }
 
-void ChunkLoader::rebuild_drawable_list( ) {
-    this->num_drawable = 0;
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk &chunk = this->chunkArray[ i ];
-        if ( !chunk.load_state && chunk.should_render ) {
-            this->drawable_chunks[ this->num_drawable++ ] = &chunk;
+// Compact one draw list in place after slot removals, preserving the order
+// of the surviving entries — including the sorted prefix, so *_sorted_n only
+// drops by how many kept entries were already sorted. Returns the new sorted
+// prefix length; *n is updated to the surviving count.
+int ChunkLoader::compact_slot_list( Chunk **list, int *n, int sorted_n, uint8_t bit ) {
+    int w = 0;
+    int new_sorted_n = 0;
+    for ( int i = 0; i < *n; i++ ) {
+        Chunk *chunk = list[ i ];
+        const int slot = static_cast<int>( chunk - this->chunkArray );
+        if ( this->slot_listed[ slot ] & bit ) {
+            if ( i < sorted_n ) {
+                new_sorted_n++;
+            }
+            list[ w++ ] = chunk;
         }
     }
-    this->drawable_generation++;
+    *n = w;
+    return new_sorted_n;
+}
+
+void ChunkLoader::rebuild_drawable_list( ) {
+    // slot_want[i] is what slot i wants in the draw lists (maintained live by
+    // Chunk::refresh_slot_flags on every contributing field write); slot_
+    // listed[i] is what the lists currently hold. This loop diffs the byte
+    // arrays only — the big Chunk records are never touched — so it costs a
+    // fraction of the old per-slot probe. Removals are compacted out of the
+    // lists in place; newcomers append to the unsorted tail past *_sorted_n,
+    // and draw() merge-sorts the tail into the surviving sorted prefix.
+    bool drawable_removed = false;
+    bool blended_removed = false;
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        const uint8_t want = this->slot_want[ i ];
+        const uint8_t diff = want ^ this->slot_listed[ i ];
+        if ( diff == 0 ) {
+            continue;
+        }
+        this->slot_listed[ i ] = want;
+        if ( diff & SLOT_DRAWABLE ) {
+            if ( want & SLOT_DRAWABLE ) {
+                this->drawable_chunks[ this->num_drawable++ ] = &this->chunkArray[ i ];
+            } else {
+                drawable_removed = true;
+            }
+        }
+        if ( diff & SLOT_BLENDED ) {
+            if ( want & SLOT_BLENDED ) {
+                this->blended_chunks[ this->num_blended++ ] = &this->chunkArray[ i ];
+            } else {
+                blended_removed = true;
+            }
+        }
+    }
+    if ( drawable_removed ) {
+        this->drawable_sorted_n = this->compact_slot_list( this->drawable_chunks, &this->num_drawable, this->drawable_sorted_n, SLOT_DRAWABLE );
+    }
+    if ( blended_removed ) {
+        this->blended_sorted_n = this->compact_slot_list( this->blended_chunks, &this->num_blended, this->blended_sorted_n, SLOT_BLENDED );
+    }
+#ifdef REPGAME_DEBUG
+    // Safety net for the mirror: cheap byte diff above assumes slot_want can
+    // never drift from the truth fields. Recompute it from scratch every so
+    // often and assert on the first divergence.
+    static int verify_countdown = 0;
+    if ( --verify_countdown <= 0 ) {
+        verify_countdown = 60;
+        for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+            const Chunk &chunk = this->chunkArray[ i ];
+            uint8_t truth = 0;
+            if ( chunk.load_state == CHUNK_LIVE && chunk.should_render ) {
+                truth |= SLOT_DRAWABLE;
+                if ( chunk.layers[ RenderOrder_Translucent ].num_instances != 0 || //
+                     chunk.layers[ RenderOrder_Water ].num_instances != 0 ) {
+                    truth |= SLOT_BLENDED;
+                }
+            }
+            if ( this->slot_want[ i ] != truth ) {
+                pr_debug( "slot_want mismatch slot=%d pos=(%d,%d,%d) want=%u truth=%u", i,
+                          chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, this->slot_want[ i ], truth );
+                assert( this->slot_want[ i ] == truth );
+            }
+        }
+    }
+#endif
 }
 // Bounding-sphere radius for frustum culling: a chunk's mesh is confined to
 // its own [0, CHUNK_SIZE) volume, so half the box diagonal plus one block of
@@ -767,38 +854,51 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
 
     // Front-to-back ordering: depth-writing layers draw nearest-first so
     // early-z kills occluded fragments (and, later, so occluders are in the
-    // depth buffer before occlusion queries test farther chunks). Blended
-    // layers iterate the same array in reverse (back-to-front) for correct
-    // alpha compositing. The blended translucent pass writes no depth, so
-    // overlapping glass from different chunks composites in exactly this
-    // order: sort by distance to the camera (not the chunk-snapped render
+    // depth buffer before occlusion queries test farther chunks). Two sorted
+    // lists serve that: drawable_chunks for the depth-writing orders (their
+    // order only costs early-z efficiency when stale, so it may lag the
+    // camera up to CHUNK_SORT_RESORT_DIST blocks), and the much smaller
+    // blended_chunks for Water/Translucent — the blended translucent pass
+    // writes no depth, so overlapping glass from different chunks composites
+    // in exactly list order and must re-sort on any camera move at all.
+    // Both sort by distance to the camera (not the chunk-snapped render
     // origin — that corner produces masses of exact ties and jumps 16
-    // blocks at chunk boundaries), and break remaining ties on chunk_pos so
-    // the strict total order never reshuffles with the drawable list's
-    // input order. Distance to the real camera is exact for the reflected
-    // pass too — the mirror is an isometry. Re-sorted only when
-    // rebuild_drawable_list ran (i.e. the camera's tick processed); nothing
-    // else consumes the list's order.
-    if ( this->sorted_generation != this->drawable_generation ) {
-        this->sorted_generation = this->drawable_generation;
-        const glm::vec3 ro = render_origin;
-        const glm::vec3 cam = camera_pos;
-        std::sort( this->drawable_chunks, this->drawable_chunks + this->num_drawable, [ ro, cam ]( const Chunk *a, const Chunk *b ) {
-            const glm::vec3 da = glm::vec3( a->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro - cam;
-            const glm::vec3 db = glm::vec3( b->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro - cam;
-            const float dist_a = glm::dot( da, da );
-            const float dist_b = glm::dot( db, db );
-            if ( dist_a != dist_b ) {
-                return dist_a < dist_b;
-            }
-            if ( a->chunk_pos.x != b->chunk_pos.x ) {
-                return a->chunk_pos.x < b->chunk_pos.x;
-            }
-            if ( a->chunk_pos.y != b->chunk_pos.y ) {
-                return a->chunk_pos.y < b->chunk_pos.y;
-            }
-            return a->chunk_pos.z < b->chunk_pos.z;
-        } );
+    // blocks at chunk boundaries) with a lexicographic chunk_pos tie-break,
+    // a strict total order that never reshuffles with input order; exact
+    // for the reflected pass too — the mirror is an isometry.
+    // rebuild_drawable_list (render_chunks, per frame) maintains the lists
+    // incrementally off the slot_want byte mirror: entries [0,*_sorted_n)
+    // survive in the previous sorted order and newcomers sit in the tail —
+    // a resort then re-sorts the prefix for the current camera, sorts the
+    // (few, usually far) newcomers, and merges the two halves over
+    // precomputed keys. Without newcomers the full list only re-sorts when
+    // the camera moved past CHUNK_SORT_RESORT_DIST, and its prefix then
+    // insertion-sorts (std::sort past CHUNK_SIZE_X of movement — teleports
+    // aren't nearly-sorted). The other draw calls in the same frame
+    // (4 orders, plus a second VR eye) then no-op. Sort keys use the rebased
+    // camera; the resort gates track the camera in absolute coords so a
+    // render-origin snap doesn't read as movement.
+    const glm::vec3 cam_abs = render_origin + camera_pos;
+    {
+        const glm::vec3 d = cam_abs - this->last_full_sort_cam;
+        const float moved2 = glm::dot( d, d );
+        if ( this->drawable_sorted_n < this->num_drawable || //
+             moved2 > CHUNK_SORT_RESORT_DIST * CHUNK_SORT_RESORT_DIST ) {
+            sort_chunks_by_distance( this->drawable_chunks, this->num_drawable, this->drawable_sorted_n, render_origin, camera_pos,
+                                     moved2 > static_cast<float>( CHUNK_SIZE_X ) * CHUNK_SIZE_X, this->sort_scratch );
+            this->drawable_sorted_n = this->num_drawable;
+            this->last_full_sort_cam = cam_abs;
+        }
+    }
+    {
+        const glm::vec3 d = cam_abs - this->last_blended_sort_cam;
+        const float moved2 = glm::dot( d, d );
+        if ( this->blended_sorted_n < this->num_blended || cam_abs != this->last_blended_sort_cam ) {
+            sort_chunks_by_distance( this->blended_chunks, this->num_blended, this->blended_sorted_n, render_origin, camera_pos,
+                                     moved2 > static_cast<float>( CHUNK_SIZE_X ) * CHUNK_SIZE_X, this->sort_scratch );
+            this->blended_sorted_n = this->num_blended;
+            this->last_blended_sort_cam = cam_abs;
+        }
     }
 
     // A chunk whose box contains the camera can never be occlusion-tested:
@@ -998,8 +1098,13 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     glEnable( GL_CULL_FACE );
                 }
             } else {
-                for ( int i = 0; i < this->num_drawable; i++ ) {
-                    Chunk &chunk = *this->drawable_chunks[ back_to_front ? this->num_drawable - 1 - i : i ];
+                // Water/Translucent walk the blended subset back-to-front
+                // (compositing order); the rest walk the full list
+                // front-to-back. Both lists share the same distance order.
+                Chunk *const *order_list = back_to_front ? this->blended_chunks : this->drawable_chunks;
+                const int order_count = back_to_front ? this->num_blended : this->num_drawable;
+                for ( int i = 0; i < order_count; i++ ) {
+                    Chunk &chunk = *order_list[ back_to_front ? order_count - 1 - i : i ];
                     if ( draw_reflect ) {
                         if ( !chunk.cached_cull_reflect ) {
                             chunk.light_ensure_texture( this );
@@ -1064,6 +1169,9 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
     }
     free( this->chunkArray );
     free( this->drawable_chunks );
+    free( this->blended_chunks );
+    free( this->slot_want );
+    free( this->slot_listed );
     free( this->repop_must );
     this->occl_vb.destroy( );
     this->occl_va.destroy( );

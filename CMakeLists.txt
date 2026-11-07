@@ -110,7 +110,8 @@ endif()
 # In release mode, don't check for GL errors. HW vsync is a runtime toggle on
 # the 'v' key (default on), not a compile flag.
 target_compile_definitions(repgame_flags INTERFACE
-	$<$<CONFIG:Release>:REPGAME_SKIP_CHECK_FOR_GL_ERRORS>)
+	$<$<CONFIG:Release>:REPGAME_SKIP_CHECK_FOR_GL_ERRORS>
+	$<$<CONFIG:Debug>:REPGAME_DEBUG>)
 target_include_directories(repgame_flags INTERFACE
 	${CMAKE_SOURCE_DIR}/include
 	${CMAKE_SOURCE_DIR}/include/glm

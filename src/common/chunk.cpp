@@ -194,6 +194,30 @@ void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_blo
     this->sides_mask = 0;
 }
 
+// Recompute this slot's ChunkLoader::slot_want byte from the truth fields.
+// Called by set_load_state/set_should_render and after every render-thread
+// num_instances write (program/unprogram/release_terrain) so the loader's
+// membership mirror can never go stale. Render thread only: slot_want is
+// written here and read by rebuild_drawable_list, both render-side, while
+// calculate_populated_blocks also runs on terrain workers (load_terrain) —
+// its num_instances writes are covered by the program_terrain refresh that
+// follows on the render thread. No-op on hand-built chunks (slot_flags
+// null).
+void Chunk::refresh_slot_flags( ) {
+    if ( this->slot_flags == nullptr ) {
+        return;
+    }
+    uint8_t flags = 0;
+    if ( this->load_state == CHUNK_LIVE && this->should_render ) {
+        flags |= SLOT_DRAWABLE;
+        if ( this->layers[ RenderOrder_Translucent ].num_instances != 0 || //
+             this->layers[ RenderOrder_Water ].num_instances != 0 ) {
+            flags |= SLOT_BLENDED;
+        }
+    }
+    *this->slot_flags = flags;
+}
+
 void Chunk::ensure_gl_init( ) {
     if ( this->gl_initialized ) {
         return;
@@ -239,6 +263,7 @@ void Chunk::release_terrain( ) {
         layer.vb_coords.destroy( );
         layer.va.destroy( );
     }
+    this->refresh_slot_flags( );
     // Cleared so ensure_gl_init rebuilds the destroyed layer objects on
     // reactivation.
     this->gl_initialized = 0;
@@ -458,7 +483,7 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
     // Ensure the chunk enters the drawable list so the remeshing loop visits
     // it. An empty chunk has should_render == 0; without this, a block placed
     // in it (e.g. via a multiplayer chunk diff) wouldn't render until reload.
-    this->should_render = 1;
+    this->set_should_render( 1 );
     return 1;
 }
 
@@ -1003,6 +1028,9 @@ void Chunk::calculate_populated_blocks( ) {
         for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
             this->layers[ renderOrder ].num_instances = 0;
         }
+        // No refresh_slot_flags here: this runs on terrain workers too
+        // (load_terrain), and the following program_terrain refreshes on the
+        // render thread.
         return;
     }
 
@@ -1592,15 +1620,16 @@ void Chunk::program_terrain( ) {
                 }
             }
             renderLayer.vb_coords.set_data( renderLayer.populated_blocks, sizeof( BlockCoords ) * renderLayer.num_instances );
-            this->should_render = 1;
+            this->set_should_render( 1 );
         }
         free( renderLayer.populated_blocks );
         renderLayer.populated_blocks = nullptr;
     }
+    this->refresh_slot_flags( );
 }
 
 void Chunk::unprogram_terrain( ) {
-    this->should_render = 0;
+    this->set_should_render( 0 );
     // Slot is moving to a new chunk_pos: assume visible until its own
     // probes say otherwise. occl_pending may still be in flight; its stale
     // result shifts occl_fails by at most one, under the hide threshold.

@@ -16,9 +16,13 @@ class World;
 class TntExplodeEvent;
 class ChunkLoader;
 struct LightSmoothCtx;
+struct ChunkSortKey;
 
 class RenderLayer {
     friend class Chunk;
+    // ChunkLoader::rebuild_drawable_list reads num_instances to build the
+    // blended subset list (Translucent/Water layers with geometry).
+    friend class ChunkLoader;
 
     VertexArray va;
     int num_instances;
@@ -88,6 +92,14 @@ enum ChunkLoadState {
     CHUNK_PARKED = 2,   // out of window, no data retained — re-entry re-enqueues a load
 };
 
+// Per-slot draw-list membership bits for ChunkLoader's slot_want/slot_listed
+// byte arrays (rebuild_drawable_list). SLOT_DRAWABLE = live + should_render;
+// SLOT_BLENDED adds "has Water or Translucent instances". Chunk::slot_flags
+// points at the chunk's slot_want byte; every write to a contributing field
+// refreshes it so the loader only ever diffs the byte arrays.
+#define SLOT_DRAWABLE 1
+#define SLOT_BLENDED 2
+
 // A chunk's 6-bit face-visibility mask relative to a camera chunk — which
 // cube faces point toward the player. Chunk::calculate_sides selects each
 // layer's shared-index-buffer slice from this. Each axis contributes at
@@ -121,6 +133,8 @@ class Chunk {
     friend int test_item_entities( );
     friend int test_mobs( );
     friend int test_doors( );
+    friend int test_chunk_sort( );
+    friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, bool full_prefix, std::vector<ChunkSortKey> &scratch );
 
     int load_state;
     int gl_initialized;
@@ -171,6 +185,21 @@ class Chunk {
     std::vector<ItemFileRecord> pending_items;
     int items_file_present;
     int should_render;
+    // Points at this slot's byte in ChunkLoader::slot_want (set in
+    // ChunkLoader::init); every write to load_state/should_render/num_
+    // instances refreshes it via refresh_slot_flags so rebuild_drawable_list
+    // can diff per-slot bytes instead of probing every Chunk. Null for
+    // hand-built chunks (tests) — refresh_slot_flags then no-ops.
+    uint8_t *slot_flags = nullptr;
+    void refresh_slot_flags( );
+    void set_load_state( int state ) {
+        this->load_state = state;
+        this->refresh_slot_flags( );
+    }
+    void set_should_render( int sr ) {
+        this->should_render = sr;
+        this->refresh_slot_flags( );
+    }
     int cached_cull_normal;
     int cached_cull_reflect;
     // Park-release generation: bumped each time ChunkLoader defers this

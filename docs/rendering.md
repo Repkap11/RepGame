@@ -142,11 +142,21 @@ selects the compositing mode:
   doesn't matter at all and the tint can't go black at night.
 
 Under `alpha`/`multiply` the depth-mask-off chunk order is the compositing
-order, so `ChunkLoader::draw` sorts drawable chunks back-to-front by
-squared distance to the camera with a deterministic chunk_pos tie-break
-(ties were common around the render-origin corner, and unstable sort order
-flickered whenever the drawable list rebuilt). Faces *within* one chunk are
-still in mesh order — they are not view-sorted.
+order, so `ChunkLoader::draw` walks a dedicated `blended_chunks` list — the
+drawable chunks with any Translucent/Water layer instances — back-to-front,
+sorted by squared distance to the camera with a deterministic chunk_pos
+tie-break (ties were common around the render-origin corner, and unstable
+sort order flickered whenever the drawable list rebuilt). Membership is
+maintained incrementally: each slot mirrors its drawable/blended wish in a
+`slot_want` byte (refreshed by `Chunk::refresh_slot_flags` on every
+relevant field write), and `rebuild_drawable_list` diffs that byte array,
+compacting removals out in place and appending newcomers to the list tail.
+A re-sort then re-sorts the surviving prefix for the current camera, sorts
+the few newcomers, and merges the two halves — so the blended list re-sorts
+on any camera move while the full drawable list only re-sorts past
+`CHUNK_SORT_RESORT_DIST`, since stale order there just costs early-z
+efficiency. Faces *within* one chunk are still in mesh order — they are not
+view-sorted.
 
 `REPGAME_TRANSLUCENT_AFTER_WATER` (ignored under `legacy`) moves
 the translucent order out of the main Blocks draw (`order_mask` bit
