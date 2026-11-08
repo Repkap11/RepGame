@@ -25,9 +25,9 @@
 #define MOB_GAIT_UNITS_PER_BLOCK 4.0f
 
 // Breeding timers (UPS ticks): love mode seeks a mate for ~8 s; a mated
-// pair can't re-breed for 5 min (MC parity); a baby grows up in ~5 min.
+// pair can't re-breed for 2 min; a baby grows up in ~5 min.
 #define MOB_LOVE_TICKS ( 8 * UPS_RATE )
-#define MOB_BREED_COOLDOWN_TICKS ( 5 * 60 * UPS_RATE )
+#define MOB_BREED_COOLDOWN_TICKS ( 2 * 60 * UPS_RATE )
 #define MOB_BABY_AGE_TICKS ( 5 * 60 * UPS_RATE )
 // Animals notice a held breed item within this distance of the player.
 #define MOB_TEMPT_RANGE 10.0
@@ -1110,7 +1110,7 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
     }
     // Mating: a same-type pair both in love produces a baby when their
     // hitboxes meet. Runs after the per-mob pass so the spawn never
-    // invalidates the iteration; the parents' love clears and a 5 min
+    // invalidates the iteration; the parents' love clears and a 2 min
     // cooldown starts (love_ticks==0 also short-circuits later pairs).
     if ( !freeze ) {
         for ( size_t i = 0; i < this->mobs.size( ); i++ ) {

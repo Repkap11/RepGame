@@ -128,7 +128,7 @@ class MobManager {
         // Breeding (types with MobTypeDef::breed_items): love_ticks > 0 is
         // love mode — the mob seeks a same-type partner also in love and a
         // close pair produces a baby; breed_cooldown > 0 blocks re-entry
-        // (5 min after mating). age_ticks < 0 is a baby counting up toward
+        // (2 min after mating). age_ticks < 0 is a baby counting up toward
         // 0 = adult, persisted through MobFileRecord::grow_ticks and
         // NetEntityRecord::age_ticks; babies render/collide at BABY_SCALE
         // and drop nothing. fall_dist accumulates downward travel for the
