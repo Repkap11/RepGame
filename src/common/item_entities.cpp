@@ -418,6 +418,12 @@ void ItemEntities::tick( RepGameState &state ) {
         bool standing = false;
         static const std::vector<BodyBox> no_extra;
         Collision::move_box( world, min, max, it.vel, no_extra, hit_axis, hit_extra_axis, &standing );
+        // A block placed (or piston-pushed, or dropped) into the item's cell
+        // leaves the box embedded in solid terrain — move_box's clamps only
+        // stop face crossings, so the item would sit underground forever.
+        // Slip out the cheapest open side; when every side is walled, float
+        // up onto the covering block (a block per tick under a column).
+        Collision::unstick_box( world, min, max );
         it.pos = min + glm::dvec3( ITEM_SIZE * 0.5, 0.0, ITEM_SIZE * 0.5 );
         for ( int axis = 0; axis < 3; axis++ ) {
             if ( hit_axis[ axis ] ) {

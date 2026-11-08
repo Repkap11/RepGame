@@ -90,7 +90,11 @@ main and reflection passes). Each entity is a 0.25 cube (box bottom-center
 `pos`, `prev_pos` for interpolation): MC's item gravity/drag rescaled from
 20 TPS to 144 UPS (gravity 0.00077/tick² ≈ 16 blocks/s², air drag 0.9972 —
 gentler than the player's `GRAVITY_STRENGTH`), ground friction 0.6, no
-bounce. Break/mob drops pop with `item_drop_hop` (peak ~0.2–0.35 blocks,
+bounce. A box left embedded in solid terrain (a block placed, pushed or
+fallen into its cell) is depenetrated every tick by
+`Collision::unstick_box` — it slips out the cheapest open side, or floats
+up onto the covering block when walled in (a block per tick under a
+column). Break/mob drops pop with `item_drop_hop` (peak ~0.2–0.35 blocks,
 <0.3 sideways) so they land in the broken cell. In water
 buoyancy +0.0015/tick with 0.9 drag and a 0.03 upward cap floats items to
 the surface. Integration (and aging) freezes in capture mode and while the

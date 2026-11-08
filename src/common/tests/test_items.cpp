@@ -323,6 +323,54 @@ int test_item_entities( ) {
         check_bool( "item: oldest evicted first", min_id == 6 );
     }
 
+    // --- buried by a placed block: side escape, then float up ----------------
+    {
+        // Open neighbors: the item slides out of the block's cell sideways.
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 12.5, 11.0, 12.5 ), glm::dvec3( 0.0 ), 0 );
+        gs.tick_number++;
+        items.tick( gs );
+        world.set_loaded_block( glm::ivec3( 12, 11, 12 ), stone );
+        gs.tick_number++;
+        items.tick( gs );
+        const ItemEntities::ItemEntity side = items.debug_items( )[ 0 ];
+        check_bool( "item: buried item pushed out the side", side.pos.y < 11.5 && ( floor( side.pos.x ) != 12 || floor( side.pos.z ) != 12 ) );
+        world.set_loaded_block( glm::ivec3( 12, 11, 12 ), BLOCK_STATE_AIR );
+
+        // Walled in: every side is solid, so it floats up onto the covering
+        // block — and again out of a taller column when re-buried deeper.
+        ItemEntities walled;
+        walled.spawn( STICK, 1, glm::dvec3( 15.5, 11.0, 15.5 ), glm::dvec3( 0.0 ), 0 );
+        gs.tick_number++;
+        walled.tick( gs );
+        for ( int y = 11; y <= 13; y++ ) {
+            world.set_loaded_block( glm::ivec3( 14, y, 15 ), stone );
+            world.set_loaded_block( glm::ivec3( 16, y, 15 ), stone );
+            world.set_loaded_block( glm::ivec3( 15, y, 14 ), stone );
+            world.set_loaded_block( glm::ivec3( 15, y, 16 ), stone );
+        }
+        world.set_loaded_block( glm::ivec3( 15, 11, 15 ), stone );
+        for ( int i = 0; i < 3; i++ ) {
+            gs.tick_number++;
+            walled.tick( gs );
+        }
+        check_near( "item: walled-in item floats up", walled.debug_items( )[ 0 ].pos.y, 12.0, 0.05 );
+        world.set_loaded_block( glm::ivec3( 15, 12, 15 ), stone );
+        for ( int i = 0; i < 3; i++ ) {
+            gs.tick_number++;
+            walled.tick( gs );
+        }
+        check_near( "item: re-buried item floats up again", walled.debug_items( )[ 0 ].pos.y, 13.0, 0.05 );
+        for ( int y = 11; y <= 13; y++ ) {
+            world.set_loaded_block( glm::ivec3( 14, y, 15 ), BLOCK_STATE_AIR );
+            world.set_loaded_block( glm::ivec3( 16, y, 15 ), BLOCK_STATE_AIR );
+            world.set_loaded_block( glm::ivec3( 15, y, 14 ), BLOCK_STATE_AIR );
+            world.set_loaded_block( glm::ivec3( 15, y, 16 ), BLOCK_STATE_AIR );
+        }
+        world.set_loaded_block( glm::ivec3( 15, 11, 15 ), BLOCK_STATE_AIR );
+        world.set_loaded_block( glm::ivec3( 15, 12, 15 ), BLOCK_STATE_AIR );
+    }
+
     // --- persistence: record round trip, invalid records, adopt/persist ------
     {
         ScopedTempHome temp_home( "/tmp/repgame_test_items_home" );

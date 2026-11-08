@@ -50,6 +50,15 @@ class Collision {
     // rewrites `eye` to the resolved position. Returns false (eye untouched)
     // when a few pushes can't free it — a pocket tighter than the box.
     static bool unstick( World &world, glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // Depenetrates an arbitrary AABB already embedded in solid terrain —
+    // e.g. a dropped-item box a block was placed onto, where move_box's
+    // face-crossing clamps can never help. Prefers the cheapest horizontal
+    // escape whose landing spot is free; when every side stays walled it
+    // lifts the box bottom above the highest overlapping box top. Under a
+    // taller column one call climbs one block, so callers re-run each tick
+    // and the box floats up. A free box is left untouched. Returns false
+    // when the box is still embedded after the push (mid-column).
+    static bool unstick_box( World &world, glm::dvec3 &min, glm::dvec3 &max );
     // Top of the block's collision boxes at `block_pos` — fences and closed
     // gates reach 1.5 above their cell floor; unloaded counts as a full
     // block. Non-colliding blocks return the cell floor. Used by the mob

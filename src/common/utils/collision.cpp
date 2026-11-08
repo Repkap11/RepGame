@@ -1,6 +1,7 @@
 #include "common/utils/collision.hpp"
 #include "common/RepGame.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 // The camera position is the eye; the body is centered on (pos.x, pos.z) with
@@ -485,6 +486,71 @@ bool Collision::unstick( World &world, glm::dvec3 &eye, double player_height, do
         amax[ best_axis ] += best_sign * ( best_push + SKIN );
     }
     return false;
+}
+
+bool Collision::unstick_box( World &world, glm::dvec3 &amin, glm::dvec3 &amax ) {
+    if ( !aabb_collides_world( world, amin, amax ) ) {
+        return true;
+    }
+    const double eps = 1e-4;
+    const int x0 = static_cast<int>( floor( amin.x ) );
+    const int x1 = static_cast<int>( floor( amax.x - eps ) );
+    // One extra layer below: fence/gate collision reaches above its cell.
+    const int y0 = static_cast<int>( floor( amin.y ) ) - 1;
+    const int y1 = static_cast<int>( floor( amax.y - eps ) );
+    const int z0 = static_cast<int>( floor( amin.z ) );
+    const int z1 = static_cast<int>( floor( amax.z - eps ) );
+    // Per horizontal direction (+x, -x, +z, -z) the shift that clears every
+    // overlapping box on that axis; `top` is the highest overlapping box's
+    // top face — the float-up target.
+    double side_push[ 4 ] = { 0.0, 0.0, 0.0, 0.0 };
+    double top = -1e9;
+    for ( int x = x0; x <= x1; x++ ) {
+        for ( int y = y0; y <= y1; y++ ) {
+            for ( int z = z0; z <= z1; z++ ) {
+                glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+                const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
+                for ( int i = 0; i < num_boxes; i++ ) {
+                    if ( !aabb_overlap( amin, amax, mins[ i ], maxs[ i ] ) ) {
+                        continue;
+                    }
+                    side_push[ 0 ] = std::max( side_push[ 0 ], maxs[ i ].x - amin.x );
+                    side_push[ 1 ] = std::max( side_push[ 1 ], amax.x - mins[ i ].x );
+                    side_push[ 2 ] = std::max( side_push[ 2 ], maxs[ i ].z - amin.z );
+                    side_push[ 3 ] = std::max( side_push[ 3 ], amax.z - mins[ i ].z );
+                    top = std::max( top, maxs[ i ].y );
+                }
+            }
+        }
+    }
+    // Push to the side: cheapest direction whose landing spot is free.
+    static const int side_axis[ 4 ] = { 0, 0, 2, 2 };
+    static const double side_sign[ 4 ] = { 1.0, -1.0, 1.0, -1.0 };
+    int best = -1;
+    for ( int d = 0; d < 4; d++ ) {
+        if ( best >= 0 && side_push[ d ] >= side_push[ best ] ) {
+            continue;
+        }
+        glm::dvec3 tmin = amin;
+        glm::dvec3 tmax = amax;
+        tmin[ side_axis[ d ] ] += side_sign[ d ] * ( side_push[ d ] + SKIN );
+        tmax[ side_axis[ d ] ] += side_sign[ d ] * ( side_push[ d ] + SKIN );
+        if ( !aabb_collides_world( world, tmin, tmax ) ) {
+            best = d;
+        }
+    }
+    if ( best >= 0 ) {
+        amin[ side_axis[ best ] ] += side_sign[ best ] * ( side_push[ best ] + SKIN );
+        amax[ side_axis[ best ] ] += side_sign[ best ] * ( side_push[ best ] + SKIN );
+        return true;
+    }
+    // Walled in: float up — bottom just above the highest overlapping box
+    // top. Still embedded under a taller column; the caller re-runs next
+    // tick and the box climbs a block at a time.
+    const double size_y = amax.y - amin.y;
+    amin.y = top + SKIN;
+    amax.y = amin.y + size_y;
+    return !aabb_collides_world( world, amin, amax );
 }
 
 void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
