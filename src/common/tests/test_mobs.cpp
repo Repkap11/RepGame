@@ -1114,6 +1114,58 @@ int test_mobs( ) {
         }
     }
 
+    // --- 21b: love with no mate keeps tempting and wandering -----------------
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_PIG, glm::dvec3( 16.5, 11.0, 10.5 ), 90.0f, 1 );
+        check_bool( "love solo: feed enters love", mobs.feed( 0, CARROT ) && mobs.mobs[ 0 ].love_ticks > 0 );
+        const glm::dvec3 pfeet( 11.5, 11.0, 10.5 );
+        const glm::dvec3 ppos = pfeet + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        MobTickInput in = { true, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
+        // With no partner in love, held food still tempts.
+        in.held_item = CARROT;
+        for ( int i = 0; i < 4 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in );
+        }
+        check_bool( "love solo: still follows food", mobs.mobs[ 0 ].pos.x < 16.0 );
+        // And it still wanders: hand it a walking target, no food held.
+        in.held_item = STONE;
+        mobs.mobs[ 0 ].pos = glm::dvec3( 16.5, 11.0, 10.5 );
+        mobs.mobs[ 0 ].ai_state = 1;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        mobs.mobs[ 0 ].target = glm::dvec3( 20.0, 11.0, 10.5 );
+        for ( int i = 0; i < 4 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in );
+        }
+        check_bool( "love solo: still wanders", mobs.mobs[ 0 ].pos.x > 17.0 );
+    }
+
+    // --- 21c: an available mate outranks the tempt ---------------------------
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.spawn( MOB_PIG, glm::dvec3( 14.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.feed( 0, CARROT );
+        mobs.feed( 1, CARROT );
+        // The held carrot pulls pig 0 away from its mate (player behind it
+        // at -x); mate-seeking must still win and produce the baby.
+        const glm::dvec3 pfeet( 5.5, 11.0, 10.5 );
+        const glm::dvec3 ppos = pfeet + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        MobTickInput in = { true, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
+        in.held_item = CARROT;
+        int ticks_to_baby = -1;
+        for ( int i = 0; i < 10 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in );
+            if ( mobs.mobs.size( ) == 3 ) {
+                ticks_to_baby = i;
+                break;
+            }
+        }
+        check_bool( "mate > tempt: pair produced a baby", ticks_to_baby >= 0 );
+    }
+
     // --- 22: temptation: held breed food pulls the mob toward the player -----
     {
         MobManager mobs;

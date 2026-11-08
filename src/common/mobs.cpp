@@ -503,20 +503,12 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         }
     }
     if ( def.ai == MOB_AI_PASSIVE_WANDER || ( hostile && !mob.targeting ) ) {
-        if ( mob.panic_ticks > 0 ) {
-            // Panic: sprint in a fleeing direction, re-picking occasionally.
-            mob.panic_ticks--;
-            if ( mob.panic_ticks % 15 == 0 ) {
-                std::uniform_real_distribution<float> pick_yaw( -180.0f, 180.0f );
-                mob.yaw = pick_yaw( this->rng );
-            }
-            speed = def.panic_speed;
-        } else if ( mob.love_ticks > 0 ) {
-            // Love mode: walk to the nearest same-type partner also in
-            // love; the pair check in tick() produces the baby on contact.
-            // No partner -> stand still and wait for one.
-            const Mob *mate = nullptr;
-            double mate_dist = 1e30;
+        // Love mode: the nearest same-type partner also in love. Seeking it
+        // outranks tempting and wandering below; with no partner the mob
+        // keeps its normal behavior instead of standing still.
+        const Mob *mate = nullptr;
+        double mate_dist = 1e30;
+        if ( mob.love_ticks > 0 ) {
             for ( const Mob &other : this->mobs ) {
                 if ( &other == &mob || other.type != mob.type || other.love_ticks <= 0 || //
                      other.death_ticks > 0 || other.uid != 0 || other.net.mirror ) {
@@ -528,7 +520,19 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                     mate = &other;
                 }
             }
-            if ( mate != nullptr && mate_dist > def.hitbox_w * 0.5 ) {
+        }
+        if ( mob.panic_ticks > 0 ) {
+            // Panic: sprint in a fleeing direction, re-picking occasionally.
+            mob.panic_ticks--;
+            if ( mob.panic_ticks % 15 == 0 ) {
+                std::uniform_real_distribution<float> pick_yaw( -180.0f, 180.0f );
+                mob.yaw = pick_yaw( this->rng );
+            }
+            speed = def.panic_speed;
+        } else if ( mate != nullptr ) {
+            // A mate is available: path to it. The pair check in tick()
+            // produces the baby on contact.
+            if ( mate_dist > def.hitbox_w * 0.5 ) {
                 const glm::dvec2 to_mate( mate->pos.x - mob.pos.x, mate->pos.z - mob.pos.z );
                 const float want_yaw = static_cast<float>( atan2( to_mate.x, -to_mate.y ) * ( 180.0 / M_PI ) );
                 mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -6.0f, 6.0f );

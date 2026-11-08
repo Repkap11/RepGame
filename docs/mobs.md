@@ -63,8 +63,11 @@ mob while holding a valid food calls `MobManager::feed` — an adult
 enters `love_ticks` (no expiry: love lasts until the mob mates), a baby
 sheds ~10% of its
 remaining growth. Feeding marks the mob `touched` so it persists like
-penned livestock. Two same-type mobs in love path to each other and the
-pair check at the end of `tick` spawns a baby at their midpoint
+penned livestock. Love only changes the AI when a partner exists: seeking
+the nearest same-type mob also in love outranks tempting and wandering
+(panic still wins), but a mob in love with no partner keeps following food
+and wandering as usual. When both are in love they path to each other and
+the pair check at the end of `tick` spawns a baby at their midpoint
 (`age_ticks = -MOB_BABY_AGE_TICKS`, ~5 min at `MOB_BABY_SCALE` = 0.5 for
 collision/raycast/eye/render scale) and starts both parents'
 `breed_cooldown` (~2 min, blocks re-feeding). Babies count up to adult
