@@ -24,6 +24,11 @@
   },
   "no_light": 0,
   "render_order": "Flowers",
+  "scale": [
+    16,
+    10,
+    16
+  ],
   "textures": {
     "bottom": "air",
     "side": "beetroots_stage_3",

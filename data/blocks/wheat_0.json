@@ -19,7 +19,17 @@
     "top": true
   },
   "no_light": 0,
+  "offset": [
+    2,
+    0,
+    2
+  ],
   "render_order": "Flowers",
+  "scale": [
+    10,
+    3,
+    10
+  ],
   "textures": {
     "bottom": "air",
     "side": "wheat_stage_0",

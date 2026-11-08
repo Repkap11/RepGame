@@ -17,6 +17,17 @@ inventory texture and implies `icon_is_isometric=false`. Remaining keys are
 snake_case `Block` fields — unknown keys are a hard error; fields equal to the
 defaults are omitted. `"aliases"` lists extra enum names for the same id.
 
+`scale`/`offset`/`tex_offset` are the sub-block geometry trio, in pixels
+(0-16): `scale`/`offset` place the block's quads inside the cell (pick box,
+selection outline and collision all derive from them) and the quads sample
+the tile window `[-tex_offset, -tex_offset + scale]` per axis. For a sprite
+drawn at a fixed position in the tile (torches, flowers, crops) that means
+`tex_offset = -offset` — the quad samples the texels it covers. Leaving
+`tex_offset` at 0 samples the tile corner instead and visibly crops the
+sprite. Deviations are deliberate artistic alignment (slabs sample the
+middle rows, buttons/heads centre their sprite) — set the values from the
+sprite's opaque bounding box for cross-quad blocks.
+
 Texture layers are independent `TextureID`s. `data/textures/<name>.png` holds
 repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
 

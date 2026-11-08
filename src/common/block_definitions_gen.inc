@@ -667,6 +667,7 @@ block_definitions[ 45 ].piston_immovable = true;
 block_definitions[ 45 ].renderOrder = RenderOrder_Translucent;
 block_definitions[ 45 ].rotate_on_placement = true;
 block_definitions[ 45 ].scale = { 16, 16, 4 };
+block_definitions[ 45 ].tex_offset = { 0, 0, -6 };
 
 // ACTIVATOR_RAIL (46)
 block_definitions[ 46 ].textures[ FACE_TOP ] = TEX_RAIL_ACTIVATOR_POWERED;
@@ -1954,7 +1955,10 @@ block_definitions[ 129 ].icon_is_isometric = false;
 block_definitions[ 129 ].is_seethrough = true;
 block_definitions[ 129 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 129 ].no_light = 0;
+block_definitions[ 129 ].offset = { 2, 0, 2 };
 block_definitions[ 129 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 129 ].scale = { 10, 3, 10 };
+block_definitions[ 129 ].tex_offset = { -2, 0, -2 };
 
 // WHEAT_1 (130)
 block_definitions[ 130 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1974,7 +1978,10 @@ block_definitions[ 130 ].icon_is_isometric = false;
 block_definitions[ 130 ].is_seethrough = true;
 block_definitions[ 130 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 130 ].no_light = 0;
+block_definitions[ 130 ].offset = { 1, 0, 1 };
 block_definitions[ 130 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 130 ].scale = { 14, 5, 14 };
+block_definitions[ 130 ].tex_offset = { -1, 0, -1 };
 
 // WHEAT_2 (131)
 block_definitions[ 131 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1995,6 +2002,7 @@ block_definitions[ 131 ].is_seethrough = true;
 block_definitions[ 131 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 131 ].no_light = 0;
 block_definitions[ 131 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 131 ].scale = { 15, 7, 15 };
 
 // WHEAT_3 (132)
 block_definitions[ 132 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2015,6 +2023,7 @@ block_definitions[ 132 ].is_seethrough = true;
 block_definitions[ 132 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 132 ].no_light = 0;
 block_definitions[ 132 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 132 ].scale = { 15, 9, 15 };
 
 // WHEAT_4 (133)
 block_definitions[ 133 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2035,6 +2044,7 @@ block_definitions[ 133 ].is_seethrough = true;
 block_definitions[ 133 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 133 ].no_light = 0;
 block_definitions[ 133 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 133 ].scale = { 15, 12, 15 };
 
 // WHEAT_5 (134)
 block_definitions[ 134 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2055,6 +2065,7 @@ block_definitions[ 134 ].is_seethrough = true;
 block_definitions[ 134 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 134 ].no_light = 0;
 block_definitions[ 134 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 134 ].scale = { 16, 15, 16 };
 
 // WHEAT_6 (135)
 block_definitions[ 135 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2075,6 +2086,7 @@ block_definitions[ 135 ].is_seethrough = true;
 block_definitions[ 135 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 135 ].no_light = 0;
 block_definitions[ 135 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 135 ].scale = { 16, 15, 16 };
 
 // WHEAT_7 (136)
 block_definitions[ 136 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -2205,6 +2217,7 @@ block_definitions[ 143 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 143 ].offset = { 0, 0, 12 };
 block_definitions[ 143 ].piston_immovable = true;
 block_definitions[ 143 ].scale = { 16, 16, 4 };
+block_definitions[ 143 ].tex_offset = { 0, 0, -12 };
 
 // STICKY_PISTON_ARM_COLLISION (144)
 block_definitions[ 144 ].textures[ FACE_TOP ] = TEX_PISTON_TOP_STICKY;
@@ -2222,6 +2235,7 @@ block_definitions[ 144 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 144 ].offset = { 0, 0, 12 };
 block_definitions[ 144 ].piston_immovable = true;
 block_definitions[ 144 ].scale = { 16, 16, 4 };
+block_definitions[ 144 ].tex_offset = { 0, 0, -12 };
 
 // BURNT_OUT_TORCH (145)
 block_definitions[ 145 ].textures[ FACE_TOP ] = TEX_BURNT_OUT_TORCH_TOP;
@@ -4327,7 +4341,10 @@ block_definitions[ 297 ].icon_is_isometric = false;
 block_definitions[ 297 ].is_seethrough = true;
 block_definitions[ 297 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 297 ].no_light = 0;
+block_definitions[ 297 ].offset = { 2, 0, 2 };
 block_definitions[ 297 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 297 ].scale = { 13, 3, 13 };
+block_definitions[ 297 ].tex_offset = { -2, 0, -2 };
 
 // CARROT_1 (298)
 block_definitions[ 298 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4347,7 +4364,10 @@ block_definitions[ 298 ].icon_is_isometric = false;
 block_definitions[ 298 ].is_seethrough = true;
 block_definitions[ 298 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 298 ].no_light = 0;
+block_definitions[ 298 ].offset = { 1, 0, 1 };
 block_definitions[ 298 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 298 ].scale = { 15, 5, 15 };
+block_definitions[ 298 ].tex_offset = { -1, 0, -1 };
 
 // CARROT_2 (299)
 block_definitions[ 299 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4368,6 +4388,7 @@ block_definitions[ 299 ].is_seethrough = true;
 block_definitions[ 299 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 299 ].no_light = 0;
 block_definitions[ 299 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 299 ].scale = { 16, 10, 16 };
 
 // CARROT_3 (300)
 block_definitions[ 300 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4387,7 +4408,10 @@ block_definitions[ 300 ].icon_is_isometric = false;
 block_definitions[ 300 ].is_seethrough = true;
 block_definitions[ 300 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 300 ].no_light = 0;
+block_definitions[ 300 ].offset = { 1, 0, 1 };
 block_definitions[ 300 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 300 ].scale = { 14, 13, 14 };
+block_definitions[ 300 ].tex_offset = { -1, 0, -1 };
 
 // CARROT_4 (301)
 block_definitions[ 301 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -4406,7 +4430,10 @@ block_definitions[ 301 ].icon_is_isometric = false;
 block_definitions[ 301 ].is_seethrough = true;
 block_definitions[ 301 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 301 ].no_light = 0;
+block_definitions[ 301 ].offset = { 1, 0, 1 };
 block_definitions[ 301 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 301 ].scale = { 14, 13, 14 };
+block_definitions[ 301 ].tex_offset = { -1, 0, -1 };
 
 // CINNABAR (302)
 block_definitions[ 302 ].textures[ FACE_TOP ] = TEX_CINNABAR;
@@ -6848,6 +6875,7 @@ block_definitions[ 467 ].mineable = MINEABLE_SHOVEL;
 block_definitions[ 467 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 467 ].no_light = 0;
 block_definitions[ 467 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 467 ].scale = { 16, 10, 16 };
 
 // DARKOAK_WALL_SIGN (468)
 block_definitions[ 468 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -13887,7 +13915,7 @@ block_definitions[ 986 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 986 ].no_light = 0;
 block_definitions[ 986 ].offset = { 5, 0, 5 };
 block_definitions[ 986 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 986 ].scale = { 6, 11, 6 };
+block_definitions[ 986 ].scale = { 7, 5, 7 };
 block_definitions[ 986 ].tex_offset = { -5, 0, -5 };
 
 // POTENT_SULFUR (987)
@@ -20851,10 +20879,10 @@ block_definitions[ 1501 ].icon_is_isometric = false;
 block_definitions[ 1501 ].is_seethrough = true;
 block_definitions[ 1501 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1501 ].no_light = 0;
-block_definitions[ 1501 ].offset = { 5, 0, 5 };
+block_definitions[ 1501 ].offset = { 4, 0, 4 };
 block_definitions[ 1501 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 1501 ].scale = { 6, 11, 6 };
-block_definitions[ 1501 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1501 ].scale = { 10, 8, 10 };
+block_definitions[ 1501 ].tex_offset = { -4, 0, -4 };
 
 // POTATOES_2 (1502)
 block_definitions[ 1502 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -20874,10 +20902,10 @@ block_definitions[ 1502 ].icon_is_isometric = false;
 block_definitions[ 1502 ].is_seethrough = true;
 block_definitions[ 1502 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1502 ].no_light = 0;
-block_definitions[ 1502 ].offset = { 5, 0, 5 };
+block_definitions[ 1502 ].offset = { 3, 0, 3 };
 block_definitions[ 1502 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 1502 ].scale = { 6, 11, 6 };
-block_definitions[ 1502 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1502 ].scale = { 11, 11, 11 };
+block_definitions[ 1502 ].tex_offset = { -3, 0, -3 };
 
 // POTATOES_3 (1503)
 block_definitions[ 1503 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -20896,10 +20924,10 @@ block_definitions[ 1503 ].icon_is_isometric = false;
 block_definitions[ 1503 ].is_seethrough = true;
 block_definitions[ 1503 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1503 ].no_light = 0;
-block_definitions[ 1503 ].offset = { 5, 0, 5 };
+block_definitions[ 1503 ].offset = { 2, 0, 2 };
 block_definitions[ 1503 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 1503 ].scale = { 6, 11, 6 };
-block_definitions[ 1503 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1503 ].scale = { 12, 16, 12 };
+block_definitions[ 1503 ].tex_offset = { -2, 0, -2 };
 
 // BEETROOT_0 (1504)
 block_definitions[ 1504 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -20919,7 +20947,10 @@ block_definitions[ 1504 ].icon_is_isometric = false;
 block_definitions[ 1504 ].is_seethrough = true;
 block_definitions[ 1504 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1504 ].no_light = 0;
+block_definitions[ 1504 ].offset = { 2, 0, 2 };
 block_definitions[ 1504 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1504 ].scale = { 11, 4, 11 };
+block_definitions[ 1504 ].tex_offset = { -2, 0, -2 };
 
 // BEETROOT_1 (1505)
 block_definitions[ 1505 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -20939,7 +20970,10 @@ block_definitions[ 1505 ].icon_is_isometric = false;
 block_definitions[ 1505 ].is_seethrough = true;
 block_definitions[ 1505 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1505 ].no_light = 0;
+block_definitions[ 1505 ].offset = { 1, 0, 1 };
 block_definitions[ 1505 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1505 ].scale = { 14, 5, 14 };
+block_definitions[ 1505 ].tex_offset = { -1, 0, -1 };
 
 // BEETROOT_2 (1506)
 block_definitions[ 1506 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -20960,6 +20994,7 @@ block_definitions[ 1506 ].is_seethrough = true;
 block_definitions[ 1506 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1506 ].no_light = 0;
 block_definitions[ 1506 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1506 ].scale = { 16, 8, 16 };
 
 // undefined (1507)
 block_definitions[ 1507 ].textures[ FACE_TOP ] = TEX_AIR;

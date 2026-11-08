@@ -20,20 +20,15 @@
   },
   "no_light": 0,
   "offset": [
-    5,
+    3,
     0,
-    5
+    3
   ],
   "render_order": "Flowers",
   "scale": [
-    6,
     11,
-    6
-  ],
-  "tex_offset": [
-    -5,
-    0,
-    -5
+    11,
+    11
   ],
   "textures": {
     "bottom": "air",

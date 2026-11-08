@@ -53,8 +53,14 @@ int test_farming( ) {
                 const bool mature = chain[ i + 1 ] == LAST_BLOCK_ID;
                 check_bool( "chain: stage is a crop", def->is_crop );
                 check_bool( "chain: crop_next links", def->crop_next == ( mature ? LAST_BLOCK_ID : chain[ i + 1 ] ) );
+                check_bool( "chain: pick box fits the cell", def->offset.x >= 0 && def->offset.y >= 0 && def->offset.z >= 0 && //
+                                                             def->offset.x + def->scale.x <= 16 && def->offset.y + def->scale.y <= 16 && def->offset.z + def->scale.z <= 16 );
             }
         }
+        // Stage pick boxes follow the sprite's opaque bounds — young stages
+        // are smaller than mature ones.
+        check_bool( "pick box: sprout smaller than mature", block_definition_get_definition( WHEAT_0 )->scale.y < block_definition_get_definition( WHEAT_7 )->scale.y );
+        check_bool( "pick box: sprout narrower than mature", block_definition_get_definition( BEETROOT_0 )->scale.x < block_definition_get_definition( BEETROOTS )->scale.x );
     }
 
     // --- Survival rule: crops live only on farmland -------------------------

@@ -536,6 +536,15 @@ def load_blocks():
         blocks[bid] = b
         names[name] = bid
     apply_shape(blocks, names)
+    # Quads sample the tile window [-tex_offset, -tex_offset + scale] per
+    # axis, so a sprite drawn at `offset` only shows its own texels when
+    # tex_offset = -offset. Default it whenever offset is given without an
+    # explicit tex_offset — the alternative silently samples the tile corner
+    # and crops the sprite.
+    for b in blocks.values():
+        off = b.get("offset")
+        if off is not None and "tex_offset" not in b:
+            b["tex_offset"] = [-off[0], -off[1], -off[2]]
     # door_partner links a door's two halves: the named block must exist,
     # point back, and carry the opposite is_door_upper flag.
     for bid, b in blocks.items():
