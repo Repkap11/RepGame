@@ -1,8 +1,8 @@
 // Heart-particle lifecycle: expiry must survive a spawn stamp slightly
 // ahead of the draw's u_Time (mid-frame spawn vs frame-start clock capture)
 // while still handling the real 3600 s clock rollover.
-#include "test_util.hpp"
 #include "common/heart_particles.hpp"
+#include "common/Logging.hpp" // pr_test
 
 int test_particles( ) {
     int failures = 0;
