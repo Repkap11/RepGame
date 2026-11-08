@@ -1,6 +1,6 @@
 # Mobs
 
-Client-local mobs — passive pig, cow, chicken and sheep plus hostile
+Client-local mobs — passive pig, cow, chicken, sheep and bee plus hostile
 zombie and creeper — and network-driven remote players (`MOB_PLAYER`),
 driven by a type table and models imported from Bedrock
 `geo.json`. Simulation (gravity, collision,
@@ -33,7 +33,15 @@ gets > 7 away; at fuse end they push their position to
 `out->explosions` and are removed — `RepGame::tick` turns each entry
 into a `TntExplodeEvent` with a null `primed_entity` (null is a safe
 no-op in `World::despawn_primed_tnt`/`PrimedTnt::despawn`). A
-`fall_cap` per type limits downward speed (chickens glide at 0.02).
+`fall_cap` per type limits downward speed (chickens and bees glide at 0.02).
+`hover_h` > 0 swaps gravity for a spring easing the feet to `hover_h`
+above the highest ground found in the mob's own column and a look-ahead
+column scanned from above the head — a ledge or tree canopy reads as
+raised ground so a flyer climbs over obstacles instead of auto-jumping.
+The water surface counts as ground (skim, don't dunk); with no ground in
+range the mob falls normally. A dying hoverer drops while tipping.
+`standing` stays false in flight, so `MOB_ANIM_WING_FLAP` holds the fast
+airborne rate. The bee hovers at `hover_h = 1`.
 
 The night spawner runs inside `MobManager::tick` (off under
 `REPGAME_MOB_TEST`, capture mode, fly mode and `REPGAME_MOB_SPAWNER=0`):
@@ -66,7 +74,7 @@ always fit, and the live count can exceed the cap.
 - Capture mode (`REPGAME_CAPTURE`) freezes mob AI and physics — spawn
   poses are as authored, no falls or wandering mid-capture.
 - `n` — debug spawn key: drops a mob three blocks in front of the
-  player, cycling pig → cow → chicken → sheep → zombie → creeper on
+  player, cycling pig → cow → chicken → sheep → zombie → creeper → bee on
   successive presses (`MobManager::spawn_in_front`; edge-triggered
   through `Input`, handled in `RepGame::tick`, persistent). The ImGui
   overlay shows `Mobs: <n> (players <m>)` — remote players count
@@ -106,7 +114,7 @@ Adding a mob:
    bone drops the inherited content instead).
 3. Add a `MobTypeDef` row in `src/common/mob_types.cpp` (+ `MOB_*` enum in
    `mob_types.hpp`): model/skin bindings, hitbox, health,
-   walk/panic/chase speeds, `fall_cap`, `attack_damage`, drops, sound
+   walk/panic/chase speeds, `fall_cap`, `hover_h`, `attack_damage`, drops, sound
    pool names, natural-spawn data, AI profile (`MOB_AI_PASSIVE`,
    `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`, `MOB_AI_REMOTE`),
    animation mask (`MOB_ANIM_*` — quadruped/humanoid walk, head look,

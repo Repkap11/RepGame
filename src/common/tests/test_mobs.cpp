@@ -729,20 +729,27 @@ int test_mobs( ) {
         check_bool( "types: all def bone names exist in models", all_ok );
     }
 
-    // --- 13: every new non-remote type spawns and settles at floor+1 --------
+    // --- 13: every new non-remote type spawns and settles at floor+1 -------
+    // (hoverers settle at floor+1+hover_h and never report standing) --------
     {
-        const MobType new_types[] = { MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER };
+        const MobType new_types[] = { MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE };
         for ( MobType t : new_types ) {
+            const MobTypeDef &tdef = mob_types[ t ];
             MobManager mobs;
             mobs.spawner_enabled = false;
             char name[ 64 ];
-            snprintf( name, sizeof( name ), "%s: settles standing at floor+1", mob_types[ t ].name );
+            snprintf( name, sizeof( name ), "%s: settles standing at floor+1", tdef.name );
             check_bool( name, mobs.spawn( t, glm::dvec3( 10.5, 14.0, 10.5 ), 0.0f, 1 ) );
             for ( int i = 0; i < 300 && !mobs.mobs[ 0 ].standing; i++ ) {
                 mobs.tick( world, player_pos );
             }
-            snprintf( name, sizeof( name ), "%s: standing", mob_types[ t ].name );
-            check_bool( name, mobs.mobs[ 0 ].standing == 1 && fabs( mobs.mobs[ 0 ].pos.y - 11.0 ) < 0.01 );
+            if ( tdef.hover_h > 0.0f ) {
+                snprintf( name, sizeof( name ), "%s: hovering at floor+1+%.1f", tdef.name, tdef.hover_h );
+                check_bool( name, mobs.mobs[ 0 ].standing == 0 && fabs( mobs.mobs[ 0 ].pos.y - 11.0 - tdef.hover_h ) < 0.05 );
+            } else {
+                snprintf( name, sizeof( name ), "%s: standing", tdef.name );
+                check_bool( name, mobs.mobs[ 0 ].standing == 1 && fabs( mobs.mobs[ 0 ].pos.y - 11.0 ) < 0.01 );
+            }
         }
     }
 

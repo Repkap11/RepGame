@@ -194,6 +194,16 @@ creeper_say_2|mc_pack/mob/creeper/say2.wav|sfx|Creeper hurt
 creeper_say_3|mc_pack/mob/creeper/say3.wav|sfx|Creeper hurt
 creeper_say_4|mc_pack/mob/creeper/say4.wav|sfx|Creeper hurt
 creeper_death|mc_pack/mob/creeper/death.wav|sfx|Creeper death
+bee_say_1|mc_pack/mob/bee/loop1.wav|sfx|Bee buzz
+bee_say_2|mc_pack/mob/bee/loop2.wav|sfx|Bee buzz
+bee_say_3|mc_pack/mob/bee/loop3.wav|sfx|Bee buzz
+bee_say_4|mc_pack/mob/bee/loop4.wav|sfx|Bee buzz
+bee_say_5|mc_pack/mob/bee/loop5.wav|sfx|Bee buzz
+bee_hurt_1|mc_pack/mob/bee/hurt1.wav|sfx|Bee hurt
+bee_hurt_2|mc_pack/mob/bee/hurt2.wav|sfx|Bee hurt
+bee_hurt_3|mc_pack/mob/bee/hurt3.wav|sfx|Bee hurt
+bee_death_1|mc_pack/mob/bee/death1.wav|sfx|Bee death
+bee_death_2|mc_pack/mob/bee/death2.wav|sfx|Bee death
 player_hurt_1|mc_pack/damage/hit1.wav|sfx|Player hurt
 player_hurt_2|mc_pack/damage/hit2.wav|sfx|Player hurt
 player_hurt_3|mc_pack/damage/hit3.wav|sfx|Player hurt

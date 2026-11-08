@@ -10,7 +10,7 @@ typedef struct {
     int max;
 } MobDrop;
 
-enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_TYPE_COUNT };
+enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_TYPE_COUNT };
 
 // AI profiles — the extension point for future hostile or flying mobs.
 enum MobAI {
@@ -51,6 +51,9 @@ typedef struct {
     float attack_damage;
     // Max downward speed in blocks/tick; 0 = no cap (chicken glides).
     float fall_cap;
+    // Fly height above the local ground in blocks; 0 = grounded mob. The
+    // bee hovers, climbing over ledges and trees instead of jumping.
+    float hover_h;
     // Items handed to the player when the mob is killed in survival. Unused
     // entries have item == LAST_BLOCK_ID.
     MobDrop drops[ 2 ];

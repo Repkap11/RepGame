@@ -28,7 +28,7 @@ Full behaviour/rendering reference: `docs/mobs.md`.
    bone drops the inherited content instead).
 3. Add a `MobTypeDef` row in `src/common/mob_types.cpp` (+ `MOB_*` enum in
    `mob_types.hpp`): model/skin bindings, hitbox, health,
-   walk/panic/chase speeds, `fall_cap`, `attack_damage`, drops, sound
+   walk/panic/chase speeds, `fall_cap`, `hover_h`, `attack_damage`, drops, sound
    pool names, natural-spawn data, AI profile (`MOB_AI_PASSIVE`,
    `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`, `MOB_AI_REMOTE`),
    animation mask (`MOB_ANIM_*` — quadruped/humanoid walk, head look,

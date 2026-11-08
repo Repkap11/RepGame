@@ -196,6 +196,20 @@ static double ground_top_at( World &world, int bx, int bz, int from_y, int max_d
     return 0.0;
 }
 
+// Hover flight's ground probe: like ground_top_at but the water surface also
+// counts — a flyer skims the surface instead of dunking into it.
+static double hover_ground_at( World &world, int bx, int bz, int from_y, int max_drop, bool *found ) {
+    for ( int y = from_y; y >= from_y - max_drop; y-- ) {
+        const BlockState bs = world.get_loaded_block( glm::ivec3( bx, y, bz ) );
+        if ( bs.id == WATER || ( bs.id < LAST_BLOCK_ID && block_definition_get_definition( bs.id )->collides_with_player ) ) {
+            *found = true;
+            return y + 1.0;
+        }
+    }
+    *found = false;
+    return 0.0;
+}
+
 bool MobManager::spawn_in_front( MobType type, const glm::dvec3 &camera_pos, const glm::dvec3 &look, World &world ) {
     const glm::dvec3 at = camera_pos + look * 3.0;
     const int bx = static_cast<int>( floor( at.x ) );
@@ -293,6 +307,18 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
     if ( mob.death_ticks > 0 ) {
         mob.death_ticks++;
+        // A hovering mob falls out of the air while it tips over.
+        if ( def.hover_h > 0.0f && !mob.standing ) {
+            mob.vel.x = mob.vel.z = 0.0;
+            mob.vel.y = fmax( mob.vel.y - GRAVITY_STRENGTH, -TERMINAL_VELOCITY );
+            glm::dvec3 eye = mob.pos + glm::dvec3( 0.0, def.hitbox_h, 0.0 );
+            glm::dvec3 move = mob.vel;
+            int standing = 0;
+            Collision::check_move( world, move, eye, &standing, def.hitbox_h, def.hitbox_h, false, def.hitbox_w / 2.0 );
+            mob.pos += move;
+            mob.standing = standing;
+            mob.vel.y = standing ? 0.0 : move.y;
+        }
         return;
     }
 
@@ -488,6 +514,34 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         }
         if ( mob.vel.y < -SWIM_TERMINAL_VELOCITY ) {
             mob.vel.y = -SWIM_TERMINAL_VELOCITY;
+        }
+    } else if ( def.hover_h > 0.0f ) {
+        // Hover flight: ease the feet toward hover_h above the highest
+        // ground found. The own column scans from the feet down (the floor
+        // is always below them); the look-ahead column scans from above the
+        // head so a ledge or tree canopy registers as raised ground early
+        // and the mob climbs over it instead of bumping the wall.
+        double ground = 0.0;
+        bool found = false;
+        const glm::dvec3 ahead = speed > 0.0f ? mob.pos + glm::dvec3( mob.vel.x, 0.0, mob.vel.z ) / static_cast<double>( speed ) * ( def.hitbox_w / 2.0 + 0.6 ) : mob.pos;
+        for ( int s = 0; s < 2; s++ ) {
+            if ( s == 1 && speed <= 0.0f ) {
+                break;
+            }
+            const glm::dvec3 col = s == 0 ? mob.pos : ahead;
+            const int from_y = s == 0 ? static_cast<int>( floor( mob.pos.y ) ) : static_cast<int>( floor( mob.pos.y + def.hitbox_h + 4.0 ) );
+            bool f = false;
+            const double g = hover_ground_at( world, static_cast<int>( floor( col.x ) ), static_cast<int>( floor( col.z ) ), from_y, 20, &f );
+            if ( f && ( !found || g > ground ) ) {
+                ground = g;
+            }
+            found = found || f;
+        }
+        if ( found ) {
+            mob.vel.y = glm::clamp( ( ground + def.hover_h - mob.pos.y ) * 0.3, -0.05, 0.09 );
+        } else {
+            // No ground in range below (void/unloaded): keep falling.
+            mob.vel.y = glm::clamp( mob.vel.y - static_cast<double>( GRAVITY_STRENGTH ), -static_cast<double>( TERMINAL_VELOCITY ), static_cast<double>( TERMINAL_VELOCITY ) );
         }
     } else {
         mob.vel.y -= GRAVITY_STRENGTH;

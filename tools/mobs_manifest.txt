@@ -11,3 +11,4 @@ chicken|models/entity/chicken.geo.json|geometry.chicken|textures/entity/chicken.
 sheep|models/entity/sheep_v1.0.geo.json|geometry.sheep|textures/entity/sheep/sheep.tga|body=-90,0,0
 zombie|models/entity/zombie.geo.json|geometry.zombie.v1.8|textures/entity/zombie/zombie.png|rightArm=90,0,0;leftArm=90,0,0
 creeper|models/entity/creeper.geo.json|geometry.creeper.v1.8|textures/entity/creeper/creeper.png
+bee|models/entity/bee.geo.json|geometry.bee|textures/entity/bee/bee.png
