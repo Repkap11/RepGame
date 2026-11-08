@@ -67,6 +67,7 @@ class ChunkLoader {
     friend int test_lighting( );
     friend int test_light_stale( );
     friend int test_falling_blocks( );
+    friend int test_grass_persist( );
     friend void light_fill_chunk( Chunk &chunk );
 
     TerrainLoadingThread terrain_loading_thread;

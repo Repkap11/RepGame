@@ -980,10 +980,13 @@ void RepGame::process_movement( ) {
 
 void RepGame::process_block_updates( ) {
     PROFILE_SCOPE( "block_updates" );
-    // Random ticks (sapling growth) stay off in capture/fly/flat/block-world
+    // Random ticks (growth + grass) stay off in capture/fly/flat/block-world
     // runs — the same gates the mob sim uses — so captures stay
-    // deterministic.
-    if ( !RepGame::capture_mode( ) && !RepGame::fly_mode( ) && !repgame_block_world( ) && !repgame_flat_world( ) ) {
+    // deterministic. They also pause while the player is flying or no-
+    // clipping: traversal is what covers ground, and every natural write
+    // dirties (and eventually persists) the chunk it's in — a spectator's
+    // fly-through shouldn't be filing chunks no one edited.
+    if ( !RepGame::capture_mode( ) && !RepGame::fly_mode( ) && !repgame_block_world( ) && !repgame_flat_world( ) && !globalGameState.input.player_flying && !globalGameState.input.no_clip ) {
         globalGameState.world.process_random_ticks( globalGameState );
     }
     globalGameState.blockUpdateQueue.processAllBlockUpdates( globalGameState, globalGameState.tick_number );

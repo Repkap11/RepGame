@@ -1406,193 +1406,67 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
     }
 }
 
-// bool world_do_random_tick2( Chunk *chunk, const glm::vec3 &pos, BlockState *blockState ) {
-//     blockState->id = BlockID::DIRT;
-//     blockState->display_id = blockState->id;
-//     blockState->rotation = 0;
-//     blockState->current_redstone_power = 0;
-//     return true;
-// }
+// Grass lifecycle, driven by the source cell (MC GrassBlock.randomTick): a
+// grass-family cell covered by an opaque block dies back to dirt; an
+// uncovered one may spread to random dirt targets in reach — ±1
+// horizontally, 3 down / 1 up — provided the cell above the target is also
+// open. Snowy grass spreads plain grass (the snow doesn't propagate);
+// mycelium spreads mycelium.
+#define GRASS_SPREAD_ATTEMPTS 4
+// Fraction of grass random ticks that try to spread — the same roll the
+// sapling/crop check uses (~3.5 min mean per grass cell).
+#define GRASS_SPREAD_CHANCE_DEN 3
+// MC's spread reach: ±1 horizontally, 3 down / 1 up.
+#define GRASS_SPREAD_SIDE 1
+#define GRASS_SPREAD_DOWN 3
+#define GRASS_SPREAD_UP 1
 
-#define OFFSETS_LEN_ADJ 6
-static constexpr glm::ivec3 offsets_adj[ OFFSETS_LEN_ADJ ] = {
-    glm::ivec3( -1, 0, 0 ), //
-    glm::ivec3( 1, 0, 0 ),  //
-    glm::ivec3( 0, -1, 0 ), //
-    glm::ivec3( 0, 1, 0 ),  //
-    glm::ivec3( 0, 0, -1 ), //
-    glm::ivec3( 0, 0, 1 ),  //
-};
-
-#define OFFSETS_LEN_DIAG ( ( 3 * 3 * 3 ) - 1 )
-static constexpr glm::ivec3 offsets_diag[ OFFSETS_LEN_DIAG ] = {
-    glm::ivec3( -1, -1, -1 ), //
-    glm::ivec3( -1, -1, 0 ),  //
-    glm::ivec3( -1, -1, 1 ),  //
-    glm::ivec3( -1, 0, -1 ),  //
-    glm::ivec3( -1, 0, 0 ),   //
-    glm::ivec3( -1, 0, 1 ),   //
-    glm::ivec3( -1, 1, -1 ),  //
-    glm::ivec3( -1, 1, 0 ),   //
-    glm::ivec3( -1, 1, 1 ),   //
-
-    glm::ivec3( 0, -1, -1 ), //
-    glm::ivec3( 0, -1, 0 ),  //
-    glm::ivec3( 0, -1, 1 ),  //
-    glm::ivec3( 0, 0, -1 ),  //
-    // glm::ivec3( 0, 0, 0 ),   //
-    glm::ivec3( 0, 0, 1 ),  //
-    glm::ivec3( 0, 1, -1 ), //
-    glm::ivec3( 0, 1, 0 ),  //
-    glm::ivec3( 0, 1, 1 ),  //
-
-    glm::ivec3( 1, -1, -1 ), //
-    glm::ivec3( 1, -1, 0 ),  //
-    glm::ivec3( 1, -1, 1 ),  //
-    glm::ivec3( 1, 0, -1 ),  //
-    glm::ivec3( 1, 0, 0 ),   //
-    glm::ivec3( 1, 0, 1 ),   //
-    glm::ivec3( 1, 1, -1 ),  //
-    glm::ivec3( 1, 1, 0 ),   //
-    glm::ivec3( 1, 1, 1 ),   //
-
-};
-
-#define OFFSETS_GRASS ( ( 3 * 3 * 3 ) - 1 )
-static constexpr glm::ivec3 offsets_grass[ OFFSETS_GRASS ] = {
-    // glm::ivec3( -1, -1, -1 ), //
-    glm::ivec3( -1, -1, 0 ), //
-    // glm::ivec3( -1, -1, 1 ),  //
-    // glm::ivec3( -1, 0, -1 ),  //
-    glm::ivec3( -1, 0, 0 ), //
-    // glm::ivec3( -1, 0, 1 ),   //
-    // glm::ivec3( -1, 1, -1 ),  //
-    glm::ivec3( -1, 1, 0 ), //
-    // glm::ivec3( -1, 1, 1 ),   //
-
-    glm::ivec3( 0, -1, -1 ), //
-    glm::ivec3( 0, -1, 0 ),  //
-    glm::ivec3( 0, -1, 1 ),  //
-    glm::ivec3( 0, 0, -1 ),  //
-    // glm::ivec3( 0, 0, 0 ),   //
-    glm::ivec3( 0, 0, 1 ),  //
-    glm::ivec3( 0, 1, -1 ), //
-    glm::ivec3( 0, 1, 0 ),  //
-    glm::ivec3( 0, 1, 1 ),  //
-
-    // glm::ivec3( 1, -1, -1 ), //
-    glm::ivec3( 1, -1, 0 ), //
-    // glm::ivec3( 1, -1, 1 ),  //
-    // glm::ivec3( 1, 0, -1 ),  //
-    glm::ivec3( 1, 0, 0 ), //
-    // glm::ivec3( 1, 0, 1 ),   //
-    // glm::ivec3( 1, 1, -1 ),  //
-    glm::ivec3( 1, 1, 0 ), //
-    // glm::ivec3( 1, 1, 1 ),   //
-
-};
-
-bool World::any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, const BlockID id ) {
-    for ( const glm::ivec3 offset : offsets_adj ) {
-        glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
-        const BlockState blockState = chunk.get_block( pos_offset );
-        if ( blockState.id == id ) {
-            return true;
-        }
-    }
-    return false;
+// True when the cell above pos is loaded and opaque — cover kills grass and
+// disqualifies a spread target. An unloaded cell counts as open (the same
+// permissive rule leaf decay uses).
+bool World::grass_covered( const glm::ivec3 &pos ) const {
+    const BlockState above = this->get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
+    return above.id != LAST_BLOCK_ID && block_definition_get_definition( above.id )->renderOrder == RenderOrder_Opaque;
 }
 
-bool world_any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, const BlockID id ) {
-
-    for ( const glm::ivec3 offset : offsets_diag ) {
-        glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
-        const BlockState blockState = chunk.get_block( pos_offset );
-        if ( blockState.id == id ) {
-            return true;
-        }
+void World::grass_random_tick( RepGameState &state, const glm::ivec3 &world_pos, const BlockState &cell ) {
+    if ( grass_covered( world_pos ) ) {
+        // Covered grass dies to dirt — same natural write + sync as crops.
+        BlockState next = cell;
+        next.id = DIRT;
+        next.display_id = DIRT;
+        next.rotation = BLOCK_ROTATE_0;
+        this->set_loaded_block_natural( world_pos, next );
+        state.multiplayer.set_block( world_pos, next );
+        return;
     }
-    return false;
-}
-
-bool world_any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, const BlockID id ) {
-    for ( const glm::ivec3 offset : offsets_grass ) {
-        glm::ivec3 pos_offset = glm::ivec3( pos.x + offset.x, pos.y + offset.y, pos.z + offset.z );
-        const BlockState blockState = chunk.get_block( pos_offset );
-        if ( blockState.id == id ) {
-            return true;
-        }
+    this->random_tick_state ^= this->random_tick_state << 13;
+    this->random_tick_state ^= this->random_tick_state >> 17;
+    this->random_tick_state ^= this->random_tick_state << 5;
+    if ( this->random_tick_state % GRASS_SPREAD_CHANCE_DEN != 0 ) {
+        return;
     }
-    return false;
-}
-
-bool World::do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, BlockState &blockState ) {
-    // pr_debug( "Ticking state" );
-    const BlockID id = blockState.id;
-    if ( id == BlockID::AIR ) {
-        return false;
-    }
-    // pr_debug( "Ticking id:%d", id );
-
-    const BlockState stateUp = chunk.get_block( glm::vec3( pos.x + 0, pos.y + 1, pos.z + 0 ) );
-    // BlockState stateDown = chunk_get_block( chunk, glm::vec3( pos.x + 0, pos.y - 1, pos.z + 0 ) );
-    // BlockState stateLeft = chunk_get_block( chunk, glm::vec3( pos.x + 1, pos.y + 0, pos.z + 0 ) );
-    // BlockState stateRight = chunk_get_block( chunk, glm::vec3( pos.x - 1, pos.y + 0, pos.z + 0 ) );
-    // BlockState stateFront = chunk_get_block( chunk, glm::vec3( pos.x + 0, pos.y + 0, pos.z + 1 ) );
-    // BlockState stateBack = chunk_get_block( chunk, glm::vec3( pos.x + 0, pos.y + 0, pos.z - 1 ) );
-
-    const Block *blockUp = block_definition_get_definition( stateUp.id );
-    // Block *blockDown = block_definition_get_definition( stateDown.id );
-    // Block *blockLeft = block_definition_get_definition( stateLeft.id );
-    // Block *blockRight = block_definition_get_definition( stateRight.id );
-    // Block *blockFront = block_definition_get_definition( stateFront.id );
-    // Block *blockBack = block_definition_get_definition( stateBack.id );
-
-    if ( id == BlockID::GRASS ) {
-        if ( blockUp->renderOrder == RenderOrder_Opaque ) {
-            blockState.id = BlockID::DIRT;
-            blockState.display_id = blockState.id;
-            return true;
+    const BlockID spread_id = cell.id == SNOWY_GRASS ? GRASS : cell.id;
+    for ( int attempt = 0; attempt < GRASS_SPREAD_ATTEMPTS; attempt++ ) {
+        this->random_tick_state ^= this->random_tick_state << 13;
+        this->random_tick_state ^= this->random_tick_state >> 17;
+        this->random_tick_state ^= this->random_tick_state << 5;
+        const glm::ivec3 target = world_pos + glm::ivec3( static_cast<int>( this->random_tick_state % ( 2 * GRASS_SPREAD_SIDE + 1 ) ) - GRASS_SPREAD_SIDE,
+                                                         static_cast<int>( ( this->random_tick_state >> 8 ) % ( GRASS_SPREAD_DOWN + GRASS_SPREAD_UP + 1 ) ) - GRASS_SPREAD_DOWN,
+                                                         static_cast<int>( ( this->random_tick_state >> 16 ) % ( 2 * GRASS_SPREAD_SIDE + 1 ) ) - GRASS_SPREAD_SIDE );
+        // get_loaded_block rather than chunk.get_block: dy -3..+1 can reach
+        // past the chunk's ±1 halo; LAST_BLOCK_ID targets are skipped.
+        const BlockState target_state = this->get_loaded_block( target );
+        if ( target_state.id != DIRT || grass_covered( target ) ) {
+            continue;
         }
+        BlockState next = target_state;
+        next.id = spread_id;
+        next.display_id = spread_id;
+        next.rotation = BLOCK_ROTATE_0;
+        this->set_loaded_block_natural( target, next );
+        state.multiplayer.set_block( target, next );
     }
-    if ( id == BlockID::DIRT && blockUp->renderOrder != RenderOrder_Opaque ) {
-        if ( world_any_neighbor_grass_id( chunk, pos, BlockID::GRASS ) ) {
-            blockState.id = BlockID::GRASS;
-            blockState.display_id = blockState.id;
-            return true;
-        }
-        if ( world_any_neighbor_grass_id( chunk, pos, BlockID::PODZOL ) ) {
-            blockState.id = BlockID::PODZOL;
-            blockState.display_id = blockState.id;
-            return true;
-        }
-    }
-    return false;
-}
-
-int counter = 0;
-bool World::process_random_ticks_on_chunk( const Chunk &chunk ) {
-    bool anyBlockStateChanged = false;
-    const int index = CHUNK_BLOCK_DRAW_START + ( rand( ) % ( CHUNK_BLOCK_DRAW_STOP - CHUNK_BLOCK_DRAW_START + 1 ) );
-    int x, y, z;
-    if ( Chunk::get_coords_from_index( index, x, y, z ) ) { // TODO re-try if this isn't a valid block coord
-                                                                                    // pr_debug( "Ticking index:%d", index );
-        const glm::ivec3 pos = glm::ivec3( x, y, z );
-        BlockState blockState = chunk.get_block( pos );
-        // bool changedState = false;
-        if ( do_random_tick_on_block( chunk, pos, blockState ) ) {
-            constexpr glm::ivec3 chunk_size = glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-
-            const glm::ivec3 chunk_pos = chunk.chunk_pos * chunk_size;
-            const glm::ivec3 world_pos = pos + chunk_pos;
-            const uint8_t was_player_edited = chunk.player_edited;
-            set_loaded_block( world_pos, blockState );
-            // Random ticks aren't player edits: keep the pen rule out of them.
-            chunk.player_edited = was_player_edited;
-            anyBlockStateChanged = true;
-        }
-    }
-    return anyBlockStateChanged;
 }
 
 void World::set_loaded_block_natural( const glm::ivec3 &block_pos, BlockState blockState ) {
@@ -1648,6 +1522,11 @@ void World::process_random_ticks( RepGameState &state ) {
             const Block *cell_def = cell.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( cell.id );
             const bool is_crop_stage = cell_def != nullptr && cell_def->crop_next != LAST_BLOCK_ID;
             if ( !is_crop_stage && !tree_spec_for_sapling( cell.id, world_pos, &spec ) ) {
+                // Grass-family cells tick from the source: covered grass
+                // dies to dirt, open grass may spread to nearby dirt.
+                if ( cell.id == GRASS || cell.id == SNOWY_GRASS || cell.id == MYCELIUM ) {
+                    this->grass_random_tick( state, world_pos, cell );
+                }
                 continue;
             }
             const glm::vec2 light = this->chunkLoader.light_sample( glm::vec3( world_pos ) + 0.5f );

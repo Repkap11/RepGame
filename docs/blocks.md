@@ -281,8 +281,27 @@ position and writes it through the shared builders in
 `include/common/tree_shapes.hpp` — the same code the new terrain
 generator runs, so shapes are a pure function of position and two clients
 grow identical cells. Random ticks are off in capture mode, fly mode, the
-block world and flat worlds. Bamboo, dead, garbage and potted saplings
-and the mangrove propagule never grow.
+block world and flat worlds, and paused while the player is flying or
+no-clipping (traversal would otherwise persist frontier chunks nobody
+edited — every natural write marks its chunk `dirty`). Bamboo, dead,
+garbage and potted saplings and the mangrove propagule never grow.
+
+## Grass & dirt
+
+Grass spreads source-side on the same random-tick sampler
+(`World::grass_random_tick`, called for every sampled `GRASS`,
+`SNOWY_GRASS` or `MYCELIUM` cell): a grass cell covered by a
+`RenderOrder_Opaque` block dies back to `DIRT` — an unloaded cell above
+counts as open — and an uncovered one rolls 1-in-3
+(`GRASS_SPREAD_CHANCE_DEN`) for up to `GRASS_SPREAD_ATTEMPTS` (4) target
+picks in MC's reach (±1 horizontally, −3/+1 vertically). A pick converts
+its target when it is `DIRT` and the cell above the target is not
+opaque. Snowy grass spreads plain `GRASS`, mycelium spreads `MYCELIUM`;
+podzol does not spread. Writes use the crop-growth path
+(`set_loaded_block_natural` + `BLOCK_UPDATE`), so each client simulates
+and broadcasts its own conversions. This is also what re-greens sheep
+grazes and farmland tramples — both convert the cell to `DIRT`
+(`docs/mobs.md`, `docs/player.md`).
 
 ## Crops & farmland
 

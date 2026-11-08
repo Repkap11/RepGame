@@ -1086,3 +1086,242 @@ int test_shears_bonemeal( ) {
     check_bool( "bonemeal: one consumed", gs.hotbar.consumeSelected( 1 ) && gs.hotbar.getSelectedQuantity( ) == 2 );
     return failures;
 }
+// Grass lifecycle (World::grass_random_tick — the sampler calls it per
+// sampled grass-family cell; the test drives it directly since looping the
+// full process_random_ticks over MAX_LOADED_CHUNKS is too slow): covered
+// grass dies to dirt, open grass spreads to uncovered dirt in reach
+// (±1 xz, -3..+1 y), snowy grass spreads plain grass, mycelium spreads
+// mycelium.
+int test_grass( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    const BlockState grass = { GRASS, 0, 0, GRASS, 0 };
+    const BlockState dirt = { DIRT, 0, 0, DIRT, 0 };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState mycelium = { MYCELIUM, 0, 0, MYCELIUM, 0 };
+    const BlockState snowy = { SNOWY_GRASS, 0, 0, SNOWY_GRASS, 0 };
+
+    // Covered grass dies deterministically — the death path has no roll.
+    const glm::ivec3 covered_src( 10, 10, 10 );
+    world.set_loaded_block( covered_src, grass );
+    world.set_loaded_block( covered_src + glm::ivec3( 0, 1, 0 ), stone );
+    world.grass_random_tick( gs, covered_src, grass );
+    failures += check_id( world, "grass: covered grass dies to dirt", covered_src, DIRT );
+
+    // Open grass survives its tick (spread picks land on air here).
+    const glm::ivec3 open_src( 20, 10, 20 );
+    world.set_loaded_block( open_src, grass );
+    world.grass_random_tick( gs, open_src, grass );
+    failures += check_id( world, "grass: open grass survives", open_src, GRASS );
+
+    // Spread garden: dirt floor at dy=-3 plus a same-level dirt ring, all
+    // open-topped — 17 of the 45 picks are eligible, so a passing roll
+    // (~1-in-3 per call, deterministic stream) converts something fast.
+    auto garden = [ & ]( const glm::ivec3 &src, const BlockState &src_state, const BlockID expected ) {
+        for ( int dx = -1; dx <= 1; dx++ ) {
+            for ( int dz = -1; dz <= 1; dz++ ) {
+                world.set_loaded_block( src + glm::ivec3( dx, -3, dz ), dirt );
+                if ( dx != 0 || dz != 0 ) {
+                    world.set_loaded_block( src + glm::ivec3( dx, 0, dz ), dirt );
+                }
+            }
+        }
+        world.set_loaded_block( src, src_state );
+        for ( int i = 0; i < 40; i++ ) {
+            world.grass_random_tick( gs, src, src_state );
+        }
+        int converted = 0;
+        for ( int dx = -1; dx <= 1; dx++ ) {
+            for ( int dy = -3; dy <= 1; dy++ ) {
+                for ( int dz = -1; dz <= 1; dz++ ) {
+                    if ( world.get_loaded_block( src + glm::ivec3( dx, dy, dz ) ).id == expected ) {
+                        converted++;
+                    }
+                }
+            }
+        }
+        return converted;
+    };
+    check_bool( "grass: grass spreads to dirt", garden( glm::ivec3( 30, 10, 30 ), grass, GRASS ) > 0 );
+    check_bool( "grass: mycelium spreads mycelium", garden( glm::ivec3( 41, 10, 41 ), mycelium, MYCELIUM ) > 0 );
+    check_bool( "grass: snowy grass spreads grass", garden( glm::ivec3( 52, 10, 52 ), snowy, GRASS ) > 0 );
+
+    // A covered dirt cell is not a valid target: the open floor cells around
+    // it convert, the covered one stays dirt.
+    const glm::ivec3 gated_src( 10, 10, 45 );
+    world.set_loaded_block( gated_src + glm::ivec3( 1, 0, 1 ), dirt );
+    world.set_loaded_block( gated_src + glm::ivec3( 1, 1, 1 ), stone );
+    for ( int dx = -1; dx <= 1; dx++ ) {
+        for ( int dz = -1; dz <= 1; dz++ ) {
+            world.set_loaded_block( gated_src + glm::ivec3( dx, -3, dz ), dirt );
+        }
+    }
+    world.set_loaded_block( gated_src, grass );
+    for ( int i = 0; i < 40; i++ ) {
+        world.grass_random_tick( gs, gated_src, grass );
+    }
+    failures += check_id( world, "grass: covered dirt untouched", gated_src + glm::ivec3( 1, 0, 1 ), DIRT );
+    int opened = 0;
+    for ( int dx = -1; dx <= 1; dx++ ) {
+        for ( int dz = -1; dz <= 1; dz++ ) {
+            if ( world.get_loaded_block( gated_src + glm::ivec3( dx, -3, dz ) ).id == GRASS ) {
+                opened++;
+            }
+        }
+    }
+    check_bool( "grass: open dirt still converts nearby", opened > 0 );
+
+    // Nothing writes grass spontaneously — a lone dirt with no source in
+    // reach stays dirt.
+    world.set_loaded_block( glm::ivec3( 58, 20, 58 ), dirt );
+    failures += check_id( world, "grass: lone dirt stays dirt", glm::ivec3( 58, 20, 58 ), DIRT );
+    return failures;
+}
+
+// Empirical: how many freshly generated chunks do natural random ticks
+// dirty (and therefore persist on departure)? Mapgens a real 7x3x7 grid —
+// the ±2/±1 tick window covers the inner 5x3x5; the outer ring only
+// receives boundary halo writes — and counts dirty/player_edited flags at
+// checkpoints. player_edited must stay 0 everywhere: natural writes keep
+// the pen rule out, so every dirty chunk here is a purely natural change
+// that would still be written to disk.
+int test_grass_persist( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    setenv( "REPGAME_MOB_TEST", "1", 1 ); // skip the mob roll — irrelevant to block ticks
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    ChunkLoader &cl = world.chunkLoader;
+
+    MapStorage ms;
+    ms.init_readonly( "/nonexistent/grass_persist" ); // no save files -> pure mapgen
+
+    const glm::ivec3 center( 32, 0, 32 );
+    const float surf = MapGen::calculateTerrainHeight( center.x * CHUNK_SIZE_X + 31, center.z * CHUNK_SIZE_Z + 31 );
+    const int cy = static_cast<int>( floorf( surf / static_cast<float>( CHUNK_SIZE_Y ) ) );
+    const int ring = 2 * CHUNK_RADIUS_XZ + 1, yring = 2 * CHUNK_RADIUS_Y + 1;
+    std::vector<Chunk *> inner, outer;
+    for ( int dx = -3; dx <= 3; dx++ ) {
+        for ( int dy = -1; dy <= 1; dy++ ) {
+            for ( int dz = -3; dz <= 3; dz++ ) {
+                const glm::ivec3 cpos( center.x + dx, cy + dy, center.z + dz );
+                Chunk &chunk = cl.chunkArray[ chunk_slot_from_pos( cpos ) ];
+                chunk.chunk_pos = cpos;
+                chunk.chunk_mod = glm::ivec3( ( ( cpos.x % ring ) + ring ) % ring, ( ( cpos.y % yring ) + yring ) % yring, ( ( cpos.z % ring ) + ring ) % ring );
+                chunk.load_state = CHUNK_LIVE;
+                chunk.load_terrain( ms );
+                ( abs( dx ) <= 2 && abs( dz ) <= 2 ? inner : outer ).push_back( &chunk );
+            }
+        }
+    }
+    // Pin the camera to the middle of the center chunk so the tick window
+    // is exactly the inner 5x3x5.
+    gs.camera.pos = glm::dvec3( center.x * CHUNK_SIZE_X + 31.0, cy * CHUNK_SIZE_Y + 31.0, center.z * CHUNK_SIZE_Z + 31.0 );
+
+    auto count_grass = [ & ]( Chunk *chunk ) {
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
+                for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                    const BlockID id = chunk->get_block( glm::ivec3( x, y, z ) ).id;
+                    if ( id == GRASS || id == SNOWY_GRASS || id == MYCELIUM ) {
+                        return 1;
+                    }
+                }
+            }
+        }
+        return 0;
+    };
+    int grass_chunks = 0;
+    for ( Chunk *chunk : inner ) {
+        grass_chunks += count_grass( chunk );
+    }
+    pr_test( "  persist probe: %zu inner chunks (%d with grass sources), %zu outer ring", inner.size( ), grass_chunks, outer.size( ) );
+
+    auto count_flags = [ & ]( const std::vector<Chunk *> &set, int *dirty, int *edited ) {
+        *dirty = 0;
+        *edited = 0;
+        for ( Chunk *chunk : set ) {
+            *dirty += chunk->dirty ? 1 : 0;
+            *edited += chunk->player_edited ? 1 : 0;
+        }
+    };
+    const int checkpoints[] = { 0, 100, 1000, 5000, 20000 };
+    int ran = 0;
+    int failures = 0;
+    int final_inner_dirty = 0, final_edited = 0;
+    for ( const int checkpoint : checkpoints ) {
+        for ( ; ran < checkpoint; ran++ ) {
+            world.process_random_ticks( gs );
+        }
+        int in_dirty, in_edited, out_dirty, out_edited;
+        count_flags( inner, &in_dirty, &in_edited );
+        count_flags( outer, &out_dirty, &out_edited );
+        pr_test( "  persist probe: after %5d ticks (~%4ds game time): inner dirty %d/%zu, outer dirty %d/%zu, player_edited %d",
+                 checkpoint, checkpoint / 144, in_dirty, inner.size( ), out_dirty, outer.size( ), in_edited + out_edited );
+        final_inner_dirty = in_dirty;
+        final_edited = in_edited + out_edited;
+    }
+    // Attribute the dirties: regenerate each dirty chunk pristine and diff —
+    // structures are pure functions of position too, so every remaining
+    // difference is a genuine tick write. DIRT->grass-family = spread,
+    // grass-family->DIRT = covered-grass death.
+    int spread_writes = 0, death_writes = 0, other_writes = 0;
+    for ( Chunk *chunk : inner ) {
+        if ( !chunk->dirty ) {
+            continue;
+        }
+        Chunk *pristine = new Chunk( );
+        std::atomic<uint64_t> stale_bits{ 0 };
+        pristine->light_stale_word = &stale_bits;
+        pristine->light_stale_bit = 1;
+        pristine->chunk_pos = chunk->chunk_pos;
+        pristine->chunk_mod = chunk->chunk_mod;
+        pristine->load_terrain( ms );
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
+                for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                    const glm::ivec3 local( x, y, z );
+                    const BlockID actual = chunk->get_block( local ).id;
+                    const BlockID before = pristine->get_block( local ).id;
+                    const bool was_grass = before == GRASS || before == SNOWY_GRASS || before == MYCELIUM;
+                    const bool is_grass = actual == GRASS || actual == SNOWY_GRASS || actual == MYCELIUM;
+                    if ( before == DIRT && is_grass ) {
+                        spread_writes++;
+                    } else if ( was_grass && actual == DIRT ) {
+                        death_writes++;
+                    } else if ( actual != before ) {
+                        other_writes++;
+                    }
+                }
+            }
+        }
+        delete pristine;
+    }
+    pr_test( "  persist probe: dirty-chunk tick writes — %d spread (dirt->grass), %d death (grass->dirt), %d other", spread_writes, death_writes, other_writes );
+
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    check_bool( "persist: natural ticks dirty real chunks", final_inner_dirty > 0 );
+    check_bool( "persist: natural writes never set player_edited", final_edited == 0 );
+    return failures;
+}

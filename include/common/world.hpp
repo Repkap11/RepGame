@@ -27,6 +27,8 @@ class World {
     friend class MobManager;
     friend int test_mobs( );
     friend int test_farming( );
+    friend int test_grass( );
+    friend int test_grass_persist( );
     friend void test_setup_world( World &world );
 
     friend int test_lighting( );
@@ -84,12 +86,11 @@ class World {
 
     int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const;
     void fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset, const glm::ivec3 &pos, const BlockState &blockState );
-    static bool any_neighbor_adj_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
-    static bool any_neighbor_diag_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
-    static bool any_neighbor_grass_id( const Chunk &chunk, const glm::ivec3 &pos, BlockID id );
 
-    bool process_random_ticks_on_chunk( const Chunk &chunk );
-    static bool do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, BlockState &blockState );
+    // Grass random tick: grass_covered gates both the covered-grass death
+    // and target eligibility; grass_random_tick runs one source cell's tick.
+    bool grass_covered( const glm::ivec3 &pos ) const;
+    void grass_random_tick( RepGameState &state, const glm::ivec3 &world_pos, const BlockState &cell );
 
   public:
     // Client-local mob simulation and rendering (REPGAME_MOBS=0 disables).
@@ -157,7 +158,7 @@ class World {
     void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &view_look, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
                WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s, float daylight, float min_ambient, float alpha );
     // Random ticks: samples a handful of cells per nearby live chunk each
-    // game tick — currently the only effect is sapling growth. Gated off by
+    // game tick — sapling/crop growth and the grass lifecycle. Gated off by
     // the caller in capture/fly/flat/block-world runs (same gates mobs use).
     void process_random_ticks( RepGameState &state );
     void set_selected_block( const glm::ivec3 &selected, bool shouldDraw );
