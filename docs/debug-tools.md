@@ -415,7 +415,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `screenshot <name>` | block until the frame is drawn; writes `screenshots/script_<name>_display.tga` (→ PNG + `artifacts.screenshots`) and emits a `screenshot` event |
 | `quality low|medium|high|x_high`, `flags <u_DebugFlags int>`, `rd <n>` | same mechanisms as the capture views |
 | `time <ticks>`, `mode survival|creative`, `peaceful on|off` | world time / game mode / hostile-mob targeting |
-| `setblock x y z <block>`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; fill is inclusive, max 65536 cells |
+| `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
 | `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
 | `shear x y z` | shears the shearable mob nearest the point (as if holding shears); mirrors route ENTITY_ACTION like a right-click |

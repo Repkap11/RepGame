@@ -4,8 +4,12 @@
 #include "common/RenderChain.hpp"
 #include "common/renderer/shader.hpp"
 
+class World;
+
 class MouseSelection {
-    entt::entity entity;
+    // One instance per possible sub-box so multi-box models (stairs) draw a
+    // shaped outline; extras sit collapsed at zero scale.
+    entt::entity entity[ STAIRS_MAX_BOXES ];
     int shouldDraw;
     BlockState selected_block_state;
     float break_progress;
@@ -14,7 +18,7 @@ class MouseSelection {
 
   public:
     void init( const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords );
-    void set_block( const glm::ivec3 &pos, bool shouldDraw, const BlockState &blockState );
+    void set_block( const World &world, const glm::ivec3 &pos, bool shouldDraw, const BlockState &blockState );
     // Stop drawing the outline (selected block unloaded/gone).
     void hide( );
     // 0 = no damage overlay, 1 = fully cracked (about to break).

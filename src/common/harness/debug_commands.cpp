@@ -221,13 +221,13 @@ bool dbgcmd::tnt( RepGameState &state, const glm::vec3 &center, std::string *err
     return true;
 }
 
-bool dbgcmd::setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err ) {
+bool dbgcmd::setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err, unsigned char rotation ) {
     const ItemID id = item_from_name( block_name );
     if ( id == LAST_BLOCK_ID ) {
         *err = std::string( "unknown block " ) + block_name;
         return false;
     }
-    const BlockState bs{ static_cast<BlockID>( id ), 0, 0, static_cast<BlockID>( id ), 0 };
+    const BlockState bs{ static_cast<BlockID>( id ), rotation, 0, static_cast<BlockID>( id ), 0 };
     // setblock plays the player role: removing a container marks the loot
     // marker the mouse-break path sets, so the server's CONTAINER_CONTENTS
     // snapshot lands in the breaker's inventory. Only AIR writes qualify —

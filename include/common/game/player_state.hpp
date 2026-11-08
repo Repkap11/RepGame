@@ -57,6 +57,9 @@ struct BlockSelection {
     int face;
     glm::ivec3 pos_create;
     glm::ivec3 pos_destroy;
+    // Y of the exact ray hit inside pos_destroy (0-1): drives stair
+    // upside-down placement (upper half of a side face -> top-half stair).
+    double hit_y_in_cell;
     // Second raycast that can hit water — only run while holding a
     // can_float_on_water block, and only used to place it.
     int floatSelectionInBounds;

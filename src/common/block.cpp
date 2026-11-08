@@ -214,6 +214,104 @@ unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char 
     return static_cast<unsigned char>( facing | BLOCK_ROTATE_GATE_OPEN );
 }
 
+// MC's getStairsShape. Left of facing d is (d+3)&3, right is (d+1)&3 (the
+// 0=-z/1=+x/2=+z/3=-x direction indexing). The suppression probes keep a
+// continuous run straight: an outer corner doesn't form when the cell on
+// the side opposite the merge is another same-facing stair, an inner one
+// doesn't form when the cell on the merge's own side is (the corner then
+// belongs to that neighbor instead).
+StairShape stairs_shape_derive( unsigned char rotation, const int stair_rots[ 4 ] ) {
+    const int facing = rotation & 3;
+    const int half = rotation & BLOCK_ROTATE_STAIRS_TOP;
+    const int left = ( facing + 3 ) & 3;
+    const int front_rot = stair_rots[ facing ];
+    if ( front_rot >= 0 && ( front_rot & BLOCK_ROTATE_STAIRS_TOP ) == half ) {
+        const int f2 = front_rot & 3;
+        const int third = stair_rots[ ( f2 + 2 ) & 3 ];
+        const bool third_same = third >= 0 && ( third & 3 ) == facing && ( third & BLOCK_ROTATE_STAIRS_TOP ) == half;
+        if ( f2 != facing && f2 != ( ( facing + 2 ) & 3 ) && !third_same ) {
+            return f2 == left ? STAIRS_OUTER_LEFT : STAIRS_OUTER_RIGHT;
+        }
+    }
+    const int back_rot = stair_rots[ ( facing + 2 ) & 3 ];
+    if ( back_rot >= 0 && ( back_rot & BLOCK_ROTATE_STAIRS_TOP ) == half ) {
+        const int b2 = back_rot & 3;
+        // Suppression probe on the merge side (MC: pos + back stair facing).
+        const int third = stair_rots[ b2 ];
+        const bool third_same = third >= 0 && ( third & 3 ) == facing && ( third & BLOCK_ROTATE_STAIRS_TOP ) == half;
+        if ( b2 != facing && b2 != ( ( facing + 2 ) & 3 ) && !third_same ) {
+            return b2 == left ? STAIRS_INNER_LEFT : STAIRS_INNER_RIGHT;
+        }
+    }
+    return STAIRS_STRAIGHT;
+}
+
+// Definition space at rotation 0: the stair descends from the -z edge, so
+// the full-height step sits at z 0..8. Bottom-half stairs: slab y 0..8,
+// steps y 8..16; top-half stairs mirror it. The step boxes' face coplanar
+// with the slab surface is skipped (it would z-fight / draw dark interior
+// quads); the inner corner's second octet also skips its -z seam face
+// against the main step strip.
+int stairs_boxes( StairShape shape, bool top_half, BlockBox out[ STAIRS_MAX_BOXES ] ) {
+    const signed char slab_y = top_half ? 8 : 0;
+    const signed char step_y = top_half ? 0 : 8;
+    const unsigned char skip_slab_face = static_cast<unsigned char>( 1u << ( top_half ? FACE_TOP : FACE_BOTTOM ) );
+    int n = 0;
+    out[ n ].scale[ 0 ] = 16;
+    out[ n ].scale[ 1 ] = 8;
+    out[ n ].scale[ 2 ] = 16;
+    out[ n ].offset[ 0 ] = 0;
+    out[ n ].offset[ 1 ] = slab_y;
+    out[ n ].offset[ 2 ] = 0;
+    out[ n ].skip_faces = 0;
+    n++;
+    if ( shape == STAIRS_OUTER_LEFT || shape == STAIRS_OUTER_RIGHT ) {
+        // Outer corner: the step shrinks to the octet at the (facing,
+        // merge-side) corner — -x or +x at the -z edge.
+        const signed char ox = shape == STAIRS_OUTER_LEFT ? 0 : 8;
+        out[ n ].scale[ 0 ] = 8;
+        out[ n ].scale[ 1 ] = 8;
+        out[ n ].scale[ 2 ] = 8;
+        out[ n ].offset[ 0 ] = ox;
+        out[ n ].offset[ 1 ] = step_y;
+        out[ n ].offset[ 2 ] = 0;
+        out[ n ].skip_faces = skip_slab_face;
+        n++;
+    } else {
+        // Straight and inner share the full-width step strip at -z.
+        out[ n ].scale[ 0 ] = 16;
+        out[ n ].scale[ 1 ] = 8;
+        out[ n ].scale[ 2 ] = 8;
+        out[ n ].offset[ 0 ] = 0;
+        out[ n ].offset[ 1 ] = step_y;
+        out[ n ].offset[ 2 ] = 0;
+        out[ n ].skip_faces = skip_slab_face;
+        n++;
+        if ( shape == STAIRS_INNER_LEFT || shape == STAIRS_INNER_RIGHT ) {
+            // Inner corner: extra octet at the (back, merge-side) corner.
+            const signed char ox = shape == STAIRS_INNER_LEFT ? 0 : 8;
+            out[ n ].scale[ 0 ] = 8;
+            out[ n ].scale[ 1 ] = 8;
+            out[ n ].scale[ 2 ] = 8;
+            out[ n ].offset[ 0 ] = ox;
+            out[ n ].offset[ 1 ] = step_y;
+            out[ n ].offset[ 2 ] = 8;
+            out[ n ].skip_faces = skip_slab_face | ( 1u << FACE_BACK );
+            n++;
+        }
+    }
+    return n;
+}
+
+int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], BlockBox out[ STAIRS_MAX_BOXES ] ) {
+    const int n = stairs_boxes( stairs_shape_derive( rotation, stair_rots ), ( rotation & BLOCK_ROTATE_STAIRS_TOP ) != 0, out );
+    const unsigned char yaw = rotation & 3;
+    for ( int i = 0; i < n; i++ ) {
+        block_rotate_box( yaw, out[ i ].scale, out[ i ].offset );
+    }
+    return n;
+}
+
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord ) {
     if ( blockState->display_id == REDSTONE_LAMP && blockState->current_redstone_power > 0 ) {
         change_all_textures_to( blockCoord->face, TEX_REDSTONE_LAMP_ON );

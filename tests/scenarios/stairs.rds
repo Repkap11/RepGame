@@ -1,0 +1,42 @@
+# Stair staging: all four facings, top-half (upside-down) stairs, an outer
+# and an inner corner, then screenshots for eyeballing. Flat floor is
+# SANDSTONE at y=0; AIR starts at y=1. setblock's 6th arg is rotation.
+wait_idle 20 6000
+# Straight stairs, facings 0-3 (-z, +x, +z, -x).
+setblock 10 1 8 OAK_STAIRS 0
+setblock 12 1 8 OAK_STAIRS 1
+setblock 14 1 8 OAK_STAIRS 2
+setblock 16 1 8 OAK_STAIRS 3
+# Top-half stairs, facings 0-3 (rotation bit 2).
+setblock 10 1 10 STONE_STAIRS 4
+setblock 12 1 10 STONE_STAIRS 5
+setblock 14 1 10 STONE_STAIRS 6
+setblock 16 1 10 STONE_STAIRS 7
+# Outer corner: the stair at -z faces +x, so this one merges OUTER_RIGHT.
+setblock 10 1 13 COBBLED_DEEPSLATE_STAIRS 0
+setblock 10 1 12 COBBLED_DEEPSLATE_STAIRS 1
+# Inner corner: the stair at +z faces -x, so this one merges INNER_LEFT.
+setblock 14 1 13 COBBLED_DEEPSLATE_STAIRS 0
+setblock 14 1 14 COBBLED_DEEPSLATE_STAIRS 3
+wait 30
+assert_block 10 1 8 OAK_STAIRS
+assert_block 16 1 10 STONE_STAIRS
+assert_block 10 1 13 COBBLED_DEEPSLATE_STAIRS
+assert_block 14 1 14 COBBLED_DEEPSLATE_STAIRS
+# Face-on view of the oak row: x=10 faces the camera (-z), x=14 faces away.
+camera 13 3.5 4 180 20
+wait 20
+screenshot facings
+# Top-half row from the -z side: inverted step profile.
+camera 13 3.5 7.5 180 25
+wait 20
+screenshot upside_down
+# Oblique view of the outer corner pair at (10,1,12-13).
+camera 7.5 4.5 10 140 25
+wait 20
+screenshot outer_corner
+# Oblique view of the inner corner pair at (14,1,13-14).
+camera 17.5 4.5 16 315 25
+wait 20
+screenshot inner_corner
+echo stairs done

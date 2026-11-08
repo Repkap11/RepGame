@@ -202,10 +202,15 @@ void RepGame::update_block_selection( ) {
     sel.ray_dir = glm::normalize( pos_with_reach - ray_origin );
     const ItemID selected_block = globalGameState.hotbar.getSelectedItem( );
     const bool pick_water = item_is_block( selected_block ) && block_definition_get_definition( static_cast<BlockID>( selected_block ) )->can_float_on_water;
-    sel.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy, &whichFace );
+    double hit_t = 0.0;
+    sel.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy, &whichFace, false, &hit_t );
 
     sel.face = whichFace;
     sel.pos_create = RayTraversal::placement_cell( sel.pos_destroy, whichFace );
+    // Exact hit position inside the cell — the stair half placement rule
+    // reads the y fraction. t is along the normalized look direction.
+    const glm::dvec3 hit_pos = ray_origin + sel.ray_dir * hit_t;
+    sel.hit_y_in_cell = sel.selectionInBounds ? hit_pos.y - sel.pos_destroy.y : 0.0;
 
     if ( pick_water ) {
         int whichFace_water = 0;

@@ -294,6 +294,63 @@ int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );
 // opens away from the player).
 unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot );
 
+// ---- Stairs -----------------------------------------------------------------
+// Stairs store the facing in rotation bits 0-1 — the yaw index doubles as the
+// world direction index (0=-z, 1=+x, 2=+z, 3=-x, matching getPlacedRotation's
+// buckets) — and the top/upside-down half in bit 2. The straight/inner/outer
+// corner shape is never stored: it is derived live from the four horizontal
+// neighbors (MC's getStairsShape) each mesh/collision/ray pass, so placing or
+// breaking a stair re-shapes its neighbors through their own derives.
+#define BLOCK_ROTATE_STAIRS_TOP 4
+#define STAIRS_MAX_BOXES 3
+
+typedef enum {
+    STAIRS_STRAIGHT = 0,
+    STAIRS_INNER_LEFT,
+    STAIRS_INNER_RIGHT,
+    STAIRS_OUTER_LEFT,
+    STAIRS_OUTER_RIGHT,
+} StairShape;
+
+// MC's getStairsShape: stair_rots[d] is the full rotation of the stair cell
+// in world direction d (d indexes the same 0=-z/1=+x/2=+z/3=-x space as
+// rotation & 3), or -1 when the neighbor isn't a stair. A corner needs a
+// perpendicular-facing stair of the same half on the front (outer) or back
+// (inner) side, and is suppressed when the cell on the merge's third side is
+// a same-facing stair of the same half.
+StairShape stairs_shape_derive( unsigned char rotation, const int stair_rots[ 4 ] );
+// The stair's definition-space boxes (rotation 0 = facing -z, the full-height
+// half at the low-z edge): box 0 is the half slab, boxes 1-2 the step(s);
+// top_half flips the model upside-down (BLOCK_ROTATE_STAIRS_TOP). skip_faces
+// kills the faces coplanar with the slab surface or the inner seam. Returns
+// the box count (2 straight/outer, 3 inner).
+int stairs_boxes( StairShape shape, bool top_half, BlockBox out[ STAIRS_MAX_BOXES ] );
+// Def->world yaw for a pixel-space box — the same scale/offset remap the
+// mesh shader's face_shift rotation and collision/raycast apply:
+// ROTATE_90/270 swap the x/z axes, ROTATE_180 mirrors both.
+static inline void block_rotate_box( unsigned char yaw, signed char scale[ 3 ], signed char offset[ 3 ] ) {
+    if ( yaw == BLOCK_ROTATE_90 ) {
+        const signed char sx = scale[ 0 ], ox = offset[ 0 ];
+        scale[ 0 ] = scale[ 2 ];
+        scale[ 2 ] = sx;
+        offset[ 0 ] = static_cast<signed char>( 16 - scale[ 0 ] - offset[ 2 ] );
+        offset[ 2 ] = ox;
+    } else if ( yaw == BLOCK_ROTATE_180 ) {
+        offset[ 0 ] = static_cast<signed char>( 16 - scale[ 0 ] - offset[ 0 ] );
+        offset[ 2 ] = static_cast<signed char>( 16 - scale[ 2 ] - offset[ 2 ] );
+    } else if ( yaw == BLOCK_ROTATE_270 ) {
+        const signed char sx = scale[ 0 ], ox = offset[ 0 ];
+        scale[ 0 ] = scale[ 2 ];
+        scale[ 2 ] = sx;
+        offset[ 0 ] = offset[ 2 ];
+        offset[ 2 ] = static_cast<signed char>( 16 - sx - ox );
+    }
+}
+// World-space stair boxes: derive the corner shape, emit the def-space
+// boxes, yaw each by rotation & 3. Collision and raycast consume these; the
+// mesher emits the def-space stairs_boxes and lets the shader yaw them.
+int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], BlockBox out[ STAIRS_MAX_BOXES ] );
+
 // ---- Doors -----------------------------------------------------------------
 // Doors share the gate's flag bit: the lower half's rotation bit 2 is the
 // open flag, the upper's is hinge-right; bits 0-1 of both hold the slab's
@@ -382,7 +439,7 @@ static inline BlockID block_item_id( BlockID id ) {
 // selection, debris): an open gate or toggled door keeps a yaw and must
 // never reach the rotation >= 4 wall-torch branches.
 static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
-    return ( b->is_fence_gate || b->is_door ) ? ( rot & 3 ) : rot;
+    return ( b->is_fence_gate || b->is_door || b->is_stairs ) ? ( rot & 3 ) : rot;
 }
 
 // face_shift flag bits: the low nibble holds the yaw rotation (0-7).

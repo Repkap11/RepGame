@@ -338,16 +338,20 @@ block_definitions[ 22 ].mineable = MINEABLE_AXE;
 // ACACIA_STAIRS (23)
 block_definitions[ 23 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
 block_definitions[ 23 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_ACACIA;
-block_definitions[ 23 ].textures[ FACE_RIGHT ] = TEX_PLANKS_ACACIA__STAIRS;
-block_definitions[ 23 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA__STAIRS;
-block_definitions[ 23 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA__STAIRS;
-block_definitions[ 23 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA__STAIRS;
-block_definitions[ 23 ].icon_texture = TEX_PLANKS_ACACIA;
+block_definitions[ 23 ].textures[ FACE_RIGHT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 23 ].textures[ FACE_FRONT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 23 ].textures[ FACE_LEFT ] = TEX_PLANKS_ACACIA;
+block_definitions[ 23 ].textures[ FACE_BACK ] = TEX_PLANKS_ACACIA;
+block_definitions[ 23 ].icon_texture = TEX_PLANKS_ACACIA__STAIRS;
 block_definitions[ 23 ].casts_shadow = false;
+block_definitions[ 23 ].collides_with_player = true;
 block_definitions[ 23 ].hardness = 0.35f;
+block_definitions[ 23 ].icon_is_isometric = false;
 block_definitions[ 23 ].is_seethrough = true;
+block_definitions[ 23 ].is_stairs = true;
 block_definitions[ 23 ].mineable = MINEABLE_AXE;
 block_definitions[ 23 ].no_light = 6815743;
+block_definitions[ 23 ].rotate_on_placement = true;
 
 // ACACIA_STANDING_SIGN (24)
 block_definitions[ 24 ].textures[ FACE_TOP ] = TEX_PLANKS_ACACIA;
@@ -916,16 +920,20 @@ block_definitions[ 63 ].tex_offset = { 0, -4, 0 };
 // ANDESITE_STAIRS (64)
 block_definitions[ 64 ].textures[ FACE_TOP ] = TEX_STONE_ANDESITE;
 block_definitions[ 64 ].textures[ FACE_BOTTOM ] = TEX_STONE_ANDESITE;
-block_definitions[ 64 ].textures[ FACE_RIGHT ] = TEX_STONE_ANDESITE__STAIRS;
-block_definitions[ 64 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE__STAIRS;
-block_definitions[ 64 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE__STAIRS;
-block_definitions[ 64 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE__STAIRS;
-block_definitions[ 64 ].icon_texture = TEX_STONE_ANDESITE;
+block_definitions[ 64 ].textures[ FACE_RIGHT ] = TEX_STONE_ANDESITE;
+block_definitions[ 64 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE;
+block_definitions[ 64 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE;
+block_definitions[ 64 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE;
+block_definitions[ 64 ].icon_texture = TEX_STONE_ANDESITE__STAIRS;
 block_definitions[ 64 ].casts_shadow = false;
+block_definitions[ 64 ].collides_with_player = true;
 block_definitions[ 64 ].hardness = 0.35f;
+block_definitions[ 64 ].icon_is_isometric = false;
 block_definitions[ 64 ].is_seethrough = true;
+block_definitions[ 64 ].is_stairs = true;
 block_definitions[ 64 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 64 ].no_light = 6815743;
+block_definitions[ 64 ].rotate_on_placement = true;
 
 // REDSTONE_TORCH (65)
 block_definitions[ 65 ].textures[ FACE_TOP ] = TEX_REDSTONE_TORCH_TOP;
@@ -1330,16 +1338,20 @@ block_definitions[ 89 ].tex_offset = { 0, -4, 0 };
 // BAMBOO_MOSAIC_STAIRS (90)
 block_definitions[ 90 ].textures[ FACE_TOP ] = TEX_BAMBOO_MOSAIC;
 block_definitions[ 90 ].textures[ FACE_BOTTOM ] = TEX_BAMBOO_MOSAIC;
-block_definitions[ 90 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_MOSAIC__STAIRS;
-block_definitions[ 90 ].textures[ FACE_FRONT ] = TEX_BAMBOO_MOSAIC__STAIRS;
-block_definitions[ 90 ].textures[ FACE_LEFT ] = TEX_BAMBOO_MOSAIC__STAIRS;
-block_definitions[ 90 ].textures[ FACE_BACK ] = TEX_BAMBOO_MOSAIC__STAIRS;
-block_definitions[ 90 ].icon_texture = TEX_BAMBOO_MOSAIC;
+block_definitions[ 90 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_MOSAIC;
+block_definitions[ 90 ].textures[ FACE_FRONT ] = TEX_BAMBOO_MOSAIC;
+block_definitions[ 90 ].textures[ FACE_LEFT ] = TEX_BAMBOO_MOSAIC;
+block_definitions[ 90 ].textures[ FACE_BACK ] = TEX_BAMBOO_MOSAIC;
+block_definitions[ 90 ].icon_texture = TEX_BAMBOO_MOSAIC__STAIRS;
 block_definitions[ 90 ].casts_shadow = false;
+block_definitions[ 90 ].collides_with_player = true;
 block_definitions[ 90 ].hardness = 0.35f;
+block_definitions[ 90 ].icon_is_isometric = false;
 block_definitions[ 90 ].is_seethrough = true;
+block_definitions[ 90 ].is_stairs = true;
 block_definitions[ 90 ].mineable = MINEABLE_AXE;
 block_definitions[ 90 ].no_light = 6815743;
+block_definitions[ 90 ].rotate_on_placement = true;
 
 // TUBE_CORAL (91)
 block_definitions[ 91 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -1534,16 +1546,20 @@ block_definitions[ 102 ].tex_offset = { 0, -4, 0 };
 // BAMBOO_STAIRS (103)
 block_definitions[ 103 ].textures[ FACE_TOP ] = TEX_BAMBOO_PLANKS;
 block_definitions[ 103 ].textures[ FACE_BOTTOM ] = TEX_BAMBOO_PLANKS;
-block_definitions[ 103 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_PLANKS__STAIRS;
-block_definitions[ 103 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS__STAIRS;
-block_definitions[ 103 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS__STAIRS;
-block_definitions[ 103 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS__STAIRS;
-block_definitions[ 103 ].icon_texture = TEX_BAMBOO_PLANKS;
+block_definitions[ 103 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_PLANKS;
+block_definitions[ 103 ].textures[ FACE_FRONT ] = TEX_BAMBOO_PLANKS;
+block_definitions[ 103 ].textures[ FACE_LEFT ] = TEX_BAMBOO_PLANKS;
+block_definitions[ 103 ].textures[ FACE_BACK ] = TEX_BAMBOO_PLANKS;
+block_definitions[ 103 ].icon_texture = TEX_BAMBOO_PLANKS__STAIRS;
 block_definitions[ 103 ].casts_shadow = false;
+block_definitions[ 103 ].collides_with_player = true;
 block_definitions[ 103 ].hardness = 0.35f;
+block_definitions[ 103 ].icon_is_isometric = false;
 block_definitions[ 103 ].is_seethrough = true;
+block_definitions[ 103 ].is_stairs = true;
 block_definitions[ 103 ].mineable = MINEABLE_AXE;
 block_definitions[ 103 ].no_light = 6815743;
+block_definitions[ 103 ].rotate_on_placement = true;
 
 // BAMBOO_STANDING_SIGN (104)
 block_definitions[ 104 ].textures[ FACE_TOP ] = TEX_BAMBOO_PLANKS;
@@ -2115,16 +2131,20 @@ block_definitions[ 136 ].renderOrder = RenderOrder_Flowers;
 // BIRCH_STAIRS (137)
 block_definitions[ 137 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
 block_definitions[ 137 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_BIRCH;
-block_definitions[ 137 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIRCH__STAIRS;
-block_definitions[ 137 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH__STAIRS;
-block_definitions[ 137 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH__STAIRS;
-block_definitions[ 137 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH__STAIRS;
-block_definitions[ 137 ].icon_texture = TEX_PLANKS_BIRCH;
+block_definitions[ 137 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 137 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 137 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIRCH;
+block_definitions[ 137 ].textures[ FACE_BACK ] = TEX_PLANKS_BIRCH;
+block_definitions[ 137 ].icon_texture = TEX_PLANKS_BIRCH__STAIRS;
 block_definitions[ 137 ].casts_shadow = false;
+block_definitions[ 137 ].collides_with_player = true;
 block_definitions[ 137 ].hardness = 0.35f;
+block_definitions[ 137 ].icon_is_isometric = false;
 block_definitions[ 137 ].is_seethrough = true;
+block_definitions[ 137 ].is_stairs = true;
 block_definitions[ 137 ].mineable = MINEABLE_AXE;
 block_definitions[ 137 ].no_light = 6815743;
+block_definitions[ 137 ].rotate_on_placement = true;
 
 // BIRCH_STANDING_SIGN (138)
 block_definitions[ 138 ].textures[ FACE_TOP ] = TEX_PLANKS_BIRCH;
@@ -2437,16 +2457,20 @@ block_definitions[ 157 ].tex_offset = { 0, -4, 0 };
 // BLACK_CONCRETE_STAIRS (158)
 block_definitions[ 158 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLACK;
 block_definitions[ 158 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_BLACK;
-block_definitions[ 158 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_BLACK__STAIRS;
-block_definitions[ 158 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLACK__STAIRS;
-block_definitions[ 158 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLACK__STAIRS;
-block_definitions[ 158 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLACK__STAIRS;
-block_definitions[ 158 ].icon_texture = TEX_CONCRETE_BLACK;
+block_definitions[ 158 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_BLACK;
+block_definitions[ 158 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLACK;
+block_definitions[ 158 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLACK;
+block_definitions[ 158 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLACK;
+block_definitions[ 158 ].icon_texture = TEX_CONCRETE_BLACK__STAIRS;
 block_definitions[ 158 ].casts_shadow = false;
+block_definitions[ 158 ].collides_with_player = true;
 block_definitions[ 158 ].hardness = 0.35f;
+block_definitions[ 158 ].icon_is_isometric = false;
 block_definitions[ 158 ].is_seethrough = true;
+block_definitions[ 158 ].is_stairs = true;
 block_definitions[ 158 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 158 ].no_light = 6815743;
+block_definitions[ 158 ].rotate_on_placement = true;
 
 // BLACK_GLAZED_TERRACOTTA (159)
 block_definitions[ 159 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_BLACK;
@@ -2597,16 +2621,20 @@ block_definitions[ 169 ].tex_offset = { 0, -4, 0 };
 // BLACK_WOOL_STAIRS (170)
 block_definitions[ 170 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLACK;
 block_definitions[ 170 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_BLACK;
-block_definitions[ 170 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_BLACK__STAIRS;
-block_definitions[ 170 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLACK__STAIRS;
-block_definitions[ 170 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK__STAIRS;
-block_definitions[ 170 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK__STAIRS;
-block_definitions[ 170 ].icon_texture = TEX_WOOL_COLORED_BLACK;
+block_definitions[ 170 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_BLACK;
+block_definitions[ 170 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLACK;
+block_definitions[ 170 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLACK;
+block_definitions[ 170 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLACK;
+block_definitions[ 170 ].icon_texture = TEX_WOOL_COLORED_BLACK__STAIRS;
 block_definitions[ 170 ].casts_shadow = false;
+block_definitions[ 170 ].collides_with_player = true;
 block_definitions[ 170 ].hardness = 0.35f;
+block_definitions[ 170 ].icon_is_isometric = false;
 block_definitions[ 170 ].is_seethrough = true;
+block_definitions[ 170 ].is_stairs = true;
 block_definitions[ 170 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 170 ].no_light = 6815743;
+block_definitions[ 170 ].rotate_on_placement = true;
 
 // BLACKSTONE (171)
 block_definitions[ 171 ].textures[ FACE_TOP ] = TEX_BLACKSTONE_TOP;
@@ -2670,16 +2698,20 @@ block_definitions[ 174 ].tex_offset = { 0, -4, 0 };
 // BLACKSTONE_STAIRS (175)
 block_definitions[ 175 ].textures[ FACE_TOP ] = TEX_BLACKSTONE;
 block_definitions[ 175 ].textures[ FACE_BOTTOM ] = TEX_BLACKSTONE;
-block_definitions[ 175 ].textures[ FACE_RIGHT ] = TEX_BLACKSTONE__STAIRS;
-block_definitions[ 175 ].textures[ FACE_FRONT ] = TEX_BLACKSTONE__STAIRS;
-block_definitions[ 175 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE__STAIRS;
-block_definitions[ 175 ].textures[ FACE_BACK ] = TEX_BLACKSTONE__STAIRS;
-block_definitions[ 175 ].icon_texture = TEX_BLACKSTONE;
+block_definitions[ 175 ].textures[ FACE_RIGHT ] = TEX_BLACKSTONE;
+block_definitions[ 175 ].textures[ FACE_FRONT ] = TEX_BLACKSTONE;
+block_definitions[ 175 ].textures[ FACE_LEFT ] = TEX_BLACKSTONE;
+block_definitions[ 175 ].textures[ FACE_BACK ] = TEX_BLACKSTONE;
+block_definitions[ 175 ].icon_texture = TEX_BLACKSTONE__STAIRS;
 block_definitions[ 175 ].casts_shadow = false;
+block_definitions[ 175 ].collides_with_player = true;
 block_definitions[ 175 ].hardness = 0.35f;
+block_definitions[ 175 ].icon_is_isometric = false;
 block_definitions[ 175 ].is_seethrough = true;
+block_definitions[ 175 ].is_stairs = true;
 block_definitions[ 175 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 175 ].no_light = 6815743;
+block_definitions[ 175 ].rotate_on_placement = true;
 
 // BLACKSTONE_WALL (176)
 block_definitions[ 176 ].textures[ FACE_TOP ] = TEX_BLACKSTONE;
@@ -2814,16 +2846,20 @@ block_definitions[ 185 ].tex_offset = { 0, -4, 0 };
 // BLUE_CONCRETE_STAIRS (186)
 block_definitions[ 186 ].textures[ FACE_TOP ] = TEX_CONCRETE_BLUE;
 block_definitions[ 186 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_BLUE;
-block_definitions[ 186 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_BLUE__STAIRS;
-block_definitions[ 186 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLUE__STAIRS;
-block_definitions[ 186 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLUE__STAIRS;
-block_definitions[ 186 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLUE__STAIRS;
-block_definitions[ 186 ].icon_texture = TEX_CONCRETE_BLUE;
+block_definitions[ 186 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_BLUE;
+block_definitions[ 186 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BLUE;
+block_definitions[ 186 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BLUE;
+block_definitions[ 186 ].textures[ FACE_BACK ] = TEX_CONCRETE_BLUE;
+block_definitions[ 186 ].icon_texture = TEX_CONCRETE_BLUE__STAIRS;
 block_definitions[ 186 ].casts_shadow = false;
+block_definitions[ 186 ].collides_with_player = true;
 block_definitions[ 186 ].hardness = 0.35f;
+block_definitions[ 186 ].icon_is_isometric = false;
 block_definitions[ 186 ].is_seethrough = true;
+block_definitions[ 186 ].is_stairs = true;
 block_definitions[ 186 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 186 ].no_light = 6815743;
+block_definitions[ 186 ].rotate_on_placement = true;
 
 // BLUE_GLAZED_TERRACOTTA (187)
 block_definitions[ 187 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_BLUE;
@@ -2926,16 +2962,20 @@ block_definitions[ 195 ].tex_offset = { 0, -4, 0 };
 // BLUE_WOOL_STAIRS (196)
 block_definitions[ 196 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLUE;
 block_definitions[ 196 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_BLUE;
-block_definitions[ 196 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_BLUE__STAIRS;
-block_definitions[ 196 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLUE__STAIRS;
-block_definitions[ 196 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE__STAIRS;
-block_definitions[ 196 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE__STAIRS;
-block_definitions[ 196 ].icon_texture = TEX_WOOL_COLORED_BLUE;
+block_definitions[ 196 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_BLUE;
+block_definitions[ 196 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BLUE;
+block_definitions[ 196 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BLUE;
+block_definitions[ 196 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BLUE;
+block_definitions[ 196 ].icon_texture = TEX_WOOL_COLORED_BLUE__STAIRS;
 block_definitions[ 196 ].casts_shadow = false;
+block_definitions[ 196 ].collides_with_player = true;
 block_definitions[ 196 ].hardness = 0.35f;
+block_definitions[ 196 ].icon_is_isometric = false;
 block_definitions[ 196 ].is_seethrough = true;
+block_definitions[ 196 ].is_stairs = true;
 block_definitions[ 196 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 196 ].no_light = 6815743;
+block_definitions[ 196 ].rotate_on_placement = true;
 
 // SPRUCE_LEAVES (197)
 block_definitions[ 197 ].textures[ FACE_TOP ] = TEX_LEAVES_SPRUCE_CARRIED;
@@ -3058,16 +3098,20 @@ block_definitions[ 204 ].mineable = MINEABLE_PICKAXE;
 // BRICK_STAIRS (205)
 block_definitions[ 205 ].textures[ FACE_TOP ] = TEX_BRICK;
 block_definitions[ 205 ].textures[ FACE_BOTTOM ] = TEX_BRICK;
-block_definitions[ 205 ].textures[ FACE_RIGHT ] = TEX_BRICK__STAIRS;
-block_definitions[ 205 ].textures[ FACE_FRONT ] = TEX_BRICK__STAIRS;
-block_definitions[ 205 ].textures[ FACE_LEFT ] = TEX_BRICK__STAIRS;
-block_definitions[ 205 ].textures[ FACE_BACK ] = TEX_BRICK__STAIRS;
-block_definitions[ 205 ].icon_texture = TEX_BRICK;
+block_definitions[ 205 ].textures[ FACE_RIGHT ] = TEX_BRICK;
+block_definitions[ 205 ].textures[ FACE_FRONT ] = TEX_BRICK;
+block_definitions[ 205 ].textures[ FACE_LEFT ] = TEX_BRICK;
+block_definitions[ 205 ].textures[ FACE_BACK ] = TEX_BRICK;
+block_definitions[ 205 ].icon_texture = TEX_BRICK__STAIRS;
 block_definitions[ 205 ].casts_shadow = false;
+block_definitions[ 205 ].collides_with_player = true;
 block_definitions[ 205 ].hardness = 0.35f;
+block_definitions[ 205 ].icon_is_isometric = false;
 block_definitions[ 205 ].is_seethrough = true;
+block_definitions[ 205 ].is_stairs = true;
 block_definitions[ 205 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 205 ].no_light = 6815743;
+block_definitions[ 205 ].rotate_on_placement = true;
 
 // BRICK_WALL (206)
 block_definitions[ 206 ].textures[ FACE_TOP ] = TEX_BRICK;
@@ -3175,16 +3219,20 @@ block_definitions[ 213 ].tex_offset = { 0, -4, 0 };
 // BROWN_CONCRETE_STAIRS (214)
 block_definitions[ 214 ].textures[ FACE_TOP ] = TEX_CONCRETE_BROWN;
 block_definitions[ 214 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_BROWN;
-block_definitions[ 214 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_BROWN__STAIRS;
-block_definitions[ 214 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BROWN__STAIRS;
-block_definitions[ 214 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BROWN__STAIRS;
-block_definitions[ 214 ].textures[ FACE_BACK ] = TEX_CONCRETE_BROWN__STAIRS;
-block_definitions[ 214 ].icon_texture = TEX_CONCRETE_BROWN;
+block_definitions[ 214 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_BROWN;
+block_definitions[ 214 ].textures[ FACE_FRONT ] = TEX_CONCRETE_BROWN;
+block_definitions[ 214 ].textures[ FACE_LEFT ] = TEX_CONCRETE_BROWN;
+block_definitions[ 214 ].textures[ FACE_BACK ] = TEX_CONCRETE_BROWN;
+block_definitions[ 214 ].icon_texture = TEX_CONCRETE_BROWN__STAIRS;
 block_definitions[ 214 ].casts_shadow = false;
+block_definitions[ 214 ].collides_with_player = true;
 block_definitions[ 214 ].hardness = 0.35f;
+block_definitions[ 214 ].icon_is_isometric = false;
 block_definitions[ 214 ].is_seethrough = true;
+block_definitions[ 214 ].is_stairs = true;
 block_definitions[ 214 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 214 ].no_light = 6815743;
+block_definitions[ 214 ].rotate_on_placement = true;
 
 // BROWN_GLAZED_TERRACOTTA (215)
 block_definitions[ 215 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_BROWN;
@@ -3315,16 +3363,20 @@ block_definitions[ 224 ].tex_offset = { 0, -4, 0 };
 // BROWN_WOOL_STAIRS (225)
 block_definitions[ 225 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BROWN;
 block_definitions[ 225 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_BROWN;
-block_definitions[ 225 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_BROWN__STAIRS;
-block_definitions[ 225 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BROWN__STAIRS;
-block_definitions[ 225 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN__STAIRS;
-block_definitions[ 225 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN__STAIRS;
-block_definitions[ 225 ].icon_texture = TEX_WOOL_COLORED_BROWN;
+block_definitions[ 225 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_BROWN;
+block_definitions[ 225 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_BROWN;
+block_definitions[ 225 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_BROWN;
+block_definitions[ 225 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_BROWN;
+block_definitions[ 225 ].icon_texture = TEX_WOOL_COLORED_BROWN__STAIRS;
 block_definitions[ 225 ].casts_shadow = false;
+block_definitions[ 225 ].collides_with_player = true;
 block_definitions[ 225 ].hardness = 0.35f;
+block_definitions[ 225 ].icon_is_isometric = false;
 block_definitions[ 225 ].is_seethrough = true;
+block_definitions[ 225 ].is_stairs = true;
 block_definitions[ 225 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 225 ].no_light = 6815743;
+block_definitions[ 225 ].rotate_on_placement = true;
 
 // BUBBLE_COLUMN (226)
 block_definitions[ 226 ].textures[ FACE_TOP ] = TEX_BUBBLE_COLUMN_UP_TOP_A;
@@ -4022,16 +4074,20 @@ block_definitions[ 271 ].tex_offset = { 0, -4, 0 };
 // CHERRY_STAIRS (272)
 block_definitions[ 272 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
 block_definitions[ 272 ].textures[ FACE_BOTTOM ] = TEX_CHERRY_PLANKS;
-block_definitions[ 272 ].textures[ FACE_RIGHT ] = TEX_CHERRY_PLANKS__STAIRS;
-block_definitions[ 272 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS__STAIRS;
-block_definitions[ 272 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS__STAIRS;
-block_definitions[ 272 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS__STAIRS;
-block_definitions[ 272 ].icon_texture = TEX_CHERRY_PLANKS;
+block_definitions[ 272 ].textures[ FACE_RIGHT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 272 ].textures[ FACE_FRONT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 272 ].textures[ FACE_LEFT ] = TEX_CHERRY_PLANKS;
+block_definitions[ 272 ].textures[ FACE_BACK ] = TEX_CHERRY_PLANKS;
+block_definitions[ 272 ].icon_texture = TEX_CHERRY_PLANKS__STAIRS;
 block_definitions[ 272 ].casts_shadow = false;
+block_definitions[ 272 ].collides_with_player = true;
 block_definitions[ 272 ].hardness = 0.35f;
+block_definitions[ 272 ].icon_is_isometric = false;
 block_definitions[ 272 ].is_seethrough = true;
+block_definitions[ 272 ].is_stairs = true;
 block_definitions[ 272 ].mineable = MINEABLE_AXE;
 block_definitions[ 272 ].no_light = 6815743;
+block_definitions[ 272 ].rotate_on_placement = true;
 
 // CHERRY_STANDING_SIGN (273)
 block_definitions[ 273 ].textures[ FACE_TOP ] = TEX_CHERRY_PLANKS;
@@ -4477,16 +4533,20 @@ block_definitions[ 304 ].tex_offset = { 0, -4, 0 };
 // CINNABAR_BRICK_STAIRS (305)
 block_definitions[ 305 ].textures[ FACE_TOP ] = TEX_CINNABAR_BRICKS;
 block_definitions[ 305 ].textures[ FACE_BOTTOM ] = TEX_CINNABAR_BRICKS;
-block_definitions[ 305 ].textures[ FACE_RIGHT ] = TEX_CINNABAR_BRICKS__STAIRS;
-block_definitions[ 305 ].textures[ FACE_FRONT ] = TEX_CINNABAR_BRICKS__STAIRS;
-block_definitions[ 305 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS__STAIRS;
-block_definitions[ 305 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS__STAIRS;
-block_definitions[ 305 ].icon_texture = TEX_CINNABAR_BRICKS;
+block_definitions[ 305 ].textures[ FACE_RIGHT ] = TEX_CINNABAR_BRICKS;
+block_definitions[ 305 ].textures[ FACE_FRONT ] = TEX_CINNABAR_BRICKS;
+block_definitions[ 305 ].textures[ FACE_LEFT ] = TEX_CINNABAR_BRICKS;
+block_definitions[ 305 ].textures[ FACE_BACK ] = TEX_CINNABAR_BRICKS;
+block_definitions[ 305 ].icon_texture = TEX_CINNABAR_BRICKS__STAIRS;
 block_definitions[ 305 ].casts_shadow = false;
+block_definitions[ 305 ].collides_with_player = true;
 block_definitions[ 305 ].hardness = 0.35f;
+block_definitions[ 305 ].icon_is_isometric = false;
 block_definitions[ 305 ].is_seethrough = true;
+block_definitions[ 305 ].is_stairs = true;
 block_definitions[ 305 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 305 ].no_light = 6815743;
+block_definitions[ 305 ].rotate_on_placement = true;
 
 // CINNABAR_BRICK_WALL (306)
 block_definitions[ 306 ].textures[ FACE_TOP ] = TEX_CINNABAR_BRICKS;
@@ -4538,16 +4598,20 @@ block_definitions[ 309 ].tex_offset = { 0, -4, 0 };
 // CINNABAR_STAIRS (310)
 block_definitions[ 310 ].textures[ FACE_TOP ] = TEX_CINNABAR;
 block_definitions[ 310 ].textures[ FACE_BOTTOM ] = TEX_CINNABAR;
-block_definitions[ 310 ].textures[ FACE_RIGHT ] = TEX_CINNABAR__STAIRS;
-block_definitions[ 310 ].textures[ FACE_FRONT ] = TEX_CINNABAR__STAIRS;
-block_definitions[ 310 ].textures[ FACE_LEFT ] = TEX_CINNABAR__STAIRS;
-block_definitions[ 310 ].textures[ FACE_BACK ] = TEX_CINNABAR__STAIRS;
-block_definitions[ 310 ].icon_texture = TEX_CINNABAR;
+block_definitions[ 310 ].textures[ FACE_RIGHT ] = TEX_CINNABAR;
+block_definitions[ 310 ].textures[ FACE_FRONT ] = TEX_CINNABAR;
+block_definitions[ 310 ].textures[ FACE_LEFT ] = TEX_CINNABAR;
+block_definitions[ 310 ].textures[ FACE_BACK ] = TEX_CINNABAR;
+block_definitions[ 310 ].icon_texture = TEX_CINNABAR__STAIRS;
 block_definitions[ 310 ].casts_shadow = false;
+block_definitions[ 310 ].collides_with_player = true;
 block_definitions[ 310 ].hardness = 0.35f;
+block_definitions[ 310 ].icon_is_isometric = false;
 block_definitions[ 310 ].is_seethrough = true;
+block_definitions[ 310 ].is_stairs = true;
 block_definitions[ 310 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 310 ].no_light = 6815743;
+block_definitions[ 310 ].rotate_on_placement = true;
 
 // CINNABAR_WALL (311)
 block_definitions[ 311 ].textures[ FACE_TOP ] = TEX_CINNABAR;
@@ -4707,16 +4771,20 @@ block_definitions[ 322 ].tex_offset = { 0, -4, 0 };
 // COBBLED_DEEPSLATE_STAIRS (323)
 block_definitions[ 323 ].textures[ FACE_TOP ] = TEX_COBBLED_DEEPSLATE;
 block_definitions[ 323 ].textures[ FACE_BOTTOM ] = TEX_COBBLED_DEEPSLATE;
-block_definitions[ 323 ].textures[ FACE_RIGHT ] = TEX_COBBLED_DEEPSLATE__STAIRS;
-block_definitions[ 323 ].textures[ FACE_FRONT ] = TEX_COBBLED_DEEPSLATE__STAIRS;
-block_definitions[ 323 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE__STAIRS;
-block_definitions[ 323 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE__STAIRS;
-block_definitions[ 323 ].icon_texture = TEX_COBBLED_DEEPSLATE;
+block_definitions[ 323 ].textures[ FACE_RIGHT ] = TEX_COBBLED_DEEPSLATE;
+block_definitions[ 323 ].textures[ FACE_FRONT ] = TEX_COBBLED_DEEPSLATE;
+block_definitions[ 323 ].textures[ FACE_LEFT ] = TEX_COBBLED_DEEPSLATE;
+block_definitions[ 323 ].textures[ FACE_BACK ] = TEX_COBBLED_DEEPSLATE;
+block_definitions[ 323 ].icon_texture = TEX_COBBLED_DEEPSLATE__STAIRS;
 block_definitions[ 323 ].casts_shadow = false;
+block_definitions[ 323 ].collides_with_player = true;
 block_definitions[ 323 ].hardness = 0.35f;
+block_definitions[ 323 ].icon_is_isometric = false;
 block_definitions[ 323 ].is_seethrough = true;
+block_definitions[ 323 ].is_stairs = true;
 block_definitions[ 323 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 323 ].no_light = 6815743;
+block_definitions[ 323 ].rotate_on_placement = true;
 
 // COBBLED_DEEPSLATE_WALL (324)
 block_definitions[ 324 ].textures[ FACE_TOP ] = TEX_COBBLED_DEEPSLATE;
@@ -6113,16 +6181,20 @@ block_definitions[ 411 ].mineable = MINEABLE_AXE;
 // CRIMSON_STAIRS (412)
 block_definitions[ 412 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
 block_definitions[ 412 ].textures[ FACE_BOTTOM ] = TEX_CRIMSON_PLANKS;
-block_definitions[ 412 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_PLANKS__STAIRS;
-block_definitions[ 412 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS__STAIRS;
-block_definitions[ 412 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS__STAIRS;
-block_definitions[ 412 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS__STAIRS;
-block_definitions[ 412 ].icon_texture = TEX_CRIMSON_PLANKS;
+block_definitions[ 412 ].textures[ FACE_RIGHT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 412 ].textures[ FACE_FRONT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 412 ].textures[ FACE_LEFT ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 412 ].textures[ FACE_BACK ] = TEX_CRIMSON_PLANKS;
+block_definitions[ 412 ].icon_texture = TEX_CRIMSON_PLANKS__STAIRS;
 block_definitions[ 412 ].casts_shadow = false;
+block_definitions[ 412 ].collides_with_player = true;
 block_definitions[ 412 ].hardness = 0.35f;
+block_definitions[ 412 ].icon_is_isometric = false;
 block_definitions[ 412 ].is_seethrough = true;
+block_definitions[ 412 ].is_stairs = true;
 block_definitions[ 412 ].mineable = MINEABLE_AXE;
 block_definitions[ 412 ].no_light = 6815743;
+block_definitions[ 412 ].rotate_on_placement = true;
 
 // CRIMSON_STANDING_SIGN (413)
 block_definitions[ 413 ].textures[ FACE_TOP ] = TEX_CRIMSON_PLANKS;
@@ -6220,16 +6292,20 @@ block_definitions[ 419 ].tex_offset = { 0, -4, 0 };
 // CUT_COPPER_STAIRS (420)
 block_definitions[ 420 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
 block_definitions[ 420 ].textures[ FACE_BOTTOM ] = TEX_CUT_COPPER;
-block_definitions[ 420 ].textures[ FACE_RIGHT ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 420 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 420 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 420 ].textures[ FACE_BACK ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 420 ].icon_texture = TEX_CUT_COPPER;
+block_definitions[ 420 ].textures[ FACE_RIGHT ] = TEX_CUT_COPPER;
+block_definitions[ 420 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
+block_definitions[ 420 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
+block_definitions[ 420 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
+block_definitions[ 420 ].icon_texture = TEX_CUT_COPPER__STAIRS;
 block_definitions[ 420 ].casts_shadow = false;
+block_definitions[ 420 ].collides_with_player = true;
 block_definitions[ 420 ].hardness = 0.35f;
+block_definitions[ 420 ].icon_is_isometric = false;
 block_definitions[ 420 ].is_seethrough = true;
+block_definitions[ 420 ].is_stairs = true;
 block_definitions[ 420 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 420 ].no_light = 6815743;
+block_definitions[ 420 ].rotate_on_placement = true;
 
 // CUT_RED_SANDSTONE (421)
 block_definitions[ 421 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -6389,16 +6465,20 @@ block_definitions[ 433 ].tex_offset = { 0, -4, 0 };
 // CYAN_CONCRETE_STAIRS (434)
 block_definitions[ 434 ].textures[ FACE_TOP ] = TEX_CONCRETE_CYAN;
 block_definitions[ 434 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_CYAN;
-block_definitions[ 434 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_CYAN__STAIRS;
-block_definitions[ 434 ].textures[ FACE_FRONT ] = TEX_CONCRETE_CYAN__STAIRS;
-block_definitions[ 434 ].textures[ FACE_LEFT ] = TEX_CONCRETE_CYAN__STAIRS;
-block_definitions[ 434 ].textures[ FACE_BACK ] = TEX_CONCRETE_CYAN__STAIRS;
-block_definitions[ 434 ].icon_texture = TEX_CONCRETE_CYAN;
+block_definitions[ 434 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_CYAN;
+block_definitions[ 434 ].textures[ FACE_FRONT ] = TEX_CONCRETE_CYAN;
+block_definitions[ 434 ].textures[ FACE_LEFT ] = TEX_CONCRETE_CYAN;
+block_definitions[ 434 ].textures[ FACE_BACK ] = TEX_CONCRETE_CYAN;
+block_definitions[ 434 ].icon_texture = TEX_CONCRETE_CYAN__STAIRS;
 block_definitions[ 434 ].casts_shadow = false;
+block_definitions[ 434 ].collides_with_player = true;
 block_definitions[ 434 ].hardness = 0.35f;
+block_definitions[ 434 ].icon_is_isometric = false;
 block_definitions[ 434 ].is_seethrough = true;
+block_definitions[ 434 ].is_stairs = true;
 block_definitions[ 434 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 434 ].no_light = 6815743;
+block_definitions[ 434 ].rotate_on_placement = true;
 
 // CYAN_GLAZED_TERRACOTTA (435)
 block_definitions[ 435 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_CYAN;
@@ -6520,16 +6600,20 @@ block_definitions[ 444 ].tex_offset = { 0, -4, 0 };
 // CYAN_WOOL_STAIRS (445)
 block_definitions[ 445 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
 block_definitions[ 445 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_CYAN;
-block_definitions[ 445 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_CYAN__STAIRS;
-block_definitions[ 445 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_CYAN__STAIRS;
-block_definitions[ 445 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN__STAIRS;
-block_definitions[ 445 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN__STAIRS;
-block_definitions[ 445 ].icon_texture = TEX_WOOL_COLORED_CYAN;
+block_definitions[ 445 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_CYAN;
+block_definitions[ 445 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_CYAN;
+block_definitions[ 445 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_CYAN;
+block_definitions[ 445 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_CYAN;
+block_definitions[ 445 ].icon_texture = TEX_WOOL_COLORED_CYAN__STAIRS;
 block_definitions[ 445 ].casts_shadow = false;
+block_definitions[ 445 ].collides_with_player = true;
 block_definitions[ 445 ].hardness = 0.35f;
+block_definitions[ 445 ].icon_is_isometric = false;
 block_definitions[ 445 ].is_seethrough = true;
+block_definitions[ 445 ].is_stairs = true;
 block_definitions[ 445 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 445 ].no_light = 6815743;
+block_definitions[ 445 ].rotate_on_placement = true;
 
 // DAMAGED_ANVIL (446)
 block_definitions[ 446 ].textures[ FACE_TOP ] = TEX_ANVIL_TOP_DAMAGED_2;
@@ -6753,16 +6837,20 @@ block_definitions[ 457 ].tex_offset = { -7, -6, -5 };
 // DARK_OAK_STAIRS (458)
 block_definitions[ 458 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
 block_definitions[ 458 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_BIG_OAK;
-block_definitions[ 458 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIG_OAK__STAIRS;
-block_definitions[ 458 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK__STAIRS;
-block_definitions[ 458 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK__STAIRS;
-block_definitions[ 458 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK__STAIRS;
-block_definitions[ 458 ].icon_texture = TEX_PLANKS_BIG_OAK;
+block_definitions[ 458 ].textures[ FACE_RIGHT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 458 ].textures[ FACE_FRONT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 458 ].textures[ FACE_LEFT ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 458 ].textures[ FACE_BACK ] = TEX_PLANKS_BIG_OAK;
+block_definitions[ 458 ].icon_texture = TEX_PLANKS_BIG_OAK__STAIRS;
 block_definitions[ 458 ].casts_shadow = false;
+block_definitions[ 458 ].collides_with_player = true;
 block_definitions[ 458 ].hardness = 0.35f;
+block_definitions[ 458 ].icon_is_isometric = false;
 block_definitions[ 458 ].is_seethrough = true;
+block_definitions[ 458 ].is_stairs = true;
 block_definitions[ 458 ].mineable = MINEABLE_AXE;
 block_definitions[ 458 ].no_light = 6815743;
+block_definitions[ 458 ].rotate_on_placement = true;
 
 // DARK_OAK_TRAPDOOR (459)
 block_definitions[ 459 ].textures[ FACE_TOP ] = TEX_DARK_OAK_TRAPDOOR;
@@ -6849,16 +6937,20 @@ block_definitions[ 464 ].tex_offset = { 0, -4, 0 };
 // DARK_PRISMARINE_STAIRS (465)
 block_definitions[ 465 ].textures[ FACE_TOP ] = TEX_PRISMARINE_DARK;
 block_definitions[ 465 ].textures[ FACE_BOTTOM ] = TEX_PRISMARINE_DARK;
-block_definitions[ 465 ].textures[ FACE_RIGHT ] = TEX_PRISMARINE_DARK__STAIRS;
-block_definitions[ 465 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_DARK__STAIRS;
-block_definitions[ 465 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_DARK__STAIRS;
-block_definitions[ 465 ].textures[ FACE_BACK ] = TEX_PRISMARINE_DARK__STAIRS;
-block_definitions[ 465 ].icon_texture = TEX_PRISMARINE_DARK;
+block_definitions[ 465 ].textures[ FACE_RIGHT ] = TEX_PRISMARINE_DARK;
+block_definitions[ 465 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_DARK;
+block_definitions[ 465 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_DARK;
+block_definitions[ 465 ].textures[ FACE_BACK ] = TEX_PRISMARINE_DARK;
+block_definitions[ 465 ].icon_texture = TEX_PRISMARINE_DARK__STAIRS;
 block_definitions[ 465 ].casts_shadow = false;
+block_definitions[ 465 ].collides_with_player = true;
 block_definitions[ 465 ].hardness = 0.35f;
+block_definitions[ 465 ].icon_is_isometric = false;
 block_definitions[ 465 ].is_seethrough = true;
+block_definitions[ 465 ].is_stairs = true;
 block_definitions[ 465 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 465 ].no_light = 6815743;
+block_definitions[ 465 ].rotate_on_placement = true;
 
 // DARKOAK_STANDING_SIGN (466)
 block_definitions[ 466 ].textures[ FACE_TOP ] = TEX_PLANKS_BIG_OAK;
@@ -7228,16 +7320,20 @@ block_definitions[ 494 ].tex_offset = { 0, -4, 0 };
 // DEEPSLATE_BRICK_STAIRS (495)
 block_definitions[ 495 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_BRICKS;
 block_definitions[ 495 ].textures[ FACE_BOTTOM ] = TEX_DEEPSLATE_BRICKS;
-block_definitions[ 495 ].textures[ FACE_RIGHT ] = TEX_DEEPSLATE_BRICKS__STAIRS;
-block_definitions[ 495 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_BRICKS__STAIRS;
-block_definitions[ 495 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS__STAIRS;
-block_definitions[ 495 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS__STAIRS;
-block_definitions[ 495 ].icon_texture = TEX_DEEPSLATE_BRICKS;
+block_definitions[ 495 ].textures[ FACE_RIGHT ] = TEX_DEEPSLATE_BRICKS;
+block_definitions[ 495 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_BRICKS;
+block_definitions[ 495 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_BRICKS;
+block_definitions[ 495 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_BRICKS;
+block_definitions[ 495 ].icon_texture = TEX_DEEPSLATE_BRICKS__STAIRS;
 block_definitions[ 495 ].casts_shadow = false;
+block_definitions[ 495 ].collides_with_player = true;
 block_definitions[ 495 ].hardness = 0.35f;
+block_definitions[ 495 ].icon_is_isometric = false;
 block_definitions[ 495 ].is_seethrough = true;
+block_definitions[ 495 ].is_stairs = true;
 block_definitions[ 495 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 495 ].no_light = 6815743;
+block_definitions[ 495 ].rotate_on_placement = true;
 
 // DEEPSLATE_BRICK_WALL (496)
 block_definitions[ 496 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_BRICKS;
@@ -7494,16 +7590,20 @@ block_definitions[ 512 ].tex_offset = { 0, -4, 0 };
 // DEEPSLATE_TILE_STAIRS (513)
 block_definitions[ 513 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TILES;
 block_definitions[ 513 ].textures[ FACE_BOTTOM ] = TEX_DEEPSLATE_TILES;
-block_definitions[ 513 ].textures[ FACE_RIGHT ] = TEX_DEEPSLATE_TILES__STAIRS;
-block_definitions[ 513 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_TILES__STAIRS;
-block_definitions[ 513 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES__STAIRS;
-block_definitions[ 513 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES__STAIRS;
-block_definitions[ 513 ].icon_texture = TEX_DEEPSLATE_TILES;
+block_definitions[ 513 ].textures[ FACE_RIGHT ] = TEX_DEEPSLATE_TILES;
+block_definitions[ 513 ].textures[ FACE_FRONT ] = TEX_DEEPSLATE_TILES;
+block_definitions[ 513 ].textures[ FACE_LEFT ] = TEX_DEEPSLATE_TILES;
+block_definitions[ 513 ].textures[ FACE_BACK ] = TEX_DEEPSLATE_TILES;
+block_definitions[ 513 ].icon_texture = TEX_DEEPSLATE_TILES__STAIRS;
 block_definitions[ 513 ].casts_shadow = false;
+block_definitions[ 513 ].collides_with_player = true;
 block_definitions[ 513 ].hardness = 0.35f;
+block_definitions[ 513 ].icon_is_isometric = false;
 block_definitions[ 513 ].is_seethrough = true;
+block_definitions[ 513 ].is_stairs = true;
 block_definitions[ 513 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 513 ].no_light = 6815743;
+block_definitions[ 513 ].rotate_on_placement = true;
 
 // DEEPSLATE_TILE_WALL (514)
 block_definitions[ 514 ].textures[ FACE_TOP ] = TEX_DEEPSLATE_TILES;
@@ -7754,16 +7854,20 @@ block_definitions[ 529 ].tex_offset = { 0, -4, 0 };
 // DIORITE_STAIRS (530)
 block_definitions[ 530 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE;
 block_definitions[ 530 ].textures[ FACE_BOTTOM ] = TEX_STONE_DIORITE;
-block_definitions[ 530 ].textures[ FACE_RIGHT ] = TEX_STONE_DIORITE__STAIRS;
-block_definitions[ 530 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE__STAIRS;
-block_definitions[ 530 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE__STAIRS;
-block_definitions[ 530 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE__STAIRS;
-block_definitions[ 530 ].icon_texture = TEX_STONE_DIORITE;
+block_definitions[ 530 ].textures[ FACE_RIGHT ] = TEX_STONE_DIORITE;
+block_definitions[ 530 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE;
+block_definitions[ 530 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE;
+block_definitions[ 530 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE;
+block_definitions[ 530 ].icon_texture = TEX_STONE_DIORITE__STAIRS;
 block_definitions[ 530 ].casts_shadow = false;
+block_definitions[ 530 ].collides_with_player = true;
 block_definitions[ 530 ].hardness = 0.35f;
+block_definitions[ 530 ].icon_is_isometric = false;
 block_definitions[ 530 ].is_seethrough = true;
+block_definitions[ 530 ].is_stairs = true;
 block_definitions[ 530 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 530 ].no_light = 6815743;
+block_definitions[ 530 ].rotate_on_placement = true;
 
 // DIORITE_WALL (531)
 block_definitions[ 531 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE;
@@ -7952,16 +8056,20 @@ block_definitions[ 546 ].no_light = 6815743;
 // END_BRICK_STAIRS (547)
 block_definitions[ 547 ].textures[ FACE_TOP ] = TEX_END_BRICKS;
 block_definitions[ 547 ].textures[ FACE_BOTTOM ] = TEX_END_BRICKS;
-block_definitions[ 547 ].textures[ FACE_RIGHT ] = TEX_END_BRICKS__STAIRS;
-block_definitions[ 547 ].textures[ FACE_FRONT ] = TEX_END_BRICKS__STAIRS;
-block_definitions[ 547 ].textures[ FACE_LEFT ] = TEX_END_BRICKS__STAIRS;
-block_definitions[ 547 ].textures[ FACE_BACK ] = TEX_END_BRICKS__STAIRS;
-block_definitions[ 547 ].icon_texture = TEX_END_BRICKS;
+block_definitions[ 547 ].textures[ FACE_RIGHT ] = TEX_END_BRICKS;
+block_definitions[ 547 ].textures[ FACE_FRONT ] = TEX_END_BRICKS;
+block_definitions[ 547 ].textures[ FACE_LEFT ] = TEX_END_BRICKS;
+block_definitions[ 547 ].textures[ FACE_BACK ] = TEX_END_BRICKS;
+block_definitions[ 547 ].icon_texture = TEX_END_BRICKS__STAIRS;
 block_definitions[ 547 ].casts_shadow = false;
+block_definitions[ 547 ].collides_with_player = true;
 block_definitions[ 547 ].hardness = 0.35f;
+block_definitions[ 547 ].icon_is_isometric = false;
 block_definitions[ 547 ].is_seethrough = true;
+block_definitions[ 547 ].is_stairs = true;
 block_definitions[ 547 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 547 ].no_light = 6815743;
+block_definitions[ 547 ].rotate_on_placement = true;
 
 // END_BRICKS (548)
 block_definitions[ 548 ].textures[ FACE_TOP ] = TEX_END_BRICKS;
@@ -8267,16 +8375,20 @@ block_definitions[ 570 ].tex_offset = { 0, -4, 0 };
 // EXPOSED_CUT_COPPER_STAIRS (571)
 block_definitions[ 571 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 571 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 571 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 571 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 571 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 571 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 571 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 571 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 571 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 571 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 571 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 571 ].icon_texture = TEX_EXPOSED_CUT_COPPER__STAIRS;
 block_definitions[ 571 ].casts_shadow = false;
+block_definitions[ 571 ].collides_with_player = true;
 block_definitions[ 571 ].hardness = 0.35f;
+block_definitions[ 571 ].icon_is_isometric = false;
 block_definitions[ 571 ].is_seethrough = true;
+block_definitions[ 571 ].is_stairs = true;
 block_definitions[ 571 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 571 ].no_light = 6815743;
+block_definitions[ 571 ].rotate_on_placement = true;
 
 // EXPOSED_DOUBLE_CUT_COPPER_SLAB (572)
 block_definitions[ 572 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -8691,16 +8803,20 @@ block_definitions[ 598 ].tex_offset = { 0, -4, 0 };
 // GRANITE_STAIRS (599)
 block_definitions[ 599 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE;
 block_definitions[ 599 ].textures[ FACE_BOTTOM ] = TEX_STONE_GRANITE;
-block_definitions[ 599 ].textures[ FACE_RIGHT ] = TEX_STONE_GRANITE__STAIRS;
-block_definitions[ 599 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE__STAIRS;
-block_definitions[ 599 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE__STAIRS;
-block_definitions[ 599 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE__STAIRS;
-block_definitions[ 599 ].icon_texture = TEX_STONE_GRANITE;
+block_definitions[ 599 ].textures[ FACE_RIGHT ] = TEX_STONE_GRANITE;
+block_definitions[ 599 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE;
+block_definitions[ 599 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE;
+block_definitions[ 599 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE;
+block_definitions[ 599 ].icon_texture = TEX_STONE_GRANITE__STAIRS;
 block_definitions[ 599 ].casts_shadow = false;
+block_definitions[ 599 ].collides_with_player = true;
 block_definitions[ 599 ].hardness = 0.35f;
+block_definitions[ 599 ].icon_is_isometric = false;
 block_definitions[ 599 ].is_seethrough = true;
+block_definitions[ 599 ].is_stairs = true;
 block_definitions[ 599 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 599 ].no_light = 6815743;
+block_definitions[ 599 ].rotate_on_placement = true;
 
 // GRANITE_WALL (600)
 block_definitions[ 600 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE;
@@ -8821,16 +8937,20 @@ block_definitions[ 608 ].tex_offset = { 0, -4, 0 };
 // GRAY_CONCRETE_STAIRS (609)
 block_definitions[ 609 ].textures[ FACE_TOP ] = TEX_CONCRETE_GRAY;
 block_definitions[ 609 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_GRAY;
-block_definitions[ 609 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_GRAY__STAIRS;
-block_definitions[ 609 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GRAY__STAIRS;
-block_definitions[ 609 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GRAY__STAIRS;
-block_definitions[ 609 ].textures[ FACE_BACK ] = TEX_CONCRETE_GRAY__STAIRS;
-block_definitions[ 609 ].icon_texture = TEX_CONCRETE_GRAY;
+block_definitions[ 609 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_GRAY;
+block_definitions[ 609 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GRAY;
+block_definitions[ 609 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GRAY;
+block_definitions[ 609 ].textures[ FACE_BACK ] = TEX_CONCRETE_GRAY;
+block_definitions[ 609 ].icon_texture = TEX_CONCRETE_GRAY__STAIRS;
 block_definitions[ 609 ].casts_shadow = false;
+block_definitions[ 609 ].collides_with_player = true;
 block_definitions[ 609 ].hardness = 0.35f;
+block_definitions[ 609 ].icon_is_isometric = false;
 block_definitions[ 609 ].is_seethrough = true;
+block_definitions[ 609 ].is_stairs = true;
 block_definitions[ 609 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 609 ].no_light = 6815743;
+block_definitions[ 609 ].rotate_on_placement = true;
 
 // GRAY_GLAZED_TERRACOTTA (610)
 block_definitions[ 610 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_GRAY;
@@ -8912,16 +9032,20 @@ block_definitions[ 616 ].tex_offset = { 0, -4, 0 };
 // GRAY_WOOL_STAIRS (617)
 block_definitions[ 617 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GRAY;
 block_definitions[ 617 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_GRAY;
-block_definitions[ 617 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_GRAY__STAIRS;
-block_definitions[ 617 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GRAY__STAIRS;
-block_definitions[ 617 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY__STAIRS;
-block_definitions[ 617 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY__STAIRS;
-block_definitions[ 617 ].icon_texture = TEX_WOOL_COLORED_GRAY;
+block_definitions[ 617 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_GRAY;
+block_definitions[ 617 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GRAY;
+block_definitions[ 617 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GRAY;
+block_definitions[ 617 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GRAY;
+block_definitions[ 617 ].icon_texture = TEX_WOOL_COLORED_GRAY__STAIRS;
 block_definitions[ 617 ].casts_shadow = false;
+block_definitions[ 617 ].collides_with_player = true;
 block_definitions[ 617 ].hardness = 0.35f;
+block_definitions[ 617 ].icon_is_isometric = false;
 block_definitions[ 617 ].is_seethrough = true;
+block_definitions[ 617 ].is_stairs = true;
 block_definitions[ 617 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 617 ].no_light = 6815743;
+block_definitions[ 617 ].rotate_on_placement = true;
 
 // GREEN_CANDLE (618)
 block_definitions[ 618 ].textures[ FACE_TOP ] = TEX_GREEN_CANDLE;
@@ -9015,16 +9139,20 @@ block_definitions[ 624 ].tex_offset = { 0, -4, 0 };
 // GREEN_CONCRETE_STAIRS (625)
 block_definitions[ 625 ].textures[ FACE_TOP ] = TEX_CONCRETE_GREEN;
 block_definitions[ 625 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_GREEN;
-block_definitions[ 625 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_GREEN__STAIRS;
-block_definitions[ 625 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GREEN__STAIRS;
-block_definitions[ 625 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GREEN__STAIRS;
-block_definitions[ 625 ].textures[ FACE_BACK ] = TEX_CONCRETE_GREEN__STAIRS;
-block_definitions[ 625 ].icon_texture = TEX_CONCRETE_GREEN;
+block_definitions[ 625 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_GREEN;
+block_definitions[ 625 ].textures[ FACE_FRONT ] = TEX_CONCRETE_GREEN;
+block_definitions[ 625 ].textures[ FACE_LEFT ] = TEX_CONCRETE_GREEN;
+block_definitions[ 625 ].textures[ FACE_BACK ] = TEX_CONCRETE_GREEN;
+block_definitions[ 625 ].icon_texture = TEX_CONCRETE_GREEN__STAIRS;
 block_definitions[ 625 ].casts_shadow = false;
+block_definitions[ 625 ].collides_with_player = true;
 block_definitions[ 625 ].hardness = 0.35f;
+block_definitions[ 625 ].icon_is_isometric = false;
 block_definitions[ 625 ].is_seethrough = true;
+block_definitions[ 625 ].is_stairs = true;
 block_definitions[ 625 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 625 ].no_light = 6815743;
+block_definitions[ 625 ].rotate_on_placement = true;
 
 // GREEN_GLAZED_TERRACOTTA (626)
 block_definitions[ 626 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_GREEN;
@@ -9106,16 +9234,20 @@ block_definitions[ 632 ].tex_offset = { 0, -4, 0 };
 // GREEN_WOOL_STAIRS (633)
 block_definitions[ 633 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GREEN;
 block_definitions[ 633 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_GREEN;
-block_definitions[ 633 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_GREEN__STAIRS;
-block_definitions[ 633 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GREEN__STAIRS;
-block_definitions[ 633 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN__STAIRS;
-block_definitions[ 633 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN__STAIRS;
-block_definitions[ 633 ].icon_texture = TEX_WOOL_COLORED_GREEN;
+block_definitions[ 633 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_GREEN;
+block_definitions[ 633 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_GREEN;
+block_definitions[ 633 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_GREEN;
+block_definitions[ 633 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_GREEN;
+block_definitions[ 633 ].icon_texture = TEX_WOOL_COLORED_GREEN__STAIRS;
 block_definitions[ 633 ].casts_shadow = false;
+block_definitions[ 633 ].collides_with_player = true;
 block_definitions[ 633 ].hardness = 0.35f;
+block_definitions[ 633 ].icon_is_isometric = false;
 block_definitions[ 633 ].is_seethrough = true;
+block_definitions[ 633 ].is_stairs = true;
 block_definitions[ 633 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 633 ].no_light = 6815743;
+block_definitions[ 633 ].rotate_on_placement = true;
 
 // GRINDSTONE (634)
 block_definitions[ 634 ].textures[ FACE_TOP ] = TEX_GRINDSTONE_ROUND;
@@ -9482,16 +9614,20 @@ block_definitions[ 661 ].mineable = MINEABLE_AXE;
 // JUNGLE_STAIRS (662)
 block_definitions[ 662 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
 block_definitions[ 662 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_JUNGLE;
-block_definitions[ 662 ].textures[ FACE_RIGHT ] = TEX_PLANKS_JUNGLE__STAIRS;
-block_definitions[ 662 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE__STAIRS;
-block_definitions[ 662 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE__STAIRS;
-block_definitions[ 662 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE__STAIRS;
-block_definitions[ 662 ].icon_texture = TEX_PLANKS_JUNGLE;
+block_definitions[ 662 ].textures[ FACE_RIGHT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 662 ].textures[ FACE_FRONT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 662 ].textures[ FACE_LEFT ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 662 ].textures[ FACE_BACK ] = TEX_PLANKS_JUNGLE;
+block_definitions[ 662 ].icon_texture = TEX_PLANKS_JUNGLE__STAIRS;
 block_definitions[ 662 ].casts_shadow = false;
+block_definitions[ 662 ].collides_with_player = true;
 block_definitions[ 662 ].hardness = 0.35f;
+block_definitions[ 662 ].icon_is_isometric = false;
 block_definitions[ 662 ].is_seethrough = true;
+block_definitions[ 662 ].is_stairs = true;
 block_definitions[ 662 ].mineable = MINEABLE_AXE;
 block_definitions[ 662 ].no_light = 6815743;
+block_definitions[ 662 ].rotate_on_placement = true;
 
 // JUNGLE_STANDING_SIGN (663)
 block_definitions[ 663 ].textures[ FACE_TOP ] = TEX_PLANKS_JUNGLE;
@@ -9805,16 +9941,20 @@ block_definitions[ 684 ].tex_offset = { 0, -4, 0 };
 // LIGHT_BLUE_CONCRETE_STAIRS (685)
 block_definitions[ 685 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIGHT_BLUE;
 block_definitions[ 685 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_LIGHT_BLUE;
-block_definitions[ 685 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_LIGHT_BLUE__STAIRS;
-block_definitions[ 685 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIGHT_BLUE__STAIRS;
-block_definitions[ 685 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIGHT_BLUE__STAIRS;
-block_definitions[ 685 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIGHT_BLUE__STAIRS;
-block_definitions[ 685 ].icon_texture = TEX_CONCRETE_LIGHT_BLUE;
+block_definitions[ 685 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_LIGHT_BLUE;
+block_definitions[ 685 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIGHT_BLUE;
+block_definitions[ 685 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIGHT_BLUE;
+block_definitions[ 685 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIGHT_BLUE;
+block_definitions[ 685 ].icon_texture = TEX_CONCRETE_LIGHT_BLUE__STAIRS;
 block_definitions[ 685 ].casts_shadow = false;
+block_definitions[ 685 ].collides_with_player = true;
 block_definitions[ 685 ].hardness = 0.35f;
+block_definitions[ 685 ].icon_is_isometric = false;
 block_definitions[ 685 ].is_seethrough = true;
+block_definitions[ 685 ].is_stairs = true;
 block_definitions[ 685 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 685 ].no_light = 6815743;
+block_definitions[ 685 ].rotate_on_placement = true;
 
 // LIGHT_BLUE_GLAZED_TERRACOTTA (686)
 block_definitions[ 686 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_LIGHT_BLUE;
@@ -9896,16 +10036,20 @@ block_definitions[ 692 ].tex_offset = { 0, -4, 0 };
 // LIGHT_BLUE_WOOL_STAIRS (693)
 block_definitions[ 693 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIGHT_BLUE;
 block_definitions[ 693 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_LIGHT_BLUE;
-block_definitions[ 693 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_LIGHT_BLUE__STAIRS;
-block_definitions[ 693 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIGHT_BLUE__STAIRS;
-block_definitions[ 693 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE__STAIRS;
-block_definitions[ 693 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE__STAIRS;
-block_definitions[ 693 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE;
+block_definitions[ 693 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
+block_definitions[ 693 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
+block_definitions[ 693 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIGHT_BLUE;
+block_definitions[ 693 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIGHT_BLUE;
+block_definitions[ 693 ].icon_texture = TEX_WOOL_COLORED_LIGHT_BLUE__STAIRS;
 block_definitions[ 693 ].casts_shadow = false;
+block_definitions[ 693 ].collides_with_player = true;
 block_definitions[ 693 ].hardness = 0.35f;
+block_definitions[ 693 ].icon_is_isometric = false;
 block_definitions[ 693 ].is_seethrough = true;
+block_definitions[ 693 ].is_stairs = true;
 block_definitions[ 693 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 693 ].no_light = 6815743;
+block_definitions[ 693 ].rotate_on_placement = true;
 
 // LIGHT_GRAY_CANDLE (694)
 block_definitions[ 694 ].textures[ FACE_TOP ] = TEX_LIGHT_GRAY_CANDLE;
@@ -9999,16 +10143,20 @@ block_definitions[ 700 ].tex_offset = { 0, -4, 0 };
 // LIGHT_GRAY_CONCRETE_STAIRS (701)
 block_definitions[ 701 ].textures[ FACE_TOP ] = TEX_CONCRETE_SILVER;
 block_definitions[ 701 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_SILVER;
-block_definitions[ 701 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_SILVER__STAIRS;
-block_definitions[ 701 ].textures[ FACE_FRONT ] = TEX_CONCRETE_SILVER__STAIRS;
-block_definitions[ 701 ].textures[ FACE_LEFT ] = TEX_CONCRETE_SILVER__STAIRS;
-block_definitions[ 701 ].textures[ FACE_BACK ] = TEX_CONCRETE_SILVER__STAIRS;
-block_definitions[ 701 ].icon_texture = TEX_CONCRETE_SILVER;
+block_definitions[ 701 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_SILVER;
+block_definitions[ 701 ].textures[ FACE_FRONT ] = TEX_CONCRETE_SILVER;
+block_definitions[ 701 ].textures[ FACE_LEFT ] = TEX_CONCRETE_SILVER;
+block_definitions[ 701 ].textures[ FACE_BACK ] = TEX_CONCRETE_SILVER;
+block_definitions[ 701 ].icon_texture = TEX_CONCRETE_SILVER__STAIRS;
 block_definitions[ 701 ].casts_shadow = false;
+block_definitions[ 701 ].collides_with_player = true;
 block_definitions[ 701 ].hardness = 0.35f;
+block_definitions[ 701 ].icon_is_isometric = false;
 block_definitions[ 701 ].is_seethrough = true;
+block_definitions[ 701 ].is_stairs = true;
 block_definitions[ 701 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 701 ].no_light = 6815743;
+block_definitions[ 701 ].rotate_on_placement = true;
 
 // LIGHT_GRAY_SHULKER_BOX (702)
 block_definitions[ 702 ].textures[ FACE_TOP ] = TEX_SHULKER_TOP_SILVER;
@@ -10094,16 +10242,20 @@ block_definitions[ 708 ].tex_offset = { 0, -4, 0 };
 // LIGHT_GRAY_WOOL_STAIRS (709)
 block_definitions[ 709 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_SILVER;
 block_definitions[ 709 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_SILVER;
-block_definitions[ 709 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_SILVER__STAIRS;
-block_definitions[ 709 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_SILVER__STAIRS;
-block_definitions[ 709 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER__STAIRS;
-block_definitions[ 709 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER__STAIRS;
-block_definitions[ 709 ].icon_texture = TEX_WOOL_COLORED_SILVER;
+block_definitions[ 709 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_SILVER;
+block_definitions[ 709 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_SILVER;
+block_definitions[ 709 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_SILVER;
+block_definitions[ 709 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_SILVER;
+block_definitions[ 709 ].icon_texture = TEX_WOOL_COLORED_SILVER__STAIRS;
 block_definitions[ 709 ].casts_shadow = false;
+block_definitions[ 709 ].collides_with_player = true;
 block_definitions[ 709 ].hardness = 0.35f;
+block_definitions[ 709 ].icon_is_isometric = false;
 block_definitions[ 709 ].is_seethrough = true;
+block_definitions[ 709 ].is_stairs = true;
 block_definitions[ 709 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 709 ].no_light = 6815743;
+block_definitions[ 709 ].rotate_on_placement = true;
 
 // LIGHT_WEIGHTED_PRESSURE_PLATE (710)
 block_definitions[ 710 ].textures[ FACE_TOP ] = TEX_GOLD_BLOCK;
@@ -10255,16 +10407,20 @@ block_definitions[ 719 ].tex_offset = { 0, -4, 0 };
 // LIME_CONCRETE_STAIRS (720)
 block_definitions[ 720 ].textures[ FACE_TOP ] = TEX_CONCRETE_LIME;
 block_definitions[ 720 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_LIME;
-block_definitions[ 720 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_LIME__STAIRS;
-block_definitions[ 720 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIME__STAIRS;
-block_definitions[ 720 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIME__STAIRS;
-block_definitions[ 720 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIME__STAIRS;
-block_definitions[ 720 ].icon_texture = TEX_CONCRETE_LIME;
+block_definitions[ 720 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_LIME;
+block_definitions[ 720 ].textures[ FACE_FRONT ] = TEX_CONCRETE_LIME;
+block_definitions[ 720 ].textures[ FACE_LEFT ] = TEX_CONCRETE_LIME;
+block_definitions[ 720 ].textures[ FACE_BACK ] = TEX_CONCRETE_LIME;
+block_definitions[ 720 ].icon_texture = TEX_CONCRETE_LIME__STAIRS;
 block_definitions[ 720 ].casts_shadow = false;
+block_definitions[ 720 ].collides_with_player = true;
 block_definitions[ 720 ].hardness = 0.35f;
+block_definitions[ 720 ].icon_is_isometric = false;
 block_definitions[ 720 ].is_seethrough = true;
+block_definitions[ 720 ].is_stairs = true;
 block_definitions[ 720 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 720 ].no_light = 6815743;
+block_definitions[ 720 ].rotate_on_placement = true;
 
 // LIME_GLAZED_TERRACOTTA (721)
 block_definitions[ 721 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_LIME;
@@ -10346,16 +10502,20 @@ block_definitions[ 727 ].tex_offset = { 0, -4, 0 };
 // LIME_WOOL_STAIRS (728)
 block_definitions[ 728 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIME;
 block_definitions[ 728 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_LIME;
-block_definitions[ 728 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_LIME__STAIRS;
-block_definitions[ 728 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIME__STAIRS;
-block_definitions[ 728 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME__STAIRS;
-block_definitions[ 728 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME__STAIRS;
-block_definitions[ 728 ].icon_texture = TEX_WOOL_COLORED_LIME;
+block_definitions[ 728 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_LIME;
+block_definitions[ 728 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_LIME;
+block_definitions[ 728 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_LIME;
+block_definitions[ 728 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_LIME;
+block_definitions[ 728 ].icon_texture = TEX_WOOL_COLORED_LIME__STAIRS;
 block_definitions[ 728 ].casts_shadow = false;
+block_definitions[ 728 ].collides_with_player = true;
 block_definitions[ 728 ].hardness = 0.35f;
+block_definitions[ 728 ].icon_is_isometric = false;
 block_definitions[ 728 ].is_seethrough = true;
+block_definitions[ 728 ].is_stairs = true;
 block_definitions[ 728 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 728 ].no_light = 6815743;
+block_definitions[ 728 ].rotate_on_placement = true;
 
 // LIT_BLAST_FURNACE (729)
 block_definitions[ 729 ].textures[ FACE_TOP ] = TEX_BLAST_FURNACE_TOP;
@@ -10544,16 +10704,20 @@ block_definitions[ 744 ].tex_offset = { 0, -4, 0 };
 // MAGENTA_CONCRETE_STAIRS (745)
 block_definitions[ 745 ].textures[ FACE_TOP ] = TEX_CONCRETE_MAGENTA;
 block_definitions[ 745 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_MAGENTA;
-block_definitions[ 745 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_MAGENTA__STAIRS;
-block_definitions[ 745 ].textures[ FACE_FRONT ] = TEX_CONCRETE_MAGENTA__STAIRS;
-block_definitions[ 745 ].textures[ FACE_LEFT ] = TEX_CONCRETE_MAGENTA__STAIRS;
-block_definitions[ 745 ].textures[ FACE_BACK ] = TEX_CONCRETE_MAGENTA__STAIRS;
-block_definitions[ 745 ].icon_texture = TEX_CONCRETE_MAGENTA;
+block_definitions[ 745 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_MAGENTA;
+block_definitions[ 745 ].textures[ FACE_FRONT ] = TEX_CONCRETE_MAGENTA;
+block_definitions[ 745 ].textures[ FACE_LEFT ] = TEX_CONCRETE_MAGENTA;
+block_definitions[ 745 ].textures[ FACE_BACK ] = TEX_CONCRETE_MAGENTA;
+block_definitions[ 745 ].icon_texture = TEX_CONCRETE_MAGENTA__STAIRS;
 block_definitions[ 745 ].casts_shadow = false;
+block_definitions[ 745 ].collides_with_player = true;
 block_definitions[ 745 ].hardness = 0.35f;
+block_definitions[ 745 ].icon_is_isometric = false;
 block_definitions[ 745 ].is_seethrough = true;
+block_definitions[ 745 ].is_stairs = true;
 block_definitions[ 745 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 745 ].no_light = 6815743;
+block_definitions[ 745 ].rotate_on_placement = true;
 
 // MAGENTA_GLAZED_TERRACOTTA (746)
 block_definitions[ 746 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_MAGENTA;
@@ -10649,16 +10813,20 @@ block_definitions[ 753 ].tex_offset = { 0, -4, 0 };
 // MAGENTA_WOOL_STAIRS (754)
 block_definitions[ 754 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_MAGENTA;
 block_definitions[ 754 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_MAGENTA;
-block_definitions[ 754 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_MAGENTA__STAIRS;
-block_definitions[ 754 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_MAGENTA__STAIRS;
-block_definitions[ 754 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA__STAIRS;
-block_definitions[ 754 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA__STAIRS;
-block_definitions[ 754 ].icon_texture = TEX_WOOL_COLORED_MAGENTA;
+block_definitions[ 754 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_MAGENTA;
+block_definitions[ 754 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_MAGENTA;
+block_definitions[ 754 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_MAGENTA;
+block_definitions[ 754 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_MAGENTA;
+block_definitions[ 754 ].icon_texture = TEX_WOOL_COLORED_MAGENTA__STAIRS;
 block_definitions[ 754 ].casts_shadow = false;
+block_definitions[ 754 ].collides_with_player = true;
 block_definitions[ 754 ].hardness = 0.35f;
+block_definitions[ 754 ].icon_is_isometric = false;
 block_definitions[ 754 ].is_seethrough = true;
+block_definitions[ 754 ].is_stairs = true;
 block_definitions[ 754 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 754 ].no_light = 6815743;
+block_definitions[ 754 ].rotate_on_placement = true;
 
 // MAGMA (755)
 block_definitions[ 755 ].textures[ FACE_TOP ] = TEX_MAGMA;
@@ -10902,16 +11070,20 @@ block_definitions[ 769 ].tex_offset = { 0, -4, 0 };
 // MANGROVE_STAIRS (770)
 block_definitions[ 770 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
 block_definitions[ 770 ].textures[ FACE_BOTTOM ] = TEX_MANGROVE_PLANKS;
-block_definitions[ 770 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_PLANKS__STAIRS;
-block_definitions[ 770 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS__STAIRS;
-block_definitions[ 770 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS__STAIRS;
-block_definitions[ 770 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS__STAIRS;
-block_definitions[ 770 ].icon_texture = TEX_MANGROVE_PLANKS;
+block_definitions[ 770 ].textures[ FACE_RIGHT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 770 ].textures[ FACE_FRONT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 770 ].textures[ FACE_LEFT ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 770 ].textures[ FACE_BACK ] = TEX_MANGROVE_PLANKS;
+block_definitions[ 770 ].icon_texture = TEX_MANGROVE_PLANKS__STAIRS;
 block_definitions[ 770 ].casts_shadow = false;
+block_definitions[ 770 ].collides_with_player = true;
 block_definitions[ 770 ].hardness = 0.35f;
+block_definitions[ 770 ].icon_is_isometric = false;
 block_definitions[ 770 ].is_seethrough = true;
+block_definitions[ 770 ].is_stairs = true;
 block_definitions[ 770 ].mineable = MINEABLE_AXE;
 block_definitions[ 770 ].no_light = 6815743;
+block_definitions[ 770 ].rotate_on_placement = true;
 
 // MANGROVE_STANDING_SIGN (771)
 block_definitions[ 771 ].textures[ FACE_TOP ] = TEX_MANGROVE_PLANKS;
@@ -11070,16 +11242,20 @@ block_definitions[ 782 ].tex_offset = { 0, -4, 0 };
 // MOSSY_COBBLESTONE_STAIRS (783)
 block_definitions[ 783 ].textures[ FACE_TOP ] = TEX_COBBLESTONE_MOSSY;
 block_definitions[ 783 ].textures[ FACE_BOTTOM ] = TEX_COBBLESTONE_MOSSY;
-block_definitions[ 783 ].textures[ FACE_RIGHT ] = TEX_COBBLESTONE_MOSSY__STAIRS;
-block_definitions[ 783 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE_MOSSY__STAIRS;
-block_definitions[ 783 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY__STAIRS;
-block_definitions[ 783 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY__STAIRS;
-block_definitions[ 783 ].icon_texture = TEX_COBBLESTONE_MOSSY;
+block_definitions[ 783 ].textures[ FACE_RIGHT ] = TEX_COBBLESTONE_MOSSY;
+block_definitions[ 783 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE_MOSSY;
+block_definitions[ 783 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE_MOSSY;
+block_definitions[ 783 ].textures[ FACE_BACK ] = TEX_COBBLESTONE_MOSSY;
+block_definitions[ 783 ].icon_texture = TEX_COBBLESTONE_MOSSY__STAIRS;
 block_definitions[ 783 ].casts_shadow = false;
+block_definitions[ 783 ].collides_with_player = true;
 block_definitions[ 783 ].hardness = 0.35f;
+block_definitions[ 783 ].icon_is_isometric = false;
 block_definitions[ 783 ].is_seethrough = true;
+block_definitions[ 783 ].is_stairs = true;
 block_definitions[ 783 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 783 ].no_light = 6815743;
+block_definitions[ 783 ].rotate_on_placement = true;
 
 // MOSSY_COBBLESTONE_WALL (784)
 block_definitions[ 784 ].textures[ FACE_TOP ] = TEX_COBBLESTONE_MOSSY;
@@ -11121,16 +11297,20 @@ block_definitions[ 786 ].tex_offset = { 0, -4, 0 };
 // MOSSY_STONE_BRICK_STAIRS (787)
 block_definitions[ 787 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
 block_definitions[ 787 ].textures[ FACE_BOTTOM ] = TEX_STONEBRICK_MOSSY;
-block_definitions[ 787 ].textures[ FACE_RIGHT ] = TEX_STONEBRICK_MOSSY__STAIRS;
-block_definitions[ 787 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY__STAIRS;
-block_definitions[ 787 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY__STAIRS;
-block_definitions[ 787 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY__STAIRS;
-block_definitions[ 787 ].icon_texture = TEX_STONEBRICK_MOSSY;
+block_definitions[ 787 ].textures[ FACE_RIGHT ] = TEX_STONEBRICK_MOSSY;
+block_definitions[ 787 ].textures[ FACE_FRONT ] = TEX_STONEBRICK_MOSSY;
+block_definitions[ 787 ].textures[ FACE_LEFT ] = TEX_STONEBRICK_MOSSY;
+block_definitions[ 787 ].textures[ FACE_BACK ] = TEX_STONEBRICK_MOSSY;
+block_definitions[ 787 ].icon_texture = TEX_STONEBRICK_MOSSY__STAIRS;
 block_definitions[ 787 ].casts_shadow = false;
+block_definitions[ 787 ].collides_with_player = true;
 block_definitions[ 787 ].hardness = 0.35f;
+block_definitions[ 787 ].icon_is_isometric = false;
 block_definitions[ 787 ].is_seethrough = true;
+block_definitions[ 787 ].is_stairs = true;
 block_definitions[ 787 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 787 ].no_light = 6815743;
+block_definitions[ 787 ].rotate_on_placement = true;
 
 // MOSSY_STONE_BRICK_WALL (788)
 block_definitions[ 788 ].textures[ FACE_TOP ] = TEX_STONEBRICK_MOSSY;
@@ -11212,16 +11392,20 @@ block_definitions[ 793 ].tex_offset = { 0, -4, 0 };
 // MUD_BRICK_STAIRS (794)
 block_definitions[ 794 ].textures[ FACE_TOP ] = TEX_MUD_BRICKS;
 block_definitions[ 794 ].textures[ FACE_BOTTOM ] = TEX_MUD_BRICKS;
-block_definitions[ 794 ].textures[ FACE_RIGHT ] = TEX_MUD_BRICKS__STAIRS;
-block_definitions[ 794 ].textures[ FACE_FRONT ] = TEX_MUD_BRICKS__STAIRS;
-block_definitions[ 794 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS__STAIRS;
-block_definitions[ 794 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS__STAIRS;
-block_definitions[ 794 ].icon_texture = TEX_MUD_BRICKS;
+block_definitions[ 794 ].textures[ FACE_RIGHT ] = TEX_MUD_BRICKS;
+block_definitions[ 794 ].textures[ FACE_FRONT ] = TEX_MUD_BRICKS;
+block_definitions[ 794 ].textures[ FACE_LEFT ] = TEX_MUD_BRICKS;
+block_definitions[ 794 ].textures[ FACE_BACK ] = TEX_MUD_BRICKS;
+block_definitions[ 794 ].icon_texture = TEX_MUD_BRICKS__STAIRS;
 block_definitions[ 794 ].casts_shadow = false;
+block_definitions[ 794 ].collides_with_player = true;
 block_definitions[ 794 ].hardness = 0.35f;
+block_definitions[ 794 ].icon_is_isometric = false;
 block_definitions[ 794 ].is_seethrough = true;
+block_definitions[ 794 ].is_stairs = true;
 block_definitions[ 794 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 794 ].no_light = 6815743;
+block_definitions[ 794 ].rotate_on_placement = true;
 
 // MUD_BRICK_WALL (795)
 block_definitions[ 795 ].textures[ FACE_TOP ] = TEX_MUD_BRICKS;
@@ -11343,16 +11527,20 @@ block_definitions[ 803 ].tex_offset = { 0, -4, 0 };
 // NETHER_BRICK_STAIRS (804)
 block_definitions[ 804 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
 block_definitions[ 804 ].textures[ FACE_BOTTOM ] = TEX_NETHER_BRICK;
-block_definitions[ 804 ].textures[ FACE_RIGHT ] = TEX_NETHER_BRICK__STAIRS;
-block_definitions[ 804 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK__STAIRS;
-block_definitions[ 804 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK__STAIRS;
-block_definitions[ 804 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK__STAIRS;
-block_definitions[ 804 ].icon_texture = TEX_NETHER_BRICK;
+block_definitions[ 804 ].textures[ FACE_RIGHT ] = TEX_NETHER_BRICK;
+block_definitions[ 804 ].textures[ FACE_FRONT ] = TEX_NETHER_BRICK;
+block_definitions[ 804 ].textures[ FACE_LEFT ] = TEX_NETHER_BRICK;
+block_definitions[ 804 ].textures[ FACE_BACK ] = TEX_NETHER_BRICK;
+block_definitions[ 804 ].icon_texture = TEX_NETHER_BRICK__STAIRS;
 block_definitions[ 804 ].casts_shadow = false;
+block_definitions[ 804 ].collides_with_player = true;
 block_definitions[ 804 ].hardness = 0.35f;
+block_definitions[ 804 ].icon_is_isometric = false;
 block_definitions[ 804 ].is_seethrough = true;
+block_definitions[ 804 ].is_stairs = true;
 block_definitions[ 804 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 804 ].no_light = 6815743;
+block_definitions[ 804 ].rotate_on_placement = true;
 
 // NETHER_BRICK_WALL (805)
 block_definitions[ 805 ].textures[ FACE_TOP ] = TEX_NETHER_BRICK;
@@ -11472,16 +11660,20 @@ block_definitions[ 813 ].mineable = MINEABLE_PICKAXE;
 // NORMAL_STONE_STAIRS (814)
 block_definitions[ 814 ].textures[ FACE_TOP ] = TEX_STONE;
 block_definitions[ 814 ].textures[ FACE_BOTTOM ] = TEX_STONE;
-block_definitions[ 814 ].textures[ FACE_RIGHT ] = TEX_STONE__STAIRS;
-block_definitions[ 814 ].textures[ FACE_FRONT ] = TEX_STONE__STAIRS;
-block_definitions[ 814 ].textures[ FACE_LEFT ] = TEX_STONE__STAIRS;
-block_definitions[ 814 ].textures[ FACE_BACK ] = TEX_STONE__STAIRS;
-block_definitions[ 814 ].icon_texture = TEX_STONE;
+block_definitions[ 814 ].textures[ FACE_RIGHT ] = TEX_STONE;
+block_definitions[ 814 ].textures[ FACE_FRONT ] = TEX_STONE;
+block_definitions[ 814 ].textures[ FACE_LEFT ] = TEX_STONE;
+block_definitions[ 814 ].textures[ FACE_BACK ] = TEX_STONE;
+block_definitions[ 814 ].icon_texture = TEX_STONE__STAIRS;
 block_definitions[ 814 ].casts_shadow = false;
+block_definitions[ 814 ].collides_with_player = true;
 block_definitions[ 814 ].hardness = 0.35f;
+block_definitions[ 814 ].icon_is_isometric = false;
 block_definitions[ 814 ].is_seethrough = true;
+block_definitions[ 814 ].is_stairs = true;
 block_definitions[ 814 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 814 ].no_light = 6815743;
+block_definitions[ 814 ].rotate_on_placement = true;
 
 // NOTEBLOCK (815)
 block_definitions[ 815 ].textures[ FACE_TOP ] = TEX_NOTEBLOCK;
@@ -11698,16 +11890,20 @@ block_definitions[ 826 ].mineable = MINEABLE_AXE;
 // OAK_STAIRS (827)
 block_definitions[ 827 ].textures[ FACE_TOP ] = TEX_PLANKS_OAK;
 block_definitions[ 827 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_OAK;
-block_definitions[ 827 ].textures[ FACE_RIGHT ] = TEX_PLANKS_OAK__STAIRS;
-block_definitions[ 827 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK__STAIRS;
-block_definitions[ 827 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK__STAIRS;
-block_definitions[ 827 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK__STAIRS;
-block_definitions[ 827 ].icon_texture = TEX_PLANKS_OAK;
+block_definitions[ 827 ].textures[ FACE_RIGHT ] = TEX_PLANKS_OAK;
+block_definitions[ 827 ].textures[ FACE_FRONT ] = TEX_PLANKS_OAK;
+block_definitions[ 827 ].textures[ FACE_LEFT ] = TEX_PLANKS_OAK;
+block_definitions[ 827 ].textures[ FACE_BACK ] = TEX_PLANKS_OAK;
+block_definitions[ 827 ].icon_texture = TEX_PLANKS_OAK__STAIRS;
 block_definitions[ 827 ].casts_shadow = false;
+block_definitions[ 827 ].collides_with_player = true;
 block_definitions[ 827 ].hardness = 0.35f;
+block_definitions[ 827 ].icon_is_isometric = false;
 block_definitions[ 827 ].is_seethrough = true;
+block_definitions[ 827 ].is_stairs = true;
 block_definitions[ 827 ].mineable = MINEABLE_AXE;
 block_definitions[ 827 ].no_light = 6815743;
+block_definitions[ 827 ].rotate_on_placement = true;
 
 // OAK_WOOD (828)
 block_definitions[ 828 ].textures[ FACE_TOP ] = TEX_LOG_OAK;
@@ -11864,16 +12060,20 @@ block_definitions[ 839 ].tex_offset = { 0, -4, 0 };
 // ORANGE_CONCRETE_STAIRS (840)
 block_definitions[ 840 ].textures[ FACE_TOP ] = TEX_CONCRETE_ORANGE;
 block_definitions[ 840 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_ORANGE;
-block_definitions[ 840 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_ORANGE__STAIRS;
-block_definitions[ 840 ].textures[ FACE_FRONT ] = TEX_CONCRETE_ORANGE__STAIRS;
-block_definitions[ 840 ].textures[ FACE_LEFT ] = TEX_CONCRETE_ORANGE__STAIRS;
-block_definitions[ 840 ].textures[ FACE_BACK ] = TEX_CONCRETE_ORANGE__STAIRS;
-block_definitions[ 840 ].icon_texture = TEX_CONCRETE_ORANGE;
+block_definitions[ 840 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_ORANGE;
+block_definitions[ 840 ].textures[ FACE_FRONT ] = TEX_CONCRETE_ORANGE;
+block_definitions[ 840 ].textures[ FACE_LEFT ] = TEX_CONCRETE_ORANGE;
+block_definitions[ 840 ].textures[ FACE_BACK ] = TEX_CONCRETE_ORANGE;
+block_definitions[ 840 ].icon_texture = TEX_CONCRETE_ORANGE__STAIRS;
 block_definitions[ 840 ].casts_shadow = false;
+block_definitions[ 840 ].collides_with_player = true;
 block_definitions[ 840 ].hardness = 0.35f;
+block_definitions[ 840 ].icon_is_isometric = false;
 block_definitions[ 840 ].is_seethrough = true;
+block_definitions[ 840 ].is_stairs = true;
 block_definitions[ 840 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 840 ].no_light = 6815743;
+block_definitions[ 840 ].rotate_on_placement = true;
 
 // ORANGE_GLAZED_TERRACOTTA (841)
 block_definitions[ 841 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_ORANGE;
@@ -11984,16 +12184,20 @@ block_definitions[ 849 ].tex_offset = { 0, -4, 0 };
 // ORANGE_WOOL_STAIRS (850)
 block_definitions[ 850 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_ORANGE;
 block_definitions[ 850 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_ORANGE;
-block_definitions[ 850 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_ORANGE__STAIRS;
-block_definitions[ 850 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_ORANGE__STAIRS;
-block_definitions[ 850 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE__STAIRS;
-block_definitions[ 850 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE__STAIRS;
-block_definitions[ 850 ].icon_texture = TEX_WOOL_COLORED_ORANGE;
+block_definitions[ 850 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_ORANGE;
+block_definitions[ 850 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_ORANGE;
+block_definitions[ 850 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_ORANGE;
+block_definitions[ 850 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_ORANGE;
+block_definitions[ 850 ].icon_texture = TEX_WOOL_COLORED_ORANGE__STAIRS;
 block_definitions[ 850 ].casts_shadow = false;
+block_definitions[ 850 ].collides_with_player = true;
 block_definitions[ 850 ].hardness = 0.35f;
+block_definitions[ 850 ].icon_is_isometric = false;
 block_definitions[ 850 ].is_seethrough = true;
+block_definitions[ 850 ].is_stairs = true;
 block_definitions[ 850 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 850 ].no_light = 6815743;
+block_definitions[ 850 ].rotate_on_placement = true;
 
 // OXIDIZED_CHISELED_COPPER (851)
 block_definitions[ 851 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CHISELED_COPPER;
@@ -12291,16 +12495,20 @@ block_definitions[ 869 ].tex_offset = { 0, -4, 0 };
 // OXIDIZED_CUT_COPPER_STAIRS (870)
 block_definitions[ 870 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 870 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 870 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 870 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 870 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 870 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 870 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 870 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 870 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 870 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 870 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 870 ].icon_texture = TEX_OXIDIZED_CUT_COPPER__STAIRS;
 block_definitions[ 870 ].casts_shadow = false;
+block_definitions[ 870 ].collides_with_player = true;
 block_definitions[ 870 ].hardness = 0.35f;
+block_definitions[ 870 ].icon_is_isometric = false;
 block_definitions[ 870 ].is_seethrough = true;
+block_definitions[ 870 ].is_stairs = true;
 block_definitions[ 870 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 870 ].no_light = 6815743;
+block_definitions[ 870 ].rotate_on_placement = true;
 
 // OXIDIZED_DOUBLE_CUT_COPPER_SLAB (871)
 block_definitions[ 871 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -12678,16 +12886,20 @@ block_definitions[ 893 ].tex_offset = { 0, -4, 0 };
 // PALE_OAK_STAIRS (894)
 block_definitions[ 894 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
 block_definitions[ 894 ].textures[ FACE_BOTTOM ] = TEX_PALE_OAK_PLANKS;
-block_definitions[ 894 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_PLANKS__STAIRS;
-block_definitions[ 894 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS__STAIRS;
-block_definitions[ 894 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS__STAIRS;
-block_definitions[ 894 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS__STAIRS;
-block_definitions[ 894 ].icon_texture = TEX_PALE_OAK_PLANKS;
+block_definitions[ 894 ].textures[ FACE_RIGHT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 894 ].textures[ FACE_FRONT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 894 ].textures[ FACE_LEFT ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 894 ].textures[ FACE_BACK ] = TEX_PALE_OAK_PLANKS;
+block_definitions[ 894 ].icon_texture = TEX_PALE_OAK_PLANKS__STAIRS;
 block_definitions[ 894 ].casts_shadow = false;
+block_definitions[ 894 ].collides_with_player = true;
 block_definitions[ 894 ].hardness = 0.35f;
+block_definitions[ 894 ].icon_is_isometric = false;
 block_definitions[ 894 ].is_seethrough = true;
+block_definitions[ 894 ].is_stairs = true;
 block_definitions[ 894 ].mineable = MINEABLE_AXE;
 block_definitions[ 894 ].no_light = 6815743;
+block_definitions[ 894 ].rotate_on_placement = true;
 
 // PALE_OAK_STANDING_SIGN (895)
 block_definitions[ 895 ].textures[ FACE_TOP ] = TEX_PALE_OAK_PLANKS;
@@ -12871,16 +13083,20 @@ block_definitions[ 908 ].tex_offset = { 0, -4, 0 };
 // PINK_CONCRETE_STAIRS (909)
 block_definitions[ 909 ].textures[ FACE_TOP ] = TEX_CONCRETE_PINK;
 block_definitions[ 909 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_PINK;
-block_definitions[ 909 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_PINK__STAIRS;
-block_definitions[ 909 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PINK__STAIRS;
-block_definitions[ 909 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PINK__STAIRS;
-block_definitions[ 909 ].textures[ FACE_BACK ] = TEX_CONCRETE_PINK__STAIRS;
-block_definitions[ 909 ].icon_texture = TEX_CONCRETE_PINK;
+block_definitions[ 909 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_PINK;
+block_definitions[ 909 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PINK;
+block_definitions[ 909 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PINK;
+block_definitions[ 909 ].textures[ FACE_BACK ] = TEX_CONCRETE_PINK;
+block_definitions[ 909 ].icon_texture = TEX_CONCRETE_PINK__STAIRS;
 block_definitions[ 909 ].casts_shadow = false;
+block_definitions[ 909 ].collides_with_player = true;
 block_definitions[ 909 ].hardness = 0.35f;
+block_definitions[ 909 ].icon_is_isometric = false;
 block_definitions[ 909 ].is_seethrough = true;
+block_definitions[ 909 ].is_stairs = true;
 block_definitions[ 909 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 909 ].no_light = 6815743;
+block_definitions[ 909 ].rotate_on_placement = true;
 
 // PINK_GLAZED_TERRACOTTA (910)
 block_definitions[ 910 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_PINK;
@@ -12999,16 +13215,20 @@ block_definitions[ 918 ].tex_offset = { 0, -4, 0 };
 // PINK_WOOL_STAIRS (919)
 block_definitions[ 919 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PINK;
 block_definitions[ 919 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_PINK;
-block_definitions[ 919 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_PINK__STAIRS;
-block_definitions[ 919 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PINK__STAIRS;
-block_definitions[ 919 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK__STAIRS;
-block_definitions[ 919 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK__STAIRS;
-block_definitions[ 919 ].icon_texture = TEX_WOOL_COLORED_PINK;
+block_definitions[ 919 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_PINK;
+block_definitions[ 919 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PINK;
+block_definitions[ 919 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PINK;
+block_definitions[ 919 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PINK;
+block_definitions[ 919 ].icon_texture = TEX_WOOL_COLORED_PINK__STAIRS;
 block_definitions[ 919 ].casts_shadow = false;
+block_definitions[ 919 ].collides_with_player = true;
 block_definitions[ 919 ].hardness = 0.35f;
+block_definitions[ 919 ].icon_is_isometric = false;
 block_definitions[ 919 ].is_seethrough = true;
+block_definitions[ 919 ].is_stairs = true;
 block_definitions[ 919 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 919 ].no_light = 6815743;
+block_definitions[ 919 ].rotate_on_placement = true;
 
 // PITCHER_CROP (920)
 block_definitions[ 920 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -13123,16 +13343,20 @@ block_definitions[ 926 ].tex_offset = { 0, -4, 0 };
 // POLISHED_ANDESITE_STAIRS (927)
 block_definitions[ 927 ].textures[ FACE_TOP ] = TEX_STONE_ANDESITE_SMOOTH;
 block_definitions[ 927 ].textures[ FACE_BOTTOM ] = TEX_STONE_ANDESITE_SMOOTH;
-block_definitions[ 927 ].textures[ FACE_RIGHT ] = TEX_STONE_ANDESITE_SMOOTH__STAIRS;
-block_definitions[ 927 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE_SMOOTH__STAIRS;
-block_definitions[ 927 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE_SMOOTH__STAIRS;
-block_definitions[ 927 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE_SMOOTH__STAIRS;
-block_definitions[ 927 ].icon_texture = TEX_STONE_ANDESITE_SMOOTH;
+block_definitions[ 927 ].textures[ FACE_RIGHT ] = TEX_STONE_ANDESITE_SMOOTH;
+block_definitions[ 927 ].textures[ FACE_FRONT ] = TEX_STONE_ANDESITE_SMOOTH;
+block_definitions[ 927 ].textures[ FACE_LEFT ] = TEX_STONE_ANDESITE_SMOOTH;
+block_definitions[ 927 ].textures[ FACE_BACK ] = TEX_STONE_ANDESITE_SMOOTH;
+block_definitions[ 927 ].icon_texture = TEX_STONE_ANDESITE_SMOOTH__STAIRS;
 block_definitions[ 927 ].casts_shadow = false;
+block_definitions[ 927 ].collides_with_player = true;
 block_definitions[ 927 ].hardness = 0.35f;
+block_definitions[ 927 ].icon_is_isometric = false;
 block_definitions[ 927 ].is_seethrough = true;
+block_definitions[ 927 ].is_stairs = true;
 block_definitions[ 927 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 927 ].no_light = 6815743;
+block_definitions[ 927 ].rotate_on_placement = true;
 
 // POLISHED_BASALT (928)
 block_definitions[ 928 ].textures[ FACE_TOP ] = TEX_POLISHED_BASALT_TOP;
@@ -13180,16 +13404,20 @@ block_definitions[ 931 ].tex_offset = { 0, -4, 0 };
 // POLISHED_BLACKSTONE_BRICK_STAIRS (932)
 block_definitions[ 932 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE_BRICKS;
 block_definitions[ 932 ].textures[ FACE_BOTTOM ] = TEX_POLISHED_BLACKSTONE_BRICKS;
-block_definitions[ 932 ].textures[ FACE_RIGHT ] = TEX_POLISHED_BLACKSTONE_BRICKS__STAIRS;
-block_definitions[ 932 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE_BRICKS__STAIRS;
-block_definitions[ 932 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS__STAIRS;
-block_definitions[ 932 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS__STAIRS;
-block_definitions[ 932 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS;
+block_definitions[ 932 ].textures[ FACE_RIGHT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
+block_definitions[ 932 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
+block_definitions[ 932 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE_BRICKS;
+block_definitions[ 932 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE_BRICKS;
+block_definitions[ 932 ].icon_texture = TEX_POLISHED_BLACKSTONE_BRICKS__STAIRS;
 block_definitions[ 932 ].casts_shadow = false;
+block_definitions[ 932 ].collides_with_player = true;
 block_definitions[ 932 ].hardness = 0.35f;
+block_definitions[ 932 ].icon_is_isometric = false;
 block_definitions[ 932 ].is_seethrough = true;
+block_definitions[ 932 ].is_stairs = true;
 block_definitions[ 932 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 932 ].no_light = 6815743;
+block_definitions[ 932 ].rotate_on_placement = true;
 
 // POLISHED_BLACKSTONE_BRICK_WALL (933)
 block_definitions[ 933 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE_BRICKS;
@@ -13285,16 +13513,20 @@ block_definitions[ 938 ].tex_offset = { 0, -4, 0 };
 // POLISHED_BLACKSTONE_STAIRS (939)
 block_definitions[ 939 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
 block_definitions[ 939 ].textures[ FACE_BOTTOM ] = TEX_POLISHED_BLACKSTONE;
-block_definitions[ 939 ].textures[ FACE_RIGHT ] = TEX_POLISHED_BLACKSTONE__STAIRS;
-block_definitions[ 939 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE__STAIRS;
-block_definitions[ 939 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE__STAIRS;
-block_definitions[ 939 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE__STAIRS;
-block_definitions[ 939 ].icon_texture = TEX_POLISHED_BLACKSTONE;
+block_definitions[ 939 ].textures[ FACE_RIGHT ] = TEX_POLISHED_BLACKSTONE;
+block_definitions[ 939 ].textures[ FACE_FRONT ] = TEX_POLISHED_BLACKSTONE;
+block_definitions[ 939 ].textures[ FACE_LEFT ] = TEX_POLISHED_BLACKSTONE;
+block_definitions[ 939 ].textures[ FACE_BACK ] = TEX_POLISHED_BLACKSTONE;
+block_definitions[ 939 ].icon_texture = TEX_POLISHED_BLACKSTONE__STAIRS;
 block_definitions[ 939 ].casts_shadow = false;
+block_definitions[ 939 ].collides_with_player = true;
 block_definitions[ 939 ].hardness = 0.35f;
+block_definitions[ 939 ].icon_is_isometric = false;
 block_definitions[ 939 ].is_seethrough = true;
+block_definitions[ 939 ].is_stairs = true;
 block_definitions[ 939 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 939 ].no_light = 6815743;
+block_definitions[ 939 ].rotate_on_placement = true;
 
 // POLISHED_BLACKSTONE_WALL (940)
 block_definitions[ 940 ].textures[ FACE_TOP ] = TEX_POLISHED_BLACKSTONE;
@@ -13346,16 +13578,20 @@ block_definitions[ 943 ].tex_offset = { 0, -4, 0 };
 // POLISHED_CINNABAR_STAIRS (944)
 block_definitions[ 944 ].textures[ FACE_TOP ] = TEX_POLISHED_CINNABAR;
 block_definitions[ 944 ].textures[ FACE_BOTTOM ] = TEX_POLISHED_CINNABAR;
-block_definitions[ 944 ].textures[ FACE_RIGHT ] = TEX_POLISHED_CINNABAR__STAIRS;
-block_definitions[ 944 ].textures[ FACE_FRONT ] = TEX_POLISHED_CINNABAR__STAIRS;
-block_definitions[ 944 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR__STAIRS;
-block_definitions[ 944 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR__STAIRS;
-block_definitions[ 944 ].icon_texture = TEX_POLISHED_CINNABAR;
+block_definitions[ 944 ].textures[ FACE_RIGHT ] = TEX_POLISHED_CINNABAR;
+block_definitions[ 944 ].textures[ FACE_FRONT ] = TEX_POLISHED_CINNABAR;
+block_definitions[ 944 ].textures[ FACE_LEFT ] = TEX_POLISHED_CINNABAR;
+block_definitions[ 944 ].textures[ FACE_BACK ] = TEX_POLISHED_CINNABAR;
+block_definitions[ 944 ].icon_texture = TEX_POLISHED_CINNABAR__STAIRS;
 block_definitions[ 944 ].casts_shadow = false;
+block_definitions[ 944 ].collides_with_player = true;
 block_definitions[ 944 ].hardness = 0.35f;
+block_definitions[ 944 ].icon_is_isometric = false;
 block_definitions[ 944 ].is_seethrough = true;
+block_definitions[ 944 ].is_stairs = true;
 block_definitions[ 944 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 944 ].no_light = 6815743;
+block_definitions[ 944 ].rotate_on_placement = true;
 
 // POLISHED_CINNABAR_WALL (945)
 block_definitions[ 945 ].textures[ FACE_TOP ] = TEX_POLISHED_CINNABAR;
@@ -13407,16 +13643,20 @@ block_definitions[ 948 ].tex_offset = { 0, -4, 0 };
 // POLISHED_DEEPSLATE_STAIRS (949)
 block_definitions[ 949 ].textures[ FACE_TOP ] = TEX_POLISHED_DEEPSLATE;
 block_definitions[ 949 ].textures[ FACE_BOTTOM ] = TEX_POLISHED_DEEPSLATE;
-block_definitions[ 949 ].textures[ FACE_RIGHT ] = TEX_POLISHED_DEEPSLATE__STAIRS;
-block_definitions[ 949 ].textures[ FACE_FRONT ] = TEX_POLISHED_DEEPSLATE__STAIRS;
-block_definitions[ 949 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE__STAIRS;
-block_definitions[ 949 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE__STAIRS;
-block_definitions[ 949 ].icon_texture = TEX_POLISHED_DEEPSLATE;
+block_definitions[ 949 ].textures[ FACE_RIGHT ] = TEX_POLISHED_DEEPSLATE;
+block_definitions[ 949 ].textures[ FACE_FRONT ] = TEX_POLISHED_DEEPSLATE;
+block_definitions[ 949 ].textures[ FACE_LEFT ] = TEX_POLISHED_DEEPSLATE;
+block_definitions[ 949 ].textures[ FACE_BACK ] = TEX_POLISHED_DEEPSLATE;
+block_definitions[ 949 ].icon_texture = TEX_POLISHED_DEEPSLATE__STAIRS;
 block_definitions[ 949 ].casts_shadow = false;
+block_definitions[ 949 ].collides_with_player = true;
 block_definitions[ 949 ].hardness = 0.35f;
+block_definitions[ 949 ].icon_is_isometric = false;
 block_definitions[ 949 ].is_seethrough = true;
+block_definitions[ 949 ].is_stairs = true;
 block_definitions[ 949 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 949 ].no_light = 6815743;
+block_definitions[ 949 ].rotate_on_placement = true;
 
 // POLISHED_DEEPSLATE_WALL (950)
 block_definitions[ 950 ].textures[ FACE_TOP ] = TEX_POLISHED_DEEPSLATE;
@@ -13468,16 +13708,20 @@ block_definitions[ 953 ].tex_offset = { 0, -4, 0 };
 // POLISHED_DIORITE_STAIRS (954)
 block_definitions[ 954 ].textures[ FACE_TOP ] = TEX_STONE_DIORITE_SMOOTH;
 block_definitions[ 954 ].textures[ FACE_BOTTOM ] = TEX_STONE_DIORITE_SMOOTH;
-block_definitions[ 954 ].textures[ FACE_RIGHT ] = TEX_STONE_DIORITE_SMOOTH__STAIRS;
-block_definitions[ 954 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE_SMOOTH__STAIRS;
-block_definitions[ 954 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE_SMOOTH__STAIRS;
-block_definitions[ 954 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE_SMOOTH__STAIRS;
-block_definitions[ 954 ].icon_texture = TEX_STONE_DIORITE_SMOOTH;
+block_definitions[ 954 ].textures[ FACE_RIGHT ] = TEX_STONE_DIORITE_SMOOTH;
+block_definitions[ 954 ].textures[ FACE_FRONT ] = TEX_STONE_DIORITE_SMOOTH;
+block_definitions[ 954 ].textures[ FACE_LEFT ] = TEX_STONE_DIORITE_SMOOTH;
+block_definitions[ 954 ].textures[ FACE_BACK ] = TEX_STONE_DIORITE_SMOOTH;
+block_definitions[ 954 ].icon_texture = TEX_STONE_DIORITE_SMOOTH__STAIRS;
 block_definitions[ 954 ].casts_shadow = false;
+block_definitions[ 954 ].collides_with_player = true;
 block_definitions[ 954 ].hardness = 0.35f;
+block_definitions[ 954 ].icon_is_isometric = false;
 block_definitions[ 954 ].is_seethrough = true;
+block_definitions[ 954 ].is_stairs = true;
 block_definitions[ 954 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 954 ].no_light = 6815743;
+block_definitions[ 954 ].rotate_on_placement = true;
 
 // POLISHED_GRANITE (955)
 block_definitions[ 955 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE_SMOOTH;
@@ -13515,16 +13759,20 @@ block_definitions[ 957 ].tex_offset = { 0, -4, 0 };
 // POLISHED_GRANITE_STAIRS (958)
 block_definitions[ 958 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE_SMOOTH;
 block_definitions[ 958 ].textures[ FACE_BOTTOM ] = TEX_STONE_GRANITE_SMOOTH;
-block_definitions[ 958 ].textures[ FACE_RIGHT ] = TEX_STONE_GRANITE_SMOOTH__STAIRS;
-block_definitions[ 958 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE_SMOOTH__STAIRS;
-block_definitions[ 958 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE_SMOOTH__STAIRS;
-block_definitions[ 958 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE_SMOOTH__STAIRS;
-block_definitions[ 958 ].icon_texture = TEX_STONE_GRANITE_SMOOTH;
+block_definitions[ 958 ].textures[ FACE_RIGHT ] = TEX_STONE_GRANITE_SMOOTH;
+block_definitions[ 958 ].textures[ FACE_FRONT ] = TEX_STONE_GRANITE_SMOOTH;
+block_definitions[ 958 ].textures[ FACE_LEFT ] = TEX_STONE_GRANITE_SMOOTH;
+block_definitions[ 958 ].textures[ FACE_BACK ] = TEX_STONE_GRANITE_SMOOTH;
+block_definitions[ 958 ].icon_texture = TEX_STONE_GRANITE_SMOOTH__STAIRS;
 block_definitions[ 958 ].casts_shadow = false;
+block_definitions[ 958 ].collides_with_player = true;
 block_definitions[ 958 ].hardness = 0.35f;
+block_definitions[ 958 ].icon_is_isometric = false;
 block_definitions[ 958 ].is_seethrough = true;
+block_definitions[ 958 ].is_stairs = true;
 block_definitions[ 958 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 958 ].no_light = 6815743;
+block_definitions[ 958 ].rotate_on_placement = true;
 
 // POLISHED_SULFUR (959)
 block_definitions[ 959 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
@@ -13562,16 +13810,20 @@ block_definitions[ 961 ].tex_offset = { 0, -4, 0 };
 // POLISHED_SULFUR_STAIRS (962)
 block_definitions[ 962 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
 block_definitions[ 962 ].textures[ FACE_BOTTOM ] = TEX_POLISHED_SULFUR;
-block_definitions[ 962 ].textures[ FACE_RIGHT ] = TEX_POLISHED_SULFUR__STAIRS;
-block_definitions[ 962 ].textures[ FACE_FRONT ] = TEX_POLISHED_SULFUR__STAIRS;
-block_definitions[ 962 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR__STAIRS;
-block_definitions[ 962 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR__STAIRS;
-block_definitions[ 962 ].icon_texture = TEX_POLISHED_SULFUR;
+block_definitions[ 962 ].textures[ FACE_RIGHT ] = TEX_POLISHED_SULFUR;
+block_definitions[ 962 ].textures[ FACE_FRONT ] = TEX_POLISHED_SULFUR;
+block_definitions[ 962 ].textures[ FACE_LEFT ] = TEX_POLISHED_SULFUR;
+block_definitions[ 962 ].textures[ FACE_BACK ] = TEX_POLISHED_SULFUR;
+block_definitions[ 962 ].icon_texture = TEX_POLISHED_SULFUR__STAIRS;
 block_definitions[ 962 ].casts_shadow = false;
+block_definitions[ 962 ].collides_with_player = true;
 block_definitions[ 962 ].hardness = 0.35f;
+block_definitions[ 962 ].icon_is_isometric = false;
 block_definitions[ 962 ].is_seethrough = true;
+block_definitions[ 962 ].is_stairs = true;
 block_definitions[ 962 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 962 ].no_light = 6815743;
+block_definitions[ 962 ].rotate_on_placement = true;
 
 // POLISHED_SULFUR_WALL (963)
 block_definitions[ 963 ].textures[ FACE_TOP ] = TEX_POLISHED_SULFUR;
@@ -13623,16 +13875,20 @@ block_definitions[ 966 ].tex_offset = { 0, -4, 0 };
 // POLISHED_TUFF_STAIRS (967)
 block_definitions[ 967 ].textures[ FACE_TOP ] = TEX_POLISHED_TUFF;
 block_definitions[ 967 ].textures[ FACE_BOTTOM ] = TEX_POLISHED_TUFF;
-block_definitions[ 967 ].textures[ FACE_RIGHT ] = TEX_POLISHED_TUFF__STAIRS;
-block_definitions[ 967 ].textures[ FACE_FRONT ] = TEX_POLISHED_TUFF__STAIRS;
-block_definitions[ 967 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF__STAIRS;
-block_definitions[ 967 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF__STAIRS;
-block_definitions[ 967 ].icon_texture = TEX_POLISHED_TUFF;
+block_definitions[ 967 ].textures[ FACE_RIGHT ] = TEX_POLISHED_TUFF;
+block_definitions[ 967 ].textures[ FACE_FRONT ] = TEX_POLISHED_TUFF;
+block_definitions[ 967 ].textures[ FACE_LEFT ] = TEX_POLISHED_TUFF;
+block_definitions[ 967 ].textures[ FACE_BACK ] = TEX_POLISHED_TUFF;
+block_definitions[ 967 ].icon_texture = TEX_POLISHED_TUFF__STAIRS;
 block_definitions[ 967 ].casts_shadow = false;
+block_definitions[ 967 ].collides_with_player = true;
 block_definitions[ 967 ].hardness = 0.35f;
+block_definitions[ 967 ].icon_is_isometric = false;
 block_definitions[ 967 ].is_seethrough = true;
+block_definitions[ 967 ].is_stairs = true;
 block_definitions[ 967 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 967 ].no_light = 6815743;
+block_definitions[ 967 ].rotate_on_placement = true;
 
 // POLISHED_TUFF_WALL (968)
 block_definitions[ 968 ].textures[ FACE_TOP ] = TEX_POLISHED_TUFF;
@@ -13849,16 +14105,20 @@ block_definitions[ 980 ].tex_offset = { 0, -4, 0 };
 // POPLAR_STAIRS (981)
 block_definitions[ 981 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
 block_definitions[ 981 ].textures[ FACE_BOTTOM ] = TEX_POPLAR_PLANKS;
-block_definitions[ 981 ].textures[ FACE_RIGHT ] = TEX_POPLAR_PLANKS__STAIRS;
-block_definitions[ 981 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS__STAIRS;
-block_definitions[ 981 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS__STAIRS;
-block_definitions[ 981 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS__STAIRS;
-block_definitions[ 981 ].icon_texture = TEX_POPLAR_PLANKS;
+block_definitions[ 981 ].textures[ FACE_RIGHT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 981 ].textures[ FACE_FRONT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 981 ].textures[ FACE_LEFT ] = TEX_POPLAR_PLANKS;
+block_definitions[ 981 ].textures[ FACE_BACK ] = TEX_POPLAR_PLANKS;
+block_definitions[ 981 ].icon_texture = TEX_POPLAR_PLANKS__STAIRS;
 block_definitions[ 981 ].casts_shadow = false;
+block_definitions[ 981 ].collides_with_player = true;
 block_definitions[ 981 ].hardness = 0.35f;
+block_definitions[ 981 ].icon_is_isometric = false;
 block_definitions[ 981 ].is_seethrough = true;
+block_definitions[ 981 ].is_stairs = true;
 block_definitions[ 981 ].mineable = MINEABLE_AXE;
 block_definitions[ 981 ].no_light = 6815743;
+block_definitions[ 981 ].rotate_on_placement = true;
 
 // POPLAR_STANDING_SIGN (982)
 block_definitions[ 982 ].textures[ FACE_TOP ] = TEX_POPLAR_PLANKS;
@@ -14025,16 +14285,20 @@ block_definitions[ 994 ].mineable = MINEABLE_PICKAXE;
 // PRISMARINE_BRICKS_STAIRS (995)
 block_definitions[ 995 ].textures[ FACE_TOP ] = TEX_PRISMARINE_BRICKS;
 block_definitions[ 995 ].textures[ FACE_BOTTOM ] = TEX_PRISMARINE_BRICKS;
-block_definitions[ 995 ].textures[ FACE_RIGHT ] = TEX_PRISMARINE_BRICKS__STAIRS;
-block_definitions[ 995 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_BRICKS__STAIRS;
-block_definitions[ 995 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_BRICKS__STAIRS;
-block_definitions[ 995 ].textures[ FACE_BACK ] = TEX_PRISMARINE_BRICKS__STAIRS;
-block_definitions[ 995 ].icon_texture = TEX_PRISMARINE_BRICKS;
+block_definitions[ 995 ].textures[ FACE_RIGHT ] = TEX_PRISMARINE_BRICKS;
+block_definitions[ 995 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_BRICKS;
+block_definitions[ 995 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_BRICKS;
+block_definitions[ 995 ].textures[ FACE_BACK ] = TEX_PRISMARINE_BRICKS;
+block_definitions[ 995 ].icon_texture = TEX_PRISMARINE_BRICKS__STAIRS;
 block_definitions[ 995 ].casts_shadow = false;
+block_definitions[ 995 ].collides_with_player = true;
 block_definitions[ 995 ].hardness = 0.35f;
+block_definitions[ 995 ].icon_is_isometric = false;
 block_definitions[ 995 ].is_seethrough = true;
+block_definitions[ 995 ].is_stairs = true;
 block_definitions[ 995 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 995 ].no_light = 6815743;
+block_definitions[ 995 ].rotate_on_placement = true;
 
 // PRISMARINE_DOUBLE_SLAB (996)
 block_definitions[ 996 ].textures[ FACE_TOP ] = TEX_PRISMARINE_ROUGH;
@@ -14244,16 +14508,20 @@ block_definitions[ 1006 ].tex_offset = { -4, 0, -4 };
 // PRISMARINE_STAIRS (1007)
 block_definitions[ 1007 ].textures[ FACE_TOP ] = TEX_PRISMARINE_ROUGH;
 block_definitions[ 1007 ].textures[ FACE_BOTTOM ] = TEX_PRISMARINE_ROUGH;
-block_definitions[ 1007 ].textures[ FACE_RIGHT ] = TEX_PRISMARINE_ROUGH__STAIRS;
-block_definitions[ 1007 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_ROUGH__STAIRS;
-block_definitions[ 1007 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH__STAIRS;
-block_definitions[ 1007 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH__STAIRS;
-block_definitions[ 1007 ].icon_texture = TEX_PRISMARINE_ROUGH;
+block_definitions[ 1007 ].textures[ FACE_RIGHT ] = TEX_PRISMARINE_ROUGH;
+block_definitions[ 1007 ].textures[ FACE_FRONT ] = TEX_PRISMARINE_ROUGH;
+block_definitions[ 1007 ].textures[ FACE_LEFT ] = TEX_PRISMARINE_ROUGH;
+block_definitions[ 1007 ].textures[ FACE_BACK ] = TEX_PRISMARINE_ROUGH;
+block_definitions[ 1007 ].icon_texture = TEX_PRISMARINE_ROUGH__STAIRS;
 block_definitions[ 1007 ].casts_shadow = false;
+block_definitions[ 1007 ].collides_with_player = true;
 block_definitions[ 1007 ].hardness = 0.35f;
+block_definitions[ 1007 ].icon_is_isometric = false;
 block_definitions[ 1007 ].is_seethrough = true;
+block_definitions[ 1007 ].is_stairs = true;
 block_definitions[ 1007 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1007 ].no_light = 6815743;
+block_definitions[ 1007 ].rotate_on_placement = true;
 
 // PRISMARINE_WALL (1008)
 block_definitions[ 1008 ].textures[ FACE_TOP ] = TEX_PRISMARINE_ROUGH;
@@ -14411,16 +14679,20 @@ block_definitions[ 1018 ].tex_offset = { 0, -4, 0 };
 // PURPLE_CONCRETE_STAIRS (1019)
 block_definitions[ 1019 ].textures[ FACE_TOP ] = TEX_CONCRETE_PURPLE;
 block_definitions[ 1019 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_PURPLE;
-block_definitions[ 1019 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_PURPLE__STAIRS;
-block_definitions[ 1019 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PURPLE__STAIRS;
-block_definitions[ 1019 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PURPLE__STAIRS;
-block_definitions[ 1019 ].textures[ FACE_BACK ] = TEX_CONCRETE_PURPLE__STAIRS;
-block_definitions[ 1019 ].icon_texture = TEX_CONCRETE_PURPLE;
+block_definitions[ 1019 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_PURPLE;
+block_definitions[ 1019 ].textures[ FACE_FRONT ] = TEX_CONCRETE_PURPLE;
+block_definitions[ 1019 ].textures[ FACE_LEFT ] = TEX_CONCRETE_PURPLE;
+block_definitions[ 1019 ].textures[ FACE_BACK ] = TEX_CONCRETE_PURPLE;
+block_definitions[ 1019 ].icon_texture = TEX_CONCRETE_PURPLE__STAIRS;
 block_definitions[ 1019 ].casts_shadow = false;
+block_definitions[ 1019 ].collides_with_player = true;
 block_definitions[ 1019 ].hardness = 0.35f;
+block_definitions[ 1019 ].icon_is_isometric = false;
 block_definitions[ 1019 ].is_seethrough = true;
+block_definitions[ 1019 ].is_stairs = true;
 block_definitions[ 1019 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1019 ].no_light = 6815743;
+block_definitions[ 1019 ].rotate_on_placement = true;
 
 // PURPLE_GLAZED_TERRACOTTA (1020)
 block_definitions[ 1020 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_PURPLE;
@@ -14516,16 +14788,20 @@ block_definitions[ 1027 ].tex_offset = { 0, -4, 0 };
 // PURPLE_WOOL_STAIRS (1028)
 block_definitions[ 1028 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PURPLE;
 block_definitions[ 1028 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_PURPLE;
-block_definitions[ 1028 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_PURPLE__STAIRS;
-block_definitions[ 1028 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PURPLE__STAIRS;
-block_definitions[ 1028 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE__STAIRS;
-block_definitions[ 1028 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE__STAIRS;
-block_definitions[ 1028 ].icon_texture = TEX_WOOL_COLORED_PURPLE;
+block_definitions[ 1028 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_PURPLE;
+block_definitions[ 1028 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_PURPLE;
+block_definitions[ 1028 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_PURPLE;
+block_definitions[ 1028 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_PURPLE;
+block_definitions[ 1028 ].icon_texture = TEX_WOOL_COLORED_PURPLE__STAIRS;
 block_definitions[ 1028 ].casts_shadow = false;
+block_definitions[ 1028 ].collides_with_player = true;
 block_definitions[ 1028 ].hardness = 0.35f;
+block_definitions[ 1028 ].icon_is_isometric = false;
 block_definitions[ 1028 ].is_seethrough = true;
+block_definitions[ 1028 ].is_stairs = true;
 block_definitions[ 1028 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 1028 ].no_light = 6815743;
+block_definitions[ 1028 ].rotate_on_placement = true;
 
 // PURPUR_BLOCK (1029)
 block_definitions[ 1029 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
@@ -14573,16 +14849,20 @@ block_definitions[ 1032 ].tex_offset = { 0, -4, 0 };
 // PURPUR_STAIRS (1033)
 block_definitions[ 1033 ].textures[ FACE_TOP ] = TEX_PURPUR_BLOCK;
 block_definitions[ 1033 ].textures[ FACE_BOTTOM ] = TEX_PURPUR_BLOCK;
-block_definitions[ 1033 ].textures[ FACE_RIGHT ] = TEX_PURPUR_BLOCK__STAIRS;
-block_definitions[ 1033 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK__STAIRS;
-block_definitions[ 1033 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK__STAIRS;
-block_definitions[ 1033 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK__STAIRS;
-block_definitions[ 1033 ].icon_texture = TEX_PURPUR_BLOCK;
+block_definitions[ 1033 ].textures[ FACE_RIGHT ] = TEX_PURPUR_BLOCK;
+block_definitions[ 1033 ].textures[ FACE_FRONT ] = TEX_PURPUR_BLOCK;
+block_definitions[ 1033 ].textures[ FACE_LEFT ] = TEX_PURPUR_BLOCK;
+block_definitions[ 1033 ].textures[ FACE_BACK ] = TEX_PURPUR_BLOCK;
+block_definitions[ 1033 ].icon_texture = TEX_PURPUR_BLOCK__STAIRS;
 block_definitions[ 1033 ].casts_shadow = false;
+block_definitions[ 1033 ].collides_with_player = true;
 block_definitions[ 1033 ].hardness = 0.35f;
+block_definitions[ 1033 ].icon_is_isometric = false;
 block_definitions[ 1033 ].is_seethrough = true;
+block_definitions[ 1033 ].is_stairs = true;
 block_definitions[ 1033 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1033 ].no_light = 6815743;
+block_definitions[ 1033 ].rotate_on_placement = true;
 
 // QUARTZ_BLOCK (1034)
 block_definitions[ 1034 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_TOP;
@@ -14650,16 +14930,20 @@ block_definitions[ 1039 ].tex_offset = { 0, -4, 0 };
 // QUARTZ_STAIRS (1040)
 block_definitions[ 1040 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_TOP;
 block_definitions[ 1040 ].textures[ FACE_BOTTOM ] = TEX_QUARTZ_BLOCK_TOP;
-block_definitions[ 1040 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_SIDE__STAIRS;
-block_definitions[ 1040 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_SIDE__STAIRS;
-block_definitions[ 1040 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_SIDE__STAIRS;
-block_definitions[ 1040 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_SIDE__STAIRS;
-block_definitions[ 1040 ].icon_texture = TEX_QUARTZ_BLOCK_TOP;
+block_definitions[ 1040 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_SIDE;
+block_definitions[ 1040 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_SIDE;
+block_definitions[ 1040 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_SIDE;
+block_definitions[ 1040 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_SIDE;
+block_definitions[ 1040 ].icon_texture = TEX_QUARTZ_BLOCK_SIDE__STAIRS;
 block_definitions[ 1040 ].casts_shadow = false;
+block_definitions[ 1040 ].collides_with_player = true;
 block_definitions[ 1040 ].hardness = 0.35f;
+block_definitions[ 1040 ].icon_is_isometric = false;
 block_definitions[ 1040 ].is_seethrough = true;
+block_definitions[ 1040 ].is_stairs = true;
 block_definitions[ 1040 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1040 ].no_light = 6815743;
+block_definitions[ 1040 ].rotate_on_placement = true;
 
 // RAIL (1041)
 block_definitions[ 1041 ].textures[ FACE_TOP ] = TEX_RAIL_NORMAL_TURNED;
@@ -15069,16 +15353,20 @@ block_definitions[ 1065 ].renderOrder = RenderOrder_Flowers;
 // RED_CONCRETE_STAIRS (1066)
 block_definitions[ 1066 ].textures[ FACE_TOP ] = TEX_CONCRETE_RED;
 block_definitions[ 1066 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_RED;
-block_definitions[ 1066 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_RED__STAIRS;
-block_definitions[ 1066 ].textures[ FACE_FRONT ] = TEX_CONCRETE_RED__STAIRS;
-block_definitions[ 1066 ].textures[ FACE_LEFT ] = TEX_CONCRETE_RED__STAIRS;
-block_definitions[ 1066 ].textures[ FACE_BACK ] = TEX_CONCRETE_RED__STAIRS;
-block_definitions[ 1066 ].icon_texture = TEX_CONCRETE_RED;
+block_definitions[ 1066 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_RED;
+block_definitions[ 1066 ].textures[ FACE_FRONT ] = TEX_CONCRETE_RED;
+block_definitions[ 1066 ].textures[ FACE_LEFT ] = TEX_CONCRETE_RED;
+block_definitions[ 1066 ].textures[ FACE_BACK ] = TEX_CONCRETE_RED;
+block_definitions[ 1066 ].icon_texture = TEX_CONCRETE_RED__STAIRS;
 block_definitions[ 1066 ].casts_shadow = false;
+block_definitions[ 1066 ].collides_with_player = true;
 block_definitions[ 1066 ].hardness = 0.35f;
+block_definitions[ 1066 ].icon_is_isometric = false;
 block_definitions[ 1066 ].is_seethrough = true;
+block_definitions[ 1066 ].is_stairs = true;
 block_definitions[ 1066 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1066 ].no_light = 6815743;
+block_definitions[ 1066 ].rotate_on_placement = true;
 
 // RED_GLAZED_TERRACOTTA (1067)
 block_definitions[ 1067 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_RED;
@@ -15136,16 +15424,20 @@ block_definitions[ 1071 ].tex_offset = { 0, -4, 0 };
 // RED_NETHER_BRICK_STAIRS (1072)
 block_definitions[ 1072 ].textures[ FACE_TOP ] = TEX_RED_NETHER_BRICK;
 block_definitions[ 1072 ].textures[ FACE_BOTTOM ] = TEX_RED_NETHER_BRICK;
-block_definitions[ 1072 ].textures[ FACE_RIGHT ] = TEX_RED_NETHER_BRICK__STAIRS;
-block_definitions[ 1072 ].textures[ FACE_FRONT ] = TEX_RED_NETHER_BRICK__STAIRS;
-block_definitions[ 1072 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK__STAIRS;
-block_definitions[ 1072 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK__STAIRS;
-block_definitions[ 1072 ].icon_texture = TEX_RED_NETHER_BRICK;
+block_definitions[ 1072 ].textures[ FACE_RIGHT ] = TEX_RED_NETHER_BRICK;
+block_definitions[ 1072 ].textures[ FACE_FRONT ] = TEX_RED_NETHER_BRICK;
+block_definitions[ 1072 ].textures[ FACE_LEFT ] = TEX_RED_NETHER_BRICK;
+block_definitions[ 1072 ].textures[ FACE_BACK ] = TEX_RED_NETHER_BRICK;
+block_definitions[ 1072 ].icon_texture = TEX_RED_NETHER_BRICK__STAIRS;
 block_definitions[ 1072 ].casts_shadow = false;
+block_definitions[ 1072 ].collides_with_player = true;
 block_definitions[ 1072 ].hardness = 0.35f;
+block_definitions[ 1072 ].icon_is_isometric = false;
 block_definitions[ 1072 ].is_seethrough = true;
+block_definitions[ 1072 ].is_stairs = true;
 block_definitions[ 1072 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1072 ].no_light = 6815743;
+block_definitions[ 1072 ].rotate_on_placement = true;
 
 // RED_NETHER_BRICK_WALL (1073)
 block_definitions[ 1073 ].textures[ FACE_TOP ] = TEX_RED_NETHER_BRICK;
@@ -15189,16 +15481,20 @@ block_definitions[ 1075 ].mineable = MINEABLE_PICKAXE;
 // RED_SANDSTONE_STAIRS (1076)
 block_definitions[ 1076 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1076 ].textures[ FACE_BOTTOM ] = TEX_RED_SANDSTONE_BOTTOM;
-block_definitions[ 1076 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1076 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1076 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1076 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1076 ].icon_texture = TEX_RED_SANDSTONE_TOP;
+block_definitions[ 1076 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_NORMAL;
+block_definitions[ 1076 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_NORMAL;
+block_definitions[ 1076 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_NORMAL;
+block_definitions[ 1076 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_NORMAL;
+block_definitions[ 1076 ].icon_texture = TEX_RED_SANDSTONE_NORMAL__STAIRS;
 block_definitions[ 1076 ].casts_shadow = false;
+block_definitions[ 1076 ].collides_with_player = true;
 block_definitions[ 1076 ].hardness = 0.35f;
+block_definitions[ 1076 ].icon_is_isometric = false;
 block_definitions[ 1076 ].is_seethrough = true;
+block_definitions[ 1076 ].is_stairs = true;
 block_definitions[ 1076 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1076 ].no_light = 6815743;
+block_definitions[ 1076 ].rotate_on_placement = true;
 
 // RED_SANDSTONE_WALL (1077)
 block_definitions[ 1077 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_NORMAL;
@@ -15298,16 +15594,20 @@ block_definitions[ 1084 ].tex_offset = { 0, -4, 0 };
 // RED_WOOL_STAIRS (1085)
 block_definitions[ 1085 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_RED;
 block_definitions[ 1085 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_RED;
-block_definitions[ 1085 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_RED__STAIRS;
-block_definitions[ 1085 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_RED__STAIRS;
-block_definitions[ 1085 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED__STAIRS;
-block_definitions[ 1085 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED__STAIRS;
-block_definitions[ 1085 ].icon_texture = TEX_WOOL_COLORED_RED;
+block_definitions[ 1085 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_RED;
+block_definitions[ 1085 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_RED;
+block_definitions[ 1085 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_RED;
+block_definitions[ 1085 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_RED;
+block_definitions[ 1085 ].icon_texture = TEX_WOOL_COLORED_RED__STAIRS;
 block_definitions[ 1085 ].casts_shadow = false;
+block_definitions[ 1085 ].collides_with_player = true;
 block_definitions[ 1085 ].hardness = 0.35f;
+block_definitions[ 1085 ].icon_is_isometric = false;
 block_definitions[ 1085 ].is_seethrough = true;
+block_definitions[ 1085 ].is_stairs = true;
 block_definitions[ 1085 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 1085 ].no_light = 6815743;
+block_definitions[ 1085 ].rotate_on_placement = true;
 
 // REDSTONE_ORE (1086)
 block_definitions[ 1086 ].textures[ FACE_TOP ] = TEX_REDSTONE_ORE;
@@ -15374,16 +15674,20 @@ block_definitions[ 1091 ].tex_offset = { 0, -4, 0 };
 // RESIN_BRICK_STAIRS (1092)
 block_definitions[ 1092 ].textures[ FACE_TOP ] = TEX_RESIN_BRICKS;
 block_definitions[ 1092 ].textures[ FACE_BOTTOM ] = TEX_RESIN_BRICKS;
-block_definitions[ 1092 ].textures[ FACE_RIGHT ] = TEX_RESIN_BRICKS__STAIRS;
-block_definitions[ 1092 ].textures[ FACE_FRONT ] = TEX_RESIN_BRICKS__STAIRS;
-block_definitions[ 1092 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS__STAIRS;
-block_definitions[ 1092 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS__STAIRS;
-block_definitions[ 1092 ].icon_texture = TEX_RESIN_BRICKS;
+block_definitions[ 1092 ].textures[ FACE_RIGHT ] = TEX_RESIN_BRICKS;
+block_definitions[ 1092 ].textures[ FACE_FRONT ] = TEX_RESIN_BRICKS;
+block_definitions[ 1092 ].textures[ FACE_LEFT ] = TEX_RESIN_BRICKS;
+block_definitions[ 1092 ].textures[ FACE_BACK ] = TEX_RESIN_BRICKS;
+block_definitions[ 1092 ].icon_texture = TEX_RESIN_BRICKS__STAIRS;
 block_definitions[ 1092 ].casts_shadow = false;
+block_definitions[ 1092 ].collides_with_player = true;
 block_definitions[ 1092 ].hardness = 0.35f;
+block_definitions[ 1092 ].icon_is_isometric = false;
 block_definitions[ 1092 ].is_seethrough = true;
+block_definitions[ 1092 ].is_stairs = true;
 block_definitions[ 1092 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1092 ].no_light = 6815743;
+block_definitions[ 1092 ].rotate_on_placement = true;
 
 // RESIN_BRICK_WALL (1093)
 block_definitions[ 1093 ].textures[ FACE_TOP ] = TEX_RESIN_BRICKS;
@@ -15469,16 +15773,20 @@ block_definitions[ 1098 ].mineable = MINEABLE_PICKAXE;
 // SANDSTONE_STAIRS (1099)
 block_definitions[ 1099 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1099 ].textures[ FACE_BOTTOM ] = TEX_SANDSTONE_BOTTOM;
-block_definitions[ 1099 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1099 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1099 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1099 ].textures[ FACE_BACK ] = TEX_SANDSTONE_NORMAL__STAIRS;
-block_definitions[ 1099 ].icon_texture = TEX_SANDSTONE_TOP;
+block_definitions[ 1099 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_NORMAL;
+block_definitions[ 1099 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_NORMAL;
+block_definitions[ 1099 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_NORMAL;
+block_definitions[ 1099 ].textures[ FACE_BACK ] = TEX_SANDSTONE_NORMAL;
+block_definitions[ 1099 ].icon_texture = TEX_SANDSTONE_NORMAL__STAIRS;
 block_definitions[ 1099 ].casts_shadow = false;
+block_definitions[ 1099 ].collides_with_player = true;
 block_definitions[ 1099 ].hardness = 0.35f;
+block_definitions[ 1099 ].icon_is_isometric = false;
 block_definitions[ 1099 ].is_seethrough = true;
+block_definitions[ 1099 ].is_stairs = true;
 block_definitions[ 1099 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1099 ].no_light = 6815743;
+block_definitions[ 1099 ].rotate_on_placement = true;
 
 // SANDSTONE_WALL (1100)
 block_definitions[ 1100 ].textures[ FACE_TOP ] = TEX_SANDSTONE_NORMAL;
@@ -15797,16 +16105,20 @@ block_definitions[ 1123 ].tex_offset = { 0, -4, 0 };
 // SMOOTH_QUARTZ_STAIRS (1124)
 block_definitions[ 1124 ].textures[ FACE_TOP ] = TEX_QUARTZ_BLOCK_BOTTOM;
 block_definitions[ 1124 ].textures[ FACE_BOTTOM ] = TEX_QUARTZ_BLOCK_BOTTOM;
-block_definitions[ 1124 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_BOTTOM__STAIRS;
-block_definitions[ 1124 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_BOTTOM__STAIRS;
-block_definitions[ 1124 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_BOTTOM__STAIRS;
-block_definitions[ 1124 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_BOTTOM__STAIRS;
-block_definitions[ 1124 ].icon_texture = TEX_QUARTZ_BLOCK_BOTTOM;
+block_definitions[ 1124 ].textures[ FACE_RIGHT ] = TEX_QUARTZ_BLOCK_BOTTOM;
+block_definitions[ 1124 ].textures[ FACE_FRONT ] = TEX_QUARTZ_BLOCK_BOTTOM;
+block_definitions[ 1124 ].textures[ FACE_LEFT ] = TEX_QUARTZ_BLOCK_BOTTOM;
+block_definitions[ 1124 ].textures[ FACE_BACK ] = TEX_QUARTZ_BLOCK_BOTTOM;
+block_definitions[ 1124 ].icon_texture = TEX_QUARTZ_BLOCK_BOTTOM__STAIRS;
 block_definitions[ 1124 ].casts_shadow = false;
+block_definitions[ 1124 ].collides_with_player = true;
 block_definitions[ 1124 ].hardness = 0.35f;
+block_definitions[ 1124 ].icon_is_isometric = false;
 block_definitions[ 1124 ].is_seethrough = true;
+block_definitions[ 1124 ].is_stairs = true;
 block_definitions[ 1124 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1124 ].no_light = 6815743;
+block_definitions[ 1124 ].rotate_on_placement = true;
 
 // SMOOTH_RED_SANDSTONE_DOUBLE_SLAB (1125)
 block_definitions[ 1125 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
@@ -15834,16 +16146,20 @@ block_definitions[ 1126 ].tex_offset = { 0, -4, 0 };
 // SMOOTH_RED_SANDSTONE_STAIRS (1127)
 block_definitions[ 1127 ].textures[ FACE_TOP ] = TEX_RED_SANDSTONE_TOP;
 block_definitions[ 1127 ].textures[ FACE_BOTTOM ] = TEX_RED_SANDSTONE_TOP;
-block_definitions[ 1127 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1127 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1127 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1127 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1127 ].icon_texture = TEX_RED_SANDSTONE_TOP;
+block_definitions[ 1127 ].textures[ FACE_RIGHT ] = TEX_RED_SANDSTONE_TOP;
+block_definitions[ 1127 ].textures[ FACE_FRONT ] = TEX_RED_SANDSTONE_TOP;
+block_definitions[ 1127 ].textures[ FACE_LEFT ] = TEX_RED_SANDSTONE_TOP;
+block_definitions[ 1127 ].textures[ FACE_BACK ] = TEX_RED_SANDSTONE_TOP;
+block_definitions[ 1127 ].icon_texture = TEX_RED_SANDSTONE_TOP__STAIRS;
 block_definitions[ 1127 ].casts_shadow = false;
+block_definitions[ 1127 ].collides_with_player = true;
 block_definitions[ 1127 ].hardness = 0.35f;
+block_definitions[ 1127 ].icon_is_isometric = false;
 block_definitions[ 1127 ].is_seethrough = true;
+block_definitions[ 1127 ].is_stairs = true;
 block_definitions[ 1127 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1127 ].no_light = 6815743;
+block_definitions[ 1127 ].rotate_on_placement = true;
 
 // SMOOTH_SANDSTONE (1128)
 block_definitions[ 1128 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
@@ -15881,16 +16197,20 @@ block_definitions[ 1130 ].tex_offset = { 0, -4, 0 };
 // SMOOTH_SANDSTONE_STAIRS (1131)
 block_definitions[ 1131 ].textures[ FACE_TOP ] = TEX_SANDSTONE_TOP;
 block_definitions[ 1131 ].textures[ FACE_BOTTOM ] = TEX_SANDSTONE_TOP;
-block_definitions[ 1131 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1131 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1131 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1131 ].textures[ FACE_BACK ] = TEX_SANDSTONE_TOP__STAIRS;
-block_definitions[ 1131 ].icon_texture = TEX_SANDSTONE_TOP;
+block_definitions[ 1131 ].textures[ FACE_RIGHT ] = TEX_SANDSTONE_TOP;
+block_definitions[ 1131 ].textures[ FACE_FRONT ] = TEX_SANDSTONE_TOP;
+block_definitions[ 1131 ].textures[ FACE_LEFT ] = TEX_SANDSTONE_TOP;
+block_definitions[ 1131 ].textures[ FACE_BACK ] = TEX_SANDSTONE_TOP;
+block_definitions[ 1131 ].icon_texture = TEX_SANDSTONE_TOP__STAIRS;
 block_definitions[ 1131 ].casts_shadow = false;
+block_definitions[ 1131 ].collides_with_player = true;
 block_definitions[ 1131 ].hardness = 0.35f;
+block_definitions[ 1131 ].icon_is_isometric = false;
 block_definitions[ 1131 ].is_seethrough = true;
+block_definitions[ 1131 ].is_stairs = true;
 block_definitions[ 1131 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1131 ].no_light = 6815743;
+block_definitions[ 1131 ].rotate_on_placement = true;
 
 // SMOOTH_STONE (1132)
 block_definitions[ 1132 ].textures[ FACE_TOP ] = TEX_STONE_SLAB_TOP;
@@ -16177,16 +16497,20 @@ block_definitions[ 1151 ].mineable = MINEABLE_AXE;
 // SPRUCE_STAIRS (1152)
 block_definitions[ 1152 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
 block_definitions[ 1152 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_SPRUCE;
-block_definitions[ 1152 ].textures[ FACE_RIGHT ] = TEX_PLANKS_SPRUCE__STAIRS;
-block_definitions[ 1152 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE__STAIRS;
-block_definitions[ 1152 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE__STAIRS;
-block_definitions[ 1152 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE__STAIRS;
-block_definitions[ 1152 ].icon_texture = TEX_PLANKS_SPRUCE;
+block_definitions[ 1152 ].textures[ FACE_RIGHT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1152 ].textures[ FACE_FRONT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1152 ].textures[ FACE_LEFT ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1152 ].textures[ FACE_BACK ] = TEX_PLANKS_SPRUCE;
+block_definitions[ 1152 ].icon_texture = TEX_PLANKS_SPRUCE__STAIRS;
 block_definitions[ 1152 ].casts_shadow = false;
+block_definitions[ 1152 ].collides_with_player = true;
 block_definitions[ 1152 ].hardness = 0.35f;
+block_definitions[ 1152 ].icon_is_isometric = false;
 block_definitions[ 1152 ].is_seethrough = true;
+block_definitions[ 1152 ].is_stairs = true;
 block_definitions[ 1152 ].mineable = MINEABLE_AXE;
 block_definitions[ 1152 ].no_light = 6815743;
+block_definitions[ 1152 ].rotate_on_placement = true;
 
 // SPRUCE_STANDING_SIGN (1153)
 block_definitions[ 1153 ].textures[ FACE_TOP ] = TEX_PLANKS_SPRUCE;
@@ -16324,16 +16648,20 @@ block_definitions[ 1162 ].mineable = MINEABLE_PICKAXE;
 // STONE_BRICK_STAIRS (1163)
 block_definitions[ 1163 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
 block_definitions[ 1163 ].textures[ FACE_BOTTOM ] = TEX_STONEBRICK;
-block_definitions[ 1163 ].textures[ FACE_RIGHT ] = TEX_STONEBRICK__STAIRS;
-block_definitions[ 1163 ].textures[ FACE_FRONT ] = TEX_STONEBRICK__STAIRS;
-block_definitions[ 1163 ].textures[ FACE_LEFT ] = TEX_STONEBRICK__STAIRS;
-block_definitions[ 1163 ].textures[ FACE_BACK ] = TEX_STONEBRICK__STAIRS;
-block_definitions[ 1163 ].icon_texture = TEX_STONEBRICK;
+block_definitions[ 1163 ].textures[ FACE_RIGHT ] = TEX_STONEBRICK;
+block_definitions[ 1163 ].textures[ FACE_FRONT ] = TEX_STONEBRICK;
+block_definitions[ 1163 ].textures[ FACE_LEFT ] = TEX_STONEBRICK;
+block_definitions[ 1163 ].textures[ FACE_BACK ] = TEX_STONEBRICK;
+block_definitions[ 1163 ].icon_texture = TEX_STONEBRICK__STAIRS;
 block_definitions[ 1163 ].casts_shadow = false;
+block_definitions[ 1163 ].collides_with_player = true;
 block_definitions[ 1163 ].hardness = 0.35f;
+block_definitions[ 1163 ].icon_is_isometric = false;
 block_definitions[ 1163 ].is_seethrough = true;
+block_definitions[ 1163 ].is_stairs = true;
 block_definitions[ 1163 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1163 ].no_light = 6815743;
+block_definitions[ 1163 ].rotate_on_placement = true;
 
 // STONE_BRICK_WALL (1164)
 block_definitions[ 1164 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -16416,16 +16744,20 @@ block_definitions[ 1169 ].mineable = MINEABLE_PICKAXE;
 // STONE_STAIRS (1170)
 block_definitions[ 1170 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
 block_definitions[ 1170 ].textures[ FACE_BOTTOM ] = TEX_COBBLESTONE;
-block_definitions[ 1170 ].textures[ FACE_RIGHT ] = TEX_COBBLESTONE__STAIRS;
-block_definitions[ 1170 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE__STAIRS;
-block_definitions[ 1170 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE__STAIRS;
-block_definitions[ 1170 ].textures[ FACE_BACK ] = TEX_COBBLESTONE__STAIRS;
-block_definitions[ 1170 ].icon_texture = TEX_COBBLESTONE;
+block_definitions[ 1170 ].textures[ FACE_RIGHT ] = TEX_COBBLESTONE;
+block_definitions[ 1170 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE;
+block_definitions[ 1170 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
+block_definitions[ 1170 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
+block_definitions[ 1170 ].icon_texture = TEX_COBBLESTONE__STAIRS;
 block_definitions[ 1170 ].casts_shadow = false;
+block_definitions[ 1170 ].collides_with_player = true;
 block_definitions[ 1170 ].hardness = 0.35f;
+block_definitions[ 1170 ].icon_is_isometric = false;
 block_definitions[ 1170 ].is_seethrough = true;
+block_definitions[ 1170 ].is_stairs = true;
 block_definitions[ 1170 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1170 ].no_light = 6815743;
+block_definitions[ 1170 ].rotate_on_placement = true;
 
 // STONEBRICK (1171)
 block_definitions[ 1171 ].textures[ FACE_TOP ] = TEX_STONEBRICK;
@@ -16784,16 +17116,20 @@ block_definitions[ 1203 ].tex_offset = { 0, -4, 0 };
 // SULFUR_BRICK_STAIRS (1204)
 block_definitions[ 1204 ].textures[ FACE_TOP ] = TEX_SULFUR_BRICKS;
 block_definitions[ 1204 ].textures[ FACE_BOTTOM ] = TEX_SULFUR_BRICKS;
-block_definitions[ 1204 ].textures[ FACE_RIGHT ] = TEX_SULFUR_BRICKS__STAIRS;
-block_definitions[ 1204 ].textures[ FACE_FRONT ] = TEX_SULFUR_BRICKS__STAIRS;
-block_definitions[ 1204 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS__STAIRS;
-block_definitions[ 1204 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS__STAIRS;
-block_definitions[ 1204 ].icon_texture = TEX_SULFUR_BRICKS;
+block_definitions[ 1204 ].textures[ FACE_RIGHT ] = TEX_SULFUR_BRICKS;
+block_definitions[ 1204 ].textures[ FACE_FRONT ] = TEX_SULFUR_BRICKS;
+block_definitions[ 1204 ].textures[ FACE_LEFT ] = TEX_SULFUR_BRICKS;
+block_definitions[ 1204 ].textures[ FACE_BACK ] = TEX_SULFUR_BRICKS;
+block_definitions[ 1204 ].icon_texture = TEX_SULFUR_BRICKS__STAIRS;
 block_definitions[ 1204 ].casts_shadow = false;
+block_definitions[ 1204 ].collides_with_player = true;
 block_definitions[ 1204 ].hardness = 0.35f;
+block_definitions[ 1204 ].icon_is_isometric = false;
 block_definitions[ 1204 ].is_seethrough = true;
+block_definitions[ 1204 ].is_stairs = true;
 block_definitions[ 1204 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1204 ].no_light = 6815743;
+block_definitions[ 1204 ].rotate_on_placement = true;
 
 // SULFUR_BRICK_WALL (1205)
 block_definitions[ 1205 ].textures[ FACE_TOP ] = TEX_SULFUR_BRICKS;
@@ -16859,16 +17195,20 @@ block_definitions[ 1209 ].no_light = 6815743;
 // SULFUR_STAIRS (1210)
 block_definitions[ 1210 ].textures[ FACE_TOP ] = TEX_SULFUR;
 block_definitions[ 1210 ].textures[ FACE_BOTTOM ] = TEX_SULFUR;
-block_definitions[ 1210 ].textures[ FACE_RIGHT ] = TEX_SULFUR__STAIRS;
-block_definitions[ 1210 ].textures[ FACE_FRONT ] = TEX_SULFUR__STAIRS;
-block_definitions[ 1210 ].textures[ FACE_LEFT ] = TEX_SULFUR__STAIRS;
-block_definitions[ 1210 ].textures[ FACE_BACK ] = TEX_SULFUR__STAIRS;
-block_definitions[ 1210 ].icon_texture = TEX_SULFUR;
+block_definitions[ 1210 ].textures[ FACE_RIGHT ] = TEX_SULFUR;
+block_definitions[ 1210 ].textures[ FACE_FRONT ] = TEX_SULFUR;
+block_definitions[ 1210 ].textures[ FACE_LEFT ] = TEX_SULFUR;
+block_definitions[ 1210 ].textures[ FACE_BACK ] = TEX_SULFUR;
+block_definitions[ 1210 ].icon_texture = TEX_SULFUR__STAIRS;
 block_definitions[ 1210 ].casts_shadow = false;
+block_definitions[ 1210 ].collides_with_player = true;
 block_definitions[ 1210 ].hardness = 0.35f;
+block_definitions[ 1210 ].icon_is_isometric = false;
 block_definitions[ 1210 ].is_seethrough = true;
+block_definitions[ 1210 ].is_stairs = true;
 block_definitions[ 1210 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1210 ].no_light = 6815743;
+block_definitions[ 1210 ].rotate_on_placement = true;
 
 // SULFUR_WALL (1211)
 block_definitions[ 1211 ].textures[ FACE_TOP ] = TEX_SULFUR;
@@ -17494,16 +17834,20 @@ block_definitions[ 1247 ].transmits_redstone_power = true;
 // TUFF_BRICK_STAIRS (1248)
 block_definitions[ 1248 ].textures[ FACE_TOP ] = TEX_TUFF_BRICKS;
 block_definitions[ 1248 ].textures[ FACE_BOTTOM ] = TEX_TUFF_BRICKS;
-block_definitions[ 1248 ].textures[ FACE_RIGHT ] = TEX_TUFF_BRICKS__STAIRS;
-block_definitions[ 1248 ].textures[ FACE_FRONT ] = TEX_TUFF_BRICKS__STAIRS;
-block_definitions[ 1248 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS__STAIRS;
-block_definitions[ 1248 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS__STAIRS;
-block_definitions[ 1248 ].icon_texture = TEX_TUFF_BRICKS;
+block_definitions[ 1248 ].textures[ FACE_RIGHT ] = TEX_TUFF_BRICKS;
+block_definitions[ 1248 ].textures[ FACE_FRONT ] = TEX_TUFF_BRICKS;
+block_definitions[ 1248 ].textures[ FACE_LEFT ] = TEX_TUFF_BRICKS;
+block_definitions[ 1248 ].textures[ FACE_BACK ] = TEX_TUFF_BRICKS;
+block_definitions[ 1248 ].icon_texture = TEX_TUFF_BRICKS__STAIRS;
 block_definitions[ 1248 ].casts_shadow = false;
+block_definitions[ 1248 ].collides_with_player = true;
 block_definitions[ 1248 ].hardness = 0.35f;
+block_definitions[ 1248 ].icon_is_isometric = false;
 block_definitions[ 1248 ].is_seethrough = true;
+block_definitions[ 1248 ].is_stairs = true;
 block_definitions[ 1248 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1248 ].no_light = 6815743;
+block_definitions[ 1248 ].rotate_on_placement = true;
 
 // undefined (1249)
 block_definitions[ 1249 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -17565,16 +17909,20 @@ block_definitions[ 1253 ].tex_offset = { 0, -4, 0 };
 // TUFF_STAIRS (1254)
 block_definitions[ 1254 ].textures[ FACE_TOP ] = TEX_TUFF;
 block_definitions[ 1254 ].textures[ FACE_BOTTOM ] = TEX_TUFF;
-block_definitions[ 1254 ].textures[ FACE_RIGHT ] = TEX_TUFF__STAIRS;
-block_definitions[ 1254 ].textures[ FACE_FRONT ] = TEX_TUFF__STAIRS;
-block_definitions[ 1254 ].textures[ FACE_LEFT ] = TEX_TUFF__STAIRS;
-block_definitions[ 1254 ].textures[ FACE_BACK ] = TEX_TUFF__STAIRS;
-block_definitions[ 1254 ].icon_texture = TEX_TUFF;
+block_definitions[ 1254 ].textures[ FACE_RIGHT ] = TEX_TUFF;
+block_definitions[ 1254 ].textures[ FACE_FRONT ] = TEX_TUFF;
+block_definitions[ 1254 ].textures[ FACE_LEFT ] = TEX_TUFF;
+block_definitions[ 1254 ].textures[ FACE_BACK ] = TEX_TUFF;
+block_definitions[ 1254 ].icon_texture = TEX_TUFF__STAIRS;
 block_definitions[ 1254 ].casts_shadow = false;
+block_definitions[ 1254 ].collides_with_player = true;
 block_definitions[ 1254 ].hardness = 0.35f;
+block_definitions[ 1254 ].icon_is_isometric = false;
 block_definitions[ 1254 ].is_seethrough = true;
+block_definitions[ 1254 ].is_stairs = true;
 block_definitions[ 1254 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1254 ].no_light = 6815743;
+block_definitions[ 1254 ].rotate_on_placement = true;
 
 // TUFF_WALL (1255)
 block_definitions[ 1255 ].textures[ FACE_TOP ] = TEX_TUFF;
@@ -17940,16 +18288,20 @@ block_definitions[ 1278 ].tex_offset = { 0, -4, 0 };
 // WARPED_STAIRS (1279)
 block_definitions[ 1279 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
 block_definitions[ 1279 ].textures[ FACE_BOTTOM ] = TEX_WARPED_PLANKS;
-block_definitions[ 1279 ].textures[ FACE_RIGHT ] = TEX_WARPED_PLANKS__STAIRS;
-block_definitions[ 1279 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS__STAIRS;
-block_definitions[ 1279 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS__STAIRS;
-block_definitions[ 1279 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS__STAIRS;
-block_definitions[ 1279 ].icon_texture = TEX_WARPED_PLANKS;
+block_definitions[ 1279 ].textures[ FACE_RIGHT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1279 ].textures[ FACE_FRONT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1279 ].textures[ FACE_LEFT ] = TEX_WARPED_PLANKS;
+block_definitions[ 1279 ].textures[ FACE_BACK ] = TEX_WARPED_PLANKS;
+block_definitions[ 1279 ].icon_texture = TEX_WARPED_PLANKS__STAIRS;
 block_definitions[ 1279 ].casts_shadow = false;
+block_definitions[ 1279 ].collides_with_player = true;
 block_definitions[ 1279 ].hardness = 0.35f;
+block_definitions[ 1279 ].icon_is_isometric = false;
 block_definitions[ 1279 ].is_seethrough = true;
+block_definitions[ 1279 ].is_stairs = true;
 block_definitions[ 1279 ].mineable = MINEABLE_AXE;
 block_definitions[ 1279 ].no_light = 6815743;
+block_definitions[ 1279 ].rotate_on_placement = true;
 
 // WARPED_STANDING_SIGN (1280)
 block_definitions[ 1280 ].textures[ FACE_TOP ] = TEX_WARPED_PLANKS;
@@ -18196,16 +18548,20 @@ block_definitions[ 1297 ].tex_offset = { 0, -4, 0 };
 // WAXED_CUT_COPPER_STAIRS (1298)
 block_definitions[ 1298 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
 block_definitions[ 1298 ].textures[ FACE_BOTTOM ] = TEX_CUT_COPPER;
-block_definitions[ 1298 ].textures[ FACE_RIGHT ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 1298 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 1298 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 1298 ].textures[ FACE_BACK ] = TEX_CUT_COPPER__STAIRS;
-block_definitions[ 1298 ].icon_texture = TEX_CUT_COPPER;
+block_definitions[ 1298 ].textures[ FACE_RIGHT ] = TEX_CUT_COPPER;
+block_definitions[ 1298 ].textures[ FACE_FRONT ] = TEX_CUT_COPPER;
+block_definitions[ 1298 ].textures[ FACE_LEFT ] = TEX_CUT_COPPER;
+block_definitions[ 1298 ].textures[ FACE_BACK ] = TEX_CUT_COPPER;
+block_definitions[ 1298 ].icon_texture = TEX_CUT_COPPER__STAIRS;
 block_definitions[ 1298 ].casts_shadow = false;
+block_definitions[ 1298 ].collides_with_player = true;
 block_definitions[ 1298 ].hardness = 0.35f;
+block_definitions[ 1298 ].icon_is_isometric = false;
 block_definitions[ 1298 ].is_seethrough = true;
+block_definitions[ 1298 ].is_stairs = true;
 block_definitions[ 1298 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1298 ].no_light = 6815743;
+block_definitions[ 1298 ].rotate_on_placement = true;
 
 // WAXED_DOUBLE_CUT_COPPER_SLAB (1299)
 block_definitions[ 1299 ].textures[ FACE_TOP ] = TEX_CUT_COPPER;
@@ -18396,16 +18752,20 @@ block_definitions[ 1312 ].tex_offset = { 0, -4, 0 };
 // WAXED_EXPOSED_CUT_COPPER_STAIRS (1313)
 block_definitions[ 1313 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
 block_definitions[ 1313 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_CUT_COPPER;
-block_definitions[ 1313 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 1313 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 1313 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 1313 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER__STAIRS;
-block_definitions[ 1313 ].icon_texture = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 1313 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 1313 ].textures[ FACE_FRONT ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 1313 ].textures[ FACE_LEFT ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 1313 ].textures[ FACE_BACK ] = TEX_EXPOSED_CUT_COPPER;
+block_definitions[ 1313 ].icon_texture = TEX_EXPOSED_CUT_COPPER__STAIRS;
 block_definitions[ 1313 ].casts_shadow = false;
+block_definitions[ 1313 ].collides_with_player = true;
 block_definitions[ 1313 ].hardness = 0.35f;
+block_definitions[ 1313 ].icon_is_isometric = false;
 block_definitions[ 1313 ].is_seethrough = true;
+block_definitions[ 1313 ].is_stairs = true;
 block_definitions[ 1313 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1313 ].no_light = 6815743;
+block_definitions[ 1313 ].rotate_on_placement = true;
 
 // WAXED_EXPOSED_DOUBLE_CUT_COPPER_SLAB (1314)
 block_definitions[ 1314 ].textures[ FACE_TOP ] = TEX_EXPOSED_CUT_COPPER;
@@ -18624,16 +18984,20 @@ block_definitions[ 1329 ].tex_offset = { 0, -4, 0 };
 // WAXED_OXIDIZED_CUT_COPPER_STAIRS (1330)
 block_definitions[ 1330 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
 block_definitions[ 1330 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_CUT_COPPER;
-block_definitions[ 1330 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 1330 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 1330 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 1330 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER__STAIRS;
-block_definitions[ 1330 ].icon_texture = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 1330 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 1330 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 1330 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 1330 ].textures[ FACE_BACK ] = TEX_OXIDIZED_CUT_COPPER;
+block_definitions[ 1330 ].icon_texture = TEX_OXIDIZED_CUT_COPPER__STAIRS;
 block_definitions[ 1330 ].casts_shadow = false;
+block_definitions[ 1330 ].collides_with_player = true;
 block_definitions[ 1330 ].hardness = 0.35f;
+block_definitions[ 1330 ].icon_is_isometric = false;
 block_definitions[ 1330 ].is_seethrough = true;
+block_definitions[ 1330 ].is_stairs = true;
 block_definitions[ 1330 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1330 ].no_light = 6815743;
+block_definitions[ 1330 ].rotate_on_placement = true;
 
 // WAXED_OXIDIZED_DOUBLE_CUT_COPPER_SLAB (1331)
 block_definitions[ 1331 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CUT_COPPER;
@@ -18838,16 +19202,20 @@ block_definitions[ 1345 ].tex_offset = { 0, -4, 0 };
 // WAXED_WEATHERED_CUT_COPPER_STAIRS (1346)
 block_definitions[ 1346 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1346 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1346 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1346 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1346 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1346 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1346 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1346 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1346 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1346 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1346 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1346 ].icon_texture = TEX_WEATHERED_CUT_COPPER__STAIRS;
 block_definitions[ 1346 ].casts_shadow = false;
+block_definitions[ 1346 ].collides_with_player = true;
 block_definitions[ 1346 ].hardness = 0.35f;
+block_definitions[ 1346 ].icon_is_isometric = false;
 block_definitions[ 1346 ].is_seethrough = true;
+block_definitions[ 1346 ].is_stairs = true;
 block_definitions[ 1346 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1346 ].no_light = 6815743;
+block_definitions[ 1346 ].rotate_on_placement = true;
 
 // WAXED_WEATHERED_DOUBLE_CUT_COPPER_SLAB (1347)
 block_definitions[ 1347 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -19052,16 +19420,20 @@ block_definitions[ 1361 ].tex_offset = { 0, -4, 0 };
 // WEATHERED_CUT_COPPER_STAIRS (1362)
 block_definitions[ 1362 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
 block_definitions[ 1362 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_CUT_COPPER;
-block_definitions[ 1362 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1362 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1362 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1362 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER__STAIRS;
-block_definitions[ 1362 ].icon_texture = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1362 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1362 ].textures[ FACE_FRONT ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1362 ].textures[ FACE_LEFT ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1362 ].textures[ FACE_BACK ] = TEX_WEATHERED_CUT_COPPER;
+block_definitions[ 1362 ].icon_texture = TEX_WEATHERED_CUT_COPPER__STAIRS;
 block_definitions[ 1362 ].casts_shadow = false;
+block_definitions[ 1362 ].collides_with_player = true;
 block_definitions[ 1362 ].hardness = 0.35f;
+block_definitions[ 1362 ].icon_is_isometric = false;
 block_definitions[ 1362 ].is_seethrough = true;
+block_definitions[ 1362 ].is_stairs = true;
 block_definitions[ 1362 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1362 ].no_light = 6815743;
+block_definitions[ 1362 ].rotate_on_placement = true;
 
 // WEATHERED_DOUBLE_CUT_COPPER_SLAB (1363)
 block_definitions[ 1363 ].textures[ FACE_TOP ] = TEX_WEATHERED_CUT_COPPER;
@@ -19214,16 +19586,20 @@ block_definitions[ 1373 ].tex_offset = { 0, -4, 0 };
 // WHITE_CONCRETE_STAIRS (1374)
 block_definitions[ 1374 ].textures[ FACE_TOP ] = TEX_CONCRETE_WHITE;
 block_definitions[ 1374 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_WHITE;
-block_definitions[ 1374 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_WHITE__STAIRS;
-block_definitions[ 1374 ].textures[ FACE_FRONT ] = TEX_CONCRETE_WHITE__STAIRS;
-block_definitions[ 1374 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE__STAIRS;
-block_definitions[ 1374 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE__STAIRS;
-block_definitions[ 1374 ].icon_texture = TEX_CONCRETE_WHITE;
+block_definitions[ 1374 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_WHITE;
+block_definitions[ 1374 ].textures[ FACE_FRONT ] = TEX_CONCRETE_WHITE;
+block_definitions[ 1374 ].textures[ FACE_LEFT ] = TEX_CONCRETE_WHITE;
+block_definitions[ 1374 ].textures[ FACE_BACK ] = TEX_CONCRETE_WHITE;
+block_definitions[ 1374 ].icon_texture = TEX_CONCRETE_WHITE__STAIRS;
 block_definitions[ 1374 ].casts_shadow = false;
+block_definitions[ 1374 ].collides_with_player = true;
 block_definitions[ 1374 ].hardness = 0.35f;
+block_definitions[ 1374 ].icon_is_isometric = false;
 block_definitions[ 1374 ].is_seethrough = true;
+block_definitions[ 1374 ].is_stairs = true;
 block_definitions[ 1374 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1374 ].no_light = 6815743;
+block_definitions[ 1374 ].rotate_on_placement = true;
 
 // WHITE_GLAZED_TERRACOTTA (1375)
 block_definitions[ 1375 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_WHITE;
@@ -19305,16 +19681,20 @@ block_definitions[ 1381 ].tex_offset = { 0, -4, 0 };
 // WHITE_WOOL_STAIRS (1382)
 block_definitions[ 1382 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1382 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_WHITE;
-block_definitions[ 1382 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_WHITE__STAIRS;
-block_definitions[ 1382 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE__STAIRS;
-block_definitions[ 1382 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE__STAIRS;
-block_definitions[ 1382 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE__STAIRS;
-block_definitions[ 1382 ].icon_texture = TEX_WOOL_COLORED_WHITE;
+block_definitions[ 1382 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_WHITE;
+block_definitions[ 1382 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_WHITE;
+block_definitions[ 1382 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_WHITE;
+block_definitions[ 1382 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_WHITE;
+block_definitions[ 1382 ].icon_texture = TEX_WOOL_COLORED_WHITE__STAIRS;
 block_definitions[ 1382 ].casts_shadow = false;
+block_definitions[ 1382 ].collides_with_player = true;
 block_definitions[ 1382 ].hardness = 0.35f;
+block_definitions[ 1382 ].icon_is_isometric = false;
 block_definitions[ 1382 ].is_seethrough = true;
+block_definitions[ 1382 ].is_stairs = true;
 block_definitions[ 1382 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 1382 ].no_light = 6815743;
+block_definitions[ 1382 ].rotate_on_placement = true;
 
 // WILDFLOWERS (1383)
 block_definitions[ 1383 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -19485,16 +19865,20 @@ block_definitions[ 1394 ].tex_offset = { 0, -4, 0 };
 // YELLOW_CONCRETE_STAIRS (1395)
 block_definitions[ 1395 ].textures[ FACE_TOP ] = TEX_CONCRETE_YELLOW;
 block_definitions[ 1395 ].textures[ FACE_BOTTOM ] = TEX_CONCRETE_YELLOW;
-block_definitions[ 1395 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_YELLOW__STAIRS;
-block_definitions[ 1395 ].textures[ FACE_FRONT ] = TEX_CONCRETE_YELLOW__STAIRS;
-block_definitions[ 1395 ].textures[ FACE_LEFT ] = TEX_CONCRETE_YELLOW__STAIRS;
-block_definitions[ 1395 ].textures[ FACE_BACK ] = TEX_CONCRETE_YELLOW__STAIRS;
-block_definitions[ 1395 ].icon_texture = TEX_CONCRETE_YELLOW;
+block_definitions[ 1395 ].textures[ FACE_RIGHT ] = TEX_CONCRETE_YELLOW;
+block_definitions[ 1395 ].textures[ FACE_FRONT ] = TEX_CONCRETE_YELLOW;
+block_definitions[ 1395 ].textures[ FACE_LEFT ] = TEX_CONCRETE_YELLOW;
+block_definitions[ 1395 ].textures[ FACE_BACK ] = TEX_CONCRETE_YELLOW;
+block_definitions[ 1395 ].icon_texture = TEX_CONCRETE_YELLOW__STAIRS;
 block_definitions[ 1395 ].casts_shadow = false;
+block_definitions[ 1395 ].collides_with_player = true;
 block_definitions[ 1395 ].hardness = 0.35f;
+block_definitions[ 1395 ].icon_is_isometric = false;
 block_definitions[ 1395 ].is_seethrough = true;
+block_definitions[ 1395 ].is_stairs = true;
 block_definitions[ 1395 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1395 ].no_light = 6815743;
+block_definitions[ 1395 ].rotate_on_placement = true;
 
 // YELLOW_GLAZED_TERRACOTTA (1396)
 block_definitions[ 1396 ].textures[ FACE_TOP ] = TEX_GLAZED_TERRACOTTA_YELLOW;
@@ -19605,16 +19989,20 @@ block_definitions[ 1404 ].tex_offset = { 0, -4, 0 };
 // YELLOW_WOOL_STAIRS (1405)
 block_definitions[ 1405 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_YELLOW;
 block_definitions[ 1405 ].textures[ FACE_BOTTOM ] = TEX_WOOL_COLORED_YELLOW;
-block_definitions[ 1405 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_YELLOW__STAIRS;
-block_definitions[ 1405 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_YELLOW__STAIRS;
-block_definitions[ 1405 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW__STAIRS;
-block_definitions[ 1405 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW__STAIRS;
-block_definitions[ 1405 ].icon_texture = TEX_WOOL_COLORED_YELLOW;
+block_definitions[ 1405 ].textures[ FACE_RIGHT ] = TEX_WOOL_COLORED_YELLOW;
+block_definitions[ 1405 ].textures[ FACE_FRONT ] = TEX_WOOL_COLORED_YELLOW;
+block_definitions[ 1405 ].textures[ FACE_LEFT ] = TEX_WOOL_COLORED_YELLOW;
+block_definitions[ 1405 ].textures[ FACE_BACK ] = TEX_WOOL_COLORED_YELLOW;
+block_definitions[ 1405 ].icon_texture = TEX_WOOL_COLORED_YELLOW__STAIRS;
 block_definitions[ 1405 ].casts_shadow = false;
+block_definitions[ 1405 ].collides_with_player = true;
 block_definitions[ 1405 ].hardness = 0.35f;
+block_definitions[ 1405 ].icon_is_isometric = false;
 block_definitions[ 1405 ].is_seethrough = true;
+block_definitions[ 1405 ].is_stairs = true;
 block_definitions[ 1405 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 1405 ].no_light = 6815743;
+block_definitions[ 1405 ].rotate_on_placement = true;
 
 // BAMBOO_DOOR_UPPER (1406)
 block_definitions[ 1406 ].textures[ FACE_TOP ] = TEX_BAMBOO_DOOR_TOP;

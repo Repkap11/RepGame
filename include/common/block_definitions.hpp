@@ -98,6 +98,13 @@ typedef struct {
     // (BLOCK_ROTATE_GATE_OPEN); the facing is rotation & 3.
     bool is_fence;
     bool is_fence_gate;
+    // Stairs draw as 2-3 boxes (a half slab plus step boxes) whose inner /
+    // outer corner shape is derived live from the 4 horizontal neighbors
+    // (stairs_shape_derive in block.cpp) — MC's getStairsShape. rotation
+    // bits 0-1 are the facing (the direction the stair descends toward the
+    // viewer, 0=-z), bit 2 is the top/upside-down half
+    // (BLOCK_ROTATE_STAIRS_TOP).
+    bool is_stairs;
     // Cactus-style Java model: the cell emits three instances — a full-cell
     // box drawing only top and bottom, and two 14-wide boxes drawing only
     // their side quads, which sit 1px inside each cell edge and sample the

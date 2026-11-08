@@ -99,9 +99,9 @@ block rather than hand-tuned: opaque cubes use the defaults; binary-cutout
 tiles copy `GLASS`/leaves (see-through, `should_draw_*` off);
 partial-alpha tiles copy a translucent template like `GLASS_LIGHT_BLUE`;
 cross-quad plants copy the `Flowers` render template. Unrenderable shapes
-(stairs, fences, walls, doors, signs, beds, rails, panes, trapdoors...) are
-placeholder full cubes until a render class exists for them — see
-`data/shapes.json` below for the workaround. Default
+(walls, signs, beds, rails, panes, trapdoors...) are placeholder full cubes
+until a render class exists for them — see `data/shapes.json` below for the
+workaround. Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
 flags (`no_light`, `casts_shadow:false`); see existing `data/blocks/*.json`
 for the emitted levels.
@@ -139,16 +139,17 @@ prefixes and one shape suffix, with dye-coloured blocks grouped into colour
 families (WOOL, CONCRETE, STAINED_GLASS, ...) sorted in dye order.
 
 A block JSON may set `"shape": "<name>"` (defined in `data/shapes.json`,
-three kinds). **Mask shapes** (stairs, wall, banner,
+three kinds). **Mask shapes** (wall, banner,
 hanging_sign, sign) are for silhouettes we can't render: the importer
 replaces the 4 side faces with generated `<face_tex>__<shape>` tiles — the
 resolved source tile with the mask's `.` pixels cut to transparent black —
 and applies the shared `cutout` property set (see-through, no light
 blocking, no shadow). Top/bottom keep the plain material texture.
-**Model shapes** (fence, fence_gate) have real multi-box geometry: the
+**Model shapes** (fence, fence_gate, stairs) have real multi-box geometry: the
 importer applies the `cutout` set plus the entry's own properties
-(`is_fence`, `scale`, `offset`, ...) and keeps the block's plain textures;
-the entry's `"icon_mask"` grid only cuts a generated `<side_tex>__<shape>`
+(`is_fence`, `is_stairs`, `scale`, `offset`, ...) and keeps the block's
+plain textures; the entry's `"icon_mask"` grid only cuts a generated
+`<side_tex>__<shape>`
 tile used as the flat inventory icon (`icon_is_isometric=false`).
 **Template shapes** (slab, button, pressure_plate, carpet, trapdoor) copy
 geometry (`scale`/`offset`/`tex_offset`) plus behaviour properties
@@ -193,6 +194,32 @@ between adjacent posts nor jump the fence. Because a box can reach above
 its cell, the collision scan includes one layer below the player AABB.
 Open gates still don't collide. Selection/raycast stay a single box —
 the fence post or the gate's bounding box.
+
+Stairs render as 2-3 box instances per cell (chunk.cpp phase 2,
+`stairs_boxes` in block.cpp): a full-width half slab plus a full-height
+step half — `rotation` bits 0-1 hold the facing (the yaw index doubles as
+the world-direction index, 0=-z/1=+x/2=+z/3=-x, matching
+`getPlacedRotation`'s buckets) and bit 2
+(`BLOCK_ROTATE_STAIRS_TOP`) is the upside-down half, placed by MC's rule:
+clicking a block's bottom face, or the upper half of a side face
+(`BlockSelection::hit_y_in_cell` from the selection raycast's hit t).
+`block_yaw` masks bit 2 so single-yaw consumers see facing 0-3. The
+straight/inner/outer corner shape is never stored — `stairs_shape_derive`
+(MC's `getStairsShape`) derives it live from the four horizontal neighbors
+each mesh/collision/raycast pass: a perpendicular same-half stair in the
+facing direction makes an outer corner, one behind makes an inner corner,
+and a same-facing stair on the merge's probe side suppresses it. The boxes
+are emitted in definition space and yawed by the same `face_shift`
+remap the shader shares with collision/raycast (`block_rotate_box`);
+step faces coplanar with the slab surface get `NO_LIGHT_NO_DRAW` via
+`skip_faces`. Collision (`block_collision_boxes`), raycast
+(`contains_block`'s `ray_aabb_hit` loop — nearest box wins, so the
+upper-front void stays walk-through-pickable) and the selection outline
+(`MouseSelection` keeps `STAIRS_MAX_BOXES` instances, extras collapsed
+to zero scale) all consume the same `stairs_collision_boxes`
+world-space list, so a neighbor change re-shapes every consumer at once.
+Half-height steps ride the normal `STEP_HEIGHT` path, so walking up a
+staircase needs no special movement code.
 
 Doors are two-cell blocks: every lower-half id is linked to an upper-half
 id by `door_partner` (validated by the importer). Both halves use the

@@ -40,7 +40,7 @@ bool feed( RepGameState &state, const glm::dvec3 &pos, const char *item, std::st
 bool shear( RepGameState &state, const glm::dvec3 &pos, std::string *err );
 bool fall( RepGameState &state, const char *item, const glm::ivec3 &pos, std::string *err );
 bool tnt( RepGameState &state, const glm::vec3 &center, std::string *err );
-bool setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err );
+bool setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err, unsigned char rotation = 0 );
 // Inclusive box; refuses volumes > 65536 cells.
 bool fill( RepGameState &state, const glm::ivec3 &a, const glm::ivec3 &b, const char *block_name, std::string *err );
 // Container kind lookup by name ("chest"/"furnace"), nullptr on miss.

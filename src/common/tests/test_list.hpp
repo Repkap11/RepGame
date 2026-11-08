@@ -35,6 +35,7 @@ int test_sapling_grow( );
 int test_leaf_placement( );
 int test_shears_bonemeal( );
 int test_farming( );
+int test_stairs( );
 int test_grass( );
 int test_grass_persist( );
 int test_structure_border( );

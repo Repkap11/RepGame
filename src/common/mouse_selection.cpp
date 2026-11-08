@@ -1,5 +1,6 @@
 #include "common/mouse_selection.hpp"
 #include "common/block.hpp"
+#include "common/world.hpp"
 
 MK_SHADER( selection_vertex );
 MK_SHADER( selection_fragment );
@@ -49,32 +50,36 @@ constexpr static CubeFace vd_data_selection[] = {
 
 void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
     this->render_chain_mouse_selection.init( vbl_block, vbl_coords, vd_data_selection, VB_DATA_SIZE_SELECTION, ib_data_solid, IB_SOLID_SIZE );
-    const auto pair = this->render_chain_mouse_selection.create_instance( );
-    this->entity = pair.first;
-    BlockCoords &blockCoords = pair.second;
+    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+        const auto pair = this->render_chain_mouse_selection.create_instance( );
+        this->entity[ i ] = pair.first;
+        BlockCoords &blockCoords = pair.second;
 
-    for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
-        blockCoords.face[ i ] = TEX_PLAYER_SELECTION;
+        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+            blockCoords.face[ f ] = TEX_PLAYER_SELECTION;
+        }
+        blockCoords.x = 0;
+        blockCoords.y = 0;
+        blockCoords.z = 0;
+        blockCoords.mesh_x = 1;
+        blockCoords.mesh_y = 1;
+        blockCoords.mesh_z = 1;
+
+        // Instance 0 is the single-box outline; the rest hide at zero scale
+        // until a multi-box model claims them.
+        blockCoords.scale_x = i == 0 ? 16 : 0;
+        blockCoords.scale_y = i == 0 ? 16 : 0;
+        blockCoords.scale_z = i == 0 ? 16 : 0;
+
+        blockCoords.offset_x = 0;
+        blockCoords.offset_y = 0;
+        blockCoords.offset_z = 0;
+
+        blockCoords.tex_offset_x = 0;
+        blockCoords.tex_offset_y = 0;
+        blockCoords.tex_offset_z = 0;
     }
-    blockCoords.x = 0;
-    blockCoords.y = 0;
-    blockCoords.z = 0;
-    blockCoords.mesh_x = 1;
-    blockCoords.mesh_y = 1;
-    blockCoords.mesh_z = 1;
     this->shouldDraw = 0;
-
-    blockCoords.scale_x = 16;
-    blockCoords.scale_y = 16;
-    blockCoords.scale_z = 16;
-
-    blockCoords.offset_x = 0;
-    blockCoords.offset_y = 0;
-    blockCoords.offset_z = 0;
-
-    blockCoords.tex_offset_x = 0;
-    blockCoords.tex_offset_y = 0;
-    blockCoords.tex_offset_z = 0;
 
     this->break_progress = 0.0f;
     this->shader.init( &selection_vertex, &selection_fragment );
@@ -85,16 +90,60 @@ void MouseSelection::set_break_progress( const float progress ) {
 void MouseSelection::hide( ) {
     this->shouldDraw = 0;
 }
-void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, const BlockState &blockState ) {
-    BlockCoords &blockCoords = this->render_chain_mouse_selection.get_instance( this->entity );
-    // y += 1;
+void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const bool shouldDraw, const BlockState &blockState ) {
+    Block *block = block_definition_get_definition( blockState.id );
     this->shouldDraw = shouldDraw;
+    if ( block->is_stairs ) {
+        // Outline the real stair boxes (slab + step + corner octet), already
+        // yawed to world space by stairs_collision_boxes — the same gather
+        // collision.cpp does, so a neighbor change re-shapes the outline too.
+        static const glm::ivec3 stair_dirs[ 4 ] = {
+            glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
+        };
+        int stair_rots[ 4 ];
+        for ( int d = 0; d < 4; d++ ) {
+            const BlockState neighbor = world.get_loaded_block( pos + stair_dirs[ d ] );
+            stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
+        }
+        BlockBox boxes[ STAIRS_MAX_BOXES ];
+        const int num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
+        for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+            BlockCoords &bc = this->render_chain_mouse_selection.get_instance( this->entity[ i ] );
+            bc.x = pos.x;
+            bc.y = pos.y;
+            bc.z = pos.z;
+            bc.face_shift = 0;
+            if ( i < num_boxes ) {
+                bc.scale_x = boxes[ i ].scale[ 0 ];
+                bc.scale_y = boxes[ i ].scale[ 1 ];
+                bc.scale_z = boxes[ i ].scale[ 2 ];
+                bc.offset_x = boxes[ i ].offset[ 0 ];
+                bc.offset_y = boxes[ i ].offset[ 1 ];
+                bc.offset_z = boxes[ i ].offset[ 2 ];
+            } else {
+                bc.scale_x = 0;
+                bc.scale_y = 0;
+                bc.scale_z = 0;
+            }
+            this->render_chain_mouse_selection.invalidate( this->entity[ i ] );
+        }
+        this->selected_block_state = blockState;
+        return;
+    }
+    // Non-stair: instance 0 is the whole outline, the rest collapse.
+    for ( int i = 1; i < STAIRS_MAX_BOXES; i++ ) {
+        BlockCoords &bc = this->render_chain_mouse_selection.get_instance( this->entity[ i ] );
+        bc.scale_x = 0;
+        bc.scale_y = 0;
+        bc.scale_z = 0;
+        this->render_chain_mouse_selection.invalidate( this->entity[ i ] );
+    }
+    BlockCoords &blockCoords = this->render_chain_mouse_selection.get_instance( this->entity[ 0 ] );
     if ( blockCoords.x != pos.x ||                                    //
          blockCoords.y != pos.y ||                                    //
          blockCoords.z != pos.z ||                                    //
          !BlockStates_equal( blockState, this->selected_block_state ) //
     ) {
-        Block *block = block_definition_get_definition( blockState.id );
         blockCoords.x = pos.x;
         blockCoords.y = pos.y;
         blockCoords.z = pos.z;
@@ -129,7 +178,7 @@ void MouseSelection::set_block( const glm::ivec3 &pos, const bool shouldDraw, co
 
         blockCoords.face_shift = block_yaw( block, blockState.rotation );
 
-        this->render_chain_mouse_selection.invalidate( this->entity );
+        this->render_chain_mouse_selection.invalidate( this->entity[ 0 ] );
     }
 }
 void MouseSelection::draw( const Renderer &renderer, const glm::mat4 &mvp, const glm::vec3 &origin ) {

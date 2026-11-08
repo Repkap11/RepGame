@@ -12,7 +12,50 @@ typedef struct {
     float z;
 } RayTemp;
 
-static int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::dvec3 &block, int *which_face ) {
+// Slab test of `initial + t*dir` against a world-space AABB. On hit reports
+// the entry face in this file's convention (LEFT/RIGHT = the -x/+x plane,
+// BOTTOM/TOP = -y/+y, FRONT/BACK = -z/+z — matching contains_pixel's all_t
+// indexing; the z names are opposite the mesh FACE_* table) and the entry
+// distance t (0 when the origin is already inside).
+static bool ray_aabb_hit( const glm::dvec3 &initial, const glm::dvec3 &dir, const glm::dvec3 &bmin, const glm::dvec3 &bmax, int *out_face, double *out_t ) {
+    static const int lo_face[ 3 ] = { FACE_LEFT, FACE_BOTTOM, FACE_FRONT };
+    static const int hi_face[ 3 ] = { FACE_RIGHT, FACE_TOP, FACE_BACK };
+    double tmin = -1e30, tmax = 1e30;
+    int face = -1;
+    for ( int a = 0; a < 3; a++ ) {
+        const double o = initial[ a ], d = dir[ a ];
+        if ( fabs( d ) < 1e-9 ) {
+            if ( o < bmin[ a ] || o > bmax[ a ] ) {
+                return false;
+            }
+            continue;
+        }
+        double ta = ( bmin[ a ] - o ) / d;
+        double tb = ( bmax[ a ] - o ) / d;
+        int f = lo_face[ a ];
+        if ( ta > tb ) {
+            const double tmp = ta;
+            ta = tb;
+            tb = tmp;
+            f = hi_face[ a ];
+        }
+        if ( ta > tmin ) {
+            tmin = ta;
+            face = f;
+        }
+        if ( tb < tmax ) {
+            tmax = tb;
+        }
+    }
+    if ( tmax < 0.0 || tmin > tmax || face < 0 ) {
+        return false;
+    }
+    *out_face = face;
+    *out_t = tmin < 0.0 ? 0.0 : tmin;
+    return true;
+}
+
+static int contains_pixel( Block *pixel_block, BlockState &block_state, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::dvec3 &block, int *which_face, double *out_t, double max_t ) {
     // r.dir is unit direction vector of ray
     double dirfrac_x = 1.0 / dir.x;
     double dirfrac_y = 1.0 / dir.y;
@@ -175,11 +218,19 @@ static int contains_pixel( Block *pixel_block, BlockState &block_state, const gl
         return false;
     }
 
+    // The box entry is past the end of the ray segment.
+    if ( min > max_t ) {
+        return false;
+    }
+
     *which_face = face;
+    if ( out_t != nullptr ) {
+        *out_t = min < 0.0 ? 0.0 : min;
+    }
     return true;
 }
 
-static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int pick_water, int *which_face ) {
+static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int pick_water, int *which_face, double *out_t, double max_t ) {
     BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
@@ -187,8 +238,42 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
     }
     Block *block = block_definition_get_definition( blockID );
     const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || ( pick_water && blockID == WATER );
+    if ( result && block->is_stairs ) {
+        // Pick against the stair's real collision boxes (slab + step, with
+        // the neighbor-derived corner shape) — the nearest box hit wins.
+        static const glm::ivec3 stair_dirs[ 4 ] = {
+            glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
+        };
+        int stair_rots[ 4 ];
+        for ( int d = 0; d < 4; d++ ) {
+            const BlockState neighbor = world.get_loaded_block( block_pos + stair_dirs[ d ] );
+            stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
+        }
+        BlockBox boxes[ STAIRS_MAX_BOXES ];
+        const int num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
+        double best_t = 1e30;
+        int best_face = -1;
+        for ( int i = 0; i < num_boxes; i++ ) {
+            const glm::dvec3 bmin = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            const glm::dvec3 bmax = bmin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
+            int face = -1;
+            double t = 0.0;
+            if ( ray_aabb_hit( initial, dir, bmin, bmax, &face, &t ) && t <= max_t && t < best_t ) {
+                best_t = t;
+                best_face = face;
+            }
+        }
+        if ( best_face < 0 ) {
+            return 0;
+        }
+        *which_face = best_face;
+        if ( out_t != nullptr ) {
+            *out_t = best_t;
+        }
+        return 1;
+    }
     if ( result && ( block->non_full_size || ( block->is_piston && blockState.current_redstone_power > 0 ) ) ) {
-        return contains_pixel( block, blockState, dir, initial, glm::dvec3( block_pos ), which_face );
+        return contains_pixel( block, blockState, dir, initial, glm::dvec3( block_pos ), which_face, out_t, max_t );
     } else {
         return result;
     }
@@ -207,7 +292,48 @@ glm::ivec3 RayTraversal::placement_cell( const glm::ivec3 &hit, int face ) {
     return out;
 }
 
-bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, bool pick_water ) {
+// Distance t along dir at which the ray entered `cell` through `face` —
+// used for full-cube hits (box hits report their own entry t). face names
+// use this file's convention: LEFT/RIGHT = -x/+x plane, FRONT/BACK = -z/+z.
+static double boundary_entry_t( int face, const glm::ivec3 &cell, const glm::dvec3 &from, const glm::dvec3 &dir ) {
+    int axis;
+    double plane;
+    switch ( face ) {
+    case FACE_LEFT:
+        axis = 0;
+        plane = cell.x;
+        break;
+    case FACE_RIGHT:
+        axis = 0;
+        plane = cell.x + 1;
+        break;
+    case FACE_BOTTOM:
+        axis = 1;
+        plane = cell.y;
+        break;
+    case FACE_TOP:
+        axis = 1;
+        plane = cell.y + 1;
+        break;
+    case FACE_FRONT:
+        axis = 2;
+        plane = cell.z;
+        break;
+    case FACE_BACK:
+        axis = 2;
+        plane = cell.z + 1;
+        break;
+    default:
+        return 0.0;
+    }
+    if ( fabs( dir[ axis ] ) < 1e-9 ) {
+        return 0.0;
+    }
+    const double t = ( plane - from[ axis ] ) / dir[ axis ];
+    return t < 0.0 ? 0.0 : t;
+}
+
+bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, bool pick_water, double *out_hit_t ) {
 
     glm::dvec3 dir = to - from;
     // dir = glm::normalize(dir);
@@ -265,13 +391,17 @@ bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, con
     }
     for ( ;; ) {
         int which_face = -1;
-        int hit_block = contains_block( world, dir, from, offset, pick_water, &which_face );
+        double box_t = -1.0;
+        int hit_block = contains_block( world, dir, from, offset, pick_water, &which_face, &box_t, length );
         if ( which_face != -1 ) {
             face = which_face;
         }
         if ( hit_block ) {
             out = offset;
             *out_face = face;
+            if ( out_hit_t != nullptr ) {
+                *out_hit_t = which_face != -1 ? box_t : boundary_entry_t( face, out, from, dir );
+            }
             return true;
         }
 

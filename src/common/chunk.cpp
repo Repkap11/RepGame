@@ -1273,6 +1273,19 @@ void Chunk::calculate_populated_blocks( ) {
                             num_boxes = fence_boxes( connections, boxes );
                         } else if ( block->is_fence_gate ) {
                             num_boxes = fence_gate_boxes( ( blockState.rotation & BLOCK_ROTATE_GATE_OPEN ) != 0, boxes );
+                        } else if ( block->is_stairs ) {
+                            // Neighbor stair rotations for the corner derive
+                            // (stair_rots[d] = rotation of the stair in world
+                            // direction d, -1 = not a stair) — same gather as
+                            // collision.cpp's is_stairs branch.
+                            static const int stair_dir[ 4 ][ 2 ] = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
+                            int stair_rots[ 4 ];
+                            for ( int d = 0; d < 4; d++ ) {
+                                const BlockCell ncell = this->cells[ get_index_from_coords( x + stair_dir[ d ][ 0 ], y, z + stair_dir[ d ][ 1 ] ) ];
+                                stair_rots[ d ] = block_definition_get_definition( block_cell_id( ncell ) )->is_stairs ? block_cell_rotation( ncell ) : -1;
+                            }
+                            num_boxes = stairs_boxes( stairs_shape_derive( blockState.rotation, stair_rots ),
+                                                      ( blockState.rotation & BLOCK_ROTATE_STAIRS_TOP ) != 0, boxes );
                         }
                         // A lit redstone torch emits a second instance: the
                         // 4-wide orb head around the stick's top.

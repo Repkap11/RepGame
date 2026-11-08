@@ -75,6 +75,27 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
         }
         return num_boxes;
     }
+    if ( block->is_stairs ) {
+        // Neighbor stair rotations for the corner derive (stair_rots[d] =
+        // rotation of the stair in world direction d, -1 = not a stair) —
+        // the same gather the mesher does in chunk.cpp phase 2; an unloaded
+        // cell doesn't merge.
+        static const glm::ivec3 stair_dirs[ 4 ] = {
+            glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
+        };
+        int stair_rots[ 4 ];
+        for ( int d = 0; d < 4; d++ ) {
+            const BlockState neighbor = world.get_loaded_block( block_pos + stair_dirs[ d ] );
+            stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
+        }
+        BlockBox boxes[ STAIRS_MAX_BOXES ];
+        const int num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
+        for ( int i = 0; i < num_boxes; i++ ) {
+            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
+        }
+        return num_boxes;
+    }
     glm::dvec3 &out_min = mins[ 0 ];
     glm::dvec3 &out_max = maxs[ 0 ];
     const unsigned char rot = block_yaw( block, blockState.rotation );

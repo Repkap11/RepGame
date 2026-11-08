@@ -95,6 +95,11 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
             { 6, -8, OAK_FENCE }, { 7, -8, NETHER_BRICK_FENCE },
             // Nether brick run.
             { 9, -8, NETHER_BRICK_FENCE }, { 10, -8, NETHER_BRICK_FENCE }, { 11, -8, NETHER_BRICK_FENCE },
+            // Stairs (rotation is always 0, so every showcase stair faces
+            // -z): a run along z to walk up, a row along x to eyeball the
+            // straight model's silhouette, and a mixed-material pair.
+            { -2, -13, OAK_STAIRS }, { -2, -14, OAK_STAIRS }, { -2, -15, OAK_STAIRS }, { -2, -16, OAK_STAIRS },
+            { 2, -14, OAK_STAIRS }, { 4, -14, OAK_STAIRS }, { 6, -14, STONE_STAIRS }, { 8, -14, COBBLED_DEEPSLATE_STAIRS },
         };
         for ( const auto &s : showcase ) {
             if ( s.x == x && s.z == z ) {

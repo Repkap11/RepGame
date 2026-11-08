@@ -239,6 +239,257 @@ int test_fences( ) {
     return failures;
 }
 
+// Stairs: the MC getStairsShape corner derive, def-space box geometry, the
+// world yaw remap, the top-half bit, generated defs, and world-level
+// collision/raycast including a walk-up-the-staircase sim. stair_rots[]
+// indexes the same direction space as rotation & 3: 0=-z(front), 1=+x
+// (right of -z), 2=+z(back), 3=-x(left).
+int test_stairs( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto boxes_in_bounds = [ & ]( const BlockBox *boxes, int n ) {
+        for ( int i = 0; i < n; i++ ) {
+            for ( int a = 0; a < 3; a++ ) {
+                if ( boxes[ i ].offset[ a ] < 0 || boxes[ i ].scale[ a ] <= 0 || boxes[ i ].offset[ a ] + boxes[ i ].scale[ a ] > 16 ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+    const int TOP = BLOCK_ROTATE_STAIRS_TOP;
+
+    // --- stairs_shape_derive (facing 0 = -z: front idx 0, back idx 2, left idx 3, right idx 1)
+    {
+        int r[ 4 ] = { -1, -1, -1, -1 };
+        check_bool( "derive: lone stair is straight", stairs_shape_derive( 0, r ) == STAIRS_STRAIGHT );
+        check_bool( "derive: lone top-half stair is straight", stairs_shape_derive( TOP, r ) == STAIRS_STRAIGHT );
+
+        r[ 0 ] = 0;
+        check_bool( "derive: same-facing stair in front stays straight", stairs_shape_derive( 0, r ) == STAIRS_STRAIGHT );
+        r[ 0 ] = 2;
+        check_bool( "derive: back-facing stair in front stays straight", stairs_shape_derive( 0, r ) == STAIRS_STRAIGHT );
+        r[ 0 ] = 1;
+        check_bool( "derive: front stair facing right -> outer right", stairs_shape_derive( 0, r ) == STAIRS_OUTER_RIGHT );
+        check_bool( "derive: bottom-half front stair ignored for top half", stairs_shape_derive( TOP, r ) == STAIRS_STRAIGHT );
+        r[ 0 ] = 3;
+        check_bool( "derive: front stair facing left -> outer left", stairs_shape_derive( 0, r ) == STAIRS_OUTER_LEFT );
+        r[ 0 ] = 1 | TOP;
+        check_bool( "derive: different-half front stair ignored", stairs_shape_derive( 0, r ) == STAIRS_STRAIGHT );
+        check_bool( "derive: top half merges with top half", stairs_shape_derive( TOP, r ) == STAIRS_OUTER_RIGHT );
+
+        // Third-side suppression: with the front stair facing +x, a stair
+        // at -x (dir 3) facing our way keeps us straight.
+        r[ 0 ] = 1;
+        r[ 3 ] = 0;
+        check_bool( "derive: outer corner suppressed by third-side stair", stairs_shape_derive( 0, r ) == STAIRS_STRAIGHT );
+        r[ 3 ] = 1;
+        check_bool( "derive: perpendicular third side doesn't suppress", stairs_shape_derive( 0, r ) == STAIRS_OUTER_RIGHT );
+        r[ 3 ] = -1;
+        r[ 0 ] = -1;
+
+        r[ 2 ] = 3;
+        check_bool( "derive: back stair facing left -> inner left", stairs_shape_derive( 0, r ) == STAIRS_INNER_LEFT );
+        // MC probes the merge-side cell (pos + back stair facing) for a
+        // same-facing stair to suppress the corner.
+        r[ 3 ] = 0;
+        check_bool( "derive: inner left suppressed by -x stair", stairs_shape_derive( 0, r ) == STAIRS_STRAIGHT );
+        r[ 3 ] = 1;
+        check_bool( "derive: perpendicular -x stair doesn't suppress", stairs_shape_derive( 0, r ) == STAIRS_INNER_LEFT );
+        r[ 3 ] = -1;
+        r[ 2 ] = 1;
+        check_bool( "derive: back stair facing right -> inner right", stairs_shape_derive( 0, r ) == STAIRS_INNER_RIGHT );
+        r[ 1 ] = 0;
+        check_bool( "derive: inner right suppressed by +x stair", stairs_shape_derive( 0, r ) == STAIRS_STRAIGHT );
+        r[ 1 ] = -1;
+        r[ 0 ] = 1;
+        check_bool( "derive: outer beats inner when both match", stairs_shape_derive( 0, r ) == STAIRS_OUTER_RIGHT );
+        r[ 0 ] = -1;
+        r[ 2 ] = -1;
+
+        // Facing 1 = +x: front idx 1, back idx 3, left = -z (idx 0), right = +z (idx 2).
+        r[ 1 ] = 0;
+        check_bool( "derive: +x facing, front stair faces left(-z) -> outer left", stairs_shape_derive( 1, r ) == STAIRS_OUTER_LEFT );
+        r[ 1 ] = 2;
+        check_bool( "derive: +x facing, front stair faces right(+z) -> outer right", stairs_shape_derive( 1, r ) == STAIRS_OUTER_RIGHT );
+        r[ 1 ] = -1;
+        r[ 3 ] = 0;
+        check_bool( "derive: +x facing, back stair faces left -> inner left", stairs_shape_derive( 1, r ) == STAIRS_INNER_LEFT );
+    }
+
+    // --- stairs_boxes (def space: facing -z, full-height step at z 0..8) -----
+    {
+        BlockBox boxes[ STAIRS_MAX_BOXES ];
+        check_bool( "boxes: straight bottom = slab + step",
+                    stairs_boxes( STAIRS_STRAIGHT, false, boxes ) == 2 &&                       //
+                        boxes[ 0 ].scale[ 1 ] == 8 && boxes[ 0 ].offset[ 1 ] == 0 &&            //
+                        boxes[ 1 ].scale[ 0 ] == 16 && boxes[ 1 ].scale[ 2 ] == 8 &&            //
+                        boxes[ 1 ].offset[ 1 ] == 8 && boxes[ 1 ].offset[ 2 ] == 0 );
+        check_bool( "boxes: straight top flips the halves",
+                    stairs_boxes( STAIRS_STRAIGHT, true, boxes ) == 2 &&                        //
+                        boxes[ 0 ].offset[ 1 ] == 8 && boxes[ 1 ].offset[ 1 ] == 0 );
+        check_bool( "boxes: step skips the coplanar slab face",
+                    boxes[ 1 ].skip_faces == ( 1u << FACE_TOP ) );
+        check_bool( "boxes: bottom step skips FACE_BOTTOM",
+                    stairs_boxes( STAIRS_STRAIGHT, false, boxes ) == 2 && boxes[ 1 ].skip_faces == ( 1u << FACE_BOTTOM ) );
+        check_bool( "boxes: outer left = slab + corner octet at (-x,-z)",
+                    stairs_boxes( STAIRS_OUTER_LEFT, false, boxes ) == 2 &&                     //
+                        boxes[ 1 ].scale[ 0 ] == 8 && boxes[ 1 ].scale[ 2 ] == 8 &&             //
+                        boxes[ 1 ].offset[ 0 ] == 0 && boxes[ 1 ].offset[ 2 ] == 0 );
+        check_bool( "boxes: outer right octet at (+x,-z)",
+                    stairs_boxes( STAIRS_OUTER_RIGHT, false, boxes ) == 2 && boxes[ 1 ].offset[ 0 ] == 8 && boxes[ 1 ].offset[ 2 ] == 0 );
+        check_bool( "boxes: inner left = slab + strip + octet at (-x,+z)",
+                    stairs_boxes( STAIRS_INNER_LEFT, false, boxes ) == 3 &&                     //
+                        boxes[ 1 ].scale[ 0 ] == 16 &&                                          //
+                        boxes[ 2 ].scale[ 0 ] == 8 && boxes[ 2 ].offset[ 0 ] == 0 && boxes[ 2 ].offset[ 2 ] == 8 );
+        check_bool( "boxes: inner right octet at (+x,+z)",
+                    stairs_boxes( STAIRS_INNER_RIGHT, false, boxes ) == 3 && boxes[ 2 ].offset[ 0 ] == 8 && boxes[ 2 ].offset[ 2 ] == 8 );
+        check_bool( "boxes: inner octet skips the -z seam",
+                    ( boxes[ 2 ].skip_faces & ( 1u << FACE_BACK ) ) != 0 && ( boxes[ 2 ].skip_faces & ( 1u << FACE_BOTTOM ) ) != 0 );
+        bool all_bounds = true;
+        for ( int s = STAIRS_STRAIGHT; s <= STAIRS_OUTER_RIGHT; s++ ) {
+            all_bounds &= boxes_in_bounds( boxes, stairs_boxes( static_cast<StairShape>( s ), false, boxes ) );
+            all_bounds &= boxes_in_bounds( boxes, stairs_boxes( static_cast<StairShape>( s ), true, boxes ) );
+        }
+        check_bool( "boxes: every shape x half stays in bounds", all_bounds );
+    }
+
+    // --- stairs_collision_boxes: def-space boxes yawed to world --------------
+    {
+        BlockBox boxes[ STAIRS_MAX_BOXES ];
+        int r[ 4 ] = { -1, -1, -1, -1 };
+        check_bool( "collide: rot 0 step at -z",
+                    stairs_collision_boxes( 0, r, boxes ) == 2 &&                               //
+                        boxes[ 1 ].offset[ 2 ] == 0 && boxes[ 1 ].scale[ 2 ] == 8 );
+        check_bool( "collide: rot 1 step at +x",
+                    stairs_collision_boxes( 1, r, boxes ) == 2 &&                               //
+                        boxes[ 1 ].offset[ 0 ] == 8 && boxes[ 1 ].scale[ 0 ] == 8 && boxes[ 1 ].scale[ 2 ] == 16 );
+        check_bool( "collide: rot 2 step at +z",
+                    stairs_collision_boxes( 2, r, boxes ) == 2 &&                               //
+                        boxes[ 1 ].offset[ 2 ] == 8 && boxes[ 1 ].scale[ 2 ] == 8 );
+        check_bool( "collide: rot 3 step at -x",
+                    stairs_collision_boxes( 3, r, boxes ) == 2 &&                               //
+                        boxes[ 1 ].offset[ 0 ] == 0 && boxes[ 1 ].scale[ 0 ] == 8 && boxes[ 1 ].scale[ 2 ] == 16 );
+        check_bool( "collide: top-half slab on top",
+                    stairs_collision_boxes( TOP, r, boxes ) == 2 && boxes[ 0 ].offset[ 1 ] == 8 );
+        // Same neighbor merge the mesher sees: front stair facing +x gives
+        // the outer-right octet in world space.
+        r[ 0 ] = 1;
+        check_bool( "collide: corner merge shrinks the step",
+                    stairs_collision_boxes( 0, r, boxes ) == 2 &&                               //
+                        boxes[ 1 ].offset[ 0 ] == 8 && boxes[ 1 ].scale[ 0 ] == 8 && boxes[ 1 ].scale[ 2 ] == 8 );
+    }
+
+    // --- generated definitions ------------------------------------------------
+    const Block *oak_stairs = block_definition_get_definition( OAK_STAIRS );
+    check_bool( "def: OAK_STAIRS is_stairs + rotates",
+                oak_stairs->is_stairs && oak_stairs->rotate_on_placement &&                    //
+                    oak_stairs->non_full_size && oak_stairs->collides_with_player &&           //
+                    !oak_stairs->is_solid && oak_stairs->is_seethrough );
+    check_bool( "def: stair yaw masks the top-half bit",
+                block_yaw( oak_stairs, 0 | TOP ) == 0 && block_yaw( oak_stairs, 3 | TOP ) == 3 );
+    check_bool( "def: plain side faces (no mask tile)",
+                strstr( texture_name( oak_stairs->textures[ FACE_LEFT ] ), "__stairs" ) == nullptr );
+    check_bool( "def: flat stair-silhouette icon",
+                !oak_stairs->icon_is_isometric && strstr( texture_name( oak_stairs->icon_texture ), "__stairs" ) != nullptr );
+
+    check_bool( "showcase: stair run along z", MapGen::block_world_id( -2, 1, -14 ) == OAK_STAIRS );
+    check_bool( "showcase: mixed row", MapGen::block_world_id( 6, 1, -14 ) == STONE_STAIRS );
+
+    // --- world-level collision + raycast --------------------------------------
+    {
+        RepGameState &gs2 = *new RepGameState( );
+        gs2.tick_number = 0;
+        gs2.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs2.world );
+        World &world = gs2.world;
+        const BlockState stone = { STONE, 0, 0, STONE, 0 };
+        for ( int x = 18; x <= 23; x++ ) {
+            for ( int z = 17; z <= 24; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+            }
+        }
+        const BlockState stair = { OAK_STAIRS, 0, 0, OAK_STAIRS, 0 };
+        world.set_loaded_block( glm::ivec3( 20, 11, 20 ), stair );
+
+        // rot 0 faces -z: step at z 20..20.5 (top y=12), slab top at y=11.5.
+        // Probes sit on the front half, >half-width (0.3) clear of the step.
+        const double eye_y = 11.0 + PLAYER_EYE_HEIGHT;
+        check_bool( "world: feet on front slab collide at +0.4",
+                    Collision::collides_at( world, glm::dvec3( 20.5, eye_y + 0.4, 20.95 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: open air above front slab at +0.6",
+                    !Collision::collides_at( world, glm::dvec3( 20.5, eye_y + 0.6, 20.95 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: step top collides at +0.9",
+                    Collision::collides_at( world, glm::dvec3( 20.5, eye_y + 0.9, 20.25 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: clear above the step at +1.1",
+                    !Collision::collides_at( world, glm::dvec3( 20.5, eye_y + 1.1, 20.25 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+
+        // Top-half stair: the upper slab collides where the bottom stair
+        // leaves air (feet +0.6), and the void under its step is open space.
+        world.set_loaded_block( glm::ivec3( 22, 11, 20 ), { OAK_STAIRS, 0 | TOP, 0, OAK_STAIRS, 0 } );
+        check_bool( "world: top stair's upper slab collides at +0.6",
+                    Collision::collides_at( world, glm::dvec3( 22.5, eye_y + 0.6, 20.75 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: top stair is clear above at +1.1",
+                    !Collision::collides_at( world, glm::dvec3( 22.5, eye_y + 1.1, 20.75 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+
+        // Neighbor merge in collision: a front stair facing +x shrinks our
+        // step to the +x octet; a same-facing stair at -x un-shrinks it.
+        world.set_loaded_block( glm::ivec3( 20, 11, 19 ), { OAK_STAIRS, 1, 0, OAK_STAIRS, 0 } );
+        check_bool( "world: outer corner leaves -x open at step height",
+                    !Collision::collides_at( world, glm::dvec3( 20.15, eye_y + 0.9, 20.25 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: outer corner still steps at +x",
+                    Collision::collides_at( world, glm::dvec3( 20.75, eye_y + 0.9, 20.25 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        world.set_loaded_block( glm::ivec3( 19, 11, 20 ), { OAK_STAIRS, 0, 0, OAK_STAIRS, 0 } );
+        check_bool( "world: third-side stair restores the straight step",
+                    Collision::collides_at( world, glm::dvec3( 20.15, eye_y + 0.9, 20.25 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        world.set_loaded_block( glm::ivec3( 19, 11, 20 ), BLOCK_STATE_AIR );
+        world.set_loaded_block( glm::ivec3( 20, 11, 19 ), BLOCK_STATE_AIR );
+
+        // Walking up a staircase: stair run ascending -z (+0.5 per cell
+        // step) via the same STEP_HEIGHT step-up path slabs use.
+        world.set_loaded_block( glm::ivec3( 20, 12, 19 ), { OAK_STAIRS, 0, 0, OAK_STAIRS, 0 } );
+        glm::dvec3 pos( 20.5, eye_y + 0.5, 20.9 );
+        int standing = 0;
+        for ( int i = 0; i < 40 && pos.z > 19.2; i++ ) {
+            glm::dvec3 vec( 0.0, -0.05, -0.05 );
+            Collision::check_move( world, vec, pos, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            pos += vec;
+        }
+        const double feet = pos.y - PLAYER_EYE_HEIGHT;
+        check_bool( "world: walked up the staircase to +13", pos.z < 19.6 && fabs( feet - 13.0 ) < 0.05 );
+        world.set_loaded_block( glm::ivec3( 20, 12, 19 ), BLOCK_STATE_AIR );
+
+        // Raycast: the upper-front void misses, the step and slab hit with
+        // correct faces, and the hit t gives the in-cell y fraction.
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        double hit_t = -1.0;
+        check_bool( "ray: upper-front void misses",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 11.75, 22.0 ), glm::dvec3( 20.5, 11.75, 20.75 ), out, &which_face ) );
+        check_bool( "ray: step's +z face hits the stair",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 11.75, 22.0 ), glm::dvec3( 20.5, 11.75, 18.5 ), out, &which_face, false, &hit_t ) &&
+                        out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_BACK );
+        // Crossing the void horizontally, the ray ignores the stair's cell
+        // and hits the top-half stair's upper slab on the far side.
+        check_bool( "ray: through the void hits the top stair behind",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 18.5, 11.75, 20.75 ), glm::dvec3( 22.5, 11.75, 20.75 ), out, &which_face ) &&
+                        out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_LEFT );
+        hit_t = -1.0;
+        check_bool( "ray: slab top hit reports t at +0.5",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                        out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 1.0 ) < 0.01 );
+    }
+    return failures;
+}
+
 // Block-world debug layout (REPGAME_BLOCK_WORLD path — block_world_id itself
 // is env-independent): sandstone floor, grid order = CREATIVE_BLOCKS then
 // remaining defined ids ascending, one air cell between neighbours.

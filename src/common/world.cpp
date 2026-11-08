@@ -257,7 +257,7 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
         this->mouseSelection.hide( );
         return;
     }
-    this->mouseSelection.set_block( selected, shouldDraw, blockState );
+    this->mouseSelection.set_block( *this, selected, shouldDraw, blockState );
 }
 
 #define WATER_THRESHOLD_P ( 0.02 )

@@ -44,6 +44,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_redstone_dust = false;
         block->is_fence = false;
         block->is_fence_gate = false;
+        block->is_stairs = false;
         block->spine_shell = false;
         block->is_door = false;
         block->is_door_upper = false;
@@ -77,7 +78,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         // Calculate non_full_size so the result can be cached for access at runtime.
         if ( ( block->scale.x != 16 || block->scale.y != 16 || block->scale.z != 16 ) || //
              ( block->offset.x != 0 || block->offset.y != 0 || block->offset.z != 0 ) || //
-             ( block->tex_offset.x != 0 || block->tex_offset.y != 0 || block->tex_offset.z != 0 ) ) {
+             ( block->tex_offset.x != 0 || block->tex_offset.y != 0 || block->tex_offset.z != 0 ) || //
+             block->is_stairs ) {
             block->non_full_size = true;
         } else {
             block->non_full_size = false;

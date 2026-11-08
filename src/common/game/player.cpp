@@ -76,6 +76,15 @@ unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
             rotation = BLOCK_ROTATE_0;
         }
     }
+    // Stairs flip upside-down (rotation bit 2) by MC's rule: clicking the
+    // bottom face of a block, or the upper half of a side face, places a
+    // top-half stair.
+    if ( block->is_stairs ) {
+        const BlockSelection &sel = globalGameState.block_selection;
+        if ( sel.face == FACE_BOTTOM || ( sel.face != FACE_TOP && sel.hit_y_in_cell > 0.5 ) ) {
+            rotation = static_cast<unsigned char>( rotation | BLOCK_ROTATE_STAIRS_TOP );
+        }
+    }
     // Torches can be placed on the sides of blocks.
     // rotation >= 4 encodes attachment face: 4=LEFT, 5=FRONT, 6=RIGHT, 7=BACK
     if ( block->is_torch ) {
