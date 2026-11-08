@@ -60,7 +60,8 @@ streamed, so only the local player tempts). Tempting ignores a
 no-clipping player but not the hostiles toggle — peaceful worlds still
 tempt. Right-clicking a breedable
 mob while holding a valid food calls `MobManager::feed` — an adult
-enters `love_ticks` (`MOB_LOVE_TICKS` ≈ 8 s), a baby sheds ~10% of its
+enters `love_ticks` (no expiry: love lasts until the mob mates), a baby
+sheds ~10% of its
 remaining growth. Feeding marks the mob `touched` so it persists like
 penned livestock. Two same-type mobs in love path to each other and the
 pair check at the end of `tick` spawns a baby at their midpoint
@@ -76,10 +77,12 @@ through `ENTITY_ACTION`/`NET_ACTION_FEED` — the owner validates the item
 against `breed_items` before applying (see `docs/entities.md`); baby
 state rides `NET_MOB_FLAG_BABY` + `NetEntityRecord.age_ticks`, and
 `MobFileRecord::grow_ticks` persists it (`docs/persistence.md`).
-Love-mode feedback is red-heart particles (`HeartParticles`):
-one heart at the feeding moment and one every ~0.5 s while
-`love_ticks` lasts (mirrors key off `NET_MOB_FLAG_LOVE`), a burst
-over a newborn, and a smaller puff when a baby eats. Emission runs
+Breeding feedback is red-heart particles (`HeartParticles`): feeding
+opens a `heart_ticks` window (~5 s, one heart per ~0.5 s; on mirrors the
+`NET_MOB_FLAG_LOVE` rising edge opens the same window), a burst
+over a newborn, and a smaller puff when a baby eats. The window is
+bounded because love itself never expires — keying emission to
+`love_ticks` would accumulate particles without bound. Emission runs
 inside `MobManager::update_render` so hearts interpolate with the
 render frame; capture mode skips it to stay deterministic. Mobs
 also trample: landing on `FARMLAND` after >0.5 blocks of real fall pushes

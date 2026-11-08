@@ -127,9 +127,9 @@ class MobManager {
         int burn_acc;       // daylight-burn damage accumulator ticks
         float wing_phase;   // wing-flap oscillator
         // Breeding (types with MobTypeDef::breed_items): love_ticks > 0 is
-        // love mode — the mob seeks a same-type partner also in love and a
-        // close pair produces a baby; breed_cooldown > 0 blocks re-entry
-        // (2 min after mating). age_ticks < 0 is a baby counting up toward
+        // love mode — the mob seeks a same-type partner also in love until
+        // a close pair produces a baby (no expiry); breed_cooldown > 0
+        // blocks re-entry (2 min after mating). age_ticks < 0 is a baby counting up toward
         // 0 = adult, persisted through MobFileRecord::grow_ticks and
         // NetEntityRecord::age_ticks; babies render/collide at BABY_SCALE
         // and drop nothing. fall_dist accumulates downward travel for the
@@ -142,14 +142,18 @@ class MobManager {
         // pressed against — tick_mob pushes the mob back out next pass.
         int needs_unstick;
         float fall_dist;
-        // Heart particles (client-side visuals, update_render): in love
-        // (own love_ticks or a mirror's NET_MOB_FLAG_LOVE) puffs one heart
-        // every ~half second; heart_burst queues a one-shot puff group
-        // (newborn or fed baby). next_heart_at runs on the HeartParticles
-        // clock; was_in_love detects the feeding rising edge.
+        // Heart particles (client-side visuals, update_render): feeding
+        // opens a heart_ticks window (~5 s) puffing one heart every ~half
+        // second — mirrors get the window from the NET_MOB_FLAG_LOVE
+        // rising edge since feed() only runs on the owner. next_heart_at
+        // runs on the HeartParticles clock; was_emitting detects the
+        // window's rising edge. heart_burst queues a one-shot puff group
+        // on top (newborn or fed baby). Bounded — love never expires, so
+        // keying the cadence to love_ticks would emit forever.
+        int heart_ticks;
         float next_heart_at;
+        int was_emitting;
         int heart_burst;
-        int was_in_love;
         // Multiplayer sync (net.id 0 / net.mirror false in single player):
         // mirrors run no sim — tick_mirror eases pos/yaw toward the net
         // targets and derives gait from the applied motion.

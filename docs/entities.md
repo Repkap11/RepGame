@@ -154,8 +154,8 @@ re-breed cooldown, `NET_MOB_FLAG_BABY` carries the half-scale flag through
 state entries (a mirror keeps its own countdown while flagged), and
 feeds reach the owner as ENTITY_ACTION/NET_ACTION_FEED — see
 `docs/mobs.md` "Breeding". `NET_MOB_FLAG_LOVE` carries a mob's in-love
-window the same way so every client can play the heart particles, not
-just the owner.
+state the same way; its rising edge opens the feed-heart window on
+every client, not just the owner.
 
 Bodies (falling blocks + primed TNT) differ: the *causing* client
 simulates — ENTITY_SPAWN fixes a sim fd, only that client's states and

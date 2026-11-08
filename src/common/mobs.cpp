@@ -25,17 +25,17 @@
 // block; the quadruped walk anim's 38.17°/unit is calibrated against that.
 #define MOB_GAIT_UNITS_PER_BLOCK 4.0f
 
-// Breeding timers (UPS ticks): love mode seeks a mate for ~8 s; a mated
-// pair can't re-breed for 2 min; a baby grows up in ~5 min.
-#define MOB_LOVE_TICKS ( 8 * UPS_RATE )
+// Breeding timers (UPS ticks): love mode lasts until a mate reaches the
+// mob; a mated pair can't re-breed for 2 min; a baby grows up in ~5 min.
 #define MOB_BREED_COOLDOWN_TICKS ( 2 * 60 * UPS_RATE )
 #define MOB_BABY_AGE_TICKS ( 5 * 60 * UPS_RATE )
 // Animals notice a held breed item within this distance of the player.
 #define MOB_TEMPT_RANGE 10.0
 // Babies render and collide at half the adult hitbox scale.
 #define MOB_BABY_SCALE 0.5f
-// Love hearts: MC parity — one heart per ~0.5 s while in love, a burst on
-// a newborn, a smaller puff when a baby eats.
+// Breeding hearts: feeding opens a ~5 s window with one heart per ~0.5 s;
+// a burst on a newborn, a smaller puff when a baby eats.
+#define HEART_TICKS ( 5 * UPS_RATE )
 #define HEART_PERIOD_MIN 0.35f
 #define HEART_PERIOD_SPREAD 0.5f
 #define HEART_BORN_COUNT 7
@@ -171,9 +171,10 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.age_ticks = 0;
     mob.needs_unstick = 0;
     mob.fall_dist = 0.0f;
+    mob.heart_ticks = 0;
     mob.next_heart_at = 0.0f;
+    mob.was_emitting = 0;
     mob.heart_burst = 0;
-    mob.was_in_love = 0;
     mob.uid = 0;
     mob.look_yaw = 0.0f;
     mob.look_pitch = 0.0f;
@@ -352,11 +353,9 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         return;
     }
 
-    // Breeding timers: love expires on its own, the post-mating cooldown
-    // runs down, and a baby counts up to adult (feeding accelerates it).
-    if ( mob.love_ticks > 0 ) {
-        mob.love_ticks--;
-    }
+    // Breeding timers: love lasts until mating clears it, the post-mating
+    // cooldown runs down, and a baby counts up to adult (feeding
+    // accelerates it).
     if ( mob.breed_cooldown > 0 ) {
         mob.breed_cooldown--;
     }
@@ -515,7 +514,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         } else if ( mob.love_ticks > 0 ) {
             // Love mode: walk to the nearest same-type partner also in
             // love; the pair check in tick() produces the baby on contact.
-            // No partner -> stand still until the timer runs out.
+            // No partner -> stand still and wait for one.
             const Mob *mate = nullptr;
             double mate_dist = 1e30;
             for ( const Mob &other : this->mobs ) {
@@ -901,7 +900,8 @@ bool MobManager::feed( const int index, const ItemID item ) {
         mob.needs_unstick = mob.age_ticks == 0;
         mob.heart_burst = HEART_BABY_FEED_COUNT;
     } else {
-        mob.love_ticks = MOB_LOVE_TICKS;
+        mob.love_ticks = 1;
+        mob.heart_ticks = HEART_TICKS;
         mob.ai_state = 0;
         mob.ai_ticks = 0;
     }
@@ -1063,6 +1063,11 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
     const float player_eye = in != nullptr ? in->player_eye_height : PLAYER_EYE_HEIGHT;
     const glm::dvec3 player_feet = player_pos - glm::dvec3( 0.0, player_eye, 0.0 );
     for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
+        // The feed-heart window runs down for local and mirror mobs alike
+        // (mirrors get it from the NET_MOB_FLAG_LOVE edge, not feed()).
+        if ( it->heart_ticks > 0 ) {
+            it->heart_ticks--;
+        }
         if ( it->uid != 0 ) {
             this->tick_remote( *it );
             ++it;
@@ -1427,11 +1432,12 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
         // One light sample per mob covers all of its parts.
         const glm::vec2 light = chunk_loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, def.eye_h * scale_of( mob ), 0.0f ) );
 
-        // Love hearts: own love_ticks drives local mobs, the LOVE net flag
-        // carries it to mirrors. A heart at the feeding moment (rising
-        // edge), then one per ~0.5 s while love lasts; heart_burst is a
-        // one-shot group (newborn / fed baby). Capture mode stays clean —
-        // heart emission would add run-to-run noise.
+        // Breeding hearts: feeding opens a ~5 s window (heart_ticks —
+        // mirrors get it from the LOVE flag edge) emitting one heart per
+        // ~0.5 s; heart_burst is a one-shot group on top (newborn / fed
+        // baby). Bounded, so emission can't run forever even though love
+        // itself no longer expires. Capture mode stays clean — heart
+        // emission would add run-to-run noise.
         if ( hearts != nullptr && mob.death_ticks == 0 && !RepGame::capture_mode( ) ) {
             float dt = time_s - mob.next_heart_at;
             // Half-wrap: next_heart_at can sit just past 3600 while time_s
@@ -1440,14 +1446,14 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
             if ( dt < -HEART_TIME_WRAP * 0.5f ) {
                 dt += HEART_TIME_WRAP;
             }
-            const bool in_love = mob.love_ticks > 0 || ( mob.net_flags & NET_MOB_FLAG_LOVE ) != 0;
             const glm::dvec3 above_head = rpos + glm::dvec3( 0.0, def.hitbox_h * scale_of( mob ) + 0.35, 0.0 );
-            if ( in_love && ( !mob.was_in_love || dt >= 0.0f ) ) {
+            const bool emitting = mob.heart_ticks > 0;
+            if ( emitting && ( !mob.was_emitting || dt >= 0.0f ) ) {
                 hearts->spawn( above_head, light, 1, time_s );
                 std::uniform_real_distribution<float> period( HEART_PERIOD_MIN, HEART_PERIOD_MIN + HEART_PERIOD_SPREAD );
                 mob.next_heart_at = time_s + period( this->rng );
             }
-            mob.was_in_love = in_love;
+            mob.was_emitting = emitting;
             if ( mob.heart_burst > 0 ) {
                 hearts->spawn( above_head, light, mob.heart_burst, time_s );
                 mob.heart_burst = 0;
@@ -1669,6 +1675,10 @@ bool MobManager::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
         mob.breed_cooldown = std::max<int32_t>( rec.age_ticks, 0 );
         mob.age_ticks = 0;
     }
+    // A mob spawning into view already in love opens its heart window.
+    if ( rec.flags & NET_MOB_FLAG_LOVE ) {
+        mob.heart_ticks = HEART_TICKS;
+    }
     if ( rec.flags & NET_MOB_FLAG_HURT ) {
         mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
     }
@@ -1744,6 +1754,11 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
         if ( def.sound_hurt != NULL ) {
             audio_play_sfx( def.sound_hurt );
         }
+    }
+    // LOVE rides the same edge: the owner's feed() opens its own heart
+    // window, so this opens it on every other client.
+    if ( ( e.flags & NET_MOB_FLAG_LOVE ) && !( old_flags & NET_MOB_FLAG_LOVE ) ) {
+        mob->heart_ticks = HEART_TICKS;
     }
     if ( ( e.flags & NET_MOB_FLAG_DYING ) && !( old_flags & NET_MOB_FLAG_DYING ) ) {
         mob->death_ticks = 1;

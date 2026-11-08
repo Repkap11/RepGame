@@ -1083,7 +1083,7 @@ int test_mobs( ) {
         check_bool( "feed: enters love mode", mobs.mobs[ 0 ].love_ticks > 0 );
         check_bool( "feed: in-love pig stops eating", !mobs.feedable( 0, CARROT ) );
         mobs.feed( 1, CARROT );
-        // Both in love: they approach and mate within the love window.
+        // Both in love: they approach and mate (love never expires).
         int ticks_to_baby = -1;
         for ( int i = 0; i < 10 * UPS_RATE; i++ ) {
             mobs.tick( world, player_pos );
