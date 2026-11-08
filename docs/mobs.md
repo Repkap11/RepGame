@@ -55,9 +55,12 @@ Despawnables are removed > 64 blocks out, randomly at
 1/(8·UPS_RATE)/tick past 40, or when their feet chunk leaves
 `CHUNK_LIVE`, and are never persisted.
 
-`MAX_MOBS` (256) caps only locally created mobs — `spawn`, the night
-spawner and fresh natural-roll products check `under_mob_cap()` (owned
-non-mirror, non-avatar count). It is not a storage or render limit:
+`MAX_MOBS` (256) caps only emergent population sources — the night
+spawner and fresh natural-roll products call `spawn` with the default
+`capped=true` and check `under_mob_cap()` (owned non-mirror, non-avatar
+count). Explicit spawns pass `capped=false` and always go through:
+spawn eggs, the `n` key, `dbgcmd::mob`, `REPGAME_MOB_TEST` fixtures and
+persisted-mob restores. It is not a storage or render limit:
 `spawn_any` never refuses, so avatars, mirrored mobs and owned transfers
 always fit, and the live count can exceed the cap.
 
@@ -76,9 +79,16 @@ always fit, and the live count can exceed the cap.
 - `n` — debug spawn key: drops a mob three blocks in front of the
   player, cycling pig → cow → chicken → sheep → zombie → creeper → bee on
   successive presses (`MobManager::spawn_in_front`; edge-triggered
-  through `Input`, handled in `RepGame::tick`, persistent). The ImGui
-  overlay shows `Mobs: <n> (players <m>)` — remote players count
-  separately.
+  through `Input`, handled in `RepGame::tick`, persistent, uncapped).
+  The ImGui overlay shows `Mobs: <n> (players <m>)` — remote players
+  count separately.
+- Spawn eggs — `data/items/<type>_spawn_egg.json` (one per non-remote
+  type; `MobTypeDef::spawn_egg` binds item → type and
+  `mob_type_for_spawn_egg` resolves it). Right-clicking a block face
+  hatches the mob in the cell a placed block would go, facing the player
+  (persistent, uncapped; survival consumes one — `player.cpp`, same
+  pattern as bone meal). Block interactions still win: clicking a chest
+  opens it unless sneaking.
 
 Remote players: `MultiplayerAvatars` is a thin adapter over `MobManager`
 (`player_id → uid` map) — `add`/`update_position`/`remove` translate to

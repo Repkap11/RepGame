@@ -400,6 +400,29 @@ void RepGame::process_mouse_events( ) {
             }
         }
     }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
+        // A spawn egg hatches its mob in the cell a placed block would go —
+        // the one adjacent to the clicked face — facing the player. The
+        // block interactions above (chests, doors, ...) take precedence;
+        // sneaking skips them and reaches here like placement does.
+        const MobType egg_type = mob_type_for_spawn_egg( globalGameState.hotbar.getSelectedItem( ) );
+        if ( egg_type != MOB_TYPE_COUNT ) {
+            const glm::dvec3 pos = glm::dvec3( globalGameState.block_selection.pos_create ) + glm::dvec3( 0.5, 0.0, 0.5 );
+            const glm::dvec3 to_player = globalGameState.camera.pos - pos;
+            // Mob yaw convention: forward = (sin yaw, 0, -cos yaw), degrees.
+            const float yaw = glm::degrees( atan2f( static_cast<float>( to_player.x ), static_cast<float>( -to_player.z ) ) );
+            // Explicit player spawn: uncapped — the egg always hatches.
+            if ( globalGameState.world.mobs.spawn( egg_type, pos, yaw, 1, false ) ) {
+                if ( globalGameState.game_mode == GameMode_Survival ) {
+                    globalGameState.hotbar.consumeSelected( 1 );
+                    globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+                }
+                globalGameState.input.click_delay_right = 30;
+            } else {
+                pr_debug( "Spawn egg failed: mobs disabled" );
+            }
+        }
+    }
     if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Placing a block — non-block items can't be placed.
         const ItemID held_item = globalGameState.hotbar.getSelectedItem( );

@@ -2,6 +2,7 @@
 #include "test_util.hpp"
 
 #include <filesystem>
+#include <string>
 // Passive-mob checks on the phase-1 rig plus phase-2 hitting/persistence:
 // physics (drop settle, auto-jump, slab step-up), the mob raycast, damage /
 // knockback / drops, the mobs-file record format, the face-rect unwrap and
@@ -921,6 +922,23 @@ int test_mobs( ) {
         check_bool( "cap: MAX_MOBS mirrors don't block local spawn", mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 ) );
 
         check_bool( "cap: capped=false bypasses", mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1, false ) );
+    }
+
+    // --- 20: every non-remote type has a working spawn egg ---------------
+    {
+        for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+            const MobTypeDef &def = mob_types[ t ];
+            const std::string label = std::string( "egg: " ) + def.name;
+            if ( def.ai == MOB_AI_REMOTE ) {
+                check_bool( ( label + " has no egg" ).c_str( ), def.spawn_egg == LAST_BLOCK_ID );
+            } else {
+                check_bool( ( label + " egg is a valid item" ).c_str( ), item_id_valid( def.spawn_egg ) && !item_is_block( def.spawn_egg ) );
+                check_bool( ( label + " egg maps back" ).c_str( ), mob_type_for_spawn_egg( def.spawn_egg ) == t );
+            }
+        }
+        check_bool( "egg: non-egg item maps to none", mob_type_for_spawn_egg( STICK ) == MOB_TYPE_COUNT );
+        check_bool( "egg: block item maps to none", mob_type_for_spawn_egg( STONE ) == MOB_TYPE_COUNT );
+        check_bool( "egg: empty hand maps to none", mob_type_for_spawn_egg( LAST_BLOCK_ID ) == MOB_TYPE_COUNT );
     }
 
     return failures;

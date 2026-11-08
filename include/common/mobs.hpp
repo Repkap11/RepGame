@@ -195,8 +195,10 @@ class MobManager {
     MobManager( );
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance );
     void init_storage( MapStorage *storage ) { this->storage = storage; }
-    // capped=false: restore a persisted mob regardless of MAX_MOBS (adopted
-    // touched mobs must never be dropped).
+    // capped=false: bypass MAX_MOBS — persisted-mob restores (adopted
+    // touched mobs must never be dropped) and explicit player/debug spawns
+    // (spawn eggs, `n`, dbgcmd) always go through; the cap only bounds
+    // emergent population sources (natural roll, spawner, roll restores).
     bool spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent = 1, bool capped = true );
     // Network-driven mobs (remote players): spawned/posed/removed by the
     // multiplayer layer via a stable uid. persistent=0, invisible to the

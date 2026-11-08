@@ -57,6 +57,9 @@ typedef struct {
     // Items handed to the player when the mob is killed in survival. Unused
     // entries have item == LAST_BLOCK_ID.
     MobDrop drops[ 2 ];
+    // Item that hatches this mob on right-click (the spawn eggs in
+    // data/items); LAST_BLOCK_ID = no egg (the remote player type).
+    ItemID spawn_egg;
     // Sound pool names; NULL when the type has no such sound. Consumed by the
     // audio pass (phase 2).
     const char *sound_say;
@@ -85,3 +88,18 @@ typedef struct {
 } MobTypeDef;
 
 extern const MobTypeDef mob_types[ MOB_TYPE_COUNT ];
+
+// The mob a spawn-egg item hatches (MobTypeDef::spawn_egg), or
+// MOB_TYPE_COUNT for non-egg items — including LAST_BLOCK_ID, the
+// remote-player type's no-egg sentinel (and the empty hand).
+inline MobType mob_type_for_spawn_egg( ItemID item ) {
+    if ( item == LAST_BLOCK_ID ) {
+        return MOB_TYPE_COUNT;
+    }
+    for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+        if ( mob_types[ t ].spawn_egg == item ) {
+            return static_cast<MobType>( t );
+        }
+    }
+    return MOB_TYPE_COUNT;
+}

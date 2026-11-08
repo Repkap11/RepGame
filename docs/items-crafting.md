@@ -50,7 +50,9 @@ Tools and consumables: `SHEARS` (`shears` icon, `max_stack` 1, recipe
 two iron ingots diagonal) harvests leaf blocks; `BONE` drops from
 zombies; `BONE_MEAL` (`dye_powder_white_new` icon, shapeless 1 bone ->
 3 meal) grows a sapling instantly on right-click (`tree_grow_try`),
-consuming one in survival.
+consuming one in survival. `<TYPE>_SPAWN_EGG` items
+(`textures/items/spawn_eggs/` icons) hatch their mob on right-click —
+see `docs/mobs.md`.
 
 Mining speed: `ItemGenDef` carries `tool_class` (the `MineableClass` the
 item accelerates) and `mine_speed` (per-tick multiplier). Optional item

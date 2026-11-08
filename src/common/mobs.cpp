@@ -75,7 +75,7 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
             }
             // MOB_TEST spawns are non-persistent: they never reach a mobs file
             // and natural spawn/load is disabled for the whole run.
-            this->spawn( type, glm::dvec3( x, y, z ), yaw, 0 );
+            this->spawn( type, glm::dvec3( x, y, z ), yaw, 0, false );
         }
     }
 }
@@ -216,7 +216,8 @@ bool MobManager::spawn_in_front( MobType type, const glm::dvec3 &camera_pos, con
     const int bz = static_cast<int>( floor( at.z ) );
     bool found = false;
     const double ground = ground_top_at( world, bx, bz, static_cast<int>( floor( at.y ) ), 30, &found );
-    return this->spawn( type, glm::dvec3( at.x, found ? ground : at.y, at.z ), 0.0f, 1 );
+    // Explicit player spawn: uncapped like an egg.
+    return this->spawn( type, glm::dvec3( at.x, found ? ground : at.y, at.z ), 0.0f, 1, false );
 }
 
 uint32_t MobManager::spawn_remote( MobType type ) {

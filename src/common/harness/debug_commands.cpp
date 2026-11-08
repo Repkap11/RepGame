@@ -74,7 +74,7 @@ bool dbgcmd::drop( RepGameState &state, const char *item, int count, const glm::
 
 bool dbgcmd::mob( RepGameState &state, const char *type, const glm::dvec3 &pos, std::string *err ) {
     const MobType t = mob_from_name( type );
-    if ( t == MOB_TYPE_COUNT || !state.world.mobs.spawn( t, pos, 0.0f, 1 ) ) {
+    if ( t == MOB_TYPE_COUNT || !state.world.mobs.spawn( t, pos, 0.0f, 1, false ) ) {
         *err = std::string( "cannot spawn mob " ) + type;
         return false;
     }

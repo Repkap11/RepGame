@@ -2433,6 +2433,27 @@
   "soul_torch": {
     "source": "textures/blocks/soul_torch"
   },
+  "spawn_egg_bee": {
+    "source": "textures/items/spawn_eggs/spawn_egg_bee"
+  },
+  "spawn_egg_chicken": {
+    "source": "textures/items/spawn_eggs/spawn_egg_chicken"
+  },
+  "spawn_egg_cow": {
+    "source": "textures/items/spawn_eggs/spawn_egg_cow"
+  },
+  "spawn_egg_creeper": {
+    "source": "textures/items/spawn_eggs/spawn_egg_creeper"
+  },
+  "spawn_egg_pig": {
+    "source": "textures/items/spawn_eggs/spawn_egg_pig"
+  },
+  "spawn_egg_sheep": {
+    "source": "textures/items/spawn_eggs/spawn_egg_sheep"
+  },
+  "spawn_egg_zombie": {
+    "source": "textures/items/spawn_eggs/spawn_egg_zombie"
+  },
   "sponge": {
     "source": "textures/blocks/sponge"
   },
