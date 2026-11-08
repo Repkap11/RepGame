@@ -12,7 +12,9 @@ void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->width = width;
     this->height = height;
     this->num_blocks_max = width * height;
-    this->slots_entities = static_cast<entt::entity *>( calloc( this->num_blocks_max, sizeof( entt::entity ) ) );
+    // Each slot can need several icon instances — multi-box blocks like
+    // stairs draw one isometric box per instance (slab + step).
+    this->slots_entities = static_cast<entt::entity *>( calloc( this->num_blocks_max * STAIRS_MAX_BOXES, sizeof( entt::entity ) ) );
 
     this->vb_max_size = this->num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
     this->ib_max_size = this->num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
@@ -23,9 +25,7 @@ void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
-    for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
-        // auto pair = this->render_chain_inventory_icons.create_instance( );
-        // this->slots_entities[ i_slot ] = pair.first;
+    for ( int i_slot = 0; i_slot < this->num_blocks_max * STAIRS_MAX_BOXES; i_slot++ ) {
         this->slots_entities[ i_slot ] = entt::null;
     }
 }
@@ -315,49 +315,53 @@ void InventoryRenderer::renderBackground( ) {
 }
 
 void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &inventory_slot ) {
-    entt::entity &slot_entity = this->slots_entities[ slot_index ];
+    entt::entity *slot_entities = &this->slots_entities[ slot_index * STAIRS_MAX_BOXES ];
 
     const ItemID item_id = inventory_slot.item_id;
-    if ( item_id == LAST_BLOCK_ID ) {
-        if ( slot_entity != entt::null ) {
-            this->render_chain_inventory_icons.remove( slot_entity );
+    int want = 0;
+    if ( item_id != LAST_BLOCK_ID &&
+         !( item_is_block( item_id ) &&
+           block_definition_get_definition( static_cast<BlockID>( item_id ) )->renderOrder == RenderOrder_Transparent ) ) {
+        want = item_icon_box_count( item_id );
+    }
+    const int block_grid_coord_x = slot_index % this->width;
+    const int block_grid_coord_y = slot_index / this->width;
+    for ( int box = 0; box < STAIRS_MAX_BOXES; box++ ) {
+        entt::entity &slot_entity = slot_entities[ box ];
+        if ( box >= want ) {
+            if ( slot_entity != entt::null ) {
+                this->render_chain_inventory_icons.remove( slot_entity );
+                slot_entity = entt::null;
+            }
+            continue;
         }
-        slot_entity = entt::null;
-        return;
-    }
-    if ( item_is_block( item_id ) && block_definition_get_definition( static_cast<BlockID>( item_id ) )->renderOrder == RenderOrder_Transparent ) {
-        if ( slot_entity != entt::null ) {
-            this->render_chain_inventory_icons.remove( slot_entity );
+        UIOverlayInstance *ui_vertex_prt;
+        bool needsVertexInit = slot_entity == entt::null;
+        if ( needsVertexInit ) {
+            auto pair = this->render_chain_inventory_icons.create_instance( );
+            slot_entity = pair.first;
+            ui_vertex_prt = &pair.second;
+        } else {
+            ui_vertex_prt = &this->render_chain_inventory_icons.get_instance( slot_entity );
         }
-        slot_entity = entt::null;
-        return;
+        UIOverlayInstance &ui_vertex = *ui_vertex_prt;
+        if ( needsVertexInit ) {
+            ui_vertex.is_block = 1;
+        }
+        // Later boxes draw nearer: the stair's step must win where its faces
+        // overlap the slab's top-face quad in the isometric projection.
+        ui_vertex.screen_z = ORDER_Z_INV_BLOCKS + box * 0.001f;
+
+        ui_vertex.width = this->inv_block_size;
+        ui_vertex.height = this->inv_block_size;
+
+        ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
+        ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
+
+        set_item_icon( ui_vertex, item_id, box );
+
+        this->render_chain_inventory_icons.invalidate( slot_entity );
     }
-    UIOverlayInstance *ui_vertex_prt;
-    bool needsVertexInit = slot_entity == entt::null;
-    if ( needsVertexInit ) {
-        auto pair = this->render_chain_inventory_icons.create_instance( );
-        slot_entity = pair.first;
-        ui_vertex_prt = &pair.second;
-    } else {
-        ui_vertex_prt = &this->render_chain_inventory_icons.get_instance( slot_entity );
-    }
-    UIOverlayInstance &ui_vertex = *ui_vertex_prt;
-    if ( needsVertexInit ) {
-        ui_vertex.screen_z = ORDER_Z_INV_BLOCKS;
-        ui_vertex.is_block = 1;
-    }
-
-    ui_vertex.width = this->inv_block_size;
-    ui_vertex.height = this->inv_block_size;
-    int block_grid_coord_x = slot_index % this->width;
-    int block_grid_coord_y = slot_index / this->width;
-
-    ui_vertex.screen_x = this->inv_items_x + block_grid_coord_x * this->inv_cell_stride + this->inv_block_offset;
-    ui_vertex.screen_y = this->inv_items_y + block_grid_coord_y * this->inv_cell_stride + this->inv_block_offset;
-
-    set_item_icon( ui_vertex, item_id );
-
-    this->render_chain_inventory_icons.invalidate( slot_entity );
 }
 
 void InventoryRenderer::fullItemRender( const InventorySlot *inventory_slots ) {

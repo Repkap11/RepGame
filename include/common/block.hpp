@@ -350,6 +350,11 @@ static inline void block_rotate_box( unsigned char yaw, signed char scale[ 3 ], 
 // boxes, yaw each by rotation & 3. Collision and raycast consume these; the
 // mesher emits the def-space stairs_boxes and lets the shader yaw them.
 int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], BlockBox out[ STAIRS_MAX_BOXES ] );
+// Icon/pickup shape for a stair item: the lone straight bottom-half stair,
+// yawed 270 so the staircase profile faces +z — the isometric icon view's
+// FRONT — and the steps read ascending to the left. Returns the box count
+// (2: slab + step).
+int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] );
 
 // ---- Slabs ------------------------------------------------------------------
 // Half slabs store the vertical half in rotation bit 2 — the same bit the

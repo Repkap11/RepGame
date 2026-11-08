@@ -39,4 +39,13 @@ screenshot outer_corner
 camera 17.5 4.5 16 315 25
 wait 20
 screenshot inner_corner
+# Icon + dropped-item checks: give+slot puts the stair's isometric icon in
+# the hotbar and the block in hand; drop stages the ground shape.
+give OAK_STAIRS 1
+slot 0
+drop STONE_STAIRS 1 12.5 1.2 16.5
+wait 60
+camera 12.5 3.2 14.5 180 30
+wait 20
+screenshot item_icons
 echo stairs done

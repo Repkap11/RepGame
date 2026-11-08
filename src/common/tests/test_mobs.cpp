@@ -324,8 +324,8 @@ int test_mobs( ) {
         ir.inv_cell_stride = 1.0f;
         ir.inv_block_size = 1;
         ir.inv_block_offset = 0;
-        ir.slots_entities = static_cast<entt::entity *>( calloc( ir.num_blocks_max, sizeof( entt::entity ) ) );
-        for ( int i = 0; i < ir.num_blocks_max; i++ ) {
+        ir.slots_entities = static_cast<entt::entity *>( calloc( ir.num_blocks_max * STAIRS_MAX_BOXES, sizeof( entt::entity ) ) );
+        for ( int i = 0; i < ir.num_blocks_max * STAIRS_MAX_BOXES; i++ ) {
             ir.slots_entities[ i ] = entt::null;
         }
         MobManager mobs;

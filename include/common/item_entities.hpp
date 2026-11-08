@@ -6,6 +6,7 @@
 
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
+#include "common/block.hpp"
 #include "common/item.hpp"
 #include "common/net/packet.hpp"
 #include "common/net/net_sync.hpp"
@@ -58,7 +59,9 @@ class ItemEntities {
         int in_water = 0;
         int persistent = 1; // REPGAME_ITEM_TEST spawns are non-persistent
         float spin_seed = 0.0f;
-        entt::entity entity = entt::null;                   // render chain entity (render_inited only)
+        // Render chain entities (render_inited only): [0] is the sprite or
+        // the first isometric box; multi-box blocks (stairs) use more.
+        entt::entity entities[ STAIRS_MAX_BOXES ] = { entt::null, entt::null, entt::null };
         unsigned short face[ NUM_FACES_IN_CUBE ] = { 0 };   // resolved texture layers (isometric block items)
 
         bool pickup_pending = false; // PICKUP_REQUEST in flight; hidden
@@ -188,5 +191,5 @@ class ItemEntities {
     RenderChain<ParticleVertex, BlockObjectInstance> render_held_block;
     ItemID held_item_id = LAST_BLOCK_ID;
     entt::entity held_entity = entt::null;
-    entt::entity held_block_entity = entt::null;
+    entt::entity held_block_entities[ STAIRS_MAX_BOXES ] = { entt::null, entt::null, entt::null };
 };

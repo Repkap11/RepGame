@@ -64,4 +64,8 @@ bool mode( RepGameState &state, const char *name, bool *force_survival, std::str
 // `peaceful on|off` — off makes the player targetable by hostile mobs.
 bool peaceful( RepGameState &state, const char *name, std::string *err );
 void set_time( RepGameState &state, long ticks );
+// `give <item> [count]` adds to the hotbar like a real pickup; `slot N`
+// selects a hotbar slot. Both refresh the held-item overlay.
+bool give( RepGameState &state, const char *item_name, int count, std::string *err );
+bool slot( RepGameState &state, int slot, std::string *err );
 } // namespace dbgcmd

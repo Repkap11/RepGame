@@ -148,9 +148,10 @@ blocking, no shadow). Top/bottom keep the plain material texture.
 **Model shapes** (fence, fence_gate, stairs) have real multi-box geometry: the
 importer applies the `cutout` set plus the entry's own properties
 (`is_fence`, `is_stairs`, `scale`, `offset`, ...) and keeps the block's
-plain textures; the entry's `"icon_mask"` grid only cuts a generated
+plain textures; the entry's optional `"icon_mask"` grid cuts a generated
 `<side_tex>__<shape>`
-tile used as the flat inventory icon (`icon_is_isometric=false`).
+tile used as the flat inventory icon (`icon_is_isometric=false`) — stairs
+don't use it, they draw a real two-box isometric icon instead.
 **Template shapes** (slab, button, pressure_plate, carpet, trapdoor) copy
 geometry (`scale`/`offset`/`tex_offset`) plus behaviour properties
 (`is_button`, `is_pressure_plate`, `collides_with_player`, ...) from a named
@@ -219,7 +220,12 @@ upper-front void stays walk-through-pickable) and the selection outline
 to zero scale) all consume the same `stairs_collision_boxes`
 world-space list, so a neighbor change re-shapes every consumer at once.
 Half-height steps ride the normal `STEP_HEIGHT` path, so walking up a
-staircase needs no special movement code.
+staircase needs no special movement code. Stair items draw their real
+shape everywhere an icon appears (`icon_is_isometric`, no `icon_mask`):
+`stairs_icon_boxes` gives the straight bottom-half stair yawed 180 so the
+tread faces the iso view's front, and inventory slots, the dragged item,
+the in-hand block and dropped item entities each emit one instance per
+box (`block_icon_box_count`).
 
 Half slabs (OAK_SLAB etc. — the derived `is_slab` flag marks any colliding,
 bottom-aligned, half-height box over the full footprint, so the legacy

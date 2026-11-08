@@ -273,6 +273,18 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    if ( strcmp( cmd, "give" ) == 0 && ( argc == 2 || argc == 3 ) ) {
+        if ( !dbgcmd::give( state, argv[ 1 ].c_str( ), argc == 3 ? ivec_arg( 2 ) : 1, &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
+    if ( strcmp( cmd, "slot" ) == 0 && argc == 2 ) {
+        if ( !dbgcmd::slot( state, ivec_arg( 1 ), &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
     if ( strcmp( cmd, "mob" ) == 0 && argc == 5 ) {
         if ( !dbgcmd::mob( state, argv[ 1 ].c_str( ), glm::dvec3( farg( 2 ), farg( 3 ), farg( 4 ) ), &err ) ) {
             cmd_error( state, line, err.c_str( ) );

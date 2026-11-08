@@ -16,6 +16,7 @@
 #include "common/chunk.hpp"
 #include "common/multiplayer.hpp"
 #include "common/net_entities.hpp"
+#include "common/ui_overlay_buffers.hpp"
 
 // Per-tick constants at UPS_RATE (144). Gravity and air drag are MC's item
 // values (0.04/tick², 0.98 at 20 TPS) rescaled to 144 UPS: ~16 blocks/s²
@@ -222,15 +223,18 @@ bool ItemEntities::item_chunk_live( World &world, const ItemEntity &it ) const {
 }
 
 void ItemEntities::drop_render_instance( ItemEntity &it ) {
-    if ( it.entity == entt::null ) {
-        return;
+    const bool cube = item_is_block( it.item ) && item_icon_is_isometric( it.item );
+    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+        if ( it.entities[ i ] == entt::null ) {
+            continue;
+        }
+        if ( cube ) {
+            this->render_cube.remove( it.entities[ i ] );
+        } else {
+            this->render_sprite.remove( it.entities[ i ] );
+        }
+        it.entities[ i ] = entt::null;
     }
-    if ( item_is_block( it.item ) && item_icon_is_isometric( it.item ) ) {
-        this->render_cube.remove( it.entity );
-    } else {
-        this->render_sprite.remove( it.entity );
-    }
-    it.entity = entt::null;
 }
 
 void ItemEntities::remove_item( const size_t i ) {
@@ -827,6 +831,24 @@ void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntitySta
     }
 }
 
+// Per-box BlockObjectInstance shape for a dropped/held block item: stairs
+// draw their icon boxes (slab + step); other blocks draw one def-space box.
+// item_centered recentres single-box shapes on the spin axis (slab rests on
+// the ground); stair boxes already span the full footprint at y=0.
+static void block_item_shape( const Block *block, bool item_centered, int box, BlockObjectInstance &inst ) {
+    if ( block->is_stairs ) {
+        BlockBox boxes[ STAIRS_MAX_BOXES ];
+        stairs_icon_boxes( boxes );
+        const BlockBox &b = boxes[ box ];
+        inst.shape_scale = glm::vec3( b.scale[ 0 ], b.scale[ 1 ], b.scale[ 2 ] );
+        inst.shape_offset = glm::vec3( b.offset[ 0 ], b.offset[ 1 ], b.offset[ 2 ] );
+        // The chunk multi-box convention: texture position follows the box.
+        inst.shape_tex_offset = -inst.shape_offset;
+        return;
+    }
+    block_object_shape( block, item_centered, inst.shape_scale, inst.shape_offset, inst.shape_tex_offset );
+}
+
 void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_loader ) {
     if ( !this->render_inited ) {
         return;
@@ -845,31 +867,35 @@ void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_lo
         float yaw, bob;
         render_pose( it, alpha, &yaw, &bob );
         if ( cube ) {
-            if ( it.entity == entt::null ) {
-                const std::pair<entt::entity, BlockObjectInstance &> data = this->render_cube.create_instance( );
-                it.entity = data.first;
-                for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-                    data.second.face[ f ] = it.face[ f ];
-                }
-                // The block's shape recentred on the spin axis: a slab rests
-                // on the ground, a chest keeps its proportions centered.
-                block_object_shape( block_definition_get_definition( static_cast<BlockID>( it.item ) ), true, data.second.shape_scale, data.second.shape_offset, data.second.shape_tex_offset );
-            }
-            BlockObjectInstance &inst = this->render_cube.get_instance( it.entity );
+            const Block *block = block_definition_get_definition( static_cast<BlockID>( it.item ) );
+            const int nboxes = block_icon_box_count( block );
             const float s = static_cast<float>( ITEM_SIZE );
             glm::mat4 m = glm::translate( glm::mat4( 1.0f ), glm::vec3( rpos ) + glm::vec3( 0.0f, bob + s * 0.5f, 0.0f ) );
             m = glm::rotate( m, yaw, glm::vec3( 0.0f, 1.0f, 0.0f ) );
             m = glm::scale( m, glm::vec3( s ) );
             m = glm::translate( m, glm::vec3( -0.5f ) );
-            inst.transform = m;
-            inst.light = light;
+            for ( int i = 0; i < nboxes; i++ ) {
+                if ( it.entities[ i ] == entt::null ) {
+                    const std::pair<entt::entity, BlockObjectInstance &> data = this->render_cube.create_instance( );
+                    it.entities[ i ] = data.first;
+                    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                        data.second.face[ f ] = it.face[ f ];
+                    }
+                    // The block's shape recentred on the spin axis: a slab rests
+                    // on the ground, a chest keeps its proportions centered.
+                    block_item_shape( block, true, i, data.second );
+                }
+                BlockObjectInstance &inst = this->render_cube.get_instance( it.entities[ i ] );
+                inst.transform = m;
+                inst.light = light;
+            }
         } else {
-            if ( it.entity == entt::null ) {
+            if ( it.entities[ 0 ] == entt::null ) {
                 const std::pair<entt::entity, ItemSpriteInstance &> data = this->render_sprite.create_instance( );
-                it.entity = data.first;
+                it.entities[ 0 ] = data.first;
                 data.second.tex_layer = item_icon_texture( it.item );
             }
-            ItemSpriteInstance &inst = this->render_sprite.get_instance( it.entity );
+            ItemSpriteInstance &inst = this->render_sprite.get_instance( it.entities[ 0 ] );
             // Upright sprite centered on the entity, spinning and bobbing
             // while it rests on the ground or floats.
             glm::mat4 m = glm::translate( glm::mat4( 1.0f ), glm::vec3( rpos ) + glm::vec3( 0.0f, bob, 0.0f ) );
@@ -898,23 +924,29 @@ void ItemEntities::set_held_item( ItemID item ) {
     }
     this->held_item_id = item;
     this->held_entity = entt::null;
-    this->held_block_entity = entt::null;
+    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+        this->held_block_entities[ i ] = entt::null;
+    }
     this->render_held.clear( );
     this->render_held_block.clear( );
     if ( !item_id_valid( item ) || item == LAST_BLOCK_ID ) {
         return;
     }
     if ( item_is_block( item ) && item_icon_is_isometric( item ) ) {
-        // Isometric block icon: the same cube mesh dropped block items draw.
-        const std::pair<entt::entity, BlockObjectInstance &> data = this->render_held_block.create_instance( );
-        this->held_block_entity = data.first;
+        // Isometric block icon: the same cube mesh dropped block items draw,
+        // one instance per icon box (stairs draw slab + step).
         const Block *block = block_definition_get_definition( static_cast<BlockID>( item ) );
-        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-            data.second.face[ f ] = block->textures[ f ];
+        const int nboxes = block_icon_box_count( block );
+        for ( int i = 0; i < nboxes; i++ ) {
+            const std::pair<entt::entity, BlockObjectInstance &> data = this->render_held_block.create_instance( );
+            this->held_block_entities[ i ] = data.first;
+            for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                data.second.face[ f ] = block->textures[ f ];
+            }
+            block_item_shape( block, true, i, data.second );
+            data.second.transform = glm::mat4( 0.0f ); // hidden until update_held
+            data.second.light = glm::vec2( 1.0f );
         }
-        block_object_shape( block, true, data.second.shape_scale, data.second.shape_offset, data.second.shape_tex_offset );
-        data.second.transform = glm::mat4( 0.0f ); // hidden until update_held
-        data.second.light = glm::vec2( 1.0f );
         return;
     }
     const std::pair<entt::entity, ItemSpriteInstance &> data = this->render_held.create_instance( );
@@ -931,12 +963,15 @@ void ItemEntities::update_held( const glm::vec2 &light ) {
         inst.light = light;
         this->render_held.invalidate_all( );
     }
-    if ( this->held_block_entity != entt::null ) {
-        BlockObjectInstance &inst = this->render_held_block.get_instance( this->held_block_entity );
+    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+        if ( this->held_block_entities[ i ] == entt::null ) {
+            continue;
+        }
+        BlockObjectInstance &inst = this->render_held_block.get_instance( this->held_block_entities[ i ] );
         inst.transform = glm::mat4( 1.0f );
         inst.light = light;
-        this->render_held_block.invalidate_all( );
     }
+    this->render_held_block.invalidate_all( );
 }
 
 void ItemEntities::draw_held( const Renderer &renderer, const Shader &item_sprite_shader, const Shader &block_object_shader ) {

@@ -3,6 +3,7 @@
 #include "common/block_update_events/LeafDecayEvent.hpp"
 #include "common/tree_grow.hpp"
 #include "common/break_drops.hpp"
+#include "common/ui_overlay_buffers.hpp"
 #include "common/mesh_gen.hpp"
 // Same CPU-side include as chunk.cpp: pulls mesh_face_seethrough et al. in
 // as static inline helpers for the slab coverage checks.
@@ -403,8 +404,18 @@ int test_stairs( ) {
                 block_yaw( oak_stairs, 0 | TOP ) == 0 && block_yaw( oak_stairs, 3 | TOP ) == 3 );
     check_bool( "def: plain side faces (no mask tile)",
                 strstr( texture_name( oak_stairs->textures[ FACE_LEFT ] ), "__stairs" ) == nullptr );
-    check_bool( "def: flat stair-silhouette icon",
-                !oak_stairs->icon_is_isometric && strstr( texture_name( oak_stairs->icon_texture ), "__stairs" ) != nullptr );
+    check_bool( "def: isometric stair icon", oak_stairs->icon_is_isometric );
+
+    // Icon shape: slab + step yawed 180 so the tread faces +z (iso FRONT).
+    BlockBox icon_boxes[ STAIRS_MAX_BOXES ];
+    const int n_icon = stairs_icon_boxes( icon_boxes );
+    check_bool( "icon: slab + step", n_icon == 2 );
+    check_bool( "icon: slab is the bottom half", icon_boxes[ 0 ].scale[ 1 ] == 8 && icon_boxes[ 0 ].offset[ 1 ] == 0 );
+    check_bool( "icon: step atop the far -x half",
+                icon_boxes[ 1 ].scale[ 1 ] == 8 && icon_boxes[ 1 ].offset[ 1 ] == 8 && //
+                    icon_boxes[ 1 ].scale[ 0 ] == 8 && icon_boxes[ 1 ].offset[ 0 ] == 0 );
+    check_bool( "icon: two icon boxes", block_icon_box_count( oak_stairs ) == 2 );
+    check_bool( "icon: stone is one", item_icon_box_count( STONE ) == 1 );
 
     check_bool( "showcase: stair run along z", MapGen::block_world_id( -2, 1, -14 ) == OAK_STAIRS );
     check_bool( "showcase: mixed row", MapGen::block_world_id( 6, 1, -14 ) == STONE_STAIRS );

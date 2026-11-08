@@ -72,6 +72,27 @@ bool dbgcmd::drop( RepGameState &state, const char *item, int count, const glm::
     return true;
 }
 
+bool dbgcmd::give( RepGameState &state, const char *item_name, int count, std::string *err ) {
+    const ItemID id = item_from_name( item_name );
+    if ( id == LAST_BLOCK_ID ) {
+        *err = std::string( "unknown item " ) + item_name;
+        return false;
+    }
+    state.hotbar.addItemWithQuantity( id, count > 0 ? count : 1 );
+    state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+    return true;
+}
+
+bool dbgcmd::slot( RepGameState &state, int slot, std::string *err ) {
+    if ( slot < 0 || slot >= HOTBAR_WIDTH ) {
+        *err = "slot out of range";
+        return false;
+    }
+    state.hotbar.setSelectedSlot( slot );
+    state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+    return true;
+}
+
 bool dbgcmd::mob( RepGameState &state, const char *type, const glm::dvec3 &pos, std::string *err ) {
     const MobType t = mob_from_name( type );
     if ( t == MOB_TYPE_COUNT || !state.world.mobs.spawn( t, pos, 0.0f, 1, false ) ) {

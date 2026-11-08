@@ -49,8 +49,8 @@ void test_setup_inventories( RepGameState &gs ) {
     ir.inv_cell_stride = 1.0f;
     ir.inv_block_size = 1;
     ir.inv_block_offset = 0;
-    ir.slots_entities = static_cast<entt::entity *>( calloc( ir.num_blocks_max, sizeof( entt::entity ) ) );
-    for ( int i = 0; i < ir.num_blocks_max; i++ ) {
+    ir.slots_entities = static_cast<entt::entity *>( calloc( ir.num_blocks_max * STAIRS_MAX_BOXES, sizeof( entt::entity ) ) );
+    for ( int i = 0; i < ir.num_blocks_max * STAIRS_MAX_BOXES; i++ ) {
         ir.slots_entities[ i ] = entt::null;
     }
 
@@ -74,8 +74,8 @@ void test_setup_inventories( RepGameState &gs ) {
     sir.inv_cell_stride = 1.0f;
     sir.inv_block_size = 1;
     sir.inv_block_offset = 0;
-    sir.slots_entities = static_cast<entt::entity *>( calloc( sir.num_blocks_max, sizeof( entt::entity ) ) );
-    for ( int i = 0; i < sir.num_blocks_max; i++ ) {
+    sir.slots_entities = static_cast<entt::entity *>( calloc( sir.num_blocks_max * STAIRS_MAX_BOXES, sizeof( entt::entity ) ) );
+    for ( int i = 0; i < sir.num_blocks_max * STAIRS_MAX_BOXES; i++ ) {
         sir.slots_entities[ i ] = entt::null;
     }
 }

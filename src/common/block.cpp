@@ -312,6 +312,14 @@ int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], B
     return n;
 }
 
+int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] ) {
+    const int n = stairs_boxes( STAIRS_STRAIGHT, false, out );
+    for ( int i = 0; i < n; i++ ) {
+        block_rotate_box( BLOCK_ROTATE_270, out[ i ].scale, out[ i ].offset );
+    }
+    return n;
+}
+
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord ) {
     // Top-half slab: mirror the bottom-aligned box into the upper half of
     // the cell (the tex_offset window stays — slab sides keep the same band).

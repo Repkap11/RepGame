@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/block.hpp"
 #include "common/constants.hpp"
 #include "common/item.hpp"
 #include "common/ui_overlay.hpp"
@@ -88,10 +89,19 @@ constexpr static unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
     13, 14, 15  //
 };
 
+// Icon instances a block needs: stairs draw their two model boxes (slab +
+// step) so the icon reads as a stair, not a cube; everything else is one
+// icon.
+static inline int block_icon_box_count( const Block *block ) {
+    return block->is_stairs ? 2 : 1; // STAIRS_STRAIGHT is slab + step
+}
+
 // Populates the block-specific fields of a UIOverlayInstance from a Block
-// definition: is_isometric, tint, and id_isos. The caller is responsible for
-// setting screen position, size, z-order, and is_block.
-inline void set_block_icon( UIOverlayInstance &inst, const Block *block ) {
+// definition: is_isometric, tint, id_isos and the box's scale/offset. For
+// multi-box icons box_index picks the box (see block_icon_box_count). The
+// caller is responsible for setting screen position, size, z-order, and
+// is_block.
+inline void set_block_icon( UIOverlayInstance &inst, const Block *block, int box_index = 0 ) {
     inst.is_isometric = block->icon_is_isometric ? 1u : 0u;
     for ( int i = 0; i < 4; i++ ) {
         inst.tint[ i ] = 1.0f;
@@ -104,6 +114,19 @@ inline void set_block_icon( UIOverlayInstance &inst, const Block *block ) {
             // Like grass
             inst.id_isos[ face ] = block->textures[ inventory_isometric_face[ face ] ];
         }
+    }
+    if ( block->is_stairs ) {
+        BlockBox boxes[ STAIRS_MAX_BOXES ];
+        stairs_icon_boxes( boxes );
+        const BlockBox &b = boxes[ box_index ];
+        for ( int i = 0; i < 3; i++ ) {
+            inst.block_scale[ i ] = b.scale[ i ];
+            inst.block_offset[ i ] = b.offset[ i ];
+            // The chunk multi-box convention: texture position follows the
+            // box's world position.
+            inst.block_tex_offset[ i ] = static_cast<float>( -b.offset[ i ] );
+        }
+        return;
     }
     inst.block_scale[ 0 ] = block->scale.x;
     inst.block_scale[ 1 ] = block->scale.y;
@@ -121,7 +144,7 @@ inline void set_block_icon( UIOverlayInstance &inst, const Block *block ) {
 // definition (isometric icons draw from the face textures); pure items draw
 // flat with full-block scale. The caller is responsible for setting screen
 // position, size, z-order, and is_block.
-inline void set_item_icon( UIOverlayInstance &inst, ItemID item_id ) {
+inline void set_item_icon( UIOverlayInstance &inst, ItemID item_id, int box_index = 0 ) {
     if ( !item_is_block( item_id ) ) {
         inst.is_isometric = 0u;
         for ( int i = 0; i < 4; i++ ) {
@@ -142,6 +165,14 @@ inline void set_item_icon( UIOverlayInstance &inst, ItemID item_id ) {
         inst.block_tex_offset[ 2 ] = 0;
         return;
     }
-    set_block_icon( inst, block_definition_get_definition( static_cast<BlockID>( item_id ) ) );
+    set_block_icon( inst, block_definition_get_definition( static_cast<BlockID>( item_id ) ), box_index );
+}
+
+// Icon instances an item needs — see block_icon_box_count.
+inline int item_icon_box_count( ItemID item_id ) {
+    if ( !item_is_block( item_id ) ) {
+        return 1;
+    }
+    return block_icon_box_count( block_definition_get_definition( static_cast<BlockID>( item_id ) ) );
 }
 

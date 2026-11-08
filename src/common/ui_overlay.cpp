@@ -171,20 +171,25 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
     float cell_start_y = centered_y - cell_size / 2.0f;
 
     this->render_chain_dragged_item.clear( );
-    auto [ entity, ui_vertex ] = this->render_chain_dragged_item.create_instance( );
+    const int icon_boxes = item_icon_box_count( held.item_id );
+    for ( int box = 0; box < icon_boxes; box++ ) {
+        auto [ entity, ui_vertex ] = this->render_chain_dragged_item.create_instance( );
 
-    // Set fields individually, matching InventoryRenderer::singleItemRender.
-    // The block icon is centered within the cell, so it is centered on the
-    // cursor. block_offset isn't used here since it is relative to the items
-    // background edge, not the cell corner.
-    ui_vertex.screen_x = cell_start_x + ( cell_size - block_size ) / 2.0f;
-    ui_vertex.screen_y = cell_start_y + ( cell_size - block_size ) / 2.0f;
-    ui_vertex.screen_z = ORDER_Z_INV_BLOCKS + 0.1f;
-    ui_vertex.width = block_size;
-    ui_vertex.height = block_size;
-    ui_vertex.is_block = 1;
+        // Set fields individually, matching InventoryRenderer::singleItemRender.
+        // The block icon is centered within the cell, so it is centered on the
+        // cursor. block_offset isn't used here since it is relative to the items
+        // background edge, not the cell corner.
+        ui_vertex.screen_x = cell_start_x + ( cell_size - block_size ) / 2.0f;
+        ui_vertex.screen_y = cell_start_y + ( cell_size - block_size ) / 2.0f;
+        // Later boxes draw nearer — the stair's step must beat the slab's
+        // top-face quad where they overlap (see singleItemRender).
+        ui_vertex.screen_z = ORDER_Z_INV_BLOCKS + 0.1f + box * 0.001f;
+        ui_vertex.width = block_size;
+        ui_vertex.height = block_size;
+        ui_vertex.is_block = 1;
 
-    set_item_icon( ui_vertex, held.item_id );
+        set_item_icon( ui_vertex, held.item_id, box );
+    }
 
     this->render_chain_dragged_item.draw( renderer, this->shader );
 
