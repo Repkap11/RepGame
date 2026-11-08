@@ -1,17 +1,5 @@
 #include "test_util.hpp"
 
-#if defined( REPGAME_WINDOWS )
-static int setenv( const char *name, const char *value, int overwrite ) {
-    if ( !overwrite && getenv( name ) ) {
-        return 0;
-    }
-    return _putenv_s( name, value );
-}
-static int unsetenv( const char *name ) {
-    return _putenv_s( name, "" );
-}
-#endif
-
 void test_setup_world( World &world ) {
     ChunkLoader &cl = world.chunkLoader;
     cl.chunkArray = new Chunk[ MAX_LOADED_CHUNKS ]( );

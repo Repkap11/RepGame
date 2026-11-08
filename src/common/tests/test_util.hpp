@@ -29,6 +29,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined( REPGAME_WINDOWS )
+// POSIX env calls, shimmed so every test TU can use them.
+static inline int setenv( const char *name, const char *value, int overwrite ) {
+    if ( !overwrite && getenv( name ) ) {
+        return 0;
+    }
+    return _putenv_s( name, value );
+}
+static inline int unsetenv( const char *name ) {
+    return _putenv_s( name, "" );
+}
+#endif
+
 // Builds a World backed by a single loaded chunk at the origin (no GL needed:
 // chunk.cells is a plain array and Chunk::init's GL work is lazy). Positions
 // outside that chunk read LAST_BLOCK_ID like an unloaded chunk.
