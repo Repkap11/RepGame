@@ -2,11 +2,6 @@
 
 #include "common/constants.hpp"
 #include "common/item.hpp"
-// RepGame.hpp must be entered before ui_overlay.hpp: ui_overlay.hpp pulls
-// RepGame.hpp mid-include, and only resolves its UIOverlayVertex /
-// UIOverlayInstance types when the game_state -> ui_state chain reaches it
-// first (see the include-order note in game_state.hpp).
-#include "common/RepGame.hpp" // IWYU pragma: keep -- include order only, see above
 #include "common/ui_overlay.hpp"
 
 // Number of isometric faces rendered for a block icon (top, front, right).

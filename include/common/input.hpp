@@ -1,5 +1,10 @@
 #pragma once
 
+#include "common/world.hpp" // WorldDrawQuality (worldDrawQuality field)
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
+#include "common/RepGameSDL2.hpp" // SDL_Keycode (keysInput)
+#endif
+
 // The "Shadows" pause-menu setting: FAST uploads the raw chamfer light
 // field; SMOOTH applies the air-gated 3x3x3 upload-time blur (light.cpp).
 // REPGAME_LIGHT_SMOOTH overrides it when set.

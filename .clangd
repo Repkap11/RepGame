@@ -6,3 +6,12 @@ If:
   PathMatch: src/server/.*
 CompileFlags:
   CompilationDatabase: out/server/cmake
+---
+# clangd's include-cleaner suggestions ("header not used directly") are
+# wrong for this codebase — several headers transitively provide the types
+# their consumers need, and applying the suggested removals would break
+# unrelated TUs. Keep them off; real missing includes still fail at
+# compile time.
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None

@@ -5,8 +5,10 @@
 #include "renderer/vertex_array.hpp"
 #include "renderer/renderer.hpp"
 #include "common/RenderChain.hpp"
-#include "RepGame.hpp"
-#include "input.hpp"
+#include "common/item.hpp"        // ItemID / InventorySlot
+#include "common/player_data.hpp" // GameMode (draw takes it by value)
+
+class Input;
 
 #define ORDER_Z_INV_ITEMS_BG 0.0f
 #define ORDER_Z_INV_SELECTED_SLOT 0.1f
@@ -46,13 +48,14 @@ struct UIOverlayInstance {
     float block_tex_offset[ 3 ];
 };
 
-#include "common/creative_inventory.hpp"
-#include "common/chest.hpp"
-#include "common/hotbar.hpp"
-#include "common/survival_inventory.hpp"
-#include "common/font_renderer.hpp"
-
+// By-reference draw() params only — kept as forward declarations so this
+// header stays out of the inventory-panel include web.
+class CreativeInventory;
+class SurvivalInventory;
+class Hotbar;
 class InventoryRenderer;
+class FontRenderer;
+struct ChestContents;
 
 class UIOverlay {
     Shader shader;

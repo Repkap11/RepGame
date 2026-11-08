@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include "common/RepGame.hpp" // IWYU pragma: keep -- include order only, see ui_overlay_buffers.hpp
+#include "common/RepGame.hpp"
 #include "common/ui_overlay.hpp"
 #include "common/ui_overlay_buffers.hpp"
 #include "common/renderer/shader.hpp"

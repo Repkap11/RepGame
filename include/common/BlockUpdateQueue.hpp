@@ -2,9 +2,12 @@
 
 #include <queue>
 #include <memory>
+#include <glm/glm.hpp>
+#include "common/block_definitions.hpp" // events' signatures use BlockState/BlockID
 #include "common/BlockUpdateQueue.hpp"
 class BlockUpdateEvent;
 struct RepGameState;
+class World;
 
 class BlockUpdateOrderCompare {
   public:
@@ -21,7 +24,6 @@ class BlockUpdateQueue {
     long current_tick;
     std::priority_queue<std::shared_ptr<BlockUpdateEvent>, std::vector<std::shared_ptr<BlockUpdateEvent>>, BlockUpdateOrderCompare> pending_events;
 };
-#include "common/RepGame.hpp"
 
 class BlockUpdateEvent {
   public:

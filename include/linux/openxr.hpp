@@ -3,10 +3,10 @@
 // OpenXR session wrapper for the Linux/Steam Frame build. Only compiled
 // under REPGAME_OPENXR; a pimpl keeps the OpenXR C headers out of the shared
 // game code (RenderView/quat are the only types leaking through, both from
-// common/RepGame.hpp).
+// common/game/vr_state.hpp).
 #if defined( REPGAME_OPENXR )
 
-#include "common/RepGame.hpp"
+#include "common/game/vr_state.hpp"
 
 class OpenXRSession {
     struct Impl;

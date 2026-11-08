@@ -1,5 +1,7 @@
 #pragma once
 
+class Texture;
+
 class FrameBuffer {
     unsigned int mRendererId;
     // What bind_display()/unbind() consider the display: 0 (window

@@ -4,6 +4,7 @@
 #include "renderer/vertex_buffer.hpp"
 #include "renderer/vertex_array.hpp"
 #include "renderer/renderer.hpp"
+#include "common/RenderChain.hpp"
 #include "common/Particle.hpp"
 
 class SkyBox {

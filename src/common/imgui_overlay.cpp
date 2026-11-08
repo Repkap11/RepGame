@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "common/imgui_overlay.hpp"
+#include "common/RepGame.hpp" // RepGameState (imgui_overlay_draw's state)
 #include "common/utils/env_config.hpp"
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"

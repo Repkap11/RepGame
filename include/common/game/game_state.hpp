@@ -26,9 +26,6 @@
 #include "common/BlockUpdateQueue.hpp"
 #include "common/crafting.hpp"
 #include "common/input.hpp"
-// ui_state.hpp must precede hotbar.hpp/survival_inventory.hpp: those two
-// lead with inventory_renderer.hpp, which pulls ui_overlay.hpp mid-include —
-// the cluster only resolves when ui_overlay.hpp is entered first.
 #include "common/game/ui_state.hpp"
 #include "common/hotbar.hpp"
 #include "common/survival_inventory.hpp"

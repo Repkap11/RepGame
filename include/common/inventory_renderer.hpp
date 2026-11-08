@@ -6,8 +6,9 @@
 #include "renderer/vertex_buffer.hpp"
 #include "renderer/vertex_array.hpp"
 #include "renderer/renderer.hpp"
-#include "RepGame.hpp"
-#include "input.hpp"
+#include <entt/entity/registry.hpp>
+#include "common/RenderChain.hpp"
+#include "common/item.hpp" // InventorySlot
 #include "ui_overlay.hpp"
 
 // #define INVENTORY_BLOCK_SIZE 30

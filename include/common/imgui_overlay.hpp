@@ -7,7 +7,11 @@ typedef struct {
     bool shown;
 } ImGuiOverlay;
 
-#include "RepGame.hpp"
+#include <glm/glm.hpp>
+#include "common/input.hpp"
+#include "common/chunk_loader.hpp" // LoaderDebugStats
+
+struct RepGameState;
 
 // Absolute light floor (ImGuiDebugVars::min_ambient): default, pause-menu
 // step size, and max.
@@ -53,6 +57,7 @@ struct ImGuiDebugVars {
 
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay );
 #if SUPPORTS_IMGUI_OVERLAY
+#include "common/RepGameSDL2.hpp"
 void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *window, SDL_GLContext gl_context );
 void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard );
 #endif
