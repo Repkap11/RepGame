@@ -1012,15 +1012,33 @@ int test_mobs( ) {
             mobs.tick( world, ppos, &in );
         }
         check_bool( "tempt: pig walks to the carrot holder", mobs.mobs[ 0 ].pos.x < 16.0 );
-        // A non-food item leaves it idling where it stands.
+        // The hostile-mobs toggle doesn't gate tempting — a peaceful
+        // player's livestock still follows food.
+        mobs.mobs[ 0 ].pos.x = 16.5;
+        in.player_targetable = false;
+        for ( int i = 0; i < 4 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in );
+        }
+        check_bool( "tempt: peaceful still tempts", mobs.mobs[ 0 ].pos.x < 16.0 );
+        // No-clip does: a spectator-style camera attracts nothing.
         mobs.mobs[ 0 ].pos.x = 16.5;
         mobs.mobs[ 0 ].ai_ticks = 100000;
-        in.held_item = STONE;
+        in.player_no_clip = true;
         const double x0 = mobs.mobs[ 0 ].pos.x;
         for ( int i = 0; i < 2 * UPS_RATE; i++ ) {
             mobs.tick( world, ppos, &in );
         }
-        check_bool( "tempt: wrong item doesn't tempt", fabs( mobs.mobs[ 0 ].pos.x - x0 ) < 1.0 );
+        check_bool( "tempt: no-clip doesn't tempt", fabs( mobs.mobs[ 0 ].pos.x - x0 ) < 1.0 );
+        // A non-food item leaves it idling where it stands.
+        mobs.mobs[ 0 ].pos.x = 16.5;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        in.player_no_clip = false;
+        in.held_item = STONE;
+        const double x1 = mobs.mobs[ 0 ].pos.x;
+        for ( int i = 0; i < 2 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in );
+        }
+        check_bool( "tempt: wrong item doesn't tempt", fabs( mobs.mobs[ 0 ].pos.x - x1 ) < 1.0 );
     }
 
     // --- 23: trample: a landing mob reports the farmland cell ----------------

@@ -48,7 +48,9 @@ each type's foods: pigs eat carrots/potatoes/beetroots, cows and sheep
 wheat, chickens wheat or beetroot seeds): a passive mob within
 `MOB_TEMPT_RANGE` (10 blocks, ±4 y) of a player holding its food drops the
 wander AI and follows (`MobTickInput::held_item`; held items aren't
-streamed, so only the local player tempts). Right-clicking a breedable
+streamed, so only the local player tempts). Tempting ignores a
+no-clipping player but not the hostiles toggle — peaceful worlds still
+tempt. Right-clicking a breedable
 mob while holding a valid food calls `MobManager::feed` — an adult
 enters `love_ticks` (`MOB_LOVE_TICKS` ≈ 8 s), a baby sheds ~10% of its
 remaining growth. Feeding marks the mob `touched` so it persists like

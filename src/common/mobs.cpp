@@ -512,7 +512,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             }
             mob.ai_state = 0;
             mob.ai_ticks = 0;
-        } else if ( in->player_targetable && mob_def_is_breed_item( def, in->held_item ) && //
+        } else if ( !in->player_no_clip && mob_def_is_breed_item( def, in->held_item ) && //
                     player_dist_xz < MOB_TEMPT_RANGE && fabs( player_feet.y - mob.pos.y ) < 4.0 ) {
             // Tempted: follow the player holding this animal's food,
             // stopping just short. Resets the wander timer so the mob

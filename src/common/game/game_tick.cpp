@@ -272,6 +272,7 @@ void RepGame::tick_entities( ) {
     mob_in.world_time = gs.world_time;
     mob_in.player_eye_height = PLAYER_EYE_HEIGHT - ( gs.input.movement.sneakPressed ? PLAYER_SNEAK_EYE_DROP : 0.0f );
     // The held item tempts breedable livestock toward the player.
+    mob_in.player_no_clip = gs.input.no_clip;
     mob_in.held_item = gs.hotbar.getSelectedItem( );
     // Owned hostiles also consider remote players (positions + targetable
     // flags come from the PLAYER_LOCATION stream).

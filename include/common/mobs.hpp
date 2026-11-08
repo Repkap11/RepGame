@@ -6,7 +6,6 @@
 
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
-#include "common/chest.hpp" // Compare_I_Vec3
 #include "common/mob_types.hpp"
 #include "common/net/packet.hpp"
 #include "common/net/net_sync.hpp"
@@ -39,6 +38,9 @@ struct MobTickInput {
     bool player_targetable;
     long world_time;
     float player_eye_height; // player_pos is the eye; feet = pos - eye_height
+    // Tempting ignores a no-clipping player — a spectator-style camera
+    // shouldn't pull livestock.
+    bool player_no_clip = false;
     // The local player's held item — breedable animals walk toward the
     // player while it is one of their breed foods (MobTypeDef::breed_items).
     ItemID held_item = LAST_BLOCK_ID;
