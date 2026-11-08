@@ -101,10 +101,12 @@ it sits NET_ENTITY_CHUNK_MARGIN=0.5 blocks inside the new one, so a
 boundary-resting entity never flip-flops owners); ENTITY_REMOVE removes
 with a reason; ENTITY_TRANSFER switches ownership (adopt=1) or demotes to
 mirror (adopt=0); ENTITY_ACTION carries hits against remote entities
-(NET_ACTION_HIT + damage) and mob feeding (NET_ACTION_FEED + the claimed
-`item`, protocol 8 — the owning client's `feedable()` re-validates it
+(NET_ACTION_HIT + damage), mob feeding (NET_ACTION_FEED + the claimed
+`item` — the owning client's `feedable()` re-validates it
 against the type's breed foods (`MobTypeDef::breed_items` plus
-`breeds_with_flowers`) before applying);
+`breeds_with_flowers`) before applying), and mob shearing
+(NET_ACTION_SHEAR — `shearable()` re-validates `item == SHEARS` plus the
+adult/unshorn state before the owner's `shear()` applies it);
 PICKUP_REQUEST/PICKUP_RESULT arbitrate item pickup races server-side
 (exactly one grant, partial pickups reduce the count via a server state);
 CHUNK_POPULATED marks a chunk's natural-mob roll done for this coverage
@@ -155,7 +157,11 @@ state entries (a mirror keeps its own countdown while flagged), and
 feeds reach the owner as ENTITY_ACTION/NET_ACTION_FEED — see
 `docs/mobs.md` "Breeding". `NET_MOB_FLAG_LOVE` carries a mob's in-love
 state the same way; its rising edge opens the feed-heart window on
-every client, not just the owner.
+every client, not just the owner. `NET_MOB_FLAG_SHEARED` likewise
+carries the sheared-sheep state (model swap + wool-off flag through
+spawns and state entries — see `docs/mobs.md` "Shearing"), its rising
+edge playing `sheep_shear` on mirrors, and persists through the
+provenance mask in the `mobs_` sidecars like TOUCHED.
 
 Bodies (falling blocks + primed TNT) differ: the *causing* client
 simulates — ENTITY_SPAWN fixes a sim fd, only that client's states and

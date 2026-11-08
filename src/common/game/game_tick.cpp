@@ -282,8 +282,12 @@ void RepGame::tick_entities( ) {
     MobTickOutput mob_out;
     gs.world.mobs.tick( gs.world, gs.camera.pos, &mob_in, &mob_out );
     // A mob that landed on farmland tramples it back to dirt — the crop on
-    // top pops through the neighbour-update kill path.
+    // top pops through the neighbour-update kill path. Grazing sheep leave
+    // the same grass→dirt conversion (their wool regrows on the finish).
     for ( const glm::ivec3 &pos : mob_out.tramples ) {
+        repgame_convert_block( gs, pos, DIRT );
+    }
+    for ( const glm::ivec3 &pos : mob_out.grazes ) {
         repgame_convert_block( gs, pos, DIRT );
     }
     // Falling blocks + primed TNT bodies integrate on the same cadence.

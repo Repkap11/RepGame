@@ -123,7 +123,8 @@ enum NetEntityRemoveReason : uint8_t {
 // ENTITY_ACTION actions.
 enum NetEntityAction : uint8_t {
     NET_ACTION_HIT = 0,
-    NET_ACTION_FEED = 1, // feed the mob the `item` field (breeding)
+    NET_ACTION_FEED = 1,  // feed the mob the `item` field (breeding)
+    NET_ACTION_SHEAR = 2, // shear the mob with the `item` field (shears -> wool drop)
 };
 
 // NetPlayerPayload flags (bit0: targetable = !peaceful && !no_clip).
@@ -140,6 +141,7 @@ static constexpr uint32_t NET_MOB_FLAG_DESPAWNABLE = 1u << 8; // night-spawner m
 static constexpr uint32_t NET_MOB_FLAG_NATURAL = 1u << 9;     // deterministic natural-spawn roll
 static constexpr uint32_t NET_MOB_FLAG_TOUCHED = 1u << 10;    // player interacted: a natural mob becomes persistable
 static constexpr uint32_t NET_MOB_FLAG_BABY = 1u << 11;       // age_ticks < 0: half-scale juvenile
+static constexpr uint32_t NET_MOB_FLAG_SHEARED = 1u << 12;    // sheared sheep: wool model off until it grazes
 
 // Deterministic id for a natural-spawn roll product: top byte 0xFF keeps it
 // out of the client (session<<32, session >= 1) and server (session 0) id

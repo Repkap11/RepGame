@@ -1,0 +1,14 @@
+# Shearing: spawn a sheep, shear it — the `shear` debug command mirrors a
+# shears right-click (wool drops + the mob swaps to its sheared model until
+# it grazes). A non-shearable target or a failed apply emits cmd_error,
+# which fails the run.
+wait_idle 20 6000
+camera 3.0 3.5 9.0 0 15
+mob sheep 2.0 1.0 3.0
+wait 20
+screenshot sheep_woolly
+shear 2.0 1.0 3.0
+wait 20
+screenshot sheep_sheared
+assert_mob_count >= 1 sheep
+echo shear_sheep done

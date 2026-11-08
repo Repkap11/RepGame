@@ -155,6 +155,7 @@ class RepGame {
     // Spawn a killed mob's drops at `pos` (used by the local kill path and
     // the owner-side ENTITY_ACTION HIT path; item spawns sync via phase 1).
     static void spawn_mob_drops( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos );
+    static void spawn_mob_shear_drop( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos );
     // mp_test harness: move the pinned camera (re-aims the REPGAME_FLY
     // origin so the pin sticks, or just teleports the camera otherwise).
     static void mp_test_goto( RepGameState &state, const glm::dvec3 &pos );

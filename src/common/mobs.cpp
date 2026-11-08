@@ -40,6 +40,12 @@
 #define HEART_PERIOD_SPREAD 0.5f
 #define HEART_BORN_COUNT 7
 #define HEART_BABY_FEED_COUNT 2
+// Grazing (sheep): a woolly sheep idling on grass starts a ~2 s graze about
+// once a minute (Java's 1/1000 chance per 20 Hz tick ≈ 1/(50 s)); a shorn
+// one goes for it eagerly (~2.5 s) to get its wool back. graze_ticks pins
+// the AI while the head dips.
+#define MOB_GRAZE_TICKS ( 2 * UPS_RATE )
+#define MOB_GRAZE_PITCH -80.0f // head-down animator pitch while grazing, degrees
 // HeartParticles::now wraps with u_Time (3600 s) — wrapped-diff for the
 // per-mob emission cadence.
 #define HEART_TIME_WRAP 3600.0f
@@ -169,6 +175,8 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.love_ticks = 0;
     mob.breed_cooldown = 0;
     mob.age_ticks = 0;
+    mob.sheared = 0;
+    mob.graze_ticks = 0;
     mob.needs_unstick = 0;
     mob.fall_dist = 0.0f;
     mob.heart_ticks = 0;
@@ -194,8 +202,13 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.net_sent_flags = 0;
     mob.net.keyframe_tick = -1;
     if ( this->render_inited ) {
-        const MobModelDef &model = mob_models[ def.model ];
-        for ( int i = 0; i < model.cube_count; i++ ) {
+        // One render entity per cube; a shearable type allocates for the
+        // larger of its two models so a wool-swap never reallocates.
+        int cube_count = mob_models[ def.model ].cube_count;
+        if ( def.sheared_model != MOB_MODEL_COUNT ) {
+            cube_count = std::max( cube_count, mob_models[ def.sheared_model ].cube_count );
+        }
+        for ( int i = 0; i < cube_count; i++ ) {
             const std::pair<entt::entity, MobPartInstance &> data = this->render_chain.create_instance( );
             mob.parts.push_back( data.first );
         }
@@ -447,9 +460,53 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         }
     }
 
-    // Nearest player look-at (single-player: the one camera position).
+    // Grazing (shearable types — the sheep): a mob standing on grass dips
+    // its head for ~2 s (graze_ticks) then eats the block underfoot; the
+    // grazed cell lands in MobTickOutput::grazes and the caller converts it
+    // to dirt — same hand-off as tramples. A started graze pins the AI and
+    // the look-at below; panic or losing the ground aborts it. The finish
+    // clears `sheared` (wool regrows) and, for a baby, sheds ~10% of the
+    // remaining growth like a feed.
+    bool grazing = false;
+    if ( def.shear_drop.item != LAST_BLOCK_ID && !in_water ) {
+        const glm::ivec3 under = glm::ivec3( glm::floor( mob.pos - glm::dvec3( 0.0, 0.05, 0.0 ) ) );
+        if ( mob.graze_ticks > 0 ) {
+            if ( mob.standing && mob.panic_ticks <= 0 ) {
+                grazing = true;
+                if ( --mob.graze_ticks == 0 && world.get_loaded_block( under ).id == GRASS ) {
+                    if ( out != nullptr ) {
+                        out->grazes.push_back( under );
+                    }
+                    mob.sheared = 0;
+                    if ( mob.age_ticks < 0 ) {
+                        mob.age_ticks = glm::min( 0, mob.age_ticks - mob.age_ticks / 10 + 1 );
+                        mob.needs_unstick = mob.age_ticks == 0;
+                    }
+                    const double graze_dist = glm::distance( mob.pos, player_feet );
+                    audio_play_sfx_gain( "dig_grass", glm::clamp( 1.0f - static_cast<float>( graze_dist ) / 16.0f, 0.0f, 1.0f ) );
+                }
+            } else {
+                mob.graze_ticks = 0;
+            }
+        }
+        if ( !grazing && mob.standing && mob.panic_ticks <= 0 && mob.love_ticks <= 0 && mob.ai_state == 0 &&
+             world.get_loaded_block( under ).id == GRASS ) {
+            std::uniform_real_distribution<double> roll( 0.0, 1.0 );
+            const double p = mob.sheared ? 1.0 / ( 2.5 * UPS_RATE ) : 1.0 / ( 50.0 * UPS_RATE );
+            if ( roll( this->rng ) < p ) {
+                mob.graze_ticks = MOB_GRAZE_TICKS;
+                grazing = true;
+            }
+        }
+    }
+
+    // Nearest player look-at (single-player: the one camera position). A
+    // grazing mob keeps its head down on the grass instead.
     const glm::dvec3 mob_eye = mob.pos + glm::dvec3( 0.0, def.eye_h * scale_of( mob ), 0.0 );
-    {
+    if ( grazing ) {
+        mob.head_yaw += ( 0.0f - mob.head_yaw ) * 0.2f;
+        mob.head_pitch += ( MOB_GRAZE_PITCH - mob.head_pitch ) * 0.2f;
+    } else {
         const glm::dvec3 to_player = player_pos - mob_eye;
         const double dist_xz = std::hypot( to_player.x, to_player.z );
         float want_yaw = 0.0f, want_pitch = 0.0f;
@@ -502,7 +559,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             mob.fuse_ticks--;
         }
     }
-    if ( def.ai == MOB_AI_PASSIVE_WANDER || ( hostile && !mob.targeting ) ) {
+    if ( !grazing && ( def.ai == MOB_AI_PASSIVE_WANDER || ( hostile && !mob.targeting ) ) ) {
         // Love mode: the nearest same-type partner also in love. Seeking it
         // outranks tempting and wandering below; with no partner the mob
         // keeps its normal behavior instead of standing still.
@@ -916,6 +973,45 @@ bool MobManager::is_baby_at( const int index ) const {
     return index >= 0 && index < static_cast<int>( this->mobs.size( ) ) && this->mobs[ index ].age_ticks < 0;
 }
 
+// Shears on an unshorn adult of a shearable type (MobTypeDef::shear_drop).
+// Mirrors answer from the streamed SHEARED/BABY flags — accurate enough to
+// let the click through; the owner re-validates on the ENTITY_ACTION.
+bool MobManager::shearable( const int index, const ItemID item ) const {
+    if ( index < 0 || index >= static_cast<int>( this->mobs.size( ) ) ) {
+        return false;
+    }
+    const Mob &mob = this->mobs[ index ];
+    if ( mob.death_ticks > 0 || mob.uid != 0 ) {
+        return false;
+    }
+    const MobTypeDef &def = mob_types[ mob.type ];
+    return item == SHEARS && def.shear_drop.item != LAST_BLOCK_ID && !mob.sheared && mob.age_ticks >= 0;
+}
+
+// Applies the shear after shearable() passed: marks the mob sheared +
+// touched (a shorn sheep persists like penned livestock) and plays the
+// snip with the hurt/feed distance falloff. The caller rolls and spawns
+// MobTypeDef::shear_drop where the mob stood.
+bool MobManager::shear( const int index, const ItemID item, const glm::dvec3 &sound_pos ) {
+    if ( index < 0 || index >= static_cast<int>( this->mobs.size( ) ) ) {
+        return false;
+    }
+    Mob &mob = this->mobs[ index ];
+    if ( mob.net.mirror || !this->shearable( index, item ) ) {
+        return false;
+    }
+    this->mark_touched( mob );
+    mob.sheared = 1;
+    const double dist = glm::distance( mob.pos, sound_pos );
+    const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
+    audio_play_sfx_gain( "sheep_shear", gain );
+    return true;
+}
+
+bool MobManager::is_sheared_at( const int index ) const {
+    return index >= 0 && index < static_cast<int>( this->mobs.size( ) ) && this->mobs[ index ].sheared != 0;
+}
+
 // Called from World::render for every chunk that finished load+finalize this
 // frame. Claims ownership (so the leave path knows whether to persist) and
 // spawns the worker-side pending_mobs as live mobs.
@@ -951,6 +1047,7 @@ void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
                 mob.net_flags |= NET_MOB_FLAG_NATURAL;
             }
             mob.touched = ( record.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+            mob.sheared = ( record.flags & NET_MOB_FLAG_SHEARED ) != 0;
             // grow_ticks: negative is a baby's remaining growth, positive
             // an adult's re-breed cooldown (older files zero-fill both).
             if ( record.grow_ticks < 0 ) {
@@ -1001,7 +1098,7 @@ void MobManager::poll_owned( World &world ) {
                 record.z = it->pos.z;
                 record.yaw = it->yaw;
                 record.health = it->health;
-                record.flags = mob_net_flags( *it ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
+                record.flags = mob_net_flags( *it ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED | NET_MOB_FLAG_SHEARED );
                 record.net_id = it->natural_id;
                 record.grow_ticks = it->age_ticks < 0 ? it->age_ticks : it->breed_cooldown;
                 records.push_back( record );
@@ -1045,7 +1142,7 @@ void MobManager::persist_all( ) {
                 record.z = mob.pos.z;
                 record.yaw = mob.yaw;
                 record.health = mob.health;
-                record.flags = mob_net_flags( mob ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
+                record.flags = mob_net_flags( mob ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED | NET_MOB_FLAG_SHEARED );
                 record.net_id = mob.natural_id;
                 record.grow_ticks = mob.age_ticks < 0 ? mob.age_ticks : mob.breed_cooldown;
                 records.push_back( record );
@@ -1284,7 +1381,10 @@ static glm::mat4 bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &ani
 }
 
 void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha, glm::mat4 *out ) {
-    const MobModelDef &model = mob_models[ def.model ];
+    // The sheared model shares the woolly one's bone set, so the same anim
+    // names resolve — pick whichever the mob is currently wearing.
+    const MobModelDef &model =
+        mob.sheared && def.sheared_model != MOB_MODEL_COUNT ? mob_models[ def.sheared_model ] : mob_models[ def.model ];
     const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
 
     // Per-bone animator rotations and position offsets (model pixels),
@@ -1401,7 +1501,11 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
     }
     for ( Mob &mob : this->mobs ) {
         const MobTypeDef &def = mob_types[ mob.type ];
-        const MobModelDef &model = mob_models[ def.model ];
+        // A shorn shearable type renders its sheared model (a smaller cube
+        // set sharing the bone names); spare parts allocated for the larger
+        // model get a zeroed transform below.
+        const MobModelDef &model =
+            mob.sheared && def.sheared_model != MOB_MODEL_COUNT ? mob_models[ def.sheared_model ] : mob_models[ def.model ];
 
         const glm::dvec3 rpos = glm::mix( mob.prev_pos, mob.pos, static_cast<double>( alpha ) );
         const float ryaw = mob.prev_yaw + wrap_degrees_180( mob.yaw - mob.prev_yaw ) * alpha;
@@ -1487,6 +1591,12 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
                                        ( bone.mirror || cube.mirror ) ? 1.0f : 0.0f, mob.hurt_ticks > 0 ? -0.7f : white_flash ? 0.5f : 0.0f );
             }
         }
+        // Parts allocated beyond the active model's cubes (the woolly model
+        // is bigger than the sheared one) render nothing.
+        while ( part < static_cast<int>( mob.parts.size( ) ) ) {
+            MobPartInstance &inst = this->render_chain.get_instance( mob.parts[ part++ ] );
+            inst.transform = glm::mat4( 0.0f );
+        }
     }
     this->render_chain.invalidate_all( );
 }
@@ -1553,6 +1663,9 @@ uint32_t MobManager::mob_net_flags( const Mob &mob ) {
     }
     if ( mob.age_ticks < 0 ) {
         f |= NET_MOB_FLAG_BABY;
+    }
+    if ( mob.sheared ) {
+        f |= NET_MOB_FLAG_SHEARED;
     }
     return f;
 }
@@ -1668,6 +1781,7 @@ bool MobManager::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
     mob.net_natural = ( rec.flags & NET_MOB_FLAG_NATURAL ) != 0;
     mob.natural_id = net_is_natural_mob_id( rec.id ) ? rec.id : 0;
     mob.touched = ( rec.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+    mob.sheared = ( rec.flags & NET_MOB_FLAG_SHEARED ) ? 1 : 0;
     // MOB records carry breed state in age_ticks, but state entries can't
     // refresh it — a value negative at spawn outlives a grow-up server-side.
     // The live BABY flag arbitrates the sign: negative growth ticks while
@@ -1741,6 +1855,7 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
     mob->net_flags = e.flags;
     mob->despawnable = ( e.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
     mob->touched = ( e.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+    mob->sheared = ( e.flags & NET_MOB_FLAG_SHEARED ) ? 1 : 0;
     // BABY is the only age signal state entries carry: a mirror keeps its
     // own growth countdown while flagged, and snaps adult on the clear.
     if ( e.flags & NET_MOB_FLAG_BABY ) {
@@ -1763,6 +1878,11 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
     // window, so this opens it on every other client.
     if ( ( e.flags & NET_MOB_FLAG_LOVE ) && !( old_flags & NET_MOB_FLAG_LOVE ) ) {
         mob->heart_ticks = HEART_TICKS;
+    }
+    // The snip is the SHEARED edge's sound — the owner's shear() already
+    // played it for the shearer, mirrors play it here at full gain.
+    if ( ( e.flags & NET_MOB_FLAG_SHEARED ) && !( old_flags & NET_MOB_FLAG_SHEARED ) ) {
+        audio_play_sfx( "sheep_shear" );
     }
     if ( ( e.flags & NET_MOB_FLAG_DYING ) && !( old_flags & NET_MOB_FLAG_DYING ) ) {
         mob->death_ticks = 1;
@@ -1811,7 +1931,7 @@ void MobManager::net_release_entity( const NetEntityRecord &rec, const bool stil
 }
 
 void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPayload &p ) {
-    if ( !this->enabled || ( p.action != NET_ACTION_HIT && p.action != NET_ACTION_FEED ) ) {
+    if ( !this->enabled || ( p.action != NET_ACTION_HIT && p.action != NET_ACTION_FEED && p.action != NET_ACTION_SHEAR ) ) {
         return;
     }
     Mob *mob = this->find_by_net_id( p.id );
@@ -1825,6 +1945,16 @@ void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPay
         const bool fed = this->feed( index, static_cast<ItemID>( p.item ) );
         mp_test::event( &state, "mob_action_feed", "\"id\":\"%llu\",\"item\":%u,\"fed\":%d",
                         (unsigned long long)p.id, p.item, (int)fed );
+        return;
+    }
+    if ( p.action == NET_ACTION_SHEAR ) {
+        // Same claimed-item validation: shearable() wants real shears.
+        const bool sheared = this->shear( index, static_cast<ItemID>( p.item ), glm::dvec3( p.ax, p.ay, p.az ) );
+        mp_test::event( &state, "mob_action_shear", "\"id\":\"%llu\",\"item\":%u,\"sheared\":%d",
+                        (unsigned long long)p.id, p.item, (int)sheared );
+        if ( sheared ) {
+            RepGame::spawn_mob_shear_drop( state, mob_types[ this->mobs[ index ].type ], this->mobs[ index ].pos );
+        }
         return;
     }
     const bool killed = this->hurt( index, p.damage, glm::dvec3( p.ax, p.ay, p.az ) );
@@ -1898,6 +2028,7 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
             existing->despawnable = ( rec.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
             existing->natural_id = net_is_natural_mob_id( rec.id ) ? rec.id : 0;
             existing->touched = ( rec.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+            existing->sheared = ( rec.flags & NET_MOB_FLAG_SHEARED ) ? 1 : 0;
             if ( rec.flags & NET_MOB_FLAG_BABY ) {
                 existing->age_ticks = std::min<int32_t>( rec.age_ticks, -1 );
             } else {

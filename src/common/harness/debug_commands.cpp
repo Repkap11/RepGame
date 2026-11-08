@@ -164,6 +164,45 @@ bool dbgcmd::feed( RepGameState &state, const glm::dvec3 &pos, const char *item,
     return true;
 }
 
+// Player right-click shear on the shearable mob nearest `pos` — same shape
+// as the click path: owned mobs shear directly (+ shear_drop spawn),
+// mirrors get ENTITY_ACTION / NET_ACTION_SHEAR for the owner to validate.
+bool dbgcmd::shear( RepGameState &state, const glm::dvec3 &pos, std::string *err ) {
+    MobManager &mobs = state.world.mobs;
+    int best = -1;
+    double best_d = 1e9;
+    for ( size_t i = 0; i < mobs.count( ); i++ ) {
+        const double d = glm::length( mobs.pos_at( static_cast<int>( i ) ) - pos );
+        if ( d < best_d ) {
+            best_d = d;
+            best = static_cast<int>( i );
+        }
+    }
+    if ( best < 0 ) {
+        *err = "shear: no mobs";
+        return false;
+    }
+    if ( !mobs.shearable( best, SHEARS ) ) {
+        *err = "shear: mob isn't shearable";
+        return false;
+    }
+    if ( mobs.net_mirror_at( best ) ) {
+        NetEntityActionPayload act{};
+        act.id = mobs.net_id_at( best );
+        act.action = NET_ACTION_SHEAR;
+        act.damage = 0.0f;
+        act.ax = static_cast<float>( state.camera.pos.x );
+        act.ay = static_cast<float>( state.camera.pos.y );
+        act.az = static_cast<float>( state.camera.pos.z );
+        act.attacker_survival = state.game_mode == GameMode_Survival ? 1 : 0;
+        act.item = static_cast<uint32_t>( SHEARS );
+        state.multiplayer.entities.send_entity_action( act );
+    } else if ( mobs.shear( best, SHEARS, state.camera.pos ) ) {
+        RepGame::spawn_mob_shear_drop( state, mobs.def_at( best ), mobs.pos_at( best ) );
+    }
+    return true;
+}
+
 bool dbgcmd::fall( RepGameState &state, const char *item, const glm::ivec3 &pos, std::string *err ) {
     const ItemID id = item_from_name( item );
     if ( id == LAST_BLOCK_ID || !block_id_defined( id ) ) {

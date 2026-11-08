@@ -92,6 +92,31 @@ also trample: landing on `FARMLAND` after >0.5 blocks of real fall pushes
 the cell to `MobTickOutput::tramples` and `RepGame::tick` converts it to
 dirt — same model as the player trample (`docs/player.md`).
 
+Shearing (sheep — `MobTypeDef::shear_drop` is the per-type opt-in):
+right-clicking an unshorn adult with `SHEARS` calls `MobManager::shear`,
+which sets `sheared`, marks the mob `touched`, plays `sheep_shear` at the
+feed distance falloff, and the caller spawns `shear_drop` (1–3
+`WHITE_WOOL`) where the mob stood via `RepGame::spawn_mob_shear_drop`.
+Shears are a stack-1 tool and aren't consumed. While `sheared` the mob
+renders `MobTypeDef::sheared_model` (the sheared body under the wool
+layer — `MOB_MODEL_SHEEP_SHEARED`, imported from Bedrock's
+`geometry.sheep.sheared`); `spawn_any` allocates part instances for the
+larger of the two cube sets so the swap never reallocates, and
+`update_render` zero-fills the spares. The state rides
+`NET_MOB_FLAG_SHEARED` through the wire — its rising edge plays the snip
+on mirrors — and `MobFileRecord::flags` on disk; right-click shearing a
+mirrored mob goes through `ENTITY_ACTION`/`NET_ACTION_SHEAR` like a feed
+(the owner validates the claimed `item` against `SHEARS`).
+
+Wool regrows by grazing: an idle sheep standing on `GRASS` starts a ~2 s
+`graze_ticks` graze (eager ~1/(2.5 s·UPS) while shorn, ambient
+~1/(50 s·UPS) woolly — `MobManager::tick_mob`) that pins the AI and dips
+the head instead of the player look-at. Finishing over still-`GRASS`
+ground pushes the cell to `MobTickOutput::grazes`, clears `sheared`, and
+sheds ~10% of a baby's remaining growth; `RepGame::tick` converts the
+cell to `DIRT` (no drop, same `repgame_convert_block` hand-off as
+tramples). Panic or losing the ground aborts a started graze.
+
 The night spawner runs inside `MobManager::tick` (off under
 `REPGAME_MOB_TEST`, capture mode, fly mode and `REPGAME_MOB_SPAWNER=0`):
 every 2 s, while fewer than 12 despawnable hostiles live, up to 4

@@ -35,6 +35,9 @@ bool hit( RepGameState &state, unsigned long long net_id, std::string *err );
 // Right-click feed on the mob nearest `pos` (empty `item` picks the type's
 // first breed food); mirrors route through ENTITY_ACTION/NET_ACTION_FEED.
 bool feed( RepGameState &state, const glm::dvec3 &pos, const char *item, std::string *err );
+// Right-click shear on the shearable mob nearest `pos` (shears held);
+// mirrors route through ENTITY_ACTION/NET_ACTION_SHEAR.
+bool shear( RepGameState &state, const glm::dvec3 &pos, std::string *err );
 bool fall( RepGameState &state, const char *item, const glm::ivec3 &pos, std::string *err );
 bool tnt( RepGameState &state, const glm::vec3 &center, std::string *err );
 bool setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err );

@@ -178,6 +178,7 @@ sheep_step_2|mc_pack/mob/sheep/step2.wav|sfx|Sheep step
 sheep_step_3|mc_pack/mob/sheep/step3.wav|sfx|Sheep step
 sheep_step_4|mc_pack/mob/sheep/step4.wav|sfx|Sheep step
 sheep_step_5|mc_pack/mob/sheep/step5.wav|sfx|Sheep step
+sheep_shear|mc_pack/mob/sheep/shear.wav|sfx|Sheep shear
 zombie_say_1|mc_pack/mob/zombie/say1.wav|sfx|Zombie say
 zombie_say_2|mc_pack/mob/zombie/say2.wav|sfx|Zombie say
 zombie_say_3|mc_pack/mob/zombie/say3.wav|sfx|Zombie say

@@ -57,6 +57,14 @@ typedef struct {
     // Items handed to the player when the mob is killed in survival. Unused
     // entries have item == LAST_BLOCK_ID.
     MobDrop drops[ 2 ];
+    // Shearing (the sheep): right-clicking an unshorn adult with SHEARS
+    // spawns this drop and swaps the model to sheared_model until the mob
+    // grazes its wool back (MobManager::tick_mob). shear_drop.item ==
+    // LAST_BLOCK_ID means the type isn't shearable; sheared_model ==
+    // MOB_MODEL_COUNT the same. The sheared model must reuse the base
+    // model's bone names.
+    MobDrop shear_drop;
+    MobModel sheared_model;
     // Item that hatches this mob on right-click (the spawn eggs in
     // data/items); LAST_BLOCK_ID = no egg (the remote player type).
     ItemID spawn_egg;

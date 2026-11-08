@@ -1281,6 +1281,83 @@ int test_mobs( ) {
         }
     }
 
+    // --- 25: shearing: shears strip the wool, grazing regrows it -----------
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_SHEEP, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.spawn( MOB_PIG, glm::dvec3( 12.5, 11.0, 10.5 ), 0.0f, 1 );
+        check_bool( "shear: sheep accepts shears", mobs.shearable( 0, SHEARS ) );
+        check_bool( "shear: pig isn't shearable", !mobs.shearable( 1, SHEARS ) );
+        check_bool( "shear: wool isn't shears", !mobs.shearable( 0, WHITE_WOOL ) );
+        check_bool( "shear: shears apply", mobs.shear( 0, SHEARS, player_pos ) );
+        check_bool( "shear: sheared flag set", mobs.is_sheared_at( 0 ) && mobs.mobs[ 0 ].sheared );
+        check_bool( "shear: SHEARED flag for the wire", ( MobManager::mob_net_flags( mobs.mobs[ 0 ] ) & NET_MOB_FLAG_SHEARED ) != 0 );
+        check_bool( "shear: marked touched (persists)", mobs.mobs[ 0 ].touched );
+        check_bool( "shear: second shear refuses", !mobs.shearable( 0, SHEARS ) && !mobs.shear( 0, SHEARS, player_pos ) );
+        // Babies can't be sheared.
+        mobs.mobs[ 0 ].sheared = 0;
+        mobs.mobs[ 0 ].age_ticks = -100;
+        check_bool( "shear: baby sheep refuses", !mobs.shearable( 0, SHEARS ) );
+        mobs.mobs[ 0 ].age_ticks = 0;
+        mobs.mobs[ 0 ].sheared = 1;
+
+        // A finished graze clears sheared and reports the grass cell.
+        world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { GRASS, 0, 0, GRASS, 0 } );
+        MobTickOutput out;
+        mobs.mobs[ 0 ].pos = glm::dvec3( 10.5, 11.0, 10.5 );
+        mobs.mobs[ 0 ].standing = 1;
+        mobs.mobs[ 0 ].graze_ticks = 1;
+        mobs.tick( world, player_pos, nullptr, &out );
+        check_bool( "graze: finish reports the grass cell",
+                    out.grazes.size( ) == 1 && out.grazes[ 0 ] == glm::ivec3( 10, 10, 10 ) );
+        check_bool( "graze: wool regrew", !mobs.mobs[ 0 ].sheared && !mobs.is_sheared_at( 0 ) );
+
+        // A sheared sheep idling on grass starts a graze on its own — the
+        // manager rng is fixed-seed, so the eager-p start is deterministic.
+        mobs.mobs[ 0 ].sheared = 1;
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        bool started = false;
+        for ( int i = 0; i < 4000 && !started; i++ ) {
+            mobs.tick( world, player_pos );
+            started = mobs.mobs[ 0 ].graze_ticks > 0;
+        }
+        check_bool( "graze: sheared sheep starts grazing on grass", started );
+        // Woolly sheep on stone never start (the stone floor stays stone).
+        mobs.mobs[ 0 ].sheared = 0;
+        mobs.mobs[ 0 ].graze_ticks = 0;
+        mobs.mobs[ 0 ].pos = glm::dvec3( 20.5, 11.0, 10.5 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        for ( int i = 0; i < 120; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "graze: stone floor never grazes", mobs.mobs[ 0 ].graze_ticks == 0 );
+        world.set_loaded_block( glm::ivec3( 10, 10, 10 ), stone );
+    }
+
+    // --- 26: the sheared flag persists through the mobs file ---------------
+    {
+        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        MapStorage storage;
+        storage.init( "TestMobs" );
+        MobManager mobs;
+        mobs.init_storage( &storage );
+        mobs.owned_chunks.push_back( { glm::ivec3( 4, 0, 0 ), 0, {} } );
+        mobs.spawn( MOB_SHEEP, glm::dvec3( 260.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.shear( 0, SHEARS, player_pos );
+        mobs.persist_all( );
+        std::vector<MobFileRecord> out;
+        check_bool( "shear persist: record written", storage.load_mobs( glm::ivec3( 4, 0, 0 ), out ) == 1 && out.size( ) == 1 );
+        if ( out.size( ) == 1 ) {
+            check_bool( "shear persist: SHEARED in file flags", ( out[ 0 ].flags & NET_MOB_FLAG_SHEARED ) != 0 );
+            check_bool( "shear persist: live anim bits stay out",
+                        ( out[ 0 ].flags & ( NET_MOB_FLAG_HURT | NET_MOB_FLAG_DYING | NET_MOB_FLAG_LOVE ) ) == 0 );
+        }
+    }
+
     return failures;
 }
 

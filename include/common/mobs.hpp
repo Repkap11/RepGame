@@ -65,6 +65,9 @@ struct MobTickOutput {
     std::vector<MobPlayerHit> player_hits;
     std::vector<glm::dvec3> explosions;
     std::vector<glm::ivec3> tramples;
+    // Grass cells a grazing sheep finished eating (converted to dirt by the
+    // caller, which owns the world write — same hand-off as tramples).
+    std::vector<glm::ivec3> grazes;
 };
 
 // Zombies burn while daylighted under open sky (and not in water). Pure
@@ -137,6 +140,13 @@ class MobManager {
         int love_ticks;
         int breed_cooldown;
         int age_ticks;
+        // Shearing (types with MobTypeDef::shear_drop): wool is off while
+        // sheared — rendered with sheared_model until the mob grazes it
+        // back. graze_ticks > 0 pins the mob head-down over the grass it's
+        // eating (a started graze interrupts on knockback/landing loss);
+        // persisted through MobFileRecord::flags and NET_MOB_FLAG_SHEARED.
+        int sheared;
+        int graze_ticks;
         // A baby just grew (the age tick or a finishing feed): the adult
         // hitbox is twice the baby's and may now overlap a block it was
         // pressed against — tick_mob pushes the mob back out next pass.
@@ -268,8 +278,18 @@ class MobManager {
     // can fall through to block use.
     bool feedable( int index, ItemID item ) const;
     bool feed( int index, ItemID item );
+    // Shearing (sheep): whether right-clicking this mob with `item` shears
+    // it — shears on an unshorn adult of a shearable type. shear() applies
+    // it (marks sheared + touched, plays the snip at `sound_pos`) and the
+    // caller spawns MobTypeDef::shear_drop. Mirrors report shearable for
+    // the click but shear() refuses — ENTITY_ACTION/NET_ACTION_SHEAR
+    // reaches the owner for the authoritative apply.
+    bool shearable( int index, ItemID item ) const;
+    bool shear( int index, ItemID item, const glm::dvec3 &sound_pos );
     // Baby while age_ticks < 0 (also true for mirrors via NET_MOB_FLAG_BABY).
     bool is_baby_at( int index ) const;
+    // Wool sheared off (also true for mirrors via NET_MOB_FLAG_SHEARED).
+    bool is_sheared_at( int index ) const;
     const MobTypeDef &def_at( int index ) const { return mob_types[ this->mobs[ index ].type ]; }
     // The mob's feet position (for dropping items where it died).
     glm::dvec3 pos_at( int index ) const { return this->mobs[ index ].pos; }

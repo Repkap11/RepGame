@@ -272,28 +272,32 @@ void RepGame::process_mouse_events( ) {
             }
         }
     }
-    // Feeding pre-empts the block interactions: a right-click aimed at a mob
-    // while holding one of its breed foods feeds it. A remote-owned mob gets
-    // ENTITY_ACTION — the owner validates the claimed item and applies the
-    // feed.
-    int feed_mob = -1;
+    // Mob use-item interactions pre-empt the block ones: a right-click aimed
+    // at a mob while holding one of its use-items applies it — a breed food
+    // feeds it, shears shear an unshorn sheep. A remote-owned mob gets
+    // ENTITY_ACTION — the owner validates the claimed item and applies.
+    int interact_mob = -1;
+    uint8_t interact_action = NET_ACTION_FEED;
     if ( globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui &&
          !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
         const ItemID held = globalGameState.hotbar.getSelectedItem( );
         const int target = globalGameState.world.mobs.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
                                                                       globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
-        if ( target >= 0 && globalGameState.world.mobs.feedable( target, held ) ) {
-            feed_mob = target;
+        if ( target >= 0 && globalGameState.world.mobs.shearable( target, held ) ) {
+            interact_mob = target;
+            interact_action = NET_ACTION_SHEAR;
+        } else if ( target >= 0 && globalGameState.world.mobs.feedable( target, held ) ) {
+            interact_mob = target;
         }
     }
-    if ( feed_mob >= 0 ) {
+    if ( interact_mob >= 0 ) {
         const ItemID held = globalGameState.hotbar.getSelectedItem( );
         globalGameState.input.click_delay_right = 30;
         globalGameState.vr.haptic_pending = true;
-        if ( globalGameState.world.mobs.net_mirror_at( feed_mob ) ) {
+        if ( globalGameState.world.mobs.net_mirror_at( interact_mob ) ) {
             NetEntityActionPayload act;
-            act.id = globalGameState.world.mobs.net_id_at( feed_mob );
-            act.action = NET_ACTION_FEED;
+            act.id = globalGameState.world.mobs.net_id_at( interact_mob );
+            act.action = interact_action;
             act.damage = 0.0f;
             act.ax = globalGameState.camera.pos.x;
             act.ay = globalGameState.camera.pos.y;
@@ -301,10 +305,15 @@ void RepGame::process_mouse_events( ) {
             act.attacker_survival = globalGameState.game_mode == GameMode_Survival;
             act.item = static_cast<uint32_t>( held );
             globalGameState.multiplayer.entities.send_entity_action( act );
+        } else if ( interact_action == NET_ACTION_SHEAR ) {
+            if ( globalGameState.world.mobs.shear( interact_mob, held, globalGameState.camera.pos ) ) {
+                spawn_mob_shear_drop( globalGameState, globalGameState.world.mobs.def_at( interact_mob ), globalGameState.world.mobs.pos_at( interact_mob ) );
+            }
         } else {
-            globalGameState.world.mobs.feed( feed_mob, held );
+            globalGameState.world.mobs.feed( interact_mob, held );
         }
-        if ( globalGameState.game_mode == GameMode_Survival ) {
+        // Feeding consumes the food; shears are a stack-1 tool and keep.
+        if ( interact_action == NET_ACTION_FEED && globalGameState.game_mode == GameMode_Survival ) {
             globalGameState.hotbar.consumeSelected( 1 );
             globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
         }

@@ -241,7 +241,7 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
             rec.z = e.z;
             rec.yaw = e.yaw;
             rec.health = e.health;
-            rec.flags = e.flags & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
+            rec.flags = e.flags & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED | NET_MOB_FLAG_SHEARED );
             rec.net_id = net_is_natural_mob_id( e.id ) ? e.id : 0;
             // State entries don't carry age_ticks, so the server's value is
             // frozen at spawn while the BABY flag keeps streaming — gate the

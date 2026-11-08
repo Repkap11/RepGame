@@ -418,6 +418,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `setblock x y z <block>`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; fill is inclusive, max 65536 cells |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
 | `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
+| `shear x y z` | shears the shearable mob nearest the point (as if holding shears); mirrors route ENTITY_ACTION like a right-click |
 | `probe x y z`, `probe_light x y z` | emit a results `probe` record (name + sky/block light) |
 | `assert_block x y z <name|id>` | assert the loaded block |
 | `assert_light x y z sky|block <op> <n>` | op is `== != < <= > >=` |

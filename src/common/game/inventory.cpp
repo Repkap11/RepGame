@@ -1128,6 +1128,19 @@ void RepGame::spawn_mob_drops( RepGameState &state, const MobTypeDef &def, const
     }
 }
 
+// Shearing spawns MobTypeDef::shear_drop where the mob stood — same hop as
+// the death drops. Called by the owner (shear() already validated).
+void RepGame::spawn_mob_shear_drop( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos ) {
+    const MobDrop &drop = def.shear_drop;
+    if ( drop.item == LAST_BLOCK_ID ) {
+        return;
+    }
+    const int count = drop.min + rand( ) % ( drop.max - drop.min + 1 );
+    if ( count > 0 ) {
+        state.world.items.spawn( drop.item, count, pos + glm::dvec3( 0.0, 0.3, 0.0 ), repgame_item_drop_hop( ), 10 );
+    }
+}
+
 int RepGame::give_item_to_player( RepGameState &state, ItemID item, int quantity ) {
     const int bar_space = state.hotbar.spaceFor( item );
     const int to_bar = quantity < bar_space ? quantity : bar_space;

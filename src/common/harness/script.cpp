@@ -284,6 +284,12 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    if ( strcmp( cmd, "shear" ) == 0 && argc == 4 ) {
+        if ( !dbgcmd::shear( state, glm::dvec3( farg( 1 ), farg( 2 ), farg( 3 ) ), &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
     if ( strcmp( cmd, "fall" ) == 0 && argc == 5 ) {
         if ( !dbgcmd::fall( state, argv[ 1 ].c_str( ), glm::ivec3( ivec_arg( 2 ), ivec_arg( 3 ), ivec_arg( 4 ) ), &err ) ) {
             cmd_error( state, line, err.c_str( ) );
