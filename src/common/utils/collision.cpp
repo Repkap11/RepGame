@@ -428,6 +428,65 @@ bool Collision::collides_at( World &world, const glm::dvec3 &eye, double player_
     return aabb_collides_world( world, amin, amax );
 }
 
+bool Collision::unstick( World &world, glm::dvec3 &eye, double player_height, double eye_height, double half_width ) {
+    glm::dvec3 amin, amax;
+    player_aabb( eye, player_height, eye_height, half_width, amin, amax );
+    const double eps = 1e-4;
+    for ( int iter = 0; iter < 8; iter++ ) {
+        // The overlapping box with the shallowest escape: for each axis the
+        // cheaper of pushing the min edge up past the box's max face or the
+        // max edge down past its min face.
+        double best_push = 1e9;
+        int best_axis = -1;
+        int best_sign = 0;
+        const int x0 = static_cast<int>( floor( amin.x ) );
+        const int x1 = static_cast<int>( floor( amax.x - eps ) );
+        // One extra layer below: fence/gate collision reaches above its cell.
+        const int y0 = static_cast<int>( floor( amin.y ) ) - 1;
+        const int y1 = static_cast<int>( floor( amax.y - eps ) );
+        const int z0 = static_cast<int>( floor( amin.z ) );
+        const int z1 = static_cast<int>( floor( amax.z - eps ) );
+        for ( int x = x0; x <= x1; x++ ) {
+            for ( int y = y0; y <= y1; y++ ) {
+                for ( int z = z0; z <= z1; z++ ) {
+                    glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+                    const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
+                    for ( int i = 0; i < num_boxes; i++ ) {
+                        if ( !aabb_overlap( amin, amax, mins[ i ], maxs[ i ] ) ) {
+                            continue;
+                        }
+                        for ( int a = 0; a < 3; a++ ) {
+                            const double push_pos = maxs[ i ][ a ] - amin[ a ];
+                            const double push_neg = amax[ a ] - mins[ i ][ a ];
+                            if ( push_pos < best_push ) {
+                                best_push = push_pos;
+                                best_axis = a;
+                                best_sign = 1;
+                            }
+                            if ( push_neg < best_push ) {
+                                best_push = push_neg;
+                                best_axis = a;
+                                best_sign = -1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if ( best_axis < 0 ) {
+            eye.x = ( amin.x + amax.x ) * 0.5;
+            eye.y = amin.y + eye_height;
+            eye.z = ( amin.z + amax.z ) * 0.5;
+            return true;
+        }
+        // SKIN past the face so fp error can't re-overlap on the rescan; a
+        // push can land the box inside a new cell, so iterate until clean.
+        amin[ best_axis ] += best_sign * ( best_push + SKIN );
+        amax[ best_axis ] += best_sign * ( best_push + SKIN );
+    }
+    return false;
+}
+
 void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
                             double player_height, double eye_height, bool edge_guard, double half_width ) {
     bool standing = false;

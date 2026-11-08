@@ -169,6 +169,7 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.love_ticks = 0;
     mob.breed_cooldown = 0;
     mob.age_ticks = 0;
+    mob.needs_unstick = 0;
     mob.fall_dist = 0.0f;
     mob.next_heart_at = 0.0f;
     mob.heart_burst = 0;
@@ -359,8 +360,19 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     if ( mob.breed_cooldown > 0 ) {
         mob.breed_cooldown--;
     }
-    if ( mob.age_ticks < 0 ) {
-        mob.age_ticks++;
+    if ( mob.age_ticks < 0 && ++mob.age_ticks == 0 ) {
+        mob.needs_unstick = 1;
+    }
+    // Grow-up doubles the hitbox at once: a baby pressed against a wall or
+    // fence now overlaps the block, and check_move only clamps faces a move
+    // crosses, so the mob would tunnel straight through on its next step.
+    // Push it back out to free space before physics runs.
+    if ( mob.needs_unstick ) {
+        mob.needs_unstick = 0;
+        glm::dvec3 eye = mob.pos + glm::dvec3( 0.0, def.hitbox_h, 0.0 );
+        if ( Collision::unstick( world, eye, def.hitbox_h, def.hitbox_h, def.hitbox_w / 2.0 ) ) {
+            mob.pos = eye - glm::dvec3( 0.0, def.hitbox_h, 0.0 );
+        }
     }
 
     const glm::ivec3 feet = glm::ivec3( glm::floor( mob.pos ) );
@@ -884,6 +896,9 @@ bool MobManager::feed( const int index, const ItemID item ) {
     this->mark_touched( mob );
     if ( mob.age_ticks < 0 ) {
         mob.age_ticks = glm::min( 0, mob.age_ticks - mob.age_ticks / 10 + 1 );
+        // A finishing feed grows the mob right here — the overlap push-out
+        // waits for tick_mob, which owns the world access.
+        mob.needs_unstick = mob.age_ticks == 0;
         mob.heart_burst = HEART_BABY_FEED_COUNT;
     } else {
         mob.love_ticks = MOB_LOVE_TICKS;

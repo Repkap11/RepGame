@@ -43,6 +43,13 @@ class Collision {
     // position `eye` overlaps any solid block. Used for the headroom check
     // before standing up out of a sneak.
     static bool collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // Pushes a body whose box already overlaps the world out to free space —
+    // for a hitbox that just grew into a wall (baby mob -> adult), where
+    // check_move's face-crossing clamps can't help and the body would tunnel
+    // through. Repeatedly escapes along the shallowest-penetration axis and
+    // rewrites `eye` to the resolved position. Returns false (eye untouched)
+    // when a few pushes can't free it — a pocket tighter than the box.
+    static bool unstick( World &world, glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
     // Top of the block's collision boxes at `block_pos` — fences and closed
     // gates reach 1.5 above their cell floor; unloaded counts as a full
     // block. Non-colliding blocks return the cell floor. Used by the mob

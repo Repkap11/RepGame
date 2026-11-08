@@ -63,7 +63,11 @@ pair check at the end of `tick` spawns a baby at their midpoint
 (`age_ticks = -MOB_BABY_AGE_TICKS`, ~5 min at `MOB_BABY_SCALE` = 0.5 for
 collision/raycast/eye/render scale) and starts both parents'
 `breed_cooldown` (~2 min, blocks re-feeding). Babies count up to adult
-and drop nothing when killed. Right-click feeding a mirrored mob goes
+and drop nothing when killed. Grow-up doubles the hitbox in one tick —
+a baby pressed against a wall/fence would overlap the block and tunnel
+through it (check_move only clamps face crossings), so reaching adult
+flags `needs_unstick` and `tick_mob` pushes the mob back to free space
+via `Collision::unstick` (also set by a growth-finishing `feed`). Right-click feeding a mirrored mob goes
 through `ENTITY_ACTION`/`NET_ACTION_FEED` — the owner validates the item
 against `breed_items` before applying (see `docs/entities.md`); baby
 state rides `NET_MOB_FLAG_BABY` + `NetEntityRecord.age_ticks`, and

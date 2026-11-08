@@ -137,6 +137,10 @@ class MobManager {
         int love_ticks;
         int breed_cooldown;
         int age_ticks;
+        // A baby just grew (the age tick or a finishing feed): the adult
+        // hitbox is twice the baby's and may now overlap a block it was
+        // pressed against — tick_mob pushes the mob back out next pass.
+        int needs_unstick;
         float fall_dist;
         // Heart particles (client-side visuals, update_render): in love
         // (own love_ticks or a mirror's NET_MOB_FLAG_LOVE) puffs one heart

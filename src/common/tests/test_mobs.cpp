@@ -154,6 +154,52 @@ int test_mobs( ) {
         }
     }
 
+    // --- 2c: a baby grown against a wall/fence is pushed back, not through --
+    {
+        // Babies collide at half width: pressed flush against a wall, the
+        // adult hitbox overlaps the block the instant age_ticks hits 0, and
+        // check_move's face-crossing clamps can't see that overlap — the mob
+        // would tunnel straight through. The grow-up unstick must push it
+        // back to its own side.
+        const BlockState fence = { FENCE, 0, 0, FENCE, 0 };
+        for ( int part = 0; part < 2; part++ ) {
+            const BlockState wall = part == 0 ? stone : fence;
+            const char *tag = part == 0 ? "wall" : "fence";
+            for ( int y = 11; y <= 12; y++ ) {
+                for ( int z = 9; z <= 11; z++ ) {
+                    world.set_loaded_block( glm::ivec3( 14, y, z ), wall );
+                }
+            }
+            // Baby pig face flush on the wall: baby half-width is 0.225; the
+            // fence's side face sits at 14.375 inside the cell.
+            const double face = part == 0 ? 14.0 : 14.375;
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( face - 0.225 - 1e-4, 11.0, 10.5 ), 0.0f, 1 );
+            MobManager::Mob &mob = mobs.mobs[ 0 ];
+            mob.ai_state = 0;
+            mob.ai_ticks = 100000;
+            mob.age_ticks = -1;
+            mobs.tick( world, player_pos );
+            char name[ 64 ];
+            snprintf( name, sizeof( name ), "%s: grow-up pushed back to own side", tag );
+            check_bool( name, mob.age_ticks == 0 && mob.pos.x + 0.45 <= face + 0.01 );
+            // Keep walking into it: the mob must never reach the far side.
+            mob.ai_state = 1;
+            mob.ai_ticks = 100000;
+            mob.target = glm::dvec3( 20.0, 11.0, 10.5 );
+            for ( int i = 0; i < 600; i++ ) {
+                mobs.tick( world, player_pos );
+            }
+            snprintf( name, sizeof( name ), "%s: grown mob never tunnels through", tag );
+            check_bool( name, mob.pos.x < 14.0 );
+            for ( int y = 11; y <= 12; y++ ) {
+                for ( int z = 9; z <= 11; z++ ) {
+                    world.set_loaded_block( glm::ivec3( 14, y, z ), BLOCK_STATE_AIR );
+                }
+            }
+        }
+    }
+
     // --- 3: half slab step-up ----------------------------------------------
     {
         MobManager mobs;
