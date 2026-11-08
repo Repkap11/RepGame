@@ -116,7 +116,9 @@ mob pre-empt the block target for left clicks.
   a `PlayerBlockPlacedEvent` on the block-update queue
   (`docs/redstone.md`), which is also where debris spawns. Rotation is
   chosen by yaw (`rotate_on_placement`), face for torches, pitch for
-  pistons (`getPlacedRotation`).
+  pistons (`getPlacedRotation`); stairs and half slabs also take their
+  top-half bit from the clicked face/hit height (bottom face or upper
+  side half => top-half block, `docs/blocks.md`).
 - **Use.** The right-click chain handles mob feeding (a breedable mob
   takes precedence over block clicks), buttons, doors/gates, chests,
   crafting tables, dust toggling, bone meal (sapling or crop stage), hoe

@@ -76,10 +76,10 @@ unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
             rotation = BLOCK_ROTATE_0;
         }
     }
-    // Stairs flip upside-down (rotation bit 2) by MC's rule: clicking the
-    // bottom face of a block, or the upper half of a side face, places a
-    // top-half stair.
-    if ( block->is_stairs ) {
+    // Stairs flip upside-down and slabs ride the top half (rotation bit 2)
+    // by MC's rule: clicking the bottom face of a block, or the upper half
+    // of a side face, places the top-half variant.
+    if ( block->is_stairs || block->is_slab ) {
         const BlockSelection &sel = globalGameState.block_selection;
         if ( sel.face == FACE_BOTTOM || ( sel.face != FACE_TOP && sel.hit_y_in_cell > 0.5 ) ) {
             rotation = static_cast<unsigned char>( rotation | BLOCK_ROTATE_STAIRS_TOP );

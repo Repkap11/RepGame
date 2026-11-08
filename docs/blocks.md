@@ -221,6 +221,29 @@ world-space list, so a neighbor change re-shapes every consumer at once.
 Half-height steps ride the normal `STEP_HEIGHT` path, so walking up a
 staircase needs no special movement code.
 
+Half slabs (OAK_SLAB etc. — the derived `is_slab` flag marks any colliding,
+bottom-aligned, half-height box over the full footprint, so the legacy
+`*_DOUBLE_*_SLAB` ids that share that box count too while SLAB-named full
+cubes like STONE_SLAB2 don't) ride the same top-half bit as stairs:
+`BLOCK_ROTATE_SLAB_TOP` (rotation bit 2) is set by the same placement rule
+(clicked bottom face or upper side half). There is no separate top-slab
+geometry — every single-box consumer mirrors the def box into the cell's
+upper half (`offset_y = 16 - scale_y - offset_y` in collision.cpp,
+ray_traversal's `contains_pixel`, the `MouseSelection` outline,
+`block_adjust_coord_based_on_state` for the mesh instance, and
+`block_debris`'s particle box), and `block_yaw` masks the rotation to 0 so
+the bit never reaches yaw consumers. Face coverage flips the same way:
+`mesh_slab_face` maps a top slab's world TOP onto def-space BOTTOM (and
+vice versa) inside `mesh_face_seethrough`/`mesh_vis_logic.hpp`, so the
+slab's real top face draws at the cell boundary and a full block above
+culls it. Slabs don't combine into double slabs — a top slab under a
+bottom slab simply renders as a full-height pair. Lighting: slab cells
+are `blocks_light_down` light floors, and the fragment shader's contact
+shadow reads the A channel snapped to `v_light_pos`'s layer — a mid-cell
+face lands exactly on a layer boundary, so the snap is biased along the
+face normal to keep the face's own cell from self-shading (a top slab's
+underside reads the layer below it, not the floor cell it hangs from).
+
 Doors are two-cell blocks: every lower-half id is linked to an upper-half
 id by `door_partner` (validated by the importer). Both halves use the
 `door_lower`/`door_upper` model shapes — a 16x16x3 slab pushed to the

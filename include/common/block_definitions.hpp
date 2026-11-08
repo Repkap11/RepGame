@@ -105,6 +105,12 @@ typedef struct {
     // viewer, 0=-z), bit 2 is the top/upside-down half
     // (BLOCK_ROTATE_STAIRS_TOP).
     bool is_stairs;
+    // Derived (no JSON key): a half slab — a colliding bottom-aligned
+    // half-height box over the whole footprint — which can also hang from
+    // the cell top. Rotation bit 2 (BLOCK_ROTATE_SLAB_TOP) mirrors the def's
+    // box into the top half; the yaw bits are unused so block_yaw masks the
+    // whole rotation to 0.
+    bool is_slab;
     // Cactus-style Java model: the cell emits three instances — a full-cell
     // box drawing only top and bottom, and two 14-wide boxes drawing only
     // their side quads, which sit 1px inside each cell edge and sample the

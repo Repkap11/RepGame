@@ -20,6 +20,7 @@ void fill_mesh_defs( ) {
         d.no_light = b.no_light;
         d.id = b.id;
         d.is_piston = b.is_piston ? 1u : 0u;
+        d.is_slab = b.is_slab ? 1u : 0u;
         for ( int j = 0; j < NUM_FACES_IN_CUBE; j++ ) {
             d.is_seethrough_face[ j ] = b.calculated.is_seethrough_face[ j ];
             d.hides_self[ j ] = b.calculated.hides_self[ j ];

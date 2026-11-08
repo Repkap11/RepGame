@@ -45,6 +45,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_fence = false;
         block->is_fence_gate = false;
         block->is_stairs = false;
+        block->is_slab = false;
         block->spine_shell = false;
         block->is_door = false;
         block->is_door_upper = false;
@@ -99,6 +100,16 @@ void block_definitions_initilize_definitions( Texture *texture ) {
             block->blocks_light_down = true;
             block->casts_shadow = false;
         }
+
+        // Half slabs: a colliding, bottom-aligned, half-height box over the
+        // whole footprint (OAK_SLAB etc.). Derived from geometry rather than
+        // the name — legacy *_DOUBLE_*_SLAB ids carry the same half box and
+        // get the same top-half placement, while lookalikes stay out
+        // (8px-tall crop stages don't collide; SLAB-named full cubes like
+        // STONE_SLAB2 have full scale).
+        block->is_slab = block->collides_with_player &&                                            //
+                         block->scale.x == 16 && block->scale.y == 8 && block->scale.z == 16 &&   //
+                         block->offset.x == 0 && block->offset.y == 0 && block->offset.z == 0;
 
         // Crop chains: every stage with a crop_next is a crop, and so is the
         // stage it points at — the chain's terminal stage is marked through

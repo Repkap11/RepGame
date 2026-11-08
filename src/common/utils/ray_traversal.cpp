@@ -131,6 +131,10 @@ static int contains_pixel( Block *pixel_block, BlockState &block_state, const gl
             offset_z = 0;
         }
     }
+    if ( pixel_block->is_slab && ( block_state.rotation & BLOCK_ROTATE_SLAB_TOP ) != 0 ) {
+        // Top-half slab: the pick box mirrors into the upper half of the cell.
+        offset_y = 16 - scale_y - offset_y;
+    }
 
     double c1_x = block.x + PIXEL_TO_FLOAT( offset_x );
     double c1_z = block.z + PIXEL_TO_FLOAT( offset_z );

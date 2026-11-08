@@ -350,7 +350,15 @@ void main() {
     // Applied to the level-0 sample so the footprint blend below fades it
     // out with distance like the old darkening did.
     if(v_face_normal.y != 0.0) {
-        vec3 shade_pos = vec3(v_light_pos.x, u_LightBase.y + floor(v_light_pos.y - u_LightBase.y) + 0.5, v_light_pos.z);
+        // A face on a mid-cell plane (a top-half slab's underside) puts
+        // v_light_pos exactly ON a layer boundary — floor() then picks the
+        // slab's own light-floor cell and self-shades to black. Bias the
+        // snap along the normal so a boundary sample lands in the cell the
+        // face points into: the underside reads the layer below the slab,
+        // the same no-self-shade skip a bottom slab's top gets by landing
+        // on the upper boundary.
+        float shade_layer = floor(v_light_pos.y - u_LightBase.y + v_face_normal.y * 0.01f);
+        vec3 shade_pos = vec3(v_light_pos.x, u_LightBase.y + shade_layer + 0.5, v_light_pos.z);
         float shade = textureLod(u_LightTex, (shade_pos - u_LightBase + 1.0) / LIGHT_VOLUME_DIM, 0.0).a;
         light_sample *= shade;
     }

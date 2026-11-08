@@ -3,6 +3,11 @@
 #include "common/block_update_events/LeafDecayEvent.hpp"
 #include "common/tree_grow.hpp"
 #include "common/break_drops.hpp"
+#include "common/mesh_gen.hpp"
+// Same CPU-side include as chunk.cpp: pulls mesh_face_seethrough et al. in
+// as static inline helpers for the slab coverage checks.
+#define MG_QUAL static inline
+#include "common/mesh_gen_fns.hpp"
 // Fences and fence gates: connection rules, box geometry, the right-click
 // toggle rotation, the generated definitions, creative listing, and the
 // block-world showcase layout.
@@ -484,6 +489,143 @@ int test_stairs( ) {
                         out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_LEFT );
         hit_t = -1.0;
         check_bool( "ray: slab top hit reports t at +0.5",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                        out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 1.0 ) < 0.01 );
+    }
+    return failures;
+}
+
+// Half slabs: the derived is_slab flag, rotation bit 2 as the top-half
+// marker (BLOCK_ROTATE_SLAB_TOP — shared with stairs/gates/doors), the
+// mirrored collision/raycast box, the block_adjust geometry flip, and the
+// mesh coverage flip. The placement rule itself (bottom face or upper side
+// hit => top half) is the same branch stairs ride in getPlacedRotation.
+int test_slabs( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    const int TOP = BLOCK_ROTATE_SLAB_TOP;
+
+    // --- generated definitions ---------------------------------------------
+    const Block *oak_slab = block_definition_get_definition( OAK_SLAB );
+    check_bool( "def: OAK_SLAB is_slab + bottom half box",
+                oak_slab->is_slab && oak_slab->non_full_size && oak_slab->collides_with_player && //
+                    oak_slab->scale.x == 16 && oak_slab->scale.y == 8 && oak_slab->scale.z == 16 && //
+                    oak_slab->offset.x == 0 && oak_slab->offset.y == 0 && oak_slab->offset.z == 0 );
+    check_bool( "def: doubles and lookalikes aren't slabs",
+                !block_definition_get_definition( DOUBLE_STONE_SLAB )->is_slab && // full cube double
+                    !block_definition_get_definition( STONE_SLAB2 )->is_slab &&   // SLAB-named full cube
+                    !block_definition_get_definition( BEETROOT_2 )->is_slab &&    // slab box, no collision
+                    !block_definition_get_definition( STONE )->is_slab );
+    check_bool( "def: slab yaw masks the top-half bit", block_yaw( oak_slab, TOP ) == 0 && block_yaw( oak_slab, 0 ) == 0 );
+
+    // --- block_adjust_coord_based_on_state ----------------------------------
+    {
+        BlockState top_state = { OAK_SLAB, TOP, 0, OAK_SLAB, 0 };
+        BlockCoords coords = {};
+        coords.scale_y = oak_slab->scale.y;
+        coords.offset_y = oak_slab->offset.y;
+        block_adjust_coord_based_on_state( oak_slab, &top_state, &coords );
+        check_bool( "adjust: top slab box mirrors to y 8..16", coords.offset_y == 8 && coords.scale_y == 8 );
+        BlockState bottom_state = { OAK_SLAB, 0, 0, OAK_SLAB, 0 };
+        coords.offset_y = oak_slab->offset.y;
+        block_adjust_coord_based_on_state( oak_slab, &bottom_state, &coords );
+        check_bool( "adjust: bottom slab stays at y 0..8", coords.offset_y == 0 && coords.scale_y == 8 );
+    }
+
+    // --- mesh coverage: the mirrored box flips the y coverage lookups --------
+    // A top slab covers its cell top like a bottom slab covers its bottom —
+    // so the neighbor above's underside culls, and the slab's own top face
+    // draws on the boundary instead of mid-cell.
+    const GPUBlockDef *defs = mesh_def_table( );
+    check_bool( "mesh: bottom slab covers its bottom, top open",
+                !mesh_face_seethrough( defs[ OAK_SLAB ], 0, 0, FACE_BOTTOM ) && //
+                    mesh_face_seethrough( defs[ OAK_SLAB ], 0, 0, FACE_TOP ) != 0 );
+    check_bool( "mesh: top slab covers its top, bottom open",
+                !mesh_face_seethrough( defs[ OAK_SLAB ], 0, TOP, FACE_TOP ) && //
+                    mesh_face_seethrough( defs[ OAK_SLAB ], 0, TOP, FACE_BOTTOM ) != 0 );
+    check_bool( "mesh: slab sides stay half-open on both halves",
+                mesh_face_seethrough( defs[ OAK_SLAB ], 0, TOP, FACE_RIGHT ) != 0 && //
+                    mesh_face_seethrough( defs[ OAK_SLAB ], 0, 0, FACE_RIGHT ) != 0 && //
+                    mesh_slab_face( defs[ OAK_SLAB ], TOP, FACE_RIGHT ) == FACE_RIGHT );
+    check_bool( "mesh: coverage face is identity for non-slabs",
+                mesh_slab_face( defs[ STONE ], TOP, FACE_TOP ) == FACE_TOP && //
+                    mesh_slab_face( defs[ OAK_SLAB ], 0, FACE_TOP ) == FACE_TOP );
+
+    // --- world-level collision + raycast -------------------------------------
+    {
+        RepGameState &gs2 = *new RepGameState( );
+        gs2.tick_number = 0;
+        gs2.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs2.world );
+        World &world = gs2.world;
+        const BlockState stone = { STONE, 0, 0, STONE, 0 };
+        for ( int x = 19; x <= 23; x++ ) {
+            for ( int z = 19; z <= 22; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+            }
+        }
+        const double eye_y = 11.0 + PLAYER_EYE_HEIGHT;
+        const BlockState bottom_slab = { OAK_SLAB, 0, 0, OAK_SLAB, 0 };
+        const BlockState top_slab = { OAK_SLAB, TOP, 0, OAK_SLAB, 0 };
+        world.set_loaded_block( glm::ivec3( 20, 11, 20 ), bottom_slab );
+        world.set_loaded_block( glm::ivec3( 22, 11, 20 ), top_slab );
+        world.set_loaded_block( glm::ivec3( 23, 11, 20 ), stone );
+        // Air under the top slab's column so the up-ray can reach its
+        // underside without crossing the floor's top face.
+        world.set_loaded_block( glm::ivec3( 22, 10, 20 ), BLOCK_STATE_AIR );
+
+        // The single collision box mirrors into the upper half.
+        check_bool( "world: bottom slab collides at +0.4",
+                    Collision::collides_at( world, glm::dvec3( 20.5, eye_y + 0.4, 20.75 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: bottom slab open at +0.6",
+                    !Collision::collides_at( world, glm::dvec3( 20.5, eye_y + 0.6, 20.75 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: top slab collides at +0.6",
+                    Collision::collides_at( world, glm::dvec3( 22.5, eye_y + 0.6, 20.75 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: top slab clear above the cell at +1.1",
+                    !Collision::collides_at( world, glm::dvec3( 22.5, eye_y + 1.1, 20.75 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        const double bottom_top = Collision::block_collision_top( world, glm::ivec3( 20, 11, 20 ) );
+        const double top_top = Collision::block_collision_top( world, glm::ivec3( 22, 11, 20 ) );
+        check_bool( "world: collision tops at 11.5 / 12.0", fabs( bottom_top - 11.5 ) < 0.001 && fabs( top_top - 12.0 ) < 0.001 );
+
+        // A dropped player lands on the top slab's surface, flush with the
+        // cell top — same as standing on the full block that would be there.
+        glm::dvec3 pos( 22.5, 11.0 + 1.6 + PLAYER_EYE_HEIGHT, 20.75 );
+        int standing = 0;
+        for ( int i = 0; i < 40 && standing == 0; i++ ) {
+            glm::dvec3 vec( 0.0, -0.05, 0.0 );
+            Collision::check_move( world, vec, pos, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            pos += vec;
+        }
+        const double feet = pos.y - PLAYER_EYE_HEIGHT;
+        check_bool( "world: dropped player lands on top slab at 12.0", standing == 1 && fabs( feet - 12.0 ) < 0.05 );
+
+        // Raycast: the pick box mirrors — rays hit the moved surfaces and
+        // pass straight through the empty lower half to what's behind.
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        double hit_t = -1.0;
+        check_bool( "ray: down at top slab hits the cell-top face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 22.5, 12.5, 20.75 ), glm::dvec3( 22.5, 10.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                        out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 0.5 ) < 0.01 );
+        hit_t = -1.0;
+        check_bool( "ray: up at top slab hits the mid-cell underside",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 22.5, 10.5, 20.75 ), glm::dvec3( 22.5, 12.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                        out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_BOTTOM && fabs( hit_t - 1.0 ) < 0.01 );
+        check_bool( "ray: through the open lower half hits the stone behind",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 21.5, 11.25, 20.75 ), glm::dvec3( 23.5, 11.25, 20.75 ), out, &which_face ) &&
+                        out == glm::ivec3( 23, 11, 20 ) && which_face == FACE_LEFT );
+        check_bool( "ray: upper half picks the slab's own side",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 21.5, 11.75, 20.75 ), glm::dvec3( 22.5, 11.75, 20.75 ), out, &which_face ) &&
+                        out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_LEFT );
+        check_bool( "ray: down at bottom slab hits the half-height top",
                     RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, false, &hit_t ) &&
                         out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 1.0 ) < 0.01 );
     }

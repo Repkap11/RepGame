@@ -149,6 +149,10 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
         offset_x = block->offset.z;
         offset_z = 16 - block->scale.x - block->offset.x;
     }
+    if ( block->is_slab && ( blockState.rotation & BLOCK_ROTATE_SLAB_TOP ) != 0 ) {
+        // Top-half slab: the box mirrors into the upper half of the cell.
+        offset_y = 16 - scale_y - offset_y;
+    }
     out_min.x = static_cast<double>( block_pos.x ) + PIXEL_TO_FLOAT( offset_x );
     out_max.x = out_min.x + PIXEL_TO_FLOAT( scale_x );
     out_min.z = static_cast<double>( block_pos.z ) + PIXEL_TO_FLOAT( offset_z );

@@ -176,6 +176,11 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
             blockCoords.offset_z = torch_offset[ 2 ];
         }
 
+        // Top-half slab: the outline mirrors into the upper half of the cell.
+        if ( block->is_slab && ( blockState.rotation & BLOCK_ROTATE_SLAB_TOP ) != 0 ) {
+            blockCoords.offset_y = 16 - blockCoords.scale_y - blockCoords.offset_y;
+        }
+
         blockCoords.face_shift = block_yaw( block, blockState.rotation );
 
         this->render_chain_mouse_selection.invalidate( this->entity[ 0 ] );

@@ -48,8 +48,11 @@ if ( visible != 0 ) {
         MG_LET( GPUBlockDef, block_next_to, block_defs[ next_to_id ] )
         MG_LET( int, opposing_face, OPPOSITE_FACE[ mesh_rotated_face( face, next_to_rotation ) ] )
 
+        // A top-half slab mirrors its box into the cell's upper half: read
+        // coverage on the flipped y face (mesh_slab_face — identity else).
+        MG_LET( int, coverage_face, mesh_slab_face( block, block_rotation, rotated_face ) )
         MG_VAR( int, face_vis, 0 )
-        if ( block.is_seethrough_face[ rotated_face ] != 0u && block.hides_self[ rotated_face ] != 0u ) { // water and glass
+        if ( block.is_seethrough_face[ coverage_face ] != 0u && block.hides_self[ rotated_face ] != 0u ) { // water and glass
             // Waterlogged cells count as water: water (and lava) draws no
             // surface faces against them. Nor against translucent blocks
             // (stained glass, ice, ...): the glass draws its own face there,
@@ -66,7 +69,7 @@ if ( visible != 0 ) {
                                         next_to_id != block_id && liquid_boundary == 0,
                                     1, 0 );
             }
-        } else if ( block.is_seethrough_face[ rotated_face ] != 0u ) { // The current block is seethrough on this face — check all directions not opposing it.
+        } else if ( block.is_seethrough_face[ coverage_face ] != 0u ) { // The current block is seethrough on this face — check all directions not opposing it.
             MG_VAR( int, through_opposing, 0 )
             MG_FOR( face_around, FACE_TOP, face_around < NUM_FACES_IN_CUBE, face_around++ ) {
                 if ( face_around == opposing_face ) {

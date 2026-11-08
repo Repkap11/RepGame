@@ -313,6 +313,12 @@ int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], B
 }
 
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord ) {
+    // Top-half slab: mirror the bottom-aligned box into the upper half of
+    // the cell (the tex_offset window stays — slab sides keep the same band).
+    if ( block->is_slab && ( blockState->rotation & BLOCK_ROTATE_SLAB_TOP ) != 0 ) {
+        blockCoord->offset_y = 16 - blockCoord->scale_y - blockCoord->offset_y;
+    }
+
     if ( blockState->display_id == REDSTONE_LAMP && blockState->current_redstone_power > 0 ) {
         change_all_textures_to( blockCoord->face, TEX_REDSTONE_LAMP_ON );
     }

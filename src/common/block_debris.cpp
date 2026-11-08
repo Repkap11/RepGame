@@ -107,6 +107,10 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
             offset16.z = 0;
         }
     }
+    // Top-half slab: particles spawn inside the box that actually drew.
+    if ( block->is_slab && ( blockState.rotation & BLOCK_ROTATE_SLAB_TOP ) != 0 ) {
+        offset16.y = 16 - scale16.y - offset16.y;
+    }
 
     const glm::vec3 box_min = glm::vec3( block_pos ) + glm::vec3( offset16 ) / 16.0f;
     const glm::vec3 box_size = glm::vec3( scale16 ) / 16.0f;

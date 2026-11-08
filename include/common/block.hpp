@@ -351,6 +351,12 @@ static inline void block_rotate_box( unsigned char yaw, signed char scale[ 3 ], 
 // mesher emits the def-space stairs_boxes and lets the shader yaw them.
 int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], BlockBox out[ STAIRS_MAX_BOXES ] );
 
+// ---- Slabs ------------------------------------------------------------------
+// Half slabs store the vertical half in rotation bit 2 — the same bit the
+// stair top half and gate/door flags reuse on their own types. The yaw bits
+// are meaningless on a slab, so block_yaw masks the whole rotation away.
+#define BLOCK_ROTATE_SLAB_TOP BLOCK_ROTATE_STAIRS_TOP
+
 // ---- Doors -----------------------------------------------------------------
 // Doors share the gate's flag bit: the lower half's rotation bit 2 is the
 // open flag, the upper's is hinge-right; bits 0-1 of both hold the slab's
@@ -437,9 +443,11 @@ static inline BlockID block_item_id( BlockID id ) {
 
 // The yaw part of a rotation for single-box consumers (collision, raycast,
 // selection, debris): an open gate or toggled door keeps a yaw and must
-// never reach the rotation >= 4 wall-torch branches.
+// never reach the rotation >= 4 wall-torch branches. Slabs mask to 0 — their
+// rotation is only the top-half bit (BLOCK_ROTATE_SLAB_TOP), which those
+// consumers read off the raw rotation instead.
 static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
-    return ( b->is_fence_gate || b->is_door || b->is_stairs ) ? ( rot & 3 ) : rot;
+    return ( b->is_fence_gate || b->is_door || b->is_stairs || b->is_slab ) ? ( rot & 3 ) : rot;
 }
 
 // face_shift flag bits: the low nibble holds the yaw rotation (0-7).

@@ -100,6 +100,7 @@ struct GPUBlockDef {
     no_light : u32,
     id : u32,
     is_piston : u32,
+    is_slab : u32,
     is_seethrough_face : array<u32, 6>,
     hides_self : array<u32, 6>,
 };
@@ -136,6 +137,9 @@ struct GPUBlockDef {
     unsigned no_light;
     unsigned id; // BlockID
     unsigned is_piston;
+    // rotation bit 2 (BLOCK_ROTATE_SLAB_TOP) mirrors the box into the cell's
+    // top half — mesh_slab_face flips y coverage lookups for it
+    unsigned is_slab;
     unsigned is_seethrough_face[ NUM_FACES_IN_CUBE ];
     unsigned hides_self[ NUM_FACES_IN_CUBE ];
 };

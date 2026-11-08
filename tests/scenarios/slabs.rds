@@ -1,0 +1,48 @@
+# Slab staging: bottom vs top-half (rotation bit 2) slabs, a
+# bottom-over-top pair reading as a full block, and a top slab hanging
+# under a full block. Flat floor is SANDSTONE at y=0; AIR starts at y=1.
+wait_idle 20 6000
+# Bottom slabs: the plain placement shape sits in the cell's lower half.
+setblock 10 1 8 OAK_SLAB
+setblock 11 1 8 STONE_SLAB
+# Top-half slabs (BLOCK_ROTATE_SLAB_TOP = rotation bit 2 = 4).
+setblock 10 1 10 OAK_SLAB 4
+setblock 11 1 10 STONE_SLAB 4
+# A top slab under a bottom slab: the pair reads as a solid block.
+setblock 14 1 10 OAK_SLAB 4
+setblock 14 2 10 OAK_SLAB
+# A top slab hanging under a full block: its underside shows mid-cell and
+# its top face is culled against the block above.
+setblock 17 3 10 STONE
+setblock 17 2 10 STONE_SLAB 4
+wait 30
+assert_block 10 1 8 OAK_SLAB
+assert_block 10 1 10 OAK_SLAB
+assert_block 14 1 10 OAK_SLAB
+assert_block 14 2 10 OAK_SLAB
+assert_block 17 2 10 STONE_SLAB
+# Face-on view of the two rows: bottom row sits low in-cell, top row high.
+camera 12 3.5 5 180 20
+wait 20
+screenshot halves
+# The paired column at x=14 reads as a continuous block face.
+camera 14 3.5 7 180 20
+wait 20
+screenshot paired
+# Looking up at the hanging slab under the stone block.
+camera 17 2.3 13.5 180 -15
+wait 20
+screenshot hanging
+# Underside lighting: floating bottom slabs (left) and top slabs (right)
+# at the same z — both undersides should read the same mid-gray.
+setblock 9 3 13 OAK_SLAB
+setblock 10 3 13 OAK_SLAB
+setblock 11 3 13 OAK_SLAB
+setblock 13 3 13 OAK_SLAB 4
+setblock 14 3 13 OAK_SLAB 4
+setblock 15 3 13 OAK_SLAB 4
+wait 30
+camera 12 1.5 8.5 180 -35
+wait 20
+screenshot undersides
+echo slabs done
