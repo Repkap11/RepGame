@@ -131,9 +131,9 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             if ( this->search_backspaces < ( int )sizeof( this->search_chars ) ) {
                 this->search_backspaces++;
             }
-        } else if ( key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE || key == 'f' ) {
-            // 'f' toggles the box back off, like 'e'/'i' toggle the
-            // inventory itself; Enter and Escape close it too.
+        } else if ( key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE ) {
+            // Esc/Enter close the box. 'f' must stay a typed character —
+            // closing on it would make names like "furnace" unsearchable.
             this->search_close = true;
         } else if ( key >= ' ' && key <= '~' && this->search_chars_len < ( int )sizeof( this->search_chars ) ) {
             this->search_chars[ this->search_chars_len++ ] = ( char )key;

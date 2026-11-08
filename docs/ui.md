@@ -56,7 +56,7 @@ which swallows subsequent presses into `input.search_*` pending buffers
 the same tick drains into `searchAppendChar`/`searchBackspace`. A
 non-empty query filters `CREATIVE_BLOCKS` by `item_name`
 (`creative_search_matches` — case-insensitive, `_` as a space) and pages
-the match list; `f`/`Enter`/`Esc` or hiding the palette closes and clears it.
+the match list; `Enter`/`Esc` or hiding the palette closes and clears it.
 
 ## Chests
 
