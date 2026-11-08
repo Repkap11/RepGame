@@ -8,7 +8,7 @@
 #include <strings.h>
 
 #include "common/RepGame.hpp"
-#include "common/block.hpp"
+#include "common/block_definitions.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/game/game_state.hpp"
 #include "common/harness/debug_commands.hpp"
@@ -362,7 +362,7 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
             snprintf( actual, sizeof( actual ), "not a %s", def->name );
         } else {
             const int slot = ivec_arg( 5 );
-            const ItemID want_item = slot >= 0 && slot < def->slots ? dbgcmd::item_from_name( argv[ 6 ].c_str( ) ) : LAST_BLOCK_ID;
+            const ItemID want_item = slot >= 0 && slot < def->slots ? dbgcmd::item_from_name( argv[ 6 ].c_str( ) ) : static_cast<ItemID>( LAST_BLOCK_ID );
             const int want_count = argc == 8 ? ivec_arg( 7 ) : 1;
             if ( slot < 0 || slot >= def->slots || want_item == LAST_BLOCK_ID ) {
                 snprintf( actual, sizeof( actual ), "bad slot or item" );
