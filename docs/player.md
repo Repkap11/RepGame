@@ -20,7 +20,7 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 | `Space` | Jump; fly up; swim up |
 | `'` (apostrophe) | Sneak; fly down; sink while swimming |
 | `P` (hold) | Sprint |
-| `F` | Toggle flying |
+| `F` | Toggle flying; with the creative inventory open, toggles its item-name search box instead (typing filters the palette, `F`/`Enter`/`Esc` closes it) |
 | `C` | Toggle no-clip (`Ctrl+C` exits) |
 | `I`/`E` | Toggle inventory |
 | `Esc` | Close inventory, else pause menu |

@@ -103,6 +103,18 @@ class Input {
     // acts as a click at absPosition when the inventory is open, or a hotbar
     // slot tap-select when it is closed.
     bool screen_tap_pending;
+    // Creative-inventory search box: the 'f' down-edge while the inventory
+    // is open arms search_toggle, which the inventory tick turns into a
+    // search_focused flip (only when the creative palette is actually
+    // showing). While search_focused, keypresses are text input — the
+    // buffers below queue the edits for the tick to apply to
+    // CreativeInventory's query.
+    bool search_toggle;
+    bool search_focused;
+    char search_chars[ 32 ];
+    int search_chars_len;
+    int search_backspaces;
+    bool search_close;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );

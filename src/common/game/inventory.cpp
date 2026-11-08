@@ -1083,7 +1083,7 @@ static bool off_inventory_panels( RepGameState &state ) {
         return false;
     }
     if ( state.game_mode == GameMode_Creative ) {
-        if ( state.ui.creative.inventory_renderer.containsPoint( x, y ) ) {
+        if ( state.ui.creative.inventory_renderer.containsPoint( x, y ) || ( state.input.search_focused && state.ui.creative.searchBoxContainsPoint( x, y ) ) ) {
             return false;
         }
     } else if ( state.survival_inventory.inventory_renderer.containsPoint( x, y ) ) {
@@ -1163,6 +1163,43 @@ void RepGame::resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_ori
     }
 }
 void RepGame::process_inventory_events( ) {
+    // Creative search box: 'f' while the palette is showing toggles focus;
+    // while focused, queued text edits apply to the filter query. Hiding
+    // the palette (inventory close, chest/furnace/table open, survival
+    // mode) drops focus and clears the query — runs every tick so a stale
+    // pending edit can't leak across a state change.
+    {
+        Input &in = globalGameState.input;
+        CreativeInventory &creative = globalGameState.ui.creative;
+        const bool palette = in.inventory_open && globalGameState.game_mode == GameMode_Creative && !globalGameState.ui.chest.open && !globalGameState.ui.furnace.open && !globalGameState.ui.crafting.table_open;
+        if ( in.search_toggle && palette ) {
+            in.search_focused = !in.search_focused;
+            if ( !in.search_focused ) {
+                creative.searchClear( );
+            }
+        }
+        in.search_toggle = false;
+        if ( in.search_focused ) {
+            if ( !palette ) {
+                in.search_focused = false;
+                creative.searchClear( );
+            } else {
+                for ( int i = 0; i < in.search_chars_len; i++ ) {
+                    creative.searchAppendChar( in.search_chars[ i ] );
+                }
+                for ( int i = 0; i < in.search_backspaces; i++ ) {
+                    creative.searchBackspace( );
+                }
+                if ( in.search_close ) {
+                    in.search_focused = false;
+                    creative.searchClear( );
+                }
+            }
+        }
+        in.search_chars_len = 0;
+        in.search_backspaces = 0;
+        in.search_close = false;
+    }
     if ( globalGameState.input.toggle_game_mode ) {
         globalGameState.input.toggle_game_mode = false;
         if ( globalGameState.game_mode == GameMode_Creative ) {

@@ -107,7 +107,7 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
     const bool chest_open = chest_renderer != nullptr && chest_contents != nullptr;
     if ( input.inventory_open ) {
         if ( game_mode == GameMode_Creative && !chest_open && !crafting_table_open && !furnace_open ) {
-            creative_inventory.draw( renderer, blocksTexture, this->shader );
+            creative_inventory.draw( renderer, blocksTexture, this->shader, input.search_focused, font, mvp_ui );
         } else {
             survival_inventory.draw( renderer, blocksTexture, this->shader );
             survival_inventory.drawQuantities( renderer, font, mvp_ui );

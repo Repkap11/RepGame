@@ -48,6 +48,7 @@ class InventoryRenderer {
     // init() does GL work.
     friend int test_mobs( );
     friend void test_setup_inventories( struct RepGameState &gs );
+    friend int test_creative( );
     // Cell layout
     int width;
     int height;

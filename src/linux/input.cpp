@@ -122,6 +122,25 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
         return;
     }
 
+    // While the creative search box is focused every press is text input:
+    // printable ASCII queues for the filter, Backspace deletes, Enter and
+    // Escape close the box. The inventory tick drains the pending edits.
+    // Releases fall through so held-key flags stay consistent.
+    if ( pressed && this->search_focused ) {
+        if ( key == SDLK_BACKSPACE ) {
+            if ( this->search_backspaces < ( int )sizeof( this->search_chars ) ) {
+                this->search_backspaces++;
+            }
+        } else if ( key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE || key == 'f' ) {
+            // 'f' toggles the box back off, like 'e'/'i' toggle the
+            // inventory itself; Enter and Escape close it too.
+            this->search_close = true;
+        } else if ( key >= ' ' && key <= '~' && this->search_chars_len < ( int )sizeof( this->search_chars ) ) {
+            this->search_chars[ this->search_chars_len++ ] = ( char )key;
+        }
+        return;
+    }
+
     switch ( key ) {
         case 'q':
             // Down edge only: the release and OS key-repeat (pressed while
@@ -195,7 +214,13 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
 
         case 'f':
             if ( pressed ) {
-                this->player_flying = !this->player_flying;
+                if ( this->inventory_open ) {
+                    // The tick flips search_focused only when the creative
+                    // palette is actually showing; otherwise this is a no-op.
+                    this->search_toggle = true;
+                } else {
+                    this->player_flying = !this->player_flying;
+                }
             }
             break;
         case 'c':

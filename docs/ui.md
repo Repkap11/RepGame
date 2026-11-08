@@ -11,7 +11,8 @@ UiState
 ├── overlay    UIOverlay     crosshair, held block, dragged-item draw
 ├── imgui      ImGuiOverlay  debug window ('g' toggles .shown)
 ├── font       FontRenderer  bitmap text (13px glyphs, pixelScale steps)
-├── creative   CreativeInventory  creative palette pages + its renderer
+├── creative   CreativeInventory  creative palette pages + renderer, plus
+│              the 'f'-opened item-name search box (docs/player.md keys)
 ├── pause      PauseMenu     Esc menu: buttons + stepper rows
 ├── held_slot / holding_slot  stack currently dragged by the mouse
 ├── chest      ChestUi       open chest panel (at most one)
@@ -47,6 +48,15 @@ one. `ui.held_slot` + `holding_slot` is the dragged stack;
 scratch across each new target cell. Mouse presses remember where they
 began (`input.mouse.buttons.*_pressed_in_ui`) so drags crossing the
 UI/world boundary don't double-fire (`docs/player.md`).
+
+The creative palette has a search box (`CreativeInventory::search_text`):
+`f` while the palette is open flips `input.search_focused` (armed as
+`search_toggle` in `keysInput`, applied by `process_inventory_events`),
+which swallows subsequent presses into `input.search_*` pending buffers
+the same tick drains into `searchAppendChar`/`searchBackspace`. A
+non-empty query filters `CREATIVE_BLOCKS` by `item_name`
+(`creative_search_matches` — case-insensitive, `_` as a space) and pages
+the match list; `f`/`Enter`/`Esc` or hiding the palette closes and clears it.
 
 ## Chests
 
@@ -140,9 +150,10 @@ matching and the output slot are documented with the item/recipe data in
 - `ImGuiOverlay` (`SUPPORTS_IMGUI_OVERLAY` platforms): `shown` toggled
   by 'g' or `SHOW_IMGUI` at start; `ImGuiDebugVars` (position, world
   time, daylight, ambient floors, `LoaderDebugStats`, entity counts) is
-  refreshed per frame from `RepGame::draw`. It stays visible while the
-  pause menu is open — `draw_ui_pass` draws it just before the menu, so
-  the menu panel lands on top.
+  refreshed per frame from `RepGame::draw`. `draw_ui_pass` draws it
+  first — the bottom UI layer — so the hotbar, inventory panels (the
+  creative search box included), held item and pause menu all composite
+  on top of it.
 - `FontRenderer` draws bitmap text at integer `pixelScale` sizes —
   stack counts, pause labels, overlay text.
 

@@ -519,6 +519,79 @@ int test_creative( ) {
     check_bool( "creative: OAK_LOG listed", contains( OAK_LOG ) );
     check_bool( "creative: LIGHT_BLUE_STAINED_GLASS listed", contains( LIGHT_BLUE_STAINED_GLASS ) );
     check_bool( "creative: GLASS_PALE_BLUE hidden", !contains( GLASS_PALE_BLUE ) );
+
+    // Search box: the name matcher is case-insensitive with '_' acting as
+    // a space on both sides, so raw queries like 'oak_planks' work.
+    check_bool( "search: 'torch' matches TORCH", creative_search_matches( "TORCH", "torch" ) );
+    check_bool( "search: 'redstone torch' matches REDSTONE_TORCH", creative_search_matches( "REDSTONE_TORCH", "redstone torch" ) );
+    check_bool( "search: 'oak_planks' underscore query", creative_search_matches( "OAK_PLANKS", "oak_planks" ) );
+    check_bool( "search: substring anywhere", creative_search_matches( "STRIPPED_OAK_LOG", "ripped" ) );
+    check_bool( "search: no match", !creative_search_matches( "STONE", "torch" ) );
+
+    // Drive the slot fill headlessly — init() does GL work, so fields are
+    // filled directly via friend access (mirrors test_setup_inventories).
+    {
+        CreativeInventory ci;
+        ci.width = 4;
+        ci.height = 3;
+        ci.num_blocks_max = ci.width * ci.height;
+        ci.slots = static_cast<InventorySlot *>( calloc( ci.num_blocks_max, sizeof( InventorySlot ) ) );
+        ci.selected_page = 0;
+        ci.search_len = 0;
+        ci.search_text[ 0 ] = '\0';
+        InventoryRenderer &cir = ci.inventory_renderer;
+        cir.width = ci.width;
+        cir.height = ci.height;
+        cir.num_blocks_max = ci.num_blocks_max;
+        cir.screen_width = 800;
+        cir.screen_height = 600;
+        cir.inv_items_x = 0;
+        cir.inv_items_y = 0;
+        cir.inv_cell_stride = 1.0f;
+        cir.inv_block_size = 1;
+        cir.inv_block_offset = 0;
+        cir.slots_entities = static_cast<entt::entity *>( calloc( cir.num_blocks_max * STAIRS_MAX_BOXES, sizeof( entt::entity ) ) );
+        for ( int i = 0; i < cir.num_blocks_max * STAIRS_MAX_BOXES; i++ ) {
+            cir.slots_entities[ i ] = entt::null;
+        }
+
+        ci.load_blocks_for_selected_page( );
+        // The fill loops y from height-1 down, so the common list's first
+        // entry (GRASS) lands on the top-left cell — slot (h-1)*w.
+        check_bool( "search: page 0 still starts at GRASS", ci.slots[ ( ci.height - 1 ) * ci.width ].item_id == GRASS );
+
+        for ( const char c : { 't', 'o', 'r', 'c', 'h' } ) {
+            ci.searchAppendChar( c );
+        }
+        // The first page of matches must be the leading 'torch' matches in
+        // CREATIVE_BLOCKS order, in the same top-row-first slot order the
+        // fill uses (y from height-1 down, x left to right).
+        int expected_i = 0;
+        bool order_ok = true;
+        for ( int y = ci.height - 1; y >= 0; y-- ) {
+            for ( int x = 0; x < ci.width; x++ ) {
+                ItemID want = LAST_BLOCK_ID;
+                for ( ; expected_i < ( int )CREATIVE_BLOCK_COUNT; expected_i++ ) {
+                    const char *n = item_name( CREATIVE_BLOCKS[ expected_i ] );
+                    if ( n != nullptr && creative_search_matches( n, "torch" ) ) {
+                        want = CREATIVE_BLOCKS[ expected_i++ ];
+                        break;
+                    }
+                }
+                order_ok = order_ok && ci.slots[ y * ci.width + x ].item_id == want;
+            }
+        }
+        check_bool( "search: 'torch' page is the leading matches", order_ok );
+        check_bool( "search: 'torch' page has TORCH", ci.slots[ ( ci.height - 1 ) * ci.width ].item_id == BLACK_TORCH );
+
+        ci.searchBackspace( );
+        check_bool( "search: backspace shortens", ci.search_len == 4 );
+        ci.searchClear( );
+        check_bool( "search: clear restores page 0", ci.search_len == 0 && ci.slots[ ( ci.height - 1 ) * ci.width ].item_id == GRASS );
+
+        free( cir.slots_entities );
+        free( ci.slots );
+    }
     return failures;
 }
 
