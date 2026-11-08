@@ -105,6 +105,9 @@ with the shared-prefix read convention (a larger saved record still
 loads). `MobFileRecord` ends in `u64 net_id` — the deterministic
 `net_natural_mob_id` for natural-spawn products, 0 for ordinary mobs —
 and `flags` carries the provenance bits (`NATURAL`/`TOUCHED`). The
+appended `i32 grow_ticks` carries breeding state: negative is a baby's
+remaining growth ticks (adult at 0), positive is an adult's re-breed
+cooldown; pre-`grow_ticks` records zero-fill it (plain adults). The
 `removed` section tombstones natural-roll indices that must not
 respawn because that mob was touched (it lives on as a record, or died
 after being touched). A pre-`net_id` record size and a missing `removed`

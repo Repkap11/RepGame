@@ -23,6 +23,7 @@ typedef enum {
     MINEABLE_AXE,     // wood-like
     MINEABLE_SHOVEL,  // dirt/sand/gravel/snow-like
     MINEABLE_SHEARS,  // leaves/wool/carpet/vines
+    MINEABLE_HOE,     // right-click soil tilling; no block is mined faster
 } MineableClass;
 
 typedef struct {
@@ -131,6 +132,13 @@ typedef struct {
     // shares face textures — they differ only in decay behaviour.
     BlockID persistent_variant;
     BlockID natural_variant;
+    // Crop growth chains ("crop_next" in data/blocks): a stage block points
+    // at the next stage; the mature stage leaves it LAST_BLOCK_ID. Random
+    // ticks and bonemeal advance the chain.
+    BlockID crop_next;
+    // Derived (no JSON key): the block is a member of a crop_next chain —
+    // it survives only on farmland and grows by stage.
+    bool is_crop;
     // Derived (no JSON key): the block is a member of the "logs" item tag —
     // a trunk block that holds up nearby leaves for decay purposes.
     bool is_log;

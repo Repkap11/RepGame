@@ -259,14 +259,53 @@ void RepGame::process_mouse_events( ) {
             act.ay = globalGameState.camera.pos.y;
             act.az = globalGameState.camera.pos.z;
             act.attacker_survival = globalGameState.game_mode == GameMode_Survival;
+            act.item = 0;
             globalGameState.multiplayer.entities.send_entity_action( act );
         } else {
             // Survival: HIT_DAMAGE per click; creative kills in one hit. A
-            // survival kill hands the type's drops to the player's inventories.
+            // survival kill hands the type's drops to the player's
+            // inventories — babies never drop.
             const bool killed = globalGameState.world.mobs.hurt( hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f, globalGameState.camera.pos );
-            if ( killed && globalGameState.game_mode == GameMode_Survival ) {
+            if ( killed && globalGameState.game_mode == GameMode_Survival && !globalGameState.world.mobs.is_baby_at( hit_mob ) ) {
                 spawn_mob_drops( globalGameState, globalGameState.world.mobs.def_at( hit_mob ), globalGameState.world.mobs.pos_at( hit_mob ) );
             }
+        }
+    }
+    // Feeding pre-empts the block interactions: a right-click aimed at a mob
+    // while holding one of its breed foods feeds it. A remote-owned mob gets
+    // ENTITY_ACTION — the owner validates the claimed item and applies the
+    // feed.
+    int feed_mob = -1;
+    if ( globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui &&
+         !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
+        const ItemID held = globalGameState.hotbar.getSelectedItem( );
+        const int target = globalGameState.world.mobs.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
+                                                                      globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
+        if ( target >= 0 && globalGameState.world.mobs.feedable( target, held ) ) {
+            feed_mob = target;
+        }
+    }
+    if ( feed_mob >= 0 ) {
+        const ItemID held = globalGameState.hotbar.getSelectedItem( );
+        globalGameState.input.click_delay_right = 30;
+        globalGameState.vr.haptic_pending = true;
+        if ( globalGameState.world.mobs.net_mirror_at( feed_mob ) ) {
+            NetEntityActionPayload act;
+            act.id = globalGameState.world.mobs.net_id_at( feed_mob );
+            act.action = NET_ACTION_FEED;
+            act.damage = 0.0f;
+            act.ax = globalGameState.camera.pos.x;
+            act.ay = globalGameState.camera.pos.y;
+            act.az = globalGameState.camera.pos.z;
+            act.attacker_survival = globalGameState.game_mode == GameMode_Survival;
+            act.item = static_cast<uint32_t>( held );
+            globalGameState.multiplayer.entities.send_entity_action( act );
+        } else {
+            globalGameState.world.mobs.feed( feed_mob, held );
+        }
+        if ( globalGameState.game_mode == GameMode_Survival ) {
+            globalGameState.hotbar.consumeSelected( 1 );
+            globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
         }
     }
     const bool holding_break = hit_mob < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
@@ -382,20 +421,61 @@ void RepGame::process_mouse_events( ) {
         }
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
-        // Bone meal on a sapling grows it immediately — before the placement
-        // path below, and skipped while sneaking like the other block
-        // interactions. It ignores the light check random ticks apply; only
-        // a successful grow consumes one.
+        // Bone meal on a crop advances it one stage (the chain ends at the
+        // mature stage, which has no crop_next) and on a sapling grows it
+        // immediately — before the placement path below, and skipped while
+        // sneaking like the other block interactions. It ignores the light
+        // check random ticks apply; only a successful grow consumes one.
         if ( globalGameState.hotbar.getSelectedItem( ) == BONE_MEAL && !globalGameState.input.movement.sneakPressed ) {
             const glm::ivec3 &pos = globalGameState.block_selection.pos_destroy;
             const BlockState target_state = globalGameState.world.get_loaded_block( pos );
-            TreeSpec spec;
-            if ( target_state.id != LAST_BLOCK_ID && tree_spec_for_sapling( target_state.id, pos, &spec ) && tree_grow_try( globalGameState, pos ) ) {
+            const Block *target = target_state.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( target_state.id );
+            bool grown = false;
+            if ( target != nullptr && target->crop_next != LAST_BLOCK_ID ) {
+                repgame_convert_block( globalGameState, pos, target->crop_next );
+                grown = true;
+            } else {
+                TreeSpec spec;
+                grown = target != nullptr && tree_spec_for_sapling( target_state.id, pos, &spec ) && tree_grow_try( globalGameState, pos );
+            }
+            if ( grown ) {
                 audio_play_sfx( audio_block_dig_pool( target_state.id ) );
                 if ( globalGameState.game_mode == GameMode_Survival ) {
                     globalGameState.hotbar.consumeSelected( 1 );
                     globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
                 }
+                globalGameState.input.click_delay_right = 30;
+            }
+        }
+    }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
+        // A hoe tills the clicked soil block — grass/dirt/path to farmland,
+        // podzol/mycelium/coarse dirt to plain dirt — but only when the cell
+        // above is open (MC won't till under a standing crop or block).
+        if ( item_is_hoe( globalGameState.hotbar.getSelectedItem( ) ) && !globalGameState.input.movement.sneakPressed ) {
+            const glm::ivec3 &pos = globalGameState.block_selection.pos_destroy;
+            const BlockState target_state = globalGameState.world.get_loaded_block( pos );
+            BlockID tilled = LAST_BLOCK_ID;
+            switch ( target_state.id ) {
+                case GRASS:
+                case SNOWY_GRASS:
+                case DIRT:
+                case GRASS_PATH:
+                    tilled = FARMLAND;
+                    break;
+                case PODZOL:
+                case MYCELIUM:
+                case COARSE_DIRT:
+                    tilled = DIRT;
+                    break;
+                default:
+                    break;
+            }
+            const BlockState above_state = globalGameState.world.get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
+            if ( tilled != LAST_BLOCK_ID && above_state.id != LAST_BLOCK_ID &&
+                 block_definition_get_definition( above_state.id )->can_be_placed_in ) {
+                repgame_convert_block( globalGameState, pos, tilled );
+                audio_play_sfx( audio_block_dig_pool( target_state.id ) );
                 globalGameState.input.click_delay_right = 30;
             }
         }
@@ -424,10 +504,30 @@ void RepGame::process_mouse_events( ) {
         }
     }
     if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
-        // Placing a block — non-block items can't be placed.
+        // Placing a block — non-block items can't be placed, but "plants"
+        // items (seeds/produce) place their stage-0 crop like a block: the
+        // adjacent cell must be open and the survive rule — crops need
+        // farmland below — does the field check.
         const ItemID held_item = globalGameState.hotbar.getSelectedItem( );
         const BlockID holdingBlock = item_is_block( held_item ) ? static_cast<BlockID>( held_item ) : LAST_BLOCK_ID;
-        if ( holdingBlock != LAST_BLOCK_ID ) {
+        const BlockID plant_id = item_plant_block( held_item );
+        if ( plant_id != LAST_BLOCK_ID ) {
+            bool can_place = true;
+            if ( globalGameState.game_mode == GameMode_Survival ) {
+                can_place = globalGameState.hotbar.canPlaceSelected( );
+            }
+            if ( can_place ) {
+                const BlockID placed_block = change_block( 1, { plant_id, BLOCK_ROTATE_0, 0, plant_id, 0 } );
+                if ( placed_block != LAST_BLOCK_ID ) {
+                    audio_play_sfx( audio_block_dig_pool( plant_id ) );
+                    if ( globalGameState.game_mode == GameMode_Survival ) {
+                        globalGameState.hotbar.consumeSelected( 1 );
+                        globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+                    }
+                }
+                globalGameState.input.click_delay_right = 30;
+            }
+        } else if ( holdingBlock != LAST_BLOCK_ID ) {
             const Block *holdingBlockDef = block_definition_get_definition( holdingBlock );
             bool did_toggle_dust = false;
 
@@ -794,6 +894,29 @@ void RepGame::process_movement( ) {
                 audio_play_sfx_gain( audio_block_step_pool( under.id ), 0.75f );
             }
         }
+    }
+
+    // Farmland trampling: landing after real downward travel (>0.5 — a jump
+    // lands ~1.3, a step-up 0) converts the field underfoot back to dirt;
+    // the crop on top pops via the neighbour-update kill path. Flying,
+    // no-clip and swimming don't count (same model as the mob sim).
+    {
+        static double fall_dist = 0.0;
+        static bool was_grounded_trample = false;
+        const bool grounded = globalGameState.camera.standing_on_solid && !player_flying && !globalGameState.input.no_clip;
+        if ( grounded ) {
+            if ( !was_grounded_trample && fall_dist > 0.5 ) {
+                const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
+                const glm::ivec3 under_pos = glm::ivec3( glm::round( glm::dvec3( globalGameState.camera.pos.x, feet_y - 0.05, globalGameState.camera.pos.z ) - 0.5 ) );
+                if ( globalGameState.world.get_loaded_block( under_pos ).id == FARMLAND ) {
+                    repgame_convert_block( globalGameState, under_pos, DIRT );
+                }
+            }
+            fall_dist = 0.0;
+        } else if ( movement_vector.y < 0.0 && !player_flying && !globalGameState.input.no_clip && !player_swimming ) {
+            fall_dist += -movement_vector.y;
+        }
+        was_grounded_trample = grounded;
     }
 
     // Water: a splash on entry — heavy when falling in fast — and swim

@@ -1,5 +1,6 @@
 #include "common/mobs.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <stdlib.h>
@@ -22,6 +23,16 @@
 // Bedrock modified_distance_moved / Java limbSwing advance about 4 units per
 // block; the quadruped walk anim's 38.17°/unit is calibrated against that.
 #define MOB_GAIT_UNITS_PER_BLOCK 4.0f
+
+// Breeding timers (UPS ticks): love mode seeks a mate for ~8 s; a mated
+// pair can't re-breed for 5 min (MC parity); a baby grows up in ~5 min.
+#define MOB_LOVE_TICKS ( 8 * UPS_RATE )
+#define MOB_BREED_COOLDOWN_TICKS ( 5 * 60 * UPS_RATE )
+#define MOB_BABY_AGE_TICKS ( 5 * 60 * UPS_RATE )
+// Animals notice a held breed item within this distance of the player.
+#define MOB_TEMPT_RANGE 10.0
+// Babies render and collide at half the adult hitbox scale.
+#define MOB_BABY_SCALE 0.5f
 
 MobManager::MobManager( ) {
     this->enabled = env_bool( "REPGAME_MOBS", true );
@@ -145,6 +156,10 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.burn_acc = 0;
     std::uniform_real_distribution<float> phase_pick( 0.0f, 6.2832f );
     mob.wing_phase = phase_pick( this->rng );
+    mob.love_ticks = 0;
+    mob.breed_cooldown = 0;
+    mob.age_ticks = 0;
+    mob.fall_dist = 0.0f;
     mob.uid = 0;
     mob.look_yaw = 0.0f;
     mob.look_pitch = 0.0f;
@@ -323,6 +338,18 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         return;
     }
 
+    // Breeding timers: love expires on its own, the post-mating cooldown
+    // runs down, and a baby counts up to adult (feeding accelerates it).
+    if ( mob.love_ticks > 0 ) {
+        mob.love_ticks--;
+    }
+    if ( mob.breed_cooldown > 0 ) {
+        mob.breed_cooldown--;
+    }
+    if ( mob.age_ticks < 0 ) {
+        mob.age_ticks++;
+    }
+
     const glm::ivec3 feet = glm::ivec3( glm::floor( mob.pos ) );
     const bool in_water = world.get_loaded_block( feet ).id == WATER || world.get_loaded_block( feet + glm::ivec3( 0, 1, 0 ) ).id == WATER;
     const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER;
@@ -397,7 +424,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 
     // Nearest player look-at (single-player: the one camera position).
-    const glm::dvec3 mob_eye = mob.pos + glm::dvec3( 0.0, def.eye_h, 0.0 );
+    const glm::dvec3 mob_eye = mob.pos + glm::dvec3( 0.0, def.eye_h * scale_of( mob ), 0.0 );
     {
         const glm::dvec3 to_player = player_pos - mob_eye;
         const double dist_xz = std::hypot( to_player.x, to_player.z );
@@ -460,6 +487,44 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                 mob.yaw = pick_yaw( this->rng );
             }
             speed = def.panic_speed;
+        } else if ( mob.love_ticks > 0 ) {
+            // Love mode: walk to the nearest same-type partner also in
+            // love; the pair check in tick() produces the baby on contact.
+            // No partner -> stand still until the timer runs out.
+            const Mob *mate = nullptr;
+            double mate_dist = 1e30;
+            for ( const Mob &other : this->mobs ) {
+                if ( &other == &mob || other.type != mob.type || other.love_ticks <= 0 || //
+                     other.death_ticks > 0 || other.uid != 0 || other.net.mirror ) {
+                    continue;
+                }
+                const double d = glm::distance( other.pos, mob.pos );
+                if ( d < mate_dist ) {
+                    mate_dist = d;
+                    mate = &other;
+                }
+            }
+            if ( mate != nullptr && mate_dist > def.hitbox_w * 0.5 ) {
+                const glm::dvec2 to_mate( mate->pos.x - mob.pos.x, mate->pos.z - mob.pos.z );
+                const float want_yaw = static_cast<float>( atan2( to_mate.x, -to_mate.y ) * ( 180.0 / M_PI ) );
+                mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -6.0f, 6.0f );
+                speed = def.walk_speed;
+            }
+            mob.ai_state = 0;
+            mob.ai_ticks = 0;
+        } else if ( in->player_targetable && mob_def_is_breed_item( def, in->held_item ) && //
+                    player_dist_xz < MOB_TEMPT_RANGE && fabs( player_feet.y - mob.pos.y ) < 4.0 ) {
+            // Tempted: follow the player holding this animal's food,
+            // stopping just short. Resets the wander timer so the mob
+            // returns to idling cleanly when the food goes away.
+            if ( player_dist_xz > 1.6 ) {
+                const glm::dvec2 to_player( player_feet.x - mob.pos.x, player_feet.z - mob.pos.z );
+                const float want_yaw = static_cast<float>( atan2( to_player.x, -to_player.y ) * ( 180.0 / M_PI ) );
+                mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -6.0f, 6.0f );
+                speed = def.walk_speed;
+            }
+            mob.ai_state = 0;
+            mob.ai_ticks = 0;
         } else if ( mob.ai_state == 0 ) {
             // Idle, then pick a wander target: a column within 8 blocks whose
             // ground doesn't drop more than 3 below the mob.
@@ -562,14 +627,30 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     // its hitbox (feet + hitbox_h), so eye_height == hitbox height. The
     // knockback impulse rides on top of the AI velocity and decays ~x0.85 per
     // tick (~1 block of total travel from a 0.15 blocks/tick hit).
-    glm::dvec3 eye = mob.pos + glm::dvec3( 0.0, def.hitbox_h, 0.0 );
+    const int was_standing = mob.standing;
+    const float box_scale = scale_of( mob );
+    glm::dvec3 eye = mob.pos + glm::dvec3( 0.0, def.hitbox_h * box_scale, 0.0 );
     glm::dvec3 move = mob.vel + mob.kb;
     mob.kb *= 0.85;
     const glm::dvec3 want_move = mob.vel;
     int standing = 0;
-    Collision::check_move( world, move, eye, &standing, def.hitbox_h, def.hitbox_h, false, def.hitbox_w / 2.0 );
+    Collision::check_move( world, move, eye, &standing, def.hitbox_h * box_scale, def.hitbox_h * box_scale, false, def.hitbox_w * box_scale / 2.0 );
     mob.pos += move;
     mob.standing = standing;
+
+    // Fall tracking feeds the trample landing check: distance only counts
+    // while actually descending (jumps and step-ups don't accumulate).
+    if ( standing ) {
+        if ( !was_standing && mob.fall_dist > 0.5f && out != nullptr ) {
+            const glm::ivec3 under = glm::ivec3( glm::floor( mob.pos - glm::dvec3( 0.0, 0.05, 0.0 ) ) );
+            if ( world.get_loaded_block( under ).id == FARMLAND ) {
+                out->tramples.push_back( under );
+            }
+        }
+        mob.fall_dist = 0.0f;
+    } else if ( move.y < 0.0 ) {
+        mob.fall_dist += static_cast<float>( -move.y );
+    }
 
     if ( standing ) {
         mob.vel.y = 0.0;
@@ -631,9 +712,9 @@ int MobManager::raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double
         if ( mob.death_ticks > 0 || mob.uid != 0 ) {
             continue;
         }
-        const double hw = mob_types[ mob.type ].hitbox_w / 2.0;
+        const double hw = mob_types[ mob.type ].hitbox_w * scale_of( mob ) / 2.0;
         const glm::dvec3 bmin( mob.pos.x - hw, mob.pos.y, mob.pos.z - hw );
-        const glm::dvec3 bmax( mob.pos.x + hw, mob.pos.y + mob_types[ mob.type ].hitbox_h, mob.pos.z + hw );
+        const glm::dvec3 bmax( mob.pos.x + hw, mob.pos.y + mob_types[ mob.type ].hitbox_h * scale_of( mob ), mob.pos.z + hw );
         double t0 = 0.0;
         if ( RayTraversal::ray_aabb_entry( origin, dir, bmin, bmax, best_t, &t0 ) ) {
             best_t = t0;
@@ -745,6 +826,59 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos )
     return false;
 }
 
+float MobManager::scale_of( const Mob &mob ) {
+    return mob.age_ticks < 0 ? MOB_BABY_SCALE : 1.0f;
+}
+
+bool MobManager::feedable( const int index, const ItemID item ) const {
+    if ( index < 0 || index >= static_cast<int>( this->mobs.size( ) ) ) {
+        return false;
+    }
+    const Mob &mob = this->mobs[ index ];
+    if ( mob.death_ticks > 0 || mob.uid != 0 ) {
+        return false;
+    }
+    const MobTypeDef &def = mob_types[ mob.type ];
+    if ( !mob_def_is_breed_item( def, item ) ) {
+        return false;
+    }
+    if ( mob.net.mirror ) {
+        // Love/cooldown live on the owning side — a mirror accepts any valid
+        // food here and ENTITY_ACTION is validated authoritatively there.
+        return true;
+    }
+    // A baby always eats (growth boost); an adult only while it can enter
+    // love mode.
+    return mob.age_ticks < 0 || ( mob.love_ticks <= 0 && mob.breed_cooldown <= 0 );
+}
+
+// Applies the feed after feedable() passed: a baby sheds ~10% of its
+// remaining growth time; an adult enters love mode and stops wandering to
+// look for a mate. mark_touched makes the livestock persist like a penned
+// natural.
+bool MobManager::feed( const int index, const ItemID item ) {
+    if ( index < 0 || index >= static_cast<int>( this->mobs.size( ) ) ) {
+        return false;
+    }
+    Mob &mob = this->mobs[ index ];
+    if ( mob.net.mirror || !this->feedable( index, item ) ) {
+        return false;
+    }
+    this->mark_touched( mob );
+    if ( mob.age_ticks < 0 ) {
+        mob.age_ticks = glm::min( 0, mob.age_ticks - mob.age_ticks / 10 + 1 );
+    } else {
+        mob.love_ticks = MOB_LOVE_TICKS;
+        mob.ai_state = 0;
+        mob.ai_ticks = 0;
+    }
+    return true;
+}
+
+bool MobManager::is_baby_at( const int index ) const {
+    return index >= 0 && index < static_cast<int>( this->mobs.size( ) ) && this->mobs[ index ].age_ticks < 0;
+}
+
 // Called from World::render for every chunk that finished load+finalize this
 // frame. Claims ownership (so the leave path knows whether to persist) and
 // spawns the worker-side pending_mobs as live mobs.
@@ -780,6 +914,13 @@ void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
                 mob.net_flags |= NET_MOB_FLAG_NATURAL;
             }
             mob.touched = ( record.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+            // grow_ticks: negative is a baby's remaining growth, positive
+            // an adult's re-breed cooldown (older files zero-fill both).
+            if ( record.grow_ticks < 0 ) {
+                mob.age_ticks = record.grow_ticks;
+            } else {
+                mob.breed_cooldown = record.grow_ticks;
+            }
         }
     }
     this->owned_chunks.push_back( { chunk.chunk_pos, chunk.mobs_file_present,
@@ -815,7 +956,7 @@ void MobManager::poll_owned( World &world ) {
                     it = this->remove_mob( it );
                     continue;
                 }
-                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
+                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
                 record.type = static_cast<uint16_t>( it->type );
                 record.variant = static_cast<uint16_t>( it->variant < 0 ? 0 : it->variant );
                 record.x = it->pos.x;
@@ -825,6 +966,7 @@ void MobManager::poll_owned( World &world ) {
                 record.health = it->health;
                 record.flags = mob_net_flags( *it ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
                 record.net_id = it->natural_id;
+                record.grow_ticks = it->age_ticks < 0 ? it->age_ticks : it->breed_cooldown;
                 records.push_back( record );
                 it = this->remove_mob( it );
             } else {
@@ -858,7 +1000,7 @@ void MobManager::persist_all( ) {
             // naturals and other persistent mobs become records.
             const bool pristine = mob.natural_id != 0 && !mob.touched;
             if ( mob.persistent && !mob.despawnable && !pristine && glm::ivec3( glm::floor( mob.pos / csize ) ) == owned.pos ) {
-                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
+                MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
                 record.type = static_cast<uint16_t>( mob.type );
                 record.variant = static_cast<uint16_t>( mob.variant < 0 ? 0 : mob.variant );
                 record.x = mob.pos.x;
@@ -868,6 +1010,7 @@ void MobManager::persist_all( ) {
                 record.health = mob.health;
                 record.flags = mob_net_flags( mob ) & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
                 record.net_id = mob.natural_id;
+                record.grow_ticks = mob.age_ticks < 0 ? mob.age_ticks : mob.breed_cooldown;
                 records.push_back( record );
             }
         }
@@ -964,6 +1107,42 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
             continue;
         }
         ++it;
+    }
+    // Mating: a same-type pair both in love produces a baby when their
+    // hitboxes meet. Runs after the per-mob pass so the spawn never
+    // invalidates the iteration; the parents' love clears and a 5 min
+    // cooldown starts (love_ticks==0 also short-circuits later pairs).
+    if ( !freeze ) {
+        for ( size_t i = 0; i < this->mobs.size( ); i++ ) {
+            Mob &a = this->mobs[ i ];
+            if ( a.love_ticks <= 0 || a.uid != 0 || a.net.mirror ) {
+                continue;
+            }
+            for ( size_t j = i + 1; j < this->mobs.size( ); j++ ) {
+                Mob &b = this->mobs[ j ];
+                if ( b.type != a.type || b.love_ticks <= 0 || b.uid != 0 || b.net.mirror ) {
+                    continue;
+                }
+                const MobTypeDef &def = mob_types[ a.type ];
+                const double dxz = std::hypot( b.pos.x - a.pos.x, b.pos.z - a.pos.z );
+                if ( dxz > def.hitbox_w + 0.2 || fabs( b.pos.y - a.pos.y ) > 1.5 ) {
+                    continue;
+                }
+                a.love_ticks = 0;
+                b.love_ticks = 0;
+                a.breed_cooldown = MOB_BREED_COOLDOWN_TICKS;
+                b.breed_cooldown = MOB_BREED_COOLDOWN_TICKS;
+                // The baby is a player-caused spawn (uncapped, persistent,
+                // touched) — it never rolls back from the natural table.
+                if ( this->spawn_any( a.type, ( a.pos + b.pos ) * 0.5, a.yaw, 1 ) ) {
+                    Mob &baby = this->mobs.back( );
+                    baby.age_ticks = -MOB_BABY_AGE_TICKS;
+                    baby.touched = true;
+                    this->announce_spawn( baby );
+                }
+                break;
+            }
+        }
     }
     // Owned-chunk leave-poll (~every 16 ticks).
     if ( ++this->poll_count >= 16 ) {
@@ -1193,10 +1372,11 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
         if ( mob.death_ticks > 0 ) {
             // Tip-over: roll 90° onto the side over 0.5 s, pivoting at the
             // hitbox's mid height.
+            const float tip_h = def.hitbox_h * 0.4f * scale_of( mob );
             const float roll = fminf( mob.death_ticks / ( 0.5f * UPS_RATE ), 1.0f ) * 90.0f;
-            base = glm::translate( base, glm::vec3( 0.0f, def.hitbox_h * 0.4f, 0.0f ) );
+            base = glm::translate( base, glm::vec3( 0.0f, tip_h, 0.0f ) );
             base = glm::rotate( base, glm::radians( roll ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-            base = glm::translate( base, glm::vec3( 0.0f, -def.hitbox_h * 0.4f, 0.0f ) );
+            base = glm::translate( base, glm::vec3( 0.0f, -tip_h, 0.0f ) );
         }
         // Creeper fuse swelling (Java's swelling math): a small high-frequency
         // jitter f' on top of the cubic ramp, squashing y while x/z inflate.
@@ -1208,10 +1388,10 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
             fuse_f = fuse_f * fuse_f * fuse_f;
             base = glm::scale( base, glm::vec3( ( 1.0f + fuse_f * 0.4f ) * fp, ( 1.0f + fuse_f * 0.1f ) / fp, ( 1.0f + fuse_f * 0.4f ) * fp ) );
         }
-        base = glm::scale( base, glm::vec3( 1.0f / 16.0f ) );
+        base = glm::scale( base, glm::vec3( scale_of( mob ) / 16.0f ) );
 
         // One light sample per mob covers all of its parts.
-        const glm::vec2 light = chunk_loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, def.eye_h, 0.0f ) );
+        const glm::vec2 light = chunk_loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, def.eye_h * scale_of( mob ), 0.0f ) );
 
         glm::mat4 bone_world[ 32 ];
         bone_worlds( mob, def, alpha, bone_world );
@@ -1297,6 +1477,9 @@ uint32_t MobManager::mob_net_flags( const Mob &mob ) {
     if ( mob.fuse_ticks > 0 ) {
         f |= NET_MOB_FLAG_FUSE;
     }
+    if ( mob.age_ticks < 0 ) {
+        f |= NET_MOB_FLAG_BABY;
+    }
     return f;
 }
 
@@ -1328,6 +1511,7 @@ void MobManager::announce_spawn( Mob &mob ) {
     rec.type = mob.type;
     rec.count = mob.variant;
     rec.health = mob.health;
+    rec.age_ticks = mob.age_ticks < 0 ? mob.age_ticks : mob.breed_cooldown;
     rec.flags = mob_net_flags( mob );
     this->net->send_spawn( rec );
 }
@@ -1410,6 +1594,16 @@ bool MobManager::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
     mob.net_natural = ( rec.flags & NET_MOB_FLAG_NATURAL ) != 0;
     mob.natural_id = net_is_natural_mob_id( rec.id ) ? rec.id : 0;
     mob.touched = ( rec.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+    // MOB records carry breed state in age_ticks, but state entries can't
+    // refresh it — a value negative at spawn outlives a grow-up server-side.
+    // The live BABY flag arbitrates the sign: negative growth ticks while
+    // flagged, else a positive re-breed cooldown.
+    if ( rec.flags & NET_MOB_FLAG_BABY ) {
+        mob.age_ticks = std::min<int32_t>( rec.age_ticks, -1 );
+    } else {
+        mob.breed_cooldown = std::max<int32_t>( rec.age_ticks, 0 );
+        mob.age_ticks = 0;
+    }
     if ( rec.flags & NET_MOB_FLAG_HURT ) {
         mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
     }
@@ -1468,6 +1662,15 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
     mob->net_flags = e.flags;
     mob->despawnable = ( e.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
     mob->touched = ( e.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+    // BABY is the only age signal state entries carry: a mirror keeps its
+    // own growth countdown while flagged, and snaps adult on the clear.
+    if ( e.flags & NET_MOB_FLAG_BABY ) {
+        if ( mob->age_ticks >= 0 ) {
+            mob->age_ticks = -1;
+        }
+    } else {
+        mob->age_ticks = 0;
+    }
     const MobTypeDef &def = mob_types[ mob->type ];
     // Rising-edge flag visuals: the owner's sim already played its sfx, so
     // mirror playback is full-gain (no attacker distance to fade against).
@@ -1524,7 +1727,7 @@ void MobManager::net_release_entity( const NetEntityRecord &rec, const bool stil
 }
 
 void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPayload &p ) {
-    if ( !this->enabled || p.action != NET_ACTION_HIT ) {
+    if ( !this->enabled || ( p.action != NET_ACTION_HIT && p.action != NET_ACTION_FEED ) ) {
         return;
     }
     Mob *mob = this->find_by_net_id( p.id );
@@ -1532,10 +1735,18 @@ void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPay
         return;
     }
     const int index = static_cast<int>( mob - this->mobs.data( ) );
+    if ( p.action == NET_ACTION_FEED ) {
+        // The item is what the sender claims to hold — feedable() validates
+        // it against the type's breed items before applying.
+        const bool fed = this->feed( index, static_cast<ItemID>( p.item ) );
+        mp_test::event( &state, "mob_action_feed", "\"id\":\"%llu\",\"item\":%u,\"fed\":%d",
+                        (unsigned long long)p.id, p.item, (int)fed );
+        return;
+    }
     const bool killed = this->hurt( index, p.damage, glm::dvec3( p.ax, p.ay, p.az ) );
     mp_test::event( &state, "mob_action_hit", "\"id\":\"%llu\",\"dmg\":%g,\"killed\":%d,\"survival\":%d",
                     (unsigned long long)p.id, p.damage, (int)killed, (int)p.attacker_survival );
-    if ( killed && p.attacker_survival ) {
+    if ( killed && p.attacker_survival && !this->is_baby_at( index ) ) {
         RepGame::spawn_mob_drops( state, mob_types[ this->mobs[ index ].type ], this->mobs[ index ].pos );
     }
 }
@@ -1603,6 +1814,12 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
             existing->despawnable = ( rec.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
             existing->natural_id = net_is_natural_mob_id( rec.id ) ? rec.id : 0;
             existing->touched = ( rec.flags & NET_MOB_FLAG_TOUCHED ) != 0;
+            if ( rec.flags & NET_MOB_FLAG_BABY ) {
+                existing->age_ticks = std::min<int32_t>( rec.age_ticks, -1 );
+            } else {
+                existing->breed_cooldown = std::max<int32_t>( rec.age_ticks, 0 );
+                existing->age_ticks = 0;
+            }
         } else {
             this->spawn_record( rec, !owned );
             Mob *sp = this->find_by_net_id( rec.id );

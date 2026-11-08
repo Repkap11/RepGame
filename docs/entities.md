@@ -73,7 +73,7 @@ below for the spawn/state/remove/handover rules.
 
 ## Multiplayer entity sync
 
-Protocol v6 (`include/common/net/packet.hpp`) — "server arbitrates, owner
+Protocol v8 (`include/common/net/packet.hpp`) — "server arbitrates, owner
 client simulates". The server (`ServerEntities`, `server_entities.cpp`)
 holds the authoritative entity table per chunk and never simulates;
 clients (`NetEntities`, `net_entities.cpp`) announce what they own and
@@ -100,7 +100,10 @@ shared `net_entity_next_chunk` margin — an entity only changes chunks once
 it sits NET_ENTITY_CHUNK_MARGIN=0.5 blocks inside the new one, so a
 boundary-resting entity never flip-flops owners); ENTITY_REMOVE removes
 with a reason; ENTITY_TRANSFER switches ownership (adopt=1) or demotes to
-mirror (adopt=0); ENTITY_ACTION carries hits against remote entities;
+mirror (adopt=0); ENTITY_ACTION carries hits against remote entities
+(NET_ACTION_HIT + damage) and mob feeding (NET_ACTION_FEED + the claimed
+`item`, protocol 8 — the owning client's `feedable()` re-validates it
+against `MobTypeDef::breed_items` before applying);
 PICKUP_REQUEST/PICKUP_RESULT arbitrate item pickup races server-side
 (exactly one grant, partial pickups reduce the count via a server state);
 CHUNK_POPULATED marks a chunk's natural-mob roll done for this coverage
@@ -144,7 +147,12 @@ live so the sender's copy dies. Hits on mirrored mobs go through
 ENTITY_ACTION to the
 owner; owned hostiles also target remote players via `remote_targets` and
 reach them through PLAYER_HIT (`NetPlayerPayload.flags` bit0 =
-targetable).
+targetable). Mob breeding state rides the same streams: `NetEntityRecord.age_ticks`
+is negative for a baby's remaining growth and positive for an adult's
+re-breed cooldown, `NET_MOB_FLAG_BABY` carries the half-scale flag through
+state entries (a mirror keeps its own countdown while flagged), and
+feeds reach the owner as ENTITY_ACTION/NET_ACTION_FEED — see
+`docs/mobs.md` "Breeding".
 
 Bodies (falling blocks + primed TNT) differ: the *causing* client
 simulates — ENTITY_SPAWN fixes a sim fd, only that client's states and

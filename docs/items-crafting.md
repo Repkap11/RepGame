@@ -49,18 +49,30 @@ breaking leaves skip the roll and drop the leaf item itself.
 Tools and consumables: `SHEARS` (`shears` icon, `max_stack` 1, recipe
 two iron ingots diagonal) harvests leaf blocks; `BONE` drops from
 zombies; `BONE_MEAL` (`dye_powder_white_new` icon, shapeless 1 bone ->
-3 meal) grows a sapling instantly on right-click (`tree_grow_try`),
-consuming one in survival. `<TYPE>_SPAWN_EGG` items
+3 meal) grows a sapling instantly on right-click (`tree_grow_try`) or
+advances a crop one `crop_next` stage, consuming one in survival.
+`<TYPE>_SPAWN_EGG` items
 (`textures/items/spawn_eggs/` icons) hatch their mob on right-click —
 see `docs/mobs.md`.
 
+Farm produce items (`WHEAT`, `WHEAT_SEEDS`, `CARROT`, `POTATO`,
+`BEETROOT`, `BEETROOT_SEEDS`, `BREAD`) are ordinary pure items; the
+plantable ones carry `"plants": "<BLOCK_NAME>"` — the stage-0 crop id the
+right-click path places like a block (the crop's farmland survive rule
+does the field check). `item_plant_block(item)` resolves it. The same
+items double as breeding food via `MobTypeDef::breed_items`
+(`docs/mobs.md`), and `BREAD` crafts shapeless 3 wheat.
+
 Mining speed: `ItemGenDef` carries `tool_class` (the `MineableClass` the
 item accelerates) and `mine_speed` (per-tick multiplier). Optional item
-JSON keys `"tool"` (`"pickaxe"`/`"axe"`/`"shovel"`/`"shears"`) and
+JSON keys `"tool"` (`"pickaxe"`/`"axe"`/`"shovel"`/`"shears"`/`"hoe"`) and
 `"mining_speed"` override the importer's name-derived defaults: a
-`*_PICKAXE`/`_AXE`/`_SHOVEL` suffix gives the class and the material
+`*_PICKAXE`/`_AXE`/`_SHOVEL`/`_HOE` suffix gives the class and the material
 prefix the speed (`TOOL_TIER_SPEED` — wooden 2, stone 4, iron 6, diamond
-8; `SHEARS` is shears at 8). `item_mining_speed(item, block)`
+8; `SHEARS` is shears at 8). Hoes additionally till soil on right-click
+(`item_is_hoe`; `MINEABLE_HOE` is their mining class, which nothing is
+weak to — see "Farming" in `docs/player.md`).
+`item_mining_speed(item, block)`
 (`src/common/item.cpp`) returns the multiplier when the tool's class
 matches the target's `Block::mineable`, else 1 — see "Mining" in
 `docs/player.md`.

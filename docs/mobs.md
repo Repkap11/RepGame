@@ -43,6 +43,29 @@ range the mob falls normally. A dying hoverer drops while tipping.
 `standing` stays false in flight, so `MOB_ANIM_WING_FLAP` holds the fast
 airborne rate. The bee hovers at `hover_h = 1`.
 
+Breeding (pigs, cows, sheep, chickens — `MobTypeDef::breed_items` lists
+each type's foods: pigs eat carrots/potatoes/beetroots, cows and sheep
+wheat, chickens wheat or beetroot seeds): a passive mob within
+`MOB_TEMPT_RANGE` (10 blocks, ±4 y) of a player holding its food drops the
+wander AI and follows (`MobTickInput::held_item`; held items aren't
+streamed, so only the local player tempts). Right-clicking a breedable
+mob while holding a valid food calls `MobManager::feed` — an adult
+enters `love_ticks` (`MOB_LOVE_TICKS` ≈ 8 s), a baby sheds ~10% of its
+remaining growth. Feeding marks the mob `touched` so it persists like
+penned livestock. Two same-type mobs in love path to each other and the
+pair check at the end of `tick` spawns a baby at their midpoint
+(`age_ticks = -MOB_BABY_AGE_TICKS`, ~5 min at `MOB_BABY_SCALE` = 0.5 for
+collision/raycast/eye/render scale) and starts both parents'
+`breed_cooldown` (~5 min, blocks re-feeding). Babies count up to adult
+and drop nothing when killed. Right-click feeding a mirrored mob goes
+through `ENTITY_ACTION`/`NET_ACTION_FEED` — the owner validates the item
+against `breed_items` before applying (see `docs/entities.md`); baby
+state rides `NET_MOB_FLAG_BABY` + `NetEntityRecord.age_ticks`, and
+`MobFileRecord::grow_ticks` persists it (`docs/persistence.md`). Mobs
+also trample: landing on `FARMLAND` after >0.5 blocks of real fall pushes
+the cell to `MobTickOutput::tramples` and `RepGame::tick` converts it to
+dirt — same model as the player trample (`docs/player.md`).
+
 The night spawner runs inside `MobManager::tick` (off under
 `REPGAME_MOB_TEST`, capture mode, fly mode and `REPGAME_MOB_SPAWNER=0`):
 every 2 s, while fewer than 12 despawnable hostiles live, up to 4
@@ -198,4 +221,4 @@ against `block_selection.ray_origin/ray_dir`; a mob nearer than the
 selected block takes `HIT_DAMAGE` (4.0, creative kills in one hit), gets
 knockback + a 0.3 s red flash + 5 s panic, and rolls `MobTypeDef::drops`
 in survival when killed (zombies: rotten flesh 0-2 plus bones 0-2 — the
-bone feeds the bone-meal recipe).
+bone feeds the bone-meal recipe). Babies (`is_baby_at`) drop nothing.

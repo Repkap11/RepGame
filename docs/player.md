@@ -117,9 +117,33 @@ mob pre-empt the block target for left clicks.
   (`docs/redstone.md`), which is also where debris spawns. Rotation is
   chosen by yaw (`rotate_on_placement`), face for torches, pitch for
   pistons (`getPlacedRotation`).
-- **Use.** The right-click chain handles buttons, doors/gates, chests,
-  crafting tables, and dust toggling before falling through to
-  placement (`docs/redstone.md`, `docs/ui.md`).
+- **Use.** The right-click chain handles mob feeding (a breedable mob
+  takes precedence over block clicks), buttons, doors/gates, chests,
+  crafting tables, dust toggling, bone meal (sapling or crop stage), hoe
+  tilling and spawn eggs before falling through to placement
+  (`docs/redstone.md`, `docs/ui.md`).
+
+## Farming
+
+`player.cpp`'s right-click chain gives hoes, seeds and bone meal their
+farm behaviours ahead of block placement (sneak-click skips them like
+the other interactions):
+
+- **Tilling** — a held hoe (`item_is_hoe`, the `*_HOE` tool class)
+  converts the clicked soil: grass/snowy grass/dirt/grass path →
+  `FARMLAND`, podzol/mycelium/coarse dirt → `DIRT`, but only when the
+  cell above is open (`can_be_placed_in`). `repgame_convert_block`
+  (PlayerBlockPlacedEvent.cpp) does the write + `BLOCK_UPDATE` + neighbor
+  updates for every soil conversion (tilling, trampling, growth).
+- **Planting** — items with a `"plants"` JSON key (seeds/produce —
+  `item_plant_block`) go through `change_block` like a placed block:
+  the adjacent cell must be open and `block_can_survive_at` requires
+  `FARMLAND` below an `is_crop` block (see `docs/blocks.md`).
+- **Trampling** — landing on farmland after >0.5 blocks of real fall
+  (accumulated like the mob sim's `fall_dist`; flying, no-clip and
+  swimming don't count) converts the field to `DIRT` and the crop pops
+  through the neighbor kill path. Mobs trample the same way via
+  `MobTickOutput::tramples` (`docs/mobs.md`).
 
 ## Game modes
 

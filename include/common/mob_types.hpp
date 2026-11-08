@@ -60,6 +60,10 @@ typedef struct {
     // Item that hatches this mob on right-click (the spawn eggs in
     // data/items); LAST_BLOCK_ID = no egg (the remote player type).
     ItemID spawn_egg;
+    // Breeding (passive types): food items that tempt the mob toward the
+    // player and put it in love mode when fed; LAST_BLOCK_ID-terminated.
+    // An empty list means the type can't breed (player, hostiles, bee).
+    ItemID breed_items[ 4 ];
     // Sound pool names; NULL when the type has no such sound. Consumed by the
     // audio pass (phase 2).
     const char *sound_say;
@@ -102,4 +106,17 @@ inline MobType mob_type_for_spawn_egg( ItemID item ) {
         }
     }
     return MOB_TYPE_COUNT;
+}
+
+// Whether `item` is one of this type's breed foods (MobTypeDef::breed_items).
+inline bool mob_def_is_breed_item( const MobTypeDef &def, ItemID item ) {
+    if ( item == LAST_BLOCK_ID ) {
+        return false;
+    }
+    for ( int i = 0; i < 4 && def.breed_items[ i ] != LAST_BLOCK_ID; i++ ) {
+        if ( def.breed_items[ i ] == item ) {
+            return true;
+        }
+    }
+    return false;
 }

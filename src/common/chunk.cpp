@@ -610,7 +610,7 @@ bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
             if ( index >= 64 || ( skip != nullptr && skip->count( static_cast<uint8_t>( index ) ) ) ) {
                 continue;
             }
-            MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
+            MobFileRecord record = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
             record.type = static_cast<uint16_t>( t );
             record.variant = def.skin_count > 1 ? static_cast<uint16_t>( rng( ) % static_cast<uint64_t>( def.skin_count ) ) : 0;
             record.x = origin.x + spot.x + 0.5;

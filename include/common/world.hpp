@@ -27,6 +27,7 @@ class World {
     friend class Multiplayer;
     friend class MobManager;
     friend int test_mobs( );
+    friend int test_farming( );
     friend void test_setup_world( World &world );
 
     friend int test_lighting( );

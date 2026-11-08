@@ -1516,7 +1516,11 @@ void World::set_loaded_block_natural( const glm::ivec3 &block_pos, BlockState bl
 // Fraction of sapling random ticks that grow: ~3.5 min mean under 9+ light.
 #define SAPLING_GROW_CHANCE_NUM 1
 #define SAPLING_GROW_CHANCE_DEN 3
-// Minimum sky or block light level (of 15) for a sapling to grow.
+// Fraction of crop random ticks that advance a stage: same cadence as the
+// sapling check (each sampled cell ticks once per ~69 s, so a wheat field
+// matures in ~28 min — near MC's unirrigated rate).
+#define CROP_GROW_CHANCE_DEN 3
+// Minimum sky or block light level (of 15) for a sapling or crop to grow.
 #define SAPLING_GROW_MIN_LIGHT ( 9.0f / 15.0f )
 
 void World::process_random_ticks( RepGameState &state ) {
@@ -1544,7 +1548,9 @@ void World::process_random_ticks( RepGameState &state ) {
             const BlockState cell = chunk.get_block( local );
             TreeSpec spec;
             const glm::ivec3 world_pos = chunk_origin + local;
-            if ( !tree_spec_for_sapling( cell.id, world_pos, &spec ) ) {
+            const Block *cell_def = cell.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( cell.id );
+            const bool is_crop_stage = cell_def != nullptr && cell_def->crop_next != LAST_BLOCK_ID;
+            if ( !is_crop_stage && !tree_spec_for_sapling( cell.id, world_pos, &spec ) ) {
                 continue;
             }
             const glm::vec2 light = this->chunkLoader.light_sample( glm::vec3( world_pos ) + 0.5f );
@@ -1554,6 +1560,21 @@ void World::process_random_ticks( RepGameState &state ) {
             this->random_tick_state ^= this->random_tick_state << 13;
             this->random_tick_state ^= this->random_tick_state >> 17;
             this->random_tick_state ^= this->random_tick_state << 5;
+            if ( is_crop_stage ) {
+                // Crop growth advances the stage chain in place — a plain
+                // write (no debris, no support change), synced like the tree
+                // grow below. Not a player edit: the pen rule stays out.
+                if ( this->random_tick_state % CROP_GROW_CHANCE_DEN != 0 ) {
+                    continue;
+                }
+                BlockState next = cell;
+                next.id = cell_def->crop_next;
+                next.display_id = cell_def->crop_next;
+                next.rotation = BLOCK_ROTATE_0;
+                this->set_loaded_block_natural( world_pos, next );
+                state.multiplayer.set_block( world_pos, next );
+                continue;
+            }
             if ( this->random_tick_state % SAPLING_GROW_CHANCE_DEN >= SAPLING_GROW_CHANCE_NUM ) {
                 continue;
             }

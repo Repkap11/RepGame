@@ -87,18 +87,18 @@ VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
 BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner",
-                    "persistent_variant", "natural_variant"}
+                    "persistent_variant", "natural_variant", "crop_next"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative", "drops",
                "mineable"}
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL | BLOCK_REF_FIELDS
 
 ITEM_KNOWN_KEYS = {"id", "name", "icon", "max_stack", "aliases", "tool",
-                   "mining_speed"}
+                   "mining_speed", "plants"}
 
 # "mineable" block classes / "tool" item classes: the tool family that speeds
 # up survival mining (see MINEABLE_* in block_definitions.hpp).
-MINEABLE_CLASSES = ("pickaxe", "axe", "shovel", "shears")
+MINEABLE_CLASSES = ("pickaxe", "axe", "shovel", "shears", "hoe")
 
 # mineable derivation: ordered name-substring -> class rules, first match
 # wins; an explicit "mineable" JSON key overrides the whole table. Class
@@ -594,6 +594,16 @@ def load_blocks():
             fail("%s: natural_variant %s does not point back" % (b["_file"], partner))
         if resolve_faces(b["name"].lower(), b) != resolve_faces(pb["name"].lower(), pb):
             fail("%s: natural_variant %s face textures differ" % (b["_file"], partner))
+    # crop_next links a crop growth stage to the next one; it must name an
+    # existing block and never point at itself.
+    for bid, b in blocks.items():
+        nxt = b.get("crop_next")
+        if nxt is None:
+            continue
+        if nxt == b["name"]:
+            fail("%s: crop_next must not point at itself" % b["_file"])
+        if nxt not in names:
+            fail("%s: crop_next %s not found" % (b["_file"], nxt))
     return blocks
 
 
@@ -642,6 +652,10 @@ def load_items(block_names):
         if "aliases" in it:
             if not isinstance(it["aliases"], list) or not all(re.match(r"^[A-Z][A-Z0-9_]*$", a) for a in it["aliases"]):
                 fail("%s: bad aliases" % fname)
+        if "plants" in it:
+            tgt = it["plants"]
+            if not isinstance(tgt, str) or not re.match(r"^[A-Z][A-Z0-9_]*$", tgt) or tgt not in block_names:
+                fail("%s: plants must name a block" % fname)
         it["_file"] = fname
         items[iid] = it
         names[name] = iid
@@ -1250,13 +1264,13 @@ def main():
     for iid in range(ITEM_ID_BASE, item_id_end):
         it = items.get(iid)
         if it is None:
-            out.append("    { TEX_AIR, 0, MINEABLE_NONE, 1.0f },\n")
+            out.append("    { TEX_AIR, 0, MINEABLE_NONE, 1.0f, LAST_BLOCK_ID },\n")
             continue
         cls, speed = item_tool(it)
         cls_enum = "MINEABLE_" + cls.upper()
-        out.append("    { TEX_%s, %d, %s, %sf },\n" %
+        out.append("    { TEX_%s, %d, %s, %sf, %s },\n" %
                    (it["icon"].upper(), it.get("max_stack", 64), cls_enum,
-                    fmt_float(speed)))
+                    fmt_float(speed), it.get("plants", "LAST_BLOCK_ID")))
     with open(OUT_ITEM_INC, "w") as f:
         f.writelines(out)
 

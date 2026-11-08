@@ -613,6 +613,7 @@ void net_serialize_entity_action( PacketWriter &w, const NetEntityActionPayload 
     w.write_f64( p.ay );
     w.write_f64( p.az );
     w.write_u8( p.attacker_survival );
+    w.write_u32( p.item );
 }
 
 bool net_deserialize_entity_action( PacketReader &r, NetEntityActionPayload &p ) {
@@ -623,6 +624,7 @@ bool net_deserialize_entity_action( PacketReader &r, NetEntityActionPayload &p )
     if ( !r.read_f64( p.ay ) ) return false;
     if ( !r.read_f64( p.az ) ) return false;
     if ( !r.read_u8( p.attacker_survival ) ) return false;
+    if ( !r.read_u32( p.item ) ) return false;
     return true;
 }
 

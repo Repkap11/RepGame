@@ -14,6 +14,14 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
 // whether placing blockState at pos would be silently dropped.
 bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockState &blockState );
 
+// Converts one loaded block into another in place — hoe tilling, farmland
+// trampling, bonemeal crop growth — where a block is replaced by a related
+// block and PlayerBlockPlacedEvent's replaceable-cell rule would reject the
+// write. Mirrors the event's effects: world write, multiplayer diff, swap
+// debris, and neighbour updates (a crop whose farmland reverts pops through
+// the support check).
+void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, BlockID new_id );
+
 // Whether a removal performed by this event spawns the broken block's drops:
 // None never; Survival only in survival mode; Always in both game modes
 // (natural causes like leaf decay don't care who removed the support).

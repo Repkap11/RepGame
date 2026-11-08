@@ -130,6 +130,15 @@
   "beehive_top": {
     "source": "textures/blocks/beehive_top"
   },
+  "beetroots_stage_0": {
+    "source": "textures/blocks/beetroots_stage_0"
+  },
+  "beetroots_stage_1": {
+    "source": "textures/blocks/beetroots_stage_1"
+  },
+  "beetroots_stage_2": {
+    "source": "textures/blocks/beetroots_stage_2"
+  },
   "beetroots_stage_3": {
     "source": "textures/blocks/beetroots_stage_3"
   },
@@ -155,20 +164,38 @@
     "source": "textures/items/candles/black_candle"
   },
   "black_torch_bottom": {
-    "source": "black_torch",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "black_torch"
   },
   "black_torch_top": {
-    "source": "black_torch",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "black_torch"
   },
   "blackstone": {
     "source": "textures/blocks/blackstone"
@@ -195,20 +222,38 @@
     "source": "textures/blocks/blue_ice"
   },
   "blue_torch_bottom": {
-    "source": "blue_torch",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "blue_torch"
   },
   "blue_torch_top": {
-    "source": "blue_torch",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "blue_torch"
   },
   "bone_block_side": {
     "source": "textures/blocks/bone_block_side"
@@ -247,20 +292,38 @@
     "source": "textures/blocks/budding_amethyst"
   },
   "burnt_out_torch_bottom": {
-    "source": "burnt_out_torch",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "burnt_out_torch"
   },
   "burnt_out_torch_top": {
-    "source": "burnt_out_torch",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "burnt_out_torch"
   },
   "bush": {
     "source": "textures/items/bush"
@@ -804,20 +867,38 @@
     "source": "textures/items/candles/cyan_candle"
   },
   "cyan_torch_bottom": {
-    "source": "cyan_torch",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "cyan_torch"
   },
   "cyan_torch_top": {
-    "source": "cyan_torch",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "cyan_torch"
   },
   "dark_oak_shelf": {
     "source": "textures/blocks/dark_oak_shelf"
@@ -898,8 +979,16 @@
   "double_plant_fern_carried": {
     "source": "textures/blocks/double_plant_fern_carried"
   },
+  "double_plant_grass_bottom": {
+    "source": "textures/blocks/double_plant_grass_bottom.tga",
+    "tint": "#93E67D"
+  },
   "double_plant_grass_carried": {
     "source": "textures/blocks/double_plant_grass_carried"
+  },
+  "double_plant_grass_top": {
+    "source": "textures/blocks/double_plant_grass_top.tga",
+    "tint": "#93E67D"
   },
   "double_plant_rose_top": {
     "source": "textures/blocks/double_plant_rose_top"
@@ -1469,11 +1558,11 @@
   "lapis_block": {
     "source": "textures/blocks/lapis_block"
   },
-  "lapis_ore": {
-    "source": "textures/blocks/lapis_ore"
-  },
   "lapis_lazuli": {
     "source": "textures/items/dye_powder_blue"
+  },
+  "lapis_ore": {
+    "source": "textures/blocks/lapis_ore"
   },
   "large_amethyst_bud": {
     "source": "textures/blocks/large_amethyst_bud"
@@ -1949,6 +2038,15 @@
   "potatoes_stage_0": {
     "source": "textures/blocks/potatoes_stage_0"
   },
+  "potatoes_stage_1": {
+    "source": "textures/blocks/potatoes_stage_1"
+  },
+  "potatoes_stage_2": {
+    "source": "textures/blocks/potatoes_stage_2"
+  },
+  "potatoes_stage_3": {
+    "source": "textures/blocks/potatoes_stage_3"
+  },
   "potent_sulfur": {
     "source": "textures/blocks/potent_sulfur"
   },
@@ -1998,20 +2096,38 @@
     "source": "textures/items/candles/purple_candle"
   },
   "purple_torch_bottom": {
-    "source": "purple_torch",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "purple_torch"
   },
   "purple_torch_top": {
-    "source": "purple_torch",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "purple_torch"
   },
   "purpur_block": {
     "source": "textures/blocks/purpur_block"
@@ -2114,20 +2230,38 @@
     "source": "textures/blocks/red_sandstone_top"
   },
   "red_torch_bottom": {
-    "source": "red_torch",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "red_torch"
   },
   "red_torch_top": {
-    "source": "red_torch",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "red_torch"
   },
   "redstone_block": {
     "source": "textures/blocks/redstone_block"
@@ -2142,12 +2276,21 @@
     "source": "textures/blocks/redstone_ore"
   },
   "redstone_torch_bottom": {
-    "source": "redstone_torch_on",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "redstone_torch_on"
   },
   "redstone_torch_glow": {
     "keep": true
@@ -2156,20 +2299,38 @@
     "source": "textures/blocks/redstone_torch_off"
   },
   "redstone_torch_off_top": {
-    "source": "redstone_torch_off",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "redstone_torch_off"
   },
   "redstone_torch_top": {
-    "source": "redstone_torch_on",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "redstone_torch_on"
   },
   "redstone_wire_line_2_powered": {
     "keep": true
@@ -2649,14 +2810,6 @@
   "tall_dry_grass": {
     "source": "textures/blocks/tall_dry_grass"
   },
-  "double_plant_grass_bottom": {
-    "source": "textures/blocks/double_plant_grass_bottom.tga",
-    "tint": "#93E67D"
-  },
-  "double_plant_grass_top": {
-    "source": "textures/blocks/double_plant_grass_top.tga",
-    "tint": "#93E67D"
-  },
   "tallgrass_carried": {
     "source": "textures/blocks/tallgrass.tga",
     "tint": "#93E67D"
@@ -2680,23 +2833,41 @@
     "source": "textures/blocks/tnt_top"
   },
   "torch_bottom": {
-    "source": "torch_on",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "torch_on"
   },
   "torch_on": {
     "source": "textures/blocks/torch_on"
   },
   "torch_top": {
-    "source": "torch_on",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "torch_on"
   },
   "torchflower": {
     "source": "textures/blocks/torchflower"
@@ -2886,20 +3057,38 @@
     "source": "textures/items/candles/white_candle"
   },
   "white_torch_bottom": {
-    "source": "white_torch",
     "extract": {
-      "from": [7, 13],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "white_torch"
   },
   "white_torch_top": {
-    "source": "white_torch",
     "extract": {
-      "from": [7, 6],
-      "size": [2, 2],
-      "to": [7, 7]
-    }
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "white_torch"
   },
   "wildflowers": {
     "source": "textures/items/wildflowers"

@@ -147,13 +147,25 @@ int test_net_entities( ) {
         report( "net entities: ENTITY_TRANSFER round trip", net_deserialize_entity_transfer( r, in ) && in.adopt == 1 && record_eq( in.record, rec ) );
     }
     { // ENTITY_ACTION
-        NetEntityActionPayload out{ 77, NET_ACTION_HIT, 4.5f, 1.0, 2.0, 3.0, 1 };
+        NetEntityActionPayload out{ 77, NET_ACTION_HIT, 4.5f, 1.0, 2.0, 3.0, 1, 0 };
         PacketWriter w;
         net_serialize_entity_action( w, out );
         PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
-        NetEntityActionPayload in{ 0, 0, 0.0f, 0.0, 0.0, 0.0, 0 };
+        NetEntityActionPayload in{ 0, 0, 0.0f, 0.0, 0.0, 0.0, 0, 0 };
         report( "net entities: ENTITY_ACTION round trip",
-                net_deserialize_entity_action( r, in ) && in.id == 77 && in.action == NET_ACTION_HIT && in.damage == 4.5f && in.ax == 1.0 && in.ay == 2.0 && in.az == 3.0 && in.attacker_survival == 1 );
+                net_deserialize_entity_action( r, in ) && in.id == 77 && in.action == NET_ACTION_HIT && in.damage == 4.5f && in.ax == 1.0 && in.ay == 2.0 && in.az == 3.0 && in.attacker_survival == 1 && in.item == 0 );
+    }
+    { // ENTITY_ACTION FEED: the breed item the client claims to hold.
+        NetEntityActionPayload out{ 88, NET_ACTION_FEED, 0.0f, 1.0, 2.0, 3.0, 1, WHEAT };
+        PacketWriter w;
+        net_serialize_entity_action( w, out );
+        PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
+        NetEntityActionPayload in{ 0, 0, 0.0f, 0.0, 0.0, 0.0, 0, 0 };
+        report( "net entities: ENTITY_ACTION FEED round trip",
+                net_deserialize_entity_action( r, in ) && in.id == 88 && in.action == NET_ACTION_FEED && in.item == WHEAT );
+        PacketReader rt( w.buf( ).data( ), w.buf( ).size( ) - 1 );
+        NetEntityActionPayload junk{ 0, 0, 0.0f, 0.0, 0.0, 0.0, 0, 0 };
+        report( "net entities: ENTITY_ACTION truncated fails", !net_deserialize_entity_action( rt, junk ) );
     }
     { // PICKUP_REQUEST / PICKUP_RESULT
         NetPickupRequestPayload out{ 55, 12 };

@@ -497,7 +497,7 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
     fclose( read_ptr );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
-        MobFileRecord mob = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
+        MobFileRecord mob = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
         const size_t prefix = sizeof( MobFileRecord ) <= (size_t)record_size ? sizeof( MobFileRecord ) : (size_t)record_size;
         memcpy( &mob, record, prefix );
         if ( mob.type >= MOB_TYPE_COUNT ) {

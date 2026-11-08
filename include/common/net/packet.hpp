@@ -29,7 +29,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 7;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 8;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -113,6 +113,7 @@ enum NetEntityRemoveReason : uint8_t {
 // ENTITY_ACTION actions.
 enum NetEntityAction : uint8_t {
     NET_ACTION_HIT = 0,
+    NET_ACTION_FEED = 1, // feed the mob the `item` field (breeding)
 };
 
 // NetPlayerPayload flags (bit0: targetable = !peaceful && !no_clip).
@@ -127,6 +128,7 @@ static constexpr uint32_t NET_MOB_FLAG_FUSE = 1u << 2;        // creeper fuse li
 static constexpr uint32_t NET_MOB_FLAG_DESPAWNABLE = 1u << 8; // night-spawner mob, never persisted
 static constexpr uint32_t NET_MOB_FLAG_NATURAL = 1u << 9;     // deterministic natural-spawn roll
 static constexpr uint32_t NET_MOB_FLAG_TOUCHED = 1u << 10;    // player interacted: a natural mob becomes persistable
+static constexpr uint32_t NET_MOB_FLAG_BABY = 1u << 11;       // age_ticks < 0: half-scale juvenile
 
 // Deterministic id for a natural-spawn roll product: top byte 0xFF keeps it
 // out of the client (session<<32, session >= 1) and server (session 0) id
@@ -363,10 +365,13 @@ bool net_deserialize_world_time( PacketReader &r, NetWorldTimePayload &p );
 // ---------------------------------------------------------------------------
 
 // One record shape for all entity kinds; unused per-kind fields are 0.
-//   pos    MOB: feet, ITEM: box bottom-center, BODY: min corner
-//   type   MOB: MobType, ITEM: ItemID, BODY: BodyKind
-//   count  ITEM: stack count, MOB: variant
-//   flags  MOB: MobFileRecord.flags + anim bits, BODY: unused
+//   pos       MOB: feet, ITEM: box bottom-center, BODY: min corner
+//   type      MOB: MobType, ITEM: ItemID, BODY: BodyKind
+//   count     ITEM: stack count, MOB: variant
+//   flags     MOB: MobFileRecord.flags + anim bits, BODY: unused
+//   age_ticks ITEM: despawn timing; MOB: breed/age state — negative is a
+//             baby's remaining growth, positive the parent's re-breed
+//             cooldown (same encoding as MobFileRecord::grow_ticks)
 struct NetEntityRecord {
     NetEntityId id = 0;
     NetEntityKind kind = NetEntityKind::MOB;
@@ -461,6 +466,7 @@ struct NetEntityActionPayload {
     float damage;
     double ax, ay, az; // attacker position
     uint8_t attacker_survival;
+    uint32_t item; // FEED: the breed item the client claims to hold
 };
 void net_serialize_entity_action( PacketWriter &w, const NetEntityActionPayload &p );
 bool net_deserialize_entity_action( PacketReader &r, NetEntityActionPayload &p );

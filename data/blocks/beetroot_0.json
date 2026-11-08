@@ -3,11 +3,18 @@
   "breaks_in_liquid": true,
   "casts_shadow": false,
   "collides_with_player": false,
+  "creative": false,
+  "crop_next": "BEETROOT_1",
+  "drops": [
+    {
+      "item": "BEETROOT_SEEDS"
+    }
+  ],
   "hardness": 0,
   "icon_is_isometric": false,
-  "id": 467,
+  "id": 1504,
   "is_seethrough": true,
-  "name": "BEETROOT",
+  "name": "BEETROOT_0",
   "needs_place_on_any_solid": {
     "top": true
   },
@@ -15,7 +22,7 @@
   "render_order": "Flowers",
   "textures": {
     "bottom": "air",
-    "side": "beetroots_stage_3",
+    "side": "beetroots_stage_0",
     "top": "air"
   }
 }

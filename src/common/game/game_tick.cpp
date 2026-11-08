@@ -17,6 +17,7 @@
 #include "common/harness/run_policy.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/game/game_internal.hpp"
 
 void RepGame::tick( ) {
@@ -268,6 +269,8 @@ void RepGame::tick_entities( ) {
     mob_in.player_targetable = RepGame::player_targetable( gs );
     mob_in.world_time = gs.world_time;
     mob_in.player_eye_height = PLAYER_EYE_HEIGHT - ( gs.input.movement.sneakPressed ? PLAYER_SNEAK_EYE_DROP : 0.0f );
+    // The held item tempts breedable livestock toward the player.
+    mob_in.held_item = gs.hotbar.getSelectedItem( );
     // Owned hostiles also consider remote players (positions + targetable
     // flags come from the PLAYER_LOCATION stream).
     if ( gs.multiplayer.multiplayer_mode( ) ) {
@@ -275,6 +278,11 @@ void RepGame::tick_entities( ) {
     }
     MobTickOutput mob_out;
     gs.world.mobs.tick( gs.world, gs.camera.pos, &mob_in, &mob_out );
+    // A mob that landed on farmland tramples it back to dirt — the crop on
+    // top pops through the neighbour-update kill path.
+    for ( const glm::ivec3 &pos : mob_out.tramples ) {
+        repgame_convert_block( gs, pos, DIRT );
+    }
     // Falling blocks + primed TNT bodies integrate on the same cadence.
     gs.world.bodies.tick( gs );
     // Dropped item entities: physics, merge, magnet/pickup, despawn.

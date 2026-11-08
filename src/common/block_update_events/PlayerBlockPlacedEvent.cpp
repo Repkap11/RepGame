@@ -60,6 +60,21 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
     }
 }
 
+void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, const BlockID new_id ) {
+    const BlockState current = state.world.get_loaded_block( pos );
+    if ( current.id == LAST_BLOCK_ID || current.id == new_id ) {
+        return;
+    }
+    BlockState next = current;
+    next.id = new_id;
+    next.display_id = new_id;
+    next.rotation = BLOCK_ROTATE_0;
+    state.world.set_loaded_block( pos, next );
+    state.multiplayer.set_block( pos, next );
+    state.world.spawn_block_debris( pos, current, new_id );
+    queue_neighbor_block_updates( state.blockUpdateQueue, state.world, state.tick_number, pos );
+}
+
 // Doors place as a lower+upper pair: a lower needs a collidable support
 // below and a replaceable cell above for the upper half.
 static bool door_lower_can_place( World &world, const glm::ivec3 &pos ) {

@@ -31,7 +31,9 @@ mismatch disconnects (`Multiplayer::mismatched_server_version`, surfaced
 by the ImGui overlay). Bump it whenever a message layout changes; the
 `NetMsgType` values are stable on the wire and must never be renumbered.
 Protocol 6 added `removed_natural` (tombstoned natural-roll indices) to
-`CHUNK_ROLE` — see `docs/entities.md`.
+`CHUNK_ROLE`; protocol 7 added the `FURNACE_*` messages
+(`docs/multiplayer.md` "Furnaces"); protocol 8 added `item` to
+`NetEntityActionPayload` plus `NET_ACTION_FEED` — see `docs/entities.md`.
 
 ## Transports
 

@@ -248,7 +248,7 @@ int test_mobs( ) {
         storage.init( "TestMobs" );
         const glm::ivec3 chunk_pos( 0, 0, 0 );
         std::vector<MobFileRecord> in;
-        MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u };
+        MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
         r.type = MOB_PIG;
         r.variant = 1;
         r.x = 10.5;
@@ -939,6 +939,157 @@ int test_mobs( ) {
         check_bool( "egg: non-egg item maps to none", mob_type_for_spawn_egg( STICK ) == MOB_TYPE_COUNT );
         check_bool( "egg: block item maps to none", mob_type_for_spawn_egg( STONE ) == MOB_TYPE_COUNT );
         check_bool( "egg: empty hand maps to none", mob_type_for_spawn_egg( LAST_BLOCK_ID ) == MOB_TYPE_COUNT );
+    }
+
+    // --- 21: breeding: feed -> love -> mate -> baby -------------------------
+    {
+        // Breed-item tables: pigs eat roots, cow/sheep wheat, chicken seeds.
+        check_bool( "breed: pig takes carrot", mob_def_is_breed_item( mob_types[ MOB_PIG ], CARROT ) );
+        check_bool( "breed: pig takes potato + beetroot",
+                    mob_def_is_breed_item( mob_types[ MOB_PIG ], POTATO ) && mob_def_is_breed_item( mob_types[ MOB_PIG ], BEETROOT ) );
+        check_bool( "breed: pig refuses wheat", !mob_def_is_breed_item( mob_types[ MOB_PIG ], WHEAT ) );
+        check_bool( "breed: cow + sheep take wheat",
+                    mob_def_is_breed_item( mob_types[ MOB_COW ], WHEAT ) && mob_def_is_breed_item( mob_types[ MOB_SHEEP ], WHEAT ) );
+        check_bool( "breed: chicken takes seeds",
+                    mob_def_is_breed_item( mob_types[ MOB_CHICKEN ], WHEAT_SEEDS ) && mob_def_is_breed_item( mob_types[ MOB_CHICKEN ], BEETROOT_SEEDS ) );
+        check_bool( "breed: zombie has no foods", !mob_def_is_breed_item( mob_types[ MOB_ZOMBIE ], CARROT ) );
+
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.spawn( MOB_PIG, glm::dvec3( 12.5, 11.0, 10.5 ), 0.0f, 1 );
+        check_bool( "feed: pig accepts carrot", mobs.feedable( 0, CARROT ) );
+        check_bool( "feed: pig refuses wheat", !mobs.feedable( 0, WHEAT ) );
+        check_bool( "feed: carrot feeds", mobs.feed( 0, CARROT ) );
+        check_bool( "feed: enters love mode", mobs.mobs[ 0 ].love_ticks > 0 );
+        check_bool( "feed: in-love pig stops eating", !mobs.feedable( 0, CARROT ) );
+        mobs.feed( 1, CARROT );
+        // Both in love: they approach and mate within the love window.
+        int ticks_to_baby = -1;
+        for ( int i = 0; i < 10 * UPS_RATE; i++ ) {
+            mobs.tick( world, player_pos );
+            if ( mobs.mobs.size( ) == 3 ) {
+                ticks_to_baby = i;
+                break;
+            }
+        }
+        check_bool( "mate: pair produced a baby", ticks_to_baby >= 0 && mobs.mobs.size( ) == 3 );
+        if ( mobs.mobs.size( ) == 3 ) {
+            check_bool( "mate: baby is_baby", mobs.is_baby_at( 2 ) );
+            check_bool( "mate: baby flagged for the wire", ( MobManager::mob_net_flags( mobs.mobs[ 2 ] ) & NET_MOB_FLAG_BABY ) != 0 );
+            check_bool( "mate: parents on cooldown", mobs.mobs[ 0 ].breed_cooldown > 0 && mobs.mobs[ 1 ].breed_cooldown > 0 );
+            check_bool( "mate: love consumed", mobs.mobs[ 0 ].love_ticks == 0 && mobs.mobs[ 1 ].love_ticks == 0 );
+            check_bool( "mate: cooldown blocks feeding", !mobs.feedable( 0, CARROT ) );
+            // Feeding a baby accelerates its growth (each feed ~10%).
+            const int age0 = mobs.mobs[ 2 ].age_ticks;
+            check_bool( "baby: feedable for growth", mobs.feedable( 2, CARROT ) && mobs.feed( 2, CARROT ) );
+            check_bool( "baby: feed shortens growth", mobs.mobs[ 2 ].age_ticks > age0 && mobs.mobs[ 2 ].age_ticks < 0 );
+            // Reaching 0 grows up; the BABY flag clears with it.
+            mobs.mobs[ 2 ].age_ticks = -1;
+            mobs.tick( world, player_pos );
+            check_bool( "baby: grows to adult at 0", mobs.mobs[ 2 ].age_ticks == 0 && !mobs.is_baby_at( 2 ) );
+            check_bool( "baby: grown mob drops the flag", ( MobManager::mob_net_flags( mobs.mobs[ 2 ] ) & NET_MOB_FLAG_BABY ) == 0 );
+            // Babies drop nothing: the caller-side guard is is_baby_at.
+            mobs.mobs[ 2 ].age_ticks = -100;
+            check_bool( "baby: killable but flagged (no drops by guard)", mobs.is_baby_at( 2 ) );
+        }
+    }
+
+    // --- 22: temptation: held breed food pulls the mob toward the player -----
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_PIG, glm::dvec3( 16.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        const glm::dvec3 pfeet( 11.5, 11.0, 10.5 );
+        const glm::dvec3 ppos = pfeet + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        MobTickInput in = { true, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
+        in.held_item = CARROT;
+        for ( int i = 0; i < 4 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in );
+        }
+        check_bool( "tempt: pig walks to the carrot holder", mobs.mobs[ 0 ].pos.x < 16.0 );
+        // A non-food item leaves it idling where it stands.
+        mobs.mobs[ 0 ].pos.x = 16.5;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        in.held_item = STONE;
+        const double x0 = mobs.mobs[ 0 ].pos.x;
+        for ( int i = 0; i < 2 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in );
+        }
+        check_bool( "tempt: wrong item doesn't tempt", fabs( mobs.mobs[ 0 ].pos.x - x0 ) < 1.0 );
+    }
+
+    // --- 23: trample: a landing mob reports the farmland cell ----------------
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        world.set_loaded_block( glm::ivec3( 25, 10, 10 ), { FARMLAND, 0, 0, FARMLAND, 0 } );
+        mobs.spawn( MOB_PIG, glm::dvec3( 25.5, 13.5, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        MobTickOutput out;
+        bool trampled = false;
+        for ( int i = 0; i < 400 && !trampled; i++ ) {
+            mobs.tick( world, player_pos, nullptr, &out );
+            for ( const glm::ivec3 &p : out.tramples ) {
+                trampled |= p == glm::ivec3( 25, 10, 10 );
+            }
+        }
+        check_bool( "trample: landing reports the farmland cell", trampled );
+        // A pig just standing/walking on farmland never reports it.
+        out.tramples.clear( );
+        for ( int i = 0; i < 60; i++ ) {
+            mobs.tick( world, player_pos, nullptr, &out );
+        }
+        check_bool( "trample: standing on farmland is safe", out.tramples.empty( ) );
+        world.set_loaded_block( glm::ivec3( 25, 10, 10 ), { STONE, 0, 0, STONE, 0 } );
+    }
+
+    // --- 24: grow_ticks persists the baby/cooldown state ---------------------
+    {
+        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        MapStorage storage;
+        storage.init( "TestMobs" );
+        // Chunk 4 covers x 248..309 (CHUNK_SIZE_X stride).
+        MobManager mobs;
+        mobs.init_storage( &storage );
+        mobs.owned_chunks.push_back( { glm::ivec3( 4, 0, 0 ), 0, {} } );
+        mobs.spawn( MOB_PIG, glm::dvec3( 260.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].age_ticks = -12345; // a baby mid-growth
+        mobs.spawn( MOB_COW, glm::dvec3( 262.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 1 ].breed_cooldown = 777; // a parent on cooldown
+        mobs.persist_all( );
+        std::vector<MobFileRecord> out;
+        check_bool( "breed persist: both records written",
+                    storage.load_mobs( glm::ivec3( 4, 0, 0 ), out ) == 1 && out.size( ) == 2 );
+        if ( out.size( ) == 2 ) {
+            check_bool( "breed persist: baby grow_ticks negative", out[ 0 ].grow_ticks == -12345 );
+            check_bool( "breed persist: cooldown grow_ticks positive", out[ 1 ].grow_ticks == 777 );
+        }
+        // A pre-grow_ticks file (shorter record) loads with grow_ticks 0.
+        {
+            char *dir = getRepGamePath( );
+            char map_root[ CHUNK_NAME_MAX_LENGTH ];
+            snprintf( map_root, sizeof( map_root ), "%s/TestMobs", dir );
+            free( dir );
+            char file_name[ CHUNK_NAME_MAX_LENGTH ];
+            snprintf( file_name, sizeof( file_name ), FILE_ROOT_MOBS, map_root, 0, 0, 4 );
+            FILE *f = fopen( file_name, "wb" );
+            const uint32_t old_size = static_cast<uint32_t>( offsetof( MobFileRecord, grow_ticks ) );
+            const uint32_t one = 1;
+            MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
+            r.type = MOB_PIG;
+            fwrite( &old_size, sizeof( uint32_t ), 1, f );
+            fwrite( &one, sizeof( uint32_t ), 1, f );
+            fwrite( &r, old_size, 1, f );
+            fclose( f );
+            out.clear( );
+            check_bool( "breed persist: old record loads with grow_ticks 0",
+                        storage.load_mobs( glm::ivec3( 0, 0, 4 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].grow_ticks == 0 );
+        }
     }
 
     return failures;

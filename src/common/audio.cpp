@@ -76,6 +76,14 @@ static const char *block_material( int block_id ) {
     case CARROT_2:
     case CARROT_3:
     case CARROT_4:
+    case POTATOES:
+    case POTATOES_1:
+    case POTATOES_2:
+    case POTATOES_3:
+    case BEETROOT_0:
+    case BEETROOT_1:
+    case BEETROOT_2:
+    case BEETROOTS:
     case REEDS:
     case WATERLILY:
     case MELON_STEM:
@@ -137,7 +145,6 @@ static const char *block_material( int block_id ) {
 
     case BOOKSHELF:
     case BED:
-    case BEETROOT:
     case TORCH:
     case BURNT_OUT_TORCH:
     case BLACK_TORCH:

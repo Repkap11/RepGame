@@ -1,0 +1,28 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "creative": false,
+  "crop_next": "BEETROOT_2",
+  "drops": [
+    {
+      "item": "BEETROOT_SEEDS"
+    }
+  ],
+  "hardness": 0,
+  "icon_is_isometric": false,
+  "id": 1505,
+  "is_seethrough": true,
+  "name": "BEETROOT_1",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "no_light": 0,
+  "render_order": "Flowers",
+  "textures": {
+    "bottom": "air",
+    "side": "beetroots_stage_1",
+    "top": "air"
+  }
+}

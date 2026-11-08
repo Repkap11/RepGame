@@ -63,6 +63,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( sapling_grow ),     //
     MK_TEST( leaf_placement ),   //
     MK_TEST( shears_bonemeal ),  //
+    MK_TEST( farming ),          //
     { nullptr, nullptr }
 
 };

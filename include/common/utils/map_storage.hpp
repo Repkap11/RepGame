@@ -46,6 +46,9 @@ struct __attribute__( ( packed ) ) MobFileRecord {
     float health;
     uint32_t flags;
     uint64_t net_id;
+    // Breeding state: negative = a baby's remaining growth ticks (grown up
+    // at 0), positive = an adult's re-breed cooldown. Older files zero-fill.
+    int32_t grow_ticks;
 };
 
 // Per-item save record (persist_items/load_items). Packed on disk; readers

@@ -251,6 +251,12 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
         return next_to_block_id != LAST_BLOCK_ID && block_definition_get_definition( next_to_block_id )->collides_with_player;
     }
+    if ( block->is_crop ) {
+        // Crops survive only on farmland — tilling away or trampling the
+        // field pops the plant through the neighbour-update kill path.
+        const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
+        return below.id == FARMLAND;
+    }
     return block_supports_present( world, block_pos, block_state );
 }
 

@@ -49,6 +49,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->tall_plant_partner = LAST_BLOCK_ID;
         block->persistent_variant = LAST_BLOCK_ID;
         block->natural_variant = LAST_BLOCK_ID;
+        block->crop_next = LAST_BLOCK_ID;
+        block->is_crop = false;
         block->is_log = false;
         block->emits_light = 0;
         block->is_button = false;
@@ -89,6 +91,14 @@ void block_definitions_initilize_definitions( Texture *texture ) {
              !block->is_piston && !block->is_piston_head ) {
             block->blocks_light_down = true;
             block->casts_shadow = false;
+        }
+
+        // Crop chains: every stage with a crop_next is a crop, and so is the
+        // stage it points at — the chain's terminal stage is marked through
+        // its predecessor.
+        if ( block->crop_next != LAST_BLOCK_ID && block->crop_next < LAST_BLOCK_ID ) {
+            block->is_crop = true;
+            block_definitions[ block->crop_next ].is_crop = true;
         }
 
         // A block can hold redstone power only if it's a full opaque cube.

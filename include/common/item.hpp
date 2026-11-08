@@ -34,6 +34,9 @@ typedef struct {
     // mines at when the target block's mineable matches.
     unsigned char tool_class;
     float mine_speed;
+    // Block this item plants on farmland ("plants" in data/items);
+    // LAST_BLOCK_ID when the item plants nothing.
+    BlockID plant_block;
 } ItemGenDef;
 
 static const ItemGenDef ITEM_DEFINITIONS[ ITEM_ID_END - ITEM_ID_BASE ] = {
@@ -58,6 +61,21 @@ const char *item_name( ItemID id );
 // Per-tick mining-speed multiplier for survival block breaking: the item's
 // mine_speed when its tool_class matches the block's mineable class, else 1.
 float item_mining_speed( ItemID id, BlockID block_id );
+
+// Hoe tools till suitable soil into farmland on right-click (see
+// player_use_or_place_block); hoes carry tool_class MINEABLE_HOE.
+static inline int item_is_hoe( ItemID id ) {
+    return !item_is_block( id ) && item_id_defined( id ) && //
+           ITEM_DEFINITIONS[ id - ITEM_ID_BASE ].tool_class == MINEABLE_HOE;
+}
+
+// The block a seed/produce item plants on farmland, LAST_BLOCK_ID for
+// non-planting items.
+static inline BlockID item_plant_block( ItemID id ) {
+    return ( !item_is_block( id ) && item_id_defined( id ) ) ? //
+               ITEM_DEFINITIONS[ id - ITEM_ID_BASE ].plant_block
+                                                           : LAST_BLOCK_ID;
+}
 
 // Generated block drop table ("drops" in data/blocks/*.json). Blocks with no
 // "drops" key are absent from BLOCK_DROP_TABLE and drop themselves.

@@ -39,6 +39,9 @@ struct MobTickInput {
     bool player_targetable;
     long world_time;
     float player_eye_height; // player_pos is the eye; feet = pos - eye_height
+    // The local player's held item — breedable animals walk toward the
+    // player while it is one of their breed foods (MobTypeDef::breed_items).
+    ItemID held_item = LAST_BLOCK_ID;
     // Remote players (multiplayer): hostile targeting and despawn distance
     // consider these alongside the local player.
     std::vector<MobRemoteTarget> remote_targets = {};
@@ -52,11 +55,13 @@ struct MobPlayerHit {
     int32_t target_player_id = -1; // -1 = local player; else PLAYER_HIT target
 };
 
-// Per-tick results for RepGame: melee hits to apply and creeper explosions to
-// turn into TntExplodeEvents.
+// Per-tick results for RepGame: melee hits to apply, creeper explosions to
+// turn into TntExplodeEvents, and farmland cells a mob trampled (the caller
+// owns the world write).
 struct MobTickOutput {
     std::vector<MobPlayerHit> player_hits;
     std::vector<glm::dvec3> explosions;
+    std::vector<glm::ivec3> tramples;
 };
 
 // Zombies burn while daylighted under open sky (and not in water). Pure
@@ -118,6 +123,18 @@ class MobManager {
         int fuse_ticks;     // creeper fuse; >0 while lit, counts down to defuse
         int burn_acc;       // daylight-burn damage accumulator ticks
         float wing_phase;   // wing-flap oscillator
+        // Breeding (types with MobTypeDef::breed_items): love_ticks > 0 is
+        // love mode — the mob seeks a same-type partner also in love and a
+        // close pair produces a baby; breed_cooldown > 0 blocks re-entry
+        // (5 min after mating). age_ticks < 0 is a baby counting up toward
+        // 0 = adult, persisted through MobFileRecord::grow_ticks and
+        // NetEntityRecord::age_ticks; babies render/collide at BABY_SCALE
+        // and drop nothing. fall_dist accumulates downward travel for the
+        // farmland-trample landing check.
+        int love_ticks;
+        int breed_cooldown;
+        int age_ticks;
+        float fall_dist;
         // Multiplayer sync (net.id 0 / net.mirror false in single player):
         // mirrors run no sim — tick_mirror eases pos/yaw toward the net
         // targets and derives gait from the applied motion.
@@ -190,6 +207,8 @@ class MobManager {
     void mark_touched( Mob &mob );
     // Spawn one entity from a wire record (mirror or freshly owned).
     bool spawn_record( const NetEntityRecord &rec, bool mirror );
+    // Render/collision scale for a mob (0.5 for babies, 1.0 otherwise).
+    static float scale_of( const Mob &mob );
 
   public:
     MobManager( );
@@ -222,6 +241,16 @@ class MobManager {
     // Apply damage + knockback away from attacker_pos; returns true if this
     // hit started the death animation.
     bool hurt( int index, float damage, const glm::dvec3 &attacker_pos );
+    // Feeding (breeding): whether the mob accepts `item` right now — a valid
+    // breed food for the type, and it can take effect (a baby always eats
+    // for the growth boost; an adult only while neither in love nor on the
+    // post-mating cooldown). feed() applies the effect and marks the mob
+    // touched; both return false on a mirror/remote/dead mob so the click
+    // can fall through to block use.
+    bool feedable( int index, ItemID item ) const;
+    bool feed( int index, ItemID item );
+    // Baby while age_ticks < 0 (also true for mirrors via NET_MOB_FLAG_BABY).
+    bool is_baby_at( int index ) const;
     const MobTypeDef &def_at( int index ) const { return mob_types[ this->mobs[ index ].type ]; }
     // The mob's feet position (for dropping items where it died).
     glm::dvec3 pos_at( int index ) const { return this->mobs[ index ].pos; }

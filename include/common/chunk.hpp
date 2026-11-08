@@ -129,6 +129,7 @@ class Chunk {
     friend int test_structure_border( );
     friend int test_item_entities( );
     friend int test_mobs( );
+    friend int test_farming( );
     friend int test_doors( );
     friend int test_chunk_sort( );
     friend int test_light_stale( );

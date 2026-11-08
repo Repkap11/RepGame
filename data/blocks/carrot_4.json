@@ -3,6 +3,14 @@
   "breaks_in_liquid": true,
   "casts_shadow": false,
   "collides_with_player": false,
+  "creative": false,
+  "drops": [
+    {
+      "item": "CARROT",
+      "max": 5,
+      "min": 2
+    }
+  ],
   "hardness": 0,
   "icon_is_isometric": false,
   "id": 301,

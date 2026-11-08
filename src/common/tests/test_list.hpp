@@ -34,6 +34,7 @@ int test_support_drops( );
 int test_sapling_grow( );
 int test_leaf_placement( );
 int test_shears_bonemeal( );
+int test_farming( );
 int test_structure_border( );
 int test_mobs( );
 int test_net_entities( );

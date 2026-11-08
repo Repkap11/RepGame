@@ -271,5 +271,33 @@ grow identical cells. Random ticks are off in capture mode, fly mode, the
 block world and flat worlds. Bamboo, dead, garbage and potted saplings
 and the mangrove propagule never grow.
 
+## Crops & farmland
+
+Crop chains are data-driven: a stage block's `"crop_next"` ref key points
+at the next growth stage (`null`/absent = mature, the chain terminator).
+`Block::crop_next` holds the resolved id and `Block::is_crop` is derived
+for every chain member, mature included. Wheat has 8 stages
+(`WHEAT_0`..`WHEAT_7`), carrots 5 (`CARROT_0`..`CARROT_4`), potatoes 4
+(`POTATOES`..`POTATOES_3`) and beetroots 4 (`BEETROOT_0`..`BEETROOT_2` →
+`BEETROOTS`). All stages are `"creative": false` — farming yields the
+produce items, not the stage blocks.
+
+`block_can_survive_at` requires an `is_crop` block to sit directly above
+`FARMLAND`, which covers planting rules, creative placement and the
+pop-off kill path when the field reverts: trampling converts farmland to
+dirt (`repgame_convert_block` in `PlayerBlockPlacedEvent.cpp`), the
+neighbor update kills the crop, and its stage-appropriate drops roll.
+Stage drops live in each JSON's `"drops"`: mature wheat drops `WHEAT`
+plus 1–3 `WHEAT_SEEDS`, carrots/potatoes drop 2–5 of their produce,
+mature beetroot drops `BEETROOT` plus 1–3 `BEETROOT_SEEDS`, and young
+stages drop a single seed/produce. The grass/fern/tuft foliage variants
+roll a wheat-seed chance.
+
+Random ticks advance crops along `crop_next` on the same sample/light/1-in-3
+cadence as saplings (`CROP_GROW_CHANCE_DEN`), writing the next stage with
+`set_loaded_block_natural` — not a player edit, so the pen rule stays
+out — plus a `BLOCK_UPDATE`. Bone meal on a crop skips the light check
+and advances exactly one stage per click (player.cpp).
+
 Old-save caveat: leaves placed before persistent variants existed save as
 the natural id and may decay once disturbed when no log is within range.

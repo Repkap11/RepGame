@@ -3,6 +3,12 @@
   "breaks_in_liquid": true,
   "casts_shadow": false,
   "collides_with_player": false,
+  "drops": [
+    {
+      "chance": 0.125,
+      "item": "WHEAT_SEEDS"
+    }
+  ],
   "hardness": 0,
   "icon_is_isometric": false,
   "id": 1217,

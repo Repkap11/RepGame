@@ -178,6 +178,7 @@ void ServerEntities::load_chunk_entities( ServerChunkEntities &ce, const glm::iv
         e.count = rec.variant;
         e.health = rec.health;
         e.flags = rec.flags;
+        e.age_ticks = rec.grow_ticks;
         ce.entities[ e.id ] = e;
     }
 }
@@ -242,6 +243,11 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
             rec.health = e.health;
             rec.flags = e.flags & ( NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED );
             rec.net_id = net_is_natural_mob_id( e.id ) ? e.id : 0;
+            // State entries don't carry age_ticks, so the server's value is
+            // frozen at spawn while the BABY flag keeps streaming — gate the
+            // sign on the live flag: baby persists a negative growth count,
+            // grown/adult keeps its positive re-breed cooldown.
+            rec.grow_ticks = ( e.flags & NET_MOB_FLAG_BABY ) ? std::min<int32_t>( e.age_ticks, -1 ) : std::max<int32_t>( e.age_ticks, 0 );
             out.push_back( rec );
         }
         const std::vector<uint8_t> removed( ce.removed_natural.begin( ), ce.removed_natural.end( ) );
