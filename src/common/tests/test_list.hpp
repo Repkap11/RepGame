@@ -36,6 +36,7 @@ int test_leaf_placement( );
 int test_shears_bonemeal( );
 int test_farming( );
 int test_structure_border( );
+int test_particles( );
 int test_mobs( );
 int test_net_codec_registry( );
 int test_net_containers( );

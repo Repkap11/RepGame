@@ -19,6 +19,7 @@
 MK_SHADER( object_vertex );
 MK_SHADER( object_fragment );
 MK_SHADER( debris_vertex );
+MK_SHADER( heart_vertex );
 MK_SHADER( primed_tnt_vertex );
 MK_SHADER( block_object_vertex );
 MK_SHADER( mob_vertex );
@@ -115,6 +116,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
 
     this->object_shader.init( &object_vertex, &object_fragment );
     this->debris_shader.init( &debris_vertex, &object_fragment );
+    this->heart_shader.init( &heart_vertex, &object_fragment );
     this->primed_tnt_shader.init( &primed_tnt_vertex, &object_fragment );
     this->block_object_shader.init( &block_object_vertex, &object_fragment );
     this->mob_shader.init( &mob_vertex, &object_fragment );
@@ -123,6 +125,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->skyBox.init( this->vbl_object_vertex, this->vbl_object_position );
     this->multiplayer_avatars.init( &this->mobs );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
+    this->heartParticles.init( this->vbl_object_vertex, this->vbl_debris_instance );
     this->bodies.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_primed_tnt_instance );
     this->items.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_item_instance );
     // The sprite program alpha-tests the atlas at exact texels (no mip bleed).
@@ -259,7 +262,7 @@ void World::set_selected_block( const glm::ivec3 &selected, const bool shouldDra
 
 #define WATER_THRESHOLD_P ( 0.02 )
 #define WATER_THRESHOLD_N ( -0.01 )
-void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
+void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &view_look, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, const int debug, const int draw_mouse_selection, const float y_height,
                   const bool headInWater, WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, const float time_s, const float daylight, const float min_ambient, const float alpha ) {
     PROFILE_SCOPE( "world_draw" );
 
@@ -383,6 +386,24 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->debris_shader.set_uniform1f( "u_Daylight", daylight );
     this->debris_shader.set_uniform1f( "u_MinAmbient", min_ambient );
     this->debris_shader.set_uniform1f( "u_Time", time_s );
+
+    // Hearts share object_fragment.glsl too, plus the billboard basis
+    // (camera right/up in world space — rows of the view rotation).
+    this->heart_shader.set_uniform1f( "u_FogNear", fog_near );
+    this->heart_shader.set_uniform1f( "u_FogFar", fog_far );
+    this->heart_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
+    this->heart_shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->heart_shader.set_uniform1i( "u_Underwater", underwater_wash );
+    this->heart_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->heart_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
+    this->heart_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
+    this->heart_shader.set_uniform1f( "u_Daylight", daylight );
+    this->heart_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->heart_shader.set_uniform1f( "u_Time", time_s );
+    const glm::vec3 cam_right( view_look[ 0 ][ 0 ], view_look[ 1 ][ 0 ], view_look[ 2 ][ 0 ] );
+    const glm::vec3 cam_up( view_look[ 0 ][ 1 ], view_look[ 1 ][ 1 ], view_look[ 2 ][ 1 ] );
+    this->heart_shader.set_uniform3f( "u_CamRight", cam_right.x, cam_right.y, cam_right.z );
+    this->heart_shader.set_uniform3f( "u_CamUp", cam_up.x, cam_up.y, cam_up.z );
 
     // Primed TNT also shares object_fragment.glsl — same fog/water set.
     this->primed_tnt_shader.set_uniform1f( "u_FogNear", fog_near );
@@ -524,6 +545,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->mob_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
     this->mob_shader.set_uniform_mat4f( "u_MVP", mvp );
     this->mob_shader.set_uniform1i( "u_IsSky", 0 );
+
+    this->heart_shader.set_uniform1i( "u_DrawToReflection", 0 );
+    this->heart_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+    this->heart_shader.set_uniform1f( "u_ReflectionHeight", 0 );
+    this->heart_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
+    this->heart_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+    this->heart_shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->heart_shader.set_uniform1i( "u_IsSky", 0 );
+    this->heart_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
 #if ( SUPPORTS_FRAME_BUFFER )
     if ( useFrameBuffer ) {
         // Enable sky color attachment writing for the sky pass only.
@@ -560,7 +590,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // the render thread like the light probes.
     this->blockDebris.update_lighting( this->chunkLoader );
     // Rebuild every mob part transform with the tick-interpolated pose.
-    this->mobs.update_render( alpha, this->chunkLoader );
+    this->mobs.update_render( alpha, this->chunkLoader, &this->heartParticles, time_s );
     // Rebuild the block-body transforms (falling blocks + primed TNT).
     this->bodies.update_render( alpha, this->chunkLoader );
     // Rebuild the dropped-item transforms (cubes + extruded sprites).
@@ -569,6 +599,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->bodies.draw( this->renderer, this->block_object_shader, this->primed_tnt_shader ); // Falling blocks + ignited TNT
     this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Dropped items
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
+    this->heartParticles.draw( this->renderer, this->heart_shader, time_s );    // Breeding hearts
 
     this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
     this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
@@ -735,6 +766,15 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->debris_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->blockDebris.draw( this->renderer, this->debris_shader, time_s ); // Reflected debris
 
+        this->heart_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+        this->heart_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
+        this->heart_shader.set_uniform1i( "u_DrawToReflection", 1 );
+        this->heart_shader.set_uniform1i( "u_IsSky", 0 );
+        this->heart_shader.set_uniform_mat4f( "u_MVP", mvp_reflect );
+        this->heart_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
+        this->heart_shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
+        this->heartParticles.draw( this->renderer, this->heart_shader, time_s ); // Reflected hearts
+
         this->primed_tnt_shader.set_uniform1i_texture( "u_Texture", blocksTexture );
         this->primed_tnt_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
         this->primed_tnt_shader.set_uniform1i( "u_DrawToReflection", 1 );
@@ -877,8 +917,10 @@ void World::cleanup( MapStorage &map_storage ) {
     this->bodies.cleanup( );
     this->items.cleanup( );
     this->mobs.cleanup( );
+    this->heartParticles.cleanup( );
     this->mouseSelection.destroy( );
     this->debris_shader.destroy( );
+    this->heart_shader.destroy( );
     this->primed_tnt_shader.destroy( );
     this->block_object_shader.destroy( );
     this->mob_shader.destroy( );

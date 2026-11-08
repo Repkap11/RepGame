@@ -16,8 +16,6 @@
 #include <cstring>
 #include <vector>
 
-#include "common/block.hpp"
-#include "common/constants.hpp"
 #include "common/container.hpp"
 
 // CHUNK_BLOCK_SIZE is defined in chunk.hpp as (CHUNK_SIZE_INTERNAL_X *
@@ -137,6 +135,7 @@ static constexpr uint8_t NET_PLAYER_FLAG_TARGETABLE = 0x1;
 static constexpr uint32_t NET_MOB_FLAG_HURT = 1u << 0;        // hurt_ticks > 0
 static constexpr uint32_t NET_MOB_FLAG_DYING = 1u << 1;       // death anim playing
 static constexpr uint32_t NET_MOB_FLAG_FUSE = 1u << 2;        // creeper fuse lit
+static constexpr uint32_t NET_MOB_FLAG_LOVE = 1u << 3;        // love_ticks > 0 (heart particles)
 static constexpr uint32_t NET_MOB_FLAG_DESPAWNABLE = 1u << 8; // night-spawner mob, never persisted
 static constexpr uint32_t NET_MOB_FLAG_NATURAL = 1u << 9;     // deterministic natural-spawn roll
 static constexpr uint32_t NET_MOB_FLAG_TOUCHED = 1u << 10;    // player interacted: a natural mob becomes persistable

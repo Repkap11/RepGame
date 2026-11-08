@@ -601,6 +601,7 @@
     "hardened_clay_stained_yellow",
     "hay_block_side",
     "hay_block_top",
+    "heart",
     "heavy_core",
     "honey_bottom",
     "honey_side",

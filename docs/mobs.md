@@ -63,7 +63,13 @@ and drop nothing when killed. Right-click feeding a mirrored mob goes
 through `ENTITY_ACTION`/`NET_ACTION_FEED` — the owner validates the item
 against `breed_items` before applying (see `docs/entities.md`); baby
 state rides `NET_MOB_FLAG_BABY` + `NetEntityRecord.age_ticks`, and
-`MobFileRecord::grow_ticks` persists it (`docs/persistence.md`). Mobs
+`MobFileRecord::grow_ticks` persists it (`docs/persistence.md`).
+Love-mode feedback is red-heart particles (`HeartParticles`):
+one heart at the feeding moment and one every ~0.5 s while
+`love_ticks` lasts (mirrors key off `NET_MOB_FLAG_LOVE`), a burst
+over a newborn, and a smaller puff when a baby eats. Emission runs
+inside `MobManager::update_render` so hearts interpolate with the
+render frame; capture mode skips it to stay deterministic. Mobs
 also trample: landing on `FARMLAND` after >0.5 blocks of real fall pushes
 the cell to `MobTickOutput::tramples` and `RepGame::tick` converts it to
 dirt — same model as the player trample (`docs/player.md`).

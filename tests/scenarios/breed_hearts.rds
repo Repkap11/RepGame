@@ -1,0 +1,18 @@
+# Heart particles on breeding: two cows get fed, go into love mode and
+# mate — screenshots should catch hearts above their heads, and the
+# mating itself is asserted as a third mob (the calf).
+wait_idle 20 6000
+camera 3.0 3.5 9.0 0 15
+mob cow 2.0 1.0 3.0
+mob cow 4.0 1.0 3.0
+wait 20
+feed 2.0 1.0 3.0
+feed 4.0 1.0 3.0
+wait 12
+screenshot hearts_feed
+wait 30
+screenshot hearts_love
+wait 300
+assert_mob_count >= 3 cow
+screenshot hearts_mate
+echo breed_hearts done

@@ -1477,6 +1477,9 @@
   "hay_block_top": {
     "source": "textures/blocks/hay_block_top"
   },
+  "heart": {
+    "keep": true
+  },
   "heavy_core": {
     "source": "textures/blocks/heavy_core"
   },

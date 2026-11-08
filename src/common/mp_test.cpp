@@ -10,9 +10,6 @@
 #include <map>
 
 #include "common/RepGame.hpp"
-#include "common/block.hpp"
-#include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
-#include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/chunk.hpp"
 #include "common/item.hpp"
 #include "common/mobs.hpp"
@@ -222,6 +219,13 @@ static void run_cmd( RepGameState &state, char *line ) {
     if ( strcmp( cmd, "hit" ) == 0 && argc == 2 ) {
         if ( !dbgcmd::hit( state, strtoull( argv[ 1 ], nullptr, 10 ), &err ) ) {
             mp_test::event( &state, "cmd_error", "\"line\":\"hit: no mob with that net_id\"" );
+        }
+        return;
+    }
+    if ( strcmp( cmd, "feed" ) == 0 && ( argc == 4 || argc == 5 ) ) {
+        if ( !dbgcmd::feed( state, glm::dvec3( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) ),
+                          argc == 5 ? argv[ 4 ] : nullptr, &err ) ) {
+            cmd_error( state, line );
         }
         return;
     }

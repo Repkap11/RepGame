@@ -53,6 +53,7 @@ Artifacts land in `/tmp/mptest_<scenario>_*` and contain `server.log` plus
 | `drop <item> <count> x y z [vx vy vz]` | spawn a dropped-item entity via the normal spawn path |
 | `mob <type> x y z` | spawn a mob via `MobManager::spawn` |
 | `hit <net_id>` | player melee hit on that mob (local damage on owned, feedback + ENTITY_ACTION on a mirror) |
+| `feed x y z [item]` | feed the mob nearest the point (default: its first breed food); mirrors send NET_ACTION_FEED for the owner to validate |
 | `fall <block> x y z` | spawn a falling-block body |
 | `tnt x y z` | spawn a primed TNT body (normal ignite path, `TNT_FUSE_TICKS`) |
 | `setblock x y z <block>` | normal player edit (BLOCK_UPDATE) |

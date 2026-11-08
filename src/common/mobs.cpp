@@ -9,6 +9,7 @@
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
 #include "common/chunk.hpp"
+#include "common/heart_particles.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/utils/profile.hpp"
 #include "common/chunk_loader.hpp"
@@ -33,6 +34,15 @@
 #define MOB_TEMPT_RANGE 10.0
 // Babies render and collide at half the adult hitbox scale.
 #define MOB_BABY_SCALE 0.5f
+// Love hearts: MC parity — one heart per ~0.5 s while in love, a burst on
+// a newborn, a smaller puff when a baby eats.
+#define HEART_PERIOD_MIN 0.35f
+#define HEART_PERIOD_SPREAD 0.5f
+#define HEART_BORN_COUNT 7
+#define HEART_BABY_FEED_COUNT 2
+// HeartParticles::now wraps with u_Time (3600 s) — wrapped-diff for the
+// per-mob emission cadence.
+#define HEART_TIME_WRAP 3600.0f
 
 MobManager::MobManager( ) {
     this->enabled = env_bool( "REPGAME_MOBS", true );
@@ -160,6 +170,9 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.breed_cooldown = 0;
     mob.age_ticks = 0;
     mob.fall_dist = 0.0f;
+    mob.next_heart_at = 0.0f;
+    mob.heart_burst = 0;
+    mob.was_in_love = 0;
     mob.uid = 0;
     mob.look_yaw = 0.0f;
     mob.look_pitch = 0.0f;
@@ -867,6 +880,7 @@ bool MobManager::feed( const int index, const ItemID item ) {
     this->mark_touched( mob );
     if ( mob.age_ticks < 0 ) {
         mob.age_ticks = glm::min( 0, mob.age_ticks - mob.age_ticks / 10 + 1 );
+        mob.heart_burst = HEART_BABY_FEED_COUNT;
     } else {
         mob.love_ticks = MOB_LOVE_TICKS;
         mob.ai_state = 0;
@@ -1138,6 +1152,7 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
                     Mob &baby = this->mobs.back( );
                     baby.age_ticks = -MOB_BABY_AGE_TICKS;
                     baby.touched = true;
+                    baby.heart_burst = HEART_BORN_COUNT;
                     this->announce_spawn( baby );
                 }
                 break;
@@ -1352,7 +1367,7 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
     }
 }
 
-void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
+void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, HeartParticles *hearts, float time_s ) {
     if ( !this->render_inited ) {
         return;
     }
@@ -1392,6 +1407,33 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader ) {
 
         // One light sample per mob covers all of its parts.
         const glm::vec2 light = chunk_loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, def.eye_h * scale_of( mob ), 0.0f ) );
+
+        // Love hearts: own love_ticks drives local mobs, the LOVE net flag
+        // carries it to mirrors. A heart at the feeding moment (rising
+        // edge), then one per ~0.5 s while love lasts; heart_burst is a
+        // one-shot group (newborn / fed baby). Capture mode stays clean —
+        // heart emission would add run-to-run noise.
+        if ( hearts != nullptr && mob.death_ticks == 0 && !RepGame::capture_mode( ) ) {
+            float dt = time_s - mob.next_heart_at;
+            // Half-wrap: next_heart_at can sit just past 3600 while time_s
+            // has already wrapped to ~0 — only a diff past half the period
+            // is a wrap, a sub-second negative diff is just "not due yet".
+            if ( dt < -HEART_TIME_WRAP * 0.5f ) {
+                dt += HEART_TIME_WRAP;
+            }
+            const bool in_love = mob.love_ticks > 0 || ( mob.net_flags & NET_MOB_FLAG_LOVE ) != 0;
+            const glm::dvec3 above_head = rpos + glm::dvec3( 0.0, def.hitbox_h * scale_of( mob ) + 0.35, 0.0 );
+            if ( in_love && ( !mob.was_in_love || dt >= 0.0f ) ) {
+                hearts->spawn( above_head, light, 1, time_s );
+                std::uniform_real_distribution<float> period( HEART_PERIOD_MIN, HEART_PERIOD_MIN + HEART_PERIOD_SPREAD );
+                mob.next_heart_at = time_s + period( this->rng );
+            }
+            mob.was_in_love = in_love;
+            if ( mob.heart_burst > 0 ) {
+                hearts->spawn( above_head, light, mob.heart_burst, time_s );
+                mob.heart_burst = 0;
+            }
+        }
 
         glm::mat4 bone_world[ 32 ];
         bone_worlds( mob, def, alpha, bone_world );
@@ -1476,6 +1518,9 @@ uint32_t MobManager::mob_net_flags( const Mob &mob ) {
     }
     if ( mob.fuse_ticks > 0 ) {
         f |= NET_MOB_FLAG_FUSE;
+    }
+    if ( mob.love_ticks > 0 ) {
+        f |= NET_MOB_FLAG_LOVE;
     }
     if ( mob.age_ticks < 0 ) {
         f |= NET_MOB_FLAG_BABY;
@@ -1600,6 +1645,7 @@ bool MobManager::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
     // flagged, else a positive re-breed cooldown.
     if ( rec.flags & NET_MOB_FLAG_BABY ) {
         mob.age_ticks = std::min<int32_t>( rec.age_ticks, -1 );
+        mob.heart_burst = HEART_BORN_COUNT;
     } else {
         mob.breed_cooldown = std::max<int32_t>( rec.age_ticks, 0 );
         mob.age_ticks = 0;

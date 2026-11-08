@@ -113,6 +113,57 @@ bool dbgcmd::hit( RepGameState &state, const unsigned long long net_id, std::str
     return false;
 }
 
+// Player right-click feed on the mob nearest `pos` — same shape as the
+// click path: owned mobs feed directly, mirrors get ENTITY_ACTION /
+// NET_ACTION_FEED for the owner to validate. `item` names a breed food
+// (empty picks the type's first).
+bool dbgcmd::feed( RepGameState &state, const glm::dvec3 &pos, const char *item, std::string *err ) {
+    MobManager &mobs = state.world.mobs;
+    int best = -1;
+    double best_d = 1e9;
+    for ( size_t i = 0; i < mobs.count( ); i++ ) {
+        const double d = glm::length( mobs.pos_at( static_cast<int>( i ) ) - pos );
+        if ( d < best_d ) {
+            best_d = d;
+            best = static_cast<int>( i );
+        }
+    }
+    if ( best < 0 ) {
+        *err = "feed: no mobs";
+        return false;
+    }
+    ItemID food = LAST_BLOCK_ID;
+    if ( item != nullptr && item[ 0 ] != '\0' ) {
+        food = item_from_name( item );
+        if ( food == LAST_BLOCK_ID ) {
+            *err = std::string( "feed: unknown item " ) + item;
+            return false;
+        }
+    } else {
+        const MobTypeDef &def = mobs.def_at( best );
+        food = def.breed_items[ 0 ];
+    }
+    if ( food == LAST_BLOCK_ID || !mobs.feedable( best, food ) ) {
+        *err = "feed: mob won't eat that";
+        return false;
+    }
+    if ( mobs.net_mirror_at( best ) ) {
+        NetEntityActionPayload act{};
+        act.id = mobs.net_id_at( best );
+        act.action = NET_ACTION_FEED;
+        act.damage = 0.0f;
+        act.ax = static_cast<float>( state.camera.pos.x );
+        act.ay = static_cast<float>( state.camera.pos.y );
+        act.az = static_cast<float>( state.camera.pos.z );
+        act.attacker_survival = state.game_mode == GameMode_Survival ? 1 : 0;
+        act.item = static_cast<uint32_t>( food );
+        state.multiplayer.entities.send_entity_action( act );
+    } else {
+        mobs.feed( best, food );
+    }
+    return true;
+}
+
 bool dbgcmd::fall( RepGameState &state, const char *item, const glm::ivec3 &pos, std::string *err ) {
     const ItemID id = item_from_name( item );
     if ( id == LAST_BLOCK_ID || !block_id_defined( id ) ) {

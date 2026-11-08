@@ -417,6 +417,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `time <ticks>`, `mode survival|creative`, `peaceful on|off` | world time / game mode / hostile-mob targeting |
 | `setblock x y z <block>`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; fill is inclusive, max 65536 cells |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
+| `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
 | `probe x y z`, `probe_light x y z` | emit a results `probe` record (name + sky/block light) |
 | `assert_block x y z <name|id>` | assert the loaded block |
 | `assert_light x y z sky|block <op> <n>` | op is `== != < <= > >=` |
@@ -432,6 +433,13 @@ asserts — scripts fail loudly. Asserts on unloaded chunks fail with actual
 run exits with `exit_reason:"script_done"` unless `REPGAME_SCRIPT_KEEP=1`
 (`--keep`), which stays up with the camera released — useful with
 `--window`. Script mode does not write `player.dat`.
+
+Pacing caveat: scripted runs draw far fewer frames per second than live
+play (waits are tick-driven and each screenshot stalls the loop), so
+per-frame visuals — particles, animations — can behave or appear
+differently than at a live ~240 fps. A passing scripted screenshot does
+not prove the effect shows in normal play; when a repro is visual, keep a
+live run or a denser `wait`/`screenshot` cadence as the control.
 
 rep-dbg prints each failed assert as `file:line: cmd — expected X, actual
 Y` and exits 1. `make scenarios` runs every `tests/scenarios/*.rds`

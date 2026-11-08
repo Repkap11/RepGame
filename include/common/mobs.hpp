@@ -14,6 +14,7 @@
 class World;
 class Chunk;
 class ChunkLoader;
+class HeartParticles;
 class NetEntities;
 struct RepGameState;
 
@@ -137,6 +138,14 @@ class MobManager {
         int breed_cooldown;
         int age_ticks;
         float fall_dist;
+        // Heart particles (client-side visuals, update_render): in love
+        // (own love_ticks or a mirror's NET_MOB_FLAG_LOVE) puffs one heart
+        // every ~half second; heart_burst queues a one-shot puff group
+        // (newborn or fed baby). next_heart_at runs on the HeartParticles
+        // clock; was_in_love detects the feeding rising edge.
+        float next_heart_at;
+        int heart_burst;
+        int was_in_love;
         // Multiplayer sync (net.id 0 / net.mirror false in single player):
         // mirrors run no sim — tick_mirror eases pos/yaw toward the net
         // targets and derives gait from the applied motion.
@@ -265,7 +274,9 @@ class MobManager {
     // pose + walk/head-look animator rotations, then the sneak pose as a
     // model-space pre-multiply. Shared by update_render and rep_tests.
     static void bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha, glm::mat4 *out );
-    void update_render( float alpha, const ChunkLoader &chunk_loader );
+    // Rebuilds every mob part transform and emits love-heart particles
+    // into `hearts` (null skips emission — tests and pre-init paths).
+    void update_render( float alpha, const ChunkLoader &chunk_loader, HeartParticles *hearts, float time_s );
     void draw( const Renderer &renderer, const Shader &shader );
     // Persist every owned chunk's mobs (World::cleanup).
     void persist_all( );

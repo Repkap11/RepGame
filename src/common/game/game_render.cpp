@@ -213,7 +213,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
             // inv_mvp lets the fullscreen water shader unproject pixels to the
             // rebased world frame for screen-space reflections.
             const glm::mat4 inv_mvp = glm::inverse( mvp );
-            globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open && !globalGameState.input.menu_open, render_pos.y, headInWater,
+            globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, render_view_look, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open && !globalGameState.input.menu_open, render_pos.y, headInWater,
                                         globalGameState.input.worldDrawQuality, render_pos, renderOrigin, time_s, daylight, debugVars.min_ambient, alpha );
         } else {
             // Stereo: per-eye view = body yaw ∘ tracked eye pose, eye position
@@ -242,7 +242,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                 glViewport( 0, 0, view.width, view.height );
                 glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
                 globalGameState.world.chunkLoader.set_occlusion_probe_pass( i == 0 );
-                globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open && !globalGameState.input.menu_open, static_cast<float>( eye_pos.y ), headInWater,
+                globalGameState.world.draw( globalGameState.blocksTexture, mvp, inv_mvp, view_look, mvp_reflect, mvp_sky, mvp_sky_reflect, globalGameState.input.debug_mode, !globalGameState.input.inventory_open && !globalGameState.input.menu_open, static_cast<float>( eye_pos.y ), headInWater,
                                             globalGameState.input.worldDrawQuality, eye_pos, renderOrigin, time_s, daylight, debugVars.min_ambient, alpha );
             }
             globalGameState.world.chunkLoader.set_occlusion_probe_pass( true );

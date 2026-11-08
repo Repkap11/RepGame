@@ -3,17 +3,15 @@
 class World;
 struct RepGameState;
 
-#include "common/Platforms.hpp"
-#include "block.hpp"
 #include "common/container.hpp"
 #include "chunk_loader.hpp"
 #include "common/multiplayer_avatars.hpp"
 #include "common/block_debris.hpp"
+#include "common/heart_particles.hpp"
 #include "common/block_bodies.hpp"
 #include "common/item_entities.hpp"
 #include "common/mobs.hpp"
 #include "common/renderer/full_screen_quad.hpp"
-#include "common/RenderChain.hpp"
 
 enum WorldDrawQuality { LOW, MEDIUM, HIGH, X_HIGH, LAST };
 // Every quality above LOW needs the frame buffer; platforms without one
@@ -47,6 +45,7 @@ class World {
     SkyBox skyBox;
     MultiplayerAvatars multiplayer_avatars;
     BlockDebris blockDebris;
+    HeartParticles heartParticles;
     VertexBufferLayout vbl_block;
     VertexBufferLayout vbl_coords;
     VertexBufferLayout vbl_object_vertex;
@@ -80,6 +79,7 @@ class World {
     Shader primed_tnt_shader;
     Shader block_object_shader;
     Shader mob_shader;
+    Shader heart_shader;
     Shader item_sprite_shader;
 
     int can_fixup_chunk( const Chunk &chunk, const glm::ivec3 &offset ) const;
@@ -154,7 +154,7 @@ class World {
     void init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage, int render_radius );
     void change_size( int width, int height );
     void render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render, const glm::mat4 &rotation );
-    void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
+    void draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm::mat4 &inv_mvp, const glm::mat4 &view_look, const glm::mat4 &mvp_reflect, const glm::mat4 &mvp_sky, const glm::mat4 &mvp_sky_reflect, int debug, int draw_mouse_selection, float y_height, bool headInWater,
                WorldDrawQuality worldDrawQuality, const glm::dvec3 &camera_pos, const glm::ivec3 &renderOrigin, float time_s, float daylight, float min_ambient, float alpha );
     // Random ticks: samples a handful of cells per nearby live chunk each
     // game tick — currently the only effect is sapling growth. Gated off by
