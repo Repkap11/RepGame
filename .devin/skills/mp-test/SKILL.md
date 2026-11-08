@@ -58,6 +58,10 @@ Artifacts land in `/tmp/mptest_<scenario>_*` and contain `server.log` plus
 | `setblock x y z <block>` | normal player edit (BLOCK_UPDATE) |
 | `probe x y z` | emit a `probe` event with the block at that cell |
 | `role x y z` | emit a `role` event with the client's role for that chunk |
+| `copen kind x y z` | subscribe to the container (CONTAINER_OPEN) |
+| `cclose kind x y z` | unsubscribe (CONTAINER_CLOSE) |
+| `cset kind x y z slot item n` | optimistic slot write + CONTAINER_SET_SLOT |
+| `cprobe kind x y z` | emit a `cprobe` event with the world-owned contents `{kind,pos,is,rev,slots:[{slot,name,count}],aux}` — the sync result the server left |
 | `mode survival\|creative` | pin game mode each tick (survival also pins walking — the FLY pin can't undo it) |
 | `peaceful on\|off` | hostile-mob targeting (off = targetable; survival alone no longer does it) |
 | `time <ticks>` | set world time and broadcast it |
@@ -73,7 +77,7 @@ Two line types:
 - `{"type":"event","tick":N,"name":"...", "detail":{...}}` — emitted
   immediately. Event names: `welcome`, `ready`, `view_sent`, `cmd_error`,
   `explosion_received`, `pickup_result`, `player_hit_received`,
-  `entity_transfer`, `probe`, `role`, `quit`.
+  `entity_transfer`, `probe`, `role`, `cprobe`, `quit`.
 - `{"type":"state",...}` — every `REPGAME_MP_DUMP_EVERY` ticks:
   - top level: `tick`, `session` (string), `connected` (0/1),
     `world_time`, `pos` (camera, `[x,y,z]` floats), `tag` (when dumped via
@@ -108,9 +112,10 @@ Two line types:
   the two pads' full views differ, so `snapshot()`/`mob_ids()` clip to
   the overlap (see `sc_ownership_flip_no_dup` / `sc_natural_mobs` for the
   band bounds).
-- `wait_probe` polls `probe` until the block is reported loaded;
-  `find_ground_y`/`goto_ground` exist but the stone pads are preferred
-  (heightmap probing was racy).
+- `wait_probe`/`wait_block` poll `probe` until the block reports the
+  wanted name; `cprobe`/`cslot`/`wait_cslot` do the same for container
+  contents; `find_ground_y`/`goto_ground` exist but the stone pads are
+  preferred (heightmap probing was racy).
 - Timeouts: `run.wait(desc, pred, timeout)`, `run.sleep_ticks(n)` (144
   UPS), `run.wait_ready(...)`. Raise `Fail(...)` to fail a scenario.
 

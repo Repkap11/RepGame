@@ -71,13 +71,10 @@ struct RepGameState {
     // when nobody is on it (or it was broken/unloaded), so exactly one check
     // chain exists per plate.
     std::unordered_set<glm::ivec3> watched_pressure_plates;
-    // Chests this player broke while connected to a server: the server answers
-    // the block removal with a CHEST_CONTENTS snapshot used for looting, so
-    // contents are never lost to a client that never opened the chest.
-    std::unordered_set<glm::ivec3> pending_chest_loot;
-    // Same for furnaces broken while connected: the server answers with a
-    // FURNACE_CONTENTS snapshot used for looting.
-    std::unordered_set<glm::ivec3> pending_furnace_loot;
+    // Containers this player broke while connected to a server: the server
+    // answers the block removal with a CONTAINER_CONTENTS snapshot used for
+    // looting, so contents are never lost to a client that never opened it.
+    std::unordered_set<glm::ivec3> pending_container_loot;
     // Natural leaves with a decay check queued: added when a neighbor change
     // may have removed their supporting log, erased by the LeafDecayEvent
     // when it fires. At most one check is queued per leaf.

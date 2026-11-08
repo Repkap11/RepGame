@@ -337,6 +337,47 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         results::assert_( state, line, argv[ 0 ].c_str( ), ok, want, actual );
         return false;
     }
+    // cset kind x y z slot item count — optimistic container write (works
+    // offline: containers.set_slot no-ops without a connection).
+    if ( strcmp( cmd, "cset" ) == 0 && argc == 8 ) {
+        if ( !dbgcmd::cset( state, dbgcmd::container_from_name( argv[ 1 ].c_str( ) ),
+                            glm::ivec3( ivec_arg( 2 ), ivec_arg( 3 ), ivec_arg( 4 ) ), ivec_arg( 5 ), argv[ 6 ].c_str( ),
+                            ivec_arg( 7 ), &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
+    // assert_cslot kind x y z slot item [count] — the world-owned contents
+    // at the slot matches (count defaults to 1).
+    if ( strcmp( cmd, "assert_cslot" ) == 0 && ( argc == 7 || argc == 8 ) ) {
+        const NetContainerKindDef *def = dbgcmd::container_from_name( argv[ 1 ].c_str( ) );
+        const glm::ivec3 pos( ivec_arg( 2 ), ivec_arg( 3 ), ivec_arg( 4 ) );
+        ContainerContents cc;
+        bool is_container = false;
+        char actual[ 96 ];
+        bool ok = false;
+        if ( def == nullptr || !dbgcmd::cprobe( state, def, pos, &cc, &is_container, &err ) ) {
+            snprintf( actual, sizeof( actual ), "%s", def == nullptr ? "unknown kind" : err.c_str( ) );
+        } else if ( !is_container ) {
+            snprintf( actual, sizeof( actual ), "not a %s", def->name );
+        } else {
+            const int slot = ivec_arg( 5 );
+            const ItemID want_item = slot >= 0 && slot < def->slots ? dbgcmd::item_from_name( argv[ 6 ].c_str( ) ) : LAST_BLOCK_ID;
+            const int want_count = argc == 8 ? ivec_arg( 7 ) : 1;
+            if ( slot < 0 || slot >= def->slots || want_item == LAST_BLOCK_ID ) {
+                snprintf( actual, sizeof( actual ), "bad slot or item" );
+            } else {
+                const InventorySlot &got = cc.slots[ slot ];
+                const char *n = item_name( got.item_id );
+                snprintf( actual, sizeof( actual ), "%s x%d", n != nullptr ? n : "?", got.quantity );
+                ok = got.item_id == want_item && got.quantity == want_count;
+            }
+        }
+        char want[ 96 ];
+        snprintf( want, sizeof( want ), "%s x%d@%d", argv[ 6 ].c_str( ), argc == 8 ? ivec_arg( 7 ) : 1, ivec_arg( 5 ) );
+        results::assert_( state, line, argv[ 0 ].c_str( ), ok, want, actual );
+        return false;
+    }
     if ( strcmp( cmd, "assert_mob_count" ) == 0 && ( argc == 3 || argc == 4 ) ) {
         const double expected = atof( argv[ 2 ].c_str( ) );
         const char *type = argc == 4 ? argv[ 3 ].c_str( ) : nullptr;

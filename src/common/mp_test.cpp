@@ -257,6 +257,62 @@ static void run_cmd( RepGameState &state, char *line ) {
                         chunk.x, chunk.y, chunk.z, state.multiplayer.entities.role_of( chunk ) );
         return;
     }
+    // copen/cclose/cset/cprobe: container-sync drivers + world-state probe.
+    if ( strcmp( cmd, "copen" ) == 0 && argc == 5 ) {
+        if ( !dbgcmd::copen( state, dbgcmd::container_from_name( argv[ 1 ] ),
+                             glm::ivec3( atoi( argv[ 2 ] ), atoi( argv[ 3 ] ), atoi( argv[ 4 ] ) ), &err ) ) {
+            cmd_error( state, line );
+        }
+        return;
+    }
+    if ( strcmp( cmd, "cclose" ) == 0 && argc == 5 ) {
+        if ( !dbgcmd::cclose( state, dbgcmd::container_from_name( argv[ 1 ] ),
+                              glm::ivec3( atoi( argv[ 2 ] ), atoi( argv[ 3 ] ), atoi( argv[ 4 ] ) ), &err ) ) {
+            cmd_error( state, line );
+        }
+        return;
+    }
+    if ( strcmp( cmd, "cset" ) == 0 && argc == 8 ) {
+        if ( !dbgcmd::cset( state, dbgcmd::container_from_name( argv[ 1 ] ),
+                            glm::ivec3( atoi( argv[ 2 ] ), atoi( argv[ 3 ] ), atoi( argv[ 4 ] ) ), atoi( argv[ 5 ] ), argv[ 6 ],
+                            atoi( argv[ 7 ] ), &err ) ) {
+            cmd_error( state, line );
+        }
+        return;
+    }
+    if ( strcmp( cmd, "cprobe" ) == 0 && argc == 5 ) {
+        const glm::ivec3 pos( atoi( argv[ 2 ] ), atoi( argv[ 3 ] ), atoi( argv[ 4 ] ) );
+        const NetContainerKindDef *def = dbgcmd::container_from_name( argv[ 1 ] );
+        ContainerContents cc;
+        bool is_container = false;
+        if ( !dbgcmd::cprobe( state, def, pos, &cc, &is_container, &err ) ) {
+            cmd_error( state, line );
+            return;
+        }
+        // {"kind":..,"pos":[..],"is":0/1,"rev":n,"slots":[{"name","count"}],"aux":[..]}
+        std::string slots;
+        for ( size_t i = 0; i < cc.slots.size( ); i++ ) {
+            if ( cc.slots[ i ].item_id == LAST_BLOCK_ID || cc.slots[ i ].quantity <= 0 ) {
+                continue;
+            }
+            const char *n = item_name( cc.slots[ i ].item_id );
+            char one[ 128 ];
+            snprintf( one, sizeof( one ), "%s{\"slot\":%zu,\"name\":\"%s\",\"count\":%d}", slots.empty( ) ? "" : ",", i,
+                      n != nullptr ? n : "?", cc.slots[ i ].quantity );
+            slots += one;
+        }
+        std::string aux;
+        for ( size_t i = 0; i < cc.aux.size( ); i++ ) {
+            char one[ 24 ];
+            snprintf( one, sizeof( one ), "%s%d", aux.empty( ) ? "" : ",", cc.aux[ i ] );
+            aux += one;
+        }
+        mp_test::event( &state, "cprobe",
+                        "\"kind\":\"%s\",\"pos\":[%d,%d,%d],\"is\":%d,\"rev\":%u,\"slots\":[%s],\"aux\":[%s]", def->name, pos.x,
+                        pos.y, pos.z, is_container ? 1 : 0, state.multiplayer.containers.last_revision( def->kind, pos ),
+                        slots.c_str( ), aux.c_str( ) );
+        return;
+    }
     if ( strcmp( cmd, "mode" ) == 0 && argc == 2 ) {
         g_force_survival = strcasecmp( argv[ 1 ], "survival" ) == 0;
         state.game_mode = g_force_survival ? GameMode_Survival : GameMode_Creative;

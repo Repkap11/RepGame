@@ -561,11 +561,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         this->mark_dirty( it->second, rec.kind );
         PacketWriter w;
         net_write_entity_record( w, rec );
-        for ( int fd : it->second.viewers ) {
-            if ( fd != client_fd ) {
-                server.queue_message( fd, NetMsgType::ENTITY_SPAWN, client_fd, w.buf( ) );
-            }
-        }
+        server.broadcast_to( it->second.viewers, NetMsgType::ENTITY_SPAWN, client_fd, w.buf( ), client_fd );
         return true;
     }
 
@@ -715,11 +711,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         this->mark_dirty( *ce, kind );
         PacketWriter w;
         net_serialize_entity_remove( w, p );
-        for ( int fd : ce->viewers ) {
-            if ( fd != client_fd ) {
-                server.queue_message( fd, NetMsgType::ENTITY_REMOVE, client_fd, w.buf( ) );
-            }
-        }
+        server.broadcast_to( ce->viewers, NetMsgType::ENTITY_REMOVE, client_fd, w.buf( ), client_fd );
         return true;
     }
 
@@ -753,9 +745,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 NetEntityRemovePayload rem{ p.id, NET_REMOVE_PICKED_UP };
                 PacketWriter w;
                 net_serialize_entity_remove( w, rem );
-                for ( int fd : ce->viewers ) {
-                    server.queue_message( fd, NetMsgType::ENTITY_REMOVE, 0, w.buf( ) );
-                }
+                server.broadcast_to( ce->viewers, NetMsgType::ENTITY_REMOVE, 0, w.buf( ) );
             } else if ( granted > 0 ) {
                 // Partial: reduce the count and push a server-originated
                 // state (header player_id 0) to every viewer.
@@ -778,9 +768,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 sp.entries.push_back( e );
                 PacketWriter w;
                 net_serialize_entity_state( w, sp );
-                for ( int fd : ce->viewers ) {
-                    server.queue_message( fd, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
-                }
+                server.broadcast_to( ce->viewers, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
             }
         }
         NetPickupResultPayload result{ p.id, item, granted };
@@ -844,11 +832,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         }
         PacketWriter w;
         net_serialize_explosion( w, p );
-        for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
-            if ( fd != client_fd && server.get_data_if_client_connected( fd ) != NULL ) {
-                server.queue_message( fd, NetMsgType::EXPLOSION, client_fd, w.buf( ) );
-            }
-        }
+        server.broadcast( NetMsgType::EXPLOSION, client_fd, w.buf( ), client_fd );
         return true;
     }
 

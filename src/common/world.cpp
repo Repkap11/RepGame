@@ -1098,6 +1098,68 @@ void World::set_furnace_contents( const glm::ivec3 &block_pos, const FurnaceCont
     }
 }
 
+// --- Kind-keyed container API (CONTAINER_* wire family) --------------------
+// One switch per call site: each arm routes to the kind's typed accessor and
+// converts the blob via container_to/from_blob. New kinds add an arm here.
+
+bool World::get_container_contents( NetContainerKind kind, const glm::ivec3 &block_pos, ContainerContents &out ) const {
+    if ( net_container_kind_def( static_cast<uint8_t>( kind ) ) == nullptr ) {
+        return false;
+    }
+    switch ( kind ) {
+        case NetContainerKind::CHEST: {
+            const ChestContents *c = this->get_chest_contents( block_pos );
+            if ( c == nullptr ) {
+                return false;
+            }
+            out = container_to_blob( *c );
+            return true;
+        }
+        case NetContainerKind::FURNACE: {
+            const FurnaceContents *f = this->get_furnace_contents( block_pos );
+            if ( f == nullptr ) {
+                return false;
+            }
+            out = container_to_blob( *f );
+            return true;
+        }
+    }
+    return false;
+}
+
+void World::set_container_contents( NetContainerKind kind, const glm::ivec3 &block_pos, const ContainerContents &contents ) {
+    if ( net_container_kind_def( static_cast<uint8_t>( kind ) ) == nullptr ) {
+        return;
+    }
+    switch ( kind ) {
+        case NetContainerKind::CHEST: {
+            ChestContents c;
+            container_from_blob( contents, c );
+            this->set_chest_contents( block_pos, c );
+            return;
+        }
+        case NetContainerKind::FURNACE: {
+            FurnaceContents f;
+            container_from_blob( contents, f );
+            this->set_furnace_contents( block_pos, f );
+            return;
+        }
+    }
+}
+
+bool World::set_container_slot( NetContainerKind kind, const glm::ivec3 &block_pos, int slot, const InventorySlot &value ) {
+    if ( net_container_kind_def( static_cast<uint8_t>( kind ) ) == nullptr ) {
+        return false;
+    }
+    switch ( kind ) {
+        case NetContainerKind::CHEST:
+            return this->set_chest_slot( block_pos, slot, value );
+        case NetContainerKind::FURNACE:
+            return this->set_furnace_slot( block_pos, slot, value );
+    }
+    return false;
+}
+
 void World::tick_furnaces( ) {
     // Scan every chunk slot: furnaces are rare, so the per-slot check is a
     // map-empty test on chunks that have any furnace data at all.

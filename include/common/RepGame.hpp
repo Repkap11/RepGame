@@ -35,10 +35,10 @@ class RepGame {
     // Queues a PressurePlateEvent for each unpressed pressure plate the
     // player's feet overlap; pressed plates re-check themselves via the event.
     void process_pressure_plates( );
-    // Chest open/close (sends CHEST_OPEN/CHEST_CLOSE when connected).
+    // Chest open/close (sends CONTAINER_OPEN/CLOSE when connected).
     void open_chest( const glm::ivec3 &pos );
     void close_chest( );
-    // Furnace open/close (sends FURNACE_OPEN/FURNACE_CLOSE when connected).
+    // Furnace open/close (sends CONTAINER_OPEN/CLOSE when connected).
     void open_furnace( const glm::ivec3 &pos );
     void close_furnace( );
     // Shared body of draw()/draw_vr(): everything once per frame, then the
@@ -162,9 +162,8 @@ class RepGame {
     int rep_tests_start( );
 };
 
-// Moves every non-empty slot of a chest into the player's inventories
-// (survival first, hotbar for the overflow). Used for chest-break looting;
-// the multiplayer packet path calls this with the server's snapshot.
-void repgame_loot_chest_contents( RepGameState &state, const ChestContents &contents );
-// Same for a broken/open furnace's three slots.
-void repgame_loot_furnace_contents( RepGameState &state, const FurnaceContents &contents );
+// Moves every non-empty slot of a container into the player's inventories
+// (survival first, hotbar for the overflow). Used for container-break
+// looting; the multiplayer CONTAINER_CONTENTS loot path calls this with
+// the server's authoritative snapshot.
+void repgame_loot_container( RepGameState &state, const InventorySlot *slots, int count );

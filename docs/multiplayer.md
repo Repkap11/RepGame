@@ -31,9 +31,11 @@ mismatch disconnects (`Multiplayer::mismatched_server_version`, surfaced
 by the ImGui overlay). Bump it whenever a message layout changes; the
 `NetMsgType` values are stable on the wire and must never be renumbered.
 Protocol 6 added `removed_natural` (tombstoned natural-roll indices) to
-`CHUNK_ROLE`; protocol 7 added the `FURNACE_*` messages
-(`docs/multiplayer.md` "Furnaces"); protocol 8 added `item` to
-`NetEntityActionPayload` plus `NET_ACTION_FEED` — see `docs/entities.md`.
+`CHUNK_ROLE`; protocol 7 added the `FURNACE_*` messages (since folded
+into `CONTAINER_*`); protocol 8 added `item` to
+`NetEntityActionPayload` plus `NET_ACTION_FEED` — see `docs/entities.md`;
+protocol 9 retired the `CHEST_*`/`FURNACE_*` wire families for the unified
+`CONTAINER_*` family (see "Containers").
 
 ## Transports
 
@@ -126,45 +128,77 @@ idle for `CHUNK_IDLE_SAVE_SECONDS` before being written to the world's
 `chunk_*` files (`scheduleChunkSave`/`wake_schedule`) — the file format
 is the same `docs/persistence.md` describes.
 
-## Chests
+## Containers
 
-Chest contents are server-authoritative (`docs/ui.md` for the client
-side):
+Synced containers (chests, furnaces, and any future kind) share one wire
+family and one sync model — the `CONTAINER_*` messages all carry a
+`NetContainerKind` byte plus a block position, and the per-kind
+differences are data in a `NetContainerKindDef` row
+(`include/common/container.hpp`): slot/aux arity, the block predicate,
+sidecar load/persist hooks, and an optional authoritative tick +
+lit-swap pair. Adding a kind is a new row plus client World storage,
+not another copy of the subscribe/tick/broadcast machinery.
 
-- `CHEST_OPEN` subscribes the client; the server answers with
-  `CHEST_CONTENTS` (a full `ChestContents` snapshot).
-- `CHEST_SET_SLOT` is an optimistic single-slot write in *both*
-  directions — the client sends its local edit, the server applies it
-  and relays to other subscribers.
-- `CHEST_CLOSE` unsubscribes.
-- A broken chest also triggers a `CHEST_CONTENTS` snapshot, consumed via
-  `RepGameState::pending_chest_loot` so its contents drop as loot.
+- `CONTAINER_OPEN` subscribes the client (a client holds at most one
+  open container — a new open drops the old subscription server-side);
+  the server answers with `CONTAINER_CONTENTS`, a full snapshot: the
+  kind's slot array plus its aux ints (furnaces carry `cook_progress`
+  and `burn_ticks`).
+- `CONTAINER_SET_SLOT` is an optimistic single-slot write in *both*
+  directions — the client applies locally then sends; the server
+  sanitizes (`container_clean_slot`), bumps the entry's revision, and
+  relays to the *other* subscribers stamped with the new revision.
+- A write from a client that isn't subscribed to that container is
+  rejected — and answered with the authoritative `CONTAINER_CONTENTS`
+  for the position so the optimistic copy self-heals instead of
+  diverging until the next snapshot.
+- `CONTAINER_CLOSE` unsubscribes; disconnect drops all subscriptions.
+- Overwriting a container block triggers a `CONTAINER_CONTENTS`
+  snapshot to the breaker, consumed via
+  `RepGameState::pending_container_loot` so its contents drop as loot.
 
-Server logic lives in `ServerLogic`'s chest handlers and per-chunk
-`chest_*` files (`docs/persistence.md`).
+Client side, `NetContainers` (`state.multiplayer.containers`,
+`src/common/net_containers.cpp`) sends and applies the family —
+inbound frames only update World-owned container state via the generic
+`World::get/set_container_contents` / `set_container_slot` accessors;
+the open UI panel repaints itself by pulling from World each tick
+(`docs/ui.md`). Server side, `ServerContainers`
+(`src/server/server_containers.cpp`) owns the per-chunk container cache,
+subscriber maps, lazy sidecar IO (`chest_*`/`furnace_*` files,
+`docs/persistence.md`), ticking, and the correction path — `ServerLogic`
+just delegates to it.
 
-## Furnaces
+Ticking kinds (furnaces) run server-side at `UPS_RATE` driven by the
+epoll wake schedule: contents mutations mark the chunk dirty and get a
+throttled `CONTAINER_CONTENTS` rebroadcast to subscribers; a lit-state
+edge additionally broadcasts `BLOCK_UPDATE` (`FURNACE`↔`LIT_FURNACE`,
+rotation preserved from the last-seen block state) recorded as a chunk
+edit. Clients never tick furnaces while connected — the server is
+authoritative.
 
-Furnaces reuse the chest subscription model and add authoritative
-ticking (`ServerLogic` furnace handlers, `furnace_*` files):
+## Sender / codec layer
 
-- `FURNACE_OPEN`/`FURNACE_CLOSE` subscribe/unsubscribe exactly like
-  chests; the server answers opens with `FURNACE_CONTENTS`, which
-  carries the full `FurnaceContents` — three slots *plus* `cook_progress`
-  and `burn_ticks` so viewers see the smelt advance.
-- `FURNACE_SET_SLOT` is the same optimistic single-slot write, relayed
-  to other subscribers (slot indices < `FURNACE_INVENTORY_SLOTS`).
-- The server ticks every cached furnace at `UPS_RATE`
-  (`ServerLogic::tickFurnaces` → shared `furnace_tick`), driven by the
-  epoll wake schedule. Slot/progress changes mark the chunk dirty and
-  are persisted through the same idle-save path as chests; lit-state
-  flips broadcast a `BLOCK_UPDATE` (`FURNACE`↔`LIT_FURNACE`, rotation
-  preserved via the last-known block state) and are recorded as chunk
-  edits. Progress snapshots to subscribers are throttled to every few
-  ticks.
-- A broken furnace triggers a `FURNACE_CONTENTS` snapshot consumed via
-  `RepGameState::pending_furnace_loot`, and clients never tick furnaces
-  locally while connected — the server is authoritative.
+The hand-written `net_serialize_*`/`net_deserialize_*` pairs stay the
+source of truth for each wire format, but they're registered once in
+the codec table (`net_codec_table`, `src/common/net/packet.cpp`): one
+row per `NetMsgType` carrying the message name and make/destroy/ser/de
+hooks. The table backs:
+
+- `Multiplayer::send<P>(type, payload)` / `Server::send<P>` — the typed
+  sender every outbound message uses (serialize → queue → flush →
+  error-check, in one place);
+- `Server::broadcast` / `broadcast_to` / `broadcast_empty` — the
+  fan-out helpers replacing hand-rolled per-fd loops;
+- `net_msg_type_name` — readable names for `REPGAME_NET_TRACE` logs and
+  debugger output;
+- the registry-driven round-trip tests (`test_net_codec_registry`),
+  which exercise *every* payload row — a new message type without a row
+  fails the contiguity check, so coverage can't silently lag.
+
+`REPGAME_NET_TRACE=1` logs `net_in`/`net_out <name> … n=<bytes>` at the
+four transport funnels (client `handle_frame`/`send_payload`, server
+`handle_client_ready_for_read`/`queue_message`) — the cheap way to
+watch a sync conversation end to end.
 
 ## World time
 
@@ -179,10 +213,15 @@ advancing locally between syncs. The server persists the clock to
 ## Testing
 
 - The `net_*` tests (`src/common/tests/test_net.cpp`, `make tests
-  TESTS=net`) round-trip every payload serializer and cover the entity
-  protocol.
+  TESTS=net`) round-trip every payload serializer — the codec registry
+  test enumerates the whole table — plus the container kind defs and
+  the entity protocol.
 - `RepGameServer --selftest` (`src/server/server_selftest.cpp`,
   `make server-test`) simulates clients against `ServerLogic` directly:
-  WELCOME sessions, VIEW/CHUNK_ROLE coverage, transfers.
+  WELCOME sessions, VIEW/CHUNK_ROLE coverage, transfers, and the
+  container conversation (subscribe, relayed writes with revisions,
+  rejected-write correction, loot-on-break, furnace ticking +
+  lit-swap, sidecar persistence).
 - `make mp-test` drives real server + headless clients through JSONL
-  assertions — see the `mp-test` skill and `docs/entities.md`.
+  assertions — see the `mp-test` skill and `docs/entities.md`; the
+  `containers` scenario drives `copen`/`cset`/`cprobe` end to end.

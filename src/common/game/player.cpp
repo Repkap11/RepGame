@@ -125,40 +125,34 @@ void RepGame::break_selected_block( ) {
             globalGameState.vr.haptic_pending = true;
         }
     }
-    if ( block_is_chest( previous_block ) ) {
-        const glm::ivec3 chest_pos = globalGameState.block_selection.pos_destroy;
+    if ( const NetContainerKindDef *def = net_container_kind_of_block( previous_block ) ) {
+        const glm::ivec3 pos = globalGameState.block_selection.pos_destroy;
         if ( globalGameState.multiplayer.is_active( ) ) {
-            // The server answers the block removal with a CHEST_CONTENTS
+            // The server answers the block removal with a CONTAINER_CONTENTS
             // snapshot to loot — contents are server-authoritative.
-            globalGameState.pending_chest_loot.insert( chest_pos );
+            globalGameState.pending_container_loot.insert( pos );
         } else {
-            const ChestContents *contents = globalGameState.world.get_chest_contents( chest_pos );
-            if ( contents != nullptr ) {
-                repgame_loot_chest_contents( globalGameState, *contents );
+            ContainerContents contents;
+            if ( globalGameState.world.get_container_contents( def->kind, pos, contents ) ) {
+                repgame_loot_container( globalGameState, contents.slots.data( ), static_cast<int>( contents.slots.size( ) ) );
             }
             // The chunk erases the map entry when the block write lands.
         }
-        if ( globalGameState.ui.chest.open && globalGameState.ui.chest.pos == chest_pos ) {
-            this->close_chest( );
-            globalGameState.input.inventory_open = false;
-        }
-    }
-    if ( block_is_furnace( previous_block ) ) {
-        const glm::ivec3 furnace_pos = globalGameState.block_selection.pos_destroy;
-        if ( globalGameState.multiplayer.is_active( ) ) {
-            // The server answers the block removal with a FURNACE_CONTENTS
-            // snapshot to loot — contents are server-authoritative.
-            globalGameState.pending_furnace_loot.insert( furnace_pos );
-        } else {
-            const FurnaceContents *contents = globalGameState.world.get_furnace_contents( furnace_pos );
-            if ( contents != nullptr ) {
-                repgame_loot_furnace_contents( globalGameState, *contents );
-            }
-            // The chunk erases the map entry when the block write lands.
-        }
-        if ( globalGameState.ui.furnace.open && globalGameState.ui.furnace.pos == furnace_pos ) {
-            this->close_furnace( );
-            globalGameState.input.inventory_open = false;
+        // Close a UI still showing the broken container (one arm per kind —
+        // the UI structs stay per-kind even though the sync is generic).
+        switch ( def->kind ) {
+            case NetContainerKind::CHEST:
+                if ( globalGameState.ui.chest.open && globalGameState.ui.chest.pos == pos ) {
+                    this->close_chest( );
+                    globalGameState.input.inventory_open = false;
+                }
+                break;
+            case NetContainerKind::FURNACE:
+                if ( globalGameState.ui.furnace.open && globalGameState.ui.furnace.pos == pos ) {
+                    this->close_furnace( );
+                    globalGameState.input.inventory_open = false;
+                }
+                break;
         }
     }
     if ( globalGameState.game_mode == GameMode_Survival && previous_block != LAST_BLOCK_ID && previous_block != AIR ) {

@@ -38,8 +38,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.menu_open = false;
     globalGameState.ui.chest.open = false;
     globalGameState.ui.furnace.open = false;
-    globalGameState.pending_chest_loot.clear( );
-    globalGameState.pending_furnace_loot.clear( );
+    globalGameState.pending_container_loot.clear( );
     globalGameState.input.no_clip = false;
     globalGameState.input.mouse.smoothed_dx = 0.0f;
     globalGameState.input.mouse.smoothed_dy = 0.0f;

@@ -24,6 +24,12 @@
 //   probe x y z                    emit a "probe" event with the block there
 //   role x y z                     emit a "role" event with this client's
 //                                  role for that chunk
+//   copen kind x y z               subscribe to the container (CONTAINER_OPEN)
+//   cclose kind x y z              unsubscribe (CONTAINER_CLOSE)
+//   cset kind x y z slot item n    optimistic slot write + CONTAINER_SET_SLOT
+//   cprobe kind x y z              emit a "cprobe" event with the world-owned
+//                                  contents (kind, is-block flag, rev, slots,
+//                                  aux) — the sync result the server left
 //   mode survival|creative         pin the game mode each tick (survival
 //                                  also pins walking state so the
 //                                  REPGAME_FLY pin can't undo it)
@@ -36,7 +42,7 @@
 // Events on the dump stream: welcome, ready (connected + WELCOME + the
 // camera's chunk is CHUNK_LIVE + at least one CHUNK_ROLE grant applied),
 // cmd_error, explosion_received, pickup_result, player_hit_received,
-// entity_transfer, probe, quit.
+// entity_transfer, probe, role, cprobe, quit.
 //
 // The world-action implementations (setblock/drop/mob/hit/fall/tnt/mode/
 // time/goto/probe + name lookups) live in common/harness/debug_commands

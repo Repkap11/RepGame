@@ -27,8 +27,11 @@ void repgame_crafting_layout( RepGameState &state );
 // overlay draw (all in inventory.cpp / game_render.cpp).
 void repgame_furnace_layout( RepGameState &state );
 
-// Repaints open-furnace slot icons when the world contents changed without
-// a click handler (tick-driven smelts/fuel). Called from RepGame::tick.
+// Repaints open-chest/furnace slot icons when the world contents changed
+// without a click handler (server CONTAINER_* writes, tick-driven smelts).
+// Called from RepGame::tick — the pull model that keeps the net layer out
+// of UI internals.
+void repgame_chest_sync_icons( RepGameState &state );
 void repgame_furnace_sync_icons( RepGameState &state );
 
 static inline long long repgame_now_us( ) {

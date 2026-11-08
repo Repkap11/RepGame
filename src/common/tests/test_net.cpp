@@ -1,5 +1,168 @@
 // Multiplayer entity-sync tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
+
+// Codec-registry coverage: every NetMsgType has a table row (contiguous, in
+// wire-id order), every row has a name, and every payload-bearing row
+// round-trips its deterministic sample and rejects a half-length buffer.
+// Adding a message type without a row fails the contiguity check.
+int test_net_codec_registry( ) {
+    int failures = 0;
+    const auto report = [ &failures ]( const char *name, bool ok ) {
+        pr_test( "  %-55s %s", name, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    size_t count = 0;
+    const NetCodecEntry *table = net_codec_table( &count );
+    bool contiguous = count == static_cast<size_t>( NET_MSG_TYPE_COUNT );
+    if ( contiguous ) {
+        for ( size_t i = 0; i < count; i++ ) {
+            if ( table[ i ].type != static_cast<NetMsgType>( i ) ) {
+                contiguous = false;
+                break;
+            }
+        }
+    }
+    report( "codec registry: one contiguous row per wire id", contiguous );
+
+    char namebuf[ 96 ];
+    for ( size_t i = 0; contiguous && i < count; i++ ) {
+        const NetCodecEntry &e = table[ i ];
+        snprintf( namebuf, sizeof( namebuf ), "codec registry: %s named", e.name );
+        report( namebuf, e.name != nullptr && net_msg_type_name( e.type ) == e.name );
+        if ( e.ser == nullptr ) {
+            // Payloadless or retired wire id.
+            snprintf( namebuf, sizeof( namebuf ), "codec registry: %s has no codec", e.name );
+            report( namebuf, e.make == nullptr && e.de == nullptr );
+            continue;
+        }
+        // fill -> ser -> de -> ser must reproduce identical bytes.
+        void *sample = e.make( );
+        PacketWriter w1;
+        e.ser( w1, sample );
+        void *decoded = e.make( );
+        PacketReader r( w1.buf( ).data( ), w1.buf( ).size( ) );
+        const bool decoded_ok = e.de( r, decoded );
+        PacketWriter w2;
+        if ( decoded_ok ) {
+            e.ser( w2, decoded );
+        }
+        snprintf( namebuf, sizeof( namebuf ), "codec registry: %s round trip", e.name );
+        report( namebuf, decoded_ok && w2.buf( ) == w1.buf( ) );
+        // A half-length buffer must be rejected (reads are bounds-checked).
+        void *junk = e.make( );
+        PacketReader rt( w1.buf( ).data( ), w1.buf( ).size( ) / 2 );
+        snprintf( namebuf, sizeof( namebuf ), "codec registry: %s truncated fails", e.name );
+        report( namebuf, !e.de( rt, junk ) );
+        e.destroy( sample );
+        e.destroy( decoded );
+        e.destroy( junk );
+    }
+    report( "codec registry: out-of-range id unnamed",
+            strcmp( net_msg_type_name( static_cast<NetMsgType>( 200 ) ), "UNKNOWN_MSG" ) == 0 );
+    return failures;
+}
+
+// Container wire family: kind-def lookups + arity, block->kind routing,
+// CONTAINER_POS kind validation, container_clean_slot normalization, and the
+// blob<->typed-view converters that bridge wire and chunk storage.
+int test_net_containers( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    const auto report = [ &failures ]( const char *name, bool ok ) {
+        pr_test( "  %-55s %s", name, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    // Kind table: every enum value resolves, out-of-range is rejected.
+    const NetContainerKindDef *cd = net_container_kind_def( static_cast<uint8_t>( NetContainerKind::CHEST ) );
+    const NetContainerKindDef *fd = net_container_kind_def( static_cast<uint8_t>( NetContainerKind::FURNACE ) );
+    report( "container kind: chest def resolves", cd != nullptr && cd->kind == NetContainerKind::CHEST );
+    report( "container kind: furnace def resolves", fd != nullptr && fd->kind == NetContainerKind::FURNACE );
+    report( "container kind: out of range rejected",
+            net_container_kind_def( NET_CONTAINER_KIND_COUNT ) == nullptr && net_container_kind_def( 200 ) == nullptr );
+    report( "container kind: chest arity 27/0", cd != nullptr && cd->slots == CHEST_SLOTS && cd->aux == 0 );
+    report( "container kind: furnace arity 3/2 + hooks",
+            fd != nullptr && fd->slots == FURNACE_INVENTORY_SLOTS && fd->aux == 2 && fd->tick != nullptr && fd->active != nullptr && fd->lit != nullptr );
+    report( "container kind: furnace lit pair", fd != nullptr && fd->unlit_block == FURNACE && fd->lit_block == LIT_FURNACE );
+    // Block routing: both furnace ids land on one kind; others reject.
+    report( "container kind: CHEST block routes", net_container_kind_of_block( CHEST ) == cd );
+    report( "container kind: FURNACE block routes", net_container_kind_of_block( FURNACE ) == fd );
+    report( "container kind: LIT_FURNACE routes same", net_container_kind_of_block( LIT_FURNACE ) == fd );
+    report( "container kind: non-container rejected",
+            net_container_kind_of_block( STONE ) == nullptr && net_container_kind_of_block( AIR ) == nullptr );
+
+    // CONTAINER_POS round trip + kind-byte validation.
+    {
+        NetContainerPosPayload out{ NetContainerKind::FURNACE, -4, 70, 900 };
+        PacketWriter w;
+        net_serialize_container_pos( w, out );
+        PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
+        NetContainerPosPayload in{};
+        report( "container pos: round trip",
+                net_deserialize_container_pos( r, in ) && in.kind == NetContainerKind::FURNACE && in.x == -4 && in.y == 70 && in.z == 900 );
+    }
+    { // An unknown kind byte fails the frame outright.
+        PacketWriter w;
+        w.write_u8( 99 );
+        w.write_i32( 1 );
+        w.write_i32( 2 );
+        w.write_i32( 3 );
+        PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
+        NetContainerPosPayload in{};
+        report( "container pos: bad kind rejected", !net_deserialize_container_pos( r, in ) );
+    }
+
+    // container_clean_slot: invalid -> empty, over-stack -> clamped.
+    {
+        InventorySlot c = container_clean_slot( InventorySlot{ ITEM_ID_END, 4 } );
+        report( "container clean: invalid id empties", c.item_id == LAST_BLOCK_ID && c.quantity == 0 );
+        c = container_clean_slot( InventorySlot{ STONE, -3 } );
+        report( "container clean: non-positive empties", c.item_id == LAST_BLOCK_ID && c.quantity == 0 );
+        c = container_clean_slot( InventorySlot{ STICK, 999 } );
+        report( "container clean: over-stack clamps", c.item_id == STICK && c.quantity == item_max_stack( STICK ) );
+        c = container_clean_slot( InventorySlot{ STICK, 7 } );
+        report( "container clean: valid kept", c.item_id == STICK && c.quantity == 7 );
+    }
+
+    // Blob converters: typed views <-> interchange shape round-trip; a
+    // short/foreign blob pads defensively rather than reading OOB.
+    {
+        FurnaceContents f;
+        f.slots[ FURNACE_SLOT_INPUT ] = { RAW_IRON, 3 };
+        f.slots[ FURNACE_SLOT_FUEL ] = { COAL, 1 };
+        f.cook_progress = 700;
+        f.burn_ticks = 5000;
+        const ContainerContents blob = container_to_blob( f );
+        report( "container blob: furnace aux carries progress",
+                blob.slots.size( ) == FURNACE_INVENTORY_SLOTS && blob.aux.size( ) == 2 && blob.aux[ 0 ] == 700 && blob.aux[ 1 ] == 5000 );
+        FurnaceContents back;
+        container_from_blob( blob, back );
+        report( "container blob: furnace round trip",
+                back.slots[ 0 ].item_id == RAW_IRON && back.slots[ 0 ].quantity == 3 && back.cook_progress == 700 && back.burn_ticks == 5000 );
+        ContainerContents short_blob;
+        short_blob.slots.assign( 1, InventorySlot{ STONE, 2 } );
+        FurnaceContents padded;
+        container_from_blob( short_blob, padded );
+        report( "container blob: short blob pads",
+                padded.slots[ 0 ].item_id == STONE && padded.slots[ 1 ].item_id == LAST_BLOCK_ID && padded.cook_progress == 0 && padded.burn_ticks == 0 );
+        ChestContents chest;
+        chest.slots[ 5 ] = { GOLD_BLOCK, 12 };
+        const ContainerContents cblob = container_to_blob( chest );
+        ChestContents cback;
+        container_from_blob( cblob, cback );
+        report( "container blob: chest round trip",
+                cblob.slots.size( ) == CHEST_SLOTS && cblob.aux.empty( ) && cback.slots[ 5 ].item_id == GOLD_BLOCK && cback.slots[ 5 ].quantity == 12 );
+    }
+    return failures;
+}
+
 // Round-trip every entity-sync payload (protocol v5): serialize then
 // deserialize must reproduce the input, and a truncated buffer must fail.
 int test_net_entities( ) {

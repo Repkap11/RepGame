@@ -2,6 +2,7 @@
 
 #include <glm.hpp>
 #include <queue>
+#include <set>
 #include <common/constants.hpp>
 #include <common/block.hpp>
 #include <common/net/framed_socket.hpp>
@@ -49,6 +50,20 @@ class Server {
     void cleanup( );
     void queue_message( int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
     void queue_empty( int client_fd, NetMsgType type, int32_t player_id );
+    // Serialize `payload` through its NetCodec and queue it for one client.
+    template <typename P>
+    void send( int client_fd, NetMsgType type, const P &payload, int32_t player_id = 0 ) {
+        PacketWriter w;
+        NetCodec<P>::ser( w, payload );
+        this->queue_message( client_fd, type, player_id, w.take_buf( ) );
+    }
+    // Broadcast helpers. `player_id` is stamped into each frame's payload
+    // header — pass the originating client_fd for relays, 0 for
+    // server-originated messages. `except_fd` (-1 = none) skips one
+    // recipient (typically the originator of a relay).
+    void broadcast( NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload, int except_fd = -1 );
+    void broadcast_to( const std::set<int> &fds, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload, int except_fd = -1 );
+    void broadcast_empty( NetMsgType type, int32_t player_id, int except_fd = -1 );
     PacketType_DataPlayer *get_data_if_client_connected( int client_id );
 
     // Selftest hooks (src/server/server_selftest.cpp): drive the logic layer

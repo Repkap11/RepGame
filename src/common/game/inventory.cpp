@@ -28,12 +28,14 @@ void RepGame::add_to_hotbar( const bool alsoSelect, const ItemID itemId ) {
     }
 }
 
-// Moves every non-empty chest slot into the player inventories (survival
-// first, hotbar for overflow). Items that fit nowhere vanish — there are no
-// dropped-item entities, consistent with the inventory-close/drop paths.
-void repgame_loot_chest_contents( RepGameState &state, const ChestContents &contents ) {
-    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-        const InventorySlot &slot = contents.slots[ i ];
+// Moves every non-empty container slot into the player inventories
+// (survival first, hotbar for overflow). Items that fit nowhere vanish —
+// there are no dropped-item entities, consistent with the inventory-
+// close/drop paths. Used for break looting and the multiplayer
+// CONTAINER_CONTENTS loot snapshot.
+void repgame_loot_container( RepGameState &state, const InventorySlot *slots, int count ) {
+    for ( int i = 0; i < count; i++ ) {
+        const InventorySlot &slot = slots[ i ];
         if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             continue;
         }
@@ -62,16 +64,17 @@ void RepGame::open_chest( const glm::ivec3 &pos ) {
     globalGameState.input.inventory_open = true;
     audio_play_sfx( "chest" );
     // An open cancels a pending loot snapshot for the same position.
-    globalGameState.pending_chest_loot.erase( pos );
+    globalGameState.pending_container_loot.erase( pos );
     if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.chest_open( pos );
+        globalGameState.multiplayer.containers.open( NetContainerKind::CHEST, pos );
     }
-    // Ensure a local entry exists (empty until CHEST_CONTENTS arrives in
+    // Ensure a local entry exists (empty until CONTAINER_CONTENTS arrives in
     // multiplayer; the chest file contents in singleplayer) and repaint.
     const ChestContents *contents = globalGameState.world.get_or_create_chest_contents( pos );
     if ( contents != nullptr ) {
         for ( int i = 0; i < CHEST_SLOTS; i++ ) {
             globalGameState.ui.chest.inventory_renderer.changeSlotItem( i, contents->slots[ i ] );
+            globalGameState.ui.chest.drawn[ i ] = contents->slots[ i ];
         }
     }
 }
@@ -83,7 +86,27 @@ void RepGame::close_chest( ) {
     globalGameState.ui.chest.open = false;
     audio_play_sfx( "chest_close" );
     if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.chest_close( globalGameState.ui.chest.pos );
+        globalGameState.multiplayer.containers.close( NetContainerKind::CHEST, globalGameState.ui.chest.pos );
+    }
+}
+
+// Repaints chest slot icons whose world contents changed since the last
+// push — inbound CONTAINER_* writes only update World state, so the open
+// panel pulls the diff here each tick (same model as the furnace below).
+void repgame_chest_sync_icons( RepGameState &state ) {
+    if ( !state.ui.chest.open ) {
+        return;
+    }
+    const ChestContents *contents = state.world.get_chest_contents( state.ui.chest.pos );
+    if ( contents == nullptr ) {
+        return;
+    }
+    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
+        const InventorySlot &slot = contents->slots[ i ];
+        if ( slot.item_id != state.ui.chest.drawn[ i ].item_id || slot.quantity != state.ui.chest.drawn[ i ].quantity ) {
+            state.ui.chest.inventory_renderer.changeSlotItem( i, slot );
+            state.ui.chest.drawn[ i ] = slot;
+        }
     }
 }
 
@@ -95,7 +118,8 @@ void RepGame::close_chest( ) {
 static void chest_sync_slot( RepGameState &state, int slot_index, const InventorySlot &slot ) {
     state.world.set_chest_slot( state.ui.chest.pos, slot_index, slot );
     state.ui.chest.inventory_renderer.changeSlotItem( slot_index, slot );
-    state.multiplayer.chest_set_slot( state.ui.chest.pos, static_cast<uint32_t>( slot_index ), slot );
+    state.ui.chest.drawn[ slot_index ] = slot;
+    state.multiplayer.containers.set_slot( NetContainerKind::CHEST, state.ui.chest.pos, static_cast<uint32_t>( slot_index ), slot );
 }
 
 static void chest_pickup_or_swap( RepGameState &state, int slot_index ) {
@@ -318,7 +342,7 @@ static void furnace_sync_slot( RepGameState &state, int slot_index, const Invent
     state.world.set_furnace_slot( state.ui.furnace.pos, slot_index, slot );
     furnace_slot_renderer( state, slot_index ).changeSlotItem( 0, slot );
     state.ui.furnace.drawn[ slot_index ] = slot;
-    state.multiplayer.furnace_set_slot( state.ui.furnace.pos, static_cast<uint32_t>( slot_index ), slot );
+    state.multiplayer.containers.set_slot( NetContainerKind::FURNACE, state.ui.furnace.pos, static_cast<uint32_t>( slot_index ), slot );
 }
 
 static void furnace_pickup_or_swap( RepGameState &state, int slot_index ) {
@@ -564,11 +588,11 @@ void RepGame::open_furnace( const glm::ivec3 &pos ) {
     globalGameState.ui.furnace.pos = pos;
     globalGameState.input.inventory_open = true;
     audio_play_sfx( "chest" );
-    globalGameState.pending_furnace_loot.erase( pos );
+    globalGameState.pending_container_loot.erase( pos );
     if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.furnace_open( pos );
+        globalGameState.multiplayer.containers.open( NetContainerKind::FURNACE, pos );
     }
-    // Ensure a local entry exists (empty until FURNACE_CONTENTS arrives in
+    // Ensure a local entry exists (empty until CONTAINER_CONTENTS arrives in
     // multiplayer; the furnace file contents in singleplayer) and repaint.
     const FurnaceContents *contents = globalGameState.world.get_or_create_furnace_contents( pos );
     for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
@@ -605,29 +629,8 @@ void RepGame::close_furnace( ) {
     globalGameState.ui.furnace.open = false;
     audio_play_sfx( "chest_close" );
     if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.furnace_close( globalGameState.ui.furnace.pos );
+        globalGameState.multiplayer.containers.close( NetContainerKind::FURNACE, globalGameState.ui.furnace.pos );
     }
-}
-
-// Moves every non-empty furnace slot into the player inventories (survival
-// first, hotbar for overflow). Used for furnace-break looting and the
-// multiplayer FURNACE_CONTENTS loot snapshot.
-void repgame_loot_furnace_contents( RepGameState &state, const FurnaceContents &contents ) {
-    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
-        const InventorySlot &slot = contents.slots[ i ];
-        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
-            continue;
-        }
-        int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
-        if ( leftover > 0 ) {
-            const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
-            const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
-            if ( to_hotbar > 0 ) {
-                state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
-            }
-        }
-    }
-    state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
 // Lay out the three 1x1 furnace panels: input and output on the top row,

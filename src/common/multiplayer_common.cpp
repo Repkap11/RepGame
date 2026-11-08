@@ -33,12 +33,19 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
         this->disconnect( );
         return;
     }
+    if ( net_trace_enabled( ) ) {
+        pr_debug( "net_in  %s from=%d n=%zu", net_msg_type_name( type ), player_id, payload.size( ) );
+    }
 
     // Reader over the type-specific payload (after the 6-byte fixed header).
     PacketReader r( payload.data( ) + 6, payload.size( ) - 6 );
 
     // Entity-protocol messages route to the sync hub.
     if ( this->entities.handle( state, type, player_id, r ) ) {
+        return;
+    }
+    // CONTAINER_* messages route to the container hub.
+    if ( this->containers.handle( state, type, player_id, r ) ) {
         return;
     }
 
@@ -131,88 +138,6 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             world.multiplayer_avatars.remove( player_id );
             break;
         }
-        case NetMsgType::CHEST_CONTENTS: {
-            NetChestContentsPayload p;
-            if ( !net_deserialize_chest_contents( r, p ) ) {
-                pr_debug( "Malformed CHEST_CONTENTS, skipping" );
-                return;
-            }
-            const glm::ivec3 chest_pos( p.x, p.y, p.z );
-            // Two roles: the answer to a CHEST_OPEN for a live chest, or the
-            // loot snapshot for a chest we broke (pending_chest_loot). The
-            // pending flag is consumed either way so a stale entry can't loot
-            // a future chest at the same position.
-            if ( state.pending_chest_loot.erase( chest_pos ) ) {
-                if ( !block_is_chest( world.get_loaded_block( chest_pos ).id ) ) {
-                    repgame_loot_chest_contents( state, p.contents );
-                }
-            } else if ( block_is_chest( world.get_loaded_block( chest_pos ).id ) ) {
-                world.set_chest_contents( chest_pos, p.contents );
-                if ( state.ui.chest.open && state.ui.chest.pos == chest_pos ) {
-                    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-                        state.ui.chest.inventory_renderer.changeSlotItem( i, p.contents.slots[ i ] );
-                    }
-                }
-            }
-            break;
-        }
-        case NetMsgType::CHEST_SET_SLOT: {
-            NetChestSetSlotPayload p;
-            if ( !net_deserialize_chest_set_slot( r, p ) ) {
-                pr_debug( "Malformed CHEST_SET_SLOT, skipping" );
-                return;
-            }
-            const glm::ivec3 chest_pos( p.x, p.y, p.z );
-            if ( world.set_chest_slot( chest_pos, static_cast<int>( p.slot_index ), p.slot_value ) &&
-                 state.ui.chest.open && state.ui.chest.pos == chest_pos ) {
-                state.ui.chest.inventory_renderer.changeSlotItem( static_cast<int>( p.slot_index ), p.slot_value );
-            }
-            break;
-        }
-        case NetMsgType::FURNACE_CONTENTS: {
-            NetFurnaceContentsPayload p;
-            if ( !net_deserialize_furnace_contents( r, p ) ) {
-                pr_debug( "Malformed FURNACE_CONTENTS, skipping" );
-                return;
-            }
-            const glm::ivec3 furnace_pos( p.x, p.y, p.z );
-            // Same two roles as CHEST_CONTENTS: open answer vs break-loot
-            // snapshot. The pending flag is consumed either way.
-            if ( state.pending_furnace_loot.erase( furnace_pos ) ) {
-                if ( !block_is_furnace( world.get_loaded_block( furnace_pos ).id ) ) {
-                    repgame_loot_furnace_contents( state, p.contents );
-                }
-            } else if ( block_is_furnace( world.get_loaded_block( furnace_pos ).id ) ) {
-                world.set_furnace_contents( furnace_pos, p.contents );
-                if ( state.ui.furnace.open && state.ui.furnace.pos == furnace_pos ) {
-                    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
-                        InventoryRenderer *panel = i == FURNACE_SLOT_INPUT   ? &state.ui.furnace.input
-                                                   : i == FURNACE_SLOT_FUEL ? &state.ui.furnace.fuel
-                                                                             : &state.ui.furnace.output;
-                        panel->changeSlotItem( 0, p.contents.slots[ i ] );
-                        state.ui.furnace.drawn[ i ] = p.contents.slots[ i ];
-                    }
-                }
-            }
-            break;
-        }
-        case NetMsgType::FURNACE_SET_SLOT: {
-            NetFurnaceSetSlotPayload p;
-            if ( !net_deserialize_furnace_set_slot( r, p ) ) {
-                pr_debug( "Malformed FURNACE_SET_SLOT, skipping" );
-                return;
-            }
-            const glm::ivec3 furnace_pos( p.x, p.y, p.z );
-            if ( world.set_furnace_slot( furnace_pos, static_cast<int>( p.slot_index ), p.slot_value ) &&
-                 state.ui.furnace.open && state.ui.furnace.pos == furnace_pos ) {
-                InventoryRenderer *panel = p.slot_index == FURNACE_SLOT_INPUT   ? &state.ui.furnace.input
-                                           : p.slot_index == FURNACE_SLOT_FUEL ? &state.ui.furnace.fuel
-                                                                               : &state.ui.furnace.output;
-                panel->changeSlotItem( 0, p.slot_value );
-                state.ui.furnace.drawn[ p.slot_index ] = p.slot_value;
-            }
-            break;
-        }
         case NetMsgType::WORLD_TIME: {
             NetWorldTimePayload p;
             if ( !net_deserialize_world_time( r, p ) ) {
@@ -232,29 +157,12 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
 }
 
 void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
-    if ( !this->active ) {
-        return;
-    }
-    // Log what the player is doing
-    if ( blockState.id != AIR ) {
-        // pr_debug( "Player placed %i at %i, %i, %i", blockState.id, block_x, block_y, block_z );
-    } else {
-        // pr_debug( "Player broke the block at %i, %i, %i", block_x, block_y, block_z );
-    }
     NetBlockUpdatePayload p;
     p.x = block_pos.x;
     p.y = block_pos.y;
     p.z = block_pos.z;
     p.blockState = blockState;
-
-    PacketWriter w;
-    net_serialize_block_update( w, p );
-    this->framed_socket.send_message( NetMsgType::BLOCK_UPDATE, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in set_block, disconnecting" );
-        this->disconnect( );
-    }
+    this->send( NetMsgType::BLOCK_UPDATE, p );
 }
 
 void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
@@ -273,21 +181,16 @@ bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t
     p.size_x = sx;
     p.size_y = sy;
     p.size_z = sz;
-
-    PacketWriter w;
-    net_serialize_chunk_diff_request( w, p );
-    this->framed_socket.send_message( NetMsgType::CHUNK_DIFF_REQUEST, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in request_chunks_box, disconnecting" );
-        this->disconnect( );
-    }
+    this->send( NetMsgType::CHUNK_DIFF_REQUEST, p );
     return true;
 }
 
 void Multiplayer::send_payload( NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload ) {
     if ( !this->active ) {
         return;
+    }
+    if ( net_trace_enabled( ) ) {
+        pr_debug( "net_out %s id=%d n=%zu", net_msg_type_name( type ), player_id, payload.size( ) );
     }
     this->framed_socket.send_message( type, player_id, payload );
     this->flush_outbound( );
@@ -315,143 +218,12 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
     memcpy( p.rotation, glm::value_ptr( rotation ), sizeof( glm::mat4 ) );
     p.eye_height = eye_height;
     p.flags = flags;
-
-    PacketWriter w;
-    net_serialize_player( w, p );
-    this->framed_socket.send_message( NetMsgType::PLAYER_LOCATION, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in update_players_position, disconnecting" );
-        this->disconnect( );
-    }
-}
-
-void Multiplayer::chest_open( const glm::ivec3 &chest_pos ) {
-    if ( !this->active ) {
-        return;
-    }
-    NetChestPosPayload p;
-    p.x = chest_pos.x;
-    p.y = chest_pos.y;
-    p.z = chest_pos.z;
-    PacketWriter w;
-    net_serialize_chest_pos( w, p );
-    this->framed_socket.send_message( NetMsgType::CHEST_OPEN, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in chest_open, disconnecting" );
-        this->disconnect( );
-    }
-}
-
-void Multiplayer::chest_close( const glm::ivec3 &chest_pos ) {
-    if ( !this->active ) {
-        return;
-    }
-    NetChestPosPayload p;
-    p.x = chest_pos.x;
-    p.y = chest_pos.y;
-    p.z = chest_pos.z;
-    PacketWriter w;
-    net_serialize_chest_pos( w, p );
-    this->framed_socket.send_message( NetMsgType::CHEST_CLOSE, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in chest_close, disconnecting" );
-        this->disconnect( );
-    }
-}
-
-void Multiplayer::chest_set_slot( const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value ) {
-    if ( !this->active ) {
-        return;
-    }
-    NetChestSetSlotPayload p;
-    p.x = chest_pos.x;
-    p.y = chest_pos.y;
-    p.z = chest_pos.z;
-    p.slot_index = slot_index;
-    p.slot_value = value;
-    PacketWriter w;
-    net_serialize_chest_set_slot( w, p );
-    this->framed_socket.send_message( NetMsgType::CHEST_SET_SLOT, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in chest_set_slot, disconnecting" );
-        this->disconnect( );
-    }
-}
-
-void Multiplayer::furnace_open( const glm::ivec3 &furnace_pos ) {
-    if ( !this->active ) {
-        return;
-    }
-    NetChestPosPayload p;
-    p.x = furnace_pos.x;
-    p.y = furnace_pos.y;
-    p.z = furnace_pos.z;
-    PacketWriter w;
-    net_serialize_chest_pos( w, p );
-    this->framed_socket.send_message( NetMsgType::FURNACE_OPEN, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in furnace_open, disconnecting" );
-        this->disconnect( );
-    }
-}
-
-void Multiplayer::furnace_close( const glm::ivec3 &furnace_pos ) {
-    if ( !this->active ) {
-        return;
-    }
-    NetChestPosPayload p;
-    p.x = furnace_pos.x;
-    p.y = furnace_pos.y;
-    p.z = furnace_pos.z;
-    PacketWriter w;
-    net_serialize_chest_pos( w, p );
-    this->framed_socket.send_message( NetMsgType::FURNACE_CLOSE, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in furnace_close, disconnecting" );
-        this->disconnect( );
-    }
-}
-
-void Multiplayer::furnace_set_slot( const glm::ivec3 &furnace_pos, uint32_t slot_index, const InventorySlot &value ) {
-    if ( !this->active ) {
-        return;
-    }
-    NetFurnaceSetSlotPayload p;
-    p.x = furnace_pos.x;
-    p.y = furnace_pos.y;
-    p.z = furnace_pos.z;
-    p.slot_index = slot_index;
-    p.slot_value = value;
-    PacketWriter w;
-    net_serialize_furnace_set_slot( w, p );
-    this->framed_socket.send_message( NetMsgType::FURNACE_SET_SLOT, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in furnace_set_slot, disconnecting" );
-        this->disconnect( );
-    }
+    this->send( NetMsgType::PLAYER_LOCATION, p );
 }
 
 void Multiplayer::send_world_time( long world_time ) {
-    if ( !this->active ) {
-        return;
-    }
-    NetWorldTimePayload p;
-    p.world_time = static_cast<int64_t>( world_time );
-    PacketWriter w;
-    net_serialize_world_time( w, p );
-    this->framed_socket.send_message( NetMsgType::WORLD_TIME, 0, w.take_buf( ) );
-    this->flush_outbound( );
-    if ( this->framed_socket.had_error( ) ) {
-        pr_debug( "Multiplayer send error in send_world_time, disconnecting" );
-        this->disconnect( );
-    }
+    NetWorldTimePayload p{ static_cast<int64_t>( world_time ) };
+    this->send( NetMsgType::WORLD_TIME, p );
 }
 
 void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {

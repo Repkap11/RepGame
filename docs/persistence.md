@@ -56,6 +56,15 @@ cells/extras (`store_state`), and `load_blocks` fills a raw
 through the work queue before its memory is released — plus
 `Chunk::persist` on shutdown and `persist_dirty_blocks` on the server.
 
+## Container sidecars
+
+Container contents persist per chunk through `load_chests`/`persist_chests`
+and `load_furnaces`/`persist_furnaces` — the same files on both sides.
+Server-side they're driven generically: `ServerContainers` calls the
+`load`/`persist` hooks on each `NetContainerKindDef` row
+(`docs/multiplayer.md` "Containers"), converting to/from the generic
+`ContainerContents` blob at the boundary. The formats below are unchanged.
+
 ## Chest files (`chest_x_y_z`)
 
 ```

@@ -138,6 +138,15 @@ bool dbgcmd::setblock( RepGameState &state, const glm::ivec3 &pos, const char *b
         return false;
     }
     const BlockState bs{ static_cast<BlockID>( id ), 0, 0, static_cast<BlockID>( id ), 0 };
+    // setblock plays the player role: removing a container marks the loot
+    // marker the mouse-break path sets, so the server's CONTAINER_CONTENTS
+    // snapshot lands in the breaker's inventory. Only AIR writes qualify —
+    // a non-AIR write over a container is rejected by performAction's
+    // replaceable-cell rule and mustn't leave a stale marker.
+    if ( bs.id == AIR && state.multiplayer.is_active( ) &&
+         net_container_kind_of_block( state.world.get_loaded_block( pos ).id ) != nullptr ) {
+        state.pending_container_loot.insert( pos );
+    }
     state.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( state.tick_number, pos, bs, false ) );
     return true;
 }
@@ -165,6 +174,73 @@ bool dbgcmd::fill( RepGameState &state, const glm::ivec3 &a, const glm::ivec3 &b
             }
         }
     }
+    return true;
+}
+
+const NetContainerKindDef *dbgcmd::container_from_name( const char *name ) {
+    for ( uint8_t k = 0; k < NET_CONTAINER_KIND_COUNT; k++ ) {
+        const NetContainerKindDef *def = net_container_kind_def( k );
+        if ( def != nullptr && strcasecmp( def->name, name ) == 0 ) {
+            return def;
+        }
+    }
+    return nullptr;
+}
+
+bool dbgcmd::copen( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, std::string *err ) {
+    if ( def == nullptr ) {
+        *err = "copen: unknown container kind";
+        return false;
+    }
+    state.multiplayer.containers.open( def->kind, pos );
+    return true;
+}
+
+bool dbgcmd::cclose( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, std::string *err ) {
+    if ( def == nullptr ) {
+        *err = "cclose: unknown container kind";
+        return false;
+    }
+    state.multiplayer.containers.close( def->kind, pos );
+    return true;
+}
+
+bool dbgcmd::cset( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, int slot, const char *item, int count,
+                   std::string *err ) {
+    if ( def == nullptr ) {
+        *err = "cset: unknown container kind";
+        return false;
+    }
+    if ( slot < 0 || slot >= def->slots ) {
+        *err = "cset: slot out of range";
+        return false;
+    }
+    const ItemID id = item_from_name( item );
+    if ( id == LAST_BLOCK_ID && count != 0 ) {
+        *err = std::string( "cset: unknown item " ) + item;
+        return false;
+    }
+    const InventorySlot value{ id, count };
+    state.world.set_container_slot( def->kind, pos, slot, value );
+    state.multiplayer.containers.set_slot( def->kind, pos, static_cast<uint32_t>( slot ), value );
+    return true;
+}
+
+bool dbgcmd::cprobe( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, ContainerContents *out,
+                     bool *is_container, std::string *err ) {
+    if ( def == nullptr ) {
+        *err = "cprobe: unknown container kind";
+        return false;
+    }
+    const BlockState bs = state.world.get_loaded_block( pos );
+    if ( bs.id == LAST_BLOCK_ID ) {
+        *err = "cprobe: chunk not loaded";
+        return false;
+    }
+    *is_container = def->block_is( bs.id );
+    out->slots.assign( def->slots, InventorySlot{ LAST_BLOCK_ID, 0 } );
+    out->aux.assign( def->aux, 0 );
+    state.world.get_container_contents( def->kind, pos, *out );
     return true;
 }
 

@@ -17,9 +17,8 @@
 #include <vector>
 
 #include "common/block.hpp"
-#include "common/chest.hpp"
 #include "common/constants.hpp"
-#include "common/furnace.hpp"
+#include "common/container.hpp"
 
 // CHUNK_BLOCK_SIZE is defined in chunk.hpp as (CHUNK_SIZE_INTERNAL_X *
 // CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_Z) = 34*34*34 = 39304. We avoid
@@ -29,7 +28,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 8;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 9;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -37,7 +36,10 @@ static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
 // far beyond any realistic load, but bounds server memory per request.
 static constexpr uint8_t NET_MAX_BOX_DIM = 64;
 
-// Message types. Values are stable on the wire; do not renumber.
+// Message types. Values are stable on the wire; do not renumber. Ids 7-10
+// (CHEST_*) and 25-28 (FURNACE_*) were retired by the CONTAINER_* family in
+// protocol v9 and are never reused — they stay un-named here so stale code
+// fails to compile, but the codec table keeps placeholder rows for logging.
 enum class NetMsgType : uint8_t {
     PLAYER_LOCATION = 0,
     BLOCK_UPDATE = 1,
@@ -46,10 +48,7 @@ enum class NetMsgType : uint8_t {
     PLAYER_DISCONNECTED = 4,
     CHUNK_DIFF_REQUEST = 5,
     CHUNK_DIFF_RESULT = 6,
-    CHEST_OPEN = 7,
-    CHEST_CLOSE = 8,
-    CHEST_CONTENTS = 9,
-    CHEST_SET_SLOT = 10,
+    // 7-10: retired chest messages
     WORLD_TIME = 11,
     WELCOME = 12,
     VIEW = 13,
@@ -64,11 +63,24 @@ enum class NetMsgType : uint8_t {
     PLAYER_HIT = 22,
     EXPLOSION = 23,
     CHUNK_POPULATED = 24,
-    FURNACE_OPEN = 25,
-    FURNACE_CLOSE = 26,
-    FURNACE_CONTENTS = 27,
-    FURNACE_SET_SLOT = 28,
+    // 25-28: retired furnace messages
+    CONTAINER_OPEN = 29,
+    CONTAINER_CLOSE = 30,
+    CONTAINER_CONTENTS = 31,
+    CONTAINER_SET_SLOT = 32,
 };
+// One past the highest NetMsgType value; the codec table (below) has exactly
+// this many rows, one per wire id.
+static constexpr int NET_MSG_TYPE_COUNT = 33;
+
+// NetCodec<P>: compile-time map from a payload struct to its wire codec.
+// Specializations are declared next to the registry at the bottom of this
+// header and delegate to the named net_serialize_*/net_deserialize_* pairs.
+// senders (Multiplayer::send<P>) and the codec-table tests dispatch through
+// it — a new payload type must provide a specialization or send<P> won't
+// compile.
+template <typename P>
+struct NetCodec;
 
 // ---------------------------------------------------------------------------
 // Entity sync ("server arbitrates, owner client simulates").
@@ -304,52 +316,47 @@ struct NetChunkDiffResultPayload {
 void net_serialize_chunk_diff_result( PacketWriter &w, const NetChunkDiffResultPayload &p );
 bool net_deserialize_chunk_diff_result( PacketReader &r, NetChunkDiffResultPayload &p );
 
-// CHEST_OPEN / CHEST_CLOSE share one payload: the chest's world block pos.
-struct NetChestPosPayload {
+// CONTAINER_OPEN / CONTAINER_CLOSE (client -> server): subscribe/unsubscribe
+// the sender to the container of `kind` at world block pos. A client holds
+// at most one open container; OPEN implicitly closes the previous one.
+struct NetContainerPosPayload {
+    NetContainerKind kind;
     int32_t x, y, z;
 };
-void net_serialize_chest_pos( PacketWriter &w, const NetChestPosPayload &p );
-bool net_deserialize_chest_pos( PacketReader &r, NetChestPosPayload &p );
+void net_serialize_container_pos( PacketWriter &w, const NetContainerPosPayload &p );
+bool net_deserialize_container_pos( PacketReader &r, NetContainerPosPayload &p );
 
-// CHEST_CONTENTS (server -> client): full fixed-size slot array, always
-// CHEST_SLOTS entries.
-struct NetChestContentsPayload {
+// CONTAINER_CONTENTS (server -> client): authoritative full snapshot —
+// the answer to OPEN, a throttled progress update for ticking kinds, or
+// the loot snapshot for a broken container. `revision` is the server's
+// per-container write counter, stamped into every CONTENTS and accepted
+// SET_SLOT; clients record it for staleness checks/debugging.
+// slots.size()/aux.size() are kind-defined (NetContainerKindDef) and
+// validated by the deserializer.
+struct NetContainerContentsPayload {
+    NetContainerKind kind;
     int32_t x, y, z;
-    ChestContents contents;
+    uint32_t revision;
+    std::vector<InventorySlot> slots;
+    std::vector<int32_t> aux;
 };
-void net_serialize_chest_contents( PacketWriter &w, const NetChestContentsPayload &p );
-bool net_deserialize_chest_contents( PacketReader &r, NetChestContentsPayload &p );
+void net_serialize_container_contents( PacketWriter &w, const NetContainerContentsPayload &p );
+bool net_deserialize_container_contents( PacketReader &r, NetContainerContentsPayload &p );
 
-// CHEST_SET_SLOT (both directions): one optimistic slot write.
-struct NetChestSetSlotPayload {
-    int32_t x, y, z;
-    uint32_t slot_index;
-    InventorySlot slot_value;
-};
-void net_serialize_chest_set_slot( PacketWriter &w, const NetChestSetSlotPayload &p );
-bool net_deserialize_chest_set_slot( PacketReader &r, NetChestSetSlotPayload &p );
-
-// FURNACE_OPEN / FURNACE_CLOSE share the chest pos payload shape.
-// (net_serialize_chest_pos / net_deserialize_chest_pos are reused.)
-
-// FURNACE_CONTENTS (server -> client): full FurnaceContents — the three
-// slots plus cook/burn progress so viewers see the smelt advance.
-struct NetFurnaceContentsPayload {
-    int32_t x, y, z;
-    FurnaceContents contents;
-};
-void net_serialize_furnace_contents( PacketWriter &w, const NetFurnaceContentsPayload &p );
-bool net_deserialize_furnace_contents( PacketReader &r, NetFurnaceContentsPayload &p );
-
-// FURNACE_SET_SLOT (both directions): one optimistic slot write. Progress
-// fields are not carried here; FURNACE_CONTENTS snapshots refresh them.
-struct NetFurnaceSetSlotPayload {
+// CONTAINER_SET_SLOT (both directions): one slot write. client->server is
+// an optimistic write (revision ignored); the server broadcasts the
+// accepted write to the other viewers stamped with the revision it
+// produced, and answers a rejected write with a corrective CONTENTS
+// snapshot instead.
+struct NetContainerSetSlotPayload {
+    NetContainerKind kind;
     int32_t x, y, z;
     uint32_t slot_index;
     InventorySlot slot_value;
+    uint32_t revision;
 };
-void net_serialize_furnace_set_slot( PacketWriter &w, const NetFurnaceSetSlotPayload &p );
-bool net_deserialize_furnace_set_slot( PacketReader &r, NetFurnaceSetSlotPayload &p );
+void net_serialize_container_set_slot( PacketWriter &w, const NetContainerSetSlotPayload &p );
+bool net_deserialize_container_set_slot( PacketReader &r, NetContainerSetSlotPayload &p );
 
 // WORLD_TIME (both directions): server -> client is an authoritative sync of
 // the day/night clock; client -> server is a set request (e.g. PageUp/PgDn).
@@ -512,3 +519,149 @@ struct NetChunkPopulatedPayload {
 };
 void net_serialize_chunk_populated( PacketWriter &w, const NetChunkPopulatedPayload &p );
 bool net_deserialize_chunk_populated( PacketReader &r, NetChunkPopulatedPayload &p );
+
+// ---------------------------------------------------------------------------
+// Codec registry.
+//
+// NetCodec<P> specializations map each payload struct to its
+// net_serialize_*/net_deserialize_* pair (the named functions remain the
+// implementation). `fill` writes a deterministic non-trivial sample used by
+// the registry-driven round-trip tests — it must exercise every serialized
+// field with a value that survives its deserializer's normalization.
+//
+// net_codec_table() has exactly NET_MSG_TYPE_COUNT rows in wire-id order:
+//   - payload-bearing rows carry make/destroy/ser/de so tests can round-trip
+//     every message generically;
+//   - payloadless rows (PLAYER_CONNECTED, PLAYER_DISCONNECTED) and retired
+//     wire ids carry only a name, for net_msg_type_name().
+// RULE: adding a NetMsgType bumps NET_MSG_TYPE_COUNT and appends the matching
+// row; test_net asserts the table stays contiguous (row[i].type == i).
+// ---------------------------------------------------------------------------
+
+template <> struct NetCodec<NetPlayerPayload> {
+    static void ser( PacketWriter &w, const NetPlayerPayload &p ) { net_serialize_player( w, p ); }
+    static bool de( PacketReader &r, NetPlayerPayload &p ) { return net_deserialize_player( r, p ); }
+    static void fill( NetPlayerPayload &p );
+};
+template <> struct NetCodec<NetBlockUpdatePayload> {
+    static void ser( PacketWriter &w, const NetBlockUpdatePayload &p ) { net_serialize_block_update( w, p ); }
+    static bool de( PacketReader &r, NetBlockUpdatePayload &p ) { return net_deserialize_block_update( r, p ); }
+    static void fill( NetBlockUpdatePayload &p );
+};
+template <> struct NetCodec<NetChunkDiffRequestPayload> {
+    static void ser( PacketWriter &w, const NetChunkDiffRequestPayload &p ) { net_serialize_chunk_diff_request( w, p ); }
+    static bool de( PacketReader &r, NetChunkDiffRequestPayload &p ) { return net_deserialize_chunk_diff_request( r, p ); }
+    static void fill( NetChunkDiffRequestPayload &p );
+};
+template <> struct NetCodec<NetChunkDiffResultPayload> {
+    static void ser( PacketWriter &w, const NetChunkDiffResultPayload &p ) { net_serialize_chunk_diff_result( w, p ); }
+    static bool de( PacketReader &r, NetChunkDiffResultPayload &p ) { return net_deserialize_chunk_diff_result( r, p ); }
+    static void fill( NetChunkDiffResultPayload &p );
+};
+template <> struct NetCodec<NetContainerPosPayload> {
+    static void ser( PacketWriter &w, const NetContainerPosPayload &p ) { net_serialize_container_pos( w, p ); }
+    static bool de( PacketReader &r, NetContainerPosPayload &p ) { return net_deserialize_container_pos( r, p ); }
+    static void fill( NetContainerPosPayload &p );
+};
+template <> struct NetCodec<NetContainerContentsPayload> {
+    static void ser( PacketWriter &w, const NetContainerContentsPayload &p ) { net_serialize_container_contents( w, p ); }
+    static bool de( PacketReader &r, NetContainerContentsPayload &p ) { return net_deserialize_container_contents( r, p ); }
+    static void fill( NetContainerContentsPayload &p );
+};
+template <> struct NetCodec<NetContainerSetSlotPayload> {
+    static void ser( PacketWriter &w, const NetContainerSetSlotPayload &p ) { net_serialize_container_set_slot( w, p ); }
+    static bool de( PacketReader &r, NetContainerSetSlotPayload &p ) { return net_deserialize_container_set_slot( r, p ); }
+    static void fill( NetContainerSetSlotPayload &p );
+};
+template <> struct NetCodec<NetWorldTimePayload> {
+    static void ser( PacketWriter &w, const NetWorldTimePayload &p ) { net_serialize_world_time( w, p ); }
+    static bool de( PacketReader &r, NetWorldTimePayload &p ) { return net_deserialize_world_time( r, p ); }
+    static void fill( NetWorldTimePayload &p );
+};
+template <> struct NetCodec<NetWelcomePayload> {
+    static void ser( PacketWriter &w, const NetWelcomePayload &p ) { net_serialize_welcome( w, p ); }
+    static bool de( PacketReader &r, NetWelcomePayload &p ) { return net_deserialize_welcome( r, p ); }
+    static void fill( NetWelcomePayload &p );
+};
+template <> struct NetCodec<NetViewPayload> {
+    static void ser( PacketWriter &w, const NetViewPayload &p ) { net_serialize_view( w, p ); }
+    static bool de( PacketReader &r, NetViewPayload &p ) { return net_deserialize_view( r, p ); }
+    static void fill( NetViewPayload &p );
+};
+template <> struct NetCodec<NetChunkRolePayload> {
+    static void ser( PacketWriter &w, const NetChunkRolePayload &p ) { net_serialize_chunk_role( w, p ); }
+    static bool de( PacketReader &r, NetChunkRolePayload &p ) { return net_deserialize_chunk_role( r, p ); }
+    static void fill( NetChunkRolePayload &p );
+};
+template <> struct NetCodec<NetEntityRecord> {
+    static void ser( PacketWriter &w, const NetEntityRecord &p ) { net_write_entity_record( w, p ); }
+    static bool de( PacketReader &r, NetEntityRecord &p ) { return net_read_entity_record( r, p ); }
+    static void fill( NetEntityRecord &p );
+};
+template <> struct NetCodec<NetEntityStatePayload> {
+    static void ser( PacketWriter &w, const NetEntityStatePayload &p ) { net_serialize_entity_state( w, p ); }
+    static bool de( PacketReader &r, NetEntityStatePayload &p ) { return net_deserialize_entity_state( r, p ); }
+    static void fill( NetEntityStatePayload &p );
+};
+template <> struct NetCodec<NetEntityRemovePayload> {
+    static void ser( PacketWriter &w, const NetEntityRemovePayload &p ) { net_serialize_entity_remove( w, p ); }
+    static bool de( PacketReader &r, NetEntityRemovePayload &p ) { return net_deserialize_entity_remove( r, p ); }
+    static void fill( NetEntityRemovePayload &p );
+};
+template <> struct NetCodec<NetEntityTransferPayload> {
+    static void ser( PacketWriter &w, const NetEntityTransferPayload &p ) { net_serialize_entity_transfer( w, p ); }
+    static bool de( PacketReader &r, NetEntityTransferPayload &p ) { return net_deserialize_entity_transfer( r, p ); }
+    static void fill( NetEntityTransferPayload &p );
+};
+template <> struct NetCodec<NetEntityActionPayload> {
+    static void ser( PacketWriter &w, const NetEntityActionPayload &p ) { net_serialize_entity_action( w, p ); }
+    static bool de( PacketReader &r, NetEntityActionPayload &p ) { return net_deserialize_entity_action( r, p ); }
+    static void fill( NetEntityActionPayload &p );
+};
+template <> struct NetCodec<NetPickupRequestPayload> {
+    static void ser( PacketWriter &w, const NetPickupRequestPayload &p ) { net_serialize_pickup_request( w, p ); }
+    static bool de( PacketReader &r, NetPickupRequestPayload &p ) { return net_deserialize_pickup_request( r, p ); }
+    static void fill( NetPickupRequestPayload &p );
+};
+template <> struct NetCodec<NetPickupResultPayload> {
+    static void ser( PacketWriter &w, const NetPickupResultPayload &p ) { net_serialize_pickup_result( w, p ); }
+    static bool de( PacketReader &r, NetPickupResultPayload &p ) { return net_deserialize_pickup_result( r, p ); }
+    static void fill( NetPickupResultPayload &p );
+};
+template <> struct NetCodec<NetPlayerHitPayload> {
+    static void ser( PacketWriter &w, const NetPlayerHitPayload &p ) { net_serialize_player_hit( w, p ); }
+    static bool de( PacketReader &r, NetPlayerHitPayload &p ) { return net_deserialize_player_hit( r, p ); }
+    static void fill( NetPlayerHitPayload &p );
+};
+template <> struct NetCodec<NetExplosionPayload> {
+    static void ser( PacketWriter &w, const NetExplosionPayload &p ) { net_serialize_explosion( w, p ); }
+    static bool de( PacketReader &r, NetExplosionPayload &p ) { return net_deserialize_explosion( r, p ); }
+    static void fill( NetExplosionPayload &p );
+};
+template <> struct NetCodec<NetChunkPopulatedPayload> {
+    static void ser( PacketWriter &w, const NetChunkPopulatedPayload &p ) { net_serialize_chunk_populated( w, p ); }
+    static bool de( PacketReader &r, NetChunkPopulatedPayload &p ) { return net_deserialize_chunk_populated( r, p ); }
+    static void fill( NetChunkPopulatedPayload &p );
+};
+
+// One codec-table row. make/destroy/ser/de are null for payloadless and
+// retired ids. make() heap-allocates a filled sample (a real object —
+// payloads may own vectors), destroy() frees it; both exist only so tests
+// can round-trip payloads without knowing their concrete type.
+struct NetCodecEntry {
+    NetMsgType type;
+    const char *name;
+    size_t payload_size;
+    void *( *make )( );
+    void ( *destroy )( void *p );
+    void ( *ser )( PacketWriter &w, const void *p );
+    bool ( *de )( PacketReader &r, void *p );
+};
+
+const NetCodecEntry *net_codec_table( size_t *count );
+const char *net_msg_type_name( NetMsgType type );
+
+// REPGAME_NET_TRACE=1 logs every framed message at the four transport
+// funnels (client in/out, server in/out) with its wire name — the cheap way
+// to watch a sync conversation end to end.
+bool net_trace_enabled( );

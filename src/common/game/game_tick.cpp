@@ -75,13 +75,15 @@ void RepGame::tick( ) {
     RepGame::process_movement( );
     tick_entities( );
     // Furnaces burn and cook only in singleplayer; in multiplayer the server
-    // ticks them authoritatively and streams FURNACE_CONTENTS + lit-state
+    // ticks them authoritatively and streams CONTAINER_CONTENTS + lit-state
     // BLOCK_UPDATEs back.
     if ( !globalGameState.multiplayer.is_active( ) ) {
         globalGameState.world.tick_furnaces( );
     }
-    // Tick-driven furnace changes (singleplayer) and any missed repaint
-    // (multiplayer) converge here: icons follow the live contents.
+    // Tick-driven furnace changes (singleplayer) and inbound container
+    // writes (multiplayer) converge here: icons follow the live contents —
+    // the net layer never touches UI state directly.
+    repgame_chest_sync_icons( globalGameState );
     repgame_furnace_sync_icons( globalGameState );
     RepGame::process_pressure_plates( );
     tick_fly_flight( );

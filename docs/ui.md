@@ -59,11 +59,18 @@ GL-less server can call it). Contents live in the owning `Chunk`
 
 `RepGame::open_chest`/`close_chest` (inventory.cpp): opening sets
 `ui.chest.{open,pos}`, raises `inventory_open`, plays the sound, and —
-in multiplayer — sends `CHEST_OPEN`; `CHEST_CONTENTS` snapshots repaint
-the panel live. Every local mutation funnels through `chest_sync_slot`:
-write the chunk, repaint the slot, send `CHEST_SET_SLOT`. Breaking an
-open chest loots it (`repgame_loot_chest_contents` locally, or
-`pending_chest_loot` + a server snapshot in MP — `docs/multiplayer.md`).
+in multiplayer — sends `CONTAINER_OPEN` through
+`state.multiplayer.containers`. Inbound `CONTAINER_*` frames only write
+World state (`NetContainers` never touches `ui`); the open panel
+repaints by pulling each tick — `repgame_chest_sync_icons` diffs
+world-owned contents against `ui.chest.drawn[]` and repaints just the
+slots that changed. Every local mutation funnels through
+`chest_sync_slot`: write the chunk, repaint the slot, send
+`CONTAINER_SET_SLOT` (optimistic — the server relays it to other
+viewers or pushes a correcting `CONTAINER_CONTENTS` back).
+Breaking an open chest loots it (`repgame_loot_container` locally, or
+`pending_container_loot` + a server snapshot in MP —
+`docs/multiplayer.md`).
 
 ## Furnaces
 
@@ -79,20 +86,22 @@ keyed by in-chunk index, `furnaces_loaded` flag, persisted per chunk —
 
 `RepGame::open_furnace`/`close_furnace` mirror the chest flow: opening
 sets `ui.furnace.{open,pos}`, raises `inventory_open`, and sends
-`FURNACE_OPEN`; `FURNACE_CONTENTS` snapshots repaint the three panels.
-Every local mutation funnels through `furnace_sync_slot` (world write +
-repaint + `FURNACE_SET_SLOT`). Furnace panels are three 1x1
-`InventoryRenderer`s laid out by `repgame_furnace_layout` — input and
-output on the top row, fuel centered below, pinned above the survival
-inventory (`repgame_furnace_layout` runs from `changeSize` too). The
-draw pass adds a cook-progress percent and remaining burn seconds
-between the input/output panels. `World::tick_furnaces` advances every
-loaded furnace each tick in singleplayer (fuel burn → cook progress →
-output, lit-block swap via `set_loaded_block`); in multiplayer the
-server ticks them instead (`docs/multiplayer.md`). Smelt/fuel tables are
-data-driven — `docs/items-crafting.md` "Smelting". Breaking a furnace
-loots all three slots (`repgame_loot_furnace_contents`, or
-`pending_furnace_loot` + a server snapshot in MP).
+`CONTAINER_OPEN`; inbound `CONTAINER_CONTENTS` snapshots land in World
+and `repgame_furnace_sync_icons` pulls diffs into the three panels each
+tick (slots via `ui.furnace.drawn[]`, aux into `cook_progress`/
+`burn_ticks`). Every local mutation funnels through `furnace_sync_slot`
+(world write + repaint + `CONTAINER_SET_SLOT`). Furnace panels are
+three 1x1 `InventoryRenderer`s laid out by `repgame_furnace_layout` —
+input and output on the top row, fuel centered below, pinned above the
+survival inventory (`repgame_furnace_layout` runs from `changeSize`
+too). The draw pass adds a cook-progress percent and remaining burn
+seconds between the input/output panels. `World::tick_furnaces`
+advances every loaded furnace each tick in singleplayer (fuel burn →
+cook progress → output, lit-block swap via `set_loaded_block`); in
+multiplayer the server ticks them instead (`docs/multiplayer.md`).
+Smelt/fuel tables are data-driven — `docs/items-crafting.md` "Smelting".
+Breaking a furnace loots all three slots (`repgame_loot_container`, or
+`pending_container_loot` + a server snapshot in MP).
 
 ## Crafting
 

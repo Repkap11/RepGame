@@ -4,6 +4,7 @@
 #include "common/chunk.hpp"
 #include "common/net/framed_socket.hpp"
 #include "common/net/packet.hpp"
+#include "common/net_containers.hpp"
 #include "common/net_entities.hpp"
 #include <atomic>
 #include <map>
@@ -77,14 +78,6 @@ class Multiplayer {
 
     void process_events( RepGameState &state );
     void set_block( const glm::ivec3 &block_pos, BlockState blockState );
-    // Chest container protocol. Senders no-op when not connected.
-    void chest_open( const glm::ivec3 &chest_pos );
-    void chest_close( const glm::ivec3 &chest_pos );
-    void chest_set_slot( const glm::ivec3 &chest_pos, uint32_t slot_index, const InventorySlot &value );
-    // Furnace container protocol — same optimistic per-slot model as chests.
-    void furnace_open( const glm::ivec3 &furnace_pos );
-    void furnace_close( const glm::ivec3 &furnace_pos );
-    void furnace_set_slot( const glm::ivec3 &furnace_pos, uint32_t slot_index, const InventorySlot &value );
     // Send a world-time set request to the server (PageUp/PgDn skips). The
     // server adopts the value and broadcasts it back to all clients.
     void send_world_time( long world_time );
@@ -92,6 +85,9 @@ class Multiplayer {
     // this Multiplayer at construction; NetEntities::handle is called from
     // handle_frame for the entity-protocol message types.
     NetEntities entities{ this };
+    // Container sync hub (CONTAINER_* wire family — server is authoritative,
+    // clients write optimistically). Same dispatch model as `entities`.
+    NetContainers containers{ this };
     // Multiplayer entity mode: a hostname was given AND the connect is
     // still in flight or ever succeeded. Local entity file persistence
     // keys off this so single player and multiplayer saves never mix.
@@ -105,6 +101,17 @@ class Multiplayer {
     // Queue + flush one typed payload; disconnects on send error. Used by
     // NetEntities and the chest_*-style helpers.
     void send_payload( NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
+    // Serialize `payload` through its NetCodec and queue it via send_payload.
+    // No-ops when not connected; senders should be one line around this.
+    template <typename P>
+    void send( NetMsgType type, const P &payload, int32_t player_id = 0 ) {
+        if ( !this->active.load( ) ) {
+            return;
+        }
+        PacketWriter w;
+        NetCodec<P>::ser( w, payload );
+        this->send_payload( type, player_id, w.take_buf( ) );
+    }
     bool is_active( ) const { return this->active.load( ); }
     bool is_connecting( ) const { return this->connect_pending.load( ); }
     // The server's protocol version if we disconnected over a mismatch, -1 otherwise.

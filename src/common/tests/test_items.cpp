@@ -31,24 +31,24 @@ int test_items( ) {
     // Wire slot round trip: a real item survives; an undefined item-range id
     // is normalized to empty.
     {
-        NetChestSetSlotPayload out_p = { 1, 2, 3, 4, { STICK, 7 } };
+        NetContainerSetSlotPayload out_p = { NetContainerKind::CHEST, 1, 2, 3, 4, { STICK, 7 }, 0 };
         PacketWriter w;
-        net_serialize_chest_set_slot( w, out_p );
+        net_serialize_container_set_slot( w, out_p );
         std::vector<uint8_t> buf = w.take_buf( );
         PacketReader r( buf.data( ), buf.size( ) );
-        NetChestSetSlotPayload in_p;
+        NetContainerSetSlotPayload in_p;
         memset( &in_p, 0, sizeof( in_p ) );
-        check_bool( "net slot: deserialize", net_deserialize_chest_set_slot( r, in_p ) );
+        check_bool( "net slot: deserialize", net_deserialize_container_set_slot( r, in_p ) );
         check_bool( "net slot: item id survives", in_p.slot_value.item_id == STICK && in_p.slot_value.quantity == 7 );
 
-        NetChestSetSlotPayload bad_p = { 1, 2, 3, 4, { ITEM_ID_END, 7 } };
+        NetContainerSetSlotPayload bad_p = { NetContainerKind::CHEST, 1, 2, 3, 4, { ITEM_ID_END, 7 }, 0 };
         PacketWriter w2;
-        net_serialize_chest_set_slot( w2, bad_p );
+        net_serialize_container_set_slot( w2, bad_p );
         std::vector<uint8_t> buf2 = w2.take_buf( );
         PacketReader r2( buf2.data( ), buf2.size( ) );
-        NetChestSetSlotPayload in_p2;
+        NetContainerSetSlotPayload in_p2;
         memset( &in_p2, 0, sizeof( in_p2 ) );
-        check_bool( "net slot: deserialize bad id", net_deserialize_chest_set_slot( r2, in_p2 ) );
+        check_bool( "net slot: deserialize bad id", net_deserialize_container_set_slot( r2, in_p2 ) );
         check_bool( "net slot: undefined id clamps empty", in_p2.slot_value.item_id == LAST_BLOCK_ID && in_p2.slot_value.quantity == 0 );
     }
 

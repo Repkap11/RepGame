@@ -5,6 +5,7 @@ struct RepGameState;
 
 #include "common/Platforms.hpp"
 #include "block.hpp"
+#include "common/container.hpp"
 #include "chunk_loader.hpp"
 #include "common/multiplayer_avatars.hpp"
 #include "common/block_debris.hpp"
@@ -108,7 +109,7 @@ class World {
     ChestContents *get_or_create_chest_contents( const glm::ivec3 &block_pos );
     // Optimistic per-slot write; false when not a chest / chunk unloaded.
     bool set_chest_slot( const glm::ivec3 &block_pos, int slot, const InventorySlot &value );
-    // Full-state write (CHEST_CONTENTS packet / local open); null when not a chest.
+    // Full-state write (CONTAINER_CONTENTS packet / local open); null when not a chest.
     void set_chest_contents( const glm::ivec3 &block_pos, const ChestContents &contents );
 
     // Furnace containers — same shape as the chest API above. The lit
@@ -117,13 +118,24 @@ class World {
     FurnaceContents *get_or_create_furnace_contents( const glm::ivec3 &block_pos );
     // Optimistic per-slot write; false when not a furnace / chunk unloaded.
     bool set_furnace_slot( const glm::ivec3 &block_pos, int slot, const InventorySlot &value );
-    // Full-state write (FURNACE_CONTENTS packet / local open); null when not a furnace.
+    // Full-state write (CONTAINER_CONTENTS packet / local open); null when not a furnace.
     void set_furnace_contents( const glm::ivec3 &block_pos, const FurnaceContents &contents );
     // Advances every loaded chunk's furnaces one tick (fuel burn, cook
     // progress, output). Singleplayer only — in multiplayer the server is
-    // authoritative and pushes state via FURNACE_CONTENTS. Swaps
+    // authoritative and pushes state via CONTAINER_CONTENTS. Swaps
     // FURNACE<->LIT_FURNACE blocks as furnaces light/extinguish.
     void tick_furnaces( );
+
+    // Kind-keyed container access — the CONTAINER_* wire family and code
+    // that doesn't know the concrete container type use these; they route
+    // to the typed chest/furnace API above by NetContainerKindDef.
+    // `get` fills `out` (blob shape) and returns false when the block isn't
+    // that container kind, its chunk isn't loaded, or no contents exist.
+    bool get_container_contents( NetContainerKind kind, const glm::ivec3 &block_pos, ContainerContents &out ) const;
+    // Full-state write (CONTAINER_CONTENTS apply / local open).
+    void set_container_contents( NetContainerKind kind, const glm::ivec3 &block_pos, const ContainerContents &contents );
+    // Optimistic per-slot write; false when not a container / chunk unloaded.
+    bool set_container_slot( NetContainerKind kind, const glm::ivec3 &block_pos, int slot, const InventorySlot &value );
     // Spawns break particles if prev_state was a real block that new_id
     // removed. No-op for air, same-id state changes, and liquids.
     void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id, int num_particles = DEBRIS_PER_BLOCK );

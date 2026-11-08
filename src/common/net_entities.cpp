@@ -67,9 +67,7 @@ void NetEntities::send_view( int cx, int cy, int cz, int rx, int ry ) {
     p.cz = cz;
     p.radius_xz = static_cast<uint8_t>( rx );
     p.radius_y = static_cast<uint8_t>( ry );
-    PacketWriter w;
-    net_serialize_view( w, p );
-    this->mp->send_payload( NetMsgType::VIEW, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::VIEW, p );
     this->view_sent = true;
     this->view_center = glm::ivec3( cx, cy, cz );
     this->view_rx = rx;
@@ -94,9 +92,7 @@ void NetEntities::send_spawn( const NetEntityRecord &rec ) {
     if ( PendingRole *p = this->pending_for( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) ) ) {
         p->late_ids.insert( rec.id );
     }
-    PacketWriter w;
-    net_write_entity_record( w, rec );
-    this->mp->send_payload( NetMsgType::ENTITY_SPAWN, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::ENTITY_SPAWN, rec );
 }
 
 void NetEntities::send_remove( NetEntityId id, uint8_t reason ) {
@@ -105,9 +101,7 @@ void NetEntities::send_remove( NetEntityId id, uint8_t reason ) {
     }
     this->gone_ids.insert( id );
     NetEntityRemovePayload p{ id, reason };
-    PacketWriter w;
-    net_serialize_entity_remove( w, p );
-    this->mp->send_payload( NetMsgType::ENTITY_REMOVE, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::ENTITY_REMOVE, p );
 }
 
 void NetEntities::send_pickup_request( NetEntityId id, int32_t room ) {
@@ -115,18 +109,14 @@ void NetEntities::send_pickup_request( NetEntityId id, int32_t room ) {
         return;
     }
     NetPickupRequestPayload p{ id, room };
-    PacketWriter w;
-    net_serialize_pickup_request( w, p );
-    this->mp->send_payload( NetMsgType::PICKUP_REQUEST, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::PICKUP_REQUEST, p );
 }
 
 void NetEntities::send_entity_action( const NetEntityActionPayload &p ) {
     if ( !this->welcomed ) {
         return;
     }
-    PacketWriter w;
-    net_serialize_entity_action( w, p );
-    this->mp->send_payload( NetMsgType::ENTITY_ACTION, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::ENTITY_ACTION, p );
 }
 
 void NetEntities::send_explosion( double x, double y, double z, float radius ) {
@@ -134,9 +124,7 @@ void NetEntities::send_explosion( double x, double y, double z, float radius ) {
         return;
     }
     NetExplosionPayload p{ x, y, z, radius };
-    PacketWriter w;
-    net_serialize_explosion( w, p );
-    this->mp->send_payload( NetMsgType::EXPLOSION, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::EXPLOSION, p );
 }
 
 void NetEntities::send_chunk_populated( const glm::ivec3 &chunk ) {
@@ -144,9 +132,7 @@ void NetEntities::send_chunk_populated( const glm::ivec3 &chunk ) {
         return;
     }
     NetChunkPopulatedPayload p{ chunk.x, chunk.y, chunk.z };
-    PacketWriter w;
-    net_serialize_chunk_populated( w, p );
-    this->mp->send_payload( NetMsgType::CHUNK_POPULATED, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::CHUNK_POPULATED, p );
 }
 
 void NetEntities::send_player_hit( const int32_t target_player_id, const glm::dvec3 &from, const float damage ) {
@@ -154,9 +140,7 @@ void NetEntities::send_player_hit( const int32_t target_player_id, const glm::dv
         return;
     }
     NetPlayerHitPayload p{ target_player_id, from.x, from.y, from.z, damage };
-    PacketWriter w;
-    net_serialize_player_hit( w, p );
-    this->mp->send_payload( NetMsgType::PLAYER_HIT, 0, w.take_buf( ) );
+    this->mp->send( NetMsgType::PLAYER_HIT, p );
 }
 
 void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &grant ) {
@@ -430,9 +414,7 @@ void NetEntities::tick( RepGameState &state ) {
         state.world.mobs.collect_net_state( *this, p.entries, state.tick_number );
         state.world.bodies.collect_net_state( p.entries, state.tick_number );
         if ( !p.entries.empty( ) ) {
-            PacketWriter w;
-            net_serialize_entity_state( w, p );
-            this->mp->send_payload( NetMsgType::ENTITY_STATE, 0, w.take_buf( ) );
+            this->mp->send( NetMsgType::ENTITY_STATE, p );
         }
     }
 }

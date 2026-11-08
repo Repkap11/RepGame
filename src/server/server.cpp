@@ -159,6 +159,9 @@ void Server::handle_client_ready_for_read( int client_fd ) {
             }
         }
 
+        if ( net_trace_enabled( ) ) {
+            pr_debug( "net_in  %s fd=%d n=%zu", net_msg_type_name( type ), client_fd, payload->size( ) );
+        }
         std::vector<uint8_t> type_payload( payload->begin( ) + 6, payload->end( ) );
         this->server_logic.on_client_message( *this, client_fd, type, player_id, type_payload );
     }
@@ -173,13 +176,44 @@ void Server::handle_client_ready_for_read( int client_fd ) {
 }
 
 void Server::queue_message( int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload ) {
+    if ( net_trace_enabled( ) ) {
+        pr_debug( "net_out %s fd=%d n=%zu", net_msg_type_name( type ), client_fd, payload.size( ) );
+    }
     this->client_data[ client_fd ].socket.send_message( type, player_id, payload );
     this->update_epoll( client_fd );
 }
 
 void Server::queue_empty( int client_fd, NetMsgType type, int32_t player_id ) {
+    if ( net_trace_enabled( ) ) {
+        pr_debug( "net_out %s fd=%d (empty)", net_msg_type_name( type ), client_fd );
+    }
     this->client_data[ client_fd ].socket.send_empty( type, player_id );
     this->update_epoll( client_fd );
+}
+
+void Server::broadcast( NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload, int except_fd ) {
+    for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+        if ( fd != except_fd && this->get_data_if_client_connected( fd ) != NULL ) {
+            this->queue_message( fd, type, player_id, payload );
+        }
+    }
+}
+
+void Server::broadcast_to( const std::set<int> &fds, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload, int except_fd ) {
+    for ( int fd : fds ) {
+        if ( fd != except_fd && fd >= 0 && fd < MAX_CLIENT_FDS &&
+             this->get_data_if_client_connected( fd ) != NULL ) {
+            this->queue_message( fd, type, player_id, payload );
+        }
+    }
+}
+
+void Server::broadcast_empty( NetMsgType type, int32_t player_id, int except_fd ) {
+    for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+        if ( fd != except_fd && this->get_data_if_client_connected( fd ) != NULL ) {
+            this->queue_empty( fd, type, player_id );
+        }
+    }
 }
 
 PacketType_DataPlayer *Server::get_data_if_client_connected( int client_id ) {

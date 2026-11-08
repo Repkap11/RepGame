@@ -13,6 +13,7 @@
 #include "common/pause_menu.hpp"
 #include "common/inventory_renderer.hpp"
 #include "common/block_definitions.hpp" // InventorySlot
+#include "common/chest.hpp"             // CHEST_SLOTS
 #include "common/furnace.hpp"
 
 // Chest container the player currently has open (at most one). Contents
@@ -22,6 +23,11 @@ struct ChestUi {
     bool open;
     glm::ivec3 pos;
     InventoryRenderer inventory_renderer;
+    // Last slot values pushed to the renderer. The net layer only writes
+    // World state (pull model), so the tick loop repaints through
+    // repgame_chest_sync_icons when the world contents differ from this
+    // snapshot — same pattern as FurnaceUi::drawn.
+    InventorySlot drawn[ CHEST_SLOTS ];
 };
 
 // Crafting grid: 2x2 in the survival inventory, 3x3 while a crafting

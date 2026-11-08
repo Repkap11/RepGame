@@ -2,6 +2,7 @@
 
 #include "common/constants.hpp"
 #include "common/item.hpp"
+#include "common/utils/env_config.hpp"
 
 #include <cstdio>
 
@@ -318,100 +319,110 @@ static bool net_read_inventory_slot( PacketReader &r, InventorySlot &slot ) {
     return true;
 }
 
-void net_serialize_chest_pos( PacketWriter &w, const NetChestPosPayload &p ) {
+void net_serialize_container_pos( PacketWriter &w, const NetContainerPosPayload &p ) {
+    w.write_u8( static_cast<uint8_t>( p.kind ) );
     w.write_i32( p.x );
     w.write_i32( p.y );
     w.write_i32( p.z );
 }
 
-bool net_deserialize_chest_pos( PacketReader &r, NetChestPosPayload &p ) {
+bool net_deserialize_container_pos( PacketReader &r, NetContainerPosPayload &p ) {
+    uint8_t kind;
+    if ( !r.read_u8( kind ) ) return false;
+    if ( net_container_kind_def( kind ) == nullptr ) {
+        net_pr_debug( "container msg bad kind:%u", kind );
+        return false;
+    }
+    p.kind = static_cast<NetContainerKind>( kind );
     if ( !r.read_i32( p.x ) ) return false;
     if ( !r.read_i32( p.y ) ) return false;
     if ( !r.read_i32( p.z ) ) return false;
     return true;
 }
 
-void net_serialize_chest_contents( PacketWriter &w, const NetChestContentsPayload &p ) {
+void net_serialize_container_contents( PacketWriter &w, const NetContainerContentsPayload &p ) {
+    w.write_u8( static_cast<uint8_t>( p.kind ) );
     w.write_i32( p.x );
     w.write_i32( p.y );
     w.write_i32( p.z );
-    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-        net_write_inventory_slot( w, p.contents.slots[ i ] );
+    w.write_u32( p.revision );
+    w.write_u8( static_cast<uint8_t>( p.slots.size( ) ) );
+    for ( const InventorySlot &slot : p.slots ) {
+        net_write_inventory_slot( w, slot );
+    }
+    w.write_u8( static_cast<uint8_t>( p.aux.size( ) ) );
+    for ( const int32_t a : p.aux ) {
+        w.write_i32( a );
     }
 }
 
-bool net_deserialize_chest_contents( PacketReader &r, NetChestContentsPayload &p ) {
+bool net_deserialize_container_contents( PacketReader &r, NetContainerContentsPayload &p ) {
+    uint8_t kind;
+    if ( !r.read_u8( kind ) ) return false;
+    const NetContainerKindDef *def = net_container_kind_def( kind );
+    if ( def == nullptr ) {
+        net_pr_debug( "CONTAINER_CONTENTS bad kind:%u", kind );
+        return false;
+    }
+    p.kind = static_cast<NetContainerKind>( kind );
     if ( !r.read_i32( p.x ) ) return false;
     if ( !r.read_i32( p.y ) ) return false;
     if ( !r.read_i32( p.z ) ) return false;
-    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-        if ( !net_read_inventory_slot( r, p.contents.slots[ i ] ) ) return false;
+    if ( !r.read_u32( p.revision ) ) return false;
+    // Cap before allocating, then require the kind's exact arity so a
+    // kind/payload confusion can't silently desync the stream.
+    uint8_t n_slots;
+    if ( !r.read_u8( n_slots ) ) return false;
+    if ( n_slots > NET_CONTAINER_MAX_SLOTS || n_slots != def->slots ) {
+        net_pr_debug( "CONTAINER_CONTENTS kind:%u n_slots:%u != %u", kind, n_slots, def->slots );
+        return false;
+    }
+    p.slots.resize( n_slots );
+    for ( int i = 0; i < n_slots; i++ ) {
+        if ( !net_read_inventory_slot( r, p.slots[ i ] ) ) return false;
+    }
+    uint8_t n_aux;
+    if ( !r.read_u8( n_aux ) ) return false;
+    if ( n_aux > NET_CONTAINER_MAX_AUX || n_aux != def->aux ) {
+        net_pr_debug( "CONTAINER_CONTENTS kind:%u n_aux:%u != %u", kind, n_aux, def->aux );
+        return false;
+    }
+    p.aux.resize( n_aux );
+    for ( int i = 0; i < n_aux; i++ ) {
+        if ( !r.read_i32( p.aux[ i ] ) ) return false;
     }
     return true;
 }
 
-void net_serialize_chest_set_slot( PacketWriter &w, const NetChestSetSlotPayload &p ) {
+void net_serialize_container_set_slot( PacketWriter &w, const NetContainerSetSlotPayload &p ) {
+    w.write_u8( static_cast<uint8_t>( p.kind ) );
     w.write_i32( p.x );
     w.write_i32( p.y );
     w.write_i32( p.z );
     w.write_u32( p.slot_index );
     net_write_inventory_slot( w, p.slot_value );
+    w.write_u32( p.revision );
 }
 
-bool net_deserialize_chest_set_slot( PacketReader &r, NetChestSetSlotPayload &p ) {
+bool net_deserialize_container_set_slot( PacketReader &r, NetContainerSetSlotPayload &p ) {
+    uint8_t kind;
+    if ( !r.read_u8( kind ) ) return false;
+    const NetContainerKindDef *def = net_container_kind_def( kind );
+    if ( def == nullptr ) {
+        net_pr_debug( "CONTAINER_SET_SLOT bad kind:%u", kind );
+        return false;
+    }
+    p.kind = static_cast<NetContainerKind>( kind );
     if ( !r.read_i32( p.x ) ) return false;
     if ( !r.read_i32( p.y ) ) return false;
     if ( !r.read_i32( p.z ) ) return false;
     if ( !r.read_u32( p.slot_index ) ) return false;
-    if ( p.slot_index >= static_cast<uint32_t>( CHEST_SLOTS ) ) {
-        net_pr_debug( "CHEST_SET_SLOT bad slot_index:%u (max:%d)", p.slot_index, CHEST_SLOTS );
+    if ( p.slot_index >= def->slots ) {
+        net_pr_debug( "CONTAINER_SET_SLOT kind:%u bad slot_index:%u (max:%u)", kind, p.slot_index, def->slots );
         return false;
     }
     if ( !net_read_inventory_slot( r, p.slot_value ) ) return false;
-    return true;
-}
-
-void net_serialize_furnace_contents( PacketWriter &w, const NetFurnaceContentsPayload &p ) {
-    w.write_i32( p.x );
-    w.write_i32( p.y );
-    w.write_i32( p.z );
-    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
-        net_write_inventory_slot( w, p.contents.slots[ i ] );
-    }
-    w.write_i32( p.contents.cook_progress );
-    w.write_i32( p.contents.burn_ticks );
-}
-
-bool net_deserialize_furnace_contents( PacketReader &r, NetFurnaceContentsPayload &p ) {
-    if ( !r.read_i32( p.x ) ) return false;
-    if ( !r.read_i32( p.y ) ) return false;
-    if ( !r.read_i32( p.z ) ) return false;
-    for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
-        if ( !net_read_inventory_slot( r, p.contents.slots[ i ] ) ) return false;
-    }
-    if ( !r.read_i32( p.contents.cook_progress ) ) return false;
-    if ( !r.read_i32( p.contents.burn_ticks ) ) return false;
-    return true;
-}
-
-void net_serialize_furnace_set_slot( PacketWriter &w, const NetFurnaceSetSlotPayload &p ) {
-    w.write_i32( p.x );
-    w.write_i32( p.y );
-    w.write_i32( p.z );
-    w.write_u32( p.slot_index );
-    net_write_inventory_slot( w, p.slot_value );
-}
-
-bool net_deserialize_furnace_set_slot( PacketReader &r, NetFurnaceSetSlotPayload &p ) {
-    if ( !r.read_i32( p.x ) ) return false;
-    if ( !r.read_i32( p.y ) ) return false;
-    if ( !r.read_i32( p.z ) ) return false;
-    if ( !r.read_u32( p.slot_index ) ) return false;
-    if ( p.slot_index >= static_cast<uint32_t>( FURNACE_INVENTORY_SLOTS ) ) {
-        net_pr_debug( "FURNACE_SET_SLOT bad slot_index:%u (max:%d)", p.slot_index, FURNACE_INVENTORY_SLOTS );
-        return false;
-    }
-    if ( !net_read_inventory_slot( r, p.slot_value ) ) return false;
+    if ( !r.read_u32( p.revision ) ) return false;
     return true;
 }
 
@@ -695,4 +706,265 @@ bool net_deserialize_chunk_populated( PacketReader &r, NetChunkPopulatedPayload 
     if ( !r.read_i32( p.cy ) ) return false;
     if ( !r.read_i32( p.cz ) ) return false;
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// Codec registry: deterministic fill samples + the per-type table
+// (see the registry comment in packet.hpp for the rules).
+// ---------------------------------------------------------------------------
+
+static void net_fill_record( NetEntityRecord &rec ) {
+    rec.id = 0x1122334455667788ull;
+    rec.kind = NetEntityKind::MOB;
+    rec.x = 1.5;
+    rec.y = 64.0;
+    rec.z = -2.5;
+    rec.vx = 0.1f;
+    rec.vy = -0.2f;
+    rec.vz = 0.3f;
+    rec.yaw = 1.0f;
+    rec.type = 3;
+    rec.count = 2;
+    rec.health = 9.5f;
+    rec.age_ticks = -100;
+    rec.pickup_delay = 40;
+    rec.flags = NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_HURT;
+    rec.block_state = { SAND, 0, 0, SAND, 0 };
+    rec.fuse_ticks = 30;
+}
+
+void NetCodec<NetPlayerPayload>::fill( NetPlayerPayload &p ) {
+    p.x = 12.5f;
+    p.y = -4.25f;
+    p.z = 1000.5f;
+    for ( int i = 0; i < 16; i++ ) {
+        p.rotation[ i ] = static_cast<float>( i ) + 0.5f;
+    }
+    p.eye_height = 1.5f;
+    p.flags = NET_PLAYER_FLAG_TARGETABLE;
+}
+void NetCodec<NetBlockUpdatePayload>::fill( NetBlockUpdatePayload &p ) {
+    p.x = 100;
+    p.y = -20;
+    p.z = 3000;
+    p.blockState = { STONE, 3, 7, DIRT, 1 };
+}
+void NetCodec<NetChunkDiffRequestPayload>::fill( NetChunkDiffRequestPayload &p ) {
+    p.min_x = -3;
+    p.min_y = 0;
+    p.min_z = 7;
+    p.size_x = 4;
+    p.size_y = 2;
+    p.size_z = 5;
+}
+void NetCodec<NetChunkDiffResultPayload>::fill( NetChunkDiffResultPayload &p ) {
+    p.chunk_x = 1;
+    p.chunk_y = -1;
+    p.chunk_z = 2;
+    p.num_diffs = 2;
+    p.diffs.push_back( { 5, { GRASS, 1, 0, GRASS, 0 } } );
+    p.diffs.push_back( { 77, { WATER, 0, 2, WATER, 1 } } );
+}
+void NetCodec<NetContainerPosPayload>::fill( NetContainerPosPayload &p ) {
+    p.kind = NetContainerKind::CHEST;
+    p.x = 64;
+    p.y = 32;
+    p.z = -128;
+}
+void NetCodec<NetContainerContentsPayload>::fill( NetContainerContentsPayload &p ) {
+    p.kind = NetContainerKind::FURNACE;
+    p.x = -1;
+    p.y = 9;
+    p.z = 12;
+    p.revision = 7;
+    p.slots = { { STONE, 5 }, { WHEAT, 2 }, { STICK, 1 } };
+    p.aux = { 42, 99 };
+}
+void NetCodec<NetContainerSetSlotPayload>::fill( NetContainerSetSlotPayload &p ) {
+    p.kind = NetContainerKind::CHEST;
+    p.x = 4;
+    p.y = 5;
+    p.z = 6;
+    p.slot_index = 3;
+    p.slot_value = { STONE, 8 };
+    p.revision = 11;
+}
+void NetCodec<NetWorldTimePayload>::fill( NetWorldTimePayload &p ) {
+    p.world_time = 123456789;
+}
+void NetCodec<NetWelcomePayload>::fill( NetWelcomePayload &p ) {
+    p.session_id = 7;
+}
+void NetCodec<NetViewPayload>::fill( NetViewPayload &p ) {
+    p.cx = -4;
+    p.cy = 0;
+    p.cz = 9;
+    p.radius_xz = NET_ENTITY_RADIUS_XZ;
+    p.radius_y = NET_ENTITY_RADIUS_Y;
+}
+void NetCodec<NetChunkRolePayload>::fill( NetChunkRolePayload &p ) {
+    p.cx = 11;
+    p.cy = -2;
+    p.cz = 33;
+    p.role = NET_ROLE_OWNER;
+    p.populated = 1;
+    NetEntityRecord rec;
+    net_fill_record( rec );
+    p.records.push_back( rec );
+    rec.id = 0x22;
+    rec.kind = NetEntityKind::ITEM;
+    p.records.push_back( rec );
+    p.removed_natural.push_back( 0 );
+    p.removed_natural.push_back( 3 );
+    p.removed_natural.push_back( 7 );
+}
+void NetCodec<NetEntityRecord>::fill( NetEntityRecord &p ) {
+    net_fill_record( p );
+}
+void NetCodec<NetEntityStatePayload>::fill( NetEntityStatePayload &p ) {
+    NetEntityStateEntry e;
+    e.id = 42;
+    e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
+    e.x = 1.0;
+    e.y = 2.0;
+    e.z = 3.0;
+    e.vx = 0.5f;
+    e.vy = -0.5f;
+    e.vz = 0.25f;
+    e.yaw = 2.0f;
+    e.count = 7;
+    e.health = 8.0f;
+    e.flags = NET_MOB_FLAG_TOUCHED;
+    p.entries.push_back( e );
+    e.id = 43;
+    e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
+    p.entries.push_back( e );
+}
+void NetCodec<NetEntityRemovePayload>::fill( NetEntityRemovePayload &p ) {
+    p.id = 1234;
+    p.reason = NET_REMOVE_DIED;
+}
+void NetCodec<NetEntityTransferPayload>::fill( NetEntityTransferPayload &p ) {
+    net_fill_record( p.record );
+    p.adopt = 1;
+}
+void NetCodec<NetEntityActionPayload>::fill( NetEntityActionPayload &p ) {
+    p.id = 88;
+    p.action = NET_ACTION_FEED;
+    p.damage = 4.5f;
+    p.ax = 1.0;
+    p.ay = 2.0;
+    p.az = 3.0;
+    p.attacker_survival = 1;
+    p.item = WHEAT;
+}
+void NetCodec<NetPickupRequestPayload>::fill( NetPickupRequestPayload &p ) {
+    p.id = 99;
+    p.room = 16;
+}
+void NetCodec<NetPickupResultPayload>::fill( NetPickupResultPayload &p ) {
+    p.id = 99;
+    p.item = STICK;
+    p.granted = 12;
+}
+void NetCodec<NetPlayerHitPayload>::fill( NetPlayerHitPayload &p ) {
+    p.target_player_id = 3;
+    p.fx = 1.0;
+    p.fy = 2.0;
+    p.fz = 3.0;
+    p.damage = 4.5f;
+}
+void NetCodec<NetExplosionPayload>::fill( NetExplosionPayload &p ) {
+    p.x = 10.5;
+    p.y = 64.0;
+    p.z = -3.25;
+    p.radius = 4.0f;
+}
+void NetCodec<NetChunkPopulatedPayload>::fill( NetChunkPopulatedPayload &p ) {
+    p.cx = 5;
+    p.cy = 0;
+    p.cz = -9;
+}
+
+namespace {
+template <typename P>
+void *codec_make_wrap( ) {
+    P *p = new P( );
+    NetCodec<P>::fill( *p );
+    return p;
+}
+template <typename P>
+void codec_destroy_wrap( void *p ) {
+    delete static_cast<P *>( p );
+}
+template <typename P>
+void codec_ser_wrap( PacketWriter &w, const void *p ) {
+    NetCodec<P>::ser( w, *static_cast<const P *>( p ) );
+}
+template <typename P>
+bool codec_de_wrap( PacketReader &r, void *p ) {
+    return NetCodec<P>::de( r, *static_cast<P *>( p ) );
+}
+
+#define NET_ROW( TYPE, P ) \
+    { TYPE, #TYPE, sizeof( P ), codec_make_wrap<P>, codec_destroy_wrap<P>, codec_ser_wrap<P>, codec_de_wrap<P> }
+#define NET_EMPTY_ROW( TYPE ) \
+    { TYPE, #TYPE, 0, nullptr, nullptr, nullptr, nullptr }
+// Retired wire id (pre-v9 chest/furnace messages): name kept for logging.
+#define NET_RETIRED_ROW( ID, LABEL ) \
+    { static_cast<NetMsgType>( ID ), LABEL, 0, nullptr, nullptr, nullptr, nullptr }
+
+const NetCodecEntry kCodecTable[] = {
+    NET_ROW( NetMsgType::PLAYER_LOCATION, NetPlayerPayload ),
+    NET_ROW( NetMsgType::BLOCK_UPDATE, NetBlockUpdatePayload ),
+    NET_ROW( NetMsgType::CLIENT_INIT, NetPlayerPayload ),
+    NET_EMPTY_ROW( NetMsgType::PLAYER_CONNECTED ),
+    NET_EMPTY_ROW( NetMsgType::PLAYER_DISCONNECTED ),
+    NET_ROW( NetMsgType::CHUNK_DIFF_REQUEST, NetChunkDiffRequestPayload ),
+    NET_ROW( NetMsgType::CHUNK_DIFF_RESULT, NetChunkDiffResultPayload ),
+    NET_RETIRED_ROW( 7, "RETIRED_CHEST_OPEN" ),
+    NET_RETIRED_ROW( 8, "RETIRED_CHEST_CLOSE" ),
+    NET_RETIRED_ROW( 9, "RETIRED_CHEST_CONTENTS" ),
+    NET_RETIRED_ROW( 10, "RETIRED_CHEST_SET_SLOT" ),
+    NET_ROW( NetMsgType::WORLD_TIME, NetWorldTimePayload ),
+    NET_ROW( NetMsgType::WELCOME, NetWelcomePayload ),
+    NET_ROW( NetMsgType::VIEW, NetViewPayload ),
+    NET_ROW( NetMsgType::CHUNK_ROLE, NetChunkRolePayload ),
+    NET_ROW( NetMsgType::ENTITY_SPAWN, NetEntityRecord ),
+    NET_ROW( NetMsgType::ENTITY_STATE, NetEntityStatePayload ),
+    NET_ROW( NetMsgType::ENTITY_REMOVE, NetEntityRemovePayload ),
+    NET_ROW( NetMsgType::ENTITY_TRANSFER, NetEntityTransferPayload ),
+    NET_ROW( NetMsgType::ENTITY_ACTION, NetEntityActionPayload ),
+    NET_ROW( NetMsgType::PICKUP_REQUEST, NetPickupRequestPayload ),
+    NET_ROW( NetMsgType::PICKUP_RESULT, NetPickupResultPayload ),
+    NET_ROW( NetMsgType::PLAYER_HIT, NetPlayerHitPayload ),
+    NET_ROW( NetMsgType::EXPLOSION, NetExplosionPayload ),
+    NET_ROW( NetMsgType::CHUNK_POPULATED, NetChunkPopulatedPayload ),
+    NET_RETIRED_ROW( 25, "RETIRED_FURNACE_OPEN" ),
+    NET_RETIRED_ROW( 26, "RETIRED_FURNACE_CLOSE" ),
+    NET_RETIRED_ROW( 27, "RETIRED_FURNACE_CONTENTS" ),
+    NET_RETIRED_ROW( 28, "RETIRED_FURNACE_SET_SLOT" ),
+    NET_ROW( NetMsgType::CONTAINER_OPEN, NetContainerPosPayload ),
+    NET_ROW( NetMsgType::CONTAINER_CLOSE, NetContainerPosPayload ),
+    NET_ROW( NetMsgType::CONTAINER_CONTENTS, NetContainerContentsPayload ),
+    NET_ROW( NetMsgType::CONTAINER_SET_SLOT, NetContainerSetSlotPayload ),
+};
+} // namespace
+
+const NetCodecEntry *net_codec_table( size_t *count ) {
+    *count = sizeof( kCodecTable ) / sizeof( kCodecTable[ 0 ] );
+    return kCodecTable;
+}
+
+const char *net_msg_type_name( NetMsgType type ) {
+    const size_t idx = static_cast<size_t>( type );
+    if ( idx < sizeof( kCodecTable ) / sizeof( kCodecTable[ 0 ] ) && kCodecTable[ idx ].type == type ) {
+        return kCodecTable[ idx ].name;
+    }
+    return "UNKNOWN_MSG";
+}
+
+bool net_trace_enabled( ) {
+    static const bool on = env_enabled( "REPGAME_NET_TRACE" );
+    return on;
 }

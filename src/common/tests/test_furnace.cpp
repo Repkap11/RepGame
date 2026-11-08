@@ -143,42 +143,69 @@ int test_furnace( ) {
         check_bool( "tick: outputs stack", f.slots[ FURNACE_SLOT_OUTPUT ].quantity == 3 && f.slots[ FURNACE_SLOT_INPUT ].item_id == LAST_BLOCK_ID );
     }
 
-    // Wire round trips.
+    // Wire round trips (CONTAINER_* family — furnace rides the generic
+    // container protocol; aux[0]=cook_progress, aux[1]=burn_ticks).
     {
-        NetFurnaceContentsPayload out_p = { 4, 5, 6, {} };
-        out_p.contents.slots[ FURNACE_SLOT_INPUT ] = { RAW_IRON, 3 };
-        out_p.contents.slots[ FURNACE_SLOT_FUEL ] = { COAL, 1 };
-        out_p.contents.slots[ FURNACE_SLOT_OUTPUT ] = { IRON_INGOT, 2 };
-        out_p.contents.cook_progress = 700;
-        out_p.contents.burn_ticks = 5000;
+        NetContainerContentsPayload out_p;
+        out_p.kind = NetContainerKind::FURNACE;
+        out_p.x = 4;
+        out_p.y = 5;
+        out_p.z = 6;
+        out_p.revision = 12;
+        out_p.slots.assign( FURNACE_INVENTORY_SLOTS, InventorySlot{ LAST_BLOCK_ID, 0 } );
+        out_p.slots[ FURNACE_SLOT_INPUT ] = { RAW_IRON, 3 };
+        out_p.slots[ FURNACE_SLOT_FUEL ] = { COAL, 1 };
+        out_p.slots[ FURNACE_SLOT_OUTPUT ] = { IRON_INGOT, 2 };
+        out_p.aux = { 700, 5000 };
         PacketWriter w;
-        net_serialize_furnace_contents( w, out_p );
+        net_serialize_container_contents( w, out_p );
         std::vector<uint8_t> buf = w.take_buf( );
         PacketReader r( buf.data( ), buf.size( ) );
-        NetFurnaceContentsPayload in_p = {};
-        check_bool( "net furnace contents: deserialize", net_deserialize_furnace_contents( r, in_p ) );
+        NetContainerContentsPayload in_p = {};
+        check_bool( "net furnace contents: deserialize", net_deserialize_container_contents( r, in_p ) );
         check_bool( "net furnace contents: slots+progress",
-                    in_p.contents.slots[ 0 ].item_id == RAW_IRON && in_p.contents.slots[ 0 ].quantity == 3 &&
-                        in_p.contents.slots[ 2 ].item_id == IRON_INGOT && in_p.contents.cook_progress == 700 && in_p.contents.burn_ticks == 5000 );
+                    in_p.slots.size( ) == FURNACE_INVENTORY_SLOTS && in_p.slots[ 0 ].item_id == RAW_IRON && in_p.slots[ 0 ].quantity == 3 &&
+                        in_p.slots[ 2 ].item_id == IRON_INGOT && in_p.aux.size( ) == 2 && in_p.aux[ 0 ] == 700 && in_p.aux[ 1 ] == 5000 &&
+                        in_p.revision == 12 );
 
-        NetFurnaceSetSlotPayload slot_p = { 1, 2, 3, FURNACE_SLOT_FUEL, { CHARCOAL, 5 } };
+        NetContainerSetSlotPayload slot_p = { NetContainerKind::FURNACE, 1, 2, 3, FURNACE_SLOT_FUEL, { CHARCOAL, 5 }, 0 };
         PacketWriter w2;
-        net_serialize_furnace_set_slot( w2, slot_p );
+        net_serialize_container_set_slot( w2, slot_p );
         std::vector<uint8_t> buf2 = w2.take_buf( );
         PacketReader r2( buf2.data( ), buf2.size( ) );
-        NetFurnaceSetSlotPayload in_p2;
+        NetContainerSetSlotPayload in_p2;
         memset( &in_p2, 0, sizeof( in_p2 ) );
-        check_bool( "net furnace set slot: deserialize", net_deserialize_furnace_set_slot( r2, in_p2 ) );
+        check_bool( "net furnace set slot: deserialize", net_deserialize_container_set_slot( r2, in_p2 ) );
         check_bool( "net furnace set slot: value", in_p2.slot_value.item_id == CHARCOAL && in_p2.slot_value.quantity == 5 );
 
-        // Out-of-range slot index is rejected.
-        NetFurnaceSetSlotPayload bad_p = { 1, 2, 3, 99, { CHARCOAL, 1 } };
+        // Out-of-range slot index is rejected (against the kind's arity).
+        NetContainerSetSlotPayload bad_p = { NetContainerKind::FURNACE, 1, 2, 3, 99, { CHARCOAL, 1 }, 0 };
         PacketWriter w3;
-        net_serialize_furnace_set_slot( w3, bad_p );
+        net_serialize_container_set_slot( w3, bad_p );
         std::vector<uint8_t> buf3 = w3.take_buf( );
         PacketReader r3( buf3.data( ), buf3.size( ) );
-        NetFurnaceSetSlotPayload in_p3;
-        check_bool( "net furnace set slot: bad index rejected", !net_deserialize_furnace_set_slot( r3, in_p3 ) );
+        NetContainerSetSlotPayload in_p3;
+        check_bool( "net furnace set slot: bad index rejected", !net_deserialize_container_set_slot( r3, in_p3 ) );
+
+        // A chest slot index that overflows the chest arity is rejected too.
+        NetContainerSetSlotPayload bad_chest = { NetContainerKind::CHEST, 1, 2, 3, CHEST_SLOTS, { CHARCOAL, 1 }, 0 };
+        PacketWriter w4;
+        net_serialize_container_set_slot( w4, bad_chest );
+        std::vector<uint8_t> buf4 = w4.take_buf( );
+        PacketReader r4( buf4.data( ), buf4.size( ) );
+        NetContainerSetSlotPayload in_p4;
+        check_bool( "net chest set slot: bad index rejected", !net_deserialize_container_set_slot( r4, in_p4 ) );
+
+        // Kind/arity mismatch on the wire: a CONTENTS carrying the wrong
+        // slot count for its kind fails instead of desyncing the stream.
+        NetContainerContentsPayload bad_kind = out_p;
+        bad_kind.kind = NetContainerKind::CHEST; // 3 slots != 27
+        PacketWriter w5;
+        net_serialize_container_contents( w5, bad_kind );
+        std::vector<uint8_t> buf5 = w5.take_buf( );
+        PacketReader r5( buf5.data( ), buf5.size( ) );
+        NetContainerContentsPayload in_p5;
+        check_bool( "net contents: kind arity mismatch rejected", !net_deserialize_container_contents( r5, in_p5 ) );
     }
 
     return failures;

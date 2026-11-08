@@ -5,6 +5,7 @@
 #include "common/block.hpp" // BlockID, ItemID
 #include "common/mobs.hpp" // MobType
 #include "common/chunk_loader.hpp"
+#include "common/container.hpp" // NetContainerKindDef, ContainerContents
 
 struct RepGameState;
 
@@ -36,6 +37,21 @@ bool tnt( RepGameState &state, const glm::vec3 &center, std::string *err );
 bool setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err );
 // Inclusive box; refuses volumes > 65536 cells.
 bool fill( RepGameState &state, const glm::ivec3 &a, const glm::ivec3 &b, const char *block_name, std::string *err );
+// Container kind lookup by name ("chest"/"furnace"), nullptr on miss.
+const NetContainerKindDef *container_from_name( const char *name );
+// CONTAINER_* drivers: copen/cclose subscribe on the server; cset writes
+// the slot optimistically into World then sends SET_SLOT (same shape as the
+// UI drag paths — the server either accepts and relays it to other viewers
+// or pushes a correcting CONTENTS snapshot back).
+bool copen( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, std::string *err );
+bool cclose( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, std::string *err );
+bool cset( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, int slot, const char *item, int count,
+           std::string *err );
+// Fills `out` with the world-owned contents at `pos` (exact-arity empties
+// when nothing is stored); *is_container reports the live block. False only
+// when the chunk the container would live in isn't loaded.
+bool cprobe( RepGameState &state, const NetContainerKindDef *def, const glm::ivec3 &pos, ContainerContents *out, bool *is_container,
+             std::string *err );
 // `mode survival|creative`; force_survival (when non-null) also reasserts
 // the mode each tick (mp_test semantics).
 bool mode( RepGameState &state, const char *name, bool *force_survival, std::string *err );

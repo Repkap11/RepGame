@@ -44,6 +44,8 @@ constexpr Test all_tests[] = {  //
     MK_TEST( falling_blocks ),  //
     MK_TEST( structure_border ), //
     MK_TEST( mobs ),             //
+    MK_TEST( net_codec_registry ), //
+    MK_TEST( net_containers ),  //
     MK_TEST( net_entities ),     //
     MK_TEST( net_item_crossing ), //
     MK_TEST( net_item_mirror_visuals ), //

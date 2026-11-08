@@ -25,6 +25,8 @@
 #include <unistd.h>
 
 #include "server/server.hpp"
+#include "common/container.hpp"
+#include "common/furnace.hpp"
 #include "common/net/packet.hpp"
 #include "common/mob_types.hpp"
 #include "common/chunk.hpp"
@@ -145,6 +147,47 @@ void send_diff_request( Server &server, SimClient &c, const glm::ivec3 &min, uin
     PacketWriter w;
     net_serialize_chunk_diff_request( w, req );
     server.test_logic( ).on_client_message( server, c.fd, NetMsgType::CHUNK_DIFF_REQUEST, 0, w.buf( ) );
+}
+
+// ---- container-sync helpers ------------------------------------------------
+
+void send_container_open( Server &server, SimClient &c, NetContainerKind kind, const glm::ivec3 &pos ) {
+    NetContainerPosPayload p{ kind, pos.x, pos.y, pos.z };
+    PacketWriter w;
+    net_serialize_container_pos( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::CONTAINER_OPEN, 0, w.buf( ) );
+}
+
+void send_container_close( Server &server, SimClient &c, NetContainerKind kind, const glm::ivec3 &pos ) {
+    NetContainerPosPayload p{ kind, pos.x, pos.y, pos.z };
+    PacketWriter w;
+    net_serialize_container_pos( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::CONTAINER_CLOSE, 0, w.buf( ) );
+}
+
+void send_container_set_slot( Server &server, SimClient &c, NetContainerKind kind, const glm::ivec3 &pos, uint32_t slot, const InventorySlot &value ) {
+    NetContainerSetSlotPayload p{ kind, pos.x, pos.y, pos.z, slot, value, 0 };
+    PacketWriter w;
+    net_serialize_container_set_slot( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::CONTAINER_SET_SLOT, 0, w.buf( ) );
+}
+
+// The last CONTAINER_CONTENTS the client received for `pos` (deserialized);
+// false when none.
+bool last_container_contents( const std::vector<ReceivedFrame> &frames, const glm::ivec3 &pos, NetContainerContentsPayload &out ) {
+    bool found = false;
+    for ( const ReceivedFrame &f : frames ) {
+        if ( f.type != NetMsgType::CONTAINER_CONTENTS ) {
+            continue;
+        }
+        PacketReader r( f.payload.data( ), f.payload.size( ) );
+        NetContainerContentsPayload p;
+        if ( net_deserialize_container_contents( r, p ) && glm::ivec3( p.x, p.y, p.z ) == pos ) {
+            out = std::move( p );
+            found = true;
+        }
+    }
+    return found;
 }
 
 // Checks that `peer` received a forwarded BLOCK_UPDATE for (pos, state).
@@ -1213,6 +1256,162 @@ int server_selftest( ) {
 
         disconnect_client( server, bb );
         disconnect_client( server, bc );
+    }
+
+    // === Container sync: CONTAINER_* family. Two subscribers on one chest,
+    // optimistic slot writes relayed with a revision, a rejected write
+    // corrected with the authoritative snapshot, loot-on-break, disconnect
+    // cleanup, furnace ticking + lit-swap, and sidecar persistence.
+    {
+        SimClient ca = connect_client( server );
+        SimClient cb = connect_client( server );
+        drain_client( server, ca );
+        drain_client( server, cb );
+        ServerContainers &sc = server.test_logic( ).test_containers( );
+        const glm::ivec3 chest_pos( 20, 40, 20 );
+        const glm::ivec3 furnace_pos( 24, 40, 20 );
+
+        // OPEN: each subscriber gets a CONTENTS snapshot (empty, rev 0).
+        send_container_open( server, ca, NetContainerKind::CHEST, chest_pos );
+        send_container_open( server, cb, NetContainerKind::CHEST, chest_pos );
+        check( sc.subscriber_count( NetContainerKind::CHEST, chest_pos ) == 2,
+               "container: two subscribers on one chest" );
+        {
+            NetContainerContentsPayload p;
+            check( last_container_contents( drain_client( server, ca ), chest_pos, p ) &&
+                       p.kind == NetContainerKind::CHEST && p.slots.size( ) == CHEST_SLOTS && p.revision == 0,
+                   "container: open answers CONTENTS (kind, arity, rev 0)" );
+            check( last_container_contents( drain_client( server, cb ), chest_pos, p ) &&
+                       p.slots.size( ) == CHEST_SLOTS,
+                   "container: second open answers CONTENTS" );
+        }
+
+        // A slot write lands server-side and relays to the OTHER viewer,
+        // stamped with the bumped revision.
+        send_container_set_slot( server, ca, NetContainerKind::CHEST, chest_pos, 3, InventorySlot{ STONE, 7 } );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ca );
+            const std::vector<ReceivedFrame> fb = drain_client( server, cb );
+            check( frames_of_type( fa, NetMsgType::CONTAINER_SET_SLOT ).empty( ),
+                   "container: accepted write not echoed to writer" );
+            uint32_t got_rev = 0;
+            bool got_slot = false;
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::CONTAINER_SET_SLOT ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetContainerSetSlotPayload p;
+                if ( net_deserialize_container_set_slot( r, p ) && glm::ivec3( p.x, p.y, p.z ) == chest_pos ) {
+                    got_rev = p.revision;
+                    got_slot = p.slot_index == 3 && p.slot_value.item_id == STONE && p.slot_value.quantity == 7;
+                }
+            }
+            check( got_slot && got_rev == 1, "container: viewer got SET_SLOT rev=1 (rev=%u)", got_rev );
+        }
+        {
+            const ServerContainerEntry *ce = sc.find( NetContainerKind::CHEST, chest_pos );
+            check( ce != nullptr && ce->contents.slots.size( ) == CHEST_SLOTS &&
+                       ce->contents.slots[ 3 ].item_id == STONE && ce->contents.slots[ 3 ].quantity == 7 && ce->revision == 1,
+                   "container: server contents updated (rev bumped)" );
+        }
+
+        // Unauthorized write (a container the client never opened): the
+        // server rejects it AND pushes the authoritative snapshot back so
+        // the optimistic client self-heals.
+        const glm::ivec3 rogue_pos( 21, 40, 20 );
+        send_container_set_slot( server, cb, NetContainerKind::CHEST, rogue_pos, 0, InventorySlot{ GOLD_BLOCK, 99 } );
+        {
+            NetContainerContentsPayload p;
+            check( last_container_contents( drain_client( server, cb ), rogue_pos, p ) &&
+                       p.slots.size( ) == CHEST_SLOTS && p.slots[ 0 ].item_id == LAST_BLOCK_ID,
+                   "container: rejected write corrected with authoritative snapshot" );
+            check( sc.find( NetContainerKind::CHEST, rogue_pos ) == nullptr,
+                   "container: rejected write stored nothing" );
+        }
+
+        // CLOSE drops only that client; the other stays subscribed.
+        send_container_close( server, ca, NetContainerKind::CHEST, chest_pos );
+        check( sc.subscriber_count( NetContainerKind::CHEST, chest_pos ) == 1,
+               "container: close drops one subscriber (got %d)",
+               sc.subscriber_count( NetContainerKind::CHEST, chest_pos ) );
+
+        // Loot-on-break: overwriting the chest block snapshots the contents
+        // to the breaker, then clears the entry + its subscriptions.
+        send_block_update( server, cb, chest_pos, BLOCK_STATE_AIR );
+        {
+            NetContainerContentsPayload p;
+            check( last_container_contents( drain_client( server, cb ), chest_pos, p ) &&
+                       p.slots.size( ) == CHEST_SLOTS && p.slots[ 3 ].item_id == STONE && p.slots[ 3 ].quantity == 7,
+                   "container: breaker received loot snapshot" );
+        }
+        check( sc.find( NetContainerKind::CHEST, chest_pos ) == nullptr &&
+                   sc.subscriber_count( NetContainerKind::CHEST, chest_pos ) == 0,
+               "container: break clears entry + subscribers" );
+        drain_client( server, ca );
+
+        // Furnace: place the block (server learns the state), open, load a
+        // smelt — ticking then ignites, swaps the block to LIT_FURNACE for
+        // every client, and pushes throttled progress snapshots.
+        send_block_update( server, ca, furnace_pos, BlockState{ FURNACE, 0, 0, FURNACE, 0 } );
+        send_container_open( server, ca, NetContainerKind::FURNACE, furnace_pos );
+        {
+            NetContainerContentsPayload p;
+            check( last_container_contents( drain_client( server, ca ), furnace_pos, p ) &&
+                       p.kind == NetContainerKind::FURNACE && p.slots.size( ) == FURNACE_INVENTORY_SLOTS && p.aux.size( ) == 2,
+                   "container: furnace open answers 3-slot CONTENTS with aux" );
+        }
+        send_container_set_slot( server, ca, NetContainerKind::FURNACE, furnace_pos, FURNACE_SLOT_INPUT, InventorySlot{ RAW_IRON, 1 } );
+        send_container_set_slot( server, ca, NetContainerKind::FURNACE, furnace_pos, FURNACE_SLOT_FUEL, InventorySlot{ COAL, 1 } );
+        drain_client( server, ca );
+        check( sc.any_active( ), "container: loaded furnace is active" );
+        for ( int i = 0; i < 3; i++ ) {
+            server.test_logic( ).processTimers( server );
+        }
+        {
+            const ServerContainerEntry *fe = sc.find( NetContainerKind::FURNACE, furnace_pos );
+            check( fe != nullptr && fe->contents.aux.size( ) == 2 && fe->contents.aux[ 1 ] > 0,
+                   "container: furnace ignited (burn_ticks=%d)",
+                   fe != nullptr && fe->contents.aux.size( ) > 1 ? fe->contents.aux[ 1 ] : -1 );
+            const std::vector<ReceivedFrame> fa = drain_client( server, ca );
+            bool lit_update = false;
+            bool progress = false;
+            for ( const ReceivedFrame &f : fa ) {
+                if ( f.type == NetMsgType::BLOCK_UPDATE ) {
+                    PacketReader r( f.payload.data( ), f.payload.size( ) );
+                    NetBlockUpdatePayload bu;
+                    if ( net_deserialize_block_update( r, bu ) && glm::ivec3( bu.x, bu.y, bu.z ) == furnace_pos &&
+                         bu.blockState.id == LIT_FURNACE ) {
+                        lit_update = true;
+                    }
+                } else if ( f.type == NetMsgType::CONTAINER_CONTENTS ) {
+                    PacketReader r( f.payload.data( ), f.payload.size( ) );
+                    NetContainerContentsPayload p;
+                    if ( net_deserialize_container_contents( r, p ) && glm::ivec3( p.x, p.y, p.z ) == furnace_pos &&
+                         p.aux.size( ) == 2 && p.aux[ 1 ] > 0 ) {
+                        progress = true;
+                    }
+                }
+            }
+            check( lit_update, "container: lit swap broadcast LIT_FURNACE" );
+            check( progress, "container: throttled progress snapshot reached viewer" );
+        }
+
+        // Disconnect cleanup: the furnace viewer's subscription drops.
+        disconnect_client( server, ca );
+        check( sc.subscriber_count( NetContainerKind::FURNACE, furnace_pos ) == 0,
+               "container: disconnect unsubscribes" );
+        disconnect_client( server, cb );
+
+        // Persistence: the last-disconnect flush wrote the furnace sidecar —
+        // a fresh client re-opening reloads the burning contents.
+        SimClient cc = connect_client( server );
+        send_container_open( server, cc, NetContainerKind::FURNACE, furnace_pos );
+        {
+            NetContainerContentsPayload p;
+            check( last_container_contents( drain_client( server, cc ), furnace_pos, p ) &&
+                       p.slots.size( ) == FURNACE_INVENTORY_SLOTS && p.slots[ FURNACE_SLOT_INPUT ].item_id == RAW_IRON &&
+                       p.aux.size( ) == 2 && p.aux[ 1 ] > 0,
+                   "container: furnace contents persist across sessions (still burning)" );
+        }
+        disconnect_client( server, cc );
     }
 
     // === Protocol version mismatch: a validly framed message (correct

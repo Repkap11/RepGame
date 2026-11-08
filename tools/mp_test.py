@@ -302,6 +302,61 @@ def dist(a, b):
     return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
 
 
+def cprobe(c, kind, x, y, z, timeout=8):
+    """Issue one cprobe and poll for the matching event; returns the newest
+    detail for this kind+pos, or None on timeout."""
+    base = len(c.dump.events)
+    c.cmd("cprobe %s %d %d %d" % (kind, x, y, z))
+    end = time.time() + timeout
+    while time.time() < end:
+        c.dump.poll()
+        hits = [e for e in c.dump.events[base:]
+                if e.get("name") == "cprobe"
+                and e.get("detail", {}).get("kind") == kind
+                and e.get("detail", {}).get("pos") == [x, y, z]]
+        if hits:
+            return hits[-1]["detail"]
+        time.sleep(0.05)
+    return None
+
+
+def cslot(detail, slot):
+    """The {"slot","name","count"} entry for `slot` in a cprobe detail."""
+    for s in (detail or {}).get("slots", []):
+        if s["slot"] == slot:
+            return s
+    return None
+
+
+def wait_cslot(run, c, kind, pos, slot, name=None, count=None, timeout=40, desc=None):
+    """Re-probe until the container's `slot` holds `name` x `count`
+    (name=None means empty). Returns the satisfying cprobe detail."""
+    deadline = time.time() + timeout
+    detail = None
+    while time.time() < deadline:
+        detail = cprobe(c, kind, *pos, timeout=8)
+        if detail is not None:
+            s = cslot(detail, slot)
+            if name is None and s is None:
+                return detail
+            if s is not None and s["name"] == name and (count is None or s["count"] == count):
+                return detail
+        time.sleep(0.4)
+    raise Fail("timeout waiting for %s %s slot %d = %s x%s (last=%s)"
+               % (desc or "container", kind, slot, name, count, detail))
+
+
+def wait_block(run, c, x, y, z, name, timeout=60):
+    """Re-probe until the block at pos reports `name`."""
+    deadline = time.time() + timeout
+    got = None
+    while time.time() < deadline:
+        got = wait_probe(run, c, x, y, z, timeout=10).get("name")
+        if got == name:
+            return
+    raise Fail("timeout waiting for block %s at %d %d %d (got %s)" % (name, x, y, z, got))
+
+
 def wait_probe(run, c, x, y, z, timeout=30):
     """Probe until the block event arrives AND its chunk is loaded; returns
     the last event detail."""
@@ -886,6 +941,83 @@ def sc_natural_persist(run, A, B):
     run.wait("mobs file for home chunk", lambda: want in mobs_files(), timeout=30)
 
 
+def sc_containers(run, A, B):
+    """Unified CONTAINER_* sync: viewers see each other's slot writes with a
+    bumped revision, a write to a container the client never opened is
+    corrected by the authoritative snapshot, breaking the chest loots the
+    breaker, the furnace ticks server-side (LIT_FURNACE swap + progress
+    aux), and contents persist across a server restart."""
+    gy = settle(run, A, B)
+    cx, cy, cz = 135, gy, 10  # chunk 2 — inside both clients' view radii
+
+    A.cmd("setblock %d %d %d STONE" % (cx, cy - 1, cz))
+    A.cmd("setblock %d %d %d CHEST" % (cx, cy, cz))
+    wait_block(run, A, cx, cy, cz, "CHEST")
+    wait_block(run, B, cx, cy, cz, "CHEST")
+
+    # Both subscribe; each gets the authoritative CONTENTS snapshot.
+    A.cmd("copen chest %d %d %d" % (cx, cy, cz))
+    B.cmd("copen chest %d %d %d" % (cx, cy, cz))
+    run.sleep_ticks(20)
+
+    # A's optimistic write lands locally and relays to B (rev bumped).
+    A.cmd("cset chest %d %d %d 3 STONE 7" % (cx, cy, cz))
+    wait_cslot(run, A, "chest", (cx, cy, cz), 3, "STONE", 7, desc="A optimistic write")
+    db = wait_cslot(run, B, "chest", (cx, cy, cz), 3, "STONE", 7, desc="B relayed write")
+    if db.get("rev", 0) < 1:
+        raise Fail("B saw no revision bump: %s" % db)
+
+    # B edits a different slot; A sees it through the same relay.
+    B.cmd("cset chest %d %d %d 5 GOLD_BLOCK 3" % (cx, cy, cz))
+    wait_cslot(run, A, "chest", (cx, cy, cz), 5, "GOLD_BLOCK", 3, desc="A sees B's write")
+
+    # Unauthorized write: C writes to a chest it never opened — the server
+    # rejects it and pushes the authoritative snapshot; C's optimistic copy
+    # self-heals back to empty.
+    fx, fy, fz = 135, gy, 12
+    A.cmd("setblock %d %d %d STONE" % (fx, fy - 1, fz))
+    A.cmd("setblock %d %d %d CHEST" % (fx, fy, fz))
+    C = run.client("C", (140.0, 90.0, 12.0))
+    run.wait_ready(C)
+    wait_block(run, C, fx, fy, fz, "CHEST")
+    C.cmd("cset chest %d %d %d 0 GOLD_BLOCK 99" % (fx, fy, fz))
+    wait_cslot(run, C, "chest", (fx, fy, fz), 0, None, desc="unauthorized write corrected")
+
+    # Loot-on-break: A breaks the chest; the CONTENTS loot snapshot credits
+    # the breaker through the pending_container_loot marker.
+    before = inv_count(A.dump.last_state(), "STONE")
+    A.cmd("setblock %d %d %d AIR" % (cx, cy, cz))
+    run.wait("loot snapshot credited",
+             lambda: inv_count(A.dump.last_state(), "STONE") >= before + 7, timeout=60)
+
+    # Furnace: place, open, load a smelt — the server ticks it, swaps the
+    # block to LIT_FURNACE for everyone, and streams progress aux to viewers.
+    A.cmd("setblock %d %d %d FURNACE" % (cx, cy, cz))
+    wait_block(run, A, cx, cy, cz, "FURNACE")
+    A.cmd("copen furnace %d %d %d" % (cx, cy, cz))
+    A.cmd("cset furnace %d %d %d 0 RAW_IRON 1" % (cx, cy, cz))  # input
+    A.cmd("cset furnace %d %d %d 1 COAL 1" % (cx, cy, cz))      # fuel
+    wait_block(run, A, cx, cy, cz, "LIT_FURNACE", timeout=90)
+    wait_block(run, B, cx, cy, cz, "LIT_FURNACE", timeout=60)
+    df = wait_cslot(run, A, "furnace", (cx, cy, cz), 0, "RAW_IRON", 1, desc="burning input")
+    if not df.get("aux") or df["aux"][1] <= 0:
+        raise Fail("furnace not burning on client: aux=%s" % df.get("aux"))
+
+    # Persistence: a server restart flushes the sidecars; a fresh client
+    # reopening the furnace sees it still burning.
+    for c in list(run.clients.values()):
+        c.quit()
+    run.sleep_ticks(10)
+    run.restart_server()
+    D = run.client("D", (140.0, 90.0, 10.0))
+    run.wait_ready(D)
+    wait_probe(run, D, cx, cy, cz)
+    D.cmd("copen furnace %d %d %d" % (cx, cy, cz))
+    dd = wait_cslot(run, D, "furnace", (cx, cy, cz), 0, "RAW_IRON", 1, desc="persisted input")
+    if not dd.get("aux") or dd["aux"][1] <= 0:
+        raise Fail("persisted furnace lost its burn: aux=%s" % dd.get("aux"))
+
+
 def sc_disconnect_cleanup(run, A, B):
     gy = settle(run, A, B)
     A.cmd("drop DIRT 1 10.5 %d 10.5" % gy)
@@ -944,6 +1076,7 @@ SCENARIOS = [
     ("disconnect_cleanup", sc_disconnect_cleanup),
     ("first_view_correct", sc_first_view_correct),
     ("avatar_at_mob_cap", sc_avatar_at_mob_cap),
+    ("containers", sc_containers),
 ]
 
 

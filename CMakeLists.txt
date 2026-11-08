@@ -459,6 +459,7 @@ if(REPGAME_BUILD_SERVER)
 		src/common/utils/map_storage.cpp
 		src/common/utils/player_data.cpp
 		src/common/chunk_buffer_pool.cpp
+		src/common/container.cpp
 		src/common/furnace.cpp
 		src/common/net/packet.cpp
 		src/common/net/framed_socket.cpp
