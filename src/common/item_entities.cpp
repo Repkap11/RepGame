@@ -162,21 +162,21 @@ void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const Vert
         strncpy( buf, spec, sizeof( buf ) - 1 );
         buf[ sizeof( buf ) - 1 ] = 0;
         for ( char *entry = strtok( buf, ";" ); entry != nullptr; entry = strtok( nullptr, ";" ) ) {
-            char item_name[ 40 ];
+            char name[ 40 ];
             double x, y, z;
-            int count = 1;
-            if ( sscanf( entry, "%39[^,],%lf,%lf,%lf,%d", item_name, &x, &y, &z, &count ) < 4 ) {
+            int amount = 1;
+            if ( sscanf( entry, "%39[^,],%lf,%lf,%lf,%d", name, &x, &y, &z, &amount ) < 4 ) {
                 pr_debug( "REPGAME_ITEM_TEST: bad entry '%s' (want name,x,y,z[,count])", entry );
                 continue;
             }
-            const ItemID item = item_id_from_name( item_name );
+            const ItemID item = item_id_from_name( name );
             if ( item == LAST_BLOCK_ID ) {
-                pr_debug( "REPGAME_ITEM_TEST: unknown item '%s'", item_name );
+                pr_debug( "REPGAME_ITEM_TEST: unknown item '%s'", name );
                 continue;
             }
             // Non-persistent (never written to an items file) and facing the
             // -z/+z axis (spin_seed 0): captures see the icon face-on.
-            const uint32_t id = this->spawn( item, count > 0 ? count : 1, glm::dvec3( x, y, z ), glm::dvec3( 0.0 ), INT_MAX / 2, 0 );
+            const uint32_t id = this->spawn( item, amount > 0 ? amount : 1, glm::dvec3( x, y, z ), glm::dvec3( 0.0 ), INT_MAX / 2, 0 );
             (void)id;
             this->items.back( ).spin_seed = 0.0f;
         }

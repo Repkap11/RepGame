@@ -1,8 +1,7 @@
 
 #include "server/server_logic.hpp"
-#include "common/utils/file_utils.hpp"
-#include "common/item.hpp"
-#include "common/RepGame.hpp"
+#include "server/server.hpp"
+#include "common/chunk.hpp"
 #include "common/light.hpp"
 #include "common/net/packet.hpp"
 
@@ -114,7 +113,6 @@ void ServerLogic::scheduleChunkSave( const glm::ivec3 &chunk_pos ) {
 void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_state ) {
     glm::ivec3 chunk_pos = glm::floor( glm::vec3( block_pos ) / CHUNK_SIZE_F );
     glm::ivec3 diff = block_pos - ( chunk_pos * CHUNK_SIZE_I );
-    int block_index = Chunk::get_index_from_coords( diff );
 
     for ( int i = -1; i < 2; i++ ) {
         const int needs_update_x = ( ( i != 1 && diff.x == 0 ) || ( i != -1 && diff.x == ( CHUNK_SIZE_X - 1 ) ) ) || i == 0;

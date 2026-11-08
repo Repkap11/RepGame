@@ -711,7 +711,7 @@ int test_crafting( ) {
 
     // Drag crafting: distribute a held stack over the dragged slots.
     {
-        InventorySlot slots[ 9 ];
+        InventorySlot slots[ 9 ] = { };
         for ( InventorySlot &s : slots ) {
             s.item_id = LAST_BLOCK_ID;
             s.quantity = 0;
@@ -722,7 +722,7 @@ int test_crafting( ) {
         report( "drag split 64 over 3 slots", slots[ 0 ].quantity == 21 && slots[ 1 ].quantity == 21 && slots[ 2 ].quantity == 21 && held.quantity == 1 );
     }
     {
-        InventorySlot slots[ 9 ];
+        InventorySlot slots[ 9 ] = { };
         for ( InventorySlot &s : slots ) {
             s.item_id = LAST_BLOCK_ID;
             s.quantity = 0;
@@ -735,7 +735,7 @@ int test_crafting( ) {
         report( "drag split capped by slot room", slots[ 0 ].quantity == 64 && slots[ 1 ].quantity == 5 && held.quantity == 1 );
     }
     {
-        InventorySlot slots[ 9 ];
+        InventorySlot slots[ 9 ] = { };
         for ( InventorySlot &s : slots ) {
             s.item_id = LAST_BLOCK_ID;
             s.quantity = 0;

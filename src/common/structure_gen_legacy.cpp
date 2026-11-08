@@ -75,27 +75,27 @@ static BlockID sgl_is_long_grass_roll( int x, int z, int is_forest ) {
         }
     }
     if ( is_tuftland ) {
-        const float noise2 = perlin_noise2d( x, z, 1.0f, 3, MAP_SEED + 9 );
-        if ( noise2 > 0.95 ) {
+        const float flower_noise = perlin_noise2d( x, z, 1.0f, 3, MAP_SEED + 9 );
+        if ( flower_noise > 0.95 ) {
             return DANDELION;
         }
 
-        if ( noise2 > 0.93 ) {
+        if ( flower_noise > 0.93 ) {
             return RED_FLOWER;
         }
 
-        if ( noise2 > 0.91 ) {
+        if ( flower_noise > 0.91 ) {
             return BLUE_ORCHID;
         }
 
         // The top of the old SHORT_GRASS band (0.8, 0.91] becomes two-block
         // tall grass: 0.87 keeps ~23% of the former short-grass cells (see
         // docs/mapgen.md).
-        if ( noise2 > 0.87 ) {
+        if ( flower_noise > 0.87 ) {
             return TALL_GRASS;
         }
 
-        if ( noise2 > 0.8 ) {
+        if ( flower_noise > 0.8 ) {
             return SHORT_GRASS;
         }
     }

@@ -691,7 +691,7 @@ InventoryRenderer &repgame_crafting_grid( RepGameState &state ) {
 // every grid mutation.
 static void crafting_recompute( RepGameState &state ) {
     const int dim = repgame_crafting_dim( state );
-    ItemID top[ 9 ];
+    ItemID top[ 9 ] = { };
     for ( int r = 0; r < dim; r++ ) {
         for ( int c = 0; c < dim; c++ ) {
             top[ r * dim + c ] = state.ui.crafting.slots[ ( dim - 1 - r ) * dim + c ].item_id;

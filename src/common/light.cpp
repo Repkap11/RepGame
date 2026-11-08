@@ -15,7 +15,8 @@
 #include <intrin.h>
 #endif
 
-#include "common/RepGame.hpp" // GL headers + platform macros
+#include "common/Platforms.hpp" // IWYU pragma: keep — GL headers + platform macros
+#include "common/Logging.hpp"
 #include "common/light.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/utils/profile.hpp"
@@ -650,7 +651,7 @@ void ChunkLoader::light_add_seed( const glm::ivec3 &block_pos, const int channel
     if ( this->light_seed_gate( block_pos, near, internal ) ) {
         return;
     }
-    const int clamped = level < 0 ? 0 : level > LIGHT_RAW_MAX ? LIGHT_RAW_MAX : level;
+    const int clamped = std::clamp( level, 0, LIGHT_RAW_MAX );
     const int bucket = clamped / LIGHT_RAW_PER_LEVEL;
     light_dbg_pushes++;
     const int col = light_col_slot( block_pos );
@@ -1034,18 +1035,13 @@ static int light_claim_cols( const int cx, const int cz, int out[ 9 ] ) {
 // only extend toward the border the cell sits on, so the footprint can
 // never leave pos's column neighborhood). Vertical neighbors/mirrors stay
 // inside the column (same cx,cz).
-// Entries: hashed lock index + column coords. Sorted by index so
-// multi-lock acquires share one global order; coord lookups stay aligned.
-struct LightPopCol {
-    int idx;
-    int cx;
-    int cz;
-};
-static int light_pop_cols( const glm::ivec3 &block_pos, LightPopCol out[ 9 ] ) {
+// Entries: hashed lock indices, sorted so multi-lock acquires share one
+// global order.
+static int light_pop_cols( const glm::ivec3 &block_pos, int out[ 9 ] ) {
     const glm::ivec3 cp = light_chunk_pos_of( block_pos );
     const glm::ivec3 local = block_pos - cp * CHUNK_SIZE_I;
     if ( local.x >= 2 && local.x <= CHUNK_SIZE_X - 3 && local.z >= 2 && local.z <= CHUNK_SIZE_Z - 3 ) {
-        out[ 0 ] = { light_col_lock_index( cp.x, cp.z ), cp.x, cp.z };
+        out[ 0 ] = light_col_lock_index( cp.x, cp.z );
         return 1;
     }
     int n = 0;
@@ -1079,15 +1075,15 @@ static int light_pop_cols( const glm::ivec3 &block_pos, LightPopCol out[ 9 ] ) {
         }
     }
     for ( int i = 0; i < n; i++ ) {
-        out[ i ] = { light_col_lock_index( seen[ i ].x, seen[ i ].y ), seen[ i ].x, seen[ i ].y };
+        out[ i ] = light_col_lock_index( seen[ i ].x, seen[ i ].y );
     }
     // n <= 9: hand-rolled insertion sort + dedup. Avoids std::sort's
     // introsort dispatch and GCC 13's -Warray-bounds false positive on the
     // small fixed buffer (mingw -Werror).
     for ( int i = 1; i < n; i++ ) {
-        const LightPopCol v = out[ i ];
+        const int v = out[ i ];
         int j = i;
-        while ( j > 0 && out[ j - 1 ].idx > v.idx ) {
+        while ( j > 0 && out[ j - 1 ] > v ) {
             out[ j ] = out[ j - 1 ];
             j--;
         }
@@ -1095,7 +1091,7 @@ static int light_pop_cols( const glm::ivec3 &block_pos, LightPopCol out[ 9 ] ) {
     }
     int m = 0;
     for ( int i = 0; i < n; i++ ) {
-        if ( m == 0 || out[ m - 1 ].idx != out[ i ].idx ) {
+        if ( m == 0 || out[ m - 1 ] != out[ i ] ) {
             out[ m++ ] = out[ i ];
         }
     }
@@ -1787,17 +1783,17 @@ void ChunkLoader::light_process_queue( const long long budget_us, const int col 
         // The seed left the queue: its column's incident count drops. If it
         // is contested and re-enqueues below, that push re-increments.
         light_col_incident_dec( pos );
-        LightPopCol cols[ 9 ];
+        int cols[ 9 ];
         const int ncols = light_pop_cols( pos, cols );
         int held = 0;
         for ( ; held < ncols; held++ ) {
-            if ( !light_col_lock_spin( cols[ held ].idx ) ) {
+            if ( !light_col_lock_spin( cols[ held ] ) ) {
                 break;
             }
         }
         if ( held < ncols ) {
             for ( int i = 0; i < held; i++ ) {
-                light_col_lock_release( cols[ i ].idx );
+                light_col_lock_release( cols[ i ] );
             }
             light_dbg_requeued++;
             // The contested column belongs to a neighbor's footprint (a
@@ -1832,7 +1828,7 @@ void ChunkLoader::light_process_queue( const long long budget_us, const int col 
             this->light_remove_step( rem_seed );
         }
         for ( int i = 0; i < ncols; i++ ) {
-            light_col_lock_release( cols[ i ].idx );
+            light_col_lock_release( cols[ i ] );
         }
     }
     // Deferred recheck marks ride the end of a drain: the emit cell's mark

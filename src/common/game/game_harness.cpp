@@ -136,8 +136,8 @@ void RepGame::tick_fly_flight( ) {
     if ( fly.phase == 0 ) {
         bool go = true;
         if ( fly.settle_ticks > 0 && globalGameState.tick_number < fly.settle_timeout ) {
-            const bool idle = loader_idle( globalGameState.world.chunkLoader );
-            fly.idle_streak = idle ? fly.idle_streak + 1 : 0;
+            const bool loader_is_idle = loader_idle( globalGameState.world.chunkLoader );
+            fly.idle_streak = loader_is_idle ? fly.idle_streak + 1 : 0;
             go = fly.idle_streak >= fly.settle_ticks;
         }
         if ( go ) {

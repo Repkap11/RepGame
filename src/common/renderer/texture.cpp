@@ -1,9 +1,7 @@
-#include <algorithm>
 #include <cstring>
 #include <vector>
 
 #define GL_GLEXT_PROTOTYPES
-#include "common/utils/file_utils.hpp"
 #include "common/utils/env_config.hpp"
 
 #include "common/RepGame.hpp"
@@ -171,8 +169,6 @@ static void subsample_tile_rgb( const unsigned char *src, int src_stride, int sw
 void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag, bool mipmaps ) {
     unsigned char *data;
 
-    int mem_size = texture_source.width * texture_source.height * BYTES_PER_PIXEL;
-
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_ANDROID )
     data = decode_texture_png( ( const unsigned char * )texture_source.blob->source, texture_source.blob->length, texture_source.width, texture_source.height );
 #elif defined( REPGAME_WASM )
@@ -182,6 +178,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
     free( png );
 #else
     data = NULL;
+    int mem_size = texture_source.width * texture_source.height * BYTES_PER_PIXEL;
     pr_debug( "Undefined platform in textures.cpp mem_size:%d", mem_size );
 #endif
     unsigned int textures_across = texture_source.width / texture_source.tile_size_across;

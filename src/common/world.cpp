@@ -655,8 +655,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     }
 
-#if ( SUPPORTS_FRAME_BUFFER )
     if ( usingReflections ) {
+#if ( SUPPORTS_FRAME_BUFFER )
         // Snapshot the scene depth for the water shader's screen-space
         // reflections (and the underwater reflection wobble). Must happen
         // here: the reflection pass below clears the depth buffer and
@@ -675,15 +675,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->frameBuffer.bind( );
         showErrors( );
 #endif
-    }
 #endif
 
-    if ( usingReflections ) {
         glStencilFunc( GL_EQUAL, 1, 0xff );
         glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
-    }
-
-    if ( usingReflections ) {
 
         glCullFace( GL_FRONT );
         glClear( GL_DEPTH_BUFFER_BIT );
@@ -1518,15 +1513,13 @@ bool World::do_random_tick_on_block( const Chunk &chunk, const glm::vec3 &pos, B
             return true;
         }
     }
-    if ( id == BlockID::DIRT ) {
-        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_grass_id( chunk, pos, BlockID::GRASS ) ) {
+    if ( id == BlockID::DIRT && blockUp->renderOrder != RenderOrder_Opaque ) {
+        if ( world_any_neighbor_grass_id( chunk, pos, BlockID::GRASS ) ) {
             blockState.id = BlockID::GRASS;
             blockState.display_id = blockState.id;
             return true;
         }
-    }
-    if ( id == BlockID::DIRT ) {
-        if ( blockUp->renderOrder != RenderOrder_Opaque && world_any_neighbor_grass_id( chunk, pos, BlockID::PODZOL ) ) {
+        if ( world_any_neighbor_grass_id( chunk, pos, BlockID::PODZOL ) ) {
             blockState.id = BlockID::PODZOL;
             blockState.display_id = blockState.id;
             return true;

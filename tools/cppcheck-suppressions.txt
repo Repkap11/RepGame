@@ -1,0 +1,105 @@
+# Suppressions for `make check` (see makefiles/common.mk). Keep this list
+# short: each entry is a verified false positive or a deliberate pattern,
+# not a way to hide findings. File-scoped where possible. `*:path/*`
+# silences everything in vendored/generated headers reached via -I.
+
+# --- Vendored/generated code: checked for our benefit, never fixed ---
+*:include/glm/*
+*:include/common/vendor/*
+*:entt_build/*
+*:imgui_build/*
+*:src/linux/wayland-protocols/*
+
+# --- Deliberate / verified false positives ---
+# REPGAME_DEBUG_CRASH=segv deliberately dereferences null.
+nullPointer:src/common/game/game_harness.cpp
+
+# The two `if (useFogBlend)` draw groups sit in different stencil passes
+# (GL_EQUAL then GL_NOTEQUAL) with a water overlay between them — they
+# intentionally can't merge.
+identicalInnerCondition:src/common/world.cpp
+
+# Conditions cppcheck proves constant but are actually fine:
+# - light.cpp: cross-thread atomics + reference-mutated state it can't model
+# - mobs.cpp: spawn_any() currently always returns true; the dead checks
+#   document intent and keep the bool API open
+# - chunk.cpp: GPU-mesh paths are compiled out on Linux by design
+# - ray_traversal.cpp: exhaustive else-if that documents the rot>=4 case
+# - tests/*: assertions on functions cppcheck can constant-fold
+knownConditionTrueFalse:src/common/light.cpp
+knownConditionTrueFalse:src/common/mobs.cpp
+knownConditionTrueFalse:src/common/chunk.cpp
+knownConditionTrueFalse:src/common/utils/ray_traversal.cpp
+knownConditionTrueFalse:src/common/tests/*
+
+# References/pointers into the entt registry that outlive the local pair.
+returnReference:src/common/pause_menu.cpp
+returnReference:src/common/inventory_renderer.cpp
+invalidLifetime:src/common/inventory_renderer.cpp
+
+# memcpy into a reference parameter (read_f32/read_f64) — cppcheck can't
+# model the pointed-to object size.
+bufferAccessOutOfBounds:src/common/net/packet.cpp
+
+# Erase-while-iterate re-checks size() every pass — correct, not OOB.
+containerOutOfBounds:src/common/block_bodies.cpp
+containerOutOfBounds:src/common/item_entities.cpp
+containerOutOfBounds:src/common/tests/test_net.cpp
+
+# Members set by init()/per-element loops rather than the ctor (the
+# init()-style convention; render_chain needs GL objects that don't exist
+# at construction time anyway).
+uninitMemberVar:src/common/mobs.cpp
+uninitMemberVar:src/common/utils/player_data.cpp
+
+# STICK == ITEM_ID_BASE (first item), so STICK-ITEM_ID_BASE is legitimately
+# 0 — the test indexes items by id-minus-base.
+duplicateExpression:src/common/tests/test_items.cpp
+
+# LegacyBin::reserved is on-disk format padding, not a bug.
+unusedStructMember:src/common/tests/test_save.cpp
+
+# (struct sockaddr *)&addr_in is the required POSIX bind/accept idiom.
+dangerousTypeCast:src/server/server.cpp
+
+# Small PODs passed by value deliberately: BlockState (few bytes) and the
+# MG_FN-generated GPU mesh functions whose signatures must match the GPU
+# dialect.
+passedByValue:src/common/multiplayer_common.cpp
+passedByValue:src/common/world.cpp
+passedByValue:include/common/mesh_gen_fns.hpp
+
+# --- Whole classes of findings this codebase doesn't take ---
+# OOM paths aren't modeled anywhere; we don't write defensive null checks
+# after every malloc.
+nullPointerOutOfMemory
+# init()-style classes intentionally have no ctor; members are set by
+# their init() method (SDL-era convention throughout).
+noConstructor
+uninitMemberVarPrivate
+noExplicitConstructor
+# Instance methods that could be static — keeping the uniform this-> API.
+functionStatic
+# memset(0) on POD structs containing floats is correct (all-zero bits is
+# 0.0f) and used deliberately, mostly in tests.
+memsetClassFloat
+# Style suggestions not taken in this C-ish codebase: raw loops and
+# C-style casts are the existing convention.
+useStlAlgorithm
+cstyleCast
+variableScope
+constParameterCallback
+constParameterPointer
+constParameterReference
+constVariablePointer
+constVariableReference
+# Informational analysis-depth note, not a defect.
+normalCheckLevelMaxBranches
+# System headers are machine-dependent (jni.h, SDL, GL, wayland...).
+missingIncludeSystem
+# Generated headers (sounds_manifest.hpp, wayland-util.h) only exist in
+# build dirs; a genuinely broken include fails the real build anyway.
+missingInclude:src/common/audio.cpp
+missingInclude:src/linux/wayland_pointer_constraints_code.cpp
+# OOM-failure paths in tests/tools aren't worth modeling.
+nullPointerOutOfResources

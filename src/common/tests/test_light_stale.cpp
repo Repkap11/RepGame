@@ -4,7 +4,7 @@
 // at word boundaries and the last slot, unbound-chunk no-ops, and that the
 // loader-stats popcount equals the number of flagged slots.
 
-#include "test_util.hpp"
+#include "test_util.hpp" // IWYU pragma: keep — shared umbrella for all rep_tests TUs
 
 int test_light_stale( ) {
     int fails = 0;
@@ -47,7 +47,7 @@ int test_light_stale( ) {
     pr_test( "  stale: word/bit mapping at 63/64/last boundaries  %s", fails == 0 ? "PASS" : "FAIL" );
 
     // Unbound chunk: all ops no-op / read false.
-    Chunk unbound;
+    Chunk unbound{ };
     fails += unbound.light_stale_get( );
     fails += unbound.light_stale_take( );
     unbound.light_stale_set( );

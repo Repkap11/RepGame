@@ -338,8 +338,6 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     BlockState new_block_state = affecting_block_state;
     {
         if ( affecting_block->is_redstone_dust ) {
-            BlockID new_display_block_id = affecting_block_state.display_id;
-
             BlockID connects_left_id = NEXT_TO_STATE( 1, 0, 0 ).id;
             BlockID connects_right_id = NEXT_TO_STATE( -1, 0, 0 ).id;
             BlockID connects_front_id = NEXT_TO_STATE( 0, 0, 1 ).id;
@@ -394,6 +392,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
                     }
                 }
 
+                BlockID new_display_block_id;
                 if ( connects_left && connects_right && connects_front && connects_back ) {
                     new_display_block_id = REDSTONE_WIRE_CROSS;
 

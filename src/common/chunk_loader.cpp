@@ -10,7 +10,8 @@
 #include <chrono>
 #include <vector>
 
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp" // IWYU pragma: keep — GL headers + platform macros
+#include "common/Logging.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/multiplayer.hpp"
@@ -305,10 +306,9 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     showErrors( );
     // pr_debug( "Num Total Chunks:%d", MAX_LOADED_CHUNKS );
 
-    Shader &shader = this->shader;
-    shader.init( &chunk_vertex, &chunk_fragment );
+    this->shader.init( &chunk_vertex, &chunk_fragment );
     if constexpr ( !DEBUG_CYCLE_AUTO_ROTATING_BLOCKS ) {
-        shader.set_uniform1f( "u_ShowRotation", -2 );
+        this->shader.set_uniform1f( "u_ShowRotation", -2 );
     }
 
     this->solid.vb_block.init( );
@@ -845,22 +845,21 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
 int shouldInc = 0;
 int showRotation = 0;
 void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, unsigned order_mask, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos ) {
-    Shader &shader = this->shader;
-    shader.set_uniform_mat4f( "u_MVP", mvp );
+    this->shader.set_uniform_mat4f( "u_MVP", mvp );
     {
         GLint vp[ 4 ];
         glGetIntegerv( GL_VIEWPORT, vp );
-        shader.set_uniform2f( "u_ViewportSize", (float)vp[ 2 ], (float)vp[ 3 ] );
+        this->shader.set_uniform2f( "u_ViewportSize", (float)vp[ 2 ], (float)vp[ 3 ] );
     }
     // Screen-space corner grow (chunk_vertex.glsl), tunable via env.
     static const float face_grow_px = env_float( "REPGAME_FACE_GROW_PX", CHUNK_FACE_GROW_PX );
     // All per-chunk light volumes share one reserved texture unit; each chunk
     // binds its 3D texture + u_LightBase right before drawing (Chunk::draw).
-    shader.set_uniform1i( "u_LightTex", light_texture_unit( ) );
+    this->shader.set_uniform1i( "u_LightTex", light_texture_unit( ) );
     glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
     // glGetUniformLocation once per draw instead of once per chunk — the
     // per-chunk set_uniform3f it replaced cost ~6000 lookups/frame.
-    const int light_base_loc = shader.get_uniform_location( "u_LightBase" );
+    const int light_base_loc = this->shader.get_uniform_location( "u_LightBase" );
 
     // Front-to-back ordering: depth-writing layers draw nearest-first so
     // early-z kills occluded fragments (and, later, so occluders are in the
@@ -931,8 +930,8 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     // while the chunk wasn't fully inside the frustum — a full-box probe
     // stays valid under any rotation from the same eye position. See
     // chunk_occlusion.hpp for how ChunkOcclState applies the two.
-    long occl_view_gen = 0;
-    long occl_rot_gen = 0;
+    long view_gen = 0;
+    long rot_gen = 0;
     if ( occlusion_enabled( ) && !draw_reflect ) {
         // Non-probe passes (the second stereo eye) reuse the current
         // generations without comparing/bumping them against their own mvp.
@@ -954,8 +953,8 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                 this->occl_rot_gen++;
             }
         }
-        occl_view_gen = this->occl_view_gen;
-        occl_rot_gen = this->occl_rot_gen;
+        view_gen = this->occl_view_gen;
+        rot_gen = this->occl_rot_gen;
     }
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
@@ -1039,7 +1038,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         if ( available ) {
                             GLuint passed = 0;
                             glGetQueryObjectuiv( chunk.occl.query, GL_QUERY_RESULT, &passed );
-                            chunk.occl.record( passed, occl_view_gen, occl_rot_gen );
+                            chunk.occl.record( passed, view_gen, rot_gen );
                         }
                     }
                     if ( cam_in_box( chunk ) ) {
@@ -1079,7 +1078,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         glBeginQuery( GL_ANY_SAMPLES_PASSED, chunk.occl.query );
                         glDrawArrays( GL_TRIANGLES, 0, 36 );
                         glEndQuery( GL_ANY_SAMPLES_PASSED );
-                        chunk.occl.mark_probe_issued( occl_view_gen, occl_rot_gen );
+                        chunk.occl.mark_probe_issued( view_gen, rot_gen );
                     }
                     glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 #if ( SUPPORTS_FRAME_BUFFER )

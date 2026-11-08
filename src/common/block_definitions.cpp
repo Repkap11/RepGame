@@ -7,6 +7,10 @@ Block *block_definitions;
 
 void block_definitions_initilize_definitions( Texture *texture ) {
     block_definitions = static_cast<Block *>( calloc( LAST_BLOCK_ID, sizeof( Block ) ) );
+    if ( block_definitions == NULL ) {
+        pr_debug( "Failed to allocate block_definitions" );
+        abort( );
+    }
     for ( int block_id = 0; block_id < LAST_BLOCK_ID; block_id++ ) {
         Block *block = &block_definitions[ block_id ];
         block->id = static_cast<BlockID>( block_id );
@@ -96,7 +100,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         // Crop chains: every stage with a crop_next is a crop, and so is the
         // stage it points at — the chain's terminal stage is marked through
         // its predecessor.
-        if ( block->crop_next != LAST_BLOCK_ID && block->crop_next < LAST_BLOCK_ID ) {
+        if ( block->crop_next < LAST_BLOCK_ID ) {
             block->is_crop = true;
             block_definitions[ block->crop_next ].is_crop = true;
         }

@@ -934,7 +934,6 @@ void RepGame::process_movement( ) {
         static double swim_distance = 0.0;
         static long last_swim_tick = -1000;
         const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
-        const glm::dvec3 body_center( globalGameState.camera.pos.x, feet_y + PLAYER_HEIGHT / 2.0, globalGameState.camera.pos.z );
         const BlockState feet_block_now = globalGameState.world.get_loaded_block( glm::ivec3( glm::round( glm::dvec3( globalGameState.camera.pos.x, feet_y + 0.05, globalGameState.camera.pos.z ) - 0.5 ) ) );
         const BlockState body_block_now = globalGameState.world.get_loaded_block( glm::ivec3( glm::round( body_center - 0.5 ) ) );
         const bool feet_in_liquid = feet_block_now.id < LAST_BLOCK_ID && block_definition_get_definition( feet_block_now.id )->flows != 0;

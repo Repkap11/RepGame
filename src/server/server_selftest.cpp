@@ -216,22 +216,8 @@ int index_in_chunk( const glm::ivec3 &chunk_pos, const glm::ivec3 &pos ) {
     return Chunk::get_index_from_coords( pos - chunk_pos * CHUNK_SIZE_I );
 }
 
-// One placed edit and its expected diff footprint: the owning chunk always
-// records it; each axis-aligned neighbor whose interior edge it touches gets a
-// border-cell mirror (the server mirrors boundary writes into every affected
-// chunk's record).
-struct ExpectedEdit {
-    glm::ivec3 pos;
-    BlockState state;
-};
-
-struct SimWorld {
-    std::vector<ExpectedEdit> edits;
-};
-
-void place( Server &server, SimClient &who, SimWorld &w, const glm::ivec3 &pos, const BlockState &state ) {
+void place( Server &server, SimClient &who, const glm::ivec3 &pos, const BlockState &state ) {
     send_block_update( server, who, pos, state );
-    w.edits.push_back( { pos, state } );
 }
 
 // chunk_pos -> (block index -> state), as a fresh client would rebuild it from
@@ -476,8 +462,6 @@ int server_selftest( ) {
     Server server;
     server.init( 0, TEST_WORLD );
 
-    SimWorld world;
-
     // --- Session 1: two players edit the world ---
     SimClient a = connect_client( server );
     SimClient b = connect_client( server );
@@ -485,14 +469,14 @@ int server_selftest( ) {
     drain_client( server, b );
 
     // Interior edit in chunk (0,0,0).
-    place( server, a, world, glm::ivec3( 10, 40, 10 ), stone );
+    place( server, a, glm::ivec3( 10, 40, 10 ), stone );
     expect_forwarded( server, b, a.fd, glm::ivec3( 10, 40, 10 ), stone );
     check( server.test_logic( ).cachedChunkCount( ) > 0,
            "edit populates the chunk cache (got %zu)", server.test_logic( ).cachedChunkCount( ) );
     // Edge of chunk (0,0,0) -> mirrored into chunk (1,0,0)'s border.
-    place( server, b, world, glm::ivec3( 61, 40, 10 ), dirt );
+    place( server, b, glm::ivec3( 61, 40, 10 ), dirt );
     // Interior of chunk (1,0,0), touching chunk 0 -> mirrored into (0,0,0).
-    place( server, a, world, glm::ivec3( 62, 40, 10 ), gold );
+    place( server, a, glm::ivec3( 62, 40, 10 ), gold );
     expect_forwarded( server, b, a.fd, glm::ivec3( 62, 40, 10 ), gold );
 
     // Both leave: last disconnect flushes every cached chunk to disk and
@@ -509,9 +493,9 @@ int server_selftest( ) {
     drain_client( server, b );
 
     // Break the session-1 stone: records AIR into the evicted chunk (0,0,0).
-    place( server, b, world, glm::ivec3( 10, 40, 10 ), BLOCK_STATE_AIR );
+    place( server, b, glm::ivec3( 10, 40, 10 ), BLOCK_STATE_AIR );
     // Chunk (1,0,0) was evicted too; this owns-in-1 edit mirrors into chunk 2.
-    place( server, a, world, glm::ivec3( 123, 40, 10 ), sand );
+    place( server, a, glm::ivec3( 123, 40, 10 ), sand );
 
     disconnect_client( server, a );
     disconnect_client( server, b );
@@ -640,7 +624,7 @@ int server_selftest( ) {
                server.test_logic( ).knownEmptyChunkCount( ) );
 
         // An edit invalidates the known-empty mark.
-        place( server, c, world, ke_pos, stone );
+        place( server, c, ke_pos, stone );
         check( server.test_logic( ).knownEmptyChunkCount( ) == before,
                "edit invalidates known-empty mark (got %zu, want %zu)",
                server.test_logic( ).knownEmptyChunkCount( ), before );
@@ -675,7 +659,7 @@ int server_selftest( ) {
         send_view( server, ea, glm::ivec3( -1, 0, 0 ), 2, 1 );
         send_view( server, eb, glm::ivec3( 2, 0, 0 ), 2, 1 );
 
-        const glm::ivec3 c0( 0, 0, 0 ), c1( 1, 0, 0 ), c2( 2, 0, 0 ), c_n3( -3, 0, 0 );
+        const glm::ivec3 c_n3( -3, 0, 0 );
         const ServerEntities &se = server.test_logic( ).test_entities( );
         // Chunk 1: A (dist 3, player chunk -2) vs B (dist 1, player chunk 2).
         // A covered it first; hysteresis keeps A (3 <= 1+2).
@@ -898,7 +882,7 @@ int server_selftest( ) {
         send_view( server, mb, glm::ivec3( 2, 0, 0 ), 2, 1 );     // covers 0..4
         drain_client( server, ma );
         drain_client( server, mb );
-        const glm::ivec3 c_n2( -2, 0, 0 ), c2( 2, 0, 0 );
+        const glm::ivec3 c_n2( -2, 0, 0 );
         const ServerEntities &se2 = server.test_logic( ).test_entities( );
         check( se2.owner_of( c_n2 ) == ma.fd, "mob: chunk -2 owned by A" );
         check( se2.owner_of( c2 ) == mb.fd, "mob: chunk 2 owned by B" );
@@ -1117,7 +1101,7 @@ int server_selftest( ) {
         drain_client( server, bb );
         drain_client( server, bc );
 
-        const glm::ivec3 c2( 2, 0, 0 ), c4( 4, 0, 0 );
+        const glm::ivec3 c4( 4, 0, 0 );
         const ServerEntities &se3 = server.test_logic( ).test_entities( );
         check( se3.owner_of( c2 ) == bb.fd, "body: chunk 2 owned by B" );
         check( se3.owner_of( c4 ) == bb.fd, "body: chunk 4 owned by B (hysteresis over C)" );

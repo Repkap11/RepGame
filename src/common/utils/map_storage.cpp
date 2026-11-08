@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <limits.h> /* PATH_MAX */
 #include <stddef.h> /* offsetof */
 #include <stdio.h>
@@ -8,7 +7,10 @@
 #include <unistd.h>
 
 #include "common/utils/map_storage.hpp"
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp" // IWYU pragma: keep — REPGAME_PATH_DIVIDOR + platform macros
+#include "common/Logging.hpp"
+#include "common/chunk.hpp"
+#include "common/mob_types.hpp" // MOB_TYPE_COUNT
 #include "common/player_data.hpp"
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
@@ -611,7 +613,7 @@ int load_blocks_decode( MapStorage &storage, const glm::ivec3 &chunk_offset, Sin
     bool loading_old_format_chunk = storage_type_size != sizeof( STORAGE_TYPE );
     if ( loading_old_format_chunk ) {
         dirty = true;
-        pr_debug( "Loaded old chunk:%s with state size:%d expected:%d", file_name, storage_type_size, ( int )sizeof( STORAGE_TYPE ) );
+        pr_debug( "Loaded old chunk:%s with state size:%u expected:%d", file_name, storage_type_size, ( int )sizeof( STORAGE_TYPE ) );
     }
 
     int storage_block_state_size = storage_type_size - sizeof( unsigned int );

@@ -108,11 +108,11 @@ bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int pers
 }
 
 bool MobManager::under_mob_cap( ) const {
-    int count = 0;
+    int total = 0;
     for ( const Mob &mob : this->mobs ) {
-        count += mob.uid == 0 && !mob.net.mirror;
+        total += mob.uid == 0 && !mob.net.mirror;
     }
-    return count < MAX_MOBS;
+    return total < MAX_MOBS;
 }
 
 // Uncapped storage/render spawn: avatars and network mobs (mirrors, owned
@@ -373,11 +373,11 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         if ( !remote.targetable ) {
             continue;
         }
-        const glm::dvec3 feet = remote.eye_pos - glm::dvec3( 0.0, remote.eye_height, 0.0 );
-        const double d = std::hypot( feet.x - mob.pos.x, feet.z - mob.pos.z );
+        const glm::dvec3 remote_feet = remote.eye_pos - glm::dvec3( 0.0, remote.eye_height, 0.0 );
+        const double d = std::hypot( remote_feet.x - mob.pos.x, remote_feet.z - mob.pos.z );
         if ( d < target_dist_xz ) {
             target_dist_xz = d;
-            target_feet = feet;
+            target_feet = remote_feet;
             target_player_id = remote.player_id;
         }
     }

@@ -120,12 +120,18 @@ mobs-import:
 blocks-import:
 	BEDROCK_SAMPLES=$(BEDROCK_SAMPLES) python3 tools/blocks_import.py
 
+# -I paths mirror the linux build (CMakeLists.txt) so project headers
+# resolve; -i drops other-platform sources that can't compile under
+# REPGAME_LINUX anyway. Vendored headers reached via -I are silenced by
+# the `*:` entries in tools/cppcheck-suppressions.txt (-i doesn't apply
+# to include-resolved files) — keep that list honest.
 check:
-	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -iinclude/common/vendor -DREPGAME_LINUX src
-# cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WINDOWS src
-# cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_ANDROID src
-# cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude -Iinclude -iinclude/common/vendor -DREPGAME_WASM src
-# ~/.local/bin/cpplint --filter=-whitespace,-legal/copyright,-readability/todo --quiet $(SRC_ALL_C)
+	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude \
+		-Iinclude -Iinclude/glm -Ientt_build/src -Iimgui_build -Iimgui_build/backends \
+		-isrc/android -isrc/wasm -isrc/windows -isrc/linux/wayland-protocols \
+		-DREPGAME_LINUX -DGLEW_NO_GLU -DREPGAME_AUDIO \
+		--suppressions-list=tools/cppcheck-suppressions.txt \
+		src
 
 # All test suites: the in-game rep_tests + the server --selftest.
 # `make test-all` additionally runs the mp end-to-end scenarios (slow).

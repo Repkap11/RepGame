@@ -25,26 +25,6 @@ void ECS::print_group( const std::string &msg ) {
     }
 }
 
-void ECS::print_view( const std::string &msg ) {
-    pr_debug( "%s", msg.c_str( ) );
-
-    auto registry_view = registry.view<Tag, Position>( );
-    registry_view.use<Tag>( );
-
-    Position *pos = *registry_view.storage<Position>( )->raw( );
-    Tag *tag = *registry_view.storage<Tag>( )->raw( );
-    // std::size_t size = registry_view.storage<Position>( )->size( );
-    std::size_t size = registry_view.size_hint( );
-
-    // for ( auto [ entity, tag, pos ] : registry_view.each( ) ) {
-    //     pr_debug( "itr tag:%d pos:%d %d", tag.id, pos.x, pos.y );
-    // }
-
-    for ( std::size_t i = 0; i < size; ++i ) {
-        pr_debug( "ptr tag:%d pos:%d %d", tag[ i ].id, pos[ i ].x, pos[ i ].y );
-    }
-}
-
 int ECS::test_ecs( ) {
     pr_debug( "test_ecs" );
 

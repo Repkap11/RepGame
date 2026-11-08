@@ -1,4 +1,3 @@
-#include "common/RepGame.hpp"
 #include "common/block_debris.hpp"
 #include "common/block.hpp"
 #include "common/block_definitions.hpp"
@@ -117,12 +116,12 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
     // The particle budget scales with the drawn volume — a torch is ~1% of a
     // block — with a floor so thin blocks still visibly pop.
     const float volume = static_cast<float>( scale16.x * scale16.y * scale16.z ) / 4096.0f;
-    const int count = glm::max( DEBRIS_MIN_PARTICLES, static_cast<int>( lroundf( num_particles * volume ) ) );
+    const int particle_count = glm::max( DEBRIS_MIN_PARTICLES, static_cast<int>( lroundf( num_particles * volume ) ) );
 
     const glm::ivec3 tex_off( block->tex_offset.x, block->tex_offset.y, block->tex_offset.z );
     const glm::ivec3 blk_scale( block->scale.x, block->scale.y, block->scale.z );
 
-    for ( int i = 0; i < count; i++ ) {
+    for ( int i = 0; i < particle_count; i++ ) {
         const std::pair<entt::entity, DebrisInstance &> data = this->render_chain.create_instance( );
         DebrisInstance &d = data.second;
         // Pick the face here: every slot carries its texture so the shader can

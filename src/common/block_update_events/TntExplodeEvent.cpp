@@ -8,7 +8,7 @@
 #include "common/audio.hpp"
 #include "common/multiplayer.hpp"
 #include "common/net_entities.hpp"
-#include "common/block.hpp"
+#include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
 #include "common/structure_gen.hpp"
 #include "common/chunk.hpp"
@@ -112,15 +112,15 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
         for ( int cx = min_chunk.x; cx <= max_chunk.x; cx++ ) {
             for ( int cy = min_chunk.y; cy <= max_chunk.y; cy++ ) {
                 for ( int cz = min_chunk.z; cz <= max_chunk.z; cz++ ) {
-                    Chunk *c = new Chunk( );
-                    c->chunk_pos = glm::ivec3( cx, cy, cz );
-                    c->cells = chunk_alloc_cells( );
-                    c->extras = nullptr;
-                    c->light_air_mask = nullptr;
-                    c->light_shade_mask = nullptr;
-                    MapGen::load_block_c( c );
-                    StructureGen::place( *c );
-                    gen_chunks.push_back( { c->chunk_pos, c } );
+                    Chunk *chunk = new Chunk( );
+                    chunk->chunk_pos = glm::ivec3( cx, cy, cz );
+                    chunk->cells = chunk_alloc_cells( );
+                    chunk->extras = nullptr;
+                    chunk->light_air_mask = nullptr;
+                    chunk->light_shade_mask = nullptr;
+                    MapGen::load_block_c( chunk );
+                    StructureGen::place( *chunk );
+                    gen_chunks.push_back( { chunk->chunk_pos, chunk } );
                 }
             }
         }

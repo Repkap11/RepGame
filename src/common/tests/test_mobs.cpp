@@ -666,18 +666,20 @@ int test_mobs( ) {
                 }
             }
             check_bool( "remote sneak: head bone found", head_i >= 0 );
-            glm::mat4 w0[ 32 ], w1[ 32 ];
-            MobManager::bone_worlds( stand_mob, pdef, 1.0f, w0 );
-            MobManager::bone_worlds( sneak_mob, pdef, 1.0f, w1 );
-            float rot_diff = 0.0f;
-            for ( int c = 0; c < 3; c++ ) {
-                for ( int r = 0; r < 3; r++ ) {
-                    rot_diff = fmaxf( rot_diff, fabsf( w1[ head_i ][ c ][ r ] - w0[ head_i ][ c ][ r ] ) );
+            if ( head_i >= 0 ) {
+                glm::mat4 w0[ 32 ], w1[ 32 ];
+                MobManager::bone_worlds( stand_mob, pdef, 1.0f, w0 );
+                MobManager::bone_worlds( sneak_mob, pdef, 1.0f, w1 );
+                float rot_diff = 0.0f;
+                for ( int c = 0; c < 3; c++ ) {
+                    for ( int row = 0; row < 3; row++ ) {
+                        rot_diff = fmaxf( rot_diff, fabsf( w1[ head_i ][ c ][ row ] - w0[ head_i ][ c ][ row ] ) );
+                    }
                 }
+                check_near( "remote sneak: head orientation unchanged", rot_diff, 0.0f, 1e-5f );
+                const glm::vec3 dt = glm::vec3( w1[ head_i ][ 3 ] - w0[ head_i ][ 3 ] );
+                check_bool( "remote sneak: head drops 2.5px", fabsf( dt.x ) < 1e-4f && fabsf( dt.z ) < 1e-4f && fabsf( dt.y + 2.5f ) < 1e-4f );
             }
-            check_near( "remote sneak: head orientation unchanged", rot_diff, 0.0f, 1e-5f );
-            const glm::vec3 dt = glm::vec3( w1[ head_i ][ 3 ] - w0[ head_i ][ 3 ] );
-            check_bool( "remote sneak: head drops 2.5px", fabsf( dt.x ) < 1e-4f && fabsf( dt.z ) < 1e-4f && fabsf( dt.y + 2.5f ) < 1e-4f );
         }
 
         // Standing again: sneak eases back to 0 and feet stay put.
