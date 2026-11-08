@@ -6,10 +6,10 @@
 // holds the session state inside RepGameState.
 
 #define GLM_FORCE_RADIANS
-#include <glm.hpp>
-#include <gtc/quaternion.hpp>
-#include <gtc/type_ptr.hpp>
-#include <gtc/matrix_transform.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "common/world.hpp" // WorldDrawQuality
 

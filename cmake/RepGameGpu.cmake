@@ -47,7 +47,6 @@ if(REPGAME_CUDA_BUILT)
 		-Xcompiler -fPIC -DREPGAME_LINUX)
 	set(_cuda_includes
 		-I${CMAKE_SOURCE_DIR}/include/
-		-I${CMAKE_SOURCE_DIR}/include/glm
 		-I${CMAKE_SOURCE_DIR}/imgui_build
 		-I${CMAKE_SOURCE_DIR}/imgui_build/backends
 		-isystem ${CMAKE_SOURCE_DIR}/entt_build/src)
@@ -106,7 +105,6 @@ if(REPGAME_HIP_BUILT)
 		-fPIC -DREPGAME_LINUX)
 	set(_hip_includes
 		-I${CMAKE_SOURCE_DIR}/include/
-		-I${CMAKE_SOURCE_DIR}/include/glm
 		-I${CMAKE_SOURCE_DIR}/imgui_build
 		-I${CMAKE_SOURCE_DIR}/imgui_build/backends
 		-isystem ${CMAKE_SOURCE_DIR}/entt_build/src)

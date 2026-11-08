@@ -131,7 +131,7 @@ blocks-import:
 check:
 	mkdir -p out/cppcheck
 	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude \
-		-Iinclude -Iinclude/glm -Ientt_build/src -Iimgui_build -Iimgui_build/backends \
+		-Iinclude -Ientt_build/src -Iimgui_build -Iimgui_build/backends \
 		-isrc/android -isrc/wasm -isrc/windows -isrc/linux/wayland-protocols \
 		-DREPGAME_LINUX -DGLEW_NO_GLU -DREPGAME_AUDIO \
 		--cppcheck-build-dir=out/cppcheck \

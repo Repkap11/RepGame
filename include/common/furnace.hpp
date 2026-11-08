@@ -6,7 +6,7 @@
 // low-level (no renderer/GL types) so it can be shared by the client, the
 // server, and the wire protocol.
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include <map>
 
 #include "common/block_definitions.hpp"

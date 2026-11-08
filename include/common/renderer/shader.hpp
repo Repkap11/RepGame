@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include "binary_blobs.hpp"
 #include "common/renderer/texture.hpp"
 

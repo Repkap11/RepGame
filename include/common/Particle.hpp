@@ -2,7 +2,7 @@
 #pragma once
 
 #include "common/constants.hpp"
-#include "glm.hpp"
+#include <glm/glm.hpp>
 
 typedef struct {
     float x;

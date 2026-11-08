@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 #include "common/chest.hpp" // Compare_I_Vec3
 #include "common/net/packet.hpp"

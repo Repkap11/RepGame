@@ -13,7 +13,7 @@
 #include <map>
 #include <vector>
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 #include "common/block_definitions.hpp" // InventorySlot, BlockID
 #include "common/chest.hpp"             // Compare_I_Vec3, CHEST_SLOTS, block_is_chest

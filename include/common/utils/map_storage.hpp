@@ -16,7 +16,7 @@ struct BlockState;
 #define FILE_ROOT_ITEMS "%s/items_%d_%d_%d"
 #define FILE_ROOT_PLAYER_DATA "%s/player.dat"
 #define FILE_ROOT_WORLD_DATA "%s/world.dat"
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 #include "common/chest.hpp"
 #include "common/furnace.hpp"

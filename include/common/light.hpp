@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include "common/constants.hpp"
 #include "common/block_definitions.hpp" // BlockID for light_air_mask_set
 

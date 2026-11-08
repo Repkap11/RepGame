@@ -3,7 +3,7 @@
 // Local-player pieces of RepGameState: the camera (pose + physics) and the
 // crosshair interaction state (block selection, survival mining).
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 #include "common/constants.hpp"          // PLAYER_HEIGHT / PLAYER_EYE_HEIGHT
 #include "common/block_definitions.hpp" // BlockID

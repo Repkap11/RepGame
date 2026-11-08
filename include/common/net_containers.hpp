@@ -10,7 +10,7 @@
 
 #include <map>
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 #include "common/container.hpp"
 #include "common/net/packet.hpp"

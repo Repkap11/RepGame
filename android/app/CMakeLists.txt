@@ -3,7 +3,6 @@ project(RepGame CXX ASM)
 
 find_library( log-lib log )
 find_library( android-lib android )
-include_directories(../../include/glm/)
 include_directories(../../include/)
 include_directories(../../entt_build/src/)
 

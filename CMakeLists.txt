@@ -114,7 +114,6 @@ target_compile_definitions(repgame_flags INTERFACE
 	$<$<CONFIG:Debug>:REPGAME_DEBUG>)
 target_include_directories(repgame_flags INTERFACE
 	${CMAKE_SOURCE_DIR}/include
-	${CMAKE_SOURCE_DIR}/include/glm
 	${CMAKE_SOURCE_DIR}/imgui_build
 	${CMAKE_SOURCE_DIR}/imgui_build/backends)
 target_include_directories(repgame_flags SYSTEM INTERFACE

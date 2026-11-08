@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include "common/block.hpp"
 #include "common/constants.hpp"
 #include "common/net/framed_socket.hpp"

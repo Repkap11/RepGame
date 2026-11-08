@@ -3,7 +3,7 @@
 // The panel/window layer of RepGameState: chest and crafting container UIs,
 // inventory panels, overlays, menus, and the mouse-dragged stack.
 
-#include <glm.hpp>
+#include <glm/glm.hpp>
 
 #include "common/player_data.hpp" // GameMode (used by ui_overlay.hpp)
 #include "common/ui_overlay.hpp"

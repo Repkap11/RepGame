@@ -6,8 +6,8 @@
 
 #include <unordered_set>
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm.hpp>
-#include <gtx/hash.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
 
 // GameMode must exist before any UI header is pulled (ui_overlay.hpp's
 // draw() signature takes it) — same role the old RepGame.hpp's early

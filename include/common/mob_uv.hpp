@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/constants.hpp"
-#include "glm.hpp"
+#include <glm/glm.hpp>
 
 // Bedrock box-uv unwrap for a mob cube. Given the cube's (u, v) skin-pixel
 // corner and its (w, h, d) un-inflated size, returns the skin-pixel rect

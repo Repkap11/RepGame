@@ -5,7 +5,7 @@
 // Kept light: RepGame.hpp pulls in world.hpp, which pulls in block_bodies.hpp,
 // which pulls this header back in — a full include here would hide the
 // BlockBodies definition from world.hpp.
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include "common/constants.hpp"
 
 class World;
