@@ -89,6 +89,71 @@ int test_mobs( ) {
         }
     }
 
+    // --- 2b: fences/closed gates read un-jumpable (collision top 1.5) ------
+    {
+        // The auto-jump must key off the wall's real collision top, not cell
+        // occupancy: a one-cell fence collides 1.5 high, past the ~1.2 a hop
+        // clears, so a mob pressing against it must never leave the ground.
+        const BlockState fence = { FENCE, 0, 0, FENCE, 0 };
+        const BlockState gate = { FENCE_GATE, 0, 0, FENCE_GATE, 0 }; // rot 0 = closed
+        for ( int part = 0; part < 2; part++ ) {
+            const BlockState wall = part == 0 ? fence : gate;
+            const char *tag = part == 0 ? "fence" : "closed gate";
+            for ( int z = 9; z <= 11; z++ ) {
+                world.set_loaded_block( glm::ivec3( 14, 11, z ), wall );
+            }
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 90.0f, 1 );
+            MobManager::Mob &mob = mobs.mobs[ 0 ];
+            mob.ai_state = 1;
+            mob.ai_ticks = 100000;
+            mob.target = glm::dvec3( 20.0, 11.0, 10.5 );
+            int airborne = 0;
+            for ( int i = 0; i < 600; i++ ) {
+                mobs.tick( world, player_pos );
+                airborne += mob.standing ? 0 : 1;
+            }
+            char name[ 64 ];
+            snprintf( name, sizeof( name ), "%s: no doomed hopping", tag );
+            check_bool( name, airborne == 0 );
+            snprintf( name, sizeof( name ), "%s: held behind", tag );
+            check_bool( name, mob.pos.x < 14.0 && mob.pos.y < 12.0 );
+            for ( int z = 9; z <= 11; z++ ) {
+                world.set_loaded_block( glm::ivec3( 14, 11, z ), BLOCK_STATE_AIR );
+            }
+        }
+
+        // The check is a height check, not a fence blacklist: from a half
+        // slab the wall top is only ~1.0 above the feet, inside hop reach.
+        const BlockState slab = { STONE_BRICK_SLAB, 0, 0, STONE_BRICK_SLAB, 0 };
+        for ( int x = 8; x <= 13; x++ ) {
+            for ( int z = 8; z <= 12; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 11, z ), slab );
+            }
+        }
+        for ( int z = 9; z <= 11; z++ ) {
+            world.set_loaded_block( glm::ivec3( 14, 11, z ), fence );
+        }
+        MobManager mobs;
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.5, 10.5 ), 90.0f, 1 );
+        MobManager::Mob &mob = mobs.mobs[ 0 ];
+        mob.ai_state = 1;
+        mob.ai_ticks = 100000;
+        mob.target = glm::dvec3( 20.0, 11.0, 10.5 );
+        for ( int i = 0; i < 1200 && mob.pos.x < 14.6; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "fence: slab boost hops it", mob.pos.x > 14.6 );
+        for ( int x = 8; x <= 13; x++ ) {
+            for ( int z = 8; z <= 12; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 11, z ), BLOCK_STATE_AIR );
+            }
+        }
+        for ( int z = 9; z <= 11; z++ ) {
+            world.set_loaded_block( glm::ivec3( 14, 11, z ), BLOCK_STATE_AIR );
+        }
+    }
+
     // --- 3: half slab step-up ----------------------------------------------
     {
         MobManager mobs;

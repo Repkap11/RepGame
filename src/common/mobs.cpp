@@ -672,15 +672,19 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 
     // Auto-jump: blocked horizontally while standing with a 1-block wall
-    // ahead (something step-up can't climb, but a hop can). Must come after
-    // the standing reset so the jump velocity survives to next tick.
+    // ahead (something step-up can't climb, but a hop can). The wall's real
+    // collision top decides — a fence or closed gate occupies one cell but
+    // collides 1.5 high, past the ~1.2 a hop clears, so it must not trigger.
+    // Must come after the standing reset so the jump velocity survives to
+    // next tick.
     const double want_h = std::hypot( want_move.x, want_move.z );
     const double got_h = std::hypot( move.x, move.z );
     if ( standing && want_h > 1e-4 && got_h < want_h * 0.3 ) {
         const glm::dvec3 dir( want_move.x / want_h, 0.0, want_move.z / want_h );
         const glm::dvec3 ahead = mob.pos + dir * ( def.hitbox_w / 2.0 + 0.4 );
         const glm::ivec3 cell( static_cast<int>( floor( ahead.x ) ), feet.y, static_cast<int>( floor( ahead.z ) ) );
-        if ( solid_at( world, cell ) && !solid_at( world, cell + glm::ivec3( 0, 1, 0 ) ) && !solid_at( world, cell + glm::ivec3( 0, 2, 0 ) ) ) {
+        if ( solid_at( world, cell ) && !solid_at( world, cell + glm::ivec3( 0, 1, 0 ) ) && !solid_at( world, cell + glm::ivec3( 0, 2, 0 ) ) &&
+             Collision::block_collision_top( world, cell ) - mob.pos.y <= 1.0 ) {
             mob.vel.y = JUMP_STRENGTH;
         }
     }

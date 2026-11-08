@@ -142,6 +142,18 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
     return 1;
 }
 
+double Collision::block_collision_top( World &world, const glm::ivec3 &block_pos ) {
+    glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+    const int num_boxes = block_collision_boxes( world, block_pos, mins, maxs );
+    double top = block_pos.y;
+    for ( int i = 0; i < num_boxes; i++ ) {
+        if ( maxs[ i ].y > top ) {
+            top = maxs[ i ].y;
+        }
+    }
+    return top;
+}
+
 // Returns true if the player AABB overlaps any solid block.
 static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax ) {
     const double eps = 1e-4;

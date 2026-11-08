@@ -11,7 +11,11 @@ instanced `RenderChain<ParticleVertex, MobPartInstance>` per frame from
 CPU-evaluated bone transforms (`mob_vertex.glsl` + `object_fragment`;
 negative `v_flash` is a red hurt tint, positive is the creeper's white
 fuse flash). Mobs are drawn in both the main
-and reflection passes and share the chunk light sampling.
+and reflection passes and share the chunk light sampling. The auto-jump
+hops a blocked mob over a wall only when the wall's real collision top
+(`Collision::block_collision_top`) is within a block of its feet —
+fences and closed gates occupy one cell but collide 1.5 high, so a mob
+pressing against one waits instead of hopping forever.
 
 Hostiles target the player only while targetable
 (`MobTickInput.player_targetable` = not peaceful + not no-clip; in-game

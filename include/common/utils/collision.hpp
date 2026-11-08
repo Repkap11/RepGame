@@ -43,6 +43,11 @@ class Collision {
     // position `eye` overlaps any solid block. Used for the headroom check
     // before standing up out of a sneak.
     static bool collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // Top of the block's collision boxes at `block_pos` — fences and closed
+    // gates reach 1.5 above their cell floor; unloaded counts as a full
+    // block. Non-colliding blocks return the cell floor. Used by the mob
+    // auto-jump to tell a hoppable 1-block wall from a fence.
+    static double block_collision_top( World &world, const glm::ivec3 &block_pos );
     // Moves the AABB [min,max] by `delta` using the same sub-stepped axis
     // resolution as check_move (Y then X then Z) but with no step-up and no
     // edge guard, additionally colliding with the `extra` body boxes.
