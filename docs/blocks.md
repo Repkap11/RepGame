@@ -291,12 +291,14 @@ garbage and potted saplings and the mangrove propagule never grow.
 Grass spreads source-side on the same random-tick sampler
 (`World::grass_random_tick`, called for every sampled `GRASS`,
 `SNOWY_GRASS` or `MYCELIUM` cell): a grass cell covered by a
-`RenderOrder_Opaque` block dies back to `DIRT` — an unloaded cell above
-counts as open — and an uncovered one rolls 1-in-3
+`casts_shadow` block — the light engine's opacity test — dies back to
+`DIRT` (torches, leaves and partial blocks only shade, they don't
+cover; an unloaded cell above counts as open), and an uncovered one
+rolls 1-in-3
 (`GRASS_SPREAD_CHANCE_DEN`) for up to `GRASS_SPREAD_ATTEMPTS` (4) target
 picks in MC's reach (±1 horizontally, −3/+1 vertically). A pick converts
 its target when it is `DIRT` and the cell above the target is not
-opaque. Snowy grass spreads plain `GRASS`, mycelium spreads `MYCELIUM`;
+`casts_shadow` either. Snowy grass spreads plain `GRASS`, mycelium spreads `MYCELIUM`;
 podzol does not spread. Writes use the crop-growth path
 (`set_loaded_block_natural` + `BLOCK_UPDATE`), so each client simulates
 and broadcasts its own conversions. This is also what re-greens sheep

@@ -1127,6 +1127,22 @@ int test_grass( ) {
     world.grass_random_tick( gs, open_src, grass );
     failures += check_id( world, "grass: open grass survives", open_src, GRASS );
 
+    // Cover means light-opaque (casts_shadow), not just a block above: a
+    // torch or a leaf canopy shades but never kills the grass under it.
+    const BlockState torch = { TORCH, 0, 0, TORCH, 0 };
+    const glm::ivec3 torch_src( 20, 14, 20 );
+    world.set_loaded_block( torch_src, grass );
+    world.set_loaded_block( torch_src + glm::ivec3( 0, 1, 0 ), torch );
+    world.grass_random_tick( gs, torch_src, grass );
+    failures += check_id( world, "grass: torch overhead doesn't kill", torch_src, GRASS );
+
+    const BlockState leaves = { OAK_LEAVES, 0, 0, OAK_LEAVES, 0 };
+    const glm::ivec3 leaves_src( 20, 18, 20 );
+    world.set_loaded_block( leaves_src, grass );
+    world.set_loaded_block( leaves_src + glm::ivec3( 0, 1, 0 ), leaves );
+    world.grass_random_tick( gs, leaves_src, grass );
+    failures += check_id( world, "grass: leaf canopy doesn't kill", leaves_src, GRASS );
+
     // Spread garden: dirt floor at dy=-3 plus a same-level dirt ring, all
     // open-topped — 17 of the 45 picks are eligible, so a passing roll
     // (~1-in-3 per call, deterministic stream) converts something fast.
