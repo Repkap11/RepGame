@@ -40,7 +40,10 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
 - `make check` — cppcheck over `src/`; verified false positives live in
   `tools/cppcheck-suppressions.txt` (vendor dirs use `*:path/*` entries).
   Caches per-file results under `out/cppcheck` — reruns are seconds;
-  delete that dir to force a full recheck (~5-6 min cold)
+  delete that dir to force a full recheck (~5-6 min cold). Expensive: a
+  cold run is ~6 min and editing a widely-included header
+  (constants.hpp etc.) invalidates most of the cache — run only when
+  needed, not as a routine build/test verification step
 - `tools/rep-dbg` — structured headless runs (`fly`/`walk`/`run` presets)
   with per-run `result.json`/`results.jsonl` under `/tmp/rep-dbg`; `rep-dbg
   inspect <world|run> <sub>` reads saved worlds offline (block/slice/chunk/
