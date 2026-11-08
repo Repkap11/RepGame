@@ -42,6 +42,10 @@ no-op in `World::despawn_primed_tnt`/`PrimedTnt::despawn`). A
 above the highest ground found in the mob's own column and a look-ahead
 column scanned from above the head — a ledge or tree canopy reads as
 raised ground so a flyer climbs over obstacles instead of auto-jumping.
+The look-ahead (`hover_ground_ahead_at`) also checks the opening under the
+solid run it finds: a gap tall enough for `hover_h` + the hitbox (a
+2-high doorway) reports the floor below, so the bee flies *through*
+doors instead of over the wall.
 The water surface counts as ground (skim, don't dunk); with no ground in
 range the mob falls normally. A dying hoverer drops while tipping.
 `standing` stays false in flight, so `MOB_ANIM_WING_FLAP` holds the fast

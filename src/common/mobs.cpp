@@ -239,15 +239,51 @@ static double ground_top_at( World &world, int bx, int bz, int from_y, int max_d
     return 0.0;
 }
 
-// Hover flight's ground probe: like ground_top_at but the water surface also
-// counts — a flyer skims the surface instead of dunking into it.
+// Hover flight's cell predicate: the water surface also counts — a flyer
+// skims the surface instead of dunking into it.
+static bool hover_solid_at( World &world, int bx, int y, int bz ) {
+    const BlockState bs = world.get_loaded_block( glm::ivec3( bx, y, bz ) );
+    return bs.id == WATER || ( bs.id < LAST_BLOCK_ID && block_definition_get_definition( bs.id )->collides_with_player );
+}
+
+// Hover flight's ground probe: height of the ground surface under the
+// column (bx, bz), scanning from `from_y` down.
 static double hover_ground_at( World &world, int bx, int bz, int from_y, int max_drop, bool *found ) {
     for ( int y = from_y; y >= from_y - max_drop; y-- ) {
-        const BlockState bs = world.get_loaded_block( glm::ivec3( bx, y, bz ) );
-        if ( bs.id == WATER || ( bs.id < LAST_BLOCK_ID && block_definition_get_definition( bs.id )->collides_with_player ) ) {
+        if ( hover_solid_at( world, bx, y, bz ) ) {
             *found = true;
             return y + 1.0;
         }
+    }
+    *found = false;
+    return 0.0;
+}
+
+// Hover flight's look-ahead probe: scans from above the head for the first
+// solid run, then walks it down to its underside and looks for the floor
+// below. An opening that fits the mob — `pass_h` of room between the lower
+// floor and the run's underside — is flown *through* (a door or the space
+// under a tree canopy), so the lower floor is the ground. A solid wall or
+// a gap too small reports the run's top and the mob climbs over it.
+static double hover_ground_ahead_at( World &world, int bx, int bz, int from_y, int max_drop, double pass_h, bool *found ) {
+    const int lo_y = from_y - max_drop;
+    for ( int y = from_y; y >= lo_y; y-- ) {
+        if ( !hover_solid_at( world, bx, y, bz ) ) {
+            continue;
+        }
+        int under = y;
+        while ( under - 1 >= lo_y && hover_solid_at( world, bx, under - 1, bz ) ) {
+            under--;
+        }
+        for ( int y2 = under - 1; y2 >= lo_y; y2-- ) {
+            if ( hover_solid_at( world, bx, y2, bz ) ) {
+                *found = true;
+                return under - ( y2 + 1 ) >= pass_h ? y2 + 1.0 : y + 1.0;
+            }
+        }
+        // The run reaches the bottom of the scan (a real wall): climb it.
+        *found = true;
+        return y + 1.0;
     }
     *found = false;
     return 0.0;
@@ -671,10 +707,13 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         // ground found. The own column scans from the feet down (the floor
         // is always below them); the look-ahead column scans from above the
         // head so a ledge or tree canopy registers as raised ground early
-        // and the mob climbs over it instead of bumping the wall.
+        // and the mob climbs over it instead of bumping the wall — unless
+        // the opening under the obstruction fits the mob (a door), which is
+        // flown through.
         double ground = 0.0;
         bool found = false;
         const glm::dvec3 ahead = speed > 0.0f ? mob.pos + glm::dvec3( mob.vel.x, 0.0, mob.vel.z ) / static_cast<double>( speed ) * ( def.hitbox_w / 2.0 + 0.6 ) : mob.pos;
+        const double pass_h = def.hover_h + def.hitbox_h * scale_of( mob ) + 0.25;
         for ( int s = 0; s < 2; s++ ) {
             if ( s == 1 && speed <= 0.0f ) {
                 break;
@@ -682,7 +721,8 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             const glm::dvec3 col = s == 0 ? mob.pos : ahead;
             const int from_y = s == 0 ? static_cast<int>( floor( mob.pos.y ) ) : static_cast<int>( floor( mob.pos.y + def.hitbox_h + 4.0 ) );
             bool f = false;
-            const double g = hover_ground_at( world, static_cast<int>( floor( col.x ) ), static_cast<int>( floor( col.z ) ), from_y, 20, &f );
+            const double g = s == 0 ? hover_ground_at( world, static_cast<int>( floor( col.x ) ), static_cast<int>( floor( col.z ) ), from_y, 20, &f )
+                                    : hover_ground_ahead_at( world, static_cast<int>( floor( col.x ) ), static_cast<int>( floor( col.z ) ), from_y, 20, pass_h, &f );
             if ( f && ( !found || g > ground ) ) {
                 ground = g;
             }

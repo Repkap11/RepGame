@@ -1358,6 +1358,91 @@ int test_mobs( ) {
         }
     }
 
+    // --- 27: a hovering bee flies through a doorway, climbs a solid wall ---
+    {
+        // Wall at x=14 (z 9..11): air cells at y=11,12 under a solid lintel
+        // at y>=13 — a 2-high doorway. A flower-tempted bee must fly through
+        // the gap (feet floor+1+hover_h = 12, head ~12.6 < 13), not climb
+        // over the wall.
+        for ( int z = 9; z <= 11; z++ ) {
+            for ( int y = 13; y <= 20; y++ ) {
+                world.set_loaded_block( glm::ivec3( 14, y, z ), stone );
+            }
+        }
+        const glm::dvec3 pfeet( 18.5, 11.0, 10.5 );
+        const glm::dvec3 ppos = pfeet + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        MobTickInput in = { true, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
+        in.held_item = DANDELION;
+        {
+            MobManager mobs;
+            mobs.spawner_enabled = false;
+            mobs.spawn( MOB_BEE, glm::dvec3( 10.5, 12.0, 10.5 ), 90.0f, 1 );
+            double max_y = 0.0;
+            for ( int i = 0; i < 20 * UPS_RATE && mobs.mobs[ 0 ].pos.x < 15.5; i++ ) {
+                mobs.tick( world, ppos, &in );
+                max_y = fmax( max_y, mobs.mobs[ 0 ].pos.y );
+            }
+            check_bool( "bee door: tempted through the doorway", mobs.mobs[ 0 ].pos.x > 14.5 );
+            check_bool( "bee door: never climbed over the lintel", max_y < 13.0 );
+        }
+
+        // A 1-high gap doesn't fit the bee (needs ~hover_h + hitbox + slack):
+        // solid lintel at y=12,13, air only at y=11. The bee climbs over.
+        // Wander-driven (a tall climb would leave the tempt y-range anyway).
+        for ( int z = 9; z <= 11; z++ ) {
+            for ( int y = 12; y <= 13; y++ ) {
+                world.set_loaded_block( glm::ivec3( 14, y, z ), stone );
+            }
+        }
+        {
+            MobManager mobs;
+            mobs.spawner_enabled = false;
+            mobs.spawn( MOB_BEE, glm::dvec3( 10.5, 12.0, 10.5 ), 90.0f, 1 );
+            MobManager::Mob &mob = mobs.mobs[ 0 ];
+            mob.ai_state = 1;
+            mob.ai_ticks = 100000;
+            mob.target = glm::dvec3( 20.0, 11.0, 10.5 );
+            double max_y = 0.0;
+            for ( int i = 0; i < 20 * UPS_RATE && mob.pos.x < 15.5; i++ ) {
+                mobs.tick( world, player_pos );
+                max_y = fmax( max_y, mob.pos.y );
+            }
+            check_bool( "bee 1-high gap: climbs over", mob.pos.x > 14.5 && max_y > 14.0 );
+        }
+        for ( int z = 9; z <= 11; z++ ) {
+            for ( int y = 12; y <= 13; y++ ) {
+                world.set_loaded_block( glm::ivec3( 14, y, z ), BLOCK_STATE_AIR );
+            }
+        }
+
+        // A solid 3-high wall still gets climbed: no opening to fly through.
+        for ( int z = 9; z <= 11; z++ ) {
+            for ( int y = 11; y <= 13; y++ ) {
+                world.set_loaded_block( glm::ivec3( 14, y, z ), stone );
+            }
+        }
+        {
+            MobManager mobs;
+            mobs.spawner_enabled = false;
+            mobs.spawn( MOB_BEE, glm::dvec3( 10.5, 12.0, 10.5 ), 90.0f, 1 );
+            MobManager::Mob &mob = mobs.mobs[ 0 ];
+            mob.ai_state = 1;
+            mob.ai_ticks = 100000;
+            mob.target = glm::dvec3( 20.0, 11.0, 10.5 );
+            double max_y = 0.0;
+            for ( int i = 0; i < 20 * UPS_RATE && mob.pos.x < 15.5; i++ ) {
+                mobs.tick( world, player_pos );
+                max_y = fmax( max_y, mob.pos.y );
+            }
+            check_bool( "bee wall: climbs over", mob.pos.x > 14.5 && max_y > 13.5 );
+        }
+        for ( int z = 9; z <= 11; z++ ) {
+            for ( int y = 11; y <= 13; y++ ) {
+                world.set_loaded_block( glm::ivec3( 14, y, z ), BLOCK_STATE_AIR );
+            }
+        }
+    }
+
     return failures;
 }
 
