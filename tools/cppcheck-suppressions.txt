@@ -68,6 +68,7 @@ dangerousTypeCast:src/server/server.cpp
 passedByValue:src/common/multiplayer_common.cpp
 passedByValue:src/common/world.cpp
 passedByValue:include/common/mesh_gen_fns.hpp
+passedByValue:include/common/map_gen_fields.hpp
 
 # --- Whole classes of findings this codebase doesn't take ---
 # OOM paths aren't modeled anywhere; we don't write defensive null checks

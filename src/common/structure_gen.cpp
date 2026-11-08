@@ -1,11 +1,9 @@
 #include "common/structure_gen.hpp"
 #include "common/tree_shapes.hpp"
-#include "common/RepGame.hpp"
 #include "common/perlin_noise.hpp"
 #include "common/constants.hpp"
 #include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
-#include <cstdlib>
 
 #define MG_QUAL static inline
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
@@ -911,7 +909,7 @@ void StructureGen::place_formations( Chunk &chunk, const int cox, const int coy,
             // ever add blocks — so the expensive pick only runs under/above
             // something solid. The column fields are computed once per column
             // instead of once per cell (gen_block_id recomputes them).
-            MapGenColumn col;
+            MapGenColumn col = {};
             bool col_init = false;
             auto pick = [&]( const int py ) {
                 if ( !col_init ) {
