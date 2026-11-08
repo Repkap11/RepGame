@@ -77,7 +77,6 @@ static void fmt_count( char *buf, size_t n, long long v ) {
 
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
     imgui_overlay->shown = SHOW_IMGUI;
-    // imgui_overlay->show_demo_window = true;
 }
 
 void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *window, SDL_GLContext gl_context ) {
@@ -90,9 +89,6 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     // The overlay is read-only debug text; don't let it capture the mouse or
     // it eats clicks/motion/wheel whenever the cursor is over the HUD.
     io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos; // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark( );
@@ -109,7 +105,6 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     ImFontConfig cfg;
     cfg.SizePixels = 13 * IMGUI_UI_SCALE;
     io.FontDefault = io.Fonts->AddFontDefault( &cfg );
-    ; //->DisplayOffset.y = IMGUI_UI_SCALE;
 }
 
 void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
@@ -136,113 +131,97 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
     // draw_ui_pass puts the menu on top.
     if ( imgui_overlay->shown ) {
         ImGuiIO &io = ImGui::GetIO( );
-        if ( false ) {
-            ImGui::ShowDemoWindow( &input.inventory_open );
+        const char *worldDrawQualityNames[] = { "LOW", "MEDIUM", "HIGH", "X_HIGH" };
+        const char *qualityName = worldDrawQualityNames[ static_cast<int>( input.worldDrawQuality ) ];
+
+        // Worst-case probe of the widest line (Light:) — %5s fields max
+        // at 5 chars, counters/lag at 4 digits, plus the " [BFS]" suffix.
+        // Measured once so variable-width counters never resize the GUI;
+        // height stays auto-fit via size.y == 0.
+        static const float overlay_width = ImGui::CalcTextSize( "Light: j:88888 p:88888 s:88888 c:8888 d:88888 x:88888 stl:8888 lag:8888.8/8888.8ms" ).x + ImGui::GetStyle( ).WindowPadding.x * 2 + 8;
+
+        // Black background, 50% transparent; no title bar, not movable/selectable.
+        ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.0f, 0.0f, 0.0f, 0.5f ) );
+        // ImGuiConfigFlags_NoMouse (set at attach) already makes the
+        // overlay non-interactive; NoInputs keeps the window itself from
+        // reacting if mouse support is ever re-enabled.
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
+
+        ImGui::SetNextWindowPos( ImVec2( 10.0f, 10.0f ) );
+        ImGui::SetNextWindowSize( ImVec2( overlay_width, 0 ) );
+        ImGui::Begin( "RepGame", nullptr, windowFlags );
+        ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
+        ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
+        if ( state.block_selection.selectionInBounds ) {
+            const BlockState target = state.world.get_loaded_block( state.block_selection.pos_destroy );
+            const char *bname = target.id < LAST_BLOCK_ID ? block_definition_get_name( target.id ) : nullptr;
+            ImGui::Text( "Looking At: %s (%d)", bname ? bname : "?", (int)target.id );
         } else {
-            const char *worldDrawQualityNames[] = { "LOW", "MEDIUM", "HIGH", "X_HIGH" };
-            const char *qualityName = worldDrawQualityNames[ static_cast<int>( input.worldDrawQuality ) ];
-
-            // Worst-case probe of the widest line (Light:) — %5s fields max
-            // at 5 chars, counters/lag at 4 digits, plus the " [BFS]" suffix.
-            // Measured once so variable-width counters never resize the GUI;
-            // height stays auto-fit via size.y == 0.
-            static const float overlay_width = ImGui::CalcTextSize( "Light: j:88888 p:88888 s:88888 c:8888 d:88888 x:88888 stl:8888 lag:8888.8/8888.8ms" ).x + ImGui::GetStyle( ).WindowPadding.x * 2 + 8;
-
-            // Black background, 50% transparent; no title bar, not movable/selectable.
-            ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.0f, 0.0f, 0.0f, 0.5f ) );
-            // ImGuiConfigFlags_NoMouse (set at attach) already makes the
-            // overlay non-interactive; NoInputs keeps the window itself from
-            // reacting if mouse support is ever re-enabled.
-            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
-
-            ImGui::SetNextWindowPos( ImVec2( 10.0f, 10.0f ) );
-            ImGui::SetNextWindowSize( ImVec2( overlay_width, 0 ) );
-            ImGui::Begin( "RepGame", nullptr, windowFlags );
-            ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
-            ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
-            if ( state.block_selection.selectionInBounds ) {
-                const BlockState target = state.world.get_loaded_block( state.block_selection.pos_destroy );
-                const char *bname = target.id < LAST_BLOCK_ID ? block_definition_get_name( target.id ) : nullptr;
-                ImGui::Text( "Looking At: %s (%d)", bname ? bname : "?", (int)target.id );
-            } else {
-                ImGui::TextUnformatted( "Looking At: --" );
-            }
-            ImGui::Text( "Render Mode: %s", qualityName );
-            ImGui::Text( "Render Distance: %d chunks (%d blocks)  [=/+ and -, 0 resets]", input.render_distance, input.render_distance * CHUNK_SIZE_X );
-            const char *video_driver = SDL_GetCurrentVideoDriver( );
-            ImGui::Text( "Video Driver: %s", video_driver ? video_driver : "unknown" );
-            const char *acceleration;
-            if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
-                acceleration = "CUDA";
-            } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
-                acceleration = "HIP";
-            } else if ( LOAD_CHUNKS_SUPPORTS_WEBGPU && MapGen::supports_webgpu( ) ) {
-                acceleration = "WebGPU";
-            } else {
-                acceleration = "CPU";
-            }
-            ImGui::Text( "Acceleration: %s", acceleration );
-            // Server connection status; empty hostname means no server was
-            // requested (single player), so show "off" instead.
-            const std::string &server = state.multiplayer.server_hostname( );
-            if ( server.empty( ) ) {
-                ImGui::TextUnformatted( "Multiplayer: off" );
-            } else if ( !state.multiplayer.is_active( ) && !state.multiplayer.is_connecting( ) && state.multiplayer.protocol_mismatch_version( ) >= 0 ) {
-                ImGui::Text( "Multiplayer: version mismatch (server v%d, client v%d)",
-                             state.multiplayer.protocol_mismatch_version( ), NET_PROTOCOL_VERSION );
-            } else {
-                const char *mp_status = state.multiplayer.is_active( ) ? "connected" : ( state.multiplayer.is_connecting( ) ? "connecting" : "disconnected" );
-                ImGui::Text( "Multiplayer: %s:%d %s", server.c_str( ), state.multiplayer.server_port( ), mp_status );
-            }
-            // Day/night clock (read-only; PageUp/PageDown nudge world_time,
-            // which propagates to the server when connected).
-            const long time_of_day = debug_vars.world_time % DAY_LENGTH_TICKS;
-            const int clock_minutes = static_cast<int>( time_of_day * 24 * 60 / DAY_LENGTH_TICKS );
-            ImGui::Text( "Time: %8ld ticks  %02d:%02d (daylight %.2f)  [PgUp/PgDn]", time_of_day, clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
-            const char *song = audio_current_track_title( );
-            ImGui::Text( "Music: %s", song ? song : "--" );
-
-            ImGui::Separator( );
-            ImGui::Text( "Chunks: loading %4d (queued %4d, results %4d), drawable %4d",
-                         debug_vars.loader.chunks_loading, debug_vars.loader.terrain_queued,
-                         debug_vars.loader.terrain_results, debug_vars.loader.chunks_drawable );
-            // j=queued jobs p=pending drains s=flood seeds c=in-flight claims
-            // d=dirty (awaiting GPU upload) x=dropped seeds
-            // lag=oldest job age this interval (all jobs / near-player jobs, ms)
-            char lj[32], lp[32], ls[32], ld[32], lx[32];
-            fmt_count( lj, sizeof lj, debug_vars.loader.light_jobs );
-            fmt_count( lp, sizeof lp, debug_vars.loader.light_pending );
-            fmt_count( ls, sizeof ls, debug_vars.loader.light_seeds );
-            fmt_count( ld, sizeof ld, debug_vars.loader.light_dirty );
-            fmt_count( lx, sizeof lx, debug_vars.loader.light_dropped );
-            ImGui::Text( "Light: j:%5s p:%5s s:%5s c:%d d:%5s x:%5s stl:%d lag:%4.0f/%4.0fms",
-                         lj, lp, ls, debug_vars.loader.light_claims, ld, lx,
-                         debug_vars.loader.light_stale_count,
-                         debug_vars.loader.light_jlag_us / 1000.0, debug_vars.loader.light_njlag_us / 1000.0 );
-            ImGui::Separator( );
-
-            ImGui::Text( "Particles: %d (%d debris, %d primed TNT, %d falling blocks)",
-                         debug_vars.debris_particles + debug_vars.primed_tnt + debug_vars.falling_blocks,
-                         debug_vars.debris_particles, debug_vars.primed_tnt, debug_vars.falling_blocks );
-            ImGui::Text( "Mobs: %d (players %d)", static_cast<int>( state.world.mobs.count( ) - state.world.mobs.remote_count( ) ),
-                         static_cast<int>( state.world.mobs.remote_count( ) ) );
-            ImGui::Text( "Items: %d", debug_vars.item_entities );
-
-            // debug_vars.corner1.x = round( debug_vars.corner1.x * 20 ) / 20;
-            // debug_vars.corner1.y = round( debug_vars.corner1.y * 20 ) / 20;
-
-            // ImGui::Text( "This is some useful text." );               // Display some text (you can use a format strings too)
-            // ImGui::Checkbox( "Demo Window", &input.inventory_open ); // Edit bools storing our window open/close state
-            // ImGui::Checkbox( "Another Window", &input.inventory_open );
-
-            // if ( ImGui::Button( "Button" ) ) // Buttons return true when clicked (most widgets return true when edited/activated)
-            //     counter++;
-            // ImGui::SameLine( );
-            // ImGui::Text( "counter = %d", counter );
-
-            ImGui::End( );
-            ImGui::PopStyleColor( );
+            ImGui::TextUnformatted( "Looking At: --" );
         }
+        ImGui::Text( "Render Mode: %s", qualityName );
+        ImGui::Text( "Render Distance: %d chunks (%d blocks)  [=/+ and -, 0 resets]", input.render_distance, input.render_distance * CHUNK_SIZE_X );
+        const char *video_driver = SDL_GetCurrentVideoDriver( );
+        ImGui::Text( "Video Driver: %s", video_driver ? video_driver : "unknown" );
+        const char *acceleration;
+        if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
+            acceleration = "CUDA";
+        } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) ) {
+            acceleration = "HIP";
+        } else if ( LOAD_CHUNKS_SUPPORTS_WEBGPU && MapGen::supports_webgpu( ) ) {
+            acceleration = "WebGPU";
+        } else {
+            acceleration = "CPU";
+        }
+        ImGui::Text( "Acceleration: %s", acceleration );
+        // Server connection status; empty hostname means no server was
+        // requested (single player), so show "off" instead.
+        const std::string &server = state.multiplayer.server_hostname( );
+        if ( server.empty( ) ) {
+            ImGui::TextUnformatted( "Multiplayer: off" );
+        } else if ( !state.multiplayer.is_active( ) && !state.multiplayer.is_connecting( ) && state.multiplayer.protocol_mismatch_version( ) >= 0 ) {
+            ImGui::Text( "Multiplayer: version mismatch (server v%d, client v%d)",
+                         state.multiplayer.protocol_mismatch_version( ), NET_PROTOCOL_VERSION );
+        } else {
+            const char *mp_status = state.multiplayer.is_active( ) ? "connected" : ( state.multiplayer.is_connecting( ) ? "connecting" : "disconnected" );
+            ImGui::Text( "Multiplayer: %s:%d %s", server.c_str( ), state.multiplayer.server_port( ), mp_status );
+        }
+        // Day/night clock (read-only; PageUp/PageDown nudge world_time,
+        // which propagates to the server when connected).
+        const long time_of_day = debug_vars.world_time % DAY_LENGTH_TICKS;
+        const int clock_minutes = static_cast<int>( time_of_day * 24 * 60 / DAY_LENGTH_TICKS );
+        ImGui::Text( "Time: %8ld ticks  %02d:%02d (daylight %.2f)  [PgUp/PgDn]", time_of_day, clock_minutes / 60, clock_minutes % 60, debug_vars.daylight );
+        const char *song = audio_current_track_title( );
+        ImGui::Text( "Music: %s", song ? song : "--" );
+
+        ImGui::Separator( );
+        ImGui::Text( "Chunks: loading %4d (queued %4d, results %4d), drawable %4d",
+                     debug_vars.loader.chunks_loading, debug_vars.loader.terrain_queued,
+                     debug_vars.loader.terrain_results, debug_vars.loader.chunks_drawable );
+        // j=queued jobs p=pending drains s=flood seeds c=in-flight claims
+        // d=dirty (awaiting GPU upload) x=dropped seeds
+        // lag=oldest job age this interval (all jobs / near-player jobs, ms)
+        char lj[32], lp[32], ls[32], ld[32], lx[32];
+        fmt_count( lj, sizeof lj, debug_vars.loader.light_jobs );
+        fmt_count( lp, sizeof lp, debug_vars.loader.light_pending );
+        fmt_count( ls, sizeof ls, debug_vars.loader.light_seeds );
+        fmt_count( ld, sizeof ld, debug_vars.loader.light_dirty );
+        fmt_count( lx, sizeof lx, debug_vars.loader.light_dropped );
+        ImGui::Text( "Light: j:%5s p:%5s s:%5s c:%d d:%5s x:%5s stl:%d lag:%4.0f/%4.0fms",
+                     lj, lp, ls, debug_vars.loader.light_claims, ld, lx,
+                     debug_vars.loader.light_stale_count,
+                     debug_vars.loader.light_jlag_us / 1000.0, debug_vars.loader.light_njlag_us / 1000.0 );
+        ImGui::Separator( );
+
+        ImGui::Text( "Particles: %d (%d debris, %d primed TNT, %d falling blocks)",
+                     debug_vars.debris_particles + debug_vars.primed_tnt + debug_vars.falling_blocks,
+                     debug_vars.debris_particles, debug_vars.primed_tnt, debug_vars.falling_blocks );
+        ImGui::Text( "Mobs: %d (players %d)", static_cast<int>( state.world.mobs.count( ) - state.world.mobs.remote_count( ) ),
+                     static_cast<int>( state.world.mobs.remote_count( ) ) );
+        ImGui::Text( "Items: %d", debug_vars.item_entities );
+
+        ImGui::End( );
+        ImGui::PopStyleColor( );
     }
     ImGui::Render( );
     ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData( ) );

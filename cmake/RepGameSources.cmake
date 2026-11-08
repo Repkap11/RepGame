@@ -17,8 +17,11 @@ file(GLOB REPGAME_COMMON_SOURCES ${_repgame_glob_depends}
 	${REPGAME_ROOT}/src/common/*/*.cpp)
 
 # imgui core + the OpenGL3 backend; each platform adds its own windowing
-# backend (SDL3 on linux, SDL2 on wasm).
+# backend (SDL3 on linux, SDL2 on wasm). imgui_demo.cpp ships in the vendored
+# tree but nothing references ShowDemoWindow — keep it out of the build.
 file(GLOB REPGAME_IMGUI_CORE_SOURCES ${_repgame_glob_depends}
 	${REPGAME_ROOT}/imgui_build/imgui*.cpp)
+list(REMOVE_ITEM REPGAME_IMGUI_CORE_SOURCES
+	${REPGAME_ROOT}/imgui_build/imgui_demo.cpp)
 list(APPEND REPGAME_IMGUI_CORE_SOURCES
 	${REPGAME_ROOT}/imgui_build/backends/imgui_impl_opengl3.cpp)
