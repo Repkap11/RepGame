@@ -531,7 +531,7 @@ void RepGame::process_mouse_events( ) {
             if ( can_place ) {
                 const BlockID placed_block = change_block( 1, { plant_id, BLOCK_ROTATE_0, 0, plant_id, 0 } );
                 if ( placed_block != LAST_BLOCK_ID ) {
-                    audio_play_sfx( audio_block_dig_pool( plant_id ) );
+                    audio_play_sfx( audio_block_place_pool( plant_id ) );
                     if ( globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
                         globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
@@ -581,7 +581,7 @@ void RepGame::process_mouse_events( ) {
                     }
                     BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock, 0 } );
                     if ( placed_block != LAST_BLOCK_ID ) {
-                        audio_play_sfx( audio_block_dig_pool( holdingBlock ) );
+                        audio_play_sfx( audio_block_place_pool( holdingBlock ) );
                     }
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );

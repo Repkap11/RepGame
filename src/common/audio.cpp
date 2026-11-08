@@ -223,6 +223,13 @@ const char *audio_block_dig_pool( int block_id ) {
     return block_pool( "dig", mat );
 }
 
+const char *audio_block_place_pool( int block_id ) {
+    const char *mat = block_material( block_id );
+    // The pack has no glass-place "tink" files — random/glass* is the break
+    // shatter — so glass-type blocks place with the generic stone dig sound.
+    return strcmp( mat, "glass" ) == 0 ? "dig_stone" : audio_block_dig_pool( block_id );
+}
+
 const char *audio_block_step_pool( int block_id ) {
     const char *mat = block_material( block_id );
     // No glass footstep files in the pack — glass steps sound like stone.

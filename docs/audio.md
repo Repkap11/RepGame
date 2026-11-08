@@ -32,12 +32,14 @@ picks the next random track after a uniform `[gap/4, gap]` gap (the first
 track starts ~3s in). SFX are one-shots (SDL3 binds a stream per play, WASM
 claims a voice slot); manifest names `dig_stone_1..4` form
 the `dig_stone` pool, so `audio_play_sfx("dig_stone")` picks a random
-variant. `audio_block_dig_pool(block_id)` maps BlockID → pool
-(dig_stone/grass/gravel/sand/snow/wood/coral, glass) — the break and place
-hooks both use it; `audio_block_step_pool(block_id)` is the same map for
-footsteps (step_* pools, glass → step_stone). For the currently wired SFX
-hooks see the `audio_play_sfx` call sites. The ImGui overlay shows
-`Music: <title>` while a track plays.
+variant. `audio_block_dig_pool(block_id)` maps BlockID → break pool
+(dig_stone/grass/gravel/sand/snow/wood/coral, glass → the `glass` shatter);
+`audio_block_place_pool(block_id)` is the same map for placement except
+glass-type blocks → dig_stone (the pack's `random/glass*` is the shatter
+only — there is no glass place "tink"); `audio_block_step_pool(block_id)`
+is the same map for footsteps (step_* pools, glass → step_stone). For the
+currently wired SFX hooks see the `audio_play_sfx` call sites. The ImGui
+overlay shows `Music: <title>` while a track plays.
 
 IMPORTANT: the device is opened with `SDL_OpenAudioDevice` and the music
 stream is *bound* to it — do NOT use `SDL_OpenAudioDeviceStream`, whose

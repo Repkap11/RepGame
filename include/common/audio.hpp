@@ -1,10 +1,12 @@
 #pragma once
 
-// Maps a BlockID to the SFX pool name for breaking/placing that block —
-// Minecraft plays the block's dig sound for both. Returns "dig_stone" for
-// anything unrecognized. Compiled on every platform (pure id lookup, no
-// audio state) so game code can call it unconditionally.
+// Maps a BlockID to the SFX pool name for breaking that block. Returns
+// "dig_stone" for anything unrecognized. Compiled on every platform (pure
+// id lookup, no audio state) so game code can call it unconditionally.
 const char *audio_block_dig_pool( int block_id );
+// Same for placing — identical to the dig pool except glass-type blocks,
+// whose only pool is the break shatter ("glass"); those place like stone.
+const char *audio_block_place_pool( int block_id );
 // Same for footsteps on the block's top face ("step_stone" fallback; glass
 // steps sound like stone — the pack has no glass step files).
 const char *audio_block_step_pool( int block_id );
