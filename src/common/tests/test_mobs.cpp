@@ -1056,7 +1056,8 @@ int test_mobs( ) {
 
     // --- 21: breeding: feed -> love -> mate -> baby -------------------------
     {
-        // Breed-item tables: pigs eat roots, cow/sheep wheat, chicken seeds.
+        // Breed-item tables: pigs eat roots, cow/sheep wheat, chicken seeds,
+        // bees any flower (the is_flower flag, off the "flowers" item tag).
         check_bool( "breed: pig takes carrot", mob_def_is_breed_item( mob_types[ MOB_PIG ], CARROT ) );
         check_bool( "breed: pig takes potato + beetroot",
                     mob_def_is_breed_item( mob_types[ MOB_PIG ], POTATO ) && mob_def_is_breed_item( mob_types[ MOB_PIG ], BEETROOT ) );
@@ -1065,6 +1066,11 @@ int test_mobs( ) {
                     mob_def_is_breed_item( mob_types[ MOB_COW ], WHEAT ) && mob_def_is_breed_item( mob_types[ MOB_SHEEP ], WHEAT ) );
         check_bool( "breed: chicken takes seeds",
                     mob_def_is_breed_item( mob_types[ MOB_CHICKEN ], WHEAT_SEEDS ) && mob_def_is_breed_item( mob_types[ MOB_CHICKEN ], BEETROOT_SEEDS ) );
+        check_bool( "breed: bee takes flowers",
+                    mob_def_is_breed_item( mob_types[ MOB_BEE ], DANDELION ) && mob_def_is_breed_item( mob_types[ MOB_BEE ], POPPY ) &&
+                        mob_def_is_breed_item( mob_types[ MOB_BEE ], OXEYE_DAISY ) );
+        check_bool( "breed: bee refuses wheat + stone",
+                    !mob_def_is_breed_item( mob_types[ MOB_BEE ], WHEAT ) && !mob_def_is_breed_item( mob_types[ MOB_BEE ], STONE ) );
         check_bool( "breed: zombie has no foods", !mob_def_is_breed_item( mob_types[ MOB_ZOMBIE ], CARROT ) );
 
         MobManager mobs;

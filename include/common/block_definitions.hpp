@@ -142,6 +142,9 @@ typedef struct {
     // Derived (no JSON key): the block is a member of the "logs" item tag —
     // a trunk block that holds up nearby leaves for decay purposes.
     bool is_log;
+    // Derived (no JSON key): the block is a member of the "flowers" item
+    // tag — a bee breed food for types with MobTypeDef::breeds_with_flowers.
+    bool is_flower;
     // Flood-fill light emitted by this block, 0-15 (torches 14, lava/lamps 15,
     // lit furnace 13, portal 11, redstone torch 7). Stored in the chunk's
     // light[] volume and sampled by the fragment shader — never baked into the

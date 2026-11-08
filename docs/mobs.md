@@ -47,9 +47,13 @@ range the mob falls normally. A dying hoverer drops while tipping.
 `standing` stays false in flight, so `MOB_ANIM_WING_FLAP` holds the fast
 airborne rate. The bee hovers at `hover_h = 1`.
 
-Breeding (pigs, cows, sheep, chickens — `MobTypeDef::breed_items` lists
+Breeding (pigs, cows, sheep, chickens, bees — `MobTypeDef::breed_items` lists
 each type's foods: pigs eat carrots/potatoes/beetroots, cows and sheep
-wheat, chickens wheat or beetroot seeds): a passive mob within
+wheat, chickens wheat or beetroot seeds; the bee instead sets
+`breeds_with_flowers`, which counts every `is_flower` block — members of
+the `"flowers"` item tag in `data/item_tags.json` — as food, keeping a
+single flower in `breed_items[0]` only as the `feed` debug command's
+default): a passive mob within
 `MOB_TEMPT_RANGE` (10 blocks, ±4 y) of a player holding its food drops the
 wander AI and follows (`MobTickInput::held_item`; held items aren't
 streamed, so only the local player tempts). Tempting ignores a

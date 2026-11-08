@@ -259,6 +259,8 @@ drops and shears always yield the natural leaf. Helpers in
 `block.hpp`: `block_is_natural_leaf`, `block_is_persistent_leaf`,
 `block_is_leaf`, `block_natural_leaf_id`. `Block::is_log` is a derived
 flag (no JSON key): members of the `"logs"` item tag hold leaves up.
+`Block::is_flower` is derived the same way from the `"flowers"` item tag —
+the bee's breed food (`docs/mobs.md`).
 
 Decay: when a neighbour change may have removed a natural leaf's support,
 `BlockNextToChangeEvent` queues a jittered `LeafDecayEvent` (0.5–2.5 s,

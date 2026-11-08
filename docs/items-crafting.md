@@ -61,7 +61,7 @@ plantable ones carry `"plants": "<BLOCK_NAME>"` — the stage-0 crop id the
 right-click path places like a block (the crop's farmland survive rule
 does the field check). `item_plant_block(item)` resolves it. The same
 items double as breeding food via `MobTypeDef::breed_items`
-(`docs/mobs.md`), and `BREAD` crafts shapeless 3 wheat.
+(`docs/mobs.md`; bees eat `is_flower` blocks instead), and `BREAD` crafts shapeless 3 wheat.
 
 Mining speed: `ItemGenDef` carries `tool_class` (the `MineableClass` the
 item accelerates) and `mine_speed` (per-tick multiplier). Optional item

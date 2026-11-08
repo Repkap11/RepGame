@@ -56,6 +56,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->crop_next = LAST_BLOCK_ID;
         block->is_crop = false;
         block->is_log = false;
+        block->is_flower = false;
         block->emits_light = 0;
         block->is_button = false;
         block->is_pressure_plate = false;

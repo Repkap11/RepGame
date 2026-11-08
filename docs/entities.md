@@ -103,7 +103,8 @@ with a reason; ENTITY_TRANSFER switches ownership (adopt=1) or demotes to
 mirror (adopt=0); ENTITY_ACTION carries hits against remote entities
 (NET_ACTION_HIT + damage) and mob feeding (NET_ACTION_FEED + the claimed
 `item`, protocol 8 — the owning client's `feedable()` re-validates it
-against `MobTypeDef::breed_items` before applying);
+against the type's breed foods (`MobTypeDef::breed_items` plus
+`breeds_with_flowers`) before applying);
 PICKUP_REQUEST/PICKUP_RESULT arbitrate item pickup races server-side
 (exactly one grant, partial pickups reduce the count via a server state);
 CHUNK_POPULATED marks a chunk's natural-mob roll done for this coverage

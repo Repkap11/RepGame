@@ -1083,6 +1083,11 @@ def main():
     for bid, b in blocks.items():
         if b["name"] in item_tags.get("logs", []):
             b["is_log"] = True
+    # Derived flag (never a JSON key): every member of the "flowers" item tag
+    # is a bee breed food (MobTypeDef::breeds_with_flowers).
+    for bid, b in blocks.items():
+        if b["name"] in item_tags.get("flowers", []):
+            b["is_flower"] = True
     # mineable class: an explicit "mineable" key wins, else classify the name.
     for bid, b in blocks.items():
         if "mineable" not in b:
@@ -1388,7 +1393,7 @@ def main():
                 out.append("%s%s = { %s };\n" % (prefix, key, ", ".join("true" if x else "false" for x in val)))
             elif key in BLOCK_REF_FIELDS:
                 out.append("%s%s = %s;\n" % (prefix, key, val))
-            elif key in BOOL_FIELDS or key == "is_log":
+            elif key in BOOL_FIELDS or key in ("is_log", "is_flower"):
                 out.append("%s%s = %s;\n" % (prefix, key, "true" if val else "false"))
             elif key in FLOAT_FIELDS:
                 out.append("%s%s = %sf;\n" % (prefix, key, fmt_float(val)))

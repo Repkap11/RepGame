@@ -62,8 +62,13 @@ typedef struct {
     ItemID spawn_egg;
     // Breeding (passive types): food items that tempt the mob toward the
     // player and put it in love mode when fed; LAST_BLOCK_ID-terminated.
-    // An empty list means the type can't breed (player, hostiles, bee).
+    // An empty list means the type can't breed (player, hostiles). The
+    // first entry is also the `feed` debug command's default food.
     ItemID breed_items[ 4 ];
+    // Bee only: every `is_flower` block (the "flowers" item tag) counts as
+    // breed food on top of breed_items — the flower set doesn't fit the
+    // fixed list.
+    bool breeds_with_flowers;
     // Sound pool names; NULL when the type has no such sound. Consumed by the
     // audio pass (phase 2).
     const char *sound_say;
@@ -108,7 +113,8 @@ inline MobType mob_type_for_spawn_egg( ItemID item ) {
     return MOB_TYPE_COUNT;
 }
 
-// Whether `item` is one of this type's breed foods (MobTypeDef::breed_items).
+// Whether `item` is one of this type's breed foods (MobTypeDef::breed_items
+// plus, for breeds_with_flowers types, any is_flower block).
 inline bool mob_def_is_breed_item( const MobTypeDef &def, ItemID item ) {
     if ( item == LAST_BLOCK_ID ) {
         return false;
@@ -118,5 +124,6 @@ inline bool mob_def_is_breed_item( const MobTypeDef &def, ItemID item ) {
             return true;
         }
     }
-    return false;
+    return def.breeds_with_flowers && item_is_block( item ) && //
+           block_definition_get_definition( static_cast<BlockID>( item ) )->is_flower;
 }
