@@ -38,7 +38,9 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
 - `make scenarios` — scripted game scenarios (`tests/scenarios/*.rds` via
   `rep-dbg script`; `SCENARIOS="substr"` filters); part of `test-all`
 - `make check` — cppcheck over `src/`; verified false positives live in
-  `tools/cppcheck-suppressions.txt` (vendor dirs use `*:path/*` entries)
+  `tools/cppcheck-suppressions.txt` (vendor dirs use `*:path/*` entries).
+  Caches per-file results under `out/cppcheck` — reruns are seconds;
+  delete that dir to force a full recheck (~5-6 min cold)
 - `tools/rep-dbg` — structured headless runs (`fly`/`walk`/`run` presets)
   with per-run `result.json`/`results.jsonl` under `/tmp/rep-dbg`; `rep-dbg
   inspect <world|run> <sub>` reads saved worlds offline (block/slice/chunk/

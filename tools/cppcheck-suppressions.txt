@@ -103,3 +103,7 @@ missingInclude:src/common/audio.cpp
 missingInclude:src/linux/wayland_pointer_constraints_code.cpp
 # OOM-failure paths in tests/tools aren't worth modeling.
 nullPointerOutOfResources
+# On incremental runs (--cppcheck-build-dir), cached TUs don't re-run so
+# their matching suppressions get reported as "unmatched". Meta-noise
+# inherent to the cache; staleness is caught on full rechecks instead.
+unmatchedSuppression

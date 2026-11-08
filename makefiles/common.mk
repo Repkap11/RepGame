@@ -125,11 +125,16 @@ blocks-import:
 # REPGAME_LINUX anyway. Vendored headers reached via -I are silenced by
 # the `*:` entries in tools/cppcheck-suppressions.txt (-i doesn't apply
 # to include-resolved files) — keep that list honest.
+# out/cppcheck caches per-TU results by hash: reruns only re-analyze
+# changed files (also enables whole-program/CTU analysis). Wipe the dir
+# to force a full recheck.
 check:
+	mkdir -p out/cppcheck
 	cppcheck -j$(CPUS) --quiet --enable=warning,style,performance,portability,information,missingInclude \
 		-Iinclude -Iinclude/glm -Ientt_build/src -Iimgui_build -Iimgui_build/backends \
 		-isrc/android -isrc/wasm -isrc/windows -isrc/linux/wayland-protocols \
 		-DREPGAME_LINUX -DGLEW_NO_GLU -DREPGAME_AUDIO \
+		--cppcheck-build-dir=out/cppcheck \
 		--suppressions-list=tools/cppcheck-suppressions.txt \
 		src
 
