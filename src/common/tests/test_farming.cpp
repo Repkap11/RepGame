@@ -33,6 +33,11 @@ int test_farming( ) {
     check_bool( "plant: beetroot seeds -> BEETROOT_0", item_plant_block( BEETROOT_SEEDS ) == BEETROOT_0 );
     check_bool( "plant: bread plants nothing", item_plant_block( BREAD ) == LAST_BLOCK_ID );
     check_bool( "plant: a block plants nothing", item_plant_block( STONE ) == LAST_BLOCK_ID );
+    check_bool( "pick: wheat stage -> seeds", item_for_crop_block( WHEAT_0 ) == WHEAT_SEEDS && item_for_crop_block( WHEAT_7 ) == WHEAT_SEEDS );
+    check_bool( "pick: carrot stage -> carrot", item_for_crop_block( CARROT_4 ) == CARROT );
+    check_bool( "pick: potato stage -> potato", item_for_crop_block( POTATOES_3 ) == POTATO );
+    check_bool( "pick: beetroot stage -> seeds", item_for_crop_block( BEETROOT_2 ) == BEETROOT_SEEDS );
+    check_bool( "pick: stone has no crop item", item_for_crop_block( STONE ) == LAST_BLOCK_ID );
 
     // --- Crop chains: every stage is_crop and links to the next ------------
     {

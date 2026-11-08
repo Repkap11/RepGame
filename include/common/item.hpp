@@ -77,6 +77,23 @@ static inline BlockID item_plant_block( ItemID id ) {
                                                            : LAST_BLOCK_ID;
 }
 
+// The seed/produce item that plants a crop block, or LAST_BLOCK_ID when no
+// item's plant chain reaches it. Pick-block uses this so any growth stage
+// yields the planting item rather than the stage's block item.
+static inline ItemID item_for_crop_block( BlockID id ) {
+    for ( int i = 0; i < ITEM_ID_END - ITEM_ID_BASE; i++ ) {
+        // The step cap keeps a malformed cyclic chain from hanging.
+        BlockID b = ITEM_DEFINITIONS[ i ].plant_block;
+        for ( int step = 0; step < 32 && b != LAST_BLOCK_ID; step++ ) {
+            if ( b == id ) {
+                return ITEM_ID_BASE + i;
+            }
+            b = block_definition_get_definition( b )->crop_next;
+        }
+    }
+    return LAST_BLOCK_ID;
+}
+
 // Generated block drop table ("drops" in data/blocks/*.json). Blocks with no
 // "drops" key are absent from BLOCK_DROP_TABLE and drop themselves.
 typedef struct {

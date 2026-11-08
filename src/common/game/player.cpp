@@ -198,8 +198,15 @@ void RepGame::process_mouse_events( ) {
         BlockState blockState = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         globalGameState.input.click_delay_middle = 30;
-        // A door's upper half picks the lower's item.
-        const BlockID pick_id = blockState.id != LAST_BLOCK_ID ? block_item_id( blockState.id ) : LAST_BLOCK_ID;
+        // A door's upper half picks the lower's item; a crop stage picks the
+        // seed/produce item that plants it.
+        ItemID pick_id = LAST_BLOCK_ID;
+        if ( blockState.id != LAST_BLOCK_ID ) {
+            pick_id = item_for_crop_block( blockState.id );
+            if ( pick_id == LAST_BLOCK_ID ) {
+                pick_id = block_item_id( blockState.id );
+            }
+        }
         if ( globalGameState.game_mode == GameMode_Survival && pick_id != LAST_BLOCK_ID ) {
             // In survival mode, middle-clicking picks the block onto the
             // hotbar. If a non-full stack is already on the bar, just select
@@ -514,7 +521,9 @@ void RepGame::process_mouse_events( ) {
         if ( plant_id != LAST_BLOCK_ID ) {
             bool can_place = true;
             if ( globalGameState.game_mode == GameMode_Survival ) {
-                can_place = globalGameState.hotbar.canPlaceSelected( );
+                // canPlaceSelected only covers block items; seeds are pure
+                // items, so check the stack directly.
+                can_place = globalGameState.hotbar.getSelectedQuantity( ) > 0;
             }
             if ( can_place ) {
                 const BlockID placed_block = change_block( 1, { plant_id, BLOCK_ROTATE_0, 0, plant_id, 0 } );
