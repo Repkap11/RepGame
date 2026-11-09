@@ -64,6 +64,12 @@ struct BlockSelection {
     // can_float_on_water block, and only used to place it.
     int floatSelectionInBounds;
     glm::ivec3 pos_create_water;
+    // Third raycast that hits any fluid — only run while holding a bucket:
+    // pos_fluid is the hit fluid cell, pos_fluid_create the face-adjacent
+    // cell a pour would target.
+    int fluidSelectionInBounds;
+    glm::ivec3 pos_fluid;
+    glm::ivec3 pos_fluid_create;
     // The camera/aim ray this selection came from — set where the ray is
     // computed so left-click can test mob hits against the same ray.
     glm::dvec3 ray_origin;

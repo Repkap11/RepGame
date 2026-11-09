@@ -146,8 +146,9 @@ class RepGame {
     // Mob-vs-block target resolution for the crosshair ray. Sets
     // block_selection.target_mob/target_mob_dist and, when the mob is nearer
     // than the selected block cell (or no block is selected), clears
-    // selectionInBounds/floatSelectionInBounds so no block outline (or
-    // place/pick through the mob) happens. Static so rep_tests can drive it.
+    // selectionInBounds/floatSelectionInBounds/fluidSelectionInBounds so no
+    // block outline (or place/pick through the mob) happens. Static so
+    // rep_tests can drive it.
     static void resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_origin );
     // A hostile mob's melee hit lands here: knockback away from `from` plus
     // the player_hurt sound. `damage` is unused until player health exists.
@@ -168,3 +169,12 @@ class RepGame {
 // looting; the multiplayer CONTAINER_CONTENTS loot path calls this with
 // the server's authoritative snapshot.
 void repgame_loot_container( RepGameState &state, const InventorySlot *slots, int count );
+
+// Right-click use of a bucket item (BUCKET/WATER_BUCKET/LAVA_BUCKET) on the
+// current block selection: an empty bucket scoops the fluid source under
+// fluidSelectionInBounds; a filled one pours its fluid at pos_fluid (a
+// flowing hit), pos_fluid_create, or pos_create. Queues the world change as
+// a PlayerBlockPlacedEvent and swaps the held item in survival (creative
+// keeps it). Returns true when a bucket action happened; a free function so
+// rep_tests can drive it.
+bool repgame_use_bucket( RepGameState &state );

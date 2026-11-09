@@ -28,6 +28,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->collides_with_player = true;
         block->climbable = false;
         block->flows = 0;
+        block->flow_range = 0;
+        block->flow_slope = 0;
+        block->forms_sources = false;
         block->scale = { 16, 16, 16 };
         block->offset = { 0, 0, 0 };
         block->tex_offset = { 0, 0, 0 };

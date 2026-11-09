@@ -81,8 +81,9 @@ BOOL_FIELDS = {
     "is_stairs", "climbable",
     "is_door", "is_door_upper", "door_redstone_only",
     "is_tall_plant_upper",
+    "forms_sources",
 }
-INT_FIELDS = {"no_light", "flows", "initial_redstone_power", "emits_light", "light_absorb"}
+INT_FIELDS = {"no_light", "flows", "flow_range", "flow_slope", "initial_redstone_power", "emits_light", "light_absorb"}
 FLOAT_FIELDS = {"hardness", "fall_mass"}
 VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
@@ -536,6 +537,15 @@ def load_blocks():
         for k in BLOCK_REF_FIELDS & set(b):
             if not isinstance(b[k], str) or not re.match(r"^[A-Z][A-Z0-9_]*$", b[k]):
                 fail("%s: %s must be a block name string" % (fname, k))
+        # Fluid fields describe a liquid: the block must flow at all (flows
+        # is the per-step tick delay), and flow_range caps at 7 because the
+        # level is stored in the 3 rotation bits of BlockCell.
+        if ("flow_range" in b or "flow_slope" in b or "forms_sources" in b) and not b.get("flows", 0):
+            fail("%s: flow_range/flow_slope/forms_sources require flows != 0" % fname)
+        if "flow_range" in b:
+            fr = b["flow_range"]
+            if not isinstance(fr, int) or isinstance(fr, bool) or not (1 <= fr <= 7):
+                fail("%s: flow_range must be an int in 1-7 (7 is the cap - the level is stored in the 3 rotation bits of BlockCell)" % fname)
         b["_file"] = fname
         blocks[bid] = b
         names[name] = bid
@@ -1004,6 +1014,14 @@ def resolve_image(name, meta):
     frame = meta.get("frame", 0)
     if not isinstance(frame, int) or frame < 0:
         fail("texture %r: bad frame %r" % (name, frame))
+    # Bedrock animated strips can be authored at >1x tile resolution: the
+    # flow textures are 32-wide stacks of square 32x32 frames. An image
+    # whose width is a multiple of TILE and whose height is a multiple of
+    # its width holds square frames at that scale — downscale to TILE-wide
+    # so the per-frame crop below sees TILE squares. TILE-wide strips are
+    # already at scale and skip the resample.
+    if img.width != TILE and img.width % TILE == 0 and img.height % img.width == 0:
+        img = img.resize((TILE, img.height * TILE // img.width), Image.Resampling.LANCZOS)
     img = img.crop((0, frame * TILE, TILE, (frame + 1) * TILE))
     if img.size != (TILE, TILE):
         fail("texture %r (%s): not %dx%d after frame crop (is %s)" % (name, os.path.relpath(path, ROOT), TILE, TILE, img.size))

@@ -102,6 +102,9 @@ in float v_planarDot;
 in vec3 v_world_coords;
 in float v_SplitDot;
 flat in vec3 v_face_normal;
+// World-xz flow direction of a fluid surface (0,0 when level). Top-face
+// UVs arrive pre-rotated by the vertex shader so +v runs along it.
+flat in vec2 v_flow_dir;
 in vec3 v_light_pos;
 
 flat in uint v_blockID;
@@ -224,6 +227,41 @@ void main() {
             texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
             if(texColor.a == 0.0f) {
                 discard;
+            }
+        } else if(v_blockID == uint(TEX_WATER_FLOW) || v_blockID == uint(TEX_LAVA_FLOW)) {
+            // Flow strip: sides + sloped tops. The vertex shader rotates
+            // top UVs so +v runs along the surface gradient; sides always
+            // run downhill (texture v increases upward on a side face).
+            bool is_lava = v_blockID == uint(TEX_LAVA_FLOW);
+            float speed = is_lava ? u_Time * 0.02f : u_Time * 0.12f;
+            vec2 flow;
+            if(v_face_normal.y > 0.5) {
+                // Top winding: scroll along the flow, frozen for the
+                // (paranoia-only) level-surface case.
+                flow = vec2(0.0f, dot(v_flow_dir, v_flow_dir) > 0.25f ? -speed : 0.0f);
+            } else if(abs(v_face_normal.y) < 0.5) {
+                // Side: downward in v, whichever way the surface tilts.
+                flow = vec2(0.0f, speed);
+            } else {
+                flow = vec2(0.0f);
+            }
+            vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * (is_lava ? 0.04f : 0.10f);
+            // v_TexCoordBlock, not the clamped `working`: the rotated top
+            // UVs run outside [0,1] and the edge clamp would smear the tile
+            // border across the quad — the layer wraps anyway (GL_REPEAT).
+            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, v_blockID));
+            if(texColor.a == 0.0f) {
+                discard;
+            }
+            if(!is_lava) {
+                // Same deep-water tint + fresnel as TEX_WATER_STILL so a
+                // sloped surface reads as the same water body.
+                vec3 viewDir = normalize(u_CameraPos - v_world_coords);
+                float fresnel = 0.18f + 0.82f * pow(1.0f - clamp(abs(viewDir.y), 0.0f, 1.0f), 3.0f);
+                texColor.rgb = mix(texColor.rgb, vec3(0.04f, 0.18f, 0.58f), 0.78f);
+                texColor.a *= 0.8f + 0.2f * fresnel;
+            } else {
+                texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
             }
         }
     }

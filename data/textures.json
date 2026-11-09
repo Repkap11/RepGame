@@ -1570,6 +1570,9 @@
   "large_amethyst_bud": {
     "source": "textures/blocks/large_amethyst_bud"
   },
+  "lava_flow": {
+    "source": "textures/blocks/lava_flow"
+  },
   "lava_still": {
     "source": "textures/blocks/lava_still"
   },
@@ -2973,6 +2976,10 @@
   },
   "warped_wart_block": {
     "source": "textures/blocks/warped_wart_block"
+  },
+  "water_flow": {
+    "alpha": 140,
+    "source": "textures/blocks/water_flow"
   },
   "water_still": {
     "alpha": 140,

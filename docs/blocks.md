@@ -397,3 +397,28 @@ and advances exactly one stage per click (player.cpp).
 
 Old-save caveat: leaves placed before persistent variants existed save as
 the natural id and may decay once disturbed when no log is within range.
+
+## Fluids
+
+`flows != 0` marks a fluid (water, lava): the value is the per-step
+spread delay in ticks at `UPS_RATE`. Companion keys
+(`include/common/block_definitions.hpp`):
+
+- `flow_range` — max flowing level; capped at `FLUID_MAX_LEVEL` (7)
+  because the level lives in `BlockState::rotation`'s 3 bits (sources
+  are rotation 0, flowing cells rotation 1..`flow_range`).
+- `flow_slope` — how far sideways spread searches for a drop
+  (`fluid_slope_distance`).
+- `forms_sources` — MC's infinite-water rule: a fed cell with two
+  adjacent plain sources over a solid/source cell becomes a source.
+- `waterloggable` — the block may live inside a water cell
+  (`BlockState::waterlogged` is the per-cell flag; such cells are walls
+  to flow — only source-level water writes waterlog them, via
+  `block_state_normalize`).
+- `breaks_in_liquid` — a fluid writing over the block pops it
+  (water carries survival drops, lava burns them), unless the block is
+  also waterloggable — those get waterlogged instead of broken.
+
+The sim itself — `FluidUpdateEvent`, level recompute, drop-seeking
+spread, lava/water reactions — is `docs/fluids.md`; sloped-surface
+rendering is `docs/rendering.md`.

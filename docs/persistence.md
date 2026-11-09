@@ -56,6 +56,9 @@ cells/extras (`store_state`), and `load_blocks` fills a raw
 through the work queue before its memory is released — plus
 `Chunk::persist` on shutdown and `persist_dirty_blocks` on the server.
 
+Fluid flow levels ride the same rotation bits (`docs/fluids.md`) — no
+format change; pre-levels fluid cells (rotation 0) load as sources.
+
 ## Container sidecars
 
 Container contents persist per chunk through `load_chests`/`persist_chests`

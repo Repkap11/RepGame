@@ -69,7 +69,9 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   eases `y_speed` toward jump/sink targets under `PLAYER_WATER_ACCEL`
   with `WATER_VERTICAL_DRAG` when idle.
 - **Swim vs wade.** Swimming requires the *standing* body center below
-  the liquid's surface plane (`WATER_HEIGHT`) — a crouched dip doesn't
+  the liquid's surface — `fluid_surface_height`, so a shallow flowing
+  cell wades rather than swims (`WATER_HEIGHT` when the body cell
+  isn't liquid) — a crouched dip doesn't
   flip into swim and oscillate. Feet-in-liquid but body above the
   surface is wading (slower walk, normal physics).
 - **Climbing.** While the body AABB overlaps a cell holding a block
@@ -106,7 +108,10 @@ Mouse deltas are low-pass filtered (`MOUSE_SMOOTHING`) into
 marches the eye ray out to `REACH_DISTANCE`: the hit cell becomes
 `pos_destroy`, the adjacent cell along the hit face `pos_create`. A
 second traversal ignoring water fills `pos_create_water` so placement
-against the water surface works. `World::set_selected_block` feeds the
+against the water surface works. A third mode-2 traversal runs while a
+bucket is held: it hits fluid cells and fills `pos_fluid` /
+`pos_fluid_create` / `fluidSelectionInBounds` (`docs/fluids.md`).
+`World::set_selected_block` feeds the
 `MouseSelection` highlight box, and `mobs.resolve_target` lets a closer
 mob pre-empt the block target for left clicks.
 
@@ -135,8 +140,11 @@ mob pre-empt the block target for left clicks.
   face or upper side half => top-half block, `docs/blocks.md`).
 - **Use.** The right-click chain handles mob feeding (a breedable mob
   takes precedence over block clicks), buttons, doors/gates, chests,
-  crafting tables, dust toggling, bone meal (sapling or crop stage), hoe
-  tilling and spawn eggs before falling through to placement
+  crafting tables, dust toggling, buckets (`repgame_use_bucket` —
+  `BUCKET` scoops the fluid source under `fluidSelectionInBounds`,
+  `WATER_BUCKET`/`LAVA_BUCKET` pour a source at the flowing hit cell,
+  `pos_fluid_create` or `pos_create`), bone meal (sapling or crop
+  stage), hoe tilling and spawn eggs before falling through to placement
   (`docs/redstone.md`, `docs/ui.md`).
 
 ## Farming

@@ -3,7 +3,7 @@
 
 #include "common/item.hpp"
 
-#define CREATIVE_BLOCK_COUNT 1169
+#define CREATIVE_BLOCK_COUNT 1172
 static const ItemID CREATIVE_BLOCKS[CREATIVE_BLOCK_COUNT] = {
     ACACIA_PLANKS,
     ACACIA_LOG,
@@ -1174,4 +1174,7 @@ static const ItemID CREATIVE_BLOCKS[CREATIVE_BLOCK_COUNT] = {
     BEETROOT,
     BEETROOT_SEEDS,
     BREAD,
+    BUCKET,
+    WATER_BUCKET,
+    LAVA_BUCKET,
 };

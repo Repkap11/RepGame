@@ -6,6 +6,7 @@
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
+#include "common/fluid.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/profile.hpp"
 #include "common/renderer/texture.hpp"
@@ -446,6 +447,13 @@ void RepGame::process_mouse_events( ) {
             }
         }
     }
+    if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.fluidSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 && !globalGameState.input.movement.sneakPressed ) {
+        // Buckets scoop a fluid source or pour theirs out — after the block
+        // interactions above (they need the normal pick too), before the
+        // use/placement paths below. Buckets are items so nothing below can
+        // place them anyway; repgame_use_bucket owns the click delay.
+        repgame_use_bucket( globalGameState );
+    }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Bone meal on a crop advances it one stage (the chain ends at the
         // mature stage, which has no crop_next) and on a sapling grows it
@@ -694,7 +702,11 @@ void RepGame::process_movement( ) {
     // above is also liquid, the column fills it completely.
     const BlockState above_block = globalGameState.world.get_loaded_block( body_block_pos + glm::ivec3( 0, 1, 0 ) );
     const bool liquid_above = above_block.id < LAST_BLOCK_ID && block_definition_get_definition( above_block.id )->flows != 0;
-    const bool player_swimming = !player_flying && body_in_liquid && ( liquid_above || body_center.y < static_cast<double>( body_block_pos.y ) + WATER_HEIGHT );
+    // Sloped fluids sit lower than the source height — the surface lookup
+    // handles level heights and full columns, falling back to WATER_HEIGHT
+    // for non-fluid cells.
+    const double surface_height = static_cast<double>( body_block_pos.y ) + ( body_in_liquid ? fluid_surface_height( globalGameState.world, body_block_pos ) : WATER_HEIGHT );
+    const bool player_swimming = !player_flying && body_in_liquid && ( liquid_above || body_center.y < surface_height );
     // Wading: feet in a liquid but body above the surface (e.g. 1-deep water).
     const glm::ivec3 feet_block_pos = glm::ivec3( glm::round( globalGameState.camera.pos - glm::dvec3( 0.0, globalGameState.camera.eye_height - 0.05, 0.0 ) - glm::dvec3( 0.5 ) ) );
     const BlockState feet_block = globalGameState.world.get_loaded_block( feet_block_pos );

@@ -38,6 +38,10 @@ layout(location = 9) in uint rotation_packed;
 layout(location = 10) in ivec3 blockCoords_scale;
 layout(location = 11) in ivec3 blockCoords_offset;
 layout(location = 12) in ivec3 texCoords_offset;
+// Corners (x=1,z=0),(x=0,z=1),(x=1,z=1) of the fluid surface in 1/64 block
+// units — only read for BLOCK_COORDS_FLUID instances (corner (x=0,z=0)
+// rides in the top byte of mesh_size_packed).
+layout(location = 13) in uvec3 fluid_h;
 
 out vec2 v_TexCoordBlock;
 flat out vec2 v_tex_min;
@@ -52,6 +56,10 @@ out vec3 v_world_coords;
 flat out vec3 v_face_normal;
 // World position the fragment shader samples the light volume at.
 out vec3 v_light_pos;
+// World-xz flow direction of a fluid surface (0,0 when level). The top
+// face's UVs are rotated so +v points along it — fragment scrolling along
+// v is scrolling along the flow.
+flat out vec2 v_flow_dir;
 
 flat out int v_block_auto_rotates;
 
@@ -71,6 +79,7 @@ flat out int v_block_auto_rotates;
 #define BLOCK_COORDS_ROTATION_MASK 0xfu
 #define BLOCK_COORDS_INSIDE_OUT 0x10u
 #define BLOCK_COORDS_HALF_PIXEL 0x20u
+#define BLOCK_COORDS_FLUID 0x40u
 
 #define NO_LIGHT_NO_DRAW 0x6fffffu
 
@@ -102,6 +111,34 @@ void main() {
 
     vec3 mesh_size = vec3((mesh_size_packed & 0xffu), (mesh_size_packed & 0xff00u) >> 8, (mesh_size_packed & 0xff0000u) >> 16);
     vec3 meshed_position = cube_pos * (mesh_size - u_DebugScaleOffset);
+
+    // Fluid surfaces: per-corner heights (1/64 units) replace the unit
+    // cube's top edge. h0 lives in the free top byte of mesh_size_packed,
+    // h1..h3 in fluid_h — corner order (x=0,z=0),(x=1,z=0),(x=0,z=1),
+    // (x=1,z=1), matching the BlockCoords packing.
+    bool fluid_instance = (rotation_packed & BLOCK_COORDS_FLUID) != 0u;
+    float fluid_height = 0.0;
+    v_flow_dir = vec2(0.0);
+    if(fluid_instance) {
+        float h[4];
+        h[0] = float(mesh_size_packed >> 24) / 64.0;
+        h[1] = float(fluid_h.x) / 64.0;
+        h[2] = float(fluid_h.y) / 64.0;
+        h[3] = float(fluid_h.z) / 64.0;
+        int hidx = int(cube_pos.x > 0.5) | (int(cube_pos.z > 0.5) << 1);
+        fluid_height = h[hidx];
+        // Flow direction: downhill, from the high corners toward the low
+        // ones — the negated surface gradient in world xz.
+        vec2 grad = vec2((h[0] + h[2]) - (h[1] + h[3]), (h[0] + h[1]) - (h[2] + h[3]));
+        if(dot(grad, grad) > 1e-4) {
+            v_flow_dir = normalize(grad);
+        }
+        if(cube_pos.y > 0.5) {
+            // Top-edge verts ride the corner height; a merged column's top
+            // lands on the top cell's surface (h plus the cells below).
+            meshed_position.y = cube_pos.y * (mesh_size.y - 1.0) + fluid_height;
+        }
+    }
 
     vec3 adjusted_position = meshed_position;
 
@@ -217,6 +254,26 @@ void main() {
             face_shift = texCoords_offset_f.xy;
         } else {
             face_shift = texCoords_offset_f.zy;
+        }
+    }
+    if(fluid_instance) {
+        if(faceType == FACE_TOP) {
+            // Rotate the top quad's UVs so +v points along the flow — the
+            // strip scroll (fragment shader, always along v) then reads
+            // downstream on any surface slope. v_flow_dir is already the
+            // normalized (cos,sin) in the u=x / v=z basis — and (0,0) for a
+            // flat surface, which lands the rotation on identity without an
+            // atan(0,0).
+            float c = v_flow_dir.x, s = v_flow_dir.y;
+            texCoordBlock_adjust = vec2(
+                -texCoordBlock_adjust.x * s + texCoordBlock_adjust.y * c,
+                texCoordBlock_adjust.x * c + texCoordBlock_adjust.y * s);
+        } else if(cube_pos.y > 0.5 && faceType != FACE_BOTTOM) {
+            // Side-top verts: the flow strip runs v=0..1 over one cell, so
+            // scale v by the corner height — a 56/64 surface samples the
+            // upper 0.875 of the strip just like the old fixed-height
+            // water did with tex_coords_size.y.
+            texCoordBlock_adjust.y *= fluid_height;
         }
     }
     float face_light;

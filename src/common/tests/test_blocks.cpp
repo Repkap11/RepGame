@@ -491,7 +491,7 @@ int test_stairs( ) {
         check_bool( "ray: upper-front void misses",
                     !RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 11.75, 22.0 ), glm::dvec3( 20.5, 11.75, 20.75 ), out, &which_face ) );
         check_bool( "ray: step's +z face hits the stair",
-                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 11.75, 22.0 ), glm::dvec3( 20.5, 11.75, 18.5 ), out, &which_face, false, &hit_t ) &&
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 11.75, 22.0 ), glm::dvec3( 20.5, 11.75, 18.5 ), out, &which_face, 0, &hit_t ) &&
                         out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_BACK );
         // Crossing the void horizontally, the ray ignores the stair's cell
         // and hits the top-half stair's upper slab on the far side.
@@ -500,7 +500,7 @@ int test_stairs( ) {
                         out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_LEFT );
         hit_t = -1.0;
         check_bool( "ray: slab top hit reports t at +0.5",
-                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, 0, &hit_t ) &&
                         out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 1.0 ) < 0.01 );
     }
     return failures;
@@ -624,11 +624,11 @@ int test_slabs( ) {
         int which_face = -1;
         double hit_t = -1.0;
         check_bool( "ray: down at top slab hits the cell-top face",
-                    RayTraversal::find_block_from_to( world, glm::dvec3( 22.5, 12.5, 20.75 ), glm::dvec3( 22.5, 10.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 22.5, 12.5, 20.75 ), glm::dvec3( 22.5, 10.5, 20.75 ), out, &which_face, 0, &hit_t ) &&
                         out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 0.5 ) < 0.01 );
         hit_t = -1.0;
         check_bool( "ray: up at top slab hits the mid-cell underside",
-                    RayTraversal::find_block_from_to( world, glm::dvec3( 22.5, 10.5, 20.75 ), glm::dvec3( 22.5, 12.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 22.5, 10.5, 20.75 ), glm::dvec3( 22.5, 12.5, 20.75 ), out, &which_face, 0, &hit_t ) &&
                         out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_BOTTOM && fabs( hit_t - 1.0 ) < 0.01 );
         check_bool( "ray: through the open lower half hits the stone behind",
                     RayTraversal::find_block_from_to( world, glm::dvec3( 21.5, 11.25, 20.75 ), glm::dvec3( 23.5, 11.25, 20.75 ), out, &which_face ) &&
@@ -637,7 +637,7 @@ int test_slabs( ) {
                     RayTraversal::find_block_from_to( world, glm::dvec3( 21.5, 11.75, 20.75 ), glm::dvec3( 22.5, 11.75, 20.75 ), out, &which_face ) &&
                         out == glm::ivec3( 22, 11, 20 ) && which_face == FACE_LEFT );
         check_bool( "ray: down at bottom slab hits the half-height top",
-                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, false, &hit_t ) &&
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, 0, &hit_t ) &&
                         out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 1.0 ) < 0.01 );
     }
     return failures;
@@ -734,7 +734,14 @@ int test_waterlog( ) {
     World &world = gs.world;
 
     const BlockState stone = { STONE, 0, 0, STONE, 0 };
-    world.set_loaded_block( glm::ivec3( 10, 9, 10 ), stone );  // floor under coral
+    // Floor under the whole play area: the single loaded chunk refuses
+    // writes to its boundary cells (no neighbour chunk to fix up), which
+    // would leave falling water retrying a write that can never land.
+    for ( int x = 2; x <= 19; x++ ) {
+        for ( int z = 2; z <= 19; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 9, z ), stone );
+        }
+    }
     world.set_loaded_block( glm::ivec3( 20, 9, 20 ), stone );  // floor under dry coral
     world.set_loaded_block( glm::ivec3( 11, 10, 10 ), { WATER, 0, 0, WATER, 0 } );
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { WATER, 0, 0, WATER, 0 } );
@@ -765,7 +772,7 @@ int test_waterlog( ) {
     };
     place( glm::ivec3( 10, 10, 10 ), { WATER, 0, 0, WATER, 0 } ); // water "onto" the wet coral
     place( glm::ivec3( 12, 10, 10 ), { STONE, 0, 0, STONE, 0 } ); // a change beside the water
-    for ( int i = 0; i < 60; i++ ) {
+    for ( int i = 0; i < 1500; i++ ) {
         gs.tick_number++;
         gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
     }
@@ -775,31 +782,43 @@ int test_waterlog( ) {
     const BlockState after = world.get_loaded_block( glm::ivec3( 10, 10, 10 ) );
     check_bool( "waterlogged coral survives water expansion", after.id == KELP && after.waterlogged == 1 );
     failures += check_id( world, "water cell beside coral stays water", glm::ivec3( 11, 10, 10 ), WATER );
+    check_bool( "fluid updates drain after the expansion", gs.pending_fluid_updates.empty( ) );
 
     // Breaking a waterlogged block leaves its water behind.
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
     failures += check_id( world, "breaking waterlogged plant leaves water", glm::ivec3( 10, 10, 10 ), WATER );
 
-    // Diagonal flow regression: breaking the block at (31,10,30) queues a
-    // diagonal dust wake whose updating cell is the water at (30,11,30) —
-    // down-and-over, not a face neighbor — and the expansion used to run on
-    // it anyway, putting water where no face path reaches. The +x face of
-    // the water stays open: that corner cell (31,11,30) is what gates the
-    // up-and-over wake in queue_neighbor_block_updates, so sealing it would
-    // never queue the diagonal event the regression needs.
-    world.set_loaded_block( glm::ivec3( 30, 10, 30 ), stone );                  // floor under the water
-    world.set_loaded_block( glm::ivec3( 30, 11, 30 ), { WATER, 0, 0, WATER, 0 } );
-    world.set_loaded_block( glm::ivec3( 29, 11, 30 ), stone );                  // -x face sealed
-    world.set_loaded_block( glm::ivec3( 30, 11, 29 ), stone );                  // -z face sealed
-    world.set_loaded_block( glm::ivec3( 30, 11, 31 ), stone );                  // +z face sealed
-    world.set_loaded_block( glm::ivec3( 31, 10, 30 ), stone );                  // diagonal cell to break
-    place( glm::ivec3( 31, 10, 30 ), BLOCK_STATE_AIR );
-    for ( int i = 0; i < 60; i++ ) {
+    // Face-adjacent flow + falls: a boxed-in source with only its +x face
+    // open pours over the edge — water reaches (31,10,30) by falling from
+    // (31,11,30). A fully sealed cell stays dry no matter how the flow
+    // wraps around.
+    for ( int x = 22; x <= 42; x++ ) {
+        for ( int z = 21; z <= 39; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 9, z ), stone );
+        }
+    }
+    world.set_loaded_block( glm::ivec3( 30, 10, 30 ), stone ); // floor under the water
+    world.set_loaded_block( glm::ivec3( 29, 11, 30 ), stone ); // -x face sealed
+    world.set_loaded_block( glm::ivec3( 30, 11, 29 ), stone ); // -z face sealed
+    world.set_loaded_block( glm::ivec3( 30, 11, 31 ), stone ); // +z face sealed
+    world.set_loaded_block( glm::ivec3( 30, 12, 30 ), stone ); // top sealed
+    world.set_loaded_block( glm::ivec3( 31, 9, 30 ), stone );  // plug under the landing cell
+    // A sealed stone box at (33,11,30): all 6 faces are stone.
+    world.set_loaded_block( glm::ivec3( 33, 10, 30 ), stone );
+    world.set_loaded_block( glm::ivec3( 33, 12, 30 ), stone );
+    world.set_loaded_block( glm::ivec3( 33, 11, 29 ), stone );
+    world.set_loaded_block( glm::ivec3( 33, 11, 31 ), stone );
+    world.set_loaded_block( glm::ivec3( 32, 11, 30 ), stone );
+    world.set_loaded_block( glm::ivec3( 34, 11, 30 ), stone );
+    place( glm::ivec3( 30, 11, 30 ), { WATER, 0, 0, WATER, 0 } ); // wakes the source
+    for ( int i = 0; i < 1500; i++ ) {
         gs.tick_number++;
         gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
     }
-    failures += check_id( world, "water does not flow diagonally", glm::ivec3( 31, 10, 30 ), AIR );
-    failures += check_id( world, "diagonal source water remains", glm::ivec3( 30, 11, 30 ), WATER );
+    failures += check_id( world, "water falls into the open cell", glm::ivec3( 31, 10, 30 ), WATER );
+    failures += check_id( world, "sealed box interior stays air", glm::ivec3( 33, 11, 30 ), AIR );
+    failures += check_id( world, "source water remains", glm::ivec3( 30, 11, 30 ), WATER );
+    check_bool( "fluid updates drain after the fall", gs.pending_fluid_updates.empty( ) );
     return failures;
 }
 

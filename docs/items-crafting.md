@@ -53,7 +53,13 @@ zombies; `BONE_MEAL` (`dye_powder_white_new` icon, shapeless 1 bone ->
 advances a crop one `crop_next` stage, consuming one in survival.
 `<TYPE>_SPAWN_EGG` items
 (`textures/items/spawn_eggs/` icons) hatch their mob on right-click —
-see `docs/mobs.md`.
+see `docs/mobs.md`. `BUCKET` (3 iron ingots in a V, `max_stack` 16) and
+the `max_stack` 1 `WATER_BUCKET`/`LAVA_BUCKET` scoop plain fluid
+sources (level-0, non-waterlogged cells only) and pour new sources
+on right-click (`item_is_bucket`/`item_bucket_fluid`,
+`repgame_use_bucket` in `src/common/game/bucket.cpp` — see
+`docs/fluids.md`); a held bucket
+arms the mode-2 fluid raycast into `BlockSelection::pos_fluid`.
 
 Farm produce items (`WHEAT`, `WHEAT_SEEDS`, `CARROT`, `POTATO`,
 `BEETROOT`, `BEETROOT_SEEDS`, `BREAD`) are ordinary pure items; the

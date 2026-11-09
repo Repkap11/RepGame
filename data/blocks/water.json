@@ -2,7 +2,10 @@
   "can_be_placed_in": true,
   "casts_shadow": false,
   "collides_with_player": false,
-  "flows": 20,
+  "flow_range": 7,
+  "flow_slope": 4,
+  "flows": 36,
+  "forms_sources": true,
   "hardness": 0,
   "hides_self": [
     true,
@@ -17,11 +20,11 @@
   "no_light": 0,
   "render_order": "Water",
   "textures": {
-    "back": "water_still",
+    "back": "water_flow",
     "bottom": "water_still",
-    "front": "water_still",
-    "left": "water_still",
-    "right": "water_still",
+    "front": "water_flow",
+    "left": "water_flow",
+    "right": "water_flow",
     "top": "water_still"
   }
 }

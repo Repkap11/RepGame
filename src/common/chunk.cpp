@@ -5,6 +5,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
+#include "common/fluid.hpp"
 #include "common/map_gen.hpp"
 #include "common/mob_types.hpp"
 #include "common/net/packet.hpp"
@@ -99,11 +100,16 @@ static void chunk_ib_init_tables( ) {
             append_face( ib_data_solid + 6 * trans_order[ v ][ f ] );
         }
     }
-    // Water only has top/bottom faces and no reflect variant (the old path
-    // left its ib_reflect empty, and the reflect pass skips water anyway).
+    // Fluids draw the full sloped-cube shell: sides + bottom always (both
+    // windings — a submerged surface is visible from every direction and
+    // per-face culling is done by the instance's packed_lighting anyway),
+    // then the camera-mask-selected top windings like before. No reflect
+    // variant (the old path left ib_reflect empty, and the reflect pass
+    // skips water anyway).
     for ( unsigned int mask = 0; mask < 4; mask++ ) {
         s_ib_water_off[ mask ] = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
-        unsigned int n = 0;
+        s_ib_data.insert( s_ib_data.end( ), ib_data_water + 6 * IB_POSITION_WATER_SIDES, ib_data_water + 6 * IB_POSITION_WATER_TOP );
+        unsigned int n = 6 * ( IB_POSITION_WATER_TOP - IB_POSITION_WATER_SIDES );
         if ( mask & 1u ) {
             append_face( ib_data_water + 6 * IB_POSITION_WATER_TOP );
             n += 6;
@@ -945,6 +951,107 @@ skip_to_mesh:
 #endif
 }
 
+// ---- Fluid corner heights -------------------------------------------------
+// Milestone-3 sloped fluids: per-cell corner heights in 1/64 units, packed
+// as four bytes in BlockCoords::fluid_h0/fluid_h order — corner byte i is
+// the corner (sx, sz) with sx = i&1, sz = i>>1, i.e. (x=0,z=0), (x=1,z=0),
+// (x=0,z=1), (x=1,z=1). Filled once per chunk mesh so emission and the
+// greedy-merge check stay cheap.
+// FLAT = all four corners at FLUID_SOURCE_HEIGHT — the mergeable case;
+// NOT_FLUID marks non-fluid cells (never read, but keeps the array defined).
+#define FLUID_CORNERS_FLAT 0xFFFFFFFFu
+#define FLUID_CORNERS_NOT_FLUID 0xFFFFFFFEu
+static thread_local unsigned int s_fluid_corners[ CHUNK_BLOCK_SIZE ];
+
+// Fluid id in a chunk cell word (WATER for a waterlogged cell, the block id
+// for a fluid, LAST_BLOCK_ID otherwise) — the cell-space twin of
+// fluid_in_cell(state_at).
+static inline BlockID fluid_in_block_cell( const BlockCell cell ) {
+    if ( block_cell_waterlogged( cell ) ) {
+        return WATER;
+    }
+    const BlockID id = block_cell_id( cell );
+    if ( id < LAST_BLOCK_ID && block_is_fluid( block_definition_get_definition( id ) ) ) {
+        return id;
+    }
+    return LAST_BLOCK_ID;
+}
+
+// The cell's level against `fluid` (-1 when it holds no/other fluid, 0 for
+// a waterlogged or source cell, 1..FLUID_MAX_LEVEL flowing).
+static inline int fluid_cell_level( const BlockCell cell, const BlockID fluid ) {
+    if ( fluid_in_block_cell( cell ) != fluid ) {
+        return -1;
+    }
+    if ( block_cell_waterlogged( cell ) ) {
+        return 0;
+    }
+    const int rot = block_cell_rotation( cell );
+    return rot <= FLUID_MAX_LEVEL ? rot : FLUID_MAX_LEVEL;
+}
+
+// Packed corner heights for the fluid cell at (x,y,z), or FLUID_CORNERS_FLAT
+// when all four corners sit at source height. The corner at (sx, sz) averages
+// the four cells sharing it: self, (dx,0), (0,dz), (dx,dz) with dx/dz the
+// step toward that corner.
+static unsigned int fluid_pack_corners( const BlockCell *cells, int x, int y, int z ) {
+    const BlockCell self = cells[ Chunk::get_index_from_coords( x, y, z ) ];
+    const BlockID fluid = fluid_in_block_cell( self );
+    if ( fluid == LAST_BLOCK_ID ) {
+        return FLUID_CORNERS_NOT_FLUID;
+    }
+    const int flow_range = block_definition_get_definition( fluid )->flow_range;
+    const int own_height = fluid_level_height( fluid_cell_level( self, fluid ), flow_range );
+    unsigned int packed_corners = 0;
+    bool all_source = true;
+    for ( int corner = 0; corner < 4; corner++ ) {
+        const int dx = ( corner & 1 ) ? 1 : -1;
+        const int dz = ( corner & 2 ) ? 1 : -1;
+        FluidCornerCell cc[ 4 ];
+        for ( int o = 0; o < 4; o++ ) {
+            const int cx = x + ( ( o & 1 ) ? dx : 0 );
+            const int cz = z + ( ( o & 2 ) ? dz : 0 );
+            const BlockCell c = cells[ Chunk::get_index_from_coords( cx, y, cz ) ];
+            const int level = fluid_cell_level( c, fluid );
+            const bool same = level >= 0;
+            cc[ o ].level = same ? fluid_level_height( level, flow_range ) : -1;
+            cc[ o ].fluid_above = fluid_in_block_cell( cells[ Chunk::get_index_from_coords( cx, y + 1, cz ) ] ) == fluid;
+            cc[ o ].solid = block_definition_get_definition( block_cell_id( c ) )->collides_with_player && !same;
+        }
+        const int h = fluid_corner_height( own_height, cc );
+        packed_corners |= static_cast<unsigned int>( h & 0xff ) << ( corner * 8 );
+        if ( h != FLUID_SOURCE_HEIGHT ) {
+            all_source = false;
+        }
+    }
+    return all_source ? FLUID_CORNERS_FLAT : packed_corners;
+}
+
+// Six-bit per-face visibility of the fluid shell at (x,y,z) — the "water
+// and glass" branch of mesh_vis_logic.hpp re-evaluated on CPU. Water and
+// lava carry no_light = NO_LIGHT_BRIGHT, so phase 1 can't encode a hidden
+// face; recomputing here (CPU-only, over the same halo cells) keeps the
+// HIP/WGSL path correct too.
+static unsigned int fluid_face_vis_mask( const BlockCell *cells, const GPUBlockDef *defs, int x, int y, int z, const BlockID fluid ) {
+    unsigned int vis = 0;
+    for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
+        const BlockCell nc = cells[ Chunk::get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
+        const BlockID nid = block_cell_id( nc );
+        const int nrot = block_cell_rotation( nc );
+        const GPUBlockDef &ndef = defs[ nid ];
+        const int liquid_boundary = block_cell_waterlogged( nc ) != 0 || ndef.renderOrder == RenderOrder_Translucent;
+        int face_vis;
+        if ( face == FACE_TOP ) {
+            face_vis = nid != fluid && !liquid_boundary;
+        } else {
+            const int opposing_face = OPPOSITE_FACE[ mesh_rotated_face( face, nrot ) ];
+            face_vis = mesh_face_seethrough( ndef, block_cell_powered( nc ), nrot, opposing_face ) != 0 && nid != fluid && !liquid_boundary;
+        }
+        vis |= static_cast<unsigned int>( face_vis != 0 ) << face;
+    }
+    return vis;
+}
+
 int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const {
     if constexpr ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
@@ -963,6 +1070,9 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
     // if ( blockState.id == REDSTONE_WIRE_CROSS ) {
     //     pr_debug( "Trying to mesh" );
     // }
+    // Fluid merge gate: only FLAT (all-56 corner) candidates may join a
+    // rect — a sloped or falling fluid carries its own corner heights.
+    const bool fluid_merge = blockState.id < LAST_BLOCK_ID && block_is_fluid( block_definition_get_definition( blockState.id ) );
     int num_checked_blocks = 0;
     for ( int new_x = starting.x; new_x < starting.x + size.x; new_x++ ) {
         for ( int new_y = starting.y; new_y < starting.y + size.y; new_y++ ) {
@@ -977,6 +1087,9 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
                 }
                 const BlockState new_blockState = this->state_at( index );
                 if ( !BlockStates_equal( new_blockState, blockState ) ) {
+                    return 0;
+                }
+                if ( fluid_merge && s_fluid_corners[ index ] != FLUID_CORNERS_FLAT ) {
                     return 0;
                 }
                 for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
@@ -1169,6 +1282,34 @@ void Chunk::calculate_populated_blocks( ) {
     profiling_mesh_vis_light_us.fetch_add( t_phase1, std::memory_order_relaxed );
     t_ph1 = now_us( );
 #endif
+    // Fluid surfaces (CPU-only — also corrects GPU-meshed workingSpace):
+    // per-cell corner heights for emission + the greedy merge check, and a
+    // packed_lighting rewrite. Phase 1 marks a fluid face "lit" with the
+    // block's lit value but hidden faces only get no_light — both are
+    // NO_LIGHT_BRIGHT for water/lava, so the hidden faces would draw with
+    // the new full-shell geometry unless they get an explicit
+    // NO_LIGHT_NO_DRAW here.
+    {
+        const GPUBlockDef *fluid_defs = mesh_def_table( );
+        for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
+            for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+                for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                    const int index = get_index_from_coords( x, y, z );
+                    const BlockCell cell = this->cells[ index ];
+                    s_fluid_corners[ index ] = FLUID_CORNERS_NOT_FLUID;
+                    const BlockID id = block_cell_id( cell );
+                    if ( id >= LAST_BLOCK_ID || fluid_defs[ id ].renderOrder != RenderOrder_Water ) {
+                        continue;
+                    }
+                    s_fluid_corners[ index ] = fluid_pack_corners( this->cells, x, y, z );
+                    const unsigned int vis = fluid_face_vis_mask( this->cells, fluid_defs, x, y, z, id );
+                    for ( int f = FACE_TOP; f < NUM_FACES_IN_CUBE; f++ ) {
+                        workingSpace[ index ].packed_lighting[ f ] = ( vis >> f ) & 1u ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
+                    }
+                }
+            }
+        }
+    }
     for ( int y = 0; y < CHUNK_SIZE_Y; y++ ) {
         for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
             for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
@@ -1199,6 +1340,14 @@ void Chunk::calculate_populated_blocks( ) {
                             block_can_mesh_x = block->calculated.can_mesh_z;
                             block_can_mesh_y = block->calculated.can_mesh_y;
                             block_can_mesh_z = block->calculated.can_mesh_x;
+                        }
+                        if ( block_is_fluid( block ) && s_fluid_corners[ index ] != FLUID_CORNERS_FLAT ) {
+                            // Sloped/falling fluids carry per-cell corner
+                            // heights — they never merge. Flat source fields
+                            // still merge on every axis.
+                            block_can_mesh_x = 0;
+                            block_can_mesh_y = 0;
+                            block_can_mesh_z = 0;
                         }
 
                         int size_x = 1;
@@ -1326,6 +1475,25 @@ void Chunk::calculate_populated_blocks( ) {
                             blockCoord->face[ i ] = block->textures[ i ];
                         }
                         block_adjust_coord_based_on_state( block, &blockState, blockCoord );
+
+                        if ( block_is_fluid( block ) ) {
+                            // Sloped-fluid metadata: yaw 0 with the fluid
+                            // flag (rotation carries the sim level, not a
+                            // yaw), and the precomputed corner heights ride
+                            // the free BlockCoords bytes. A non-flat surface
+                            // swaps its top to the flow texture — the vertex
+                            // shader rotates the top UVs onto the flow.
+                            const unsigned int corners = s_fluid_corners[ index ];
+                            const bool fluid_flat = corners == FLUID_CORNERS_FLAT;
+                            blockCoord->face_shift = BLOCK_COORDS_FLUID;
+                            blockCoord->fluid_h0 = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( corners & 0xffu );
+                            blockCoord->fluid_h[ 0 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 8 ) & 0xffu );
+                            blockCoord->fluid_h[ 1 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 16 ) & 0xffu );
+                            blockCoord->fluid_h[ 2 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 24 ) & 0xffu );
+                            if ( !fluid_flat ) {
+                                blockCoord->face[ FACE_TOP ] = blockCoord->face[ FACE_FRONT ];
+                            }
+                        }
 
                         // Render redstone dust on the sides of dust blocks for vertical connections.
                         // When dust has air to the side and dust below that air, the dust's side face
@@ -1556,7 +1724,7 @@ void Chunk::calculate_populated_blocks( ) {
                             waterCoord->mesh_x = 1;
                             waterCoord->mesh_y = 1;
                             waterCoord->mesh_z = 1;
-                            waterCoord->face_shift = BLOCK_ROTATE_0;
+                            waterCoord->face_shift = BLOCK_COORDS_FLUID;
                             waterCoord->scale_x = water->scale.x;
                             waterCoord->scale_y = water->scale.y;
                             waterCoord->scale_z = water->scale.z;
@@ -1566,9 +1734,23 @@ void Chunk::calculate_populated_blocks( ) {
                             waterCoord->tex_offset_x = water->tex_offset.x;
                             waterCoord->tex_offset_y = water->tex_offset.y;
                             waterCoord->tex_offset_z = water->tex_offset.z;
+                            // The cell behaves as a WATER source for the
+                            // surface: corners + per-face visibility come
+                            // from the same helpers the fluid cells use
+                            // (the block's own instance is untouched).
+                            const unsigned int corners = fluid_pack_corners( this->cells, x, y, z );
+                            const bool fluid_flat = corners == FLUID_CORNERS_FLAT;
+                            waterCoord->fluid_h0 = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( corners & 0xffu );
+                            waterCoord->fluid_h[ 0 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 8 ) & 0xffu );
+                            waterCoord->fluid_h[ 1 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 16 ) & 0xffu );
+                            waterCoord->fluid_h[ 2 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 24 ) & 0xffu );
+                            const unsigned int vis = fluid_face_vis_mask( this->cells, mesh_def_table( ), x, y, z, WATER );
                             for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                                 waterCoord->face[ i ] = water->textures[ i ];
-                                waterCoord->packed_lighting[ i ] = i == FACE_TOP ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
+                                waterCoord->packed_lighting[ i ] = ( vis >> i ) & 1u ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
+                            }
+                            if ( !fluid_flat ) {
+                                waterCoord->face[ FACE_TOP ] = water->textures[ FACE_FRONT ];
                             }
                         }
                     }
@@ -1637,7 +1819,7 @@ void Chunk::program_terrain( ) {
                 for ( int i = 0; i < renderLayer.num_instances && reported < 40; i++ ) {
                     const BlockCoords &b = renderLayer.populated_blocks[ i ];
                     int bad = b.mesh_x < 1 || b.mesh_x > 32 || b.mesh_y < 1 || b.mesh_y > 32 || b.mesh_z < 1 || b.mesh_z > 32;
-                    bad |= ( b.face_shift & BLOCK_COORDS_ROTATION_MASK ) > 7u || ( b.face_shift & ~( BLOCK_COORDS_ROTATION_MASK | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL ) ) != 0;
+                    bad |= ( b.face_shift & BLOCK_COORDS_ROTATION_MASK ) > 7u || ( b.face_shift & ~( BLOCK_COORDS_ROTATION_MASK | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL | BLOCK_COORDS_FLUID ) ) != 0;
                     bad |= ( b.x < ox - 1.0f ) || ( b.x > ox + CHUNK_SIZE_X + 1.0f );
                     bad |= ( b.y < oy - 1.0f ) || ( b.y > oy + CHUNK_SIZE_Y + 1.0f );
                     bad |= ( b.z < oz - 1.0f ) || ( b.z > oz + CHUNK_SIZE_Z + 1.0f );

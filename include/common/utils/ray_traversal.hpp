@@ -7,12 +7,12 @@
 class RayTraversal {
   public:
     // Pick raycast: walks the voxel grid from `from` to `to` and returns the
-    // first pickable cell (block entities, doors, tall plants; plus water
-    // when pick_water). `out` gets the hit cell, `out_face` the entry face;
-    // `out_hit_t`, when given, gets the hit distance along the normalized
-    // (to - from) direction — the box entry for sub-block shapes, the cell
-    // boundary crossing for full cubes.
-    static bool find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, bool pick_water = false, double *out_hit_t = nullptr );
+    // first pickable cell (block entities, doors, tall plants; pick_mode 1
+    // also hits water, pick_mode 2 hits any fluid). `out` gets the hit cell,
+    // `out_face` the entry face; `out_hit_t`, when given, gets the hit
+    // distance along the normalized (to - from) direction — the box entry
+    // for sub-block shapes, the cell boundary crossing for full cubes.
+    static bool find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, int pick_mode = 0, double *out_hit_t = nullptr );
     // Cell on the other side of `face` from `hit` — the placement position
     // for a ray hit.
     static glm::ivec3 placement_cell( const glm::ivec3 &hit, int face );

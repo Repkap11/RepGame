@@ -44,6 +44,15 @@ typedef struct {
     bool rotate_on_placement;
     bool icon_is_isometric;
     int flows;
+    // Fluid behavior (flows != 0): level is stored in BlockState::rotation
+    // (3 bits, so flow_range <= FLUID_MAX_LEVEL == 7, see common/fluid.hpp).
+    // 0 = source, 1..flow_range = flowing cells, one level per horizontal
+    // block of distance. flow_slope is how far sideways-spread searches for
+    // a drop (Minecraft: 4 water, 2 lava). forms_sources lets two adjacent
+    // horizontal sources over a solid/source base create a new source.
+    int flow_range;
+    int flow_slope;
+    bool forms_sources;
     struct {
         short x;
         short y;

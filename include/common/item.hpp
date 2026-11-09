@@ -69,6 +69,19 @@ static inline int item_is_hoe( ItemID id ) {
            ITEM_DEFINITIONS[ id - ITEM_ID_BASE ].tool_class == MINEABLE_HOE;
 }
 
+// The three bucket items: an empty BUCKET scoops a fluid source into
+// WATER_BUCKET/LAVA_BUCKET; a filled bucket pours its fluid back out (see
+// repgame_use_bucket).
+static inline bool item_is_bucket( ItemID id ) {
+    return id == BUCKET || id == WATER_BUCKET || id == LAVA_BUCKET;
+}
+
+// The fluid a filled bucket pours — LAST_BLOCK_ID for the empty bucket (and
+// non-bucket items).
+static inline BlockID item_bucket_fluid( ItemID id ) {
+    return id == WATER_BUCKET ? WATER : id == LAVA_BUCKET ? LAVA : LAST_BLOCK_ID;
+}
+
 // The block a seed/produce item plants on farmland, LAST_BLOCK_ID for
 // non-planting items.
 static inline BlockID item_plant_block( ItemID id ) {

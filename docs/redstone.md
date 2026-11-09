@@ -42,6 +42,9 @@ The event types live in `src/common/block_update_events/`:
   in *both* directions: the neighbour re-derives its own state, and the
   changed cell re-checks the neighbour's effect on it (a block broken
   under a torch must tell the torch, not just be told).
+- `FluidUpdateEvent` — the water/lava flow sim, scheduled by
+  `fluid_schedule_update` on face-adjacent wakes and by the random-tick
+  rescue. The whole model lives in `docs/fluids.md`.
 - `FallingBlockEvent`, `DoorEvent`, `PistonEvent`,
   `PressurePlateEvent`, `TntExplodeEvent` — mechanism-specific; below.
 
@@ -162,10 +165,11 @@ sync: `docs/entities.md`.
 (each `BlockNextToChangeEvent` ends by queueing a jittered
 `LeafDecayEvent` for either of its two positions holding natural leaves,
 deduped through `RepGameState::pending_leaf_decay` — see
-`docs/blocks.md`), **water spread**
-(`flows != 0` water next to a `breaks_in_liquid` cell queues a placement
-`flows` ticks out — already-`waterlogged` cells are skipped so plants
-don't loop) and **support kills** (`block_can_survive_at` fails → an AIR
+`docs/blocks.md`), **fluid updates** (either of the event's two
+positions holding a `flows != 0` cell — but only on manhattan-1 wakes —
+gets a `FluidUpdateEvent` via `fluid_schedule_update`, deduped through
+`RepGameState::pending_fluid_updates`; the flow sim, levels and
+reactions are in `docs/fluids.md`) and **support kills** (`block_can_survive_at` fails → an AIR
 write: torches losing their attachment, doors/piston-heads losing their
 partner, `needs_place_on_any_solid` faces). Support kills carry
 `BreakDrops::Survival`: the queued `PlayerBlockPlacedEvent` AIR write

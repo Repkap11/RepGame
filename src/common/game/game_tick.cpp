@@ -203,7 +203,7 @@ void RepGame::update_block_selection( ) {
     const ItemID selected_block = globalGameState.hotbar.getSelectedItem( );
     const bool pick_water = item_is_block( selected_block ) && block_definition_get_definition( static_cast<BlockID>( selected_block ) )->can_float_on_water;
     double hit_t = 0.0;
-    sel.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy, &whichFace, false, &hit_t );
+    sel.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy, &whichFace, 0, &hit_t );
 
     sel.face = whichFace;
     sel.pos_create = RayTraversal::placement_cell( sel.pos_destroy, whichFace );
@@ -215,10 +215,21 @@ void RepGame::update_block_selection( ) {
     if ( pick_water ) {
         int whichFace_water = 0;
         glm::ivec3 pos_destroy_water;
-        sel.floatSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, pos_destroy_water, &whichFace_water, true );
+        sel.floatSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, pos_destroy_water, &whichFace_water, 1 );
         sel.pos_create_water = RayTraversal::placement_cell( pos_destroy_water, whichFace_water );
     } else {
         sel.floatSelectionInBounds = 0;
+    }
+
+    if ( item_is_bucket( selected_block ) ) {
+        // Buckets pick fluids: pos_fluid is the fluid cell under the
+        // crosshair (scoop target / pour-back target), pos_fluid_create the
+        // cell beside the hit face a pour lands in.
+        int whichFace_fluid = 0;
+        sel.fluidSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_fluid, &whichFace_fluid, 2 );
+        sel.pos_fluid_create = RayTraversal::placement_cell( sel.pos_fluid, whichFace_fluid );
+    } else {
+        sel.fluidSelectionInBounds = 0;
     }
 
     // A mob under the crosshair beats the block behind/under it: clears

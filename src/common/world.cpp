@@ -8,6 +8,8 @@
 #include "common/RepGame.hpp"
 #include "common/tree_grow.hpp"
 #include "common/light.hpp"
+#include "common/fluid.hpp"
+#include "common/block_update_events/FluidUpdateEvent.hpp"
 
 #include <stdlib.h>
 #include <string>
@@ -51,7 +53,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->vbl_coords.push_signed_byte( 3 );  // block shape scale (pixels)
     this->vbl_coords.push_signed_byte( 3 );  // block shape offset (pixels)
     this->vbl_coords.push_signed_byte( 3 );  // texture shape offset (pixels)
-    this->vbl_coords.push_byte( 3 );         // padding to 4-byte stride
+    this->vbl_coords.push_byte( 3 );         // fluid_h corner heights (padding for non-fluids)
 
     // These are from ParticleVertex
     this->vbl_object_vertex.push_float( 3 );        // Coords
@@ -1521,6 +1523,13 @@ void World::process_random_ticks( RepGameState &state ) {
             const BlockState cell = chunk.get_block( local );
             TreeSpec spec;
             const glm::ivec3 world_pos = chunk_origin + local;
+            // Flowing fluid outlives its update events when a chunk unloads
+            // (the queue isn't persisted): a random tick re-arms it. Sources
+            // are stable so only flow levels need the rescue; the scheduler
+            // dedupes, making this cheap.
+            if ( fluid_level( cell ) > 0 ) {
+                fluid_schedule_update( state, world_pos );
+            }
             const Block *cell_def = cell.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( cell.id );
             const bool is_crop_stage = cell_def != nullptr && cell_def->crop_next != LAST_BLOCK_ID;
             if ( !is_crop_stage && !tree_spec_for_sapling( cell.id, world_pos, &spec ) ) {

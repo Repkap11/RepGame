@@ -1160,6 +1160,7 @@ void RepGame::resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_ori
     if ( state.block_selection.target_mob >= 0 ) {
         state.block_selection.selectionInBounds = 0;
         state.block_selection.floatSelectionInBounds = 0;
+        state.block_selection.fluidSelectionInBounds = 0;
     }
 }
 void RepGame::process_inventory_events( ) {

@@ -8,6 +8,7 @@
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/FallingBlockEvent.hpp"
 #include "common/block_update_events/LeafDecayEvent.hpp"
+#include "common/block_update_events/FluidUpdateEvent.hpp"
 
 BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset ) : BlockUpdateEvent( tick_number ), block_pos( pos + offset ), affecting_block_pos( pos ) {
     this->name = "BlockNextToChangeEvent";
@@ -319,19 +320,6 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     const BlockState affecting_block_state = world.get_loaded_block( affecting_block_pos );
     const Block *affecting_block = block_definition_get_definition( affecting_block_state.id == LAST_BLOCK_ID ? AIR : affecting_block_state.id );
 
-    // Water flow needs to start when a block next to water is broken. An
-    // already-waterlogged cell already contains water — expanding into it
-    // would re-queue forever since the plant is never replaced. Only face
-    // neighbors: diagonal dust wakes also reach here and must not carry water.
-    const glm::ivec3 flow_delta = glm::abs( affecting_block_pos - block_pos );
-    const bool face_adjacent = flow_delta.x + flow_delta.y + flow_delta.z == 1;
-    if ( face_adjacent && updateing_block->flows != 0 && affecting_block->breaks_in_liquid && !affecting_block_state.waterlogged && affecting_block_pos.y <= block_pos.y ) {
-        pr_debug( "Expanding a water x:%d y:%d z:%d into x:%d y:%d z:%d ", block_pos.x, block_pos.y, block_pos.z, affecting_block_pos.x, affecting_block_pos.y, affecting_block_pos.z );
-        BlockState new_block_state = updateing_block_state;
-        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + updateing_block->flows, affecting_block_pos, new_block_state, false );
-        blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
-    }
-
     // The state change (if any) to apply to the affecting block. Display and
     // power updates are merged into one event so a stale payload can't undo
     // the other change when it applies.
@@ -641,6 +629,17 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     perform_checks( blockUpdateQueue, repGameState.world, this->tick_number, //
                     this->affecting_block_pos,                               //
                     this->block_pos );
+
+    // Fluids re-evaluate on any face-neighbor change (a write, a break, a
+    // level change): schedule an update for either cell holding fluid. The
+    // diagonal dust wakes (manhattan 2) must not schedule — water moves
+    // face-adjacently only. fluid_schedule_update no-ops on non-fluid cells
+    // and dedupes per cell.
+    const glm::ivec3 wake_delta = glm::abs( this->block_pos - this->affecting_block_pos );
+    if ( wake_delta.x + wake_delta.y + wake_delta.z == 1 ) {
+        fluid_schedule_update( repGameState, this->block_pos );
+        fluid_schedule_update( repGameState, this->affecting_block_pos );
+    }
 
     // A changed cell may have been a natural leaf's supporting log — queue a
     // jittered decay check for either position holding natural leaves. The

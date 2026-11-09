@@ -202,6 +202,26 @@ Water (`RenderOrder_Water`) still writes depth in every mode: the depth
 snapshot taken after the water pass feeds the X_HIGH water composite/SSR in
 `full_screen_quad_fragment.glsl`, which reconstructs the surface from it.
 
+### Sloped fluids
+
+Water and lava render as variable-height surfaces (Minecraft's corner
+average). Each fluid cell carries four corner heights in 1/64 units packed
+into `BlockCoords::fluid_h0`/`fluid_h` (byte i = corner (i&1, i>>1)); the
+vertex shader drops the `vd_data_water` cube's y=1 verts onto those
+heights, so flowing cells slope and falling columns fill their cell. Cells
+whose fluid is level everywhere emit the `*_STILL` top texture and keep
+greedy merging; sloped or falling cells emit 1x1 with the `*_FLOW` top,
+whose UVs the vertex shader rotates onto the surface gradient so the strip
+scrolls downhill. Side faces always draw the flow texture and scroll
+downward. Instance packing is flagged by `BLOCK_COORDS_FLUID` in
+`face_shift` (fluids never yaw — `rotation` holds the sim level). Corner
+heights come from `fluid_corner_height()`; per-face visibility is
+recomputed on CPU in `calculate_populated_blocks` because phase-1 meshing
+packs fluids as NO_LIGHT_BRIGHT on every face. The same helpers emit a
+water shell instance for a waterlogged cell at the top of a water column
+(it renders as a WATER source on its own cell; the host block's instance
+is untouched). Sim-side: `docs/fluids.md`.
+
 Known remaining limitations: `alpha` mode still composites in chunk/instance
 order, so the hue of overlapping different-coloured panes can shift slightly
 as the order flips (multiply fixes exactly this); and without

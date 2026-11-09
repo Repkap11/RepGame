@@ -52,27 +52,79 @@ static unsigned int ib_data_face[] = {
 };
 #define IB_FACE_SIZE ( 3 * 4 )
 
-#define IB_POSITION_WATER_TOP 0
-#define IB_POSITION_WATER_BOTTOM 1
+// Quad offsets into ib_data_water: the four side quads and the bottom quad
+// come first — both windings each, always appended (per-face visibility is
+// carried by the instance's packed_lighting, NO_LIGHT_NO_DRAW clips the
+// quad in the shader) — then the two top-quad windings, still selected by
+// the camera mask like before.
+#define IB_POSITION_WATER_SIDES 0
+#define IB_POSITION_WATER_TOP 10
+#define IB_POSITION_WATER_BOTTOM 11
 static unsigned int ib_data_water[] = {
+    // Side quads, both windings: RIGHT, FRONT, LEFT, BACK.
+    7, 6, 4,   7, 4, 5,   7, 5, 4,   7, 4, 6,   // Right
+    9, 8, 10,  9, 10, 11, 9, 11, 10, 9, 10, 8,  // Front
+    15, 14, 12, 15, 12, 13, 15, 13, 12, 15, 12, 14, // Left
+    17, 16, 18, 17, 18, 19, 17, 19, 18, 17, 18, 16, // Back
+
+    21, 23, 22, // Bottom
+    21, 22, 20, //
+    21, 20, 22, // Bottom, from the top
+    21, 22, 23, //
+
     2, 0, 1, // Top from the top
     2, 1, 3, //
 
     2, 3, 1, // Top, from the bottom
     2, 1, 0, //
 };
-#define IB_WATER_SIZE ( 3 * 2 * 2 )
+#define IB_WATER_SIZE ( 3 * 2 * 12 )
 
 #define WATER_HEIGHT ( 0.875f )
 
+// Fluid vertex template: a full cube whose top edge marks "surface height".
+// For BLOCK_COORDS_FLUID instances the vertex shader lowers every y=1.0
+// vertex to the per-corner fluid height (and slopes the top quad), so side
+// quads run bottom y=0 to top y=1.0 and the top quad sits at y=1.0 instead
+// of the old fixed WATER_HEIGHT. Side tex v = cube y so the flow strip can
+// compress on partial faces; top u = x, v = z so the shader can rotate the
+// flow texture toward the flow direction.
 static CubeFace vd_data_water[] = {
-    { 1.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_TOP, 0 }, // 18 0
-    { 0.0f, WATER_HEIGHT, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_TOP, 0 }, // 19 1
+    // Top quad (verts 0-3), u = x, v = z.
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_TOP, 0 }, // 0
+    { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_TOP, 0 }, // 1
 
-    { 1.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_TOP, 0 }, // 22 2
-    { 0.0f, WATER_HEIGHT, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_TOP, 0 }, // 23 3
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_TOP, 0 }, // 2
+    { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_TOP, 0 }, // 3
+
+    // Side quads (verts 4-19), v = cube y. RIGHT, FRONT, LEFT, BACK.
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_RIGHT, 0 }, // 4
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_RIGHT, 0 }, // 5
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_RIGHT, 0 }, // 6
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_RIGHT, 0 }, // 7
+
+    { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_FRONT, 0 }, // 8
+    { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_FRONT, 0 }, // 9
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_FRONT, 0 }, // 10
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !1, 1, FACE_FRONT, 0 }, // 11
+
+    { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_LEFT, 0 }, // 12
+    { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ !0, 1, FACE_LEFT, 0 }, // 13
+    { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_LEFT, 0 }, // 14
+    { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_LEFT, 0 }, // 15
+
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 0, FACE_BACK, 0 }, // 16
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_BACK, 0 }, // 17
+    { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 0, FACE_BACK, 0 }, // 18
+    { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_BACK, 0 }, // 19
+
+    // Bottom quad (verts 20-23), u = x, v = 1 - z like vd_data_solid.
+    { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !1, 1, FACE_BOTTOM, 0 }, // 20
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ !0, 1, FACE_BOTTOM, 0 }, // 21
+    { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !1, 0, FACE_BOTTOM, 0 }, // 22
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ !0, 0, FACE_BOTTOM, 0 }, // 23
 };
-#define VB_DATA_SIZE_WATER ( 2 * 2 )
+#define VB_DATA_SIZE_WATER ( 4 * 6 )
 
 static CubeFace vd_data_solid[] = {
     // x=right/left, y=top/bottom, z=front/back : 1/0
@@ -486,6 +538,10 @@ static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
 #define BLOCK_COORDS_INSIDE_OUT 0x10u
 // scale/offset/tex_offset are in 1/32 block instead of 1/16.
 #define BLOCK_COORDS_HALF_PIXEL 0x20u
+// Fluid cell: the vd_data_water cube's y=1 verts drop to the per-corner
+// surface heights in fluid_h0/fluid_h (1/64 block units) and the flow
+// texture animates along the surface gradient.
+#define BLOCK_COORDS_FLUID 0x40u
 
 // See world.cpp for vbl
 typedef struct {
@@ -496,7 +552,10 @@ typedef struct {
     unsigned char mesh_x;
     unsigned char mesh_y;
     unsigned char mesh_z;
-    unsigned char space;
+    // Fluid corner heights in 1/64 block units (BLOCK_COORDS_FLUID
+    // instances only — free space otherwise). Corner order for fluid_h0 +
+    // fluid_h[0..2] is (x=0,z=0),(x=1,z=0),(x=0,z=1),(x=1,z=1).
+    unsigned char fluid_h0;
 
     unsigned short face[ NUM_FACES_IN_CUBE ];
     unsigned int packed_lighting[ NUM_FACES_IN_CUBE ];
@@ -516,8 +575,15 @@ typedef struct {
     signed char tex_offset_y;
     signed char tex_offset_z;
 
-    signed char pad[ 3 ]; // Align struct to 4 bytes (stride = 68)
+    // Corners (x=1,z=0),(x=0,z=1),(x=1,z=1) — see fluid_h0 above. Bound as
+    // uvec3 at location 13 (world.cpp vbl_coords push_byte). Aligns the
+    // struct to 4 bytes (stride = 68).
+    unsigned char fluid_h[ 3 ];
 
 } BlockCoords;
+
+// The instance vbl in world.cpp binds locations 4-13 against this exact
+// layout — grow fields only into the fluid_h0/fluid_h slots.
+static_assert( sizeof( BlockCoords ) == 68, "BlockCoords stride must stay 68 (vbl_coords in world.cpp)" );
 
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord );

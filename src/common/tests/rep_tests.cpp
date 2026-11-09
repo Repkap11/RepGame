@@ -42,6 +42,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( block_world ),     //
     MK_TEST( mapgen ),          //
     MK_TEST( waterlog ),        //
+    MK_TEST( fluids ),          //
     MK_TEST( lighting ),        //
     MK_TEST( tnt ),             //
     MK_TEST( falling_blocks ),  //

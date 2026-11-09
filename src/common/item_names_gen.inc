@@ -63,3 +63,6 @@
     "BEETROOT",
     "BEETROOT_SEEDS",
     "BREAD",
+    "BUCKET",
+    "WATER_BUCKET",
+    "LAVA_BUCKET",

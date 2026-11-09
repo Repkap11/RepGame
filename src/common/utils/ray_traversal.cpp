@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "common/RepGame.hpp"
+#include "common/fluid.hpp"
 #include "common/world.hpp"
 #include "common/utils/ray_traversal.hpp"
 
@@ -234,14 +235,14 @@ static int contains_pixel( Block *pixel_block, BlockState &block_state, const gl
     return true;
 }
 
-static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int pick_water, int *which_face, double *out_t, double max_t ) {
+static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int pick_mode, int *which_face, double *out_t, double max_t ) {
     BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
         return 1;
     }
     Block *block = block_definition_get_definition( blockID );
-    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || ( pick_water && blockID == WATER );
+    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || ( pick_mode && ( pick_mode == 2 ? block_is_fluid( block ) : blockID == WATER ) );
     if ( result && block->is_stairs ) {
         // Pick against the stair's real collision boxes (slab + step, with
         // the neighbor-derived corner shape) — the nearest box hit wins.
@@ -337,7 +338,7 @@ static double boundary_entry_t( int face, const glm::ivec3 &cell, const glm::dve
     return t < 0.0 ? 0.0 : t;
 }
 
-bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, bool pick_water, double *out_hit_t ) {
+bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, int pick_mode, double *out_hit_t ) {
 
     glm::dvec3 dir = to - from;
     // dir = glm::normalize(dir);
@@ -396,7 +397,7 @@ bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, con
     for ( ;; ) {
         int which_face = -1;
         double box_t = -1.0;
-        int hit_block = contains_block( world, dir, from, offset, pick_water, &which_face, &box_t, length );
+        int hit_block = contains_block( world, dir, from, offset, pick_mode, &which_face, &box_t, length );
         if ( which_face != -1 ) {
             face = which_face;
         }

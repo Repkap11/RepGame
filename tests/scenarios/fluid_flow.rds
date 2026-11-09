@@ -1,0 +1,117 @@
+#! timeout 180
+# Flowing-fluids end-to-end scenario on a flat world (sandstone floor
+# y=0, air from y=1). Build four contained structures, let the fluid sim
+# run, assert ids (flow levels ride rotation — `probe` records them into
+# results.jsonl since assert_block only checks ids), then screenshot the
+# sloped surfaces.
+#
+#   Basin A  x 2..18,  z 2..18   water source spreads a 7-deep diamond;
+#                                a second source triggers forms_sources
+#   Channel B  x 22..30, z 23..25 lava source flows +x; water released
+#                                later meets it -> COBBLESTONE
+#   Basin D  x 22..26, z 28..30  lava source beside water -> OBSIDIAN
+#   Shaft    x 35..37, z 8..10   lava source over water -> STONE below
+
+wait_idle 20 6000
+
+# --- structures -------------------------------------------------------------
+fill 2 1 2 18 1 18 STONE
+fill 2 2 2 18 2 2 STONE
+fill 2 2 18 18 2 18 STONE
+fill 2 2 3 2 2 17 STONE
+fill 18 2 3 18 2 17 STONE
+
+fill 22 1 23 30 1 25 STONE
+fill 22 2 23 30 2 23 STONE
+fill 22 2 25 30 2 25 STONE
+fill 22 2 24 22 2 24 STONE
+fill 30 2 24 30 2 24 STONE
+
+fill 22 1 28 26 1 30 STONE
+fill 22 2 28 26 2 28 STONE
+fill 22 2 30 26 2 30 STONE
+fill 22 2 29 22 2 29 STONE
+fill 26 2 29 26 2 29 STONE
+
+fill 35 1 8 37 3 10 STONE
+# Same-tick events fire in heap order — the carve must wait for the fill.
+wait 5
+setblock 36 2 9 AIR
+setblock 36 3 9 AIR
+
+# --- sources -----------------------------------------------------------------
+wait 5
+setblock 10 2 10 WATER
+setblock 36 2 9 WATER
+setblock 36 3 9 LAVA
+setblock 23 2 24 LAVA
+setblock 25 2 29 WATER
+setblock 23 2 29 LAVA
+
+# Water needs ~7*36 ticks to reach the walls; lava ~3*216 to reach x=26;
+# the shaft lava petrifies the water below it at its first ~216-tick step.
+wait 900
+
+# --- basin A: diamond of flowing levels --------------------------------------
+assert_block 10 2 10 WATER
+assert_block 9 2 10 WATER
+assert_block 3 2 10 WATER
+assert_block 17 2 10 WATER
+assert_block 10 2 3 WATER
+assert_block 10 2 17 WATER
+# Manhattan levels: the corners are distance 14 and stay dry.
+assert_block 3 2 3 AIR
+assert_block 17 2 17 AIR
+# Containment held — nothing past the walls.
+assert_block 10 2 19 AIR
+assert_block 19 2 10 AIR
+probe 4 2 10
+probe 3 2 10
+
+# --- shaft: lava over water petrifies the cell below -------------------------
+assert_block 36 2 9 STONE
+assert_block 36 3 9 LAVA
+
+# --- basin D: lava source beside water -> obsidian ---------------------------
+assert_block 23 2 29 OBSIDIAN
+assert_block 24 2 29 WATER
+assert_block 25 2 29 WATER
+
+# --- release the water toward the lava flow; second basin-A source -----------
+setblock 29 2 24 WATER
+setblock 12 2 10 WATER
+wait 200
+
+# Channel B: flowing lava touching water turned to cobblestone; the lava
+# source never saw water and survives.
+assert_block 26 2 24 COBBLESTONE
+assert_block 25 2 24 LAVA
+assert_block 23 2 24 LAVA
+assert_block 27 2 24 WATER
+assert_block 29 2 24 WATER
+probe 26 2 24
+
+# Basin A: the cell between the two sources formed a new source
+# (forms_sources) — probe records rotation 0; its downstream side stays
+# flowing at level 1.
+assert_block 11 2 10 WATER
+assert_block 13 2 10 WATER
+probe 11 2 10
+probe 13 2 10
+
+# --- screenshots -------------------------------------------------------------
+wait_idle 20 6000
+# Over the basin-A diamond: the sloped ring shows the flow texture on
+# non-flat cells.
+camera 1.0 10.0 1.0 135 32
+wait 30
+screenshot basin
+# Channel B and basin D: cobble where the flows met, obsidian in D.
+camera 26.0 9.0 20.0 180 35
+wait 30
+screenshot reactions
+# Down the shaft mouth: lava over the stone crust.
+camera 36.5 6.5 12.0 0 55
+wait 30
+screenshot shaft
+echo fluid_flow done

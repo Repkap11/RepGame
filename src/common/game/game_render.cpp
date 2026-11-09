@@ -7,6 +7,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
+#include "common/fluid.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/profile.hpp"
 #include "common/renderer/texture.hpp"
@@ -160,7 +161,11 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     // mvp_mirror = glm::translate( mvp_mirror, glm::vec3( 0, -10, 0 ) );
     glm::ivec3 round_block = glm::ivec3( glm::round( render_pos - 0.5 ) );
     BlockState blockInHead = globalGameState.world.get_loaded_block( round_block );
-    bool headInWater = blockInHead.id == WATER;
+    // Waterlogged cells hold water too (fluid_in_cell maps them to WATER).
+    bool headInWater = fluid_in_cell( blockInHead ) == WATER;
+    // Height of the fluid surface inside the head block (0..1 in the cell);
+    // WATER_HEIGHT is the fallback for non-fluid cells.
+    const float head_surface_height = headInWater ? fluid_surface_height( globalGameState.world, round_block ) : WATER_HEIGHT;
 
     globalGameState.blocksTexture.bind( );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
@@ -204,7 +209,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
             // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
             // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
             // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-            const float height_above_water = static_cast<float>( render_pos.y ) + ( 1.0f - WATER_HEIGHT );
+            const float height_above_water = static_cast<float>( render_pos.y ) + ( 1.0f - head_surface_height );
             const float offset = 2.0f * height_above_water;
             const glm::mat4 flipped_trans = glm::translate( render_view_trans, glm::vec3( 0.0, offset, 0.0 ) );
             // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
@@ -231,7 +236,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                 const glm::mat4 mvp_sky = view.proj * view_look;
                 const glm::mat4 mvp = mvp_sky * view_trans;
                 const glm::mat4 flipped_look = view_look * rotation;
-                const float height_above_water = static_cast<float>( eye_pos.y ) + ( 1.0f - WATER_HEIGHT );
+                const float height_above_water = static_cast<float>( eye_pos.y ) + ( 1.0f - head_surface_height );
                 const float offset = 2.0f * height_above_water;
                 const glm::mat4 flipped_trans = glm::translate( view_trans, glm::vec3( 0.0, offset, 0.0 ) );
                 const glm::mat4 mvp_sky_reflect = view.proj * flipped_look;

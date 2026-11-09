@@ -3,7 +3,9 @@
   "casts_shadow": false,
   "collides_with_player": false,
   "emits_light": 15,
-  "flows": 20,
+  "flow_range": 3,
+  "flow_slope": 2,
+  "flows": 216,
   "hardness": 0,
   "hides_self": [
     true,
@@ -18,11 +20,11 @@
   "no_light": 0,
   "render_order": "Water",
   "textures": {
-    "back": "lava_still",
+    "back": "lava_flow",
     "bottom": "lava_still",
-    "front": "lava_still",
-    "left": "lava_still",
-    "right": "lava_still",
+    "front": "lava_flow",
+    "left": "lava_flow",
+    "right": "lava_flow",
     "top": "lava_still"
   }
 }

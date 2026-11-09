@@ -27,6 +27,7 @@ int test_doors( );
 int test_block_world( );
 int test_mapgen( );
 int test_waterlog( );
+int test_fluids( );
 int test_lighting( );
 int test_tnt( );
 int test_falling_blocks( );
