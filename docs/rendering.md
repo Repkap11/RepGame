@@ -212,8 +212,12 @@ heights, so flowing cells slope and falling columns fill their cell. Cells
 whose fluid is level everywhere emit the `*_STILL` top texture and keep
 greedy merging; sloped or falling cells emit 1x1 with the `*_FLOW` top,
 whose UVs the vertex shader rotates onto the surface gradient so the strip
-scrolls downhill. Side faces always draw the flow texture and scroll
-downward. Instance packing is flagged by `BLOCK_COORDS_FLUID` in
+scrolls downhill. A sub-source-height surface can also be perfectly level
+(e.g. a sealed uniform-level patch — solid corner contributors are
+skipped, so all four corners land on `own_height`): its `v_flow_dir` is
+zero and its top must keep unrotated, unscaled UVs — the by-height
+v-scale is for side-top verts only. Side faces always draw the flow
+texture and scroll downward. Instance packing is flagged by `BLOCK_COORDS_FLUID` in
 `face_shift` (fluids never yaw — `rotation` holds the sim level). Corner
 heights come from `fluid_corner_height()`; per-face visibility is
 recomputed on CPU in `calculate_populated_blocks` because phase-1 meshing

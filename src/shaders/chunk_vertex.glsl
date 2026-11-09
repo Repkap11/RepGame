@@ -270,11 +270,14 @@ void main() {
             texCoordBlock_adjust = vec2(
                 -texCoordBlock_adjust.x * s + texCoordBlock_adjust.y * c,
                 texCoordBlock_adjust.x * c + texCoordBlock_adjust.y * s);
-        } else if(cube_pos.y > 0.5 && faceType != FACE_BOTTOM) {
+        } else if(cube_pos.y > 0.5 && faceType != FACE_TOP && faceType != FACE_BOTTOM) {
             // Side-top verts: the flow strip runs v=0..1 over one cell, so
             // scale v by the corner height — a 56/64 surface samples the
             // upper 0.875 of the strip just like the old fixed-height
-            // water did with tex_coords_size.y.
+            // water did with tex_coords_size.y. FACE_TOP must stay out of
+            // this branch: flat surfaces (v_flow_dir = 0) skip the rotation
+            // above, and scaling their v by the corner height collapses the
+            // top tile to a thin strip — stretched lines on shallow flows.
             texCoordBlock_adjust.y *= fluid_height;
         }
     }
