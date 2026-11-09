@@ -262,9 +262,14 @@ void main() {
             // strip scroll (fragment shader, always along v) then reads
             // downstream on any surface slope. v_flow_dir is already the
             // normalized (cos,sin) in the u=x / v=z basis — and (0,0) for a
-            // flat surface, which lands the rotation on identity without an
-            // atan(0,0).
+            // flat surface, which is NOT identity: (c,s)=(0,0) collapses
+            // every top UV to one texel and the still-anim resample smears
+            // the tile into long color bands. Treat it as no rotation.
             float c = v_flow_dir.x, s = v_flow_dir.y;
+            if(dot(v_flow_dir, v_flow_dir) < 0.5) {
+                c = 1.0f;
+                s = 0.0f;
+            }
             texCoordBlock_adjust = vec2(
                 -texCoordBlock_adjust.x * s + texCoordBlock_adjust.y * c,
                 texCoordBlock_adjust.x * c + texCoordBlock_adjust.y * s);
