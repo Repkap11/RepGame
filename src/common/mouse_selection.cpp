@@ -50,7 +50,7 @@ constexpr static CubeFace vd_data_selection[] = {
 
 void MouseSelection::init( const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
     this->render_chain_mouse_selection.init( vbl_block, vbl_coords, vd_data_selection, VB_DATA_SIZE_SELECTION, ib_data_solid, IB_SOLID_SIZE );
-    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+    for ( int i = 0; i < FENCE_MAX_BOXES; i++ ) {
         const auto pair = this->render_chain_mouse_selection.create_instance( );
         this->entity[ i ] = pair.first;
         BlockCoords &blockCoords = pair.second;
@@ -93,10 +93,14 @@ void MouseSelection::hide( ) {
 void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const bool shouldDraw, const BlockState &blockState ) {
     Block *block = block_definition_get_definition( blockState.id );
     this->shouldDraw = shouldDraw;
+    // Multi-box models (stairs, fences) outline every sub-box; the neighbor
+    // gathers below are the same reads collision.cpp/ray_traversal make, so
+    // a neighbor change re-shapes the outline too.
+    BlockBox boxes[ FENCE_MAX_BOXES ];
+    int num_boxes = 0;
     if ( block->is_stairs ) {
-        // Outline the real stair boxes (slab + step + corner octet), already
-        // yawed to world space by stairs_collision_boxes — the same gather
-        // collision.cpp does, so a neighbor change re-shapes the outline too.
+        // The real stair boxes (slab + step + corner octet), already yawed
+        // to world space by stairs_collision_boxes.
         static const glm::ivec3 stair_dirs[ 4 ] = {
             glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
         };
@@ -105,9 +109,28 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
             const BlockState neighbor = world.get_loaded_block( pos + stair_dirs[ d ] );
             stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
         }
-        BlockBox boxes[ STAIRS_MAX_BOXES ];
-        const int num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
-        for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+        num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
+    } else if ( block->is_fence ) {
+        // The rendered fence boxes: the post plus a rail toward each
+        // connected side, from the same connection gather collision.cpp and
+        // chunk.cpp phase 2 do (unloaded cells don't connect).
+        static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
+            { 1, 0, FENCE_CONNECT_POS_X, 1 },
+            { -1, 0, FENCE_CONNECT_NEG_X, 1 },
+            { 0, 1, FENCE_CONNECT_POS_Z, 0 },
+            { 0, -1, FENCE_CONNECT_NEG_Z, 0 },
+        };
+        unsigned connections = 0;
+        for ( int d = 0; d < 4; d++ ) {
+            const BlockState neighbor = world.get_loaded_block( pos + glm::ivec3( conn_dir[ d ][ 0 ], 0, conn_dir[ d ][ 1 ] ) );
+            if ( neighbor.id != LAST_BLOCK_ID && fence_connects_to( block, neighbor.id, neighbor.rotation, conn_dir[ d ][ 3 ] ) ) {
+                connections |= conn_dir[ d ][ 2 ];
+            }
+        }
+        num_boxes = fence_boxes( connections, boxes );
+    }
+    if ( num_boxes > 0 ) {
+        for ( int i = 0; i < FENCE_MAX_BOXES; i++ ) {
             BlockCoords &bc = this->render_chain_mouse_selection.get_instance( this->entity[ i ] );
             bc.x = pos.x;
             bc.y = pos.y;
@@ -130,8 +153,8 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         this->selected_block_state = blockState;
         return;
     }
-    // Non-stair: instance 0 is the whole outline, the rest collapse.
-    for ( int i = 1; i < STAIRS_MAX_BOXES; i++ ) {
+    // Single-box model: instance 0 is the whole outline, the rest collapse.
+    for ( int i = 1; i < FENCE_MAX_BOXES; i++ ) {
         BlockCoords &bc = this->render_chain_mouse_selection.get_instance( this->entity[ i ] );
         bc.scale_x = 0;
         bc.scale_y = 0;

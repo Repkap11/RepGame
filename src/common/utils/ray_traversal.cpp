@@ -251,19 +251,39 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                           : pick_mode == 3   ? block_is_fluid( block ) && fluid_level( blockState ) == 0
                                              : false;
     const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || fluid_pick;
-    if ( result && block->is_stairs ) {
-        // Pick against the stair's real collision boxes (slab + step, with
-        // the neighbor-derived corner shape) — the nearest box hit wins.
-        static const glm::ivec3 stair_dirs[ 4 ] = {
-            glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
-        };
-        int stair_rots[ 4 ];
-        for ( int d = 0; d < 4; d++ ) {
-            const BlockState neighbor = world.get_loaded_block( block_pos + stair_dirs[ d ] );
-            stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
+    if ( result && ( block->is_stairs || block->is_fence ) ) {
+        // Pick against the block's real boxes — stairs use their collision
+        // boxes (slab + step, with the neighbor-derived corner shape),
+        // fences the rendered post + rails — the nearest box hit wins.
+        BlockBox boxes[ FENCE_MAX_BOXES ];
+        int num_boxes;
+        if ( block->is_stairs ) {
+            static const glm::ivec3 stair_dirs[ 4 ] = {
+                glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
+            };
+            int stair_rots[ 4 ];
+            for ( int d = 0; d < 4; d++ ) {
+                const BlockState neighbor = world.get_loaded_block( block_pos + stair_dirs[ d ] );
+                stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
+            }
+            num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
+        } else {
+            // Same connection gather as collision.cpp/chunk.cpp phase 2.
+            static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
+                { 1, 0, FENCE_CONNECT_POS_X, 1 },
+                { -1, 0, FENCE_CONNECT_NEG_X, 1 },
+                { 0, 1, FENCE_CONNECT_POS_Z, 0 },
+                { 0, -1, FENCE_CONNECT_NEG_Z, 0 },
+            };
+            unsigned connections = 0;
+            for ( int d = 0; d < 4; d++ ) {
+                const BlockState neighbor = world.get_loaded_block( block_pos + glm::ivec3( conn_dir[ d ][ 0 ], 0, conn_dir[ d ][ 1 ] ) );
+                if ( neighbor.id != LAST_BLOCK_ID && fence_connects_to( block, neighbor.id, neighbor.rotation, conn_dir[ d ][ 3 ] ) ) {
+                    connections |= conn_dir[ d ][ 2 ];
+                }
+            }
+            num_boxes = fence_boxes( connections, boxes );
         }
-        BlockBox boxes[ STAIRS_MAX_BOXES ];
-        const int num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
         double best_t = 1e30;
         int best_face = -1;
         for ( int i = 0; i < num_boxes; i++ ) {

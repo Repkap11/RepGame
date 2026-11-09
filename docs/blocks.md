@@ -199,8 +199,9 @@ the cell edge on each connected side (both sides merge to 0..16), all
 blocks from the cell floor — so players and mobs can neither slip
 between adjacent posts nor jump the fence. Because a box can reach above
 its cell, the collision scan includes one layer below the player AABB.
-Open gates still don't collide. Selection/raycast stay a single box —
-the fence post or the gate's bounding box.
+Open gates still don't collide. Raycast and the `MouseSelection` outline
+consume the rendered `fence_boxes` list — a connected rail is pickable
+and outlined — while gates stay a single bounding box.
 
 Stairs render as 2-3 box instances per cell (chunk.cpp phase 2,
 `stairs_boxes` in block.cpp): a full-width half slab plus a full-height
@@ -222,8 +223,9 @@ step faces coplanar with the slab surface get `NO_LIGHT_NO_DRAW` via
 `skip_faces`. Collision (`block_collision_boxes`), raycast
 (`contains_block`'s `ray_aabb_hit` loop — nearest box wins, so the
 upper-front void stays walk-through-pickable) and the selection outline
-(`MouseSelection` keeps `STAIRS_MAX_BOXES` instances, extras collapsed
-to zero scale) all consume the same `stairs_collision_boxes`
+(`MouseSelection` keeps `FENCE_MAX_BOXES` instances — fences need 5,
+stairs 3 — extras collapsed to zero scale) all consume the same
+`stairs_collision_boxes`
 world-space list, so a neighbor change re-shapes every consumer at once.
 Half-height steps ride the normal `STEP_HEIGHT` path, so walking up a
 staircase needs no special movement code. Stair items draw their real

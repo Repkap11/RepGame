@@ -196,6 +196,21 @@ int test_fences( ) {
         }
         check_bool( "collision: walking through the gap gets stopped", pos.z < 20.2 );
 
+        // Raycast: connected rails are pickable — a ray through the +x rail
+        // (x 10..16px, z 7..9px, lower rail y 6..9px) hits the fence even
+        // though the post box never reaches x>10px; the gap between rails
+        // and the unconnected -x side stay transparent. These are the same
+        // boxes the MouseSelection outline draws.
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        check_bool( "ray: +z ray hits the connected +x rail",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.8, 11.5, 20.2 ), glm::dvec3( 20.8, 11.5, 20.8 ), out, &which_face ) &&
+                        out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_FRONT );
+        check_bool( "ray: the gap between rails stays open",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 20.8, 11.65, 20.2 ), glm::dvec3( 20.8, 11.65, 20.8 ), out, &which_face ) );
+        check_bool( "ray: the unconnected -x side stays open",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 20.2, 11.5, 20.2 ), glm::dvec3( 20.2, 11.5, 20.8 ), out, &which_face ) );
+
         // 1.5-block height: feet 1.2 above the fence cell overlap the
         // (extended) box even though that box's top sits in the next cell
         // down — exercising the extra scan layer below the AABB.

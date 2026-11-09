@@ -7,9 +7,10 @@
 class World;
 
 class MouseSelection {
-    // One instance per possible sub-box so multi-box models (stairs) draw a
-    // shaped outline; extras sit collapsed at zero scale.
-    entt::entity entity[ STAIRS_MAX_BOXES ];
+    // One instance per possible sub-box so multi-box models (stairs, fences)
+    // draw a shaped outline; extras sit collapsed at zero scale.
+    // FENCE_MAX_BOXES (5) also covers STAIRS_MAX_BOXES (3).
+    entt::entity entity[ FENCE_MAX_BOXES ];
     int shouldDraw;
     BlockState selected_block_state;
     float break_progress;
