@@ -912,7 +912,19 @@ def sc_natural_persist(run, A, B):
             return (bits ^ m) - m
         return (se(v >> 35, 21), se(v >> 6, 8), se(v >> 14, 21))
 
-    settle(run, A, B)
+    # No settle(): its stone pads are player edits, and any natural mob
+    # ticking in a player-edited chunk is legitimately pen-rule TOUCHED —
+    # so pristine persistence can only be asserted where nothing was ever
+    # edited. Pin the cameras over untouched terrain and take settle()'s
+    # coverage wait instead.
+    A.goto(10.5, 101.7, 10.5)
+    B.goto(260.5, 101.7, 10.5)
+    full = (2 * 6 + 1) * (2 * 3 + 1) * (2 * 6 + 1)
+    run.wait("full role coverage", lambda: all(
+        c.dump.last_state() is not None and
+        sum(c.dump.last_state()["roles"].values()) >= full
+        for c in (A, B)), timeout=300)
+    run.sleep_ticks(80)
     run.wait("natural mobs on A", lambda: len(naturals(A)) > 0, timeout=240)
     # Pristine naturals are recreated by the deterministic roll — last
     # client disconnect flushes every covered chunk and must leave no
