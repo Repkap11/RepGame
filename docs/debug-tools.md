@@ -414,7 +414,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `camera x y z yaw pitch` / `release` | pin / unpin the camera (floats; same path as a capture view) |
 | `screenshot <name>` | block until the frame is drawn; writes `screenshots/script_<name>_display.tga` (→ PNG + `artifacts.screenshots`) and emits a `screenshot` event |
 | `quality low|medium|high|x_high`, `flags <u_DebugFlags int>`, `rd <n>` | same mechanisms as the capture views |
-| `time <ticks>`, `mode survival|creative`, `peaceful on|off` | world time / game mode / hostile-mob targeting |
+| `time <ticks>`, `mode survival|creative`, `peaceful on|off`, `fly on|off` | world time / game mode / hostile-mob targeting / `input.player_flying` (flat worlds spawn flying) |
 | `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells |
 | `give <item> [count]`, `slot N` | hotbar add + slot select, refreshing the held-item overlay |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |

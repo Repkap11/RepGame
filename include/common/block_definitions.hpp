@@ -62,6 +62,11 @@ typedef struct {
     bool non_full_size;
     bool is_pickable;
     bool collides_with_player;
+    // Ladders (and any future vines/scaffolding): while the player AABB
+    // overlaps the cell, pressing forward into a blocked wall or jumping
+    // climbs, sneak hangs, and descent is capped — see
+    // Collision::on_climbable and process_movement (docs/player.md).
+    bool climbable;
     // Whether the block is a full opaque cube for redstone purposes: solid
     // blocks can hold power (strong or weak), and dust can connect up over
     // them. Glass, leaves, slabs, and other transparent or non-full blocks —

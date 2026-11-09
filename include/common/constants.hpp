@@ -151,6 +151,14 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define PLAYER_WATER_ACCEL 0.05f
 #define PLAYER_WATER_FRICTION 0.04f
 
+// Climbing (blocks flagged "climbable" — ladders): while the body AABB
+// overlaps a climbable cell, pressing forward into a blocked wall or
+// jumping ascends at CLIMB_VERTICAL_SPEED, sneak hangs in place, and with
+// no input gravity keeps pulling but the descent is capped at
+// CLIMB_SLIDE_SPEED.
+#define CLIMB_VERTICAL_SPEED 0.02f
+#define CLIMB_SLIDE_SPEED 0.025f
+
 // Collision: max distance the player may move on a single axis per collision
 // substep. Must stay below the smallest player AABB half-dimension (PLAYER_WIDTH/2
 // = 0.3) so a single substep can never tunnel through a 1-block-thick wall.

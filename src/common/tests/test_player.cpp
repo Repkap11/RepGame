@@ -216,3 +216,167 @@ int test_player_placement_valid( ) {
     return failures;
 }
 
+// Ladder detection: Collision::on_climbable is true while the player AABB
+// overlaps a cell holding a "climbable" block (ladders don't collide, so
+// the overlap scan is the only way movement senses them) and false once no
+// part of the box touches the ladder's cell.
+//
+//   wall at x=10, y=10..14   ladder column hung on its +x face (cell x=11)
+int test_climb( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState ladder = { LADDER, 0, 0, LADDER, 0 };
+    for ( int y = 10; y <= 14; y++ ) {
+        world.set_loaded_block( glm::ivec3( 10, y, 10 ), stone );
+        world.set_loaded_block( glm::ivec3( 11, y, 10 ), ladder );
+    }
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto check = [ & ]( const char *name, const glm::dvec3 &eye, bool expected ) {
+        const bool got = Collision::on_climbable( world, eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) != 0;
+        const bool ok = got == expected;
+        pr_test( "  %-55s on=%d expected=%d  %s", name, got, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    check_bool( "def: LADDER climbable, STONE not",
+                block_definition_get_definition( LADDER )->climbable && !block_definition_get_definition( STONE )->climbable );
+
+    const double eye_y = 10.0 + PLAYER_EYE_HEIGHT;
+    check( "centered in the ladder cell", glm::dvec3( 11.5, eye_y, 10.5 ), true );
+    check( "body edge still reaches the cell (x=12.25)", glm::dvec3( 12.25, eye_y, 10.5 ), true );
+    check( "fully clear of the cell (x=12.4)", glm::dvec3( 12.4, eye_y, 10.5 ), false );
+    check( "one cell over in z", glm::dvec3( 11.5, eye_y, 11.5 ), false );
+    check( "top of the column (feet still in it)", glm::dvec3( 11.5, 14.8 + PLAYER_EYE_HEIGHT, 10.5 ), true );
+    check( "above the ladder column", glm::dvec3( 11.5, 16.0 + PLAYER_EYE_HEIGHT, 10.5 ), false );
+    check( "unloaded area reads false", glm::dvec3( 100.5, eye_y, 100.5 ), false );
+
+    // Stone floor under the column area (tops at y=10) so the movement loop
+    // below has ground to land and stand on.
+    for ( int x = 9; x <= 16; x++ ) {
+        for ( int z = 9; z <= 12; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 9, z ), stone );
+        }
+    }
+
+    // Feet exactly on a floor top (flush contact, no overlap) must land on
+    // that face, not slip through it: the same boundary case as a player
+    // dropped by `goto` onto flat ground.
+    {
+        glm::dvec3 eye( 14.5, 10.0 + PLAYER_EYE_HEIGHT, 10.5 );
+        int standing = 0;
+        glm::dvec3 vec( 0, -0.05, 0 );
+        Collision::check_move( world, vec, eye, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+        eye += vec;
+        check_bool( "feet flush with floor top: lands standing", standing == 1 );
+        check_bool( "feet flush with floor top: rests on face", fabs( eye.y - ( 10.0 + PLAYER_EYE_HEIGHT + 1e-4 ) ) < 0.01 );
+    }
+
+    // Drive the same loop process_movement runs (accel toward target vel,
+    // climbing branch, gravity, check_move, velocity writeback) while holding
+    // forward into the wall: the player should grab the ladder and ascend.
+    // `forward_input` stands in for the real branch's cos(angleH) > 0.5 gate
+    // — only forward-ish input climbs; strafe/back pushes do not.
+    auto simulate = [ & ]( bool forward_input ) {
+        glm::dvec3 eye( 12.5, 10.0 + PLAYER_EYE_HEIGHT, 10.5 );
+        glm::dvec2 horizontal_vel( 0.0 );
+        double y_speed = 0.0;
+        int standing = 0;
+        const glm::dvec2 target( -MOVEMENT_SENSITIVITY_WALKING, 0.0 ); // pushing -x into the wall
+        for ( int tick = 0; tick < 200; tick++ ) {
+            const bool on_ladder = Collision::on_climbable( world, eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT );
+            // The climbing branch of process_movement: forward input held
+            // while the previous tick's applied horizontal displacement ~0.
+            const bool pushing = forward_input && glm::length( horizontal_vel ) < 0.01;
+            if ( on_ladder ) {
+                if ( pushing ) {
+                    y_speed = CLIMB_VERTICAL_SPEED;
+                } else if ( y_speed < -CLIMB_SLIDE_SPEED ) {
+                    y_speed = -CLIMB_SLIDE_SPEED;
+                }
+            } else if ( y_speed > -0.5 ) {
+                y_speed -= GRAVITY_STRENGTH;
+            }
+            // horizontal_vel approaches target at the ground/air accel rate.
+            const glm::dvec2 dvel = target - horizontal_vel;
+            const double dvel_len = glm::length( dvel );
+            const double rate = standing ? PLAYER_GROUND_ACCEL : PLAYER_AIR_ACCEL;
+            horizontal_vel = dvel_len <= rate ? target : horizontal_vel + dvel * ( rate / dvel_len );
+            glm::dvec3 vec( horizontal_vel.x, y_speed - GRAVITY_STRENGTH, horizontal_vel.y );
+            Collision::check_move( world, vec, eye, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            eye += vec;
+            horizontal_vel.x = vec.x;
+            horizontal_vel.y = vec.z;
+        }
+        return eye;
+    };
+
+    {
+        const glm::dvec3 eye = simulate( true );
+        const double feet = eye.y - PLAYER_EYE_HEIGHT;
+        check_bool( "walk into wall grabs the ladder and climbs", feet > 11.0 );
+        check_bool( "climb stops against the wall face (x≈11.3)", eye.x > 11.2 && eye.x < 11.4 );
+        check_bool( "still overlapping the ladder cell", Collision::on_climbable( world, eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+    }
+    {
+        // Same push into the wall but not forward-held (strafe/back): the
+        // body stays pressed into the wall in the ladder cell and slides
+        // down to the floor instead of climbing.
+        const glm::dvec3 eye = simulate( false );
+        const double feet = eye.y - PLAYER_EYE_HEIGHT;
+        check_bool( "strafe/back push into the wall does not climb", feet < 10.5 );
+    }
+
+    // getPlacedRotation's wall-mount branch (block_mount_rotation): the
+    // clicked face pins the attachment instead of the yaw bucket, so an
+    // oblique click still lands the ladder on the face the user aimed at.
+    // Each side click must yield the rotation the support check then
+    // accepts against the clicked block.
+    {
+        const Block *ladder_def = block_definition_get_definition( LADDER );
+        const glm::ivec3 wall( 30, 10, 30 );
+        world.set_loaded_block( wall, stone );
+        struct MountCase {
+            glm::ivec3 dir;
+            int rot;
+        };
+        const MountCase mount_cases[] = {
+            { glm::ivec3( 0, 0, 1 ), 0 },  // clicked +z face
+            { glm::ivec3( 0, 0, -1 ), 2 }, // clicked -z face
+            { glm::ivec3( 1, 0, 0 ), 3 },  // clicked +x face
+            { glm::ivec3( -1, 0, 0 ), 1 }, // clicked -x face
+        };
+        for ( const MountCase &c : mount_cases ) {
+            char name[ 96 ];
+            snprintf( name, sizeof( name ), "mount click (%d,%d,%d) -> rot %d", c.dir.x, c.dir.y, c.dir.z, c.rot );
+            check_bool( name, block_mount_rotation( ladder_def, c.dir ) == c.rot );
+            const glm::ivec3 create = wall + c.dir;
+            snprintf( name, sizeof( name ), "mount click (%d,%d,%d) survives on clicked block", c.dir.x, c.dir.y, c.dir.z );
+            check_bool( name, player_placement_valid( world, create, { LADDER, (unsigned char)c.rot, 0, LADDER, 0 } ) );
+        }
+        check_bool( "top click falls back to yaw", block_mount_rotation( ladder_def, glm::ivec3( 0, 1, 0 ) ) < 0 );
+        check_bool( "bottom click falls back to yaw", block_mount_rotation( ladder_def, glm::ivec3( 0, -1, 0 ) ) < 0 );
+        check_bool( "null mount falls back to yaw", block_mount_rotation( ladder_def, glm::ivec3( 0, 0, 0 ) ) < 0 );
+        check_bool( "non-mounted block falls back to yaw",
+                    block_mount_rotation( block_definition_get_definition( STONE ), glm::ivec3( 0, 0, 1 ) ) < 0 );
+    }
+
+    return failures;
+}
+

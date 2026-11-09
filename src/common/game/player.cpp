@@ -64,7 +64,14 @@ unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
     unsigned char rotation = BLOCK_ROTATE_0;
     const Block *block = block_definition_get_definition( blockID );
     if ( block->rotate_on_placement ) {
-        if ( globalGameState.camera.angle_H < 45 ) {
+        // Wall-mounted blocks (ladders, buttons) anchor to the face the ray
+        // actually hit, not the yaw bucket, so an oblique click still lands
+        // on the clicked face; floor/ceiling clicks fall back to yaw.
+        const glm::ivec3 mount_dir = globalGameState.block_selection.pos_create - globalGameState.block_selection.pos_destroy;
+        const int mounted_rotation = block_mount_rotation( block, mount_dir );
+        if ( mounted_rotation >= 0 ) {
+            rotation = static_cast<unsigned char>( mounted_rotation );
+        } else if ( globalGameState.camera.angle_H < 45 ) {
             rotation = BLOCK_ROTATE_0;
         } else if ( globalGameState.camera.angle_H < 135 ) {
             rotation = BLOCK_ROTATE_90;
@@ -693,6 +700,13 @@ void RepGame::process_movement( ) {
     const BlockState feet_block = globalGameState.world.get_loaded_block( feet_block_pos );
     const bool player_wading = !player_flying && !player_swimming && feet_block.id < LAST_BLOCK_ID && block_definition_get_definition( feet_block.id )->flows != 0;
 
+    // Climbing (ladders): the player is "on a ladder" while the body AABB
+    // overlaps a cell holding a climbable block. The check uses the standing
+    // height (like the swim check's standing body center) so a sneak-pose
+    // transition can't drop the grip mid-tick.
+    const bool player_climbing = !player_flying && !globalGameState.input.no_clip &&
+                                 Collision::on_climbable( globalGameState.world, globalGameState.camera.pos, PLAYER_HEIGHT, globalGameState.camera.eye_height );
+
     // Sneak pose transitions. The sneak key doubles as "move down" while
     // flying, and while swimming it crouches AND sinks (the swim branch below
     // still applies its sink assist). Feet stay planted: the eye
@@ -759,6 +773,27 @@ void RepGame::process_movement( ) {
             } else {
                 globalGameState.camera.y_speed = 0;
             }
+        }
+    } else if ( player_climbing ) {
+        // On a ladder (a cell whose block is "climbable"): gravity still
+        // applies, so idle players slide down capped at CLIMB_SLIDE_SPEED
+        // while upward momentum (jumping past the cell) is preserved.
+        // Holding jump, or pushing FORWARD into a wall that blocks the move
+        // (MC's horizontalCollision — input held while the collision-resolved
+        // horizontal velocity is ~0), ascends; sneak hangs in place.
+        // Strafe/back input into a wall does NOT climb: angleH is relative
+        // to the camera yaw (W=0, D=+90, S=180, A=-90), so cos > 0.5 keeps
+        // forward and the ±45 diagonals but drops side and back.
+        const bool pushing = globalGameState.input.movement.sizeH > 0.001f &&
+                             cosf( globalGameState.input.movement.angleH * static_cast<float>( M_PI / 180.0 ) ) > 0.5f &&
+                             glm::length( globalGameState.camera.horizontal_vel ) < 0.01;
+        if ( globalGameState.input.movement.jumpPressed || pushing ) {
+            globalGameState.camera.y_speed = CLIMB_VERTICAL_SPEED;
+        } else if ( globalGameState.input.movement.sneakPressed ) {
+            globalGameState.camera.y_speed = 0;
+            gravity = 0; // hard hang — gravity's substep can't pull below 0
+        } else if ( globalGameState.camera.y_speed < -CLIMB_SLIDE_SPEED ) {
+            globalGameState.camera.y_speed = -CLIMB_SLIDE_SPEED;
         }
     } else if ( player_swimming ) {
         // Vertical control is only jump (swim up) and sneak (sink faster) —
@@ -934,7 +969,7 @@ void RepGame::process_movement( ) {
                 }
             }
             fall_dist = 0.0;
-        } else if ( movement_vector.y < 0.0 && !player_flying && !globalGameState.input.no_clip && !player_swimming ) {
+        } else if ( movement_vector.y < 0.0 && !player_flying && !globalGameState.input.no_clip && !player_swimming && !player_climbing ) {
             fall_dist += -movement_vector.y;
         }
         was_grounded_trample = grounded;

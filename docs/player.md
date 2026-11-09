@@ -17,8 +17,8 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 | Input | Action |
 |---|---|
 | `W`/`A`/`S`/`D`, arrows (also `o`/`k`/`;`/`l`) | Move — folded into `input.movement` (`angleH`: W=0, D=+90, S=180, A=-90, diagonals ±45/±135; `sizeH` analog magnitude) |
-| `Space` | Jump; fly up; swim up |
-| `'` (apostrophe) | Sneak; fly down; sink while swimming |
+| `Space` | Jump; fly up; swim up; climb up |
+| `'` (apostrophe) | Sneak; fly down; sink while swimming; hang on climbables |
 | `P` (hold) | Sprint |
 | `F` | Toggle flying; with the creative inventory open, opens its item-name search box instead (typing filters the palette, `Enter`/`Esc` closes it) |
 | `C` | Toggle no-clip (`Ctrl+C` exits) |
@@ -72,6 +72,16 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   the liquid's surface plane (`WATER_HEIGHT`) — a crouched dip doesn't
   flip into swim and oscillate. Feet-in-liquid but body above the
   surface is wading (slower walk, normal physics).
+- **Climbing.** While the body AABB overlaps a cell holding a block
+  flagged `"climbable"` (`Collision::on_climbable` — ladders; the whole
+  cell counts even though the slab geometry is thin), holding jump or
+  pressing *forward* into a wall that blocks the move ascends at
+  `CLIMB_VERTICAL_SPEED` — strafe/back input blocked by a wall does not
+  climb. Sneak hangs in place (gravity off for the tick); otherwise
+  gravity keeps pulling but descent is capped at `CLIMB_SLIDE_SPEED`,
+  so a falling player is caught by the ladder. The branch sits between
+  flying and swimming — flying and `no_clip` bypass it — and climb
+  descent doesn't count toward fall distance.
 - **Collision.** `Collision::check_move`
   (`include/common/utils/collision.hpp`) resolves the requested
   `movement_vector` axis-by-axis with sub-steps and step-up
@@ -116,9 +126,13 @@ mob pre-empt the block target for left clicks.
   a `PlayerBlockPlacedEvent` on the block-update queue
   (`docs/redstone.md`), which is also where debris spawns. Rotation is
   chosen by yaw (`rotate_on_placement`), face for torches, pitch for
-  pistons (`getPlacedRotation`); stairs and half slabs also take their
-  top-half bit from the clicked face/hit height (bottom face or upper
-  side half => top-half block, `docs/blocks.md`).
+  pistons (`getPlacedRotation`); wall-mounted blocks — anything whose
+  `needs_place_on_any_solid` requires a side face, like ladders and
+  buttons — instead anchor to the face the ray actually hit
+  (`block_mount_rotation` on `pos_create - pos_destroy`), with
+  top/bottom clicks falling back to yaw. Stairs and half slabs also
+  take their top-half bit from the clicked face/hit height (bottom
+  face or upper side half => top-half block, `docs/blocks.md`).
 - **Use.** The right-click chain handles mob feeding (a breedable mob
   takes precedence over block clicks), buttons, doors/gates, chests,
   crafting tables, dust toggling, bone meal (sapling or crop stage), hoe

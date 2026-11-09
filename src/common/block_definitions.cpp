@@ -26,6 +26,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->icon_is_isometric = true;
         block->is_pickable = true;
         block->collides_with_player = true;
+        block->climbable = false;
         block->flows = 0;
         block->scale = { 16, 16, 16 };
         block->offset = { 0, 0, 0 };

@@ -1,5 +1,6 @@
 {
   "casts_shadow": false,
+  "climbable": true,
   "collides_with_player": false,
   "hardness": 0.5,
   "icon_is_isometric": false,

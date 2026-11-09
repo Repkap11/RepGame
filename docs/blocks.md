@@ -115,6 +115,12 @@ on axe, stone/mineral/metal names on pickaxe, dirt/sand/powder on shovel
 and leaves/wool/vines on shears; everything unmatched (plants, decorations,
 unbreakables) stays none. Only set the key when the heuristic is wrong.
 
+`"climbable": true` (ladder) makes the block's whole cell act as a
+ladder for the player: while the body AABB overlaps it, forward input or
+jump ascends, sneak hangs, and descent is capped — see `docs/player.md`
+movement physics and `Collision::on_climbable`. Independent of
+`collides_with_player`: ladders stay non-colliding thin slabs.
+
 `blocks_light_down` (derived, no JSON key): bottom-aligned partial blocks —
 casts_shadow, opaque, scale.x/z=16, offset 0, scale.y<16, e.g. bottom slabs
 and grass path. The post-pass clears `casts_shadow` (cell holds light,

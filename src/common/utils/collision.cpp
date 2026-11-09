@@ -454,6 +454,29 @@ bool Collision::collides_at( World &world, const glm::dvec3 &eye, double player_
     return aabb_collides_world( world, amin, amax );
 }
 
+bool Collision::on_climbable( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width ) {
+    glm::dvec3 amin, amax;
+    player_aabb( eye, player_height, eye_height, half_width, amin, amax );
+    const double eps = 1e-4;
+    const int x0 = static_cast<int>( floor( amin.x ) );
+    const int x1 = static_cast<int>( floor( amax.x - eps ) );
+    const int y0 = static_cast<int>( floor( amin.y ) );
+    const int y1 = static_cast<int>( floor( amax.y - eps ) );
+    const int z0 = static_cast<int>( floor( amin.z ) );
+    const int z1 = static_cast<int>( floor( amax.z - eps ) );
+    for ( int x = x0; x <= x1; x++ ) {
+        for ( int y = y0; y <= y1; y++ ) {
+            for ( int z = z0; z <= z1; z++ ) {
+                const BlockState cell = world.get_loaded_block( glm::ivec3( x, y, z ) );
+                if ( cell.id != LAST_BLOCK_ID && block_definition_get_definition( cell.id )->climbable ) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 bool Collision::unstick( World &world, glm::dvec3 &eye, double player_height, double eye_height, double half_width ) {
     glm::dvec3 amin, amax;
     player_aabb( eye, player_height, eye_height, half_width, amin, amax );

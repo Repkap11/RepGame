@@ -255,6 +255,31 @@ static inline void torch_pick_shape( const Block *b, unsigned char rotation, sho
 
 #define PIXEL_TO_FLOAT( pixel ) ( ( ( float )( pixel ) ) / ( 16.0f ) )
 
+// Wall-mounted blocks (ladders, buttons — needs_place_on_any_solid on a
+// side face): the rotation that attaches the block to the face the ray hit.
+// mount_dir is geometric — clicked cell to new cell — which sidesteps the
+// ray traversal's flipped z-face convention (RayTraversal::placement_cell).
+// The world face F whose rotated def-space face is required is where
+// block_supports_present looks for the support (pos - FACE_DIR_OFFSETS[F]);
+// this returns the yaw mapping some required def face onto the mount side,
+// or -1 when the mount direction isn't horizontal or has no required face —
+// callers then fall back to yaw.
+static inline int block_mount_rotation( const Block *block, const glm::ivec3 &mount_dir ) {
+    for ( int face = FACE_RIGHT; face <= FACE_BACK; face++ ) {
+        if ( glm::ivec3( FACE_DIR_X_OFFSETS[ face ], FACE_DIR_Y_OFFSETS[ face ], FACE_DIR_Z_OFFSETS[ face ] ) != mount_dir ) {
+            continue;
+        }
+        int def_face = face;
+        for ( int r = 0; r < 4; r++, def_face = FACE_ROTATE_90[ def_face ] ) {
+            if ( block->needs_place_on_any_solid[ def_face ] ) {
+                return r;
+            }
+        }
+        return -1;
+    }
+    return -1;
+}
+
 // ---- Fences and fence gates -------------------------------------------------
 // One sub-box of a fence/gate model, in pixel units (0-16). skip_faces is a
 // bit per FACE_* — those faces get NO_LIGHT_NO_DRAW in the emitted instance.

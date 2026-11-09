@@ -78,7 +78,7 @@ BOOL_FIELDS = {
     "is_pressure_plate", "is_redstone_mechanism", "is_piston", "is_sticky_piston",
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "falls_with_gravity", "spine_shell",
-    "is_stairs",
+    "is_stairs", "climbable",
     "is_door", "is_door_upper", "door_redstone_only",
     "is_tall_plant_upper",
 }

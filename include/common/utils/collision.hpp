@@ -43,6 +43,10 @@ class Collision {
     // position `eye` overlaps any solid block. Used for the headroom check
     // before standing up out of a sneak.
     static bool collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // Returns true if the player AABB overlaps any cell holding a climbable
+    // block (ladders — the whole cell counts, not the thin slab geometry).
+    // Unloaded cells don't count.
+    static bool on_climbable( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
     // Pushes a body whose box already overlaps the world out to free space —
     // for a hitbox that just grew into a wall (baby mob -> adult), where
     // check_move's face-crossing clamps can't help and the body would tunnel

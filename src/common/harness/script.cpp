@@ -247,6 +247,12 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    if ( strcmp( cmd, "fly" ) == 0 && argc == 2 ) {
+        if ( !dbgcmd::fly( state, argv[ 1 ].c_str( ), &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
     if ( strcmp( cmd, "setblock" ) == 0 && ( argc == 5 || argc == 6 ) ) {
         const unsigned char rotation = argc == 6 ? static_cast<unsigned char>( ivec_arg( 5 ) ) : 0;
         if ( !dbgcmd::setblock( state, glm::ivec3( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) ), argv[ 4 ].c_str( ), &err, rotation ) ) {

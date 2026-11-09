@@ -15,6 +15,7 @@ int test_torch_pick( );
 int test_ray_face_neighbor( );
 int test_player_placement_valid( );
 int test_sneak( );
+int test_climb( );
 int test_items( );
 int test_furnace( );
 int test_item_entities( );

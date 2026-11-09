@@ -63,6 +63,9 @@ bool cprobe( RepGameState &state, const NetContainerKindDef *def, const glm::ive
 bool mode( RepGameState &state, const char *name, bool *force_survival, std::string *err );
 // `peaceful on|off` — off makes the player targetable by hostile mobs.
 bool peaceful( RepGameState &state, const char *name, std::string *err );
+// `fly on|off` — toggles input.player_flying (the F key's flag), so scripted
+// runs can drop a spawned-flying player (flat worlds) to the ground.
+bool fly( RepGameState &state, const char *name, std::string *err );
 void set_time( RepGameState &state, long ticks );
 // `give <item> [count]` adds to the hotbar like a real pickup; `slot N`
 // selects a hotbar slot. Both refresh the held-item overlay.

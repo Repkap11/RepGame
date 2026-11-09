@@ -1884,6 +1884,7 @@ block_definitions[ 124 ].textures[ FACE_LEFT ] = TEX_LADDER;
 block_definitions[ 124 ].textures[ FACE_BACK ] = TEX_LADDER;
 block_definitions[ 124 ].icon_texture = TEX_LADDER;
 block_definitions[ 124 ].casts_shadow = false;
+block_definitions[ 124 ].climbable = true;
 block_definitions[ 124 ].collides_with_player = false;
 block_definitions[ 124 ].hardness = 0.5f;
 block_definitions[ 124 ].icon_is_isometric = false;
