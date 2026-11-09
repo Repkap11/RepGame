@@ -203,34 +203,62 @@ int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {
     return n;
 }
 
-int fence_icon_boxes( BlockBox out[ FENCE_MAX_BOXES ] ) {
+int fence_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
     // A connected segment spanning z: the merged z rails put the fence's
     // long profile on the iso RIGHT face so a held fence points away
-    // rather than lying flat across the hand. fence_boxes emits the post
-    // first, but icon boxes draw back-to-front and the post's faces must
-    // beat the rails' where they overlap in the isometric projection.
-    const int n = fence_boxes( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z, out );
-    const BlockBox post = out[ 0 ];
-    for ( int i = 1; i < n; i++ ) {
-        out[ i - 1 ] = out[ i ];
+    // rather than lying flat across the hand. Each rail is split where it
+    // crosses the post — icon boxes share one depth and later boxes draw
+    // nearer — so emitting back halves, post, front halves puts the rails
+    // on top of the post's near face while the far ends tuck behind it.
+    // The middle segment sits inside the post's x footprint and is never
+    // visible, so it isn't emitted.
+    BlockBox conn[ FENCE_MAX_BOXES ];
+    fence_boxes( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z, conn );
+    const int z1 = conn[ 0 ].offset[ 2 ] + conn[ 0 ].scale[ 2 ]; // post z-max
+    int n = 0;
+    for ( int i = 1; i <= 2; i++ ) { // rail halves behind the post
+        BlockBox b = conn[ i ];
+        b.scale[ 2 ] = conn[ 0 ].offset[ 2 ] - b.offset[ 2 ];
+        out[ n++ ] = b;
     }
-    out[ n - 1 ] = post;
+    out[ n++ ] = conn[ 0 ];
+    for ( int i = 1; i <= 2; i++ ) { // rail halves in front of the post
+        BlockBox b = conn[ i ];
+        b.scale[ 2 ] += b.offset[ 2 ] - z1;
+        b.offset[ 2 ] = z1;
+        out[ n++ ] = b;
+    }
     return n;
 }
 
-int fence_gate_icon_boxes( BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {
+int fence_gate_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
     // The closed leaf yawed 90 to span z, putting the leaf profile on the
-    // iso RIGHT face like the fence. fence_gate_boxes emits the two posts
-    // first; the icon wants them last so their faces cover the rail end
-    // caps that sit inside them (icon boxes share one depth each, later =
-    // nearer).
-    const int n = fence_gate_boxes( false, out );
-    const BlockBox posts[ 2 ] = { out[ 0 ], out[ 1 ] };
-    for ( int i = 2; i < n; i++ ) {
-        out[ i - 2 ] = out[ i ];
+    // iso RIGHT face like the fence — and the same painter's-order trick:
+    // each rail splits where it crosses the upright so the halves behind
+    // emit before it and the halves in front after (the middle segment is
+    // inside the upright's footprint and is never visible). The posts
+    // already bracket the leaf: the far (z<2) post emits first so the
+    // leaf reads over it, the near post last so it covers the rail end
+    // cap inside it.
+    BlockBox leaf[ FENCE_GATE_MAX_BOXES ];
+    const int n_leaf = fence_gate_boxes( false, leaf ); // [0,1] posts (far, near x), [2,3] rails, [4] upright
+    const BlockBox &upright = leaf[ n_leaf - 1 ];
+    int n = 0;
+    out[ n++ ] = leaf[ 0 ]; // far post — ROTATE_90 sends x 0..2 to z 0..2
+    for ( int i = 2; i < n_leaf - 1; i++ ) { // rail halves behind the upright
+        BlockBox b = leaf[ i ];
+        b.scale[ 0 ] = upright.offset[ 0 ] - b.offset[ 0 ];
+        out[ n++ ] = b;
     }
-    out[ n - 2 ] = posts[ 0 ];
-    out[ n - 1 ] = posts[ 1 ];
+    out[ n++ ] = upright;
+    for ( int i = 2; i < n_leaf - 1; i++ ) { // rail halves in front of it
+        BlockBox b = leaf[ i ];
+        const int x1 = upright.offset[ 0 ] + upright.scale[ 0 ];
+        b.scale[ 0 ] += b.offset[ 0 ] - x1;
+        b.offset[ 0 ] = x1;
+        out[ n++ ] = b;
+    }
+    out[ n++ ] = leaf[ 1 ]; // near post — x 14..16 to z 14..16
     for ( int i = 0; i < n; i++ ) {
         block_rotate_box( BLOCK_ROTATE_90, out[ i ].scale, out[ i ].offset );
     }

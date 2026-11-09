@@ -115,21 +115,23 @@ int test_fences( ) {
     const Block *oak_gate = block_definition_get_definition( FENCE_GATE );
     check_bool( "icon: fence + gate are isometric", oak->icon_is_isometric && oak_gate->icon_is_isometric );
     const int n_fence_icon = fence_icon_boxes( boxes );
-    check_bool( "icon: fence shows a connected segment", n_fence_icon == 3 );
-    check_bool( "icon: fence rails merged across z",
-                boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 2 ] == 16 && boxes[ 0 ].scale[ 0 ] == 2 && //
-                    boxes[ 1 ].offset[ 2 ] == 0 && boxes[ 1 ].scale[ 2 ] == 16 );
-    check_bool( "icon: fence post drawn last (nearer)",
-                boxes[ n_fence_icon - 1 ].scale[ 0 ] == 4 && boxes[ n_fence_icon - 1 ].scale[ 1 ] == 16 && //
-                    boxes[ n_fence_icon - 1 ].offset[ 0 ] == 6 && boxes[ n_fence_icon - 1 ].offset[ 2 ] == 6 );
+    check_bool( "icon: fence shows a connected segment", n_fence_icon == 5 );
+    check_bool( "icon: fence rails split at the post",
+                boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 2 ] == 6 && boxes[ 0 ].scale[ 0 ] == 2 && // back half
+                    boxes[ 1 ].offset[ 2 ] == 0 && boxes[ 1 ].scale[ 2 ] == 6 &&                              // back half
+                    boxes[ 2 ].scale[ 0 ] == 4 && boxes[ 2 ].scale[ 1 ] == 16 && boxes[ 2 ].offset[ 0 ] == 6 && // post
+                    boxes[ 3 ].offset[ 2 ] == 10 && boxes[ 3 ].scale[ 2 ] == 6 &&                             // front half
+                    boxes[ 4 ].offset[ 2 ] == 10 && boxes[ 4 ].scale[ 2 ] == 6 );                             // front half
     const int n_gate_icon = fence_gate_icon_boxes( boxes );
-    check_bool( "icon: gate shows the closed leaf", n_gate_icon == 5 );
-    check_bool( "icon: gate leaf yawed to span z",
-                boxes[ 0 ].offset[ 0 ] == 7 && boxes[ 0 ].scale[ 0 ] == 2 && boxes[ 0 ].scale[ 2 ] == 12 );
-    check_bool( "icon: gate posts drawn last",
-                boxes[ n_gate_icon - 2 ].offset[ 2 ] == 0 && boxes[ n_gate_icon - 1 ].offset[ 2 ] == 14 && //
-                    boxes[ n_gate_icon - 1 ].offset[ 0 ] == 7 && boxes[ n_gate_icon - 1 ].scale[ 1 ] == 11 );
-    check_bool( "icon: box counts", block_icon_box_count( oak ) == 3 && block_icon_box_count( oak_gate ) == 5 );
+    check_bool( "icon: gate shows the closed leaf", n_gate_icon == 7 );
+    check_bool( "icon: gate rails split at the upright",
+                boxes[ 1 ].offset[ 2 ] == 2 && boxes[ 1 ].scale[ 2 ] == 4 && // back rail half z 2..6
+                    boxes[ 3 ].offset[ 2 ] == 6 && boxes[ 3 ].scale[ 2 ] == 4 && // upright z 6..10
+                    boxes[ 4 ].offset[ 2 ] == 10 && boxes[ 4 ].scale[ 2 ] == 4 ); // front rail half z 10..14
+    check_bool( "icon: gate posts bracket the leaf",
+                boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 1 ] == 11 && // far post first
+                    boxes[ n_gate_icon - 1 ].offset[ 2 ] == 14 && boxes[ n_gate_icon - 1 ].scale[ 1 ] == 11 ); // near post last
+    check_bool( "icon: box counts", block_icon_box_count( oak ) == 5 && block_icon_box_count( oak_gate ) == 7 );
 
     // Creative listing: the oak fence/gate show up as the legacy FENCE and
     // FENCE_GATE ids (they win the dedupe now that OAK_FENCE shares the fence

@@ -207,10 +207,15 @@ items draw the model boxes as their icons (`icon_is_isometric`, no
 `icon_mask`): `fence_icon_boxes` shows a connected segment and
 `fence_gate_icon_boxes` the closed leaf — both yawed to span z so the
 long profile lands on the iso view's RIGHT face (a held fence/gate
-points away instead of lying flat across the hand). Both emit the posts
-last because every icon box instance shares one screen depth and later
-boxes draw nearer, so the post faces must win where the rail
-middles/ends sit inside them.
+points away instead of lying flat across the hand). Every icon box
+instance shares one screen depth and later boxes draw nearer: the fence
+splits each rail where it crosses the post so the halves behind emit
+first and the halves in front last (the middle segment is inside the
+post's footprint and unneeded). The gate splits each rail the same way
+where it crosses the upright — halves behind, upright, halves in front —
+while the posts already bracket the leaf: the far post emits first so
+the leaf reads over it and the near post last to cover the rail end cap
+inside it.
 
 Stairs render as 2-3 box instances per cell (chunk.cpp phase 2,
 `stairs_boxes` in block.cpp): a full-width half slab plus a full-height
