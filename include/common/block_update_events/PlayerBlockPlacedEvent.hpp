@@ -22,6 +22,12 @@ bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockSta
 // the support check).
 void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, BlockID new_id );
 
+// Same conversion for mob-driven writes (grazing, trampling): a natural
+// world change, not a player edit — goes through set_loaded_block_natural
+// so the chunk's player_edited flag (and with it the natural-mob pen rule)
+// isn't tripped by a sheep eating grass.
+void repgame_convert_block_natural( RepGameState &state, const glm::ivec3 &pos, BlockID new_id );
+
 // Whether a removal performed by this event spawns the broken block's drops:
 // None never; Survival only in survival mode; Always in both game modes
 // (natural causes like leaf decay don't care who removed the support).

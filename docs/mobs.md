@@ -274,7 +274,8 @@ empty). Each rolled record carries a `net_natural_mob_id` (home chunk +
 roll index, `include/common/net/packet.hpp`). A mob becomes **touched**
 (sticky `Mob::touched`, `MobManager::mark_touched`) on a player hit or by
 the *pen rule* — a natural mob ticking inside a chunk with
-`Chunk::sidecars.player_edited` (set by real player edits, never random ticks)
+`Chunk::sidecars.player_edited` (set by real player edits, never random
+ticks or mob-driven writes like grazing/trampling)
 counts as kept livestock. Touching tombstones the mob's roll index in
 its *home* chunk's removed set; the mob itself then persists as an
 ordinary record under its natural id, and the re-roll skips tombstoned

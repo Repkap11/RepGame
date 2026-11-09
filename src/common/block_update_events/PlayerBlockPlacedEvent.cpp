@@ -60,7 +60,7 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
     }
 }
 
-void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, const BlockID new_id ) {
+static void repgame_convert_block_impl( RepGameState &state, const glm::ivec3 &pos, const BlockID new_id, const bool natural ) {
     const BlockState current = state.world.get_loaded_block( pos );
     if ( current.id == LAST_BLOCK_ID || current.id == new_id ) {
         return;
@@ -69,10 +69,22 @@ void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, const Bl
     next.id = new_id;
     next.display_id = new_id;
     next.rotation = BLOCK_ROTATE_0;
-    state.world.set_loaded_block( pos, next );
+    if ( natural ) {
+        state.world.set_loaded_block_natural( pos, next );
+    } else {
+        state.world.set_loaded_block( pos, next );
+    }
     state.multiplayer.set_block( pos, next );
     state.world.spawn_block_debris( pos, current, new_id );
     queue_neighbor_block_updates( state.blockUpdateQueue, state.world, state.tick_number, pos );
+}
+
+void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, const BlockID new_id ) {
+    repgame_convert_block_impl( state, pos, new_id, false );
+}
+
+void repgame_convert_block_natural( RepGameState &state, const glm::ivec3 &pos, const BlockID new_id ) {
+    repgame_convert_block_impl( state, pos, new_id, true );
 }
 
 // Doors place as a lower+upper pair: a lower needs a collidable support

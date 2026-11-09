@@ -300,11 +300,14 @@ void RepGame::tick_entities( ) {
     // A mob that landed on farmland tramples it back to dirt — the crop on
     // top pops through the neighbour-update kill path. Grazing sheep leave
     // the same grass→dirt conversion (their wool regrows on the finish).
+    // Both are natural writes: a mob write must not flag the chunk
+    // player_edited or every natural standing in it becomes "kept
+    // livestock" under the pen rule.
     for ( const glm::ivec3 &pos : mob_out.tramples ) {
-        repgame_convert_block( gs, pos, DIRT );
+        repgame_convert_block_natural( gs, pos, DIRT );
     }
     for ( const glm::ivec3 &pos : mob_out.grazes ) {
-        repgame_convert_block( gs, pos, DIRT );
+        repgame_convert_block_natural( gs, pos, DIRT );
     }
     // Falling blocks + primed TNT bodies integrate on the same cadence.
     gs.world.bodies.tick( gs );
