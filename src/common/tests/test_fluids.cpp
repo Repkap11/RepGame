@@ -387,6 +387,27 @@ int test_fluids( ) {
         check_bool( "bucket: pour-back pending drained", gs.pending_fluid_updates.empty( ) );
     }
     {
+        // Pour onto an existing source: the bucket empties but nothing is
+        // written — in particular not into pos_fluid_create next door.
+        RepGameState &gs = new_fluid_state( );
+        gs.game_mode = GameMode_Survival;
+        test_setup_inventories( gs );
+        World &world = gs.world;
+        fill_floor( world, 10, 28, 48, 28, 48, fluid_stone );
+        world.set_loaded_block( glm::ivec3( 38, 11, 38 ), { WATER, 0, 0, WATER, 0 } );
+        gs.hotbar.addItemWithQuantity( WATER_BUCKET, 1 );
+        gs.block_selection.fluidSelectionInBounds = 1;
+        gs.block_selection.pos_fluid = glm::ivec3( 38, 11, 38 );
+        gs.block_selection.pos_fluid_create = glm::ivec3( 38, 11, 39 );
+        check_bool( "bucket: pour on a source returns true", repgame_use_bucket( gs ) );
+        settle( gs, 1 );
+        check_rot( "bucket: existing source unchanged", world, glm::ivec3( 38, 11, 38 ), 0 );
+        failures += check_id( world, "bucket: no write into the adjacent cell", glm::ivec3( 38, 11, 39 ), AIR );
+        check_bool( "bucket: pour on source swaps to BUCKET", gs.hotbar.getSelectedItem( ) == BUCKET );
+        settle( gs, 1500 );
+        check_bool( "bucket: pour-on-source pending drained", gs.pending_fluid_updates.empty( ) );
+    }
+    {
         // Full hotbar: the filled bucket can't stack (max_stack 1) and every
         // slot is taken, so it drops as an item entity instead of vanishing.
         RepGameState &gs = new_fluid_state( );

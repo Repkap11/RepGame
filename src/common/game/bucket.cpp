@@ -56,14 +56,28 @@ bool repgame_use_bucket( RepGameState &state ) {
         bucket_finish( state, fluid );
         return true;
     }
-    // Pour: a flowing hit cell fills back to a source in place; any other
-    // fluid hit pours into the face-adjacent cell, and a plain block click
-    // pours at pos_create like a placed block.
+    // Pour: aiming at the same fluid empties the bucket at the hit cell —
+    // a flowing cell upgrades to a source, a source is a no-op (MC still
+    // empties the bucket there). A hit on the *other* fluid pours into the
+    // face-adjacent cell so the reaction happens next door, and a plain
+    // block click pours at pos_create like a placed block.
     const BlockID fluid = item_bucket_fluid( held );
     glm::ivec3 target;
     if ( sel.fluidSelectionInBounds ) {
         const BlockState cell = state.world.get_loaded_block( sel.pos_fluid );
-        target = fluid_level( cell ) > 0 ? sel.pos_fluid : sel.pos_fluid_create;
+        if ( fluid_in_cell( cell ) == fluid ) {
+            if ( fluid_level( cell ) == 0 ) {
+                // Already a source: nothing to write, but the pour counts.
+                if ( state.game_mode == GameMode_Survival ) {
+                    bucket_swap_item( state, BUCKET );
+                }
+                bucket_finish( state, fluid );
+                return true;
+            }
+            target = sel.pos_fluid;
+        } else {
+            target = sel.pos_fluid_create;
+        }
     } else if ( sel.selectionInBounds ) {
         target = sel.pos_create;
     } else {
