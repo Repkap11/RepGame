@@ -233,9 +233,10 @@ void main() {
             texColor.rgb = mix(texColor.rgb, vec3(0.04f, 0.18f, 0.58f), 0.78f);
             texColor.a *= 0.8f + 0.2f * fresnel;
         } else if(v_blockID == uint(TEX_LAVA_STILL)) { // LAVA top texture
+            // Slow scroll + a faint emissive pulse, but no positional warp —
+            // lava shouldn't wiggle like water.
             vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
-            vec2 warp = vec2(sin(wpos.x * 0.9f + u_Time * 0.45f), sin(wpos.y * 1.1f + u_Time * 0.38f)) * 0.07f;
-            texColor = texture(u_Texture, vec3(working + flow + warp, v_blockID));
+            texColor = texture(u_Texture, vec3(working + flow, v_blockID));
             texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
             if(texColor.a == 0.0f) {
                 discard;
@@ -257,11 +258,16 @@ void main() {
             } else {
                 flow = vec2(0.0f);
             }
-            vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * (is_lava ? 0.04f : 0.10f);
+            vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * (is_lava ? 0.0f : 0.10f);
             // v_TexCoordBlock, not the clamped `working`: the rotated top
             // UVs run outside [0,1] and the edge clamp would smear the tile
             // border across the quad — the layer wraps anyway (GL_REPEAT).
-            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, v_blockID));
+            // Lava tops sample the still tile: lava_flow's pattern differs
+            // enough from lava_still's that a sloped top next to a flat pool
+            // reads as a different fluid. Water keeps the flow strip — the
+            // deep tint below unifies it with the still tile.
+            uint top_layer = (is_lava && v_face_normal.y > 0.5f) ? uint(TEX_LAVA_STILL) : v_blockID;
+            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, top_layer));
             if(texColor.a == 0.0f) {
                 discard;
             }
@@ -546,8 +552,12 @@ void main() {
             // water-range fog so the composite fades toward the sky
             // attachment's "seen through water" content).
             // R carries colorFog so the water reflection overlay can apply
-            // the same first-stage (sky average) blend as the surface.
-            fogFactor = vec4(colorFog, 0.0f, 0.0f, alphaFog);
+            // the same first-stage (sky average) blend as the surface. G
+            // flags lava: the stencil marks every fluid pixel, but lava
+            // gets no reflection overlay in the water composite.
+            fogFactor = vec4(colorFog,
+                             (v_blockID == uint(TEX_LAVA_STILL) || v_blockID == uint(TEX_LAVA_FLOW)) ? 1.0f : 0.0f,
+                             0.0f, alphaFog);
             // Underwater fragments skip the alpha fade: it was designed to
             // dissolve terrain into the sky, but underwater the murk comes
             // from the color blend and reduced alpha reveals untinted sky /

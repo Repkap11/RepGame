@@ -108,6 +108,17 @@ float colorFogMultisample(ivec2 coord) {
     return fogMS;
 }
 
+// The chunk shader writes 1.0 into the fog attachment's G channel for lava
+// fragments — the stencil can't tell lava from water.
+float lavaMaskMultisample(ivec2 coord) {
+    float m = 0.0;
+    for(int i = 0; i < u_TextureSamples; i++) {
+        m += texelFetch(u_FogTexture, coord, i).g;
+    }
+    m /= float(u_TextureSamples);
+    return m;
+}
+
 vec4 reflectionMultisample(ivec2 coord) {
     vec4 reflMS = vec4(0.0);
     for(int i = 0; i < u_TextureSamples; i++) {
@@ -213,6 +224,13 @@ vec3 ssrReflection(vec3 waterPos, vec3 rayDir) {
 // already-composited scene. Adds a fresnel-weighted reflection (rippled at
 // X_HIGH); output alpha blends it over the scene beneath.
 void waterMain(ivec2 multiCoords) {
+    // Lava is stencil-marked with the fluid pass but isn't water: no mirror,
+    // no ripple. Alpha 0 blends nothing over the lava pixel.
+    if(lavaMaskMultisample(multiCoords) > 0.5) {
+        color = vec4(0.0);
+        return;
+    }
+
     vec2 ndc = TexCoords * 2.0 - 1.0;
 
     // View ray in the rebased world frame (matches v_world_coords space).
@@ -293,7 +311,12 @@ void main() {
         vec4 wp = u_InvMVP * vec4(TexCoords * 2.0 - 1.0, surfDepth * 2.0 - 1.0, 1.0);
         vec3 wpos = wp.xyz / wp.w;
         float dist = length(wpos - u_CameraPos);
-        multiCoords += ivec2(ripplePhaseOffset(wpos.xz + u_OriginXZ, 2.0 / (1.0 + dist * 0.12)));
+        // Lava doesn't wiggle — the flag lives in the fog attachment's G,
+        // which is only the real fog texture when u_FogBlend is set (plain
+        // draw_texture calls bind the drawn texture there as a dummy).
+        if(u_FogBlend == 0 || lavaMaskMultisample(multiCoords) <= 0.5) {
+            multiCoords += ivec2(ripplePhaseOffset(wpos.xz + u_OriginXZ, 2.0 / (1.0 + dist * 0.12)));
+        }
     }
 
     if(u_Blur != 0) {
