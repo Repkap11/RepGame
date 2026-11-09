@@ -8,7 +8,8 @@ class RayTraversal {
   public:
     // Pick raycast: walks the voxel grid from `from` to `to` and returns the
     // first pickable cell (block entities, doors, tall plants; pick_mode 1
-    // also hits water, pick_mode 2 hits any fluid). `out` gets the hit cell,
+    // also hits water, pick_mode 2 hits any fluid, pick_mode 3 hits only
+    // fluid source cells). `out` gets the hit cell,
     // `out_face` the entry face; `out_hit_t`, when given, gets the hit
     // distance along the normalized (to - from) direction — the box entry
     // for sub-block shapes, the cell boundary crossing for full cubes.

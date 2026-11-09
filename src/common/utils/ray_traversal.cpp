@@ -242,7 +242,15 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
         return 1;
     }
     Block *block = block_definition_get_definition( blockID );
-    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || ( pick_mode && ( pick_mode == 2 ? block_is_fluid( block ) : blockID == WATER ) );
+    // Fluid pick modes: 1 floats on WATER cells (lily pads), 2 hits any
+    // fluid cell (a filled bucket aims its pour at the flow itself), 3
+    // hits only source cells — MC's SOURCE_ONLY, so flowing cells are
+    // transparent and can't shadow the scoopable source behind them.
+    const bool fluid_pick = pick_mode == 1   ? blockID == WATER
+                          : pick_mode == 2   ? block_is_fluid( block )
+                          : pick_mode == 3   ? block_is_fluid( block ) && fluid_level( blockState ) == 0
+                                             : false;
+    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || fluid_pick;
     if ( result && block->is_stairs ) {
         // Pick against the stair's real collision boxes (slab + step, with
         // the neighbor-derived corner shape) — the nearest box hit wins.

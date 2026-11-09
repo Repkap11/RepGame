@@ -433,5 +433,43 @@ int test_fluids( ) {
         check_drained( "bucket: full-inventory pending drained", gs );
     }
 
+    // --- Fluid pick raycast: both bucket modes ride the same traversal.
+    // Mode 2 (a filled bucket's pour aim) stops at the first fluid cell so
+    // the flowing cell itself can be the pour target; mode 3 (the empty
+    // bucket's scoop aim) skips flowing cells — MC's SOURCE_ONLY — so a
+    // flow or fall can't shadow the scoopable source behind it. ----------
+    {
+        RepGameState &gs = new_fluid_state( );
+        World &world = gs.world;
+        fill_floor( world, 10, 28, 48, 28, 48, fluid_stone );
+        world.set_loaded_block( glm::ivec3( 40, 11, 40 ), { LAVA, 0, 0, LAVA, 0 } ); // source
+        world.set_loaded_block( glm::ivec3( 38, 12, 40 ), { LAVA, 1, 0, LAVA, 0 } ); // flowing
+        world.set_loaded_block( glm::ivec3( 46, 12, 40 ), { LAVA, 1, 0, LAVA, 0 } ); // flowing
+        world.set_loaded_block( glm::ivec3( 47, 12, 40 ), fluid_stone );            // wall behind it
+        int face = 0;
+        glm::ivec3 hit;
+        // From above, both modes land on the source.
+        const glm::dvec3 down_from( 40.5, 13.5, 40.5 ), down_to( 40.5, 10.5, 40.5 );
+        check_bool( "fluidray: mode 2 picks a source",
+                    RayTraversal::find_block_from_to( world, down_from, down_to, hit, &face, 2 ) && hit == glm::ivec3( 40, 11, 40 ) );
+        check_bool( "fluidray: mode 3 picks a source",
+                    RayTraversal::find_block_from_to( world, down_from, down_to, hit, &face, 3 ) && hit == glm::ivec3( 40, 11, 40 ) );
+        // At a shallow angle the ray crosses the flowing cell first: mode 2
+        // stops on it (pour target), mode 3 reaches the source.
+        const glm::dvec3 low_from( 35.5, 13.5, 40.5 ), low_to( 42.5, 11.2, 40.5 );
+        check_bool( "fluidray: mode 2 stops at the flow",
+                    RayTraversal::find_block_from_to( world, low_from, low_to, hit, &face, 2 ) && hit == glm::ivec3( 38, 12, 40 ) );
+        check_bool( "fluidray: mode 3 reaches the source behind flow",
+                    RayTraversal::find_block_from_to( world, low_from, low_to, hit, &face, 3 ) && hit == glm::ivec3( 40, 11, 40 ) );
+        // With no source in reach, mode 3 lands on the block behind the
+        // flow (the scoop then rejects it as a non-fluid) instead of the
+        // flowing cell mode 2 reports.
+        const glm::dvec3 wall_from( 44.5, 12.5, 40.5 ), wall_to( 48.5, 12.5, 40.5 );
+        check_bool( "fluidray: mode 2 reports the flowing cell",
+                    RayTraversal::find_block_from_to( world, wall_from, wall_to, hit, &face, 2 ) && hit == glm::ivec3( 46, 12, 40 ) );
+        check_bool( "fluidray: mode 3 falls through to the wall",
+                    RayTraversal::find_block_from_to( world, wall_from, wall_to, hit, &face, 3 ) && hit == glm::ivec3( 47, 12, 40 ) );
+    }
+
     return failures;
 }

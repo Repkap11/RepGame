@@ -108,8 +108,9 @@ Mouse deltas are low-pass filtered (`MOUSE_SMOOTHING`) into
 marches the eye ray out to `REACH_DISTANCE`: the hit cell becomes
 `pos_destroy`, the adjacent cell along the hit face `pos_create`. A
 second traversal ignoring water fills `pos_create_water` so placement
-against the water surface works. A third mode-2 traversal runs while a
-bucket is held: it hits fluid cells and fills `pos_fluid` /
+against the water surface works. A third traversal runs while a
+bucket is held — mode 3 (sources only) for an empty bucket, mode 2
+(any fluid cell) for a filled one — and fills `pos_fluid` /
 `pos_fluid_create` / `fluidSelectionInBounds` (`docs/fluids.md`).
 `World::set_selected_block` feeds the
 `MouseSelection` highlight box, and `mobs.resolve_target` lets a closer

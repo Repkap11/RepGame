@@ -109,11 +109,14 @@ shape settles.
 
 `repgame_use_bucket` (`src/common/game/bucket.cpp`) runs the three
 bucket items in the right-click chain (`docs/player.md`). A held
-bucket arms the mode-2 fluid raycast in
+bucket arms a fluid raycast in
 `RepGame::update_block_selection` — `RayTraversal::find_block_from_to`
-with `pick_mode 2` hits `block_is_fluid` cells — filling
-`BlockSelection::pos_fluid` / `pos_fluid_create` /
-`fluidSelectionInBounds`. An empty `BUCKET` scoops only a plain
+filling `BlockSelection::pos_fluid` / `pos_fluid_create` /
+`fluidSelectionInBounds`. The empty `BUCKET` uses `pick_mode 3`, which
+hits only source cells — flowing cells are transparent (MC's
+SOURCE_ONLY), so a fall or shallow flow can't shadow the source behind
+it; a filled bucket uses `pick_mode 2`, which stops at any fluid cell
+so a pour can aim at the flow itself. An empty `BUCKET` scoops only a plain
 source (`fluid_level == 0`, not waterlogged — the water under a slab
 can't be drained); a filled `WATER_BUCKET`/`LAVA_BUCKET` pours
 `fluid_state(fluid, 0)` into the hit flowing cell, `pos_fluid_create`,

@@ -224,9 +224,13 @@ void RepGame::update_block_selection( ) {
     if ( item_is_bucket( selected_block ) ) {
         // Buckets pick fluids: pos_fluid is the fluid cell under the
         // crosshair (scoop target / pour-back target), pos_fluid_create the
-        // cell beside the hit face a pour lands in.
+        // cell beside the hit face a pour lands in. The empty bucket casts
+        // the mode-3 ray — flowing cells are transparent so a fall or
+        // shallow flow can't shadow the source behind them — while a
+        // filled bucket keeps mode 2 so a pour can aim at the flow itself.
         int whichFace_fluid = 0;
-        sel.fluidSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_fluid, &whichFace_fluid, 2 );
+        const int mode = item_bucket_fluid( selected_block ) == LAST_BLOCK_ID ? 3 : 2;
+        sel.fluidSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_fluid, &whichFace_fluid, mode );
         sel.pos_fluid_create = RayTraversal::placement_cell( sel.pos_fluid, whichFace_fluid );
     } else {
         sel.fluidSelectionInBounds = 0;

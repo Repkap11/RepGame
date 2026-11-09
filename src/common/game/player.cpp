@@ -442,11 +442,13 @@ void RepGame::process_mouse_events( ) {
             }
         }
     }
-    if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.fluidSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 && !globalGameState.input.movement.sneakPressed ) {
+    if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.fluidSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Buckets scoop a fluid source or pour theirs out — after the block
         // interactions above (they need the normal pick too), before the
         // use/placement paths below. Buckets are items so nothing below can
-        // place them anyway; repgame_use_bucket owns the click delay.
+        // place them anyway, and they aren't sneak-gated — there's no
+        // place-against-interactable conflict to unlock. repgame_use_bucket
+        // owns the click delay.
         repgame_use_bucket( globalGameState );
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
