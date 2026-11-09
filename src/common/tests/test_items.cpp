@@ -627,8 +627,8 @@ int test_creative( ) {
         cir.inv_cell_stride = 1.0f;
         cir.inv_block_size = 1;
         cir.inv_block_offset = 0;
-        cir.slots_entities = static_cast<entt::entity *>( calloc( cir.num_blocks_max * STAIRS_MAX_BOXES, sizeof( entt::entity ) ) );
-        for ( int i = 0; i < cir.num_blocks_max * STAIRS_MAX_BOXES; i++ ) {
+        cir.slots_entities = static_cast<entt::entity *>( calloc( cir.num_blocks_max * ICON_MAX_BOXES, sizeof( entt::entity ) ) );
+        for ( int i = 0; i < cir.num_blocks_max * ICON_MAX_BOXES; i++ ) {
             cir.slots_entities[ i ] = entt::null;
         }
 
