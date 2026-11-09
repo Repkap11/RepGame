@@ -127,7 +127,7 @@ and grass path. The post-pass clears `casts_shadow` (cell holds light,
 lit from above/sides) while light.cpp never spreads light downward from it
 and the skylight column fill stops at it — slab roofs shade but path tops
 next to full blocks aren't dark. Floor cells also get a bit in
-`Chunk::light_shade_mask` (sibling of `light_air_mask`): the light
+`ChunkLight::shade_mask` (sibling of `air_mask`): the light
 texture's A channel is 0 for them, and chunk_fragment re-darkens the
 ground layer a floor sits in — the old opaque-cell contact shadow —
 while wall faces beside it stay undarkened.

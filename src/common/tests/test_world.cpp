@@ -120,7 +120,7 @@ int test_lighting( ) {
     ChunkLoader &cl = world.chunkLoader;
     cl.chunk_center = glm::ivec3( 0, 0, 0 );
     Chunk &chunk = cl.chunkArray[ chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) ];
-    chunk.light = static_cast<unsigned short *>( calloc( CHUNK_BLOCK_SIZE, sizeof( unsigned short ) ) );
+    chunk.light.volume = static_cast<unsigned short *>( calloc( CHUNK_BLOCK_SIZE, sizeof( unsigned short ) ) );
 
     int failures = 0;
     auto check_light = [ & ]( const char *name, const glm::ivec3 &pos, int channel, int expected ) {
@@ -259,13 +259,13 @@ int test_lighting( ) {
     // stone and air. (Mask exists only under light_mipmaps_enabled; tests
     // run with it on.)
     auto shade_bit = [ & ]( const glm::ivec3 &p ) -> int {
-        if ( !chunk.light_shade_mask ) {
+        if ( !chunk.light.shade_mask ) {
             return -1;
         }
         const int i = chunk.get_index_from_coords( p );
-        return ( chunk.light_shade_mask[ i >> 3 ] >> ( i & 7 ) ) & 1;
+        return ( chunk.light.shade_mask[ i >> 3 ] >> ( i & 7 ) ) & 1;
     };
-    check_bool( "shade mask built by fill", chunk.light_shade_mask != nullptr );
+    check_bool( "shade mask built by fill", chunk.light.shade_mask != nullptr );
     check_bool( "shade bit set on slab floor cell", shade_bit( glm::ivec3( 26, 25, 26 ) ) == 1 );
     check_bool( "shade bit clear on stone", shade_bit( glm::ivec3( 5, 30, 5 ) ) == 0 );
     check_bool( "shade bit clear on air", shade_bit( glm::ivec3( 28, 28, 28 ) ) == 0 );
@@ -298,11 +298,11 @@ int test_lighting( ) {
     // shadow appears on place, and a ghost one stays after a break.
     world.set_loaded_block( glm::ivec3( 8, 24, 28 ), stone );
     cl.light_process_queue( 1000000 );
-    chunk.light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    chunk.light.dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
     world.set_loaded_block( glm::ivec3( 8, 25, 28 ), slab );
     cl.light_process_queue( 1000000 );
     {
-        const uint64_t box = chunk.light_dirty_box.load( std::memory_order_relaxed );
+        const uint64_t box = chunk.light.dirty_box.load( std::memory_order_relaxed );
         const glm::ivec3 texel( 8 + 1, 25 + 1, 28 + 1 ); // block local + halo
         check_bool( "slab-on-stone edit marks its texel",
                     box != LIGHT_BOX_EMPTY && static_cast<int>( box & 0xFF ) <= texel.x &&
@@ -312,10 +312,10 @@ int test_lighting( ) {
                         static_cast<int>( ( box >> 16 ) & 0xFF ) <= texel.z &&
                         texel.z <= static_cast<int>( ( box >> 40 ) & 0xFF ) );
     }
-    chunk.light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    chunk.light.dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
     world.set_loaded_block( glm::ivec3( 8, 25, 28 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );
-    check_bool( "slab break also marks its texel", chunk.light_dirty_box.load( std::memory_order_relaxed ) != LIGHT_BOX_EMPTY );
+    check_bool( "slab break also marks its texel", chunk.light.dirty_box.load( std::memory_order_relaxed ) != LIGHT_BOX_EMPTY );
     world.set_loaded_block( glm::ivec3( 8, 24, 28 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );
 
@@ -383,8 +383,8 @@ int test_structure_border( ) {
         c->chunk_pos = pos;
         c->cells = chunk_alloc_cells( );
         c->extras = nullptr;
-        c->light_air_mask = nullptr;
-        c->light_shade_mask = nullptr;
+        c->light.air_mask = nullptr;
+        c->light.shade_mask = nullptr;
         MapGen::load_block_c( c );
         StructureGen::place( *c );
         return c;
@@ -392,8 +392,8 @@ int test_structure_border( ) {
     auto free_chunk = []( Chunk *c ) {
         chunk_free_cells( c->cells );
         chunk_free_extras( c->extras );
-        chunk_free_air_mask( c->light_air_mask );
-        chunk_free_air_mask( c->light_shade_mask );
+        chunk_free_air_mask( c->light.air_mask );
+        chunk_free_air_mask( c->light.shade_mask );
         delete c;
     };
 

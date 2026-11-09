@@ -1032,8 +1032,8 @@ const ChestContents *World::get_chest_contents( const glm::ivec3 &block_pos ) co
             return nullptr;
         }
         const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
-        const auto it = chunk.chests.find( Chunk::get_index_from_coords( diff ) );
-        return it == chunk.chests.end( ) ? nullptr : &it->second;
+        const auto it = chunk.containers.chests.find( Chunk::get_index_from_coords( diff ) );
+        return it == chunk.containers.chests.end( ) ? nullptr : &it->second;
     }
     return nullptr;
 }
@@ -1049,8 +1049,8 @@ ChestContents *World::get_or_create_chest_contents( const glm::ivec3 &block_pos 
         }
         const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
         const int index = Chunk::get_index_from_coords( diff );
-        chunk.chests_loaded = 1;
-        return &chunk.chests[ index ]; // default-constructs an empty chest
+        chunk.containers.chests_loaded = 1;
+        return &chunk.containers.chests[ index ]; // default-constructs an empty chest
     }
     return nullptr;
 }
@@ -1088,8 +1088,8 @@ const FurnaceContents *World::get_furnace_contents( const glm::ivec3 &block_pos 
             return nullptr;
         }
         const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
-        const auto it = chunk.furnaces.find( Chunk::get_index_from_coords( diff ) );
-        return it == chunk.furnaces.end( ) ? nullptr : &it->second;
+        const auto it = chunk.containers.furnaces.find( Chunk::get_index_from_coords( diff ) );
+        return it == chunk.containers.furnaces.end( ) ? nullptr : &it->second;
     }
     return nullptr;
 }
@@ -1105,8 +1105,8 @@ FurnaceContents *World::get_or_create_furnace_contents( const glm::ivec3 &block_
         }
         const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
         const int index = Chunk::get_index_from_coords( diff );
-        chunk.furnaces_loaded = 1;
-        return &chunk.furnaces[ index ]; // default-constructs an empty furnace
+        chunk.containers.furnaces_loaded = 1;
+        return &chunk.containers.furnaces[ index ]; // default-constructs an empty furnace
     }
     return nullptr;
 }
@@ -1204,11 +1204,11 @@ void World::tick_furnaces( ) {
     // map-empty test on chunks that have any furnace data at all.
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkLoader.chunkArray[ i ];
-        if ( chunk.load_state || chunk.furnaces.empty( ) ) {
+        if ( chunk.load_state || chunk.containers.furnaces.empty( ) ) {
             continue;
         }
         const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
-        for ( auto &pair : chunk.furnaces ) {
+        for ( auto &pair : chunk.containers.furnaces ) {
             const int index = pair.first;
             const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
                                            ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
@@ -1390,7 +1390,7 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
         }
         chunk.set_block( diff, blockState );
         chunk.dirty = 1;
-        chunk.player_edited = 1;
+        chunk.sidecars.player_edited = 1;
         chunk.needs_repopulation = 1;
         this->chunkLoader.repop_must_enqueue( chunk );
         chunk.is_empty_chunk = false;
@@ -1475,10 +1475,10 @@ void World::grass_random_tick( RepGameState &state, const glm::ivec3 &world_pos,
 
 void World::set_loaded_block_natural( const glm::ivec3 &block_pos, BlockState blockState ) {
     Chunk *chunk = this->get_loaded_chunk( block_pos );
-    const uint8_t was_edited = chunk != nullptr ? chunk->player_edited : 0;
+    const uint8_t was_edited = chunk != nullptr ? chunk->sidecars.player_edited : 0;
     this->set_loaded_block( block_pos, blockState );
     if ( chunk != nullptr ) {
-        chunk->player_edited = was_edited;
+        chunk->sidecars.player_edited = was_edited;
     }
 }
 

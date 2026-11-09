@@ -37,7 +37,7 @@
 #define LIGHT_STEP_FACE 17
 #define LIGHT_STEP_EDGE 24
 
-// Column flags live in chunk->light_columns: [0, flags_count) is column_open
+// Column flags live in chunk->light.columns: [0, flags_count) is column_open
 // (no light-blocking cell in this chunk's vertical column),
 // [flags_count, 2*flags_count) is sky_open_above (no blocker anywhere above
 // inside the loaded grid), and [2*flags_count, 3*flags_count) is fill_from —
@@ -104,12 +104,12 @@ class Chunk;
 // ChunkLoader::light_finalize_chunk.
 void light_fill_chunk( Chunk &chunk );
 
-// Stamps one bit of chunk.light_air_mask (the air-mask cache the light
+// Stamps one bit of chunk.light.air_mask (the air-mask cache the light
 // texture upload reads instead of walking cells[]) for a post-fill cells[]
 // write — Chunk::set_block and Chunk::set_block_by_index_if_different call
 // this after every real write. Bit set = !light_opaque_id(id), the same
 // predicate the fill/upload use. Also stamps the matching
-// chunk.light_shade_mask bit (set = def->blocks_light_down). No-op when a
+// chunk.light.shade_mask bit (set = def->blocks_light_down). No-op when a
 // mask isn't allocated, so a missing mask always means "upload falls back
 // to the cells[] walk".
 void light_air_mask_set( const Chunk &chunk, int index, BlockID id );

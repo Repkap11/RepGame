@@ -26,12 +26,14 @@ Chunks >=3 apart in x or z are fully independent.
 - Terrain workers (unchanged): `light_fill_chunk` at gen time -- interior
   emitter BFS + column_open/fill_from. Only writes the chunk's own memory
   before publish. No change needed.
-- Lighting thread (new): sole mutator of light[] interior+halo, light_columns
-  flags, add/remove BFS queues, light_pending/reseed handling. Runs
+- Lighting thread (new): sole mutator of light.volume[] interior+halo,
+  light.columns flags, add/remove BFS queues, light.pending/reseed
+  handling. Runs
   light_finalize_chunk (cascade + boundary scan + border sync), queue
   processing, rechecks.
 - Render thread (keeps): GL only -- light_ensure_texture,
-  light_upload_dirty, per-chunk texture binds. Reads light[] while light
+  light_upload_dirty, per-chunk texture binds. Reads light.volume[] while
+  light
   thread writes it -> worst case a few torn texels for one frame, self-heals
   via dirty marks. The expensive smoothed presentation fill is NOT render
   work: smoothed chunks are claimed + queued for a light worker, which
@@ -46,7 +48,8 @@ Chunks >=3 apart in x or z are fully independent.
    - recheck(world_pos) -- from set_block edits (replaces direct
      light_recheck_block calls on render thread)
    - pending-drain(chunk*) -- from light_pending_enqueue (diffs)
-   - unload(chunk*) -- tombstone before render frees light[] (or ack protocol)
+   - unload(chunk*) -- tombstone before render frees light.volume[] (or
+     ack protocol)
 2. Dirty-box handoff: light thread sets dirty+box, render reads+uploads+
    clears. Needs a small lock or version counter so a mark landing mid-upload
    isn't lost (today's light_dirty_list is single-threaded -- make enqueue
@@ -55,10 +58,10 @@ Chunks >=3 apart in x or z are fully independent.
    LIGHT_PROPAGATE_BUDGET goes away.
 4. BFS seed pushes from finalize stay on the light thread (already are --
    light_add_seed is only called from light paths).
-5. Chunk::draw: do not draw until light_finalized, or draw with whatever
+5. Chunk::draw: do not draw until light.finalized, or draw with whatever
    light texture exists (transient dark/bright ok) -- decide by feel.
 6. Unload handshake: light thread must not hold a chunk pointer across the
-   render thread freeing light[]. Simplest: never free light[] on unload
+   render thread freeing light.volume[]. Simplest: never free it on unload
    (keep until slot reuse), or route frees through the light thread.
 7. WASM/single-thread fallback: same functions called inline from
    render_chunks behind #if -- keep the existing budgeted path.
@@ -229,14 +232,14 @@ shards discussed earlier:
   under a car is one remove/respread flood) peak at ~2.3M seeds; at the
   old ~1M cap the stationary car world did ~620M pops over ~50s to
   converge, vs ~57-69M pops and ~5s with the 8M cap. Refusals also set
-  the chunk's light_reseed,
+  the chunk's light.reseed,
   so the heal is a FULL relight — light_finalize_chunk wipes the volume
   and re-seeds every emitter via light_fill_chunk before cascade/border
   sync. A partial re-finalize is not enough: a truncated remove flood
   leaves unlit interiors around emitters, and only the emitter refill
   re-pushes those sources (skipped: permanent dark areas that survive
   s=0 — observed bug). light_finalize_chunk and light_process_pending_chunk
-  clear light_stale whenever they consume light_reseed, so streaming and
+  clear stale whenever they consume light.reseed, so streaming and
   pending-diff finalizes double as heals. Otherwise:
   light_heal_chunk runs on grid-shift slot scans for chunks re-entering
   the near radius (suppressed while pending is over the cap so a flagged
@@ -267,9 +270,9 @@ corrupted deque internals (SEGV writing to a null slot). Fixed by
 
 GPU upload handoff (atomic dirty box):
 
-- `Chunk::light_dirty_box` packs the dirty texel min/max into one atomic
+- `Chunk::light.dirty_box` packs the dirty texel min/max into one atomic
   uint64 (8 bits/coord; LIGHT_BOX_EMPTY = min>max). Marks CAS-merge their
-  texel; the uploader clears `light_upload_listed` AND exchanges the box in
+  texel; the uploader clears `light.upload_listed` AND exchanges the box in
   the same critical section that pops the chunk from `light_dirty_list`.
 - Why: the old flag+min/max scheme wiped `light_dirty` AFTER reading the
   box, so a racing mark had its flag cleared while the chunk was already
@@ -281,16 +284,17 @@ GPU upload handoff (atomic dirty box):
   same reason (marks mid-upload stay pending). The per-frame upload cap
   bounds the pop itself, so unprocessed entries keep their boxes — no
   requeue path that could strand consumed marks.
-- UPLOAD DEBOUNCE (anti-torn-snapshot): the uploader reads chunk.light[]
-  live while workers write it, and a mid-march or mid-relight snapshot
-  shows the transient floor state as a one-frame black flash (visible:
+- UPLOAD DEBOUNCE (anti-torn-snapshot): the uploader reads
+  chunk.light.volume[] live while workers write it, and a mid-march or
+  mid-relight snapshot shows the transient floor state as a one-frame
+  black flash (visible:
   correct -> black -> correct under a passing remove front or a reseed
-  wipe). Every mark path stamps chunk.light_write_tick (light_mark_dirty,
+  wipe). Every mark path stamps chunk.light.write_tick (light_mark_dirty,
   light_mark_dirty_now, light_mark_dirty_all, plus the memset entry of
   light_fill_chunk so a wipe counts as hot before its marks land), and
   light_upload_dirty only takes entries quiet for LIGHT_UPLOAD_QUIET_TICKS
   (2 game ticks). Entries that stay hot during a sustained march defer per
-  frame; light_upload_defers >= LIGHT_UPLOAD_MAX_DEFERS (45) forces the
+  frame; light.upload_defers >= LIGHT_UPLOAD_MAX_DEFERS (45) forces the
   upload anyway so nothing starves — torn frames during sustained floods
   are bounded-rate rather than eliminated. `def=` in the dbg line counts
   deferred entries per interval.

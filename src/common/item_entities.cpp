@@ -552,23 +552,23 @@ static bool item_persistence_enabled( ) {
 void ItemEntities::adopt_chunk( Chunk &chunk ) {
     // Multiplayer mode: entity files live server-side; nothing local to load.
     if ( this->storage == nullptr || !item_persistence_enabled( ) || this->mp_mode ) {
-        chunk.pending_items.clear( );
+        chunk.sidecars.items.clear( );
         return;
     }
     for ( const OwnedItemChunk &owned : this->owned_chunks ) {
         if ( owned.pos == chunk.chunk_pos ) {
-            chunk.pending_items.clear( );
+            chunk.sidecars.items.clear( );
             return;
         }
     }
-    for ( const ItemFileRecord &record : chunk.pending_items ) {
+    for ( const ItemFileRecord &record : chunk.sidecars.items ) {
         const uint32_t id = this->spawn( record.item, record.count, glm::dvec3( record.x, record.y, record.z ),
                                          glm::dvec3( record.vx, record.vy, record.vz ), 0 );
         (void)id;
         this->items.back( ).age_ticks = record.age_ticks;
     }
-    this->owned_chunks.push_back( { chunk.chunk_pos, chunk.items_file_present } );
-    chunk.pending_items.clear( );
+    this->owned_chunks.push_back( { chunk.chunk_pos, chunk.sidecars.items_file_present } );
+    chunk.sidecars.items.clear( );
 }
 
 // Roughly every 16 ticks: persist+remove items whose owning chunk left the

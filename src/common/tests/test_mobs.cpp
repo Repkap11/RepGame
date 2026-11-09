@@ -479,8 +479,8 @@ int test_mobs( ) {
                     roll_chunk.cells[ Chunk::get_index_from_coords( glm::ivec3( cx, floor_y, cz ) ) ] = block_cell_pack( GRASS, 0, 0, 0 );
                 }
             }
-            roll_chunk.pending_mobs.clear( );
-            if ( roll_chunk.spawn_mobs( ) && roll_chunk.pending_mobs.size( ) >= 2 ) {
+            roll_chunk.sidecars.mobs.clear( );
+            if ( roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.size( ) >= 2 ) {
                 found_pos = glm::ivec3( x, 0, 0 );
             } else {
                 chunk_free_cells( roll_chunk.cells );
@@ -489,7 +489,7 @@ int test_mobs( ) {
         }
         check_bool( "natural roll: found a chunk with a herd", found_pos.x >= 0 );
         if ( found_pos.x >= 0 ) {
-            const std::vector<MobFileRecord> rolled = roll_chunk.pending_mobs;
+            const std::vector<MobFileRecord> rolled = roll_chunk.sidecars.mobs;
             const size_t n = rolled.size( );
             const int dead_idx = net_natural_mob_index( rolled[ 0 ].net_id );
             check_bool( "roll: records carry natural ids",
@@ -514,16 +514,16 @@ int test_mobs( ) {
                     skip.insert( static_cast<uint8_t>( net_natural_mob_index( rec.net_id ) ) );
                 }
             }
-            roll_chunk.pending_mobs.clear( );
+            roll_chunk.sidecars.mobs.clear( );
             roll_chunk.spawn_mobs( &skip );
             int dup = 0;
-            for ( const MobFileRecord &rec : roll_chunk.pending_mobs ) {
+            for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
                 if ( net_natural_mob_index( rec.net_id ) == dead_idx ) {
                     dup++;
                 }
             }
-            check_bool( "reload: roll skips tombstoned index", roll_chunk.pending_mobs.size( ) + 1 == n && dup == 0 );
-            check_bool( "reload: restored + rolled == original count", file_recs.size( ) + roll_chunk.pending_mobs.size( ) == n );
+            check_bool( "reload: roll skips tombstoned index", roll_chunk.sidecars.mobs.size( ) + 1 == n && dup == 0 );
+            check_bool( "reload: restored + rolled == original count", file_recs.size( ) + roll_chunk.sidecars.mobs.size( ) == n );
             chunk_free_cells( roll_chunk.cells );
             roll_chunk.cells = nullptr;
         }
@@ -532,7 +532,7 @@ int test_mobs( ) {
     // --- 6d: pen rule: a natural mob in a player-edited chunk is touched ----
     {
         Chunk *c0 = world.chunkLoader.get_chunk( glm::ivec3( 0, 0, 0 ) );
-        c0->player_edited = 1;
+        c0->sidecars.player_edited = 1;
         MobManager mobs;
         mobs.owned_chunks.push_back( { glm::ivec3( 0, 0, 0 ), 0, {} } );
         mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
@@ -544,7 +544,7 @@ int test_mobs( ) {
         check_bool( "pen: edited chunk touches the natural", mobs.mobs[ 0 ].touched );
         check_bool( "pen: index tombstoned in owned chunk", mobs.owned_chunks[ 0 ].removed.count( 2 ) == 1 );
 
-        c0->player_edited = 0;
+        c0->sidecars.player_edited = 0;
         MobManager mobs2;
         mobs2.owned_chunks.push_back( { glm::ivec3( 0, 0, 0 ), 0, {} } );
         mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
@@ -553,7 +553,7 @@ int test_mobs( ) {
         mobs2.mobs[ 0 ].ai_ticks = 100000;
         mobs2.tick( world, player_pos );
         check_bool( "pen: unedited chunk leaves it pristine", !mobs2.mobs[ 0 ].touched );
-        c0->player_edited = 1;
+        c0->sidecars.player_edited = 1;
     }
 
     // --- 7: face-rect unwrap for the pig head and body ---------------------

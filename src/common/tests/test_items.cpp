@@ -435,10 +435,10 @@ int test_item_entities( ) {
         items.init_storage( &storage );
         Chunk chunk;
         chunk.chunk_pos = glm::ivec3( 0, 0, 0 );
-        chunk.pending_items.push_back( rec );
-        chunk.items_file_present = 1;
+        chunk.sidecars.items.push_back( rec );
+        chunk.sidecars.items_file_present = 1;
         items.adopt_chunk( chunk );
-        check_bool( "persist: adopt spawns record", items.count( ) == 1 && chunk.pending_items.empty( ) );
+        check_bool( "persist: adopt spawns record", items.count( ) == 1 && chunk.sidecars.items.empty( ) );
         if ( items.count( ) == 1 ) {
             const ItemEntities::ItemEntity it = items.debug_items( )[ 0 ];
             check_bool( "persist: adopt restores fields", it.item == STICK && it.count == 5 && it.age_ticks == 1234 && it.pickup_delay == 0 && fabs( it.vel.y + 0.2 ) < 1e-6 );

@@ -107,6 +107,201 @@ static inline unsigned int chunk_face_mask( const glm::ivec3 &pos, const glm::iv
            ( ( pos.x >= center.x ) << 3 ) | ( ( pos.y <= center.y ) << 4 ) | ( ( pos.y >= center.y ) << 5 );
 }
 
+// ---- Flood-fill lighting (light.cpp) ----
+// One chunk's whole light pipeline state: the packed volume, the masks the
+// texture upload derives from it, and every flag/staging field the async
+// workers and the render thread coordinate through. Plain struct — Chunk
+// stays effectively public to its friends, so there's no extra
+// encapsulation to declare here; grouping just names the subsystem.
+// All fields must be safe under calloc zero-init (chunkArray never runs
+// constructors): pointers zero, atomics zero, scalars zero.
+struct ChunkLight {
+    // Per-cell light volume covering the same internal region as blocks.
+    // Each u16 packs one byte per channel — skylight high, block light low —
+    // in raw units (LIGHT_RAW_PER_LEVEL per display level, see light.hpp).
+    // Kept out of the mesh entirely so light changes never force a
+    // remesh: the fragment shader samples the matching 3D texture instead.
+    // nullptr means the whole volume is uniform: every cell reads
+    // uniform (light.cpp reads via light_read_cell; writes materialize
+    // the array only when the new value differs).
+    unsigned short *volume;
+    unsigned short uniform;
+    // Per interior column (x,z) in [0,CHUNK_SIZE): two flag arrays packed into
+    // one buffer — column_open (no opaque cell in this chunk's column) then
+    // sky_open_above (no opaque cell anywhere above in the loaded grid).
+    unsigned char *columns;
+    // Air mask for the mipmapped light volume's B channel (see
+    // light_mipmaps_enabled): 1 bit per cells[] entry — CHUNK_BLOCK_SIZE/8 =
+    // 32KB — in the same z-fastest index space as cells[]
+    // (get_index_from_coords). Bit set = the cell can hold light
+    // (non-opaque, same predicate light_opaque_id uses). A derived cache of
+    // cells[], never persisted: built by light_fill_chunk while cells[] is
+    // already being streamed, restamped per cell by set_block /
+    // set_block_by_index_if_different via light_air_mask_set. nullptr = not
+    // built; the light-texture upload paths then fall back to walking
+    // cells[] directly, which keeps every edge case correct (a mask is
+    // only ever allocated alongside real cells[] data, and only when
+    // light_mipmaps_enabled()). Mutable like cells: Chunk::set_block is
+    // const but restamps it.
+    mutable unsigned char *air_mask;
+    // Shade (contact-shadow) mask alongside air_mask — same
+    // layout/index space, same lifetime: 1 bit per cells[] entry, set iff
+    // the cell is a light floor (blocks_light_down: slabs, path). The
+    // light texture's A channel is written 0 for these cells so the shader
+    // can re-darken the ground layer a floor sits in — restoring the soft
+    // contact shadow the old opaque-cell light=0 blends produced, without
+    // re-darkening wall faces beside it. Restamped per cell by
+    // light_air_mask_set.
+    mutable unsigned char *shade_mask;
+    unsigned int texture; // GL_TEXTURE_3D, 0 = not created yet
+    // Dirty texel box of volume[] not yet uploaded, in texel coords
+    // [0,CHUNK_SIZE_INTERNAL_*): min.xyz in bits [0:7]/[8:15]/[16:23],
+    // max.xyz in [24:31]/[32:39]/[40:47] (8 bits per coord). Marks CAS-merge
+    // their texel into the box; the render
+    // thread exchanges the whole word for LIGHT_BOX_EMPTY while popping the
+    // upload list under the work mutex, so a racing mark is always either in
+    // the upload's snapshot or visibly unlisted (never lost between a box
+    // read and a flag clear).
+    std::atomic<uint64_t> dirty_box;
+    // Cell indices (into cells[]) changed by multiplayer diffs; converted to
+    // light recheck seeds on the render thread. Overflow sets reseed.
+    int pending[ 256 ];
+    int pending_count;
+    int reseed;
+    // Set by a light worker when a seed targeting this chunk was refused
+    // under the backlog cap (also sets reseed so the heal relights
+    // fully); healed by a re-finalize on near-radius entry or the render
+    // thread's idle scan (light_heal_* in light.cpp). The flag itself is one
+    // bit in ChunkLoader::light_stale_bits (64 slots per word) — the heal
+    // scan then skips empty words instead of probing every Chunk record.
+    // Bound in ChunkLoader::init / test_setup_world; unbound chunks
+    // (hand-built, TNT temps) no-op on set/clear and read false.
+    std::atomic<uint64_t> *stale_word = nullptr;
+    uint64_t stale_bit = 0;
+    bool stale_get( ) const {
+        return this->stale_word != nullptr && //
+               ( this->stale_word->load( std::memory_order_relaxed ) & this->stale_bit ) != 0;
+    }
+    void stale_set( ) {
+        if ( this->stale_word == nullptr ) {
+            return;
+        }
+        // Load first: light_seed_gate is hot under flood, and a blind
+        // fetch_or would pay an RMW on a word shared by 64 chunks.
+        if ( this->stale_word->load( std::memory_order_relaxed ) & this->stale_bit ) {
+            return;
+        }
+        this->stale_word->fetch_or( this->stale_bit, std::memory_order_relaxed );
+    }
+    bool stale_take( ) {
+        return this->stale_word != nullptr && //
+               ( this->stale_word->fetch_and( ~this->stale_bit, std::memory_order_relaxed ) & this->stale_bit ) != 0;
+    }
+    void stale_clear( ) {
+        if ( this->stale_word != nullptr && //
+             ( this->stale_word->load( std::memory_order_relaxed ) & this->stale_bit ) != 0 ) {
+            this->stale_word->fetch_and( ~this->stale_bit, std::memory_order_relaxed );
+        }
+    }
+    // Set while the chunk sits in the pending-light drain list (see
+    // light_pending_enqueue) so producers don't enqueue it twice.
+    int pending_listed;
+    // Same, for the dirty-light-volume upload list. Atomic because
+    // light_mark_dirty checks it lock-free on the hot path.
+    std::atomic<int> upload_listed;
+    // Game tick of the last visible light write (stamped by every
+    // light_mark_dirty* call). light_upload_dirty defers chunks still being
+    // written so the GPU never snapshots a mid-flood/mid-relight volume —
+    // the correct -> floor -> correct swing of a passing remove front or a
+    // reseed wipe showed up as a one-frame black flash.
+    std::atomic<long> write_tick{ 0 };
+    // Frames this chunk's upload was deferred for being write-hot; render
+    // thread only (light_upload_dirty). A cap forces upload anyway so a
+    // continuously-marched chunk can't starve forever.
+    int upload_defers = 0;
+    // Set once this chunk's light volume has been uploaded at least once.
+    // Fresh chunks bypass the quiet/busy upload gates: the optimistic sky
+    // fill is mostly correct and beats showing a black hole while seeds
+    // are still pending. Render thread only; reset when the slot is reused.
+    int uploaded_once = 0;
+    // Presentation mode the texture was last fully filled under:
+    // 0 = never filled, 1 = raw expand, 2 = smoothed. A mismatch vs the
+    // current desired mode (Shadows toggle, or the chunk crossing
+    // REPGAME_LIGHT_SMOOTH_RADIUS) upgrades the next upload to a
+    // full-volume refill — partial fills under a new mode would leave a
+    // mixed-mode texture. Atomic: written by render on upload completion,
+    // read by staging workers computing the same check.
+    std::atomic<int> tex_mode{ 0 };
+    // The mode a flip was claimed for but has not landed yet (0 = none).
+    // Keeps repeated ensure calls from re-running the flip marks every
+    // frame while the queued refill is in flight.
+    std::atomic<int> tex_flip{ 0 };
+    // Worker-side upload staging: a light worker fills a pooled buffer with
+    // the chunk's dirty texels so the render thread only pays the GL call.
+    // stage_state packs a generation (high bits) and status (low 2):
+    //   0 idle, 1 worker staging, 2 staged data ready to upload.
+    // The CAS that publishes the buffer carries the generation the worker
+    // claimed under, so a slot recycled mid-stage (release bumps the
+    // generation) can never publish a stale buffer onto the new chunk.
+    std::atomic<unsigned> stage_state{ 0 };
+    unsigned char *stage_buf = nullptr; // pooled; valid while status==2
+    uint64_t stage_box = 0;             // packed texel box, status==2
+    int stage_mode = 0;                 // presentation mode, status==2
+    // Set at the end of light_finalize_chunk — routes FINALIZE jobs for
+    // never-finalized chunks (no real skylight yet, only the optimistic
+    // fill) into the init job lane, ahead of far-lane work but behind
+    // near-player work. Atomic: written by the job's worker, read by the
+    // render thread at submit; a torn read just picks a lane.
+    std::atomic<int> finalized{ 0 };
+};
+
+// Sidecar entity data staged by load_terrain on the worker and drained by
+// MobManager::adopt_chunk / ItemEntities::adopt_chunk after finalize —
+// see those callers. Cleared by release_terrain. Plain struct like
+// ChunkLight: grouping only, same calloc zero-init contract.
+struct ChunkSidecars {
+    // Mob sidecar data: records loaded from the mobs file or produced by the
+    // natural-spawn roll, whether the file existed, whether the spawn roll
+    // produced any mobs, and the tombstoned natural-roll indices stored in
+    // the file (mobs_removed).
+    std::vector<MobFileRecord> mobs;
+    int mobs_file_present;
+    int mobs_spawned;
+    std::vector<uint8_t> mobs_removed;
+    // Dropped-item sidecar, same pattern as mobs: items_file_present tracks
+    // whether an items file existed so the leave path rewrites it (even
+    // empty) instead of reviving stale records.
+    std::vector<ItemFileRecord> items;
+    int items_file_present;
+    // A player edit touched this chunk's blocks: set by MapStorage::load_chunk
+    // hits (saved diffs), ChunkLoader::apply_diff_block and
+    // World::set_loaded_block — never by random ticks or structure gen.
+    // MobManager uses it to "touch" natural mobs standing in a pen.
+    // Mutable like the other load-time fields (worker fills it).
+    mutable uint8_t player_edited;
+};
+
+// Per-chunk container contents (chests/furnaces), keyed by in-chunk block
+// index (same space as cells[]) and backed by the chunk's chest/furnace
+// sidecar files. Plain struct like ChunkLight: grouping only, same calloc
+// zero-init contract.
+struct ChunkContainers {
+    // Chest contents. Loaded from the chunk's chest file in load_terrain,
+    // persisted in Chunk::persist; edits mark dirty. Mutable:
+    // Chunk::set_block (a const path used by World::set_loaded_block)
+    // erases entries when a chest block is overwritten.
+    mutable std::map<int, ChestContents> chests;
+    // Whether this chunk's chest file was read (or chest data created) during
+    // load_terrain/afterwards — persist_chests only runs when set so a chunk
+    // whose chest file failed to read doesn't get its file clobbered.
+    mutable int chests_loaded;
+    // Furnace contents — same pattern as chests above, backed by the
+    // chunk's furnace sidecar file. FURNACE and LIT_FURNACE share one
+    // entry; the lit swap never erases it.
+    mutable std::map<int, FurnaceContents> furnaces;
+    mutable int furnaces_loaded;
+};
+
 class Chunk {
     friend class ChunkLoader;
     friend class World;
@@ -151,45 +346,12 @@ class Chunk {
     mutable BlockExtra *extras;
     glm::ivec3 chunk_pos;
     int dirty;
-    // Container contents for chest blocks in this chunk, keyed by in-chunk
-    // block index (same space as cells[]). Loaded from the chunk's chest
-    // file in load_terrain, persisted in Chunk::persist; edits mark dirty.
-    // Mutable: Chunk::set_block (a const path used by World::set_loaded_block)
-    // erases entries when a chest block is overwritten.
-    mutable std::map<int, ChestContents> chests;
-    // Whether this chunk's chest file was read (or chest data created) during
-    // load_terrain/afterwards — persist_chests only runs when set so a chunk
-    // whose chest file failed to read doesn't get its file clobbered.
-    mutable int chests_loaded;
-    // Furnace contents for furnace blocks in this chunk, keyed by in-chunk
-    // block index — same pattern as chests[] above, backed by the chunk's
-    // furnace sidecar file. FURNACE and LIT_FURNACE share one entry; the
-    // lit swap never erases it.
-    mutable std::map<int, FurnaceContents> furnaces;
-    mutable int furnaces_loaded;
-    // Mob sidecar data, filled by load_terrain on the worker and drained by
-    // MobManager::adopt_chunk after finalize: records loaded from the mobs
-    // file or produced by the natural-spawn roll, whether the file existed,
-    // whether the spawn roll produced any mobs, and the tombstoned
-    // natural-roll indices stored in the file (pending_mobs_removed).
-    // Cleared by release_terrain.
-    std::vector<MobFileRecord> pending_mobs;
-    int mobs_file_present;
-    int mobs_spawned;
-    std::vector<uint8_t> pending_mobs_removed;
-    // A player edit touched this chunk's blocks: set by MapStorage::load_chunk
-    // hits (saved diffs), ChunkLoader::apply_diff_block and
-    // World::set_loaded_block — never by random ticks or structure gen.
-    // MobManager uses it to "touch" natural mobs standing in a pen.
-    // Mutable like the other load-time fields (worker fills it).
-    mutable uint8_t player_edited;
-    // Dropped-item sidecar, same pattern as pending_mobs: filled by
-    // load_terrain on the worker, drained by ItemEntities::adopt_chunk after
-    // finalize. items_file_present tracks whether an items file existed so
-    // the leave path rewrites it (even empty) instead of reviving stale
-    // records.
-    std::vector<ItemFileRecord> pending_items;
-    int items_file_present;
+    // Chest/furnace contents keyed by in-chunk block index — see
+    // ChunkContainers above.
+    ChunkContainers containers;
+    // Mob/item sidecar staging and the player-edited flag — see
+    // ChunkSidecars above.
+    ChunkSidecars sidecars;
     int should_render;
     // Points at this slot's byte in ChunkLoader::slot_want (set in
     // ChunkLoader::init); every write to load_state/should_render/num_
@@ -230,144 +392,8 @@ class Chunk {
     // block sides) until some later move happens to recalc.
     unsigned int sides_mask;
 
-    // ---- Flood-fill lighting (light.cpp) ----
-    // Per-cell light volume covering the same internal region as blocks.
-    // Each u16 packs one byte per channel — skylight high, block light low —
-    // in raw units (LIGHT_RAW_PER_LEVEL per display level, see light.hpp).
-    // Kept out of the mesh entirely so light changes never force a
-    // remesh: the fragment shader samples the matching 3D texture instead.
-    // nullptr means the whole volume is uniform: every cell reads
-    // light_uniform (light.cpp reads via light_read_cell; writes materialize
-    // the array only when the new value differs).
-    unsigned short *light;
-    unsigned short light_uniform;
-    // Per interior column (x,z) in [0,CHUNK_SIZE): two flag arrays packed into
-    // one buffer — column_open (no opaque cell in this chunk's column) then
-    // sky_open_above (no opaque cell anywhere above in the loaded grid).
-    unsigned char *light_columns;
-    // Air mask for the mipmapped light volume's B channel (see
-    // light_mipmaps_enabled): 1 bit per cells[] entry — CHUNK_BLOCK_SIZE/8 =
-    // 32KB — in the same z-fastest index space as cells[]
-    // (get_index_from_coords). Bit set = the cell can hold light
-    // (non-opaque, same predicate light_opaque_id uses). A derived cache of
-    // cells[], never persisted: built by light_fill_chunk while cells[] is
-    // already being streamed, restamped per cell by set_block /
-    // set_block_by_index_if_different via light_air_mask_set. nullptr = not
-    // built; the light-texture upload paths then fall back to walking
-    // cells[] directly, which keeps every edge case correct (a mask is
-    // only ever allocated alongside real cells[] data, and only when
-    // light_mipmaps_enabled()). Mutable like cells: Chunk::set_block is
-    // const but restamps it.
-    mutable unsigned char *light_air_mask;
-    // Shade (contact-shadow) mask alongside light_air_mask — same
-    // layout/index space, same lifetime: 1 bit per cells[] entry, set iff
-    // the cell is a light floor (blocks_light_down: slabs, path). The
-    // light texture's A channel is written 0 for these cells so the shader
-    // can re-darken the ground layer a floor sits in — restoring the soft
-    // contact shadow the old opaque-cell light=0 blends produced, without
-    // re-darkening wall faces beside it. Restamped per cell by
-    // light_air_mask_set.
-    mutable unsigned char *light_shade_mask;
-    unsigned int light_texture; // GL_TEXTURE_3D, 0 = not created yet
-    // Dirty texel box of light[] not yet uploaded, in texel coords
-    // [0,CHUNK_SIZE_INTERNAL_*): min.xyz in bits [0:7]/[8:15]/[16:23],
-    // max.xyz in [24:31]/[32:39]/[40:47] (8 bits per coord). Marks CAS-merge
-    // their texel into the box; the render
-    // thread exchanges the whole word for LIGHT_BOX_EMPTY while popping the
-    // upload list under the work mutex, so a racing mark is always either in
-    // the upload's snapshot or visibly unlisted (never lost between a box
-    // read and a flag clear).
-    std::atomic<uint64_t> light_dirty_box;
-    // Cell indices (into cells[]) changed by multiplayer diffs; converted to
-    // light recheck seeds on the render thread. Overflow sets light_reseed.
-    int light_pending[ 256 ];
-    int light_pending_count;
-    int light_reseed;
-    // Set by a light worker when a seed targeting this chunk was refused
-    // under the backlog cap (also sets light_reseed so the heal relights
-    // fully); healed by a re-finalize on near-radius entry or the render
-    // thread's idle scan (light_heal_* in light.cpp). The flag itself is one
-    // bit in ChunkLoader::light_stale_bits (64 slots per word) — the heal
-    // scan then skips empty words instead of probing every Chunk record.
-    // Bound in ChunkLoader::init / test_setup_world; unbound chunks
-    // (hand-built, TNT temps) no-op on set/clear and read false.
-    std::atomic<uint64_t> *light_stale_word = nullptr;
-    uint64_t light_stale_bit = 0;
-    bool light_stale_get( ) const {
-        return this->light_stale_word != nullptr && //
-               ( this->light_stale_word->load( std::memory_order_relaxed ) & this->light_stale_bit ) != 0;
-    }
-    void light_stale_set( ) {
-        if ( this->light_stale_word == nullptr ) {
-            return;
-        }
-        // Load first: light_seed_gate is hot under flood, and a blind
-        // fetch_or would pay an RMW on a word shared by 64 chunks.
-        if ( this->light_stale_word->load( std::memory_order_relaxed ) & this->light_stale_bit ) {
-            return;
-        }
-        this->light_stale_word->fetch_or( this->light_stale_bit, std::memory_order_relaxed );
-    }
-    bool light_stale_take( ) {
-        return this->light_stale_word != nullptr && //
-               ( this->light_stale_word->fetch_and( ~this->light_stale_bit, std::memory_order_relaxed ) & this->light_stale_bit ) != 0;
-    }
-    void light_stale_clear( ) {
-        if ( this->light_stale_word != nullptr && //
-             ( this->light_stale_word->load( std::memory_order_relaxed ) & this->light_stale_bit ) != 0 ) {
-            this->light_stale_word->fetch_and( ~this->light_stale_bit, std::memory_order_relaxed );
-        }
-    }
-    // Set while the chunk sits in the pending-light drain list (see
-    // light_pending_enqueue) so producers don't enqueue it twice.
-    int light_pending_listed;
-    // Same, for the dirty-light-volume upload list. Atomic because
-    // light_mark_dirty checks it lock-free on the hot path.
-    std::atomic<int> light_upload_listed;
-    // Game tick of the last visible light write (stamped by every
-    // light_mark_dirty* call). light_upload_dirty defers chunks still being
-    // written so the GPU never snapshots a mid-flood/mid-relight volume —
-    // the correct -> floor -> correct swing of a passing remove front or a
-    // reseed wipe showed up as a one-frame black flash.
-    std::atomic<long> light_write_tick{ 0 };
-    // Frames this chunk's upload was deferred for being write-hot; render
-    // thread only (light_upload_dirty). A cap forces upload anyway so a
-    // continuously-marched chunk can't starve forever.
-    int light_upload_defers = 0;
-    // Set once this chunk's light volume has been uploaded at least once.
-    // Fresh chunks bypass the quiet/busy upload gates: the optimistic sky
-    // fill is mostly correct and beats showing a black hole while seeds
-    // are still pending. Render thread only; reset when the slot is reused.
-    int light_uploaded_once = 0;
-    // Presentation mode the texture was last fully filled under:
-    // 0 = never filled, 1 = raw expand, 2 = smoothed. A mismatch vs the
-    // current desired mode (Shadows toggle, or the chunk crossing
-    // REPGAME_LIGHT_SMOOTH_RADIUS) upgrades the next upload to a
-    // full-volume refill — partial fills under a new mode would leave a
-    // mixed-mode texture. Atomic: written by render on upload completion,
-    // read by staging workers computing the same check.
-    std::atomic<int> light_tex_mode{ 0 };
-    // The mode a flip was claimed for but has not landed yet (0 = none).
-    // Keeps repeated ensure calls from re-running the flip marks every
-    // frame while the queued refill is in flight.
-    std::atomic<int> light_tex_flip{ 0 };
-    // Worker-side upload staging: a light worker fills a pooled buffer with
-    // the chunk's dirty texels so the render thread only pays the GL call.
-    // light_stage_state packs a generation (high bits) and status (low 2):
-    //   0 idle, 1 worker staging, 2 staged data ready to upload.
-    // The CAS that publishes the buffer carries the generation the worker
-    // claimed under, so a slot recycled mid-stage (release bumps the
-    // generation) can never publish a stale buffer onto the new chunk.
-    std::atomic<unsigned> light_stage_state{ 0 };
-    unsigned char *light_stage_buf = nullptr; // pooled; valid while status==2
-    uint64_t light_stage_box = 0;             // packed texel box, status==2
-    int light_stage_mode = 0;                 // presentation mode, status==2
-    // Set at the end of light_finalize_chunk — routes FINALIZE jobs for
-    // never-finalized chunks (no real skylight yet, only the optimistic
-    // fill) into the init job lane, ahead of far-lane work but behind
-    // near-player work. Atomic: written by the job's worker, read by the
-    // render thread at submit; a torn read just picks a lane.
-    std::atomic<int> light_finalized{ 0 };
+    // ---- Flood-fill lighting (light.cpp) — see ChunkLight above ----
+    ChunkLight light;
 
     int can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const;
 

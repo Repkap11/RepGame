@@ -1059,18 +1059,18 @@ void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
     // Multiplayer: mob files live server-side; the roll runs on CHUNK_ROLE
     // OWNER instead, so local pending_mobs are discarded.
     if ( !this->enabled || this->test_mode || this->mp_mode ) {
-        chunk.pending_mobs.clear( );
-        chunk.pending_mobs_removed.clear( );
+        chunk.sidecars.mobs.clear( );
+        chunk.sidecars.mobs_removed.clear( );
         return;
     }
     for ( const OwnedChunk &owned : this->owned_chunks ) {
         if ( owned.pos == chunk.chunk_pos ) {
-            chunk.pending_mobs.clear( );
-            chunk.pending_mobs_removed.clear( );
+            chunk.sidecars.mobs.clear( );
+            chunk.sidecars.mobs_removed.clear( );
             return;
         }
     }
-    for ( const MobFileRecord &record : chunk.pending_mobs ) {
+    for ( const MobFileRecord &record : chunk.sidecars.mobs ) {
         // A persisted (touched) mob is restored uncapped — dropping it would
         // lose a mob the save file says we hold. Fresh roll products are
         // population-capped like any other new spawn.
@@ -1097,10 +1097,10 @@ void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
             }
         }
     }
-    this->owned_chunks.push_back( { chunk.chunk_pos, chunk.mobs_file_present,
-                                    std::set<uint8_t>( chunk.pending_mobs_removed.begin( ), chunk.pending_mobs_removed.end( ) ) } );
-    chunk.pending_mobs.clear( );
-    chunk.pending_mobs_removed.clear( );
+    this->owned_chunks.push_back( { chunk.chunk_pos, chunk.sidecars.mobs_file_present,
+                                    std::set<uint8_t>( chunk.sidecars.mobs_removed.begin( ), chunk.sidecars.mobs_removed.end( ) ) } );
+    chunk.sidecars.mobs.clear( );
+    chunk.sidecars.mobs_removed.clear( );
 }
 
 // Roughly every 16 ticks: a chunk has left when its slot is empty, carries a
@@ -1266,7 +1266,7 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
         // Pen rule: an owned natural mob standing in a player-edited chunk
         // (fences, pens) counts as interacted — it becomes persistable and
         // its roll index is tombstoned.
-        if ( it->natural_id != 0 && !it->touched && chunk->player_edited ) {
+        if ( it->natural_id != 0 && !it->touched && chunk->sidecars.player_edited ) {
             this->mark_touched( *it );
         }
         if ( it->death_ticks > 0 && it->death_ticks > static_cast<int>( 0.5f * UPS_RATE ) ) {
@@ -2108,10 +2108,10 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
     if ( owned && !populated && !this->test_mode && this->net != nullptr ) {
         Chunk *live = state.world.get_loaded_chunk( chunk * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 );
         if ( live != nullptr && live->load_state == CHUNK_LIVE ) {
-            live->pending_mobs.clear( );
+            live->sidecars.mobs.clear( );
             const std::set<uint8_t> skip( removed_natural.begin( ), removed_natural.end( ) );
             live->spawn_mobs( &skip );
-            for ( const MobFileRecord &record : live->pending_mobs ) {
+            for ( const MobFileRecord &record : live->sidecars.mobs ) {
                 if ( record.type >= MOB_TYPE_COUNT || !net_is_natural_mob_id( record.net_id ) ||
                      this->find_by_net_id( record.net_id ) != nullptr || !this->under_mob_cap( ) ) {
                     continue;
@@ -2139,8 +2139,8 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
                     this->net->send_spawn( rec );
                 }
             }
-            live->pending_mobs.clear( );
-            live->mobs_spawned = 1;
+            live->sidecars.mobs.clear( );
+            live->sidecars.mobs_spawned = 1;
         }
         this->net->send_chunk_populated( chunk );
     }

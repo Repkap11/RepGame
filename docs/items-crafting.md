@@ -159,7 +159,7 @@ Persistence mirrors the mob sidecar end to end: `items_x_y_z` beside
 `mobs_x_y_z` (`u32 record_size`, `u32 count`, packed `ItemFileRecord
 {item, count, pos[3], vel[3], age_ticks}` — readers copy the shared prefix
 and skip records failing `item_id_valid`/`count <= 0`). `load_terrain`
-reads the file into `Chunk::pending_items`, `World::render` hands
+reads the file into `Chunk::sidecars.items`, `World::render` hands
 just-finalized chunks to `ItemEntities::adopt_chunk`, the ~16-tick
 `poll_owned` persists+removes items whose owning chunk left the window,
 and `World::cleanup` persists every owned chunk. A chunk whose items were

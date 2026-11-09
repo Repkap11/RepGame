@@ -145,11 +145,11 @@ void MapStorage::persist_chunk( const Chunk &chunk ) {
             persist_blocks_encode( *this, chunk.chunk_pos,
                                    [&chunk]( int index ) { return chunk.state_at( index ); } );
         }
-        if ( chunk.chests_loaded ) {
+        if ( chunk.containers.chests_loaded ) {
             // Chest sidecar file is keyed by world block position.
             ChestContentsMap chest_world_map;
             const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
-            for ( const auto &pair : chunk.chests ) {
+            for ( const auto &pair : chunk.containers.chests ) {
                 const int index = pair.first;
                 const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
                                                ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
@@ -158,11 +158,11 @@ void MapStorage::persist_chunk( const Chunk &chunk ) {
             }
             this->persist_chests( chunk.chunk_pos, chest_world_map );
         }
-        if ( chunk.furnaces_loaded ) {
+        if ( chunk.containers.furnaces_loaded ) {
             // Furnace sidecar file, same world-pos keying as chests.
             FurnaceContentsMap furnace_world_map;
             const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
-            for ( const auto &pair : chunk.furnaces ) {
+            for ( const auto &pair : chunk.containers.furnaces ) {
                 const int index = pair.first;
                 const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
                                                ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,

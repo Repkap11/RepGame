@@ -299,7 +299,7 @@ static bool light_diag_open( const BlockCell *cells, const glm::ivec3 &local, co
     return false;
 }
 
-// Bit i of chunk.light_air_mask mirrors the opacity of cells[i]: set = the
+// Bit i of chunk.light.air_mask mirrors the opacity of cells[i]: set = the
 // cell can hold light. light_fill_chunk writes every bit; this restamps one
 // cell after a post-fill cells[] write so the upload paths never have to
 // touch the cells[] array again. A missing mask is always legal —
@@ -309,19 +309,19 @@ static bool light_diag_open( const BlockCell *cells, const glm::ivec3 &local, co
 static_assert( CHUNK_SIZE_INTERNAL_Z % 8 == 0,
                "light_air_mask packs cells[] z-fastest 8/byte; CHUNK_SIZE_INTERNAL_Z must be a multiple of 8" );
 void light_air_mask_set( const Chunk &chunk, const int index, const BlockID id ) {
-    if ( chunk.light_air_mask ) {
+    if ( chunk.light.air_mask ) {
         if ( light_opaque_id( id ) ) {
-            chunk.light_air_mask[ index >> 3 ] &= static_cast<unsigned char>( ~( 1u << ( index & 7 ) ) );
+            chunk.light.air_mask[ index >> 3 ] &= static_cast<unsigned char>( ~( 1u << ( index & 7 ) ) );
         } else {
-            chunk.light_air_mask[ index >> 3 ] |= static_cast<unsigned char>( 1u << ( index & 7 ) );
+            chunk.light.air_mask[ index >> 3 ] |= static_cast<unsigned char>( 1u << ( index & 7 ) );
         }
     }
     // Same cell in the shade mask: set iff this is a light floor.
-    if ( chunk.light_shade_mask ) {
+    if ( chunk.light.shade_mask ) {
         if ( block_definition_get_definition( id )->blocks_light_down ) {
-            chunk.light_shade_mask[ index >> 3 ] |= static_cast<unsigned char>( 1u << ( index & 7 ) );
+            chunk.light.shade_mask[ index >> 3 ] |= static_cast<unsigned char>( 1u << ( index & 7 ) );
         } else {
-            chunk.light_shade_mask[ index >> 3 ] &= static_cast<unsigned char>( ~( 1u << ( index & 7 ) ) );
+            chunk.light.shade_mask[ index >> 3 ] &= static_cast<unsigned char>( ~( 1u << ( index & 7 ) ) );
         }
     }
 }
@@ -608,7 +608,7 @@ static inline bool light_near_center( const glm::ivec3 &center, const glm::ivec3
 // light_stale — the flood dies mid-frontier instead of regenerating a
 // plateau, and the chunk re-derives its light via a re-finalize when the
 // queue next goes idle or the chunk re-enters the near radius
-// (light_heal_* below). light_reseed is set alongside the flag so the heal
+// (light_heal_* below). light.reseed is set alongside the flag so the heal
 // re-finalize runs light_fill_chunk too — the volume is wiped and emitters
 // re-seeded, not just cascaded/border-synced. Without it, cells a truncated
 // flood unlit around emitters (or half-spread interiors) stayed dark
@@ -628,12 +628,12 @@ int ChunkLoader::light_seed_gate( const glm::ivec3 &block_pos, const bool near, 
     }
     const bool refuse = internal ? ( pend > LIGHT_BFS_CAP_FLOOD ) : ( !near && pend > LIGHT_BFS_CAP_ALL );
     if ( refuse ) {
-        c->light_stale_set( );
+        c->light.stale_set( );
         // Set at flag time (not heal time) so ANY finalize landing before
         // the heal scan — e.g. a pending-diff drain — already does the full
         // wipe + emitter refill. Benign racy int write: producers on worker
         // threads store 1 here, the finalize's own store of 0 clears it.
-        c->light_reseed = 1;
+        c->light.reseed = 1;
         light_dbg_capped++;
         return 1;
     }
@@ -696,28 +696,28 @@ static inline bool light_local_ok( const glm::ivec3 &l ) {
 // fold to 0). Reads return the uniform value; a write that differs
 // materializes the array first.
 unsigned short ChunkLoader::light_read_cell( const Chunk &chunk, const int idx ) {
-    return chunk.light ? chunk.light[ idx ] : chunk.light_uniform;
+    return chunk.light.volume ? chunk.light.volume[ idx ] : chunk.light.uniform;
 }
 
 void ChunkLoader::light_materialize( Chunk &chunk ) {
-    if ( chunk.light ) {
+    if ( chunk.light.volume ) {
         return;
     }
-    chunk.light = chunk_alloc_light( );
-    std::fill_n( chunk.light, CHUNK_BLOCK_SIZE, chunk.light_uniform );
+    chunk.light.volume = chunk_alloc_light( );
+    std::fill_n( chunk.light.volume, CHUNK_BLOCK_SIZE, chunk.light.uniform );
 }
 
 // Write packed value to cell idx. Materializes only when the new packed u16
 // actually differs from the uniform value — writing the uniform value into a
 // uniform volume is a no-op.
 void ChunkLoader::light_write_cell( Chunk &chunk, const int idx, const unsigned short nv ) {
-    if ( !chunk.light ) {
-        if ( nv == chunk.light_uniform ) {
+    if ( !chunk.light.volume ) {
+        if ( nv == chunk.light.uniform ) {
             return;
         }
         light_materialize( chunk );
     }
-    chunk.light[ idx ] = nv;
+    chunk.light.volume[ idx ] = nv;
 }
 
 // Read the canonical (interior-owner) light value in raw units
@@ -898,16 +898,16 @@ void light_reset_staging( Chunk *chunk ) {
     // just handed off (live count leaks, pool eventually starves). The CAS
     // re-reads the winner's state so the READY branch below still reclaims
     // the buffer either way.
-    unsigned s = chunk->light_stage_state.load( std::memory_order_acquire );
-    while ( !chunk->light_stage_state.compare_exchange_weak( s, ( s & ~3u ) + 4u,
+    unsigned s = chunk->light.stage_state.load( std::memory_order_acquire );
+    while ( !chunk->light.stage_state.compare_exchange_weak( s, ( s & ~3u ) + 4u,
                                                              std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
     }
-    if ( LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY && chunk->light_stage_buf != nullptr ) {
-        light_stage_pool_give( chunk->light_stage_buf );
+    if ( LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY && chunk->light.stage_buf != nullptr ) {
+        light_stage_pool_give( chunk->light.stage_buf );
     }
-    chunk->light_stage_buf = nullptr;
-    chunk->light_stage_box = 0;
-    chunk->light_stage_mode = 0;
+    chunk->light.stage_buf = nullptr;
+    chunk->light.stage_box = 0;
+    chunk->light.stage_mode = 0;
 }
 
 // Parallel workers (docs/lighting-thread-plan.md). A claimed job records
@@ -1249,18 +1249,18 @@ static inline uint64_t light_box_union( const uint64_t a, const uint64_t b ) {
 
 void ChunkLoader::light_upload_enqueue( Chunk &chunk ) {
     // Hot path: only the first mark per chunk takes the lock.
-    if ( !chunk.light_upload_listed.load( std::memory_order_acquire ) ) {
+    if ( !chunk.light.upload_listed.load( std::memory_order_acquire ) ) {
         const bool near = light_near_col( this->chunk_center, chunk.chunk_pos );
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        if ( !chunk.light_upload_listed ) {
-            chunk.light_upload_listed = 1;
+        if ( !chunk.light.upload_listed ) {
+            chunk.light.upload_listed = 1;
             ( near ? light_dirty_list_near : light_dirty_list_far ).push_back( &chunk );
         }
     }
 }
 
 void ChunkLoader::light_mark_texel( Chunk &chunk, const glm::ivec3 &local ) {
-    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+    chunk.light.write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     const glm::ivec3 texel = local + glm::ivec3( 1 ); // internal -> texture coords
     // CAS-merge the texel into the dirty box BEFORE the listed check: the
     // render thread clears listed and exchanges the box in the same critical
@@ -1270,10 +1270,10 @@ void ChunkLoader::light_mark_texel( Chunk &chunk, const glm::ivec3 &local ) {
     // orders the caller's light[] byte store ahead of the uploader's copy
     // and synchronizes with the exchange so the listed==0 check below is
     // reliable.
-    uint64_t box = chunk.light_dirty_box.load( std::memory_order_relaxed );
+    uint64_t box = chunk.light.dirty_box.load( std::memory_order_relaxed );
     for ( ;; ) {
         const uint64_t merged = light_box_merge( box, texel );
-        if ( chunk.light_dirty_box.compare_exchange_weak( box, merged, std::memory_order_acq_rel,
+        if ( chunk.light.dirty_box.compare_exchange_weak( box, merged, std::memory_order_acq_rel,
                                                           std::memory_order_relaxed ) ) {
             break;
         }
@@ -1284,12 +1284,12 @@ void ChunkLoader::light_mark_texel( Chunk &chunk, const glm::ivec3 &local ) {
 // Texel-space variant of light_mark_texel for slab marks (no field-local
 // offset — the box is already in texture coords).
 void ChunkLoader::light_mark_texel_box( Chunk &chunk, const glm::ivec3 &lo, const glm::ivec3 &hi ) {
-    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+    chunk.light.write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     const uint64_t add = light_box_pack( lo, hi );
-    uint64_t box = chunk.light_dirty_box.load( std::memory_order_relaxed );
+    uint64_t box = chunk.light.dirty_box.load( std::memory_order_relaxed );
     for ( ;; ) {
         const uint64_t merged = light_box_union( box, add );
-        if ( chunk.light_dirty_box.compare_exchange_weak( box, merged, std::memory_order_acq_rel,
+        if ( chunk.light.dirty_box.compare_exchange_weak( box, merged, std::memory_order_acq_rel,
                                                           std::memory_order_relaxed ) ) {
             break;
         }
@@ -1314,7 +1314,7 @@ void ChunkLoader::light_remark_owned_halos( Chunk &flipped ) {
                     continue;
                 }
                 Chunk *n = this->get_chunk( flipped.chunk_pos + d );
-                if ( n == nullptr || n->load_state || n->light_texture == 0 ) {
+                if ( n == nullptr || n->load_state || n->light.texture == 0 ) {
                     continue;
                 }
                 glm::ivec3 lo, hi;
@@ -1418,7 +1418,7 @@ void ChunkLoader::light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local ) 
 void ChunkLoader::light_mark_dirty( Chunk &chunk, const glm::ivec3 &local ) {
     // Stamp BEFORE the defer check: the write is happening now regardless of
     // when its texel mark lands, and the upload-quiet window measures writes.
-    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+    chunk.light.write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     if ( light_defer_marks.load( std::memory_order_relaxed ) > 0 ) {
         std::lock_guard<std::mutex> lock( light_work_mutex );
         light_deferred_marks.push_back( { &chunk, local } );
@@ -1437,7 +1437,7 @@ void ChunkLoader::light_flush_deferred_marks( ) {
         // The slot may have recycled between recheck and drain — a stale mark
         // on a recycled chunk is harmless (extra texel region), but skip
         // chunks with no live volume.
-        if ( e.first->light && !e.first->load_state ) {
+        if ( e.first->light.volume && !e.first->load_state ) {
             light_mark_dirty_now( *e.first, e.second );
         }
     }
@@ -1447,10 +1447,10 @@ void ChunkLoader::light_flush_deferred_marks( ) {
 // Dirty coords are texel-space (internal+1), so the full 34^3 texture is
 // 0..CHUNK_SIZE_INTERNAL_-1 inclusive.
 void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
-    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+    chunk.light.write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     // The full-volume box is the union lattice's top element — a plain store
     // can't lose a concurrent mark (any merge into it is a no-op).
-    chunk.light_dirty_box.store(
+    chunk.light.dirty_box.store(
         light_box_pack( glm::ivec3( 0 ),
                         glm::ivec3( CHUNK_SIZE_INTERNAL_X - 1, CHUNK_SIZE_INTERNAL_Y - 1, CHUNK_SIZE_INTERNAL_Z - 1 ) ),
         std::memory_order_release );
@@ -1463,7 +1463,7 @@ void ChunkLoader::light_mark_dirty_all( Chunk &chunk ) {
 void ChunkLoader::light_shadow_refresh_all( ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
-        if ( chunk.load_state == 0 && chunk.light_texture != 0 ) {
+        if ( chunk.load_state == 0 && chunk.light.texture != 0 ) {
             light_mark_dirty_all( chunk );
         }
     }
@@ -1847,8 +1847,8 @@ void ChunkLoader::light_process_queue( const long long budget_us ) {
 // ---------------------------------------------------------------------------
 
 void ChunkLoader::light_ensure_columns( Chunk &chunk ) {
-    if ( !chunk.light_columns ) {
-        chunk.light_columns = chunk_alloc_light_columns( );
+    if ( !chunk.light.columns ) {
+        chunk.light.columns = chunk_alloc_light_columns( );
         light_compute_column_open( chunk );
     }
 }
@@ -1872,21 +1872,21 @@ void ChunkLoader::light_compute_one_column( Chunk &chunk, const int x, const int
         }
     }
     const int ci = LIGHT_COLUMN_INDEX( x, z );
-    chunk.light_columns[ ci ] = open;
-    chunk.light_columns[ LIGHT_FILL_FROM_INDEX( x, z ) ] = static_cast<unsigned char>( fill_from );
+    chunk.light.columns[ ci ] = open;
+    chunk.light.columns[ LIGHT_FILL_FROM_INDEX( x, z ) ] = static_cast<unsigned char>( fill_from );
 }
 
 // column_open[x][z] == 1 iff no column-blocking (opaque or absorbing) cell
 // exists anywhere in this chunk's interior column. Called by the worker in
 // load_terrain and lazily by light_ensure_columns on the render thread.
 void ChunkLoader::light_compute_column_open( Chunk &chunk ) {
-    if ( !chunk.light_columns ) {
+    if ( !chunk.light.columns ) {
         return;
     }
     if ( !chunk.cells ) {
         // All-air: every column open, fill reaches y=0.
-        memset( chunk.light_columns, 1, LIGHT_FLAGS_COUNT );
-        memset( chunk.light_columns + LIGHT_FILL_FROM_INDEX( 0, 0 ), 0, LIGHT_FLAGS_COUNT );
+        memset( chunk.light.columns, 1, LIGHT_FLAGS_COUNT );
+        memset( chunk.light.columns + LIGHT_FILL_FROM_INDEX( 0, 0 ), 0, LIGHT_FLAGS_COUNT );
         return;
     }
     for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
@@ -1915,7 +1915,7 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
             continue;
         }
         this->light_ensure_columns( *chunk );
-        unsigned char &above_flag = chunk->light_columns[ LIGHT_FLAGS_COUNT + LIGHT_COLUMN_INDEX( lx, lz ) ];
+        unsigned char &above_flag = chunk->light.columns[ LIGHT_FLAGS_COUNT + LIGHT_COLUMN_INDEX( lx, lz ) ];
         if ( above_flag != open ) {
             above_flag = open;
             const int top_y = cy * CHUNK_SIZE_Y + CHUNK_SIZE_Y - 1;
@@ -1930,7 +1930,7 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
                 // not-yet-cascaded neighbors still read 0. fill_from is one
                 // past the topmost opaque cell (see light.hpp), so the fill
                 // needs no per-cell cells[] reads.
-                const int fill_from = chunk->light_columns[ LIGHT_FILL_FROM_INDEX( lx, lz ) ];
+                const int fill_from = chunk->light.columns[ LIGHT_FILL_FROM_INDEX( lx, lz ) ];
                 for ( int y = CHUNK_SIZE_Y - 1; y >= fill_from; y-- ) {
                     const glm::ivec3 pos( world_x, cy * CHUNK_SIZE_Y + y, world_z );
                     this->light_set( pos, LIGHT_CHANNEL_SKY, LIGHT_RAW_MAX );
@@ -1952,7 +1952,7 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
                 }
             }
         }
-        open = open && chunk->light_columns[ LIGHT_COLUMN_INDEX( lx, lz ) ];
+        open = open && chunk->light.columns[ LIGHT_COLUMN_INDEX( lx, lz ) ];
     }
 }
 
@@ -1983,7 +1983,7 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
             continue;
         }
         this->light_ensure_columns( *chunk );
-        unsigned char *flags = chunk->light_columns;
+        unsigned char *flags = chunk->light.columns;
         const int base_y = chunk->chunk_pos.y * CHUNK_SIZE_Y;
         const int base_x = chunk->chunk_pos.x * CHUNK_SIZE_X;
         const int base_z = chunk->chunk_pos.z * CHUNK_SIZE_Z;
@@ -2103,8 +2103,8 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
     light_defer_marks++;
 
     // Opacity changes can open/close a sky column.
-    if ( chunk->light_columns ) {
-        unsigned char &col_flag = chunk->light_columns[ LIGHT_COLUMN_INDEX( local.x, local.z ) ];
+    if ( chunk->light.columns ) {
+        unsigned char &col_flag = chunk->light.columns[ LIGHT_COLUMN_INDEX( local.x, local.z ) ];
         const bool was_open = col_flag != 0;
         light_compute_one_column( *chunk, local.x, local.z );
         if ( was_open != ( col_flag != 0 ) ) {
@@ -2212,21 +2212,21 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
     }
     light_dbg_finalize++;
     const long long t0 = light_now_us( );
-    if ( chunk.light_reseed ) {
+    if ( chunk.light.reseed ) {
         light_fill_chunk( chunk ); // refill emitters + column_open
-        chunk.light_reseed = 0;
+        chunk.light.reseed = 0;
         // The wipe+refill already re-derived the whole volume — a stale flag
         // left over from cap refusals is superseded (racy refusals during
         // this run re-flag it, which is fine: the next heal re-derives).
-        chunk.light_stale_clear( );
+        chunk.light.stale_clear( );
     }
     // Convert pending diff indices into rechecks (world positions).
-    for ( int i = 0; i < chunk.light_pending_count; i++ ) {
+    for ( int i = 0; i < chunk.light.pending_count; i++ ) {
         int x, y, z;
-        chunk.get_coords_from_index( chunk.light_pending[ i ], x, y, z );
+        chunk.get_coords_from_index( chunk.light.pending[ i ], x, y, z );
         this->light_recheck_block( chunk.chunk_pos * CHUNK_SIZE_I + glm::ivec3( x, y, z ) );
     }
-    chunk.light_pending_count = 0;
+    chunk.light.pending_count = 0;
     const long long t1 = light_now_us( );
     light_dbg_us_fin_fill += t1 - t0;
 
@@ -2247,7 +2247,7 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
     // Whole volume needs uploading on first draw.
     ChunkLoader::light_mark_dirty_all( chunk );
     // Real skylight is derived now — future finalizes route to the far lane.
-    chunk.light_finalized.store( 1, std::memory_order_relaxed );
+    chunk.light.finalized.store( 1, std::memory_order_relaxed );
 }
 
 // The direct-fill cascade writes skylight without BFS, so anything it borders
@@ -2276,11 +2276,11 @@ void ChunkLoader::light_finalize_chunk( Chunk &chunk ) {
 // slab floor interior would otherwise stay dim; a lit_top==0 floor already
 // gets this from the y=0 boundary down-check).
 void ChunkLoader::light_seed_interior_boundary( Chunk &chunk ) {
-    if ( !chunk.light_columns ) {
+    if ( !chunk.light.columns ) {
         return;
     }
     const glm::ivec3 base = chunk.chunk_pos * CHUNK_SIZE_I;
-    const unsigned char *flags = chunk.light_columns;
+    const unsigned char *flags = chunk.light.columns;
 
     // Boundary cells probe across chunk edges; resolve the 3x3x3 neighborhood
     // once instead of a get_chunk per light_get/light_block_id_at call.
@@ -2545,7 +2545,7 @@ void ChunkLoader::light_seed_column_boundary( const int world_x, const int world
 // a stale-high mirror means the world got dimmer while we were loading, which
 // needs a removal cascade.
 void ChunkLoader::light_border_sync( Chunk &chunk ) {
-    // chunk.light may be null (uniform volume): light_read_cell/write_cell
+    // chunk.light.volume may be null (uniform volume): light_read_cell/write_cell
     // keep mirrors materializing only where they actually differ.
     if ( chunk.load_state ) {
         return;
@@ -2801,10 +2801,10 @@ void ChunkLoader::light_border_sync( Chunk &chunk ) {
 void light_pending_enqueue( Chunk &chunk ) {
     {
         std::lock_guard<std::mutex> lock( light_work_mutex );
-        if ( chunk.light_pending_listed ) {
+        if ( chunk.light.pending_listed ) {
             return;
         }
-        chunk.light_pending_listed = 1;
+        chunk.light.pending_listed = 1;
         light_pending_list.push_back( &chunk );
     }
     light_work_cv.notify_one( );
@@ -2816,18 +2816,18 @@ void ChunkLoader::light_process_pending_chunk( Chunk &chunk ) {
     // Clear the listed flag BEFORE reading the pending fields: a producer
     // that activates the chunk between the two must observe listed==0 and
     // re-enqueue, so no pending batch is ever dropped.
-    chunk.light_pending_listed = 0;
+    chunk.light.pending_listed = 0;
     if ( chunk.load_state ) {
         return; // loading chunks drain their queue in light_finalize_chunk
     }
-    if ( chunk.light_reseed ) {
+    if ( chunk.light.reseed ) {
         // Full refill (light_pending overflowed). light_fill_chunk wiped
         // skylight and reset sky_open_above, so re-run the column
         // cascade to flip the flags and reseed, plus a border sync. The
         // whole volume was rewritten, so mark it all dirty for upload.
         light_fill_chunk( chunk );
-        chunk.light_reseed = 0;
-        chunk.light_stale_clear( );
+        chunk.light.reseed = 0;
+        chunk.light.stale_clear( );
         this->light_cascade_columns( chunk );
         // Always scan — the refill's optimistic sky_open_above leaves the
         // cascade with nothing to fill, but shaded columns still need seeds.
@@ -2835,12 +2835,12 @@ void ChunkLoader::light_process_pending_chunk( Chunk &chunk ) {
         this->light_border_sync( chunk );
         ChunkLoader::light_mark_dirty_all( chunk );
     }
-    for ( int p = 0; p < chunk.light_pending_count; p++ ) {
+    for ( int p = 0; p < chunk.light.pending_count; p++ ) {
         int x, y, z;
-        chunk.get_coords_from_index( chunk.light_pending[ p ], x, y, z );
+        chunk.get_coords_from_index( chunk.light.pending[ p ], x, y, z );
         this->light_recheck_block( chunk.chunk_pos * CHUNK_SIZE_I + glm::ivec3( x, y, z ) );
     }
-    chunk.light_pending_count = 0;
+    chunk.light.pending_count = 0;
 }
 
 // Multiplayer diffs (set_block_by_index_if_different) only record cell
@@ -2873,39 +2873,39 @@ void light_fill_chunk( Chunk &chunk ) {
     // The memset below is a write the upload-quiet window must see: without
     // this stamp an already-listed chunk could upload mid-wipe, before the
     // cascade/marks restamp it — a one-frame full-volume black flash.
-    chunk.light_write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+    chunk.light.write_tick.store( light_tick_counter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
     if ( !chunk.cells ) {
-        // All-air chunk: no light volume at all. light==nullptr means every
+        // All-air chunk: no light volume at all.light.volume==nullptr means every
         // cell holds light_uniform — set it to the same optimistic sky=15 the
         // volume path's prefill would produce, so propagation reads it without
         // the array ever existing. Column flags still get computed (all-open
         // + optimistic sky_open_above) so the cascade's flag bookkeeping
         // stays correct.
-        if ( chunk.light ) {
-            chunk_free_light( chunk.light );
-            chunk.light = nullptr;
+        if ( chunk.light.volume ) {
+            chunk_free_light( chunk.light.volume );
+            chunk.light.volume = nullptr;
         }
         // cells[] is gone, so its derived masks must be too (a stale
         // mask would describe the previous occupancy of this chunk slot).
-        if ( chunk.light_air_mask ) {
-            chunk_free_air_mask( chunk.light_air_mask );
-            chunk.light_air_mask = nullptr;
+        if ( chunk.light.air_mask ) {
+            chunk_free_air_mask( chunk.light.air_mask );
+            chunk.light.air_mask = nullptr;
         }
-        if ( chunk.light_shade_mask ) {
-            chunk_free_air_mask( chunk.light_shade_mask );
-            chunk.light_shade_mask = nullptr;
+        if ( chunk.light.shade_mask ) {
+            chunk_free_air_mask( chunk.light.shade_mask );
+            chunk.light.shade_mask = nullptr;
         }
-        chunk.light_uniform = static_cast<unsigned short>( LIGHT_RAW_MAX << 8 );
+        chunk.light.uniform = static_cast<unsigned short>( LIGHT_RAW_MAX << 8 );
         ChunkLoader::light_compute_column_open( chunk );
-        if ( chunk.light_columns ) {
-            memset( chunk.light_columns + LIGHT_FLAGS_COUNT, 1, LIGHT_FLAGS_COUNT );
+        if ( chunk.light.columns ) {
+            memset( chunk.light.columns + LIGHT_FLAGS_COUNT, 1, LIGHT_FLAGS_COUNT );
         }
         return;
     }
-    if ( !chunk.light ) {
-        chunk.light = chunk_alloc_light( );
+    if ( !chunk.light.volume ) {
+        chunk.light.volume = chunk_alloc_light( );
     }
-    std::fill_n( chunk.light, CHUNK_BLOCK_SIZE, static_cast<unsigned short>( 0 ) );
+    std::fill_n( chunk.light.volume, CHUNK_BLOCK_SIZE, static_cast<unsigned short>( 0 ) );
     // The mipmapped light texture's B channel is a per-cell air mask, and
     // computing it at upload time walks chunk.cells[] on the render
     // thread — ~0.2ms/chunk walking the 0.5MB cells[] array.
@@ -2918,27 +2918,27 @@ void light_fill_chunk( Chunk &chunk ) {
     unsigned char *air_mask = nullptr;
     unsigned char *shade_mask = nullptr;
     if ( light_mipmaps_enabled( ) ) {
-        if ( chunk.light_air_mask == nullptr ) {
-            chunk.light_air_mask = chunk_alloc_air_mask( );
+        if ( chunk.light.air_mask == nullptr ) {
+            chunk.light.air_mask = chunk_alloc_air_mask( );
         }
-        if ( chunk.light_shade_mask == nullptr ) {
-            chunk.light_shade_mask = chunk_alloc_air_mask( );
+        if ( chunk.light.shade_mask == nullptr ) {
+            chunk.light.shade_mask = chunk_alloc_air_mask( );
         }
         // Rewritten wholesale below (this can re-run via light_reseed).
-        memset( chunk.light_air_mask, 0, CHUNK_BLOCK_SIZE / 8 );
-        memset( chunk.light_shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
-        air_mask = chunk.light_air_mask;
-        shade_mask = chunk.light_shade_mask;
+        memset( chunk.light.air_mask, 0, CHUNK_BLOCK_SIZE / 8 );
+        memset( chunk.light.shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
+        air_mask = chunk.light.air_mask;
+        shade_mask = chunk.light.shade_mask;
     } else {
         // Can't happen (mipmaps is process-lifetime constant), but never
         // leave a mask around that upload would wrongly trust.
-        if ( chunk.light_air_mask ) {
-            chunk_free_air_mask( chunk.light_air_mask );
-            chunk.light_air_mask = nullptr;
+        if ( chunk.light.air_mask ) {
+            chunk_free_air_mask( chunk.light.air_mask );
+            chunk.light.air_mask = nullptr;
         }
-        if ( chunk.light_shade_mask ) {
-            chunk_free_air_mask( chunk.light_shade_mask );
-            chunk.light_shade_mask = nullptr;
+        if ( chunk.light.shade_mask ) {
+            chunk_free_air_mask( chunk.light.shade_mask );
+            chunk.light.shade_mask = nullptr;
         }
     }
     // Note the two arrays index differently: cells[] is z-fastest
@@ -2964,13 +2964,13 @@ void light_fill_chunk( Chunk &chunk ) {
         int x, y, z;
         chunk.get_coords_from_index( i, x, y, z );
         const int lidx = light_index( x, y, z );
-        chunk.light[ lidx ] = static_cast<unsigned short>( emit * LIGHT_RAW_PER_LEVEL );
+        chunk.light.volume[ lidx ] = static_cast<unsigned short>( emit * LIGHT_RAW_PER_LEVEL );
         queue.push_back( lidx );
     }
     while ( !queue.empty( ) ) {
         const int idx = queue.back( );
         queue.pop_back( );
-        const int v = chunk.light[ idx ] & 0xFF;
+        const int v = chunk.light.volume[ idx ] & 0xFF;
         if ( v <= LIGHT_STEP_FACE ) {
             continue; // best possible offer (v-17) can't light anything
         }
@@ -2994,7 +2994,7 @@ void light_fill_chunk( Chunk &chunk ) {
                 continue;
             }
             const int nidx = light_index( nx, ny, nz );
-            if ( v - sd.cost <= ( chunk.light[ nidx ] & 0xFF ) ) {
+            if ( v - sd.cost <= ( chunk.light.volume[ nidx ] & 0xFF ) ) {
                 continue;
             }
             const BlockID n_id = block_cell_id( chunk.cells[ chunk.get_index_from_coords( nx, ny, nz ) ] );
@@ -3002,18 +3002,18 @@ void light_fill_chunk( Chunk &chunk ) {
                 continue;
             }
             const int offered = v - sd.cost - block_definition_get_definition( n_id )->light_absorb * LIGHT_RAW_PER_LEVEL;
-            if ( offered <= ( chunk.light[ nidx ] & 0xFF ) ) {
+            if ( offered <= ( chunk.light.volume[ nidx ] & 0xFF ) ) {
                 continue;
             }
             if ( sd.ngates && !light_diag_open( chunk.cells, c_local, sd, src_blocks_down ) ) {
                 continue;
             }
-            chunk.light[ nidx ] = static_cast<unsigned short>( ( chunk.light[ nidx ] & 0xFF00 ) | offered );
+            chunk.light.volume[ nidx ] = static_cast<unsigned short>( ( chunk.light.volume[ nidx ] & 0xFF00 ) | offered );
             queue.push_back( nidx );
         }
     }
     ChunkLoader::light_compute_column_open( chunk );
-    if ( chunk.light_columns ) {
+    if ( chunk.light.columns ) {
         // Optimistic skylight: assume open above so the chunk doesn't draw
         // black in the window between terrain upload and light finalize.
         // Cells above the topmost opaque cell get a direct sky=15 fill, and
@@ -3026,7 +3026,7 @@ void light_fill_chunk( Chunk &chunk ) {
         // neighbors' border sync converged. A wrong guess self-corrects —
         // the owner chunk's border sync rewrites the mirror and pushes a
         // removal when it loads.
-        unsigned char *flags = chunk.light_columns;
+        unsigned char *flags = chunk.light.columns;
         for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
             for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
                 const bool interior_col = x >= 0 && x < CHUNK_SIZE_X && z >= 0 && z < CHUNK_SIZE_Z;
@@ -3052,7 +3052,7 @@ void light_fill_chunk( Chunk &chunk ) {
                     if ( y < ( shell ? top_opaque + 1 : fill_from ) ) {
                         continue;
                     }
-                    unsigned short &cell = chunk.light[ light_index( x, y, z ) ];
+                    unsigned short &cell = chunk.light.volume[ light_index( x, y, z ) ];
                     cell = static_cast<unsigned short>( ( cell & 0x00FF ) | ( LIGHT_RAW_MAX << 8 ) );
                 }
             }
@@ -3062,18 +3062,18 @@ void light_fill_chunk( Chunk &chunk ) {
     // underground chunk (no emitters, all columns closed) or a fully-lit one
     // keeps just the u16 instead of the 512K array.
     {
-        const unsigned short first = chunk.light[ 0 ];
+        const unsigned short first = chunk.light.volume[ 0 ];
         bool uniform = true;
         for ( int i = 1; i < CHUNK_BLOCK_SIZE; i++ ) {
-            if ( chunk.light[ i ] != first ) {
+            if ( chunk.light.volume[ i ] != first ) {
                 uniform = false;
                 break;
             }
         }
         if ( uniform ) {
-            chunk.light_uniform = first;
-            chunk_free_light( chunk.light );
-            chunk.light = nullptr;
+            chunk.light.uniform = first;
+            chunk_free_light( chunk.light.volume );
+            chunk.light.volume = nullptr;
         }
     }
 }
@@ -3326,15 +3326,15 @@ void Chunk::light_nb_ctxs( const ChunkLoader &loader, const glm::ivec3 &pos, con
                     continue;
                 }
                 Chunk *nb = loader.get_chunk( pos + glm::ivec3( dx, dy, dz ) );
-                if ( nb == nullptr || nb->load_state != 0 || ( nb->light == nullptr && nb->cells == nullptr ) ) {
+                if ( nb == nullptr || nb->load_state != 0 || ( nb->light.volume == nullptr && nb->cells == nullptr ) ) {
                     continue; // absent/loading slot: boundary texels keep the one-sided gather
                 }
                 if ( !light_smooth_in_radius( center, pos + glm::ivec3( dx, dy, dz ) ) ) {
                     *raw_owners |= 1u << i; // owner uploads raw — our halo copy is its canonical byte
                     continue;
                 }
-                nb_ctxs[ i ] = light_smooth_ctx( nb->light, nb->cells, nb->light_air_mask, nb->light_shade_mask );
-                nb_ctxs[ i ].uniform = nb->light_uniform;
+                nb_ctxs[ i ] = light_smooth_ctx( nb->light.volume, nb->cells, nb->light.air_mask, nb->light.shade_mask );
+                nb_ctxs[ i ].uniform = nb->light.uniform;
                 nb_ptrs[ i ] = &nb_ctxs[ i ];
             }
         }
@@ -3547,15 +3547,15 @@ int ChunkLoader::light_upload_box( Chunk &chunk, const uint64_t raw_box, glm::iv
     if ( hi.x < lo.x || hi.y < lo.y || hi.z < lo.z ) {
         return 0;
     }
-    const bool self_smooth = chunk.light != nullptr && light_smooth_here( loader, chunk.chunk_pos );
+    const bool self_smooth = chunk.light.volume != nullptr && light_smooth_here( loader, chunk.chunk_pos );
     *self_smooth_out = self_smooth;
     const int want_mode = self_smooth ? 2 : 1;
-    const int tex_mode = chunk.light_tex_mode.load( std::memory_order_relaxed );
+    const int tex_mode = chunk.light.tex_mode.load( std::memory_order_relaxed );
     if ( tex_mode != 0 && tex_mode != want_mode ) {
         *uplo = glm::ivec3( 0 );
         *sz = glm::ivec3( CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z );
-        if ( chunk.light_tex_flip.load( std::memory_order_relaxed ) != want_mode ) {
-            chunk.light_tex_flip.store( want_mode, std::memory_order_relaxed );
+        if ( chunk.light.tex_flip.load( std::memory_order_relaxed ) != want_mode ) {
+            chunk.light.tex_flip.store( want_mode, std::memory_order_relaxed );
             loader->light_remark_owned_halos( chunk );
         }
     } else if ( self_smooth ) {
@@ -3572,7 +3572,7 @@ int ChunkLoader::light_upload_box( Chunk &chunk, const uint64_t raw_box, glm::iv
 
 // Fill `dst` (tightly packed, UNPACK_ROW_LENGTH=0 layout) for the texel box
 // [uplo, uplo+sz). Runs on the render thread (inline path) and on light
-// workers (staging) — reads of chunk.light/cells/masks against concurrent
+// workers (staging) — reads of chunk.light.volume/cells/masks against concurrent
 // field writes are the same snapshot-torn reads the mark paths already
 // tolerate; the result is a presentation copy, never fed back.
 void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, const glm::ivec3 &sz,
@@ -3582,11 +3582,11 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
     // known: null cells[] means the whole volume is air, and a lit
     // cell (packed != 0) provably can hold light — both give B = 255.
     // Only dark cells (solid vs. merely-dark air) need the mask — read
-    // from chunk.light_air_mask (bit index = cells[] index space) when
+    // from chunk.light.air_mask (bit index = cells[] index space) when
     // it exists, else the cells[]/air_lut fallback.
     const bool all_air = mipmaps && chunk.cells == nullptr;
-    const unsigned char *air_mask = mipmaps && !all_air ? chunk.light_air_mask : nullptr;
-    const unsigned char *shade_mask = mipmaps && !all_air ? chunk.light_shade_mask : nullptr;
+    const unsigned char *air_mask = mipmaps && !all_air ? chunk.light.air_mask : nullptr;
+    const unsigned char *shade_mask = mipmaps && !all_air ? chunk.light.shade_mask : nullptr;
     const unsigned char *air_lut = mipmaps && chunk.cells && air_mask == nullptr ? light_air_lut( ) : nullptr;
     const unsigned char *shade_lut = mipmaps && chunk.cells && air_mask == nullptr ? light_shade_lut( ) : nullptr;
     // Boundary-texel delegation: the neighbour table is only needed when
@@ -3595,7 +3595,7 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
     // whose halo texels delegate to an in-radius (smoothed) owner.
     const bool edge = uplo.x == 0 || uplo.y == 0 || uplo.z == 0 ||
         uplo.x + sz.x == CHUNK_SIZE_INTERNAL_X || uplo.y + sz.y == CHUNK_SIZE_INTERNAL_Y || uplo.z + sz.z == CHUNK_SIZE_INTERNAL_Z;
-    const bool use_ctx = chunk.light != nullptr &&
+    const bool use_ctx = chunk.light.volume != nullptr &&
         ( self_smooth || ( edge && light_smooth_enabled( ) && light_any_nb_in_radius( loader.get_chunk_center( ), chunk.chunk_pos ) ) );
     if ( use_ctx ) {
         LightSmoothCtx nb_ctxs[ 27 ];
@@ -3604,7 +3604,7 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
         if ( edge ) {
             Chunk::light_nb_ctxs( loader, chunk.chunk_pos, loader.get_chunk_center( ), nb_ctxs, nb_ptrs, &raw_owners );
         }
-        LightSmoothCtx ctx = light_smooth_ctx( chunk.light, chunk.cells, chunk.light_air_mask, chunk.light_shade_mask );
+        LightSmoothCtx ctx = light_smooth_ctx( chunk.light.volume, chunk.cells, chunk.light.air_mask, chunk.light.shade_mask );
         ctx.nb = nb_ptrs;
         ctx.raw_owners = raw_owners;
         ctx.self_smooth = self_smooth;
@@ -3620,11 +3620,11 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
             const unsigned char *srow = shade_mask ? shade_mask + ( ( uplo.z + z ) >> 3 ) : nullptr;
             const int shift = ( uplo.z + z ) & 7;
             for ( int y = 0; y < sz.y; y++ ) {
-                const unsigned short *lrow = chunk.light ? chunk.light + ( ( uplo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( uplo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + uplo.x : nullptr;
+                const unsigned short *lrow = chunk.light.volume ? chunk.light.volume + ( ( uplo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( uplo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + uplo.x : nullptr;
                 const unsigned char *mty = mrow + ( uplo.y + y ) * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) + uplo.x * ( CHUNK_SIZE_INTERNAL_Z / 8 );
                 const unsigned char *sty = srow ? srow + ( uplo.y + y ) * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) + uplo.x * ( CHUNK_SIZE_INTERNAL_Z / 8 ) : nullptr;
                 for ( int x = 0; x < sz.x; x++, out++ ) {
-                    const unsigned short packed = lrow ? lrow[ x ] : chunk.light_uniform;
+                    const unsigned short packed = lrow ? lrow[ x ] : chunk.light.uniform;
                     const uint32_t air = ( static_cast<uint32_t>( mty[ x * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u;
                     const uint32_t shade = sty ? ( ( static_cast<uint32_t>( sty[ x * ( CHUNK_SIZE_INTERNAL_Z / 8 ) ] ) >> shift ) & 1u ) : 0u;
                     *out = light_rg( packed ) | ( air * 255u << 16 ) | ( ( 255u - shade * 255u ) << 24 );
@@ -3640,10 +3640,10 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
                 // dst take the strided steps.
                 for ( int x = 0; x < sz.x; x++ ) {
                     unsigned char *out = dst + 4 * ( y * sz.x + x );
-                    const unsigned short *lrow = chunk.light ? chunk.light + ( ( uplo.z ) * CHUNK_SIZE_INTERNAL_Y + ( uplo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + uplo.x + x : nullptr;
+                    const unsigned short *lrow = chunk.light.volume ? chunk.light.volume + ( ( uplo.z ) * CHUNK_SIZE_INTERNAL_Y + ( uplo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + uplo.x + x : nullptr;
                     int bidx = ( uplo.y + y ) * CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z + ( uplo.x + x ) * CHUNK_SIZE_INTERNAL_Z + uplo.z;
                     for ( int z = 0; z < sz.z; z++, out += 4 * sz.y * sz.x, bidx++ ) {
-                        const unsigned short packed = lrow ? lrow[ z * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_X ] : chunk.light_uniform;
+                        const unsigned short packed = lrow ? lrow[ z * CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_X ] : chunk.light.uniform;
                         light_expand_cell( packed, out );
                         out[ 2 ] = all_air || packed != 0 ? 255 : air_lut[ block_cell_id( chunk.cells[ bidx ] ) ];
                         out[ 3 ] = all_air ? 255 : shade_lut[ block_cell_id( chunk.cells[ bidx ] ) ];
@@ -3652,15 +3652,15 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
             } else {
                 for ( int z = 0; z < sz.z; z++ ) {
                     unsigned char *out = dst + 2 * ( z * sz.y + y ) * sz.x;
-                    if ( chunk.light ) {
-                        const unsigned short *row = chunk.light + ( ( uplo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( uplo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + uplo.x;
+                    if ( chunk.light.volume ) {
+                        const unsigned short *row = chunk.light.volume + ( ( uplo.z + z ) * CHUNK_SIZE_INTERNAL_Y + ( uplo.y + y ) ) * CHUNK_SIZE_INTERNAL_X + uplo.x;
                         for ( int x = 0; x < sz.x; x++ ) {
                             light_expand_cell( row[ x ], out + 2 * x );
                         }
                     } else {
                         // Uniform volume: the whole dirty box reads light_uniform.
                         for ( int x = 0; x < sz.x; x++ ) {
-                            light_expand_cell( chunk.light_uniform, out + 2 * x );
+                            light_expand_cell( chunk.light.uniform, out + 2 * x );
                         }
                     }
                 }
@@ -3672,18 +3672,18 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
 void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     // Presentation mode for this texture: smooth only inside the camera
     // radius (and only when the feature is on).
-    const bool self_smooth = this->light != nullptr && light_smooth_here( loader, this->chunk_pos );
+    const bool self_smooth = this->light.volume != nullptr && light_smooth_here( loader, this->chunk_pos );
     const int want_mode = self_smooth ? 2 : 1;
-    if ( this->light_texture != 0 ) {
+    if ( this->light.texture != 0 ) {
         // The desired mode drifted since this texture was last filled
         // (Shadows toggle or a radius crossing): force a full-volume refill
-        // and refresh the ring texels we own in neighbours. light_tex_flip
+        // and refresh the ring texels we own in neighbours.light.tex_flip
         // claims the drift once — the staged refill takes a few frames, and
         // re-marking the neighbours every drawn frame until it lands would
         // flood their upload queues.
-        if ( loader != nullptr && this->light != nullptr && this->light_tex_mode != 0 &&
-             this->light_tex_mode != want_mode && this->light_tex_flip != want_mode ) {
-            this->light_tex_flip = want_mode;
+        if ( loader != nullptr && this->light.volume != nullptr && this->light.tex_mode != 0 &&
+             this->light.tex_mode != want_mode && this->light.tex_flip != want_mode ) {
+            this->light.tex_flip = want_mode;
             loader->light_mark_dirty_all( *this );
             loader->light_remark_owned_halos( *this );
         }
@@ -3692,12 +3692,12 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     // A raw chunk with an in-radius neighbour still owes one staged fill so
     // its halo texels take the owner's smoothed byte — see
     // light_fill_upload_box's delegation.
-    const bool want_nb = loader != nullptr && light_smooth_enabled( ) && this->light != nullptr &&
+    const bool want_nb = loader != nullptr && light_smooth_enabled( ) && this->light.volume != nullptr &&
         light_any_nb_in_radius( loader->get_chunk_center( ), this->chunk_pos );
     const long long t0 = light_now_us( );
-    glGenTextures( 1, &this->light_texture );
+    glGenTextures( 1, &this->light.texture );
     glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
-    glBindTexture( GL_TEXTURE_3D, this->light_texture );
+    glBindTexture( GL_TEXTURE_3D, this->light.texture );
     // Full upload at creation: a chunk can be drawn before its first
     // light_upload_dirty pass, and must never sample an uninitialized volume.
     // Covers every queued dirty region, so clear the flag.
@@ -3707,12 +3707,12 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     // Consume the dirty box BEFORE copying so marks landing mid-upload stay
     // pending (the chunk may not be in the list, but a mark sees listed==0
     // or the queued entry itself picks them up next pass).
-    this->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
+    this->light.dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
     const bool mipmaps = light_mipmaps_enabled( );
     if ( mipmaps ) {
         unsigned char *out8 = reinterpret_cast<unsigned char *>( s_light_upload_scratch );
         // B is a per-cell air mask. It normally comes straight out of
-        // chunk.light_air_mask — the 32KB bitmap light_fill_chunk built while
+        // chunk.light.air_mask — the 32KB bitmap light_fill_chunk built while
         // streaming cells[] and edits keep stamped — so the common case
         // iterates in texel order and never touches the 3.7MB cells[] array
         // (nor even strides light[]: both stream linearly). When the mask is
@@ -3729,8 +3729,8 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
         //    constant fill is only safe when cells[] is absent or the
         //    shade mask isn't there to contradict it — the mask/fallback
         //    paths below stamp A per cell.
-        if ( this->light == nullptr && ( this->cells == nullptr || ( this->light_uniform != 0 && this->light_air_mask == nullptr ) ) ) {
-            const uint32_t cell = light_rg( this->light_uniform ) | 0xFFFF0000u; // B=255, A=255
+        if ( this->light.volume == nullptr && ( this->cells == nullptr || ( this->light.uniform != 0 && this->light.air_mask == nullptr ) ) ) {
+            const uint32_t cell = light_rg( this->light.uniform ) | 0xFFFF0000u; // B=255, A=255
             uint32_t *out32 = s_light_upload_scratch;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 out32[ i ] = cell;
@@ -3739,23 +3739,23 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
             // All-air but non-uniform light: still expand light[] per cell.
             uint32_t *out32 = s_light_upload_scratch;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                out32[ i ] = light_rg( this->light[ i ] ) | 0xFFFF0000u;
+                out32[ i ] = light_rg( this->light.volume[ i ] ) | 0xFFFF0000u;
             }
-        } else if ( this->light_air_mask != nullptr ) {
+        } else if ( this->light.air_mask != nullptr ) {
             // Mask built: iterate in texel order (x fastest) so light[] reads
             // and scratch writes are both linear streams. The mask lives in
             // cells[] index space (z-fastest): mask byte index is
             // (tz>>3) + (Z_INT/8)*tx + (X_INT*Z_INT/8)*ty and the tested bit
             // (tz&7) is invariant across the plane, so the same
             // X_INT*Z_INT/8 mask bytes serve 8 consecutive tz planes.
-            const unsigned char *air_mask = this->light_air_mask;
-            const unsigned char *shade_mask = this->light_shade_mask;
+            const unsigned char *air_mask = this->light.air_mask;
+            const unsigned char *shade_mask = this->light.shade_mask;
             uint32_t *out32 = s_light_upload_scratch;
-            if ( this->light == nullptr ) {
+            if ( this->light.volume == nullptr ) {
                 // Uniform-dark volume (light_uniform==0 — nonzero went to the
                 // fast path above): every cell's RG is the same constant and
                 // B is exactly the mask bit, so no per-cell light read.
-                const uint32_t base = light_rg( this->light_uniform );
+                const uint32_t base = light_rg( this->light.uniform );
                 for ( int tz = 0; tz < CHUNK_SIZE_INTERNAL_Z; tz++ ) {
                     const unsigned char *mrow = air_mask + ( tz >> 3 );
                     const unsigned char *srow = shade_mask ? shade_mask + ( tz >> 3 ) : nullptr;
@@ -3778,7 +3778,7 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
                     const unsigned char *srow = shade_mask ? shade_mask + ( tz >> 3 ) : nullptr;
                     const int shift = tz & 7;
                     for ( int ty = 0; ty < CHUNK_SIZE_INTERNAL_Y; ty++ ) {
-                        const unsigned short *lrow = this->light + ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X;
+                        const unsigned short *lrow = this->light.volume + ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X;
                         const unsigned char *mty = mrow + ty * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 );
                         const unsigned char *sty = srow ? srow + ty * ( CHUNK_SIZE_INTERNAL_X * CHUNK_SIZE_INTERNAL_Z / 8 ) : nullptr;
                         for ( int tx = 0; tx < CHUNK_SIZE_INTERNAL_X; tx++, out32++ ) {
@@ -3805,7 +3805,7 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
             int tx = 0, ty = 0, tz = 0;
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 const int lidx = ( tz * CHUNK_SIZE_INTERNAL_Y + ty ) * CHUNK_SIZE_INTERNAL_X + tx;
-                const unsigned short packed = this->light ? this->light[ lidx ] : this->light_uniform;
+                const unsigned short packed = this->light.volume ? this->light.volume[ lidx ] : this->light.uniform;
                 unsigned char *out = out8 + 4 * lidx;
                 light_expand_cell( packed, out );
                 out[ 2 ] = packed != 0 ? 255 : air_lut[ block_cell_id( this->cells[ i ] ) ];
@@ -3821,14 +3821,14 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
         }
     } else {
         unsigned char *out8 = reinterpret_cast<unsigned char *>( s_light_upload_scratch );
-        if ( this->light ) {
+        if ( this->light.volume ) {
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                light_expand_cell( this->light[ i ], out8 + 2 * i );
+                light_expand_cell( this->light.volume[ i ], out8 + 2 * i );
             }
         } else {
             // Uniform volume (null light[]): the whole texture is one value.
             unsigned char cell[ 2 ];
-            light_expand_cell( this->light_uniform, cell );
+            light_expand_cell( this->light.uniform, cell );
             for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
                 out8[ 2 * i ] = cell[ 0 ];
                 out8[ 2 * i + 1 ] = cell[ 1 ];
@@ -3858,11 +3858,11 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     // a light worker via the staging queue so ensure stays off the ~3ms
     // smoother during streaming. Raw bytes differ from the smoothed result
     // by a few LSB at most, invisible for the frames it takes to land.
-    this->light_tex_mode = 1;
+    this->light.tex_mode = 1;
     if ( loader != nullptr && self_smooth ) {
         // Claim the flip so repeated ensures don't re-mark while the staged
         // full-volume fill is in flight.
-        this->light_tex_flip = 2;
+        this->light.tex_flip = 2;
         loader->light_mark_dirty_all( *this );
         loader->light_remark_owned_halos( *this );
     } else if ( want_nb ) {
@@ -3912,13 +3912,13 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 // Fresh chunks bypass both gates: the optimistic sky fill
                 // is mostly correct and beats a black hole while seeds are
                 // still queued — later uploads still wait for the flood.
-                const bool fresh = !chunk->light_uploaded_once;
+                const bool fresh = !chunk->light.uploaded_once;
                 const int cidx = light_col_lock_index( chunk->chunk_pos.x, chunk->chunk_pos.z );
                 const bool busy = light_col_incident[ cidx ].load( std::memory_order_relaxed ) > 0 ||
                                   light_col_locks[ cidx ].load( std::memory_order_relaxed ) != 0;
-                const bool quiet = tick_now - chunk->light_write_tick.load( std::memory_order_relaxed ) >= LIGHT_UPLOAD_QUIET_TICKS;
+                const bool quiet = tick_now - chunk->light.write_tick.load( std::memory_order_relaxed ) >= LIGHT_UPLOAD_QUIET_TICKS;
                 const int cap = busy ? LIGHT_UPLOAD_MAX_DEFERS_BUSY : LIGHT_UPLOAD_MAX_DEFERS;
-                const unsigned stage_status = LIGHT_STAGE_STATUS( chunk->light_stage_state.load( std::memory_order_relaxed ) );
+                const unsigned stage_status = LIGHT_STAGE_STATUS( chunk->light.stage_state.load( std::memory_order_relaxed ) );
                 // BUSY stays listed untouched — the publishing worker
                 // re-enqueues it, and it's not waiting on eligibility so it
                 // doesn't accrue defers. READY is always eligible: the
@@ -3930,10 +3930,10 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 // rules exist to keep exactly those off the GPU.
                 if ( stage_status == LIGHT_STAGE_READY ||
                      ( stage_status != LIGHT_STAGE_BUSY &&
-                       ( fresh || ( quiet && !busy ) || chunk->light_upload_defers >= cap ) ) ) {
+                       ( fresh || ( quiet && !busy ) || chunk->light.upload_defers >= cap ) ) ) {
                     eligible.push_back( chunk );
                 } else if ( stage_status != LIGHT_STAGE_BUSY ) {
-                    chunk->light_upload_defers++;
+                    chunk->light.upload_defers++;
                     light_dbg_upload_deferred++;
                 }
             }
@@ -3953,7 +3953,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             entries.reserve( entries.size( ) + order.size( ) );
             for ( const std::pair<int, Chunk *> &ord : order ) {
                 Chunk *chunk = ord.second;
-                unsigned s = chunk->light_stage_state.load( std::memory_order_relaxed );
+                unsigned s = chunk->light.stage_state.load( std::memory_order_relaxed );
                 const bool ready = LIGHT_STAGE_STATUS( s ) == LIGHT_STAGE_READY;
                 // A smoothed fill costs ~25x the raw expand — hand it to a
                 // light worker (the claim CAS keeps the handoff
@@ -3964,7 +3964,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 // is already cheap, so a round trip would only add latency.
                 // No async lighting (WASM without pthreads, tests) means
                 // nobody would service the stage queue — stay inline there.
-                const bool wants_stage = !ready && chunk->light != nullptr && light_async_active( ) && light_smooth_enabled( ) &&
+                const bool wants_stage = !ready && chunk->light.volume != nullptr && light_async_active( ) && light_smooth_enabled( ) &&
                     ( light_smooth_in_radius( this->chunk_center, chunk->chunk_pos ) ||
                       light_any_nb_in_radius( this->chunk_center, chunk->chunk_pos ) );
                 // READY uploads are just the GL call and they return a pool
@@ -3981,9 +3981,9 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 if ( wants_stage && light_stage_live + static_cast<int>( light_stage_list.size( ) ) >= LIGHT_STAGE_MAX ) {
                     continue; // stays listed for a later pass
                 }
-                chunk->light_upload_listed.store( 0, std::memory_order_release );
-                chunk->light_upload_defers = 0;
-                chunk->light_uploaded_once = 1;
+                chunk->light.upload_listed.store( 0, std::memory_order_release );
+                chunk->light.upload_defers = 0;
+                chunk->light.uploaded_once = 1;
                 // Taking a READY buffer consumes only what the worker
                 // snapshotted; marks that landed during the stage are still
                 // in the box, and their enqueue found the chunk already
@@ -3993,8 +3993,8 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 // exchange does: a mark after it sees listed==0 and
                 // re-enqueues itself.
                 const auto take_ready = [ & ]( ) {
-                    if ( chunk->light_dirty_box.fetch_add( 0, std::memory_order_acq_rel ) != LIGHT_BOX_EMPTY ) {
-                        chunk->light_upload_listed.store( 1, std::memory_order_relaxed );
+                    if ( chunk->light.dirty_box.fetch_add( 0, std::memory_order_acq_rel ) != LIGHT_BOX_EMPTY ) {
+                        chunk->light.upload_listed.store( 1, std::memory_order_relaxed );
                     }
                     entries.push_back( { chunk, 0, true } );
                 };
@@ -4005,7 +4005,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                     continue;
                 }
                 n--;
-                if ( wants_stage && chunk->light_stage_state.compare_exchange_strong( s, s + 1, std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
+                if ( wants_stage && chunk->light.stage_state.compare_exchange_strong( s, s + 1, std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
                     light_stage_list.push_back( chunk );
                     wake_stage = true;
                     continue;
@@ -4016,13 +4016,13 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                     take_ready( );
                     continue;
                 }
-                entries.push_back( { chunk, chunk->light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel ), false } );
+                entries.push_back( { chunk, chunk->light.dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel ), false } );
             }
             // Rebuild minus taken entries (they're the ones now listed==0).
             std::vector<Chunk *> keep;
             keep.reserve( list->size( ) );
             for ( Chunk *chunk : *list ) {
-                if ( chunk->light_upload_listed.load( std::memory_order_relaxed ) ) {
+                if ( chunk->light.upload_listed.load( std::memory_order_relaxed ) ) {
                     keep.push_back( chunk );
                 }
             }
@@ -4040,10 +4040,10 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             // Worker-produced fill: validate and upload. load_state means
             // the slot is being recycled — release_terrain's
             // light_reset_staging reclaims the buffer, so just skip.
-            if ( chunk.load_state || chunk.light_texture == 0 ) {
+            if ( chunk.load_state || chunk.light.texture == 0 ) {
                 continue;
             }
-            unsigned s = chunk.light_stage_state.load( std::memory_order_acquire );
+            unsigned s = chunk.light.stage_state.load( std::memory_order_acquire );
             if ( LIGHT_STAGE_STATUS( s ) != LIGHT_STAGE_READY ) {
                 continue;
             }
@@ -4053,20 +4053,20 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             // owns it and we must not touch the fields. READY -> IDLE, same
             // generation. Marks that landed during the stage already
             // re-enqueued the chunk for the next pass.
-            unsigned char *buf = chunk.light_stage_buf;
-            const uint64_t stage_box = chunk.light_stage_box;
-            const int stage_mode = chunk.light_stage_mode;
+            unsigned char *buf = chunk.light.stage_buf;
+            const uint64_t stage_box = chunk.light.stage_box;
+            const int stage_mode = chunk.light.stage_mode;
             if ( buf == nullptr ||
-                 !chunk.light_stage_state.compare_exchange_strong( s, s - 2,
+                 !chunk.light.stage_state.compare_exchange_strong( s, s - 2,
                                                                  std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
                 continue;
             }
-            chunk.light_stage_buf = nullptr;
+            chunk.light.stage_buf = nullptr;
             const glm::ivec3 ulo = light_box_min( stage_box );
             const glm::ivec3 usz = light_box_max( stage_box ) - ulo + glm::ivec3( 1 );
             uploads++;
             glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
-            glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
+            glBindTexture( GL_TEXTURE_3D, chunk.light.texture );
             glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
             glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
             glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
@@ -4078,9 +4078,9 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             // A full-volume fill settles the texture's presentation mode;
             // partial fills keep whatever the last full fill used.
             if ( usz.x == CHUNK_SIZE_INTERNAL_X && usz.y == CHUNK_SIZE_INTERNAL_Y && usz.z == CHUNK_SIZE_INTERNAL_Z ) {
-                chunk.light_tex_mode.store( stage_mode, std::memory_order_relaxed );
-                if ( chunk.light_tex_flip == stage_mode ) {
-                    chunk.light_tex_flip = 0;
+                chunk.light.tex_mode.store( stage_mode, std::memory_order_relaxed );
+                if ( chunk.light.tex_flip == stage_mode ) {
+                    chunk.light.tex_flip = 0;
                 }
             }
             light_stage_pool_give( buf );
@@ -4096,7 +4096,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         // finalize_loaded_chunk), so a drawable chunk reaching this point
         // without a texture is rare — an edit making a faceless chunk
         // drawable, or an upload queued before its first-ever draw.
-        if ( chunk.light_texture == 0 ) {
+        if ( chunk.light.texture == 0 ) {
             continue;
         }
         glm::ivec3 uplo, sz;
@@ -4107,7 +4107,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         }
         uploads++;
         glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
-        glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
+        glBindTexture( GL_TEXTURE_3D, chunk.light.texture );
         // Expand the packed (sky<<8|block) dirty region so the two channels
         // filter independently — see light_expand_cell / light_air_lut. The
         // scratch is tightly packed so the default unpack stride applies.
@@ -4124,9 +4124,9 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         // A full-volume fill settles the texture's presentation mode;
         // partial fills keep whatever mode the last full fill used.
         if ( sz.x == CHUNK_SIZE_INTERNAL_X && sz.y == CHUNK_SIZE_INTERNAL_Y && sz.z == CHUNK_SIZE_INTERNAL_Z ) {
-            chunk.light_tex_mode = want_mode;
-            if ( chunk.light_tex_flip == want_mode ) {
-                chunk.light_tex_flip = 0;
+            chunk.light.tex_mode = want_mode;
+            if ( chunk.light.tex_flip == want_mode ) {
+                chunk.light.tex_flip = 0;
             }
         }
     }
@@ -4145,7 +4145,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
 // and writes its private buffer. Publishes as READY so the next
 // light_upload_dirty pass does just the GL call.
 void ChunkLoader::light_stage_chunk( Chunk &chunk ) {
-    const unsigned claimed = chunk.light_stage_state.load( std::memory_order_relaxed );
+    const unsigned claimed = chunk.light.stage_state.load( std::memory_order_relaxed );
     if ( LIGHT_STAGE_STATUS( claimed ) != LIGHT_STAGE_BUSY ) {
         return; // stale queue entry — nobody claimed this chunk
     }
@@ -4153,7 +4153,7 @@ void ChunkLoader::light_stage_chunk( Chunk &chunk ) {
         // CAS not store: a recycle bumps the generation — never write a
         // stale word back.
         unsigned expected = claimed;
-        chunk.light_stage_state.compare_exchange_strong( expected, claimed - 1,
+        chunk.light.stage_state.compare_exchange_strong( expected, claimed - 1,
                                                          std::memory_order_release, std::memory_order_relaxed );
     };
     // Slot being recycled: back out so the slot doesn't stall BUSY — the
@@ -4175,8 +4175,8 @@ void ChunkLoader::light_stage_chunk( Chunk &chunk ) {
     // this exchange fold into the fill; marks after it re-enqueue for the
     // next stage — the same no-lost-update ordering the old pop-time
     // exchange guaranteed.
-    const uint64_t box = chunk.light_dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
-    if ( box == LIGHT_BOX_EMPTY || chunk.light_texture == 0 ) {
+    const uint64_t box = chunk.light.dirty_box.exchange( LIGHT_BOX_EMPTY, std::memory_order_acq_rel );
+    if ( box == LIGHT_BOX_EMPTY || chunk.light.texture == 0 ) {
         light_stage_pool_give( buf );
         unclaim( );
         return;
@@ -4197,15 +4197,15 @@ void ChunkLoader::light_stage_chunk( Chunk &chunk ) {
     // alongside READY. The generation in `claimed` can only have changed via
     // light_reset_staging (recycle) — fail then and free the buffer
     // ourselves.
-    chunk.light_stage_buf = buf;
-    chunk.light_stage_box = light_box_pack( uplo, uplo + sz - glm::ivec3( 1 ) );
-    chunk.light_stage_mode = mode;
+    chunk.light.stage_buf = buf;
+    chunk.light.stage_box = light_box_pack( uplo, uplo + sz - glm::ivec3( 1 ) );
+    chunk.light.stage_mode = mode;
     unsigned expected = claimed;
-    if ( chunk.light_stage_state.compare_exchange_strong( expected, claimed + 1,
+    if ( chunk.light.stage_state.compare_exchange_strong( expected, claimed + 1,
                                                           std::memory_order_release, std::memory_order_relaxed ) ) {
         this->light_upload_enqueue( chunk );
     } else {
-        chunk.light_stage_buf = nullptr;
+        chunk.light.stage_buf = nullptr;
         light_stage_pool_give( buf );
     }
 }
@@ -4300,7 +4300,7 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
     if ( chunk.load_state || !light_near_col( center, chunk.chunk_pos ) ) {
         return;
     }
-    if ( chunk.light_stale_get( ) ) {
+    if ( chunk.light.stale_get( ) ) {
         // Don't heal mid-flood: the re-finalize's own propagation seeds
         // would be refused above the cap and the flag would just re-set —
         // churn. Leave the flag set; the next shift retries. Share the
@@ -4310,7 +4310,7 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
         // finalize actually lands.
         if ( light_bfs_pending.load( std::memory_order_relaxed ) > LIGHT_BFS_CAP_FLOOD ||
              this->light_heal_budget <= 0 ||
-             !chunk.light_stale_take( ) ) {
+             !chunk.light.stale_take( ) ) {
             return;
         }
         this->light_heal_budget--;
@@ -4322,7 +4322,7 @@ void ChunkLoader::light_heal_chunk( Chunk &chunk, const glm::ivec3 &center ) {
     // claim) instead of waiting for its seeds to drain one by one —
     // measured ~2x faster tail convergence than relying on the per-column
     // drain order alone. Idempotent and bounded per shift.
-    if ( !chunk.light_finalized.load( std::memory_order_relaxed ) || this->light_heal_budget <= 0 ) {
+    if ( !chunk.light.finalized.load( std::memory_order_relaxed ) || this->light_heal_budget <= 0 ) {
         return;
     }
     const int cidx = light_col_lock_index( chunk.chunk_pos.x, chunk.chunk_pos.z );
@@ -4356,7 +4356,7 @@ void ChunkLoader::light_heal_idle( ) {
                 break;
             }
             Chunk &chunk = this->chunkArray[ i ];
-            if ( !chunk.load_state && chunk.light_stale_take( ) ) {
+            if ( !chunk.load_state && chunk.light.stale_take( ) ) {
                 this->light_submit_finalize( chunk );
                 healed++;
             }
@@ -4375,7 +4375,7 @@ void ChunkLoader::light_heal_idle( ) {
 void ChunkLoader::light_debug_verify( ) {
     long long cells = 0, under[ 2 ] = { 0, 0 }, over[ 2 ] = { 0, 0 }, mirror_bad = 0;
     int logged = 0;
-    const auto settled = []( const Chunk *c ) { return c && !c->load_state && c->light_finalized.load( std::memory_order_relaxed ); };
+    const auto settled = []( const Chunk *c ) { return c && !c->load_state && c->light.finalized.load( std::memory_order_relaxed ); };
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
         if ( !settled( &chunk ) ) {
@@ -4468,18 +4468,18 @@ void ChunkLoader::light_debug_verify( ) {
     int tex_logged = 0;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
-        if ( !settled( &chunk ) || chunk.light_texture == 0 ) {
+        if ( !settled( &chunk ) || chunk.light.texture == 0 ) {
             continue;
         }
-        const bool self_smooth = chunk.light != nullptr && light_smooth_here( this, chunk.chunk_pos );
-        if ( chunk.light_tex_mode.load( std::memory_order_relaxed ) != ( self_smooth ? 2 : 1 ) ) {
+        const bool self_smooth = chunk.light.volume != nullptr && light_smooth_here( this, chunk.chunk_pos );
+        if ( chunk.light.tex_mode.load( std::memory_order_relaxed ) != ( self_smooth ? 2 : 1 ) ) {
             tex_mode_pending++;
             continue;
         }
         tex_checked++;
         this->light_fill_upload_box( chunk, glm::ivec3( 0 ), full, mipmaps, self_smooth, want.data( ) );
         glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
-        glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
+        glBindTexture( GL_TEXTURE_3D, chunk.light.texture );
         glPixelStorei( GL_PACK_ALIGNMENT, 1 );
         glGetTexImage( GL_TEXTURE_3D, 0, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, got.data( ) );
         glPixelStorei( GL_PACK_ALIGNMENT, 4 );
@@ -4498,20 +4498,20 @@ void ChunkLoader::light_debug_verify( ) {
                 // Owner's own texel for the same cell (halo texels must match it).
                 int owner_tex = -1, owner_mode = -1, owner_smooth = -1;
                 const Chunk *owner = this->get_chunk( light_chunk_pos_of( w ) );
-                if ( owner && owner != &chunk && owner->light_texture != 0 ) {
+                if ( owner && owner != &chunk && owner->light.texture != 0 ) {
                     std::vector<unsigned char> ob( want.size( ) );
-                    glBindTexture( GL_TEXTURE_3D, owner->light_texture );
+                    glBindTexture( GL_TEXTURE_3D, owner->light.texture );
                     glPixelStorei( GL_PACK_ALIGNMENT, 1 );
                     glGetTexImage( GL_TEXTURE_3D, 0, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, ob.data( ) );
                     glPixelStorei( GL_PACK_ALIGNMENT, 4 );
-                    glBindTexture( GL_TEXTURE_3D, chunk.light_texture );
+                    glBindTexture( GL_TEXTURE_3D, chunk.light.texture );
                     const glm::ivec3 ol = w - owner->chunk_pos * CHUNK_SIZE_I + glm::ivec3( 1 );
                     owner_tex = ob[ static_cast<size_t>( ( ol.z * CHUNK_SIZE_INTERNAL_Y + ol.y ) * CHUNK_SIZE_INTERNAL_X + ol.x ) * bpp ];
-                    owner_mode = owner->light_tex_mode.load( std::memory_order_relaxed );
-                    owner_smooth = owner->light != nullptr && light_smooth_here( this, owner->chunk_pos );
+                    owner_mode = owner->light.tex_mode.load( std::memory_order_relaxed );
+                    owner_smooth = owner->light.volume != nullptr && light_smooth_here( this, owner->chunk_pos );
                 }
                 pr_debug( "Light verify: stale texel chunk (%d,%d,%d) mode=%d at (%d,%d,%d) want=%d,%d,%d,%d got=%d,%d,%d,%d owner_tex=%d owner_mode=%d owner_smooth=%d",
-                          chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, chunk.light_tex_mode.load( std::memory_order_relaxed ), w.x, w.y, w.z, want[ t ],
+                          chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, chunk.light.tex_mode.load( std::memory_order_relaxed ), w.x, w.y, w.z, want[ t ],
                           want[ t + 1 ], bpp > 2 ? want[ t + 2 ] : 0, bpp > 2 ? want[ t + 3 ] : 0, got[ t ], got[ t + 1 ], bpp > 2 ? got[ t + 2 ] : 0,
                           bpp > 2 ? got[ t + 3 ] : 0, owner_tex, owner_mode, owner_smooth );
             }
@@ -4538,7 +4538,7 @@ void ChunkLoader::light_submit_finalize( Chunk &chunk ) {
         // holds this chunk at execution time (slots recycle).
         light_submit_job( this->chunk_center,
                           LightJob{ LIGHT_JOB_FINALIZE, &chunk, chunk.chunk_pos, 0,
-                                    !chunk.light_finalized.load( std::memory_order_relaxed ) } );
+                                    !chunk.light.finalized.load( std::memory_order_relaxed ) } );
     }
     light_work_cv.notify_one( );
 }
@@ -4736,7 +4736,7 @@ void ChunkLoader::light_thread_loop( ) {
                     Chunk *pc = *it;
                     if ( pc->load_state ) {
                         // Loading chunks drain pending in light_finalize_chunk.
-                        pc->light_pending_listed = 0;
+                        pc->light.pending_listed = 0;
                         it = light_pending_list.erase( it );
                         continue;
                     }
@@ -4757,7 +4757,7 @@ void ChunkLoader::light_thread_loop( ) {
                         light_pending_list.erase( best );
                         // Clear listed under the lock so a producer writing
                         // pending fields now re-enqueues a fresh entry.
-                        pc->light_pending_listed = 0;
+                        pc->light.pending_listed = 0;
                         pending_chunk = pc;
                         pending_expected = col;
                         claim_col = col;

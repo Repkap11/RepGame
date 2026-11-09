@@ -7,6 +7,13 @@ light → mesh → draw → edit → park. Terrain generation itself is
 `docs/mapgen.md`; the render pipeline consuming the meshes is
 `docs/rendering.md`. This doc is about the lifecycle and the queues.
 
+`Chunk` groups its per-subsystem state into three plain sub-structs —
+`chunk.light` (`ChunkLight`: light volume, masks, dirty/stale/staging
+state), `chunk.sidecars` (`ChunkSidecars`: mob/item sidecar staging,
+`player_edited`), and `chunk.containers` (`ChunkContainers`: chest and
+furnace maps) — keeping block storage, mesh/GL state and lifecycle
+fields on `Chunk` itself.
+
 ## The torus
 
 `chunkArray` is `MAX_LOADED_CHUNKS` slots — a compile-time box of

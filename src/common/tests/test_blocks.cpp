@@ -1631,7 +1631,7 @@ int test_grass( ) {
 // dirty (and therefore persist on departure)? Mapgens a real 7x3x7 grid —
 // the ±2/±1 tick window covers the inner 5x3x5; the outer ring only
 // receives boundary halo writes — and counts dirty/player_edited flags at
-// checkpoints. player_edited must stay 0 everywhere: natural writes keep
+// checkpoints. sidecars.player_edited must stay 0 everywhere: natural writes keep
 // the pen rule out, so every dirty chunk here is a purely natural change
 // that would still be written to disk.
 int test_grass_persist( ) {
@@ -1694,7 +1694,7 @@ int test_grass_persist( ) {
         *edited = 0;
         for ( Chunk *chunk : set ) {
             *dirty += chunk->dirty ? 1 : 0;
-            *edited += chunk->player_edited ? 1 : 0;
+            *edited += chunk->sidecars.player_edited ? 1 : 0;
         }
     };
     const int checkpoints[] = { 0, 100, 1000, 5000, 20000 };
@@ -1724,8 +1724,8 @@ int test_grass_persist( ) {
         }
         Chunk *pristine = new Chunk( );
         std::atomic<uint64_t> stale_bits{ 0 };
-        pristine->light_stale_word = &stale_bits;
-        pristine->light_stale_bit = 1;
+        pristine->light.stale_word = &stale_bits;
+        pristine->light.stale_bit = 1;
         pristine->chunk_pos = chunk->chunk_pos;
         pristine->chunk_mod = chunk->chunk_mod;
         pristine->load_terrain( ms );

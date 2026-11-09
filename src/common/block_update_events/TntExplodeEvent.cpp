@@ -116,8 +116,8 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                     chunk->chunk_pos = glm::ivec3( cx, cy, cz );
                     chunk->cells = chunk_alloc_cells( );
                     chunk->extras = nullptr;
-                    chunk->light_air_mask = nullptr;
-                    chunk->light_shade_mask = nullptr;
+                    chunk->light.air_mask = nullptr;
+                    chunk->light.shade_mask = nullptr;
                     MapGen::load_block_c( chunk );
                     StructureGen::place( *chunk );
                     gen_chunks.push_back( { chunk->chunk_pos, chunk } );

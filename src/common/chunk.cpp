@@ -276,18 +276,18 @@ void Chunk::release_terrain( ) {
     if constexpr ( REMEMBER_BLOCKS ) {
         this->free_block_storage( );
     }
-    chunk_free_light( this->light );
-    this->light = nullptr;
-    this->light_uniform = 0;
-    chunk_free_light_columns( this->light_columns );
-    this->light_columns = nullptr;
-    chunk_free_air_mask( this->light_air_mask );
-    this->light_air_mask = nullptr;
-    chunk_free_air_mask( this->light_shade_mask );
-    this->light_shade_mask = nullptr;
-    if ( this->light_texture ) {
-        glDeleteTextures( 1, &this->light_texture );
-        this->light_texture = 0;
+    chunk_free_light( this->light.volume );
+    this->light.volume = nullptr;
+    this->light.uniform = 0;
+    chunk_free_light_columns( this->light.columns );
+    this->light.columns = nullptr;
+    chunk_free_air_mask( this->light.air_mask );
+    this->light.air_mask = nullptr;
+    chunk_free_air_mask( this->light.shade_mask );
+    this->light.shade_mask = nullptr;
+    if ( this->light.texture ) {
+        glDeleteTextures( 1, &this->light.texture );
+        this->light.texture = 0;
     }
     if ( this->occl.query ) {
         glDeleteQueries( 1, &this->occl.query );
@@ -299,35 +299,35 @@ void Chunk::release_terrain( ) {
     // Light bookkeeping for a volume that no longer exists. light_pending_
     // listed / light_upload_listed stay whatever they were — their drain
     // loops own those flags and skip non-live chunks after clearing them.
-    this->light_pending_count = 0;
-    this->light_reseed = 0;
-    this->light_stale_clear( );
-    this->light_upload_defers = 0;
-    this->light_uploaded_once = 0;
+    this->light.pending_count = 0;
+    this->light.reseed = 0;
+    this->light.stale_clear( );
+    this->light.upload_defers = 0;
+    this->light.uploaded_once = 0;
     // Staged upload in flight: bump the generation so the worker's publish
     // CAS fails and it frees its own buffer; a ready buffer (status==2) is
     // render-owned and returned to the pool. The pool lives in light.cpp.
     light_reset_staging( this );
-    this->light_tex_mode = 0;
-    this->light_tex_flip = 0;
-    this->light_finalized.store( 0, std::memory_order_relaxed );
-    this->light_write_tick.store( 0, std::memory_order_relaxed );
-    this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    this->light.tex_mode = 0;
+    this->light.tex_flip = 0;
+    this->light.finalized.store( 0, std::memory_order_relaxed );
+    this->light.write_tick.store( 0, std::memory_order_relaxed );
+    this->light.dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
     this->needs_repopulation = 0;
     this->is_empty_chunk = true;
     // Callers persist before releasing, so nothing here is unsaved.
     this->dirty = 0;
-    this->chests.clear( );
-    this->chests_loaded = 0;
-    this->furnaces.clear( );
-    this->furnaces_loaded = 0;
-    this->pending_mobs.clear( );
-    this->mobs_file_present = 0;
-    this->mobs_spawned = 0;
-    this->pending_mobs_removed.clear( );
-    this->player_edited = 0;
-    this->pending_items.clear( );
-    this->items_file_present = 0;
+    this->containers.chests.clear( );
+    this->containers.chests_loaded = 0;
+    this->containers.furnaces.clear( );
+    this->containers.furnaces_loaded = 0;
+    this->sidecars.mobs.clear( );
+    this->sidecars.mobs_file_present = 0;
+    this->sidecars.mobs_spawned = 0;
+    this->sidecars.mobs_removed.clear( );
+    this->sidecars.player_edited = 0;
+    this->sidecars.items.clear( );
+    this->sidecars.items_file_present = 0;
 }
 
 void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
@@ -344,10 +344,10 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shad
         const long long t_bind = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
         this->light_ensure_texture( );
-        if ( this->light_texture != 0 ) {
+        if ( this->light.texture != 0 ) {
             // The light unit's glActiveTexture is hoisted to
             // ChunkLoader::draw — nothing between chunk draws reselects it.
-            glBindTexture( GL_TEXTURE_3D, this->light_texture );
+            glBindTexture( GL_TEXTURE_3D, this->light.texture );
             const glm::vec3 light_base = glm::vec3( this->chunk_pos * CHUNK_SIZE_I ) - render_origin;
             // Direct glUniform3f on the cached location — set_uniform3f does a
             // glGetUniformLocation every call, which costs ~us per chunk per
@@ -395,10 +395,10 @@ void Chunk::free_generated_buffers( ) {
     this->cells = nullptr;
     chunk_free_extras( this->extras );
     this->extras = nullptr;
-    chunk_free_air_mask( this->light_air_mask );
-    this->light_air_mask = nullptr;
-    chunk_free_air_mask( this->light_shade_mask );
-    this->light_shade_mask = nullptr;
+    chunk_free_air_mask( this->light.air_mask );
+    this->light.air_mask = nullptr;
+    chunk_free_air_mask( this->light.shade_mask );
+    this->light.shade_mask = nullptr;
 }
 
 void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) const {
@@ -422,24 +422,24 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
         // The fresh cells[] is calloc'd = all AIR = all non-opaque, so its
         // air mask starts fully set; the write below stamps its own cell.
         if ( light_mipmaps_enabled( ) ) {
-            if ( this->light_air_mask == nullptr ) {
-                this->light_air_mask = chunk_alloc_air_mask( );
+            if ( this->light.air_mask == nullptr ) {
+                this->light.air_mask = chunk_alloc_air_mask( );
             }
-            memset( this->light_air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
-            if ( this->light_shade_mask == nullptr ) {
-                this->light_shade_mask = chunk_alloc_air_mask( );
+            memset( this->light.air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
+            if ( this->light.shade_mask == nullptr ) {
+                this->light.shade_mask = chunk_alloc_air_mask( );
             }
-            memset( this->light_shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
+            memset( this->light.shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
         }
     }
 
     const int index = get_index_from_coords( pos );
     const BlockState old_state = this->state_at( index );
     if ( block_is_chest( old_state.id ) && !block_is_chest( blockState.id ) ) {
-        this->chests.erase( index );
+        this->containers.chests.erase( index );
     }
     if ( block_is_furnace( old_state.id ) && !block_is_furnace( blockState.id ) ) {
-        this->furnaces.erase( index );
+        this->containers.furnaces.erase( index );
     }
     this->store_state( index, block_state_normalize( old_state, blockState ) );
     light_air_mask_set( *this, index, this->id_at( index ) );
@@ -461,14 +461,14 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
         this->cells = chunk_alloc_cells( );
         // Same as set_block: fresh calloc'd cells[] = all non-opaque.
         if ( light_mipmaps_enabled( ) ) {
-            if ( this->light_air_mask == nullptr ) {
-                this->light_air_mask = chunk_alloc_air_mask( );
+            if ( this->light.air_mask == nullptr ) {
+                this->light.air_mask = chunk_alloc_air_mask( );
             }
-            memset( this->light_air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
-            if ( this->light_shade_mask == nullptr ) {
-                this->light_shade_mask = chunk_alloc_air_mask( );
+            memset( this->light.air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
+            if ( this->light.shade_mask == nullptr ) {
+                this->light.shade_mask = chunk_alloc_air_mask( );
             }
-            memset( this->light_shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
+            memset( this->light.shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
         }
     }
     const BlockState oldBlockState = this->state_at( index );
@@ -476,10 +476,10 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
         return 0;
     }
     if ( block_is_chest( oldBlockState.id ) && !block_is_chest( blockState->id ) ) {
-        this->chests.erase( index );
+        this->containers.chests.erase( index );
     }
     if ( block_is_furnace( oldBlockState.id ) && !block_is_furnace( blockState->id ) ) {
-        this->furnaces.erase( index );
+        this->containers.furnaces.erase( index );
     }
     this->store_state( index, *blockState );
     light_air_mask_set( *this, index, blockState->id );
@@ -487,10 +487,10 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
     this->needs_repopulation = true;
     // Record the change for the light engine; converted to a world-space
     // recheck seed by the lighting thread (ChunkLoader::light_drain_pending).
-    if ( this->light_pending_count < static_cast<int>( sizeof( this->light_pending ) / sizeof( this->light_pending[ 0 ] ) ) ) {
-        this->light_pending[ this->light_pending_count++ ] = index;
+    if ( this->light.pending_count < static_cast<int>( sizeof( this->light.pending ) / sizeof( this->light.pending[ 0 ] ) ) ) {
+        this->light.pending[ this->light.pending_count++ ] = index;
     } else {
-        this->light_reseed = 1;
+        this->light.reseed = 1;
     }
     light_pending_enqueue( *this );
     this->is_empty_chunk = false;
@@ -626,7 +626,7 @@ bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
             record.health = def.max_health;
             record.flags = NET_MOB_FLAG_NATURAL;
             record.net_id = net_natural_mob_id( this->chunk_pos, index );
-            this->pending_mobs.push_back( record );
+            this->sidecars.mobs.push_back( record );
             spawned = true;
         }
     }
@@ -648,29 +648,29 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     // Under REMEMBER_BLOCKS, cells stays null while the chunk is all-air:
     // MapStorage::load_chunk allocates it only when a save file exists, and
     // Chunk::set_block allocates on the first real write (every existing cell
-    // is AIR anyway). light[] likewise stays unallocated for uniform volumes —
+    // is AIR anyway). light.volume[] likewise stays unallocated for uniform volumes —
     // light_fill_chunk folds constant fills to Chunk::light_uniform instead.
-    if ( this->light_columns == nullptr ) {
-        this->light_columns = chunk_alloc_light_columns( );
+    if ( this->light.columns == nullptr ) {
+        this->light.columns = chunk_alloc_light_columns( );
     } else {
-        memset( this->light_columns, 0, 3 * LIGHT_FLAGS_COUNT );
+        memset( this->light.columns, 0, 3 * LIGHT_FLAGS_COUNT );
     }
-    this->light_pending_count = 0;
-    this->light_reseed = 0;
-    this->light_stale_clear( );
-    this->light_pending_listed = 0;
-    this->light_upload_listed = 0;
-    this->light_write_tick.store( 0, std::memory_order_relaxed );
-    this->light_upload_defers = 0;
-    this->light_uploaded_once = 0;
+    this->light.pending_count = 0;
+    this->light.reseed = 0;
+    this->light.stale_clear( );
+    this->light.pending_listed = 0;
+    this->light.upload_listed = 0;
+    this->light.write_tick.store( 0, std::memory_order_relaxed );
+    this->light.upload_defers = 0;
+    this->light.uploaded_once = 0;
     // See release_terrain — invalidates any staged upload claimed by a
     // worker before this slot was reassigned.
     light_reset_staging( this );
-    this->light_tex_mode = 0;
-    this->light_tex_flip = 0;
-    this->light_finalized.store( 0, std::memory_order_relaxed );
-    this->light_dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
-    this->light_uniform = 0;
+    this->light.tex_mode = 0;
+    this->light.tex_flip = 0;
+    this->light.finalized.store( 0, std::memory_order_relaxed );
+    this->light.dirty_box.store( LIGHT_BOX_EMPTY, std::memory_order_relaxed );
+    this->light.uniform = 0;
     this->is_empty_chunk = false;
 #if TERRAIN_GEN_PROFILING
     long long t_start = now_us( );
@@ -698,10 +698,10 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             }
             if ( all_air ) {
                 this->free_block_storage( );
-                chunk_free_air_mask( this->light_air_mask );
-                this->light_air_mask = nullptr;
-                chunk_free_air_mask( this->light_shade_mask );
-                this->light_shade_mask = nullptr;
+                chunk_free_air_mask( this->light.air_mask );
+                this->light.air_mask = nullptr;
+                chunk_free_air_mask( this->light.shade_mask );
+                this->light.shade_mask = nullptr;
                 this->is_empty_chunk = true;
                 goto skip_to_mesh;
             }
@@ -717,10 +717,10 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         const int bw_min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1;
         if ( bw_min_y > ( flat_world ? 0 : 2 ) ) {
             this->free_block_storage( );
-            chunk_free_air_mask( this->light_air_mask );
-            this->light_air_mask = nullptr;
-            chunk_free_air_mask( this->light_shade_mask );
-            this->light_shade_mask = nullptr;
+            chunk_free_air_mask( this->light.air_mask );
+            this->light.air_mask = nullptr;
+            chunk_free_air_mask( this->light.shade_mask );
+            this->light.shade_mask = nullptr;
             this->is_empty_chunk = true;
             this->dirty = 0;
             goto skip_to_mesh;
@@ -756,10 +756,10 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 // Entire chunk is air — keep cells null instead of filling a
                 // 262K-cell array with AIR.
                 this->free_block_storage( );
-                chunk_free_air_mask( this->light_air_mask );
-                this->light_air_mask = nullptr;
-                chunk_free_air_mask( this->light_shade_mask );
-                this->light_shade_mask = nullptr;
+                chunk_free_air_mask( this->light.air_mask );
+                this->light.air_mask = nullptr;
+                chunk_free_air_mask( this->light.shade_mask );
+                this->light.shade_mask = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -785,10 +785,10 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             if ( (float)min_y >= max_terrain_height + OVERHANG_MAX_RISE + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk (including border) is above terrain → all air
                 this->free_block_storage( );
-                chunk_free_air_mask( this->light_air_mask );
-                this->light_air_mask = nullptr;
-                chunk_free_air_mask( this->light_shade_mask );
-                this->light_shade_mask = nullptr;
+                chunk_free_air_mask( this->light.air_mask );
+                this->light.air_mask = nullptr;
+                chunk_free_air_mask( this->light.shade_mask );
+                this->light.shade_mask = nullptr;
                 this->is_empty_chunk = true;
                 this->dirty = 0;
 #if TERRAIN_GEN_PROFILING
@@ -859,28 +859,28 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
 skip_to_mesh:
     // Chest contents live in a per-chunk sidecar file (world-pos keyed);
     // convert to the block-index keying used by chests[].
-    this->chests.clear( );
+    this->containers.chests.clear( );
     ChestContentsMap chest_world_map;
-    this->chests_loaded = map_storage.load_chests( this->chunk_pos, chest_world_map ) ? 1 : 0;
+    this->containers.chests_loaded = map_storage.load_chests( this->chunk_pos, chest_world_map ) ? 1 : 0;
     for ( const auto &pair : chest_world_map ) {
         const glm::ivec3 diff = pair.first - this->chunk_pos * CHUNK_SIZE_I;
         // Entries must fall inside this chunk (file corruption guard).
         if ( diff.x < 0 || diff.x >= CHUNK_SIZE_X || diff.y < 0 || diff.y >= CHUNK_SIZE_Y || diff.z < 0 || diff.z >= CHUNK_SIZE_Z ) {
             continue;
         }
-        this->chests[ Chunk::get_index_from_coords( diff ) ] = pair.second;
+        this->containers.chests[ Chunk::get_index_from_coords( diff ) ] = pair.second;
     }
     // Furnace contents: same sidecar pattern as chests, world-pos keyed
     // file converted to in-chunk block indices.
-    this->furnaces.clear( );
+    this->containers.furnaces.clear( );
     FurnaceContentsMap furnace_world_map;
-    this->furnaces_loaded = map_storage.load_furnaces( this->chunk_pos, furnace_world_map ) ? 1 : 0;
+    this->containers.furnaces_loaded = map_storage.load_furnaces( this->chunk_pos, furnace_world_map ) ? 1 : 0;
     for ( const auto &pair : furnace_world_map ) {
         const glm::ivec3 diff = pair.first - this->chunk_pos * CHUNK_SIZE_I;
         if ( diff.x < 0 || diff.x >= CHUNK_SIZE_X || diff.y < 0 || diff.y >= CHUNK_SIZE_Y || diff.z < 0 || diff.z >= CHUNK_SIZE_Z ) {
             continue;
         }
-        this->furnaces[ Chunk::get_index_from_coords( diff ) ] = pair.second;
+        this->containers.furnaces[ Chunk::get_index_from_coords( diff ) ] = pair.second;
     }
     // Mob sidecar (same pattern as chests): file records load first, then the
     // deterministic natural roll always runs — pristine naturals are never
@@ -890,25 +890,25 @@ skip_to_mesh:
     // REPGAME_MOB_TEST runs and REPGAME_MOBS=0. Static env reads: this runs
     // once per chunk on every terrain worker and env can't change mid-run.
     static const bool no_mobs = !env_bool( "REPGAME_MOBS", true ) || env_is_set( "REPGAME_MOB_TEST" );
-    this->pending_mobs.clear( );
-    this->mobs_file_present = 0;
-    this->mobs_spawned = 0;
-    this->pending_mobs_removed.clear( );
-    this->pending_items.clear( );
-    this->items_file_present = 0;
-    this->player_edited = loaded ? 1 : 0;
+    this->sidecars.mobs.clear( );
+    this->sidecars.mobs_file_present = 0;
+    this->sidecars.mobs_spawned = 0;
+    this->sidecars.mobs_removed.clear( );
+    this->sidecars.items.clear( );
+    this->sidecars.items_file_present = 0;
+    this->sidecars.player_edited = loaded ? 1 : 0;
     if ( !no_mobs ) {
-        this->mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->pending_mobs, &this->pending_mobs_removed ) ? 1 : 0;
-        std::set<uint8_t> roll_skip( this->pending_mobs_removed.begin( ), this->pending_mobs_removed.end( ) );
-        for ( const MobFileRecord &record : this->pending_mobs ) {
+        this->sidecars.mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->sidecars.mobs, &this->sidecars.mobs_removed ) ? 1 : 0;
+        std::set<uint8_t> roll_skip( this->sidecars.mobs_removed.begin( ), this->sidecars.mobs_removed.end( ) );
+        for ( const MobFileRecord &record : this->sidecars.mobs ) {
             if ( net_is_natural_mob_id( record.net_id ) && net_natural_mob_home( record.net_id ) == this->chunk_pos ) {
                 roll_skip.insert( static_cast<uint8_t>( net_natural_mob_index( record.net_id ) ) );
             }
         }
-        this->mobs_spawned = this->spawn_mobs( &roll_skip ) ? 1 : 0;
+        this->sidecars.mobs_spawned = this->spawn_mobs( &roll_skip ) ? 1 : 0;
         // Dropped items follow the same test-mode rules as mobs: no file
         // reads (or writes) under REPGAME_MOBS=0 / REPGAME_MOB_TEST.
-        this->items_file_present = map_storage.load_items( this->chunk_pos, this->pending_items ) ? 1 : 0;
+        this->sidecars.items_file_present = map_storage.load_items( this->chunk_pos, this->sidecars.items ) ? 1 : 0;
     }
     // Flood-fill emitters + column_open flags on the worker. Skylight is
     // resolved on the lighting thread by ChunkLoader::light_finalize_chunk.
@@ -1153,10 +1153,10 @@ void Chunk::calculate_populated_blocks( ) {
     if ( this->is_empty_chunk ) {
         if constexpr ( !REMEMBER_BLOCKS ) {
             this->free_block_storage( );
-            chunk_free_air_mask( this->light_air_mask );
-            this->light_air_mask = nullptr;
-            chunk_free_air_mask( this->light_shade_mask );
-            this->light_shade_mask = nullptr;
+            chunk_free_air_mask( this->light.air_mask );
+            this->light.air_mask = nullptr;
+            chunk_free_air_mask( this->light.shade_mask );
+            this->light.shade_mask = nullptr;
         }
         for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
             this->layers[ renderOrder ].num_instances = 0;
@@ -1772,10 +1772,10 @@ void Chunk::calculate_populated_blocks( ) {
 
     if constexpr ( !REMEMBER_BLOCKS ) {
         this->free_block_storage( );
-        chunk_free_air_mask( this->light_air_mask );
-        this->light_air_mask = nullptr;
-        chunk_free_air_mask( this->light_shade_mask );
-        this->light_shade_mask = nullptr;
+        chunk_free_air_mask( this->light.air_mask );
+        this->light.air_mask = nullptr;
+        chunk_free_air_mask( this->light.shade_mask );
+        this->light.shade_mask = nullptr;
     }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];

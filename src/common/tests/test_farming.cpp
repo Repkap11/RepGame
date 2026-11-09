@@ -162,11 +162,11 @@ int test_farming( ) {
         // dark volume — the field needs full skylight to pass the grow
         // check, so force every cell to sky=15 after the fill.
         Chunk *chunk = world.chunkLoader.get_chunk( glm::ivec3( 0, 0, 0 ) );
-        if ( chunk->light == nullptr ) {
-            chunk->light = chunk_alloc_light( );
+        if ( chunk->light.volume == nullptr ) {
+            chunk->light.volume = chunk_alloc_light( );
         }
-        std::fill_n( chunk->light, CHUNK_BLOCK_SIZE, static_cast<unsigned short>( LIGHT_RAW_MAX << 8 ) );
-        chunk->light_uniform = static_cast<unsigned short>( LIGHT_RAW_MAX << 8 );
+        std::fill_n( chunk->light.volume, CHUNK_BLOCK_SIZE, static_cast<unsigned short>( LIGHT_RAW_MAX << 8 ) );
+        chunk->light.uniform = static_cast<unsigned short>( LIGHT_RAW_MAX << 8 );
         for ( int t = 0; t < 200; t++ ) {
             world.process_random_ticks( gs );
         }

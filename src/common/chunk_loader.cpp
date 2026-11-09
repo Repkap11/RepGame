@@ -329,8 +329,8 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     const VertexBuffer &vb_block_water = this->water.vb_block;
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         this->chunkArray[ i ].slot_flags = &this->slot_want[ i ];
-        this->chunkArray[ i ].light_stale_word = &this->light_stale_bits[ i >> 6 ];
-        this->chunkArray[ i ].light_stale_bit = 1ull << ( i & 63 );
+        this->chunkArray[ i ].light.stale_word = &this->light_stale_bits[ i >> 6 ];
+        this->chunkArray[ i ].light.stale_bit = 1ull << ( i & 63 );
         this->chunkArray[ i ].init( vb_block_solid, vb_block_water, vbl_block, vbl_coords );
     }
 
@@ -645,7 +645,7 @@ void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *b
     }
     // A server diff (or queued local diff) is a player edit: mark the chunk
     // so natural mobs standing in it count as penned (MobManager::tick).
-    chunk.player_edited = 1;
+    chunk.sidecars.player_edited = 1;
     // The same world cell is also stored in a neighbor chunk whenever pos
     // sits on a boundary: interior cells at 0/size-1 live in the neighbor's
     // halo, halo cells at -1/size live in the neighbor's interior. Diffs

@@ -21,13 +21,13 @@ range — 15 levels × 17 = 255. The sub-level granularity is what the
 chamfer propagation (below) needs: weighted step costs of 17/24/29 raw
 units wouldn't fit in a 4-bit nibble.
 
-A uniform all-zero volume is folded to `Chunk::light_uniform` instead of
-an allocation; `light[]` materializes on the first nonuniform write. The
-volume uploads to a per-chunk 3D texture — flat `GL_RG8` where each raw
-byte channel passes straight through (`light_expand_cell`), or a
+A uniform all-zero volume is folded to `Chunk::light.uniform` instead of
+an allocation; `light.volume[]` materializes on the first nonuniform
+write. The volume uploads to a per-chunk 3D texture — flat `GL_RG8` where
+each raw byte channel passes straight through (`light_expand_cell`), or a
 mipmapped RGBA8 mode (`light_mipmaps_enabled`, `REPGAME_LIGHT_MIPMAPS`)
 that additionally stores the lit-cell fraction for footprint-LOD
-sampling. `light_air_mask`/`light_shade_mask` are bit-caches of
+sampling. `light.air_mask`/`light.shade_mask` are bit-caches of
 "cell admits light" / "cell is a light floor" the upload reads instead
 of walking `cells[]`.
 
@@ -53,7 +53,7 @@ delegates to its *owner's* presentation mode, so a smoothed chunk
 bordering a raw one computes the raw byte for shared texels
 (`raw_owners`), and a raw chunk bordering a smoothed one still delegates
 its halo texels to the smoothed interior. Each texture records the mode
-it was last fully filled under (`light_tex_mode`); on drift — toggle or
+it was last fully filled under (`light.tex_mode`); on drift — toggle or
 radius crossing — `light_ensure_texture`/`light_upload_dirty` upgrade the
 next upload to a full-volume refill, so no texture ever mixes modes
 mid-volume. A flip isn't a field change, so the mirror-mark walk never
@@ -80,7 +80,7 @@ lit), halo mirrors against their canonical owner, and reads each light
 texture back to compare with a fresh fill of the current field (stale
 uploads). A clean run logs all zeros.
 
-Per-column skylight metadata lives in `chunk->light_columns`, three
+Per-column skylight metadata lives in `chunk->light.columns`, three
 `CHUNK_SIZE_X*Z` planes indexed by `LIGHT_COLUMN_INDEX`: `column_open`
 (no light-blocking cell in this chunk's column), `sky_open_above` (no
 blocker anywhere above in the loaded grid), and `fill_from` — the first
@@ -160,8 +160,8 @@ and later re-finalized ("healed", `light_heal_chunk`, bounded by
 The same stale flag is also set by `light_seed_gate` when a propagation
 seed is refused under the backlog caps. The flags live in a per-slot
 atomic bitset, `ChunkLoader::light_stale_bits` (64 chunk slots per
-`uint64_t` word), bound to each chunk as `light_stale_word` /
-`light_stale_bit`; chunks outside the loader array (TNT temps, test
+`uint64_t` word), bound to each chunk as `light.stale_word` /
+`light.stale_bit`; chunks outside the loader array (TNT temps, test
 chunks) are unbound and their helpers no-op. `light_heal_idle` walks the
 words each frame, skips whole empty words, and re-finalizes up to
 `LIGHT_HEAL_PER_FRAME` flagged live chunks per frame, throttled by the
@@ -179,10 +179,10 @@ per-frame budget scaled by backlog. All mutation is single-writer either
 way; the render thread only owns GL.
 
 Uploads are render-thread work: `light_mark_dirty` accumulates a dirty
-sub-box (`light_dirty_box`, CAS'd so workers can mark concurrently) and
+sub-box (`light.dirty_box`, CAS'd so workers can mark concurrently) and
 `light_upload_dirty` uploads at most `LIGHT_MAX_UPLOADS_PER_FRAME`
-volumes per frame, debounced per chunk (`light_write_tick`,
-`light_upload_defers`) so a busy region coalesces into fewer
+volumes per frame, debounced per chunk (`light.write_tick`,
+`light.upload_defers`) so a busy region coalesces into fewer
 `glTexSubImage3D` calls. `light_ensure_texture` allocates + full-uploads
 on first draw — eager at finalize for drawable chunks so the cost isn't
 bunched into the first camera pan.
@@ -190,7 +190,7 @@ bunched into the first camera pan.
 The smoothed presentation fill is ~25x the raw expand per texel, so under
 "Smooth" it runs on the light workers instead of synchronously in the
 upload pass (render-thread `upl` was the dominant hitch): the pop loop
-claims the chunk (`light_stage_state` IDLE→BUSY) and queues it, a worker
+claims the chunk (`light.stage_state` IDLE→BUSY) and queues it, a worker
 exchanges the dirty box, fills a pooled buffer
 (`ChunkLoader::light_stage_chunk` → `light_fill_upload_box`), and
 publishes READY — the next upload pass does only the GL calls. The state

@@ -393,8 +393,8 @@ int test_doors( ) {
             chunk.chunk_pos = cp;
             chunk.cells = chunk_alloc_cells( );
             chunk.extras = nullptr;
-            chunk.light_air_mask = nullptr;
-            chunk.light_shade_mask = nullptr;
+            chunk.light.air_mask = nullptr;
+            chunk.light.shade_mask = nullptr;
             MapGen::load_block_c( &chunk );
             StructureGen::place( chunk );
             for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
