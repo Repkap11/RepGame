@@ -178,7 +178,8 @@ partner, `needs_place_on_any_solid` faces). Support kills carry
 `BreakDrops::Survival`: the queued `PlayerBlockPlacedEvent` AIR write
 spawns the broken block's drops through `break_drops`
 (`include/common/break_drops.hpp`, shared with the player break path and
-leaf decay). Two-cell blocks (doors, tall plants) drop only while their
+leaf decay) — a fluid write destroying a `breaks_in_liquid` block rolls
+drops the same way (`docs/fluids.md`). Two-cell blocks (doors, tall plants) drop only while their
 partner cell still holds the partner — whichever half goes second sees
 an empty partner, so a pair yields exactly one item. `BreakDrops` modes:
 `None` (default), `Survival`, `Always`. Right-click interactions

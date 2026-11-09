@@ -240,7 +240,29 @@ int test_fluids( ) {
         check_rot( "plants: poppy is replaced by water", world, glm::ivec3( 37, 11, 38 ), 1 );
         const BlockState wet_kelp = world.get_loaded_block( glm::ivec3( 45, 11, 45 ) );
         check_bool( "plants: placed water waterlogs kelp", wet_kelp.id == KELP && wet_kelp.waterlogged == 1 );
+        check_bool( "plants: creative break drops nothing", world.items.count( ) == 0 );
         check_drained( "plants: pending fluid updates drained", gs );
+    }
+
+    // --- Break-in-liquid drops: water popping a breakable block spawns its
+    // item in survival. A waterloggable breakable cell gets waterlogged
+    // instead, so nothing is destroyed and nothing drops. -----------------
+    {
+        RepGameState &gs = new_fluid_state( );
+        gs.game_mode = GameMode_Survival;
+        World &world = gs.world;
+        fill_floor( world, 10, 28, 56, 28, 56, fluid_stone );
+        world.set_loaded_block( glm::ivec3( 37, 11, 38 ), { POPPY, 0, 0, POPPY, 0 } );
+        world.set_loaded_block( glm::ivec3( 45, 11, 45 ), { KELP, 0, 0, KELP, 0 } );
+        place( gs, glm::ivec3( 38, 11, 38 ), { WATER, 0, 0, WATER, 0 } );
+        place( gs, glm::ivec3( 45, 11, 45 ), { WATER, 0, 0, WATER, 0 } ); // waterlogs the kelp
+        settle( gs, 1500 );
+        check_rot( "drops: poppy cell is water", world, glm::ivec3( 37, 11, 38 ), 1 );
+        check_bool( "drops: popped poppy drops its item",
+                    world.items.count( ) == 1 && world.items.debug_items( )[ 0 ].item == block_item_id( POPPY ) );
+        const BlockState wet_kelp = world.get_loaded_block( glm::ivec3( 45, 11, 45 ) );
+        check_bool( "drops: waterlogged kelp survives, no drop", wet_kelp.id == KELP && wet_kelp.waterlogged == 1 );
+        check_drained( "drops: pending fluid updates drained", gs );
     }
 
     // --- Reactions: lava + water petrifies — obsidian at a source,

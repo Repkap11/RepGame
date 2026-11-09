@@ -253,12 +253,19 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     repGameState.world.set_loaded_block( this->block_pos, this->blockState );
     repGameState.multiplayer.set_block( this->block_pos, this->blockState );
     // Removal writes requested drops (support loss in survival, natural leaf
-    // decay in either mode): the cell just went AIR while something real was
-    // there. Reading the partner cell live means a two-cell block drops
-    // exactly once — the half that goes second sees an empty partner.
+    // decay in either mode, water popping a break-in-liquid block): the cell
+    // held something real the write destroyed. Reading the partner cell live
+    // means a two-cell block drops exactly once — the half that goes second
+    // sees an empty partner.
     const bool drops_ok = this->drops == BreakDrops::Always || //
                           ( this->drops == BreakDrops::Survival && repGameState.game_mode == GameMode_Survival );
-    if ( drops_ok && this->blockState.id == AIR && current_block_state.id != AIR && current_block_state.id != LAST_BLOCK_ID ) {
+    // A fluid write destroys the cell's block only when it breaks it —
+    // fluid_accepts' wall test: a waterloggable or already-watered cell gets
+    // waterlogged by block_state_normalize instead, so the host survives.
+    const bool fluid_broke = new_block->flows != 0 && current_block->breaks_in_liquid && //
+                             !current_block->waterloggable && !current_block_state.waterlogged;
+    if ( drops_ok && current_block_state.id != AIR && current_block_state.id != LAST_BLOCK_ID &&
+         ( this->blockState.id == AIR || fluid_broke ) ) {
         break_drops( repGameState, this->block_pos, current_block_state.id );
     }
     // Water flowing into a waterloggable block waterlogs it instead of
