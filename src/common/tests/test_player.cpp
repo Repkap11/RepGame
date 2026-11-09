@@ -380,3 +380,49 @@ int test_climb( ) {
     return failures;
 }
 
+// Held-item swing phase (HeldSwing::tick): parks at 0 while idle, advances
+// once per tick while the button is held, wraps mid-chop rather than
+// stopping at 1, and after release runs the in-flight swing out to the
+// rest pose instead of snapping.
+int test_held_swing( ) {
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    const float step = 1.0f / HeldSwing::PERIOD_TICKS;
+
+    HeldSwing swing;
+    swing.tick( false );
+    check_bool( "idle stays parked", swing.phase == 0.0f );
+
+    swing.tick( true );
+    check_bool( "first held tick advances", fabsf( swing.phase - step ) < 1e-6f && swing.prev_phase == 0.0f );
+
+    // Hold well past one period — the phase must loop, not clamp at 1.
+    for ( int i = 0; i < 2 * ( int )HeldSwing::PERIOD_TICKS; i++ ) {
+        swing.tick( true );
+    }
+    check_bool( "held loops past 1", swing.phase > 0.0f && swing.phase < 1.0f );
+
+    // Release mid-swing: the chop runs out to the rest pose then parks.
+    swing.phase = 0.5f;
+    swing.prev_phase = 0.5f - step;
+    swing.tick( false );
+    check_bool( "released mid-swing keeps going", swing.phase > 0.5f );
+    while ( swing.phase > 0.0f ) {
+        swing.tick( false );
+    }
+    check_bool( "finished swing parks at rest", swing.phase == 0.0f && swing.prev_phase > 0.0f );
+    swing.tick( false );
+    check_bool( "stays parked after finishing", swing.phase == 0.0f && swing.prev_phase == 0.0f );
+
+    // Re-press starts a fresh chop from rest.
+    swing.tick( true );
+    check_bool( "re-press restarts from rest", fabsf( swing.phase - step ) < 1e-6f );
+
+    return failures;
+}
+

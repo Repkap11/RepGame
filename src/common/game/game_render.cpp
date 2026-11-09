@@ -297,7 +297,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
 
     {
         const long long t_ui_start = repgame_now_us( );
-        draw_ui_pass( render_pos, daylight, !run_policy().capture.enabled );
+        draw_ui_pass( render_pos, daylight, !run_policy().capture.enabled, alpha );
         profiling.us_ui_draw = repgame_now_us( ) - t_ui_start;
     }
     showErrors( );
@@ -476,7 +476,7 @@ glm::mat4 RepGame::projection_from_fov( float angle_left, float angle_right, flo
 // Caller owns the bound FBO, viewport and blend state — this does the atlas
 // rebind, depth/stencil clear, the ImGui draw (the bottom UI layer), the
 // overlay + held-item draws, and the VR laser pointer marker.
-void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool draw_imgui ) {
+void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool draw_imgui, float alpha ) {
     // glTexParameteri edits the texture bound on the *active* unit, so
     // re-bind the atlas first — world.draw leaves the light unit active.
     globalGameState.blocksTexture.bind( );
@@ -534,6 +534,31 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             cube_pose = glm::rotate( cube_pose, glm::radians( held_vars.held_block_rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
             cube_pose = glm::scale( cube_pose, glm::vec3( held_vars.held_block_scale ) );
             cube_pose = glm::translate( cube_pose, glm::vec3( -0.5f ) );
+            // Held-item swing (mine/attack arm): HeldSwing::tick advances the
+            // phase per tick; interpolate its snapshots like the camera. The
+            // phase wraps 1->0 while the button is held — both ends are the
+            // rest pose, so interpolating across the wrap keeps it seamless.
+            const HeldSwing &swing = globalGameState.held_swing;
+            float swing_phase = swing.phase < swing.prev_phase ? swing.phase + 1.0f : swing.phase;
+            swing_phase = glm::mix( swing.prev_phase, swing_phase, alpha );
+            swing_phase -= floorf( swing_phase );
+            if ( swing_phase > 0.0f ) {
+                // Chop about a pivot below-and-behind the hand so the item
+                // arcs down-and-forward at the block instead of spinning in
+                // place; the sqrt-shaped sine strikes early then eases back.
+                const float chop = sinf( sqrtf( swing_phase ) * static_cast<float>( M_PI ) );
+                const float sweep = sinf( swing_phase * static_cast<float>( M_PI ) );
+                auto apply_swing = [ & ]( glm::mat4 &pose, const glm::vec3 &rest_pos ) {
+                    const glm::vec3 pivot = rest_pos + glm::vec3( 0.0f, -0.4f, 0.15f );
+                    glm::mat4 swing_mat = glm::translate( glm::mat4( 1.0f ), pivot );
+                    swing_mat = glm::rotate( swing_mat, glm::radians( -65.0f * chop ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+                    swing_mat = glm::rotate( swing_mat, glm::radians( 20.0f * sweep ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+                    swing_mat = glm::translate( swing_mat, -pivot );
+                    pose = swing_mat * pose;
+                };
+                apply_swing( held_pose, held_vars.held_pos );
+                apply_swing( cube_pose, held_vars.held_block_pos );
+            }
             items.update_held( held_light );
 
             Shader &sprite_shader = globalGameState.world.item_sprite_shader;

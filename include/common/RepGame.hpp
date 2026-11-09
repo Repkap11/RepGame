@@ -76,7 +76,7 @@ class RepGame {
     // VR pointer marker. Caller owns the FBO/bind/blend state. draw_imgui
     // draws the ImGui debug overlay behind the pause menu (flat path only;
     // VR passes false).
-    void draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool draw_imgui );
+    void draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool draw_imgui, float alpha );
 
   public:
     // Per-frame profiling data (microseconds). Updated by draw() and read by

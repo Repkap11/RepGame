@@ -89,6 +89,7 @@ struct RepGameState {
     SurvivalInventory survival_inventory;
     BlockSelection block_selection;
     BlockMining block_mining;
+    HeldSwing held_swing;
 
     // Display state and the block-atlas texture.
     ScreenState screen;

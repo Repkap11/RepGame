@@ -340,6 +340,13 @@ void RepGame::tick_input_latches( ) {
     in.click_delay_middle = in.click_delay_middle > 0 ? in.click_delay_middle - 1 : 0;
     in.drop_item_delay = in.drop_item_delay > 0 ? in.drop_item_delay - 1 : 0;
 
+    // The held-item swing follows any world-aimed left- or right-button
+    // hold — mining, a mob hit, a block place, or a swing at air — and
+    // keeps chopping until the button releases or a UI swallows the press.
+    const bool left_swing = in.mouse.buttons.left && !in.mouse.buttons.left_pressed_in_ui;
+    const bool right_swing = in.mouse.buttons.right && !in.mouse.buttons.right_pressed_in_ui;
+    globalGameState.held_swing.tick( ( left_swing || right_swing ) && !in.inventory_open && !in.menu_open );
+
     in.mouse.previousPosition.x = in.mouse.currentPosition.x;
     in.mouse.previousPosition.y = in.mouse.currentPosition.y;
     in.mouse.previousPosition.wheel_counts = in.mouse.currentPosition.wheel_counts;

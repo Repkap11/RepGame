@@ -29,6 +29,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( player_placement_valid ), //
     MK_TEST( sneak ),           //
     MK_TEST( climb ),           //
+    MK_TEST( held_swing ),       //
     MK_TEST( items ),          //
     MK_TEST( furnace ),        //
     MK_TEST( item_entities ),  //

@@ -3,7 +3,7 @@
 Player state lives in `RepGameState`: `camera` (position, look angles,
 velocities, pose heights — `include/common/game/player_state.hpp`),
 `input` (`include/common/input.hpp`), `block_selection`,
-`block_mining`, `hotbar`. Per-tick work happens in
+`block_mining`, `held_swing`, `hotbar`. Per-tick work happens in
 `src/common/game/game_tick.cpp` (`RepGame::tick`) and
 `src/common/game/player.cpp`; this doc covers the desktop keyboard/mouse
 path — VR bindings are `docs/vr.md`, and Android/touch has its own input
@@ -125,6 +125,12 @@ mob pre-empt the block target for left clicks.
   progress. Creative breaks instantly. `break_selected_block` plays the
   dig sound, rolls drops (`block_roll_drops` — survival only, spawned as
   item entities), and loots chest contents.
+  While either mouse button is held on the world (mining, mob hits,
+  placement, or air), `held_swing` (`tick_input_latches` →
+  `HeldSwing::tick`) runs a looping 0..1 chop phase that
+  `game_render.cpp` interpolates and applies as an extra camera-space
+  rotation on the held item's pose; releasing mid-swing finishes the
+  chop out to the rest pose.
 - **Placement.** `change_block` rejects positions that would intersect
   the player AABB (`check_collides_with_block`, including the cell a
   door's upper half occupies) and runs `player_placement_valid` /

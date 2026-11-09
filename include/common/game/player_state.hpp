@@ -91,3 +91,30 @@ struct BlockMining {
     BlockID id;
     float progress_ticks;
 };
+
+// First-person held-item swing: tick() advances `phase` once per tick —
+// looping 0->1 while `swinging` (a left or right button held on the
+// world: mine/attack or place/use) and, once released, finishing the
+// in-flight chop out to 1 (back at the rest pose) where it parks at 0.
+// `prev_phase` is the per-tick snapshot the renderer interpolates from,
+// like the camera's prev_ fields.
+struct HeldSwing {
+    float phase = 0.0f;
+    float prev_phase = 0.0f;
+    // Ticks per chop — ~0.3s at UPS_RATE.
+    static constexpr float PERIOD_TICKS = UPS_RATE * 0.3f;
+    void tick( bool swinging ) {
+        prev_phase = phase;
+        if ( swinging ) {
+            phase += 1.0f / PERIOD_TICKS;
+            if ( phase >= 1.0f ) {
+                phase -= 1.0f;
+            }
+        } else if ( phase > 0.0f ) {
+            phase += 1.0f / PERIOD_TICKS;
+            if ( phase >= 1.0f ) {
+                phase = 0.0f;
+            }
+        }
+    }
+};
