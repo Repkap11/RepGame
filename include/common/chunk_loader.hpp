@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "chunk.hpp"
+#include "common/chunk_render.hpp"
 #include "common/light.hpp"
 #include "renderer/renderer.hpp"
 #include "mouse_selection.hpp"

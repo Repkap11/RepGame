@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 #include "common/constants.hpp"
-#include "common/block_definitions.hpp" // BlockID for light_air_mask_set
+#include "common/block_ids_gen.hpp" // BlockID for light_air_mask_set
 
 // Flood-fill lighting. Each chunk keeps a light[] volume matching the
 // internal 34^3 block layout: each u16 cell packs one byte per channel —

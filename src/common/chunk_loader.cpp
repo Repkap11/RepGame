@@ -766,8 +766,9 @@ void ChunkLoader::rebuild_drawable_list( ) {
             uint8_t truth = 0;
             if ( chunk.load_state == CHUNK_LIVE && chunk.should_render ) {
                 truth |= SLOT_DRAWABLE;
-                if ( chunk.layers[ RenderOrder_Translucent ].num_instances != 0 || //
-                     chunk.layers[ RenderOrder_Water ].num_instances != 0 ) {
+                if ( chunk.layers != nullptr && //
+                     ( chunk.layers[ RenderOrder_Translucent ].num_instances != 0 || //
+                       chunk.layers[ RenderOrder_Water ].num_instances != 0 ) ) {
                     truth |= SLOT_BLENDED;
                 }
             }

@@ -26,7 +26,7 @@
 #include "common/chunk_dimensions.hpp"
 
 // ---- Constants -------------------------------------------------------------
-// Re-#defined identically to their canonical homes (constants.hpp,
+// Re-#defined identically to their canonical homes (block_types.hpp,
 // block.hpp, block_definitions.hpp): identical-token redefinition is legal
 // C/C++, so the C++ build itself fails if either side drifts — no separate
 // verification needed. On the WGSL pass they expand to numeric literals.

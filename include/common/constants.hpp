@@ -98,8 +98,7 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 // Survival inventory grid dimensions (Minecraft-style 9x3 main grid).
 #define SURVIVAL_INVENTORY_WIDTH 9
 #define SURVIVAL_INVENTORY_HEIGHT 3
-// Maximum stack size for survival mode.
-#define MAX_STACK_SIZE 64
+// MAX_STACK_SIZE lives in common/item.hpp.
 
 // This can be useful when debugging and you want to stop at a breakpoint.
 #define ALLOW_GRAB_MOUSE 1
@@ -221,43 +220,12 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 // #define EYE_POSITION_OFFSET 0.1f
 #define EYE_POSITION_OFFSET ( PLAYER_EYE_HEIGHT - ( PLAYER_HEIGHT / 2.0f ) )
 
-#define FACE_TOP 0
-#define FACE_BOTTOM 1
-#define FACE_RIGHT 2
-#define FACE_FRONT 3
-#define FACE_LEFT 4
-#define FACE_BACK 5
-
-#define ISO_FACE_TOP 0
-#define ISO_FACE_FRONT 1
-#define ISO_FACE_RIGHT 2
-
-#define BLOCK_ROTATE_0 0
-#define BLOCK_ROTATE_90 1
-#define BLOCK_ROTATE_180 2
-#define BLOCK_ROTATE_270 3
-
-#define NUM_FACES_IN_CUBE 6
+// Cube-topology defines (FACE_*, ISO_FACE_*, BLOCK_ROTATE_*,
+// NUM_FACES_IN_CUBE, CORNER_OFFSET_*) and the NO_LIGHT_* packed-lighting
+// sentinels moved to common/block_types.hpp.
 
 // Redstone power emitted by a pressed button/pressure plate (same as a torch).
 #define REDSTONE_SOURCE_POWER 15
-
-#define CORNER_OFFSET_tfl 0
-#define CORNER_OFFSET_tfr 2
-#define CORNER_OFFSET_tbl 4
-#define CORNER_OFFSET_tbr 6
-#define CORNER_OFFSET_bfl 8
-#define CORNER_OFFSET_bfr 10
-#define CORNER_OFFSET_bbl 12
-#define CORNER_OFFSET_bbr 14
-
-#define CORNER_OFFSET_c 16
-
-#define CORNER_OFFSET_avg 21
-
-#define NO_LIGHT_DRAW 0x67ffff
-#define NO_LIGHT_NO_DRAW 0x6fffff
-#define NO_LIGHT_BRIGHT 0
 
 // Bounded timeout for the background TCP connect attempt to a multiplayer
 // server. Prevents the OS default (~75s+) from stalling if SYNs are silently

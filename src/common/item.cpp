@@ -1,5 +1,11 @@
 #include "common/item.hpp"
 
+#include "common/block_definitions.hpp"
+
+const ItemGenDef ITEM_DEFINITIONS[ ITEM_ID_END - ITEM_ID_BASE ] = {
+#include "item_definitions_gen.inc"
+};
+
 static const char *ITEM_NAMES[ ITEM_ID_END - ITEM_ID_BASE ] = {
 #include "item_names_gen.inc"
 };
@@ -23,6 +29,20 @@ const char *item_name( ItemID id ) {
         return block_definition_get_name( static_cast<BlockID>( id ) );
     }
     return item_id_defined( id ) ? ITEM_NAMES[ id - ITEM_ID_BASE ] : nullptr;
+}
+
+ItemID item_for_crop_block( BlockID id ) {
+    for ( int i = 0; i < ITEM_ID_END - ITEM_ID_BASE; i++ ) {
+        // The step cap keeps a malformed cyclic chain from hanging.
+        BlockID b = ITEM_DEFINITIONS[ i ].plant_block;
+        for ( int step = 0; step < 32 && b != LAST_BLOCK_ID; step++ ) {
+            if ( b == id ) {
+                return ITEM_ID_BASE + i;
+            }
+            b = block_definition_get_definition( b )->crop_next;
+        }
+    }
+    return LAST_BLOCK_ID;
 }
 
 float item_mining_speed( ItemID id, BlockID block_id ) {

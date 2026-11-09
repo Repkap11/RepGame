@@ -5,6 +5,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
+#include "common/chunk_render.hpp"
 #include "common/fluid.hpp"
 #include "common/map_gen.hpp"
 #include "common/mob_types.hpp"
@@ -137,6 +138,7 @@ static void chunk_ib_upload( ) {
 }
 
 void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
+    this->ensure_layers( );
     chunk_ib_init_tables( );
     const unsigned int mask = chunk_face_mask( this->chunk_pos, center_next );
     this->sides_mask = mask;
@@ -188,6 +190,17 @@ static const VertexBuffer *s_vb_block_water = nullptr;
 static const VertexBufferLayout *s_vbl_block = nullptr;
 static const VertexBufferLayout *s_vbl_coords = nullptr;
 
+// layers[] (chunk_render.hpp) is heap-allocated so the renderer headers
+// stay out of chunk.hpp. calloc matches the old embedded-array zero state:
+// num_instances 0, populated_blocks nullptr, GL objects untouched until
+// ensure_gl_init calls their init(). First use allocates — real slots
+// mesh (calculate_populated_blocks) before they ever draw.
+void Chunk::ensure_layers( ) {
+    if ( this->layers == nullptr ) {
+        this->layers = static_cast<RenderLayer *>( calloc( LAST_RENDER_ORDER, sizeof( RenderLayer ) ) );
+    }
+}
+
 void Chunk::init( const VertexBuffer &vb_block_solid, const VertexBuffer &vb_block_water, const VertexBufferLayout &vbl_block, const VertexBufferLayout &vbl_coords ) {
     s_vb_block_solid = &vb_block_solid;
     s_vb_block_water = &vb_block_water;
@@ -216,8 +229,9 @@ void Chunk::refresh_slot_flags( ) {
     uint8_t flags = 0;
     if ( this->load_state == CHUNK_LIVE && this->should_render ) {
         flags |= SLOT_DRAWABLE;
-        if ( this->layers[ RenderOrder_Translucent ].num_instances != 0 || //
-             this->layers[ RenderOrder_Water ].num_instances != 0 ) {
+        if ( this->layers != nullptr && //
+             ( this->layers[ RenderOrder_Translucent ].num_instances != 0 || //
+               this->layers[ RenderOrder_Water ].num_instances != 0 ) ) {
             flags |= SLOT_BLENDED;
         }
     }
@@ -229,6 +243,7 @@ void Chunk::ensure_gl_init( ) {
         return;
     }
     this->gl_initialized = 1;
+    this->ensure_layers( );
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         const VertexBuffer *vb_prt;
         switch ( renderOrder ) {
@@ -264,10 +279,15 @@ void Chunk::destroy( ) {
 void Chunk::release_terrain( ) {
     // should_render=0, occlusion-probe reset, populated_blocks frees.
     this->unprogram_terrain( );
-    for ( RenderLayer &layer : this->layers ) {
-        layer.num_instances = 0;
-        layer.vb_coords.destroy( );
-        layer.va.destroy( );
+    if ( this->layers != nullptr ) {
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            RenderLayer &layer = this->layers[ renderOrder ];
+            layer.num_instances = 0;
+            layer.vb_coords.destroy( );
+            layer.va.destroy( );
+        }
+        free( this->layers );
+        this->layers = nullptr;
     }
     this->refresh_slot_flags( );
     // Cleared so ensure_gl_init rebuilds the destroyed layer objects on
@@ -331,6 +351,9 @@ void Chunk::release_terrain( ) {
 }
 
 void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
+    if ( this->layers == nullptr ) {
+        return;
+    }
     const RenderLayer &renderLayer = this->layers[ renderOrder ];
     if ( this->should_render && renderLayer.num_instances != 0 ) {
         if ( this->load_state ) {
@@ -1110,6 +1133,7 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
 
 void Chunk::calculate_populated_blocks( ) {
     PROFILE_SCOPE( "chunk_mesh" );
+    this->ensure_layers( );
     // Meshing writes instances into a per-render-order thread-local scratch
     // buffer (same lifetime model as tls_workingSpace below): lazily malloc'd
     // at CHUNK_BLOCK_SIZE on first use and never freed, so chunks don't pay
@@ -1850,6 +1874,9 @@ void Chunk::unprogram_terrain( ) {
     // result shifts occl.fails by at most one, under the hide threshold.
     this->occl.reset_streak( );
     this->occl.fails_gen = 0;
+    if ( this->layers == nullptr ) {
+        return;
+    }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
         RenderLayer &renderLayer = this->layers[ renderOrder ];
         if ( renderLayer.populated_blocks ) {

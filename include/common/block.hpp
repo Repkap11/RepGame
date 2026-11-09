@@ -2,7 +2,6 @@
 
 #include <glm/glm.hpp>
 
-#include "constants.hpp"
 #include "block_definitions.hpp"
 #include "mesh_gen_shared.hpp" // canonical face/piston lookup tables
 

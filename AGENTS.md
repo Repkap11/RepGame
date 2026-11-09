@@ -27,6 +27,12 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
 - Other platforms (ARM, Steam Frame, WASM, Windows, Android, Docker,
   AppImage, flatpak) and all deploy targets: `docs/platforms.md`.
 
+`REPGAME_PCH` (CMake option, default ON) precompiles the vendored headers —
+glm/entt/imgui/SDL3 for the client (SDL2 on wasm), glm/entt for the server.
+Vendored headers only, never project headers: a PCH edit rebuilds the
+serialized pch before every TU. `-DREPGAME_PCH=OFF` on the cmake command
+line disables it for troubleshooting.
+
 ## Testing
 
 - `make tests` — debug client unit tests (`RepGame --tests`,
@@ -90,7 +96,12 @@ See `docs/models.md`.
 - `src/server/` — dedicated server (`ServerEntities`, `ServerLogic`)
 - `src/wasm/` — Emscripten client (SDL2, WASMFS, WebGPU backend)
 - `src/shaders/` — GLSL/WGSL sources, preprocessed at build time
-- `include/common/`, `include/server/` — headers
+- `include/common/`, `include/server/` — headers. Keep the include graph
+  shallow: `block_types.hpp` is the leaf block vocabulary (Block/BlockState/
+  BlockCell, FACE_*/NO_LIGHT_* defines) — `block_definitions.hpp` is only
+  the definition table; `chunk_render.hpp` holds Chunk's GL draw state so
+  `chunk.hpp` needs no renderer headers. `item_definitions_gen.inc` lives
+  in item.cpp — generated tables never go in headers.
 - `data/` — block/item/recipe/shape/texture definitions (JSON + PNGs)
 - `tools/` — importers, deploy scripts, test drivers (`mp_test.py`,
   `wasm_capture.cjs`, `rep-dbg` + `rep_dbg/` debug runner)

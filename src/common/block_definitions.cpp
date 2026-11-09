@@ -1,7 +1,6 @@
 #include <cstdlib>
 
 #include "common/block_definitions.hpp"
-#include "common/renderer/texture.hpp"
 
 Block *block_definitions;
 

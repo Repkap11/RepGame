@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "common/constants.hpp"
+#include "common/block_types.hpp"
 #include <glm/glm.hpp>
 
 typedef struct {

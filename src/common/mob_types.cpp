@@ -1,5 +1,7 @@
 #include "common/mob_types.hpp"
 
+#include "common/constants.hpp" // PLAYER_EYE_HEIGHT
+
 const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
     /* MOB_PIG */ {
         .name = "pig",

@@ -10,33 +10,22 @@
 #include "common/chest.hpp"
 #include "common/furnace.hpp"
 #include "common/chunk_occlusion.hpp"
+#include "common/render_order.hpp"
 #include "common/utils/map_storage.hpp"
-#include "renderer/renderer.hpp"
-#include "server/server.hpp"
 
 class World;
 class TntExplodeEvent;
 class ChunkLoader;
 struct LightSmoothCtx;
 struct ChunkSortKey;
-
-class RenderLayer {
-    friend class Chunk;
-    // ChunkLoader::rebuild_drawable_list reads num_instances to build the
-    // blended subset list (Translucent/Water layers with geometry).
-    friend class ChunkLoader;
-
-    VertexArray va;
-    int num_instances;
-    VertexBuffer vb_coords;
-    BlockCoords *populated_blocks;
-    // Index data is a pure function of the chunk's 6-bit face-visibility mask,
-    // so all variants live in one shared element buffer (chunk.cpp) and each
-    // layer stores {byte offset, element count} per pass: [0]=normal,
-    // [1]=reflect. count==0 draws nothing (e.g. water has no reflect variant).
-    unsigned int ib_offset[ 2 ];
-    unsigned int ib_count[ 2 ];
-};
+// Draw state lives in common/chunk_render.hpp — layers[] is a heap pointer
+// so the renderer headers stay out of this header.
+class RenderLayer;
+class Renderer;
+class Texture;
+class Shader;
+class VertexBuffer;
+class VertexBufferLayout;
 
 class WorkingSpace {
     friend class Chunk;
@@ -334,7 +323,11 @@ class Chunk {
     int load_state;
     int gl_initialized;
     bool is_empty_chunk;
-    RenderLayer layers[ LAST_RENDER_ORDER ];
+    // Per-layer draw state (chunk_render.hpp) — calloc'd on first use
+    // (Chunk::init on real slots, the meshing entry points on hand-built
+    // chunks) and freed by release_terrain. nullptr on chunks that never
+    // meshed or were released; every access site must tolerate that.
+    RenderLayer *layers = nullptr;
     // Split cell storage — see BlockCell/BlockExtra in block_definitions.hpp.
     // cells == nullptr means every cell is AIR (is_empty_chunk); extras ==
     // nullptr means every cell is canonical (power 0, display_id == id —
@@ -360,6 +353,8 @@ class Chunk {
     // hand-built chunks (tests) — refresh_slot_flags then no-ops.
     uint8_t *slot_flags = nullptr;
     void refresh_slot_flags( );
+    // Allocate layers[] on first use — see the member comment.
+    void ensure_layers( );
     void set_load_state( int state ) {
         this->load_state = state;
         this->refresh_slot_flags( );

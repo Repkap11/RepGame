@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/mob_models_gen.hpp"
+#include "common/block_definitions.hpp" // block_definition_get_definition (breed flowers)
 #include "common/item.hpp"
 
 // One roll of a mob's drop table: `min`..`max` of `item` (uniform).

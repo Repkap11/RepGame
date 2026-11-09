@@ -41,6 +41,10 @@ set(REPGAME_SOUND_OGG_DIR "${CMAKE_SOURCE_DIR}/out/sounds" CACHE PATH "Directory
 # on -c compiles as an unused argument.
 option(REPGAME_USE_LLD "Link with -fuse-ld=lld" ON)
 option(REPGAME_LTO "Link-time optimization for Release builds (linux client)" ON)
+# Precompile the vendored headers every TU parses (~40% of a typical TU's
+# compile time). Project headers are deliberately excluded — a header in the
+# PCH would rebuild the serialized pch on every edit.
+option(REPGAME_PCH "Precompiled headers for vendored libraries" ON)
 option(REPGAME_FRAME_POINTERS "Keep frame pointers (perf --call-graph fp)" OFF)
 set(REPGAME_SANITIZER "" CACHE STRING "Sanitizer variant: '' or 'asan' or 'tsan'")
 # Real LTO via CMake's IPO support: clang gets -flto=thin on compile AND link,
@@ -299,6 +303,10 @@ if(REPGAME_BUILD_CLIENT)
 	# Source-level options append after the interface -Werror, so this wins.
 	set_source_files_properties(${REPGAME_IMGUI_CORE_SOURCES} ${REPGAME_IMGUI_BACKEND}
 		PROPERTIES COMPILE_OPTIONS -Wno-error)
+	# No PCH on this target: imgui.cpp/imgui_draw/... define
+	# IMGUI_DEFINE_MATH_OPERATORS before including imgui.h — a pch without
+	# the define freezes the header without the ImVec2 operators and they
+	# fail to compile. Six sources compile once; the win would be nil.
 	if(REPGAME_PLATFORM STREQUAL "wasm")
 		# imgui_impl_opengl3 auto-detects Emscripten as GLES2/WebGL1, but the
 		# game creates a WebGL2/GLES3 context (SDL_GL_CONTEXT_MAJOR_VERSION=3,
@@ -332,6 +340,22 @@ if(REPGAME_BUILD_CLIENT)
 	endif()
 
 	target_link_libraries(RepGame PRIVATE repgame_flags repgame_platform)
+
+	# Vendored headers only — glm/entt/imgui are ~40% of a typical TU's
+	# parse time. No project headers (a pch edit would rebuild the
+	# serialized pch before every TU) and no GL headers (glew must precede
+	# gl.h, which SDL_opengl.h pulls in).
+	if(REPGAME_PCH)
+		if(REPGAME_PLATFORM STREQUAL "wasm")
+			set(_pch_sdl <SDL2/SDL.h>)
+		else()
+			set(_pch_sdl <SDL3/SDL.h>)
+		endif()
+		target_precompile_headers(RepGame PRIVATE
+			<glm/glm.hpp> <glm/gtx/hash.hpp> <glm/gtc/matrix_transform.hpp>
+			<glm/gtc/quaternion.hpp> <entt/entity/registry.hpp> <imgui.h>
+			${_pch_sdl})
+	endif()
 
 	if(REPGAME_PLATFORM STREQUAL "linux")
 		if(REPGAME_USE_LLD)
@@ -462,9 +486,16 @@ if(REPGAME_BUILD_SERVER)
 		src/common/furnace.cpp
 		src/common/net/packet.cpp
 		src/common/net/framed_socket.cpp
-		src/common/smelting.cpp)
+		src/common/smelting.cpp
+		src/common/item.cpp
+		src/common/block_definitions.cpp)
 	add_executable(RepGameServer ${server_srcs} ${server_common})
 	target_link_libraries(RepGameServer PRIVATE repgame_flags repgame_platform)
+	# No SDL/imgui: the server host builds without client deps.
+	if(REPGAME_PCH)
+		target_precompile_headers(RepGameServer PRIVATE
+			<glm/glm.hpp> <entt/entity/registry.hpp>)
+	endif()
 	set_target_properties(RepGameServer PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/server)
 endif()
