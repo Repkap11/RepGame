@@ -89,6 +89,22 @@ int fence_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] ) {
     return n;
 }
 
+// Pick/selection boxes: the rendered fence_boxes with each direction's
+// (lower, upper) rail pair merged into one bar — lower-rail bottom to
+// upper-rail top — so the 3px gap between the rails isn't click-through.
+// Pick/outline consumers don't read skip_faces.
+int fence_pick_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] ) {
+    const int n_rendered = fence_boxes( connections, out );
+    int n = 1; // box 0 is the post, unchanged
+    for ( int i = 1; i < n_rendered; i += 2 ) {
+        const BlockBox &upper = out[ i + 1 ];
+        out[ n ] = out[ i ];
+        out[ n ].scale[ 1 ] = upper.offset[ 1 ] + upper.scale[ 1 ] - out[ n ].offset[ 1 ];
+        n++;
+    }
+    return n;
+}
+
 // Collision boxes: the post plus one full-height 4px-thick bar per
 // connected axis, spanning from the post face to the cell edge(s) — two
 // fences one apart meet edge-to-edge so a 0.6-wide player can't slip

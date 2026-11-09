@@ -111,9 +111,10 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         }
         num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
     } else if ( block->is_fence ) {
-        // The rendered fence boxes: the post plus a rail toward each
-        // connected side, from the same connection gather collision.cpp and
-        // chunk.cpp phase 2 do (unloaded cells don't connect).
+        // The pick boxes: the post plus one merged rail bar per connected
+        // axis (the two rendered rails merged so the outline shows the same
+        // box the ray hits), from the same connection gather collision.cpp
+        // and chunk.cpp phase 2 do (unloaded cells don't connect).
         static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
             { 1, 0, FENCE_CONNECT_POS_X, 1 },
             { -1, 0, FENCE_CONNECT_NEG_X, 1 },
@@ -127,7 +128,7 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
                 connections |= conn_dir[ d ][ 2 ];
             }
         }
-        num_boxes = fence_boxes( connections, boxes );
+        num_boxes = fence_pick_boxes( connections, boxes );
     }
     if ( num_boxes > 0 ) {
         for ( int i = 0; i < FENCE_MAX_BOXES; i++ ) {

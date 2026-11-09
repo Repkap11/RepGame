@@ -254,7 +254,9 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
     if ( result && ( block->is_stairs || block->is_fence ) ) {
         // Pick against the block's real boxes — stairs use their collision
         // boxes (slab + step, with the neighbor-derived corner shape),
-        // fences the rendered post + rails — the nearest box hit wins.
+        // fences the post + merged rail bars (the two rendered rails merged
+        // so the gap between them isn't click-through) — the nearest box
+        // hit wins.
         BlockBox boxes[ FENCE_MAX_BOXES ];
         int num_boxes;
         if ( block->is_stairs ) {
@@ -282,7 +284,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                     connections |= conn_dir[ d ][ 2 ];
                 }
             }
-            num_boxes = fence_boxes( connections, boxes );
+            num_boxes = fence_pick_boxes( connections, boxes );
         }
         double best_t = 1e30;
         int best_face = -1;

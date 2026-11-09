@@ -201,8 +201,9 @@ blocks from the cell floor — so players and mobs can neither slip
 between adjacent posts nor jump the fence. Because a box can reach above
 its cell, the collision scan includes one layer below the player AABB.
 Open gates still don't collide. Raycast and the `MouseSelection` outline
-consume the rendered `fence_boxes` list — a connected rail is pickable
-and outlined — while gates stay a single bounding box. Fence and gate
+consume `fence_pick_boxes` — the rendered boxes with each direction's two
+rails merged into one bar, so the gap between the rails isn't
+click-through — while gates stay a single bounding box. Fence and gate
 items draw the model boxes as their icons (`icon_is_isometric`, no
 `icon_mask`): `fence_icon_boxes` shows a connected segment and
 `fence_gate_icon_boxes` the closed leaf — both yawed to span z so the

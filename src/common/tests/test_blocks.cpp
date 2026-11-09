@@ -63,6 +63,29 @@ int test_fences( ) {
     }
     check_bool( "fence: every connection mask stays in bounds", all_bounds );
 
+    // --- fence_pick_boxes -------------------------------------------------
+    check_bool( "pick: no connections gives just the post",
+                fence_pick_boxes( 0, boxes ) == 1 &&                                                            //
+                    boxes[ 0 ].scale[ 0 ] == 4 && boxes[ 0 ].scale[ 1 ] == 16 && boxes[ 0 ].scale[ 2 ] == 4 && //
+                    boxes[ 0 ].offset[ 0 ] == 6 && boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].offset[ 2 ] == 6 );
+    check_bool( "pick: one side gives post + 1 merged rail",
+                fence_pick_boxes( FENCE_CONNECT_POS_X, boxes ) == 2 &&                                  //
+                    boxes[ 1 ].offset[ 0 ] == 10 && boxes[ 1 ].scale[ 0 ] == 6 &&                       //
+                    boxes[ 1 ].offset[ 1 ] == 6 && boxes[ 1 ].scale[ 1 ] == 9 && /* rails y 6..9 and    //
+                        12..15 merge into y 6..15 */                                                    //
+                    boxes[ 1 ].offset[ 2 ] == 7 && boxes[ 1 ].scale[ 2 ] == 2 );
+    check_bool( "pick: opposite sides merge into one rail",
+                fence_pick_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X, boxes ) == 2 && //
+                    boxes[ 1 ].offset[ 0 ] == 0 && boxes[ 1 ].scale[ 0 ] == 16 );
+    check_bool( "pick: all four sides give 3 boxes", fence_pick_boxes( 0xF, boxes ) == 3 );
+    all_bounds = true;
+    for ( unsigned conn = 0; conn < 16; conn++ ) {
+        const int n = fence_pick_boxes( conn, boxes );
+        all_bounds &= n == 1 + ( ( conn & ( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X ) ) != 0 ) + ( ( conn & ( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z ) ) != 0 );
+        all_bounds &= boxes_in_bounds( boxes, n );
+    }
+    check_bool( "pick: every connection mask stays in bounds", all_bounds );
+
     // --- fence_connects_to -------------------------------------------------
     const Block *oak = block_definition_get_definition( OAK_FENCE );
     const Block *nether = block_definition_get_definition( NETHER_BRICK_FENCE );
@@ -218,18 +241,20 @@ int test_fences( ) {
         }
         check_bool( "collision: walking through the gap gets stopped", pos.z < 20.2 );
 
-        // Raycast: connected rails are pickable — a ray through the +x rail
-        // (x 10..16px, z 7..9px, lower rail y 6..9px) hits the fence even
-        // though the post box never reaches x>10px; the gap between rails
-        // and the unconnected -x side stay transparent. These are the same
-        // boxes the MouseSelection outline draws.
+        // Raycast: connected rails pick as one merged bar — a ray through
+        // the +x rail (x 10..16px, z 7..9px, merged y 6..15px) hits the
+        // fence even though the post box never reaches x>10px, and a ray
+        // aimed at the rendered gap between the two rails (y 9..12px) hits
+        // it too; only the unconnected -x side stays transparent. These are
+        // the same boxes the MouseSelection outline draws.
         glm::ivec3 out( -1, -1, -1 );
         int which_face = -1;
         check_bool( "ray: +z ray hits the connected +x rail",
                     RayTraversal::find_block_from_to( world, glm::dvec3( 20.8, 11.5, 20.2 ), glm::dvec3( 20.8, 11.5, 20.8 ), out, &which_face ) &&
                         out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_FRONT );
-        check_bool( "ray: the gap between rails stays open",
-                    !RayTraversal::find_block_from_to( world, glm::dvec3( 20.8, 11.65, 20.2 ), glm::dvec3( 20.8, 11.65, 20.8 ), out, &which_face ) );
+        check_bool( "ray: the merged rail covers the gap between rails",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.8, 11.65, 20.2 ), glm::dvec3( 20.8, 11.65, 20.8 ), out, &which_face ) &&
+                        out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_FRONT );
         check_bool( "ray: the unconnected -x side stays open",
                     !RayTraversal::find_block_from_to( world, glm::dvec3( 20.2, 11.5, 20.2 ), glm::dvec3( 20.2, 11.5, 20.8 ), out, &which_face ) );
 
