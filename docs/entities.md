@@ -94,7 +94,11 @@ crosses until the server's ENTITY_TRANSFER lands.
 
 Messages (`NetMsgType`): WELCOME assigns the session id; VIEW declares
 coverage; CHUNK_ROLE grants/revokes per-chunk roles with records;
-ENTITY_SPAWN announces a new entity; ENTITY_STATE streams pos/vel (batched
+ENTITY_SPAWN announces a new entity — relayed to *all* viewers including
+the sender, whose echo doubles as the spawn's ack (a CHUNK_ROLE snapshot
+generated before the spawn reached the server would otherwise wipe the
+sender's predicted copy on apply and never restore it); ENTITY_STATE
+streams pos/vel (batched
 every 6 ticks, changed-epsilon + ~1 s keyframes; chunk crossings apply the
 shared `net_entity_next_chunk` margin — an entity only changes chunks once
 it sits NET_ENTITY_CHUNK_MARGIN=0.5 blocks inside the new one, so a
@@ -193,8 +197,24 @@ Two behaviours currently in the tree are works-in-progress:
 - **Client stale-grant filtering** (WIP): `late_ids`/`gone_ids` in
   `include/common/net_entities.hpp` keep a pending CHUNK_ROLE grant's
   record snapshot honest — ENTITY_REMOVE lands ids in `gone_ids` so dead
-  entities aren't resurrected by a late grant, and ENTITY_SPAWN adds ids
-  to `late_ids` so post-grant spawns survive the grant's resync wipe.
+  entities aren't resurrected by a late grant (or by a stale spawn relay,
+  including our own echo), and ENTITY_SPAWN adds ids to `late_ids` so
+  post-grant spawns survive the grant's resync wipe. The sender-included
+  spawn echo covers the remaining gap — a spawn sent while the chunk's
+  grant was still in flight registers into the pending grant's
+  `late_ids` (or respawns after a wipe, since the snapshot can't know
+  about it either way), and `late_ids` carry over when a newer grant
+  supersedes a still-pending one. The resync wipe additionally keeps any
+  entity whose id carries our session (`id >> 32 == session`): our in-view
+  spawns are always live server-side, so absence from the snapshot only
+  means it predates the spawn — that holds even against a server that
+  pre-dates the spawn echo. The exception is marked by `stray_spawns`:
+  spawns sent while their chunk sat outside our advertised VIEW are
+  sidecar-persisted under no id and re-minted on cover, so the wipe still
+  runs for them (the remapped record respawns in the same grant).
+  Entities kept via `keep_ids` settle
+  `net.mirror` to `!owned` at apply: a relay received before the role was
+  known can't guess the sim side correctly.
 
 ### Multiplayer e2e harness
 

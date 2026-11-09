@@ -48,6 +48,7 @@ int test_net_codec_registry( );
 int test_net_containers( );
 int test_net_entities( );
 int test_net_item_crossing( );
+int test_net_item_grant( );
 int test_net_item_mirror_visuals( );
 int test_net_mobs( );
 int test_net_bodies( );

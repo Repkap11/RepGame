@@ -55,6 +55,7 @@ void NetEntities::reset( ) {
     this->roles.clear( );
     this->pending_roles.clear( );
     this->gone_ids.clear( );
+    this->stray_spawns.clear( );
     this->view_sent = false;
     this->view_rx = -1;
     this->view_ry = -1;
@@ -83,14 +84,30 @@ NetEntities::PendingRole *NetEntities::pending_for( const glm::ivec3 &chunk ) {
     return nullptr;
 }
 
+bool NetEntities::chunk_in_view( const glm::ivec3 &chunk ) const {
+    if ( !this->view_sent ) {
+        return false;
+    }
+    return std::abs( chunk.x - this->view_center.x ) <= this->view_rx && //
+           std::abs( chunk.z - this->view_center.z ) <= this->view_rx && //
+           std::abs( chunk.y - this->view_center.y ) <= this->view_ry;
+}
+
 void NetEntities::send_spawn( const NetEntityRecord &rec ) {
     if ( !this->welcomed ) {
         return;
     }
+    const glm::ivec3 chunk = chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) );
     // Own spawn into a chunk whose grant is still pending: the grant's
     // record snapshot predates this entity, so exempt it from the resync wipe.
-    if ( PendingRole *p = this->pending_for( chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) ) ) ) {
+    if ( PendingRole *p = this->pending_for( chunk ) ) {
         p->late_ids.insert( rec.id );
+    }
+    // Spawn outside our advertised view: the server sidecar-persists it
+    // under no id and re-mints it when coverage arrives, so the resync wipe
+    // must still replace our copy then (see stray_spawns).
+    if ( !this->chunk_in_view( chunk ) ) {
+        this->stray_spawns.insert( rec.id );
     }
     this->mp->send( NetMsgType::ENTITY_SPAWN, rec );
 }
@@ -100,6 +117,7 @@ void NetEntities::send_remove( NetEntityId id, uint8_t reason ) {
         return;
     }
     this->gone_ids.insert( id );
+    this->stray_spawns.erase( id );
     NetEntityRemovePayload p{ id, reason };
     this->mp->send( NetMsgType::ENTITY_REMOVE, p );
 }
@@ -191,21 +209,18 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             grant.records = std::move( p.records );
             grant.removed_natural = std::move( p.removed_natural );
             // The latest grant supersedes anything still queued for this
-            // chunk — drop the stale entry before queuing/applying.
+            // chunk — but its record snapshot still predates the spawns and
+            // transfers the queued one accumulated: carry late_ids over so
+            // the resync wipe keeps sparing them.
             for ( size_t i = 0; i < this->pending_roles.size( ); i++ ) {
                 if ( this->pending_roles[ i ].chunk == grant.chunk ) {
+                    grant.late_ids.insert( this->pending_roles[ i ].late_ids.begin( ), this->pending_roles[ i ].late_ids.end( ) );
                     this->pending_roles.erase( this->pending_roles.begin( ) + static_cast<long>( i ) );
                     break;
                 }
             }
             if ( grant.role != NET_ROLE_NONE && !this->chunk_live( state, grant.chunk ) ) {
                 // The chunk isn't live locally yet; apply when it finalizes.
-                for ( PendingRole &old : this->pending_roles ) {
-                    if ( old.chunk == grant.chunk ) {
-                        old = std::move( grant );
-                        return true;
-                    }
-                }
                 this->pending_roles.push_back( std::move( grant ) );
                 return true;
             }
@@ -216,6 +231,11 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             NetEntityRecord rec;
             if ( !net_read_entity_record( r, rec ) ) {
                 pr_debug( "Malformed ENTITY_SPAWN" );
+                return true;
+            }
+            if ( this->gone_ids.count( rec.id ) ) {
+                // Already removed this session — a stale relay (including
+                // our own spawn echo) must not resurrect it.
                 return true;
             }
             const glm::ivec3 rec_chunk = chunk_of_dpos( glm::dvec3( rec.x, rec.y, rec.z ) );
@@ -261,6 +281,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 return true;
             }
             this->gone_ids.insert( p.id );
+            this->stray_spawns.erase( p.id );
             for ( PendingRole &pend : this->pending_roles ) {
                 pend.late_ids.erase( p.id );
             }

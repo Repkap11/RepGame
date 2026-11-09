@@ -784,11 +784,9 @@ void ItemEntities::persist_all( ) {
 // records streamed through NetEntities.
 // ---------------------------------------------------------------------------
 
-void ItemEntities::set_multiplayer_mode( const bool mp_mode ) {
+void ItemEntities::set_multiplayer_mode( const bool mp_mode, NetEntities *net ) {
     this->mp_mode = mp_mode;
-    if ( !mp_mode ) {
-        this->net = nullptr;
-    }
+    this->net = mp_mode ? net : nullptr;
 }
 
 void ItemEntities::send_net_remove( ItemEntity &it, const uint8_t reason ) {
@@ -901,13 +899,24 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
             by_id[ rec.id ] = &rec;
         }
     }
+    const uint32_t session = this->net != nullptr ? this->net->session( ) : 0;
     for ( size_t i = 0; i < this->items.size( ); ) {
-        const ItemEntity &it = this->items[ i ];
-        if ( it.net.id != 0 && it.net.chunk == chunk && by_id.find( it.net.id ) == by_id.end( ) && !keep_ids.count( it.net.id ) ) {
-            remove_item( i );
-        } else {
-            i++;
+        ItemEntity &it = this->items[ i ];
+        if ( it.net.id != 0 && it.net.chunk == chunk && by_id.find( it.net.id ) == by_id.end( ) ) {
+            // Our in-view spawns are always live server-side: absence from
+            // the snapshot only means it predates the spawn, so keep them.
+            // Stray spawns carry no id server-side — the wipe still applies
+            // (a remapped record respawns in the same grant).
+            const bool ours = session != 0 && ( it.net.id >> 32 ) == session && !this->net->stray_spawn( it.net.id );
+            if ( !keep_ids.count( it.net.id ) && !ours ) {
+                remove_item( i );
+                continue;
+            }
+            // Kept past a stale snapshot: settle sim ownership on the role
+            // (its mirror flag was guessed before the role was known).
+            it.net.mirror = !owned;
         }
+        i++;
     }
     for ( const NetEntityRecord &rec : records ) {
         if ( rec.kind != NetEntityKind::ITEM ) {

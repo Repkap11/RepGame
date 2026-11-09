@@ -2058,12 +2058,24 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
             by_id[ rec.id ] = &rec;
         }
     }
+    const uint32_t session = this->net != nullptr ? this->net->session( ) : 0;
     for ( auto it = this->mobs.begin( ); it != this->mobs.end( ); ) {
-        if ( it->net.id != 0 && it->net.chunk == chunk && by_id.find( it->net.id ) == by_id.end( ) && !keep_ids.count( it->net.id ) ) {
-            it = this->remove_mob( it );
-        } else {
-            ++it;
+        if ( it->net.id != 0 && it->net.chunk == chunk && by_id.find( it->net.id ) == by_id.end( ) ) {
+            // Our in-view spawns are always live server-side: absence from
+            // the snapshot only means it predates the spawn, so keep them.
+            // Stray spawns carry no id server-side — the wipe still applies
+            // (a remapped record respawns in the same grant). Natural ids
+            // have a 0xFF top byte and can never match a session.
+            const bool ours = session != 0 && ( it->net.id >> 32 ) == session && !this->net->stray_spawn( it->net.id );
+            if ( !keep_ids.count( it->net.id ) && !ours ) {
+                it = this->remove_mob( it );
+                continue;
+            }
+            // Kept past a stale snapshot: settle sim ownership on the role
+            // (its mirror flag was guessed before the role was known).
+            it->net.mirror = !owned;
         }
+        ++it;
     }
     for ( const NetEntityRecord &rec : records ) {
         if ( rec.kind != NetEntityKind::MOB ) {

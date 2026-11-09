@@ -672,13 +672,14 @@ int server_selftest( ) {
             check( last_role_for( fb, c1 ) == NET_ROLE_VIEWER, "entity: B role VIEWER for chunk 1" );
         }
 
-        // ENTITY_SPAWN relays to the other viewers only.
+        // ENTITY_SPAWN relays to all viewers, echoing back to the sender as
+        // the spawn's ack (stale CHUNK_ROLE snapshots can't wipe it).
         const NetEntityId item1 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 1;
         send_entity_spawn( server, ea, item_record( item1, DIRT, 5, 70.0, 30.0, 10.0 ) ); // chunk 1
         {
             const std::vector<ReceivedFrame> fa = drain_client( server, ea );
             const std::vector<ReceivedFrame> fb = drain_client( server, eb );
-            check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).empty( ), "entity: spawn not echoed to sender" );
+            check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "entity: spawn echoed to sender" );
             check( frames_of_type( fb, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "entity: spawn relayed to viewer" );
         }
 
@@ -1107,14 +1108,15 @@ int server_selftest( ) {
         check( se3.owner_of( c4 ) == bb.fd, "body: chunk 4 owned by B (hysteresis over C)" );
 
         // ba spawns a primed-TNT body in bb-owned chunk 2: accepted, relayed
-        // to the other viewers (bb), never echoed to the sim.
+        // to the viewers (bb). ba isn't a viewer of chunk 2, so the spawn
+        // echo doesn't reach it — only viewing senders get their own ack.
         const NetEntityId body1 = ( static_cast<NetEntityId>( sess_ba ) << 32 ) | 0xB1;
         send_entity_spawn( server, ba, body_record( body1, TEST_BODY_TNT, TNT, 40, 130.0, 30.0, 10.0 ) );
         check( se3.entity_count_of( c2 ) == 1, "body: causer spawn into foreign chunk accepted" );
         {
             const std::vector<ReceivedFrame> fa = drain_client( server, ba );
             const std::vector<ReceivedFrame> fb = drain_client( server, bb );
-            check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).empty( ), "body: spawn not echoed to sim" );
+            check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).empty( ), "body: no echo to non-viewer sim" );
             check( frames_of_type( fb, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "body: spawn relayed to viewer" );
         }
 

@@ -50,6 +50,14 @@ class NetEntities {
     // resurrected when the grant applies. Ids are never reused.
     std::set<NetEntityId> gone_ids;
 
+    // Ids we spawned while their chunk was OUTSIDE our advertised view:
+    // the server sidecar-persists those under no id, so when coverage
+    // finally reaches the chunk its records re-mint the entity — the resync
+    // wipe must still run there (the remapped record respawns in the same
+    // grant). In-view own spawns are always live server-side, so a stale
+    // snapshot wiping them is what this flag prevents.
+    std::set<NetEntityId> stray_spawns;
+
     // Last VIEW we sent, to resend only on change.
     bool view_sent = false;
     glm::ivec3 view_center = glm::ivec3( 0 );
@@ -59,6 +67,7 @@ class NetEntities {
     void apply_chunk_role( RepGameState &state, const PendingRole &grant );
     PendingRole *pending_for( const glm::ivec3 &chunk );
     bool chunk_live( RepGameState &state, const glm::ivec3 &chunk ) const;
+    bool chunk_in_view( const glm::ivec3 &chunk ) const;
     void send_view( int cx, int cy, int cz, int rx, int ry );
 
   public:
@@ -79,6 +88,9 @@ class NetEntities {
 
     bool connected( ) const { return this->welcomed; }
     uint32_t session( ) const { return this->session_id; }
+    // Entity the server will re-mint rather than keep under our id (spawned
+    // outside our view) — see stray_spawns.
+    bool stray_spawn( const NetEntityId id ) const { return this->stray_spawns.count( id ) != 0; }
     // Granted non-NONE roles (mp_test `ready` detection + dump summary).
     size_t role_count( ) const { return this->roles.size( ); }
     void role_counts( int *owners, int *viewers ) const {
@@ -112,5 +124,16 @@ class NetEntities {
     // rep_tests seam: grant a role without a CHUNK_ROLE frame.
     void test_set_role( const glm::ivec3 &chunk, int role ) {
         this->roles[ chunk ] = static_cast<uint8_t>( role );
+    }
+    // rep_tests seams: pretend a WELCOME/VIEW established session + coverage.
+    void test_welcome( const uint32_t s ) {
+        this->session_id = s;
+        this->welcomed = true;
+    }
+    void test_view( const glm::ivec3 &center, const int rx, const int ry ) {
+        this->view_sent = true;
+        this->view_center = center;
+        this->view_rx = rx;
+        this->view_ry = ry;
     }
 };

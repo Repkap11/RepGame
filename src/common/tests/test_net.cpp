@@ -407,8 +407,7 @@ int test_net_item_crossing( ) {
     Multiplayer mp;
     NetEntities net( &mp );
     ItemEntities items;
-    items.set_multiplayer_mode( true );
-    items.test_bind_net( &net );
+    items.set_multiplayer_mode( true, &net );
 
     const glm::ivec3 chunk_a( 0, 0, 0 ), chunk_b( 1, 0, 0 );
     net.test_set_role( chunk_a, NET_ROLE_OWNER );
@@ -455,6 +454,111 @@ int test_net_item_crossing( ) {
     items.net_release_entity( rec, /*still_viewed*/ true );
     report( "crossing: adopt=0 becomes mirror", items.test_items( )[ 0 ].net.mirror );
 
+    return failures;
+}
+
+// A CHUNK_ROLE grant's record snapshot can predate an entity that entered
+// the chunk after it was generated (own spawn echo, a remote spawn relay, a
+// transfer): keep_ids spares those ids from the resync wipe and settles
+// net.mirror to !owned — the mirror flag was guessed before the role was
+// known. An unknown id is wiped as stale.
+int test_net_item_grant( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    const auto report = [ &failures ]( const char *name, bool ok ) {
+        pr_test( "  %-55s %s", name, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    const glm::ivec3 chunk( 0, 0, 0 );
+    const auto item_rec = [ ]( NetEntityId id ) {
+        NetEntityRecord rec;
+        rec.id = id;
+        rec.kind = NetEntityKind::ITEM;
+        rec.x = 30.0;
+        rec.y = 40.0;
+        rec.z = 10.0;
+        rec.type = DIRT;
+        rec.count = 4;
+        return rec;
+    };
+    const std::vector<NetEntityRecord> empty_records;
+
+    // A kept id survives an empty OWNER snapshot; a mirror flag guessed
+    // pre-role settles to owned so local simulation resumes.
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        ItemEntities items;
+        items.set_multiplayer_mode( true, &net );
+        const NetEntityId id = ( static_cast<NetEntityId>( 9 ) << 32 ) | 1;
+        items.net_apply_spawn( item_rec( id ), /*mirror*/ true );
+        items.net_apply_chunk_role( chunk, NET_ROLE_OWNER, empty_records, { id } );
+        report( "grant: kept id survives empty OWNER snapshot", items.debug_items( ).size( ) == 1 );
+        report( "grant: kept id settles to owned", !items.debug_items( )[ 0 ].net.mirror );
+    }
+    // The same keep under VIEWER settles to mirror.
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        ItemEntities items;
+        items.set_multiplayer_mode( true, &net );
+        const NetEntityId id = ( static_cast<NetEntityId>( 9 ) << 32 ) | 2;
+        items.net_apply_spawn( item_rec( id ), /*mirror*/ false );
+        items.net_apply_chunk_role( chunk, NET_ROLE_VIEWER, empty_records, { id } );
+        report( "grant: kept id settles to mirror under VIEWER",
+                items.debug_items( ).size( ) == 1 && items.debug_items( )[ 0 ].net.mirror );
+    }
+    // An id the snapshot doesn't carry and keep_ids doesn't spare is wiped.
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        ItemEntities items;
+        items.set_multiplayer_mode( true, &net );
+        const NetEntityId id = ( static_cast<NetEntityId>( 9 ) << 32 ) | 3;
+        items.net_apply_spawn( item_rec( id ), /*mirror*/ false );
+        items.net_apply_chunk_role( chunk, NET_ROLE_OWNER, empty_records, {} );
+        report( "grant: unknown id wiped by resync", items.debug_items( ).empty( ) );
+    }
+    // Our own in-view spawn survives a stale snapshot WITHOUT keep_ids: the
+    // server has it live, absence just means the snapshot predates it —
+    // this is the in-flight grant race, and it must hold even without the
+    // server's spawn echo (old servers).
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        net.test_welcome( 9 );
+        net.test_view( chunk, 8, 3 );
+        ItemEntities items;
+        items.set_multiplayer_mode( true, &net );
+        const NetEntityId id = ( static_cast<NetEntityId>( 9 ) << 32 ) | 4;
+        const NetEntityRecord rec = item_rec( id );
+        net.send_spawn( rec ); // in-view: not a stray
+        items.net_apply_spawn( rec, /*mirror*/ false );
+        items.net_apply_chunk_role( chunk, NET_ROLE_OWNER, empty_records, {} );
+        report( "grant: own in-view spawn survives stale snapshot", items.debug_items( ).size( ) == 1 );
+        report( "grant: own spawn settles to owned", !items.debug_items( ).empty( ) && !items.debug_items( )[ 0 ].net.mirror );
+    }
+    // But a spawn outside our view is a stray: the server sidecar-persists
+    // it under no id, so the wipe must still run — the grant's remapped
+    // record is its replacement.
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        net.test_welcome( 9 ); // no view sent: every spawn chunk is outside
+        ItemEntities items;
+        items.set_multiplayer_mode( true, &net );
+        const NetEntityId id = ( static_cast<NetEntityId>( 9 ) << 32 ) | 5;
+        const NetEntityRecord rec = item_rec( id );
+        net.send_spawn( rec ); // marks the id as stray
+        items.net_apply_spawn( rec, /*mirror*/ false );
+        items.net_apply_chunk_role( chunk, NET_ROLE_OWNER, empty_records, {} );
+        report( "grant: stray spawn still wiped for re-mint", items.debug_items( ).empty( ) );
+    }
     return failures;
 }
 
@@ -681,8 +785,7 @@ int test_net_item_mirror_visuals( ) {
     Multiplayer mp;
     NetEntities net( &mp );
     ItemEntities items;
-    items.set_multiplayer_mode( true );
-    items.test_bind_net( &net );
+    items.set_multiplayer_mode( true, &net );
 
     NetEntityRecord rec{};
     rec.id = ( static_cast<NetEntityId>( 5 ) << 32 ) | 7;

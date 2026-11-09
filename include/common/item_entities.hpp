@@ -137,7 +137,7 @@ class ItemEntities {
 
     // ---- Multiplayer sync (NetEntities drives these; all no-ops single
     // player). Local items_* file reads/writes are off in multiplayer mode.
-    void set_multiplayer_mode( bool mp_mode );
+    void set_multiplayer_mode( bool mp_mode, NetEntities *net );
     bool multiplayer_mode( ) const { return this->mp_mode; }
     // Incoming record handlers (called by NetEntities).
     ItemEntity *find_by_net_id( NetEntityId net_id );

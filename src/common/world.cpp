@@ -235,7 +235,7 @@ void World::change_size( int width, int height ) {
 void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, const int limit_render, const glm::mat4 &rotation ) {
     // In multiplayer the item files live on the server: local reads/writes
     // stay off once the connect resolves (or latches after a drop).
-    this->items.set_multiplayer_mode( multiplayer.multiplayer_mode( ) );
+    this->items.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     // Same for mobs: local mobs_* files and the natural-spawn roll route
     // through CHUNK_ROLE/populated instead.
     this->mobs.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );

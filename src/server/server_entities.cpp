@@ -561,7 +561,11 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         this->mark_dirty( it->second, rec.kind );
         PacketWriter w;
         net_write_entity_record( w, rec );
-        server.broadcast_to( it->second.viewers, NetMsgType::ENTITY_SPAWN, client_fd, w.buf( ), client_fd );
+        // Relay to every viewer INCLUDING the sender: the echo is the only
+        // ack a predicted spawn gets — a CHUNK_ROLE snapshot generated
+        // before this spawn arrived would otherwise wipe the sender's local
+        // copy on apply and never restore it.
+        server.broadcast_to( it->second.viewers, NetMsgType::ENTITY_SPAWN, client_fd, w.buf( ) );
         return true;
     }
 

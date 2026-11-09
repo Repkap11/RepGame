@@ -53,6 +53,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( net_containers ),  //
     MK_TEST( net_entities ),     //
     MK_TEST( net_item_crossing ), //
+    MK_TEST( net_item_grant ),   //
     MK_TEST( net_item_mirror_visuals ), //
     MK_TEST( net_mobs ),          //
     MK_TEST( net_bodies ),         //
