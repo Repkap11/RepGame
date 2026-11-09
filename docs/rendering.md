@@ -220,7 +220,13 @@ recomputed on CPU in `calculate_populated_blocks` because phase-1 meshing
 packs fluids as NO_LIGHT_BRIGHT on every face. The same helpers emit a
 water shell instance for a waterlogged cell at the top of a water column
 (it renders as a WATER source on its own cell; the host block's instance
-is untouched). Sim-side: `docs/fluids.md`.
+is untouched). Fluid faces render unshaded (`face_light` 1.0 like
+Minecraft's `shade=false`): directional shading made sky-lit internal
+surfaces brighter than the walls they show through — per-cell banding
+across flows. `water_still` is tinted toward `water_flow`'s hue in
+`textures.json` (the Bedrock tiles were authored ~25 red levels apart, so
+still-vs-flow boundaries read as purple-on-blue). Sim-side:
+`docs/fluids.md`.
 
 Known remaining limitations: `alpha` mode still composites in chunk/instance
 order, so the hue of overlapping different-coloured panes can shift slightly

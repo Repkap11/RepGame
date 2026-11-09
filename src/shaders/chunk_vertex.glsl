@@ -281,8 +281,19 @@ void main() {
             texCoordBlock_adjust.y *= fluid_height;
         }
     }
+    // Minecraft shades water shade=false: every face at full brightness.
+    // Directional shading on the translucent shell makes the internal
+    // surfaces brighter than the walls they show through — per-cell
+    // light/dark banding that reads as lines on a flow. Flat merged cells
+    // aren't BLOCK_COORDS_FLUID, so test the face's texture layer.
+    uint shift_early = (faceType_rotated % 2u) * 16u;
+    uint face_tex = (blockTexture[faceType_rotated / 2u] & (0xffffu << shift_early)) >> shift_early;
+    bool is_fluid_face = face_tex == uint(TEX_WATER_STILL) || face_tex == uint(TEX_WATER_FLOW) ||
+                         face_tex == uint(TEX_LAVA_STILL) || face_tex == uint(TEX_LAVA_FLOW);
     float face_light;
-    if(faceType == FACE_TOP) {
+    if(is_fluid_face) {
+        face_light = 1.0f;
+    } else if(faceType == FACE_TOP) {
         face_light = 1.0f;
     } else if(faceType == FACE_BOTTOM) {
         face_light = 0.5f;
@@ -340,9 +351,7 @@ void main() {
     v_tex_max = face_scale - face_shift;
     v_TexCoordBlock = texCoordBlock_adjust * face_scale - face_shift;
 
-    uint shift = (faceType_rotated % 2u) * 16u;
-    // 0xffffu is max short 16u is sizeof(short)
-    v_blockID = (blockTexture[faceType_rotated / 2u] & (0xffffu << shift)) >> shift;
+    v_blockID = face_tex;
     // if ( faceType < 2u ) {
     //     v_blockID = blockTexture1[ faceType ];
     // } else {

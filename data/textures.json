@@ -2983,7 +2983,8 @@
   },
   "water_still": {
     "alpha": 140,
-    "source": "textures/blocks/water_still"
+    "source": "textures/blocks/water_still",
+    "tint": "#C7FBFF"
   },
   "water_still_grey": {
     "source": "textures/blocks/water_still_grey"
