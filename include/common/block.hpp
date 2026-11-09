@@ -333,7 +333,9 @@ static inline int block_mount_rotation( const Block *block, const glm::ivec3 &mo
 
 // ---- Fences and fence gates -------------------------------------------------
 // One sub-box of a fence/gate model, in pixel units (0-16). skip_faces is a
-// bit per FACE_* — those faces get NO_LIGHT_NO_DRAW in the emitted instance.
+// bit per FACE_* in definition space — those faces get NO_LIGHT_NO_DRAW in
+// the emitted instance (the mesher turns the bits by the box's yaw, since
+// packed_lighting indexes the world-space quad each face lands on).
 typedef struct {
     signed char scale[ 3 ];
     signed char offset[ 3 ];
@@ -378,7 +380,10 @@ int fence_collision_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ]
 // while the far ends tuck behind it. Returns 5 boxes.
 int fence_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] );
 // Fill `out` with the gate's definition-space (rotation 0, spans x) boxes;
-// the shader turns them with face_shift = rot & 3. Returns the box count.
+// the shader turns them with face_shift = rot & 3. Closed-leaf rails are
+// pre-split where the center upright crosses them — an unsplit rail's z
+// faces would sit coplanar with the upright's and z-fight. Returns the box
+// count.
 int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );
 // Right-click toggle: closing clears bit 2; opening sets it, retargeting the
 // facing to the player's yaw when it shares the gate's axis (so the gate
@@ -386,11 +391,10 @@ int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );
 unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot );
 // Icon/pickup shape for a gate item: the closed leaf yawed 90 to span z,
 // with the painter's order faking depth like the fence's split rails —
-// each rail splits where it crosses the upright (the middle segment sits
-// inside its footprint and is dropped), so the halves behind emit before
-// it and the halves in front after. The far post emits first so the leaf
-// reads over it, the near post last to cover the rail end cap inside it.
-// Returns 7 boxes.
+// the leaf's rails come pre-split at the upright, so the halves behind
+// emit before it and the halves in front after. The far post emits first
+// so the leaf reads over it, the near post last to cover the rail end cap
+// inside it. Returns 7 boxes.
 int fence_gate_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] );
 
 // ---- Stairs -----------------------------------------------------------------

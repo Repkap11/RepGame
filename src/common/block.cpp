@@ -171,17 +171,23 @@ int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {
         n++;
     }
     if ( !open ) {
-        // Rails x 2..14 at y 6..9 / 12..15, plus the center upright x 6..10,
-        // y 6..15 — all z 7..9.
+        // Rails x 2..14 at y 6..9 / 12..15, split where the center upright
+        // (x 6..10, y 6..15 — all z 7..9) crosses them: an unsplit rail's z
+        // faces sit coplanar with the upright's and z-fight. Every segment
+        // end is buried in a post or the upright, so they skip drawing like
+        // fence rail ends.
+        const unsigned char skip_x = ( 1u << FACE_LEFT ) | ( 1u << FACE_RIGHT );
         for ( int rail = 0; rail < 2; rail++ ) {
-            out[ n ].scale[ 0 ] = 12;
-            out[ n ].scale[ 1 ] = 3;
-            out[ n ].scale[ 2 ] = 2;
-            out[ n ].offset[ 0 ] = 2;
-            out[ n ].offset[ 1 ] = rail == 0 ? 6 : 12;
-            out[ n ].offset[ 2 ] = 7;
-            out[ n ].skip_faces = 0;
-            n++;
+            for ( int seg = 0; seg < 2; seg++ ) {
+                out[ n ].scale[ 0 ] = 4;
+                out[ n ].scale[ 1 ] = 3;
+                out[ n ].scale[ 2 ] = 2;
+                out[ n ].offset[ 0 ] = seg == 0 ? 2 : 10;
+                out[ n ].offset[ 1 ] = rail == 0 ? 6 : 12;
+                out[ n ].offset[ 2 ] = 7;
+                out[ n ].skip_faces = skip_x;
+                n++;
+            }
         }
         out[ n ].scale[ 0 ] = 4;
         out[ n ].scale[ 1 ] = 9;
@@ -250,29 +256,29 @@ int fence_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
 int fence_gate_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
     // The closed leaf yawed 90 to span z, putting the leaf profile on the
     // iso RIGHT face like the fence — and the same painter's-order trick:
-    // each rail splits where it crosses the upright so the halves behind
-    // emit before it and the halves in front after (the middle segment is
-    // inside the upright's footprint and is never visible). The posts
-    // already bracket the leaf: the far (z<2) post emits first so the
-    // leaf reads over it, the near post last so it covers the rail end
-    // cap inside it.
+    // the rails arrive pre-split where they cross the upright (the world
+    // model splits them so their z faces aren't coplanar with the
+    // upright's), so the halves behind emit before it and the halves in
+    // front after. The posts already bracket the leaf: the far (z<2) post
+    // emits first so the leaf reads over it, the near post last so it
+    // covers the rail end cap inside it.
     BlockBox leaf[ FENCE_GATE_MAX_BOXES ];
-    const int n_leaf = fence_gate_boxes( false, leaf ); // [0,1] posts (far, near x), [2,3] rails, [4] upright
+    const int n_leaf = fence_gate_boxes( false, leaf ); // [0,1] posts (far, near x), [2..n-2] rail segments, [n-1] upright
     const BlockBox &upright = leaf[ n_leaf - 1 ];
+    const int u0 = upright.offset[ 0 ];
+    const int u1 = u0 + upright.scale[ 0 ];
     int n = 0;
     out[ n++ ] = leaf[ 0 ]; // far post — ROTATE_90 sends x 0..2 to z 0..2
     for ( int i = 2; i < n_leaf - 1; i++ ) { // rail halves behind the upright
-        BlockBox b = leaf[ i ];
-        b.scale[ 0 ] = upright.offset[ 0 ] - b.offset[ 0 ];
-        out[ n++ ] = b;
+        if ( leaf[ i ].offset[ 0 ] + leaf[ i ].scale[ 0 ] <= u0 ) {
+            out[ n++ ] = leaf[ i ];
+        }
     }
     out[ n++ ] = upright;
     for ( int i = 2; i < n_leaf - 1; i++ ) { // rail halves in front of it
-        BlockBox b = leaf[ i ];
-        const int x1 = upright.offset[ 0 ] + upright.scale[ 0 ];
-        b.scale[ 0 ] += b.offset[ 0 ] - x1;
-        b.offset[ 0 ] = x1;
-        out[ n++ ] = b;
+        if ( leaf[ i ].offset[ 0 ] >= u1 ) {
+            out[ n++ ] = leaf[ i ];
+        }
     }
     out[ n++ ] = leaf[ 1 ]; // near post — x 14..16 to z 14..16
     for ( int i = 0; i < n; i++ ) {

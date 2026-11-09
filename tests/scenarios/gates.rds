@@ -1,0 +1,49 @@
+# Gate staging: closed leaf at all four yaws, each flanked by connecting
+# fences, plus an open leaf. The closed leaf's rails are split around the
+# center upright (no coplanar faces) and the buried segment ends are
+# hidden via definition-space skip_faces, so all four yaws must look
+# identical to yaw 0. Flat floor is SANDSTONE at y=0; AIR starts at y=1.
+# setblock's 6th arg is rotation; bit 2 opens the leaf.
+wait_idle 20 6000
+# Closed gates spanning x (yaw 0 = leaf faces -z, yaw 2 = +z).
+setblock -5 1 8 OAK_FENCE 0
+setblock -4 1 8 FENCE_GATE 0
+setblock -3 1 8 OAK_FENCE 0
+setblock -1 1 8 OAK_FENCE 0
+setblock 0 1 8 FENCE_GATE 2
+setblock 1 1 8 OAK_FENCE 0
+# Closed gates spanning z (yaw 1, yaw 3).
+setblock 4 1 7 OAK_FENCE 0
+setblock 4 1 8 FENCE_GATE 1
+setblock 4 1 9 OAK_FENCE 0
+setblock 8 1 7 OAK_FENCE 0
+setblock 8 1 8 FENCE_GATE 3
+setblock 8 1 9 OAK_FENCE 0
+# Open leaf (rotation bit 2) swung against a fence post.
+setblock 12 1 7 OAK_FENCE 0
+setblock 12 1 8 FENCE_GATE 4
+setblock 12 1 9 OAK_FENCE 0
+wait 30
+assert_block -4 1 8 FENCE_GATE
+assert_block 0 1 8 FENCE_GATE
+assert_block 4 1 8 FENCE_GATE
+assert_block 8 1 8 FENCE_GATE
+assert_block 12 1 8 FENCE_GATE
+# Leaf face of each closed gate, straight on.
+camera -3.5 1.6 10.0 0 5
+wait 20
+screenshot closed_yaw0
+camera 0.5 1.6 10.0 0 5
+wait 20
+screenshot closed_yaw2
+camera 6.0 1.6 8.5 270 5
+wait 20
+screenshot closed_yaw1
+camera 10.0 1.6 8.5 270 5
+wait 20
+screenshot closed_yaw3
+# Open gate from the -z side: leaf swung against the +z post.
+camera 12.5 2.5 11 0 15
+wait 20
+screenshot open_leaf
+echo gates done

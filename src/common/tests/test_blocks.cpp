@@ -101,15 +101,20 @@ int test_fences( ) {
     check_bool( "fence: gate rot 4 (open) still along x", fence_connects_to( oak, FENCE_GATE, BLOCK_ROTATE_GATE_OPEN, true ) );
 
     // --- fence_gate_boxes (definition space, spans x) ----------------------
-    check_bool( "gate: closed gives 5 boxes", fence_gate_boxes( false, boxes ) == 5 );
+    check_bool( "gate: closed gives 7 boxes", fence_gate_boxes( false, boxes ) == 7 );
     check_bool( "gate: closed posts at x 0..2 and 14..16",
                 boxes[ 0 ].offset[ 0 ] == 0 && boxes[ 0 ].scale[ 0 ] == 2 && boxes[ 1 ].offset[ 0 ] == 14 && //
                     boxes[ 0 ].offset[ 1 ] == 5 && boxes[ 0 ].scale[ 1 ] == 11 && boxes[ 0 ].offset[ 2 ] == 7 && boxes[ 0 ].scale[ 2 ] == 2 );
-    check_bool( "gate: closed rail x 2..14 y 6..9",
-                boxes[ 2 ].offset[ 0 ] == 2 && boxes[ 2 ].scale[ 0 ] == 12 && boxes[ 2 ].offset[ 1 ] == 6 && boxes[ 2 ].scale[ 1 ] == 3 );
+    // Rails split at the center upright — an unsplit rail's z faces would sit
+    // coplanar with the upright's and z-fight.
+    check_bool( "gate: closed rail halves x 2..6 and 10..14 y 6..9",
+                boxes[ 2 ].offset[ 0 ] == 2 && boxes[ 2 ].scale[ 0 ] == 4 && boxes[ 2 ].offset[ 1 ] == 6 && boxes[ 2 ].scale[ 1 ] == 3 && //
+                    boxes[ 3 ].offset[ 0 ] == 10 && boxes[ 3 ].scale[ 0 ] == 4 );
+    check_bool( "gate: closed rail ends skip both x faces",
+                boxes[ 2 ].skip_faces == ( ( 1u << FACE_LEFT ) | ( 1u << FACE_RIGHT ) ) );
     check_bool( "gate: closed upright x 6..10 y 6..15",
-                boxes[ 4 ].offset[ 0 ] == 6 && boxes[ 4 ].scale[ 0 ] == 4 && boxes[ 4 ].offset[ 1 ] == 6 && boxes[ 4 ].scale[ 1 ] == 9 );
-    check_bool( "gate: closed in bounds", boxes_in_bounds( boxes, 5 ) );
+                boxes[ 6 ].offset[ 0 ] == 6 && boxes[ 6 ].scale[ 0 ] == 4 && boxes[ 6 ].offset[ 1 ] == 6 && boxes[ 6 ].scale[ 1 ] == 9 );
+    check_bool( "gate: closed in bounds", boxes_in_bounds( boxes, 7 ) );
     check_bool( "gate: open gives 8 boxes", fence_gate_boxes( true, boxes ) == 8 );
     check_bool( "gate: open leaves fold to z<7",
                 boxes[ 2 ].offset[ 2 ] == 3 && boxes[ 2 ].scale[ 2 ] == 4 && //

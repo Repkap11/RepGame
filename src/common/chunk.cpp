@@ -1715,9 +1715,16 @@ void Chunk::calculate_populated_blocks( ) {
                                 boxCoord->tex_offset_y = -boxes[ i ].offset[ 1 ];
                                 boxCoord->tex_offset_z = -boxes[ i ].offset[ 2 ];
                                 boxCoord->face_shift = yaw;
+                                // skip_faces is definition-space while
+                                // packed_lighting indexes the world-space quad
+                                // (faceType) the shader turns the box onto —
+                                // a yawed box needs its skip bits rotated the
+                                // same way. mesh_rotated_face maps world->def,
+                                // so the def->world slot is its counter-yaw row
+                                // (TOP/BOTTOM map to themselves at every yaw).
                                 for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                                     if ( boxes[ i ].skip_faces & ( 1u << f ) ) {
-                                        boxCoord->packed_lighting[ f ] = NO_LIGHT_NO_DRAW;
+                                        boxCoord->packed_lighting[ mesh_rotated_face( f, ( 4 - yaw ) & 3 ) ] = NO_LIGHT_NO_DRAW;
                                     }
                                 }
                             }

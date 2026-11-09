@@ -186,7 +186,13 @@ block.cpp): a 4x16x4 post plus 2px rails that connect to neighbors.
 Wooden fences connect to any wooden fence, nether brick only to nether
 brick, and every fence connects to gates whose span axis matches the
 direction and to `is_solid` blocks; rails on both sides of an axis merge
-into one 0..16 box, and rail end faces get `NO_LIGHT_NO_DRAW`. Gates rotate
+into one 0..16 box, and rail end faces get `NO_LIGHT_NO_DRAW` — `skip_faces`
+bits are definition-space `FACE_*` indexes, and the mesher counter-rotates
+them by the box's yaw into the world-space `packed_lighting` slots (the
+shader's `faceType` quads are world faces). A closed
+gate's leaf rails are emitted pre-split where the center upright crosses
+them — an unsplit rail's z faces would sit coplanar with the upright's and
+z-fight. Gates rotate
 on placement and store open/closed in rotation bit 2
 (`BLOCK_ROTATE_GATE_OPEN`; facing is `rotation & 3`, the gate spans world x
 when `(rotation & 1) == 0`); right-click toggles them (sneak + right-click
