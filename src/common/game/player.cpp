@@ -56,8 +56,7 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
     }
     BlockID previous_block_id = globalGameState.world.get_loaded_block( block ).id;
     // globalGameState.world.set_loaded_block( block, blockState );
-    auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, block, blockState, false );
-    globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
+    globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, block, blockState, false );
     return previous_block_id;
 }
 
@@ -385,14 +384,12 @@ void RepGame::process_mouse_events( ) {
             if ( target_state.current_redstone_power == 0 ) {
                 BlockState pressed_state = target_state;
                 pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
-                auto pressEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, pressed_state, true );
-                globalGameState.blockUpdateQueue.addBlockUpdate( pressEvent );
+                globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, pressed_state, true );
             }
             // Always (re)queue the release: idempotent while unpressed, and it
             // revives a button saved while pressed (queued events don't
             // persist across loads).
-            auto releaseEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number + press_ticks, globalGameState.block_selection.pos_destroy, released_state, true );
-            globalGameState.blockUpdateQueue.addBlockUpdate( releaseEvent );
+            globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number + press_ticks, globalGameState.block_selection.pos_destroy, released_state, true );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -428,8 +425,7 @@ void RepGame::process_mouse_events( ) {
         if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_fence_gate && !globalGameState.input.movement.sneakPressed ) {
             BlockState toggled_state = target_state;
             toggled_state.rotation = fence_gate_toggle_rotation( target_state.rotation, getPlacedRotation( target_state.id ) );
-            auto toggleEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, toggled_state, true );
-            globalGameState.blockUpdateQueue.addBlockUpdate( toggleEvent );
+            globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, toggled_state, true );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -441,8 +437,7 @@ void RepGame::process_mouse_events( ) {
         if ( target_state.id != LAST_BLOCK_ID && !globalGameState.input.movement.sneakPressed ) {
             const Block *target = block_definition_get_definition( target_state.id );
             if ( target->is_door && !target->door_redstone_only ) {
-                auto toggleEvent = std::make_shared<DoorEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, DoorEvent::TOGGLE );
-                globalGameState.blockUpdateQueue.addBlockUpdate( toggleEvent );
+                globalGameState.blockUpdateQueue.addBlockUpdate<DoorEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, DoorEvent::TOGGLE );
                 globalGameState.input.click_delay_right = 30;
             }
         }
@@ -581,8 +576,7 @@ void RepGame::process_mouse_events( ) {
                         new_block_state.display_id = LAST_BLOCK_ID; // sentinel: don't toggle
                     }
                     if ( new_block_state.display_id != LAST_BLOCK_ID ) {
-                        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, new_block_state, true );
-                        globalGameState.blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
+                        globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, new_block_state, true );
                         globalGameState.input.click_delay_right = 30;
                         did_toggle_dust = true;
                     }
@@ -1072,8 +1066,7 @@ void RepGame::process_pressure_plates( ) {
             // event reschedules itself until nobody is on it. Watching is what
             // bounds this to one chain per plate.
             if ( block_definition_get_definition( block_state.id )->is_pressure_plate && globalGameState.watched_pressure_plates.insert( block_pos ).second ) {
-                auto plateEvent = std::make_shared<PressurePlateEvent>( globalGameState.tick_number, block_pos );
-                globalGameState.blockUpdateQueue.addBlockUpdate( plateEvent );
+                globalGameState.blockUpdateQueue.addBlockUpdate<PressurePlateEvent>( globalGameState.tick_number, block_pos );
             }
         }
     }

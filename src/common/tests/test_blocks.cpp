@@ -768,7 +768,7 @@ int test_waterlog( ) {
     // replacing it; into an already-waterlogged cell it must not fire at
     // all — that was the infinite re-queue/debris loop.
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     place( glm::ivec3( 10, 10, 10 ), { WATER, 0, 0, WATER, 0 } ); // water "onto" the wet coral
     place( glm::ivec3( 12, 10, 10 ), { STONE, 0, 0, STONE, 0 } ); // a change beside the water
@@ -883,7 +883,7 @@ int test_tnt( ) {
     world.set_loaded_block( glm::ivec3( 18, 11, 18 ), stone );
 
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     place( glm::ivec3( 10, 11, 10 ), { TNT, 0, 0, TNT, 0 } );
     place( glm::ivec3( 11, 11, 10 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
@@ -961,7 +961,7 @@ int test_falling_blocks( ) {
         }
     };
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
 
     const BlockState stone = { STONE, 0, 0, STONE, 0 };
@@ -1095,7 +1095,7 @@ int test_falling_blocks( ) {
     // the impulse can be measured on it.
     const uint32_t flyer = world.bodies.spawn_falling( glm::ivec3( 14, 15, 14 ), sand, glm::dvec3( 0.0 ) );
     check_bool( "blast: mid-air body spawned", flyer != 0 );
-    gs.blockUpdateQueue.addBlockUpdate( std::make_shared<TntExplodeEvent>( gs.tick_number, blast, 0, false ) );
+    gs.blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( gs.tick_number, blast, 0, false );
     // One tick: the explosion event runs, but the outside-sand FallingBlockEvent
     // (+2 ticks) hasn't fired yet — any body now would have come from the blast.
     tick( );
@@ -1182,7 +1182,7 @@ int test_leaf_decay( ) {
         }
     };
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     const BlockState log = { OAK_LOG, 0, 0, OAK_LOG, 0 };
     const BlockState leaf = { OAK_LEAVES, 0, 0, OAK_LEAVES, 0 };
@@ -1271,7 +1271,7 @@ int test_support_drops( ) {
         }
     };
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     const BlockState stone = { STONE, 0, 0, STONE, 0 };
 
@@ -1296,8 +1296,7 @@ int test_support_drops( ) {
         // The AIR write carries BreakDrops::Survival like the player/support
         // paths; a floor break goes through the support-loss kill instead.
         if ( kill_is_door ) {
-            gs.blockUpdateQueue.addBlockUpdate(
-                std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, kill_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival ) );
+            gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, kill_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival );
         } else {
             place( kill_pos, BLOCK_STATE_AIR );
         }
@@ -1459,11 +1458,9 @@ int test_leaf_placement( ) {
     const BlockID placed_id = block_placed_leaf_id( OAK_LEAVES );
     const glm::ivec3 pos( 10, 11, 10 );
     world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), { STONE, 0, 0, STONE, 0 } );
-    gs.blockUpdateQueue.addBlockUpdate(
-        std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, BlockState{ placed_id, 0, 0, placed_id, 0 }, false ) );
+    gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, BlockState{ placed_id, 0, 0, placed_id, 0 }, false );
     const glm::ivec3 pos2( 12, 11, 10 );
-    gs.blockUpdateQueue.addBlockUpdate(
-        std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BlockState{ OAK_LEAVES, 0, 0, OAK_LEAVES, 0 }, false ) );
+    gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BlockState{ OAK_LEAVES, 0, 0, OAK_LEAVES, 0 }, false );
     gs.tick_number++;
     gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
     failures += check_id( world, "place: cell holds persistent leaves", pos, OAK_LEAVES_PERSISTENT );

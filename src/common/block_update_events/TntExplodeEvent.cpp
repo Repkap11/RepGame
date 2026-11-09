@@ -39,7 +39,7 @@ void tnt_launch( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
     // The fallback position covers bodies that vanish before their fuse ends
     // (creeper blasts carry id 0 and always land here).
     const glm::ivec3 explode_pos = glm::ivec3( glm::floor( center ) );
-    blockUpdateQueue.addBlockUpdate( std::make_shared<TntExplodeEvent>( repGameState.tick_number + fuse_ticks, explode_pos, body_id, inverse ) );
+    blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( repGameState.tick_number + fuse_ticks, explode_pos, body_id, inverse );
 }
 
 void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, const long fuse_ticks, const bool inverse ) {

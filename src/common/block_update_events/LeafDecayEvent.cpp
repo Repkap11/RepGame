@@ -60,6 +60,5 @@ void LeafDecayEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameS
     // No log within LEAF_DECAY_RANGE: the leaf breaks and drops its rolled
     // items in either game mode (nothing mined it — decay is a natural
     // cause). Its neighbor updates queue the next leaves' checks.
-    blockUpdateQueue.addBlockUpdate(
-        std::make_shared<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, BLOCK_STATE_AIR, false, BreakDrops::Always ) );
+    blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, BLOCK_STATE_AIR, false, BreakDrops::Always );
 }

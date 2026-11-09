@@ -15,7 +15,10 @@ replaying anything.
 `RepGameState::blockUpdateQueue`) is a priority queue of
 `BlockUpdateEvent`s ordered by `tick_number`, drained once per tick by
 `RepGame::process_block_updates` (`src/common/game/player.cpp`) near the
-top of `RepGame::tick`. Events fire only when their `tick_number` is
+top of `RepGame::tick`. Events are pooled — `addBlockUpdate<E>(args...)`
+placement-news them into fixed slots carved from seed_fifo's shared 4KB
+block pool, so a fluid drain or TNT chain costs no heap traffic. Events
+fire only when their `tick_number` is
 *strictly less* than the current tick — so an event tagged "now" lands
 next tick, and `tick + n` means at least `n` full ticks of delay.
 `REDSTONE_DELAY` (1) is therefore a 2-tick hop per neighbour. Events are

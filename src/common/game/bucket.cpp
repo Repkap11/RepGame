@@ -48,8 +48,7 @@ bool repgame_use_bucket( RepGameState &state ) {
         }
         // Removing the source queues neighbour updates that recede the flow
         // naturally — no explicit drain needed.
-        state.blockUpdateQueue.addBlockUpdate(
-            std::make_shared<PlayerBlockPlacedEvent>( state.tick_number, sel.pos_fluid, BLOCK_STATE_AIR, false ) );
+        state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, sel.pos_fluid, BLOCK_STATE_AIR, false );
         if ( state.game_mode == GameMode_Survival ) {
             bucket_swap_item( state, fluid == LAVA ? LAVA_BUCKET : WATER_BUCKET );
         }
@@ -89,8 +88,7 @@ bool repgame_use_bucket( RepGameState &state ) {
     }
     // Water written onto a waterloggable cell waterlogs it via
     // block_state_normalize in Chunk::set_block.
-    state.blockUpdateQueue.addBlockUpdate(
-        std::make_shared<PlayerBlockPlacedEvent>( state.tick_number, target, write, false ) );
+    state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, target, write, false );
     if ( state.game_mode == GameMode_Survival ) {
         bucket_swap_item( state, BUCKET );
     }

@@ -322,8 +322,7 @@ void RepGame::tick_entities( ) {
         }
     }
     for ( const glm::dvec3 &pos : mob_out.explosions ) {
-        gs.blockUpdateQueue.addBlockUpdate(
-            std::make_shared<TntExplodeEvent>( gs.tick_number, glm::ivec3( glm::floor( pos + glm::dvec3( 0.0, 0.5, 0.0 ) ) ), 0, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( gs.tick_number, glm::ivec3( glm::floor( pos + glm::dvec3( 0.0, 0.5, 0.0 ) ) ), 0, false );
     }
 }
 

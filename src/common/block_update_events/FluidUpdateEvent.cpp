@@ -98,7 +98,7 @@ void fluid_schedule_update( RepGameState &state, const glm::ivec3 &pos ) {
     }
     const Block *def = block_definition_get_definition( fluid );
     const long delay = ( fluid == LAVA && lava_touching_water( state.world, pos ) ) ? 1 : def->flows;
-    state.blockUpdateQueue.addBlockUpdate( std::make_shared<FluidUpdateEvent>( state.tick_number + delay, pos ) );
+    state.blockUpdateQueue.addBlockUpdate<FluidUpdateEvent>( state.tick_number + delay, pos );
 }
 
 int fluid_slope_distance( World &world, const glm::ivec3 &pos, const glm::ivec3 &horiz_dir, const BlockID fluid, const int flow_slope ) {
@@ -156,7 +156,7 @@ void FluidUpdateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGam
     const bool fluid_above = same_fluid( world.get_loaded_block( this->block_pos + fluid_up ), fluid );
 
     auto queue_write = [ & ]( const glm::ivec3 &pos, const BlockState &state, BreakDrops drops = BreakDrops::None ) {
-        blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( this->tick_number, pos, state, false, drops ) );
+        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, pos, state, false, drops );
     };
 
     // R — lava touching water petrifies in place: a source becomes

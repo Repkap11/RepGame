@@ -596,14 +596,12 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
 
     if ( !BlockStates_equal( new_block_state, affecting_block_state ) ) {
         // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_block_state.current_redstone_power );
-        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
-        blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
+        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
     }
 
     if ( !block_can_survive_at( world, block_pos, updateing_block_state ) ) {
         // Support-loss breaks drop the broken block's items in survival.
-        auto blockPlacedEvent = std::make_shared<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival );
-        blockUpdateQueue.addBlockUpdate( blockPlacedEvent );
+        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival );
     }
 
     // Gravity: a falls_with_gravity block over a loaded non-colliding cell
@@ -612,7 +610,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     if ( updateing_block->falls_with_gravity ) {
         const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
         if ( below.id != LAST_BLOCK_ID && !block_definition_get_definition( below.id )->collides_with_player ) {
-            blockUpdateQueue.addBlockUpdate( std::make_shared<FallingBlockEvent>( tick_number + 2, block_pos ) );
+            blockUpdateQueue.addBlockUpdate<FallingBlockEvent>( tick_number + 2, block_pos );
         }
     }
 }
@@ -655,7 +653,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
             leaf_decay_rng_state ^= leaf_decay_rng_state << 5;
             const long delay = LEAF_DECAY_MIN_TICKS +
                                (long)( leaf_decay_rng_state % ( LEAF_DECAY_MAX_TICKS - LEAF_DECAY_MIN_TICKS ) );
-            blockUpdateQueue.addBlockUpdate( std::make_shared<LeafDecayEvent>( this->tick_number + delay, pos ) );
+            blockUpdateQueue.addBlockUpdate<LeafDecayEvent>( this->tick_number + delay, pos );
         }
     }
 }

@@ -67,7 +67,7 @@ int test_redstone( ) {
     // Redstone components placed through the real event path so power updates
     // propagate exactly as in gameplay.
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     place( glm::ivec3( 10, 11, 10 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH, 0 } );  // T1: floor torch
     place( glm::ivec3( 11, 12, 10 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // D: dust beside B
@@ -240,7 +240,7 @@ int test_doors( ) {
     world.set_loaded_block( glm::ivec3( 18, 12, 15 ), stone );
 
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false ) );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     auto run = [ & ]( const int ticks ) {
         for ( int i = 0; i < ticks; i++ ) {
@@ -249,7 +249,7 @@ int test_doors( ) {
         }
     };
     auto toggle = [ & ]( const glm::ivec3 &pos ) {
-        gs.blockUpdateQueue.addBlockUpdate( std::make_shared<DoorEvent>( gs.tick_number, pos, DoorEvent::TOGGLE ) );
+        gs.blockUpdateQueue.addBlockUpdate<DoorEvent>( gs.tick_number, pos, DoorEvent::TOGGLE );
     };
     auto is_open = [ & ]( const glm::ivec3 &pos ) {
         return ( world.get_loaded_block( pos ).rotation & BLOCK_ROTATE_DOOR_FLAG ) != 0;

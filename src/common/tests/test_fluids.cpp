@@ -18,7 +18,7 @@ static RepGameState &new_fluid_state( ) {
 }
 
 static void place( RepGameState &gs, const glm::ivec3 &pos, const BlockState &state ) {
-    gs.blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( gs.tick_number, pos, state, false ) );
+    gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, state, false );
 }
 
 // Water advances one flow step per `flows` (36) ticks plus event latency,

@@ -33,9 +33,9 @@ void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepG
         if ( current_state.current_redstone_power == 0 ) {
             BlockState pressed_state = current_state;
             pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
-            blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, pressed_state, true ) );
+            blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, pressed_state, true );
         }
-        blockUpdateQueue.addBlockUpdate( std::make_shared<PressurePlateEvent>( this->tick_number + PRESSURE_PLATE_RECHECK_TICKS, this->block_pos ) );
+        blockUpdateQueue.addBlockUpdate<PressurePlateEvent>( this->tick_number + PRESSURE_PLATE_RECHECK_TICKS, this->block_pos );
         return;
     }
     // Nobody on it (or the plate is gone/unloaded): release it and end the
@@ -43,7 +43,7 @@ void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepG
     if ( current_state.id != LAST_BLOCK_ID && block_definition_get_definition( current_state.id )->is_pressure_plate && current_state.current_redstone_power > 0 ) {
         BlockState released_state = current_state;
         released_state.current_redstone_power = 0;
-        blockUpdateQueue.addBlockUpdate( std::make_shared<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, released_state, true ) );
+        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, released_state, true );
     }
     repGameState.watched_pressure_plates.erase( this->block_pos );
 }

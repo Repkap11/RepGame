@@ -28,7 +28,7 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
         glm::ivec3( 0, 0, -1 ), //
     };
     for ( const glm::ivec3 &offset : neighbor_offsets ) {
-        blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, offset ) );
+        blockUpdateQueue.addBlockUpdate<BlockNextToChangeEvent>( tick_number, pos, offset );
     }
 
     // Also notify the dust cells diagonally away: dust at pos+horiz+up or
@@ -52,10 +52,10 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
         }
         const Block *side = block_definition_get_definition( side_state.id );
         if ( corner_above_open ) {
-            blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, 1, 0 ) ) );
+            blockUpdateQueue.addBlockUpdate<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, 1, 0 ) );
         }
         if ( !side->is_solid ) {
-            blockUpdateQueue.addBlockUpdate( std::make_shared<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, -1, 0 ) ) );
+            blockUpdateQueue.addBlockUpdate<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, -1, 0 ) );
         }
     }
 }
@@ -269,14 +269,14 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         const bool powered_after = this->blockState.current_redstone_power > 0 || other_power > 0;
         if ( powered_before != powered_after ) {
             const glm::ivec3 lower_pos = new_block->is_door_upper ? other_pos : this->block_pos;
-            blockUpdateQueue.addBlockUpdate( std::make_shared<DoorEvent>( this->tick_number + 1, lower_pos, DoorEvent::SYNC_POWER ) );
+            blockUpdateQueue.addBlockUpdate<DoorEvent>( this->tick_number + 1, lower_pos, DoorEvent::SYNC_POWER );
         }
     }
     // A piston extends/retracts on a power edge. Queue it one tick out so the
     // new power state is visible to the event; the event re-reads live state,
     // so stale triggers are harmless.
     if ( new_block->is_piston && ( current_block_state.current_redstone_power > 0 ) != ( this->blockState.current_redstone_power > 0 ) ) {
-        blockUpdateQueue.addBlockUpdate( std::make_shared<PistonEvent>( this->tick_number + 1, this->block_pos ) );
+        blockUpdateQueue.addBlockUpdate<PistonEvent>( this->tick_number + 1, this->block_pos );
     }
 
     // TNT ignites on a rising power edge: tnt_ignite removes the block,

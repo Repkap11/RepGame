@@ -743,7 +743,7 @@ void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord
         const bool inverse = block_definition_get_definition( b->state.id )->is_inverse_tnt;
         const long remaining = std::max<long>( 1, b->fuse_ticks );
         const glm::ivec3 explode_pos = glm::ivec3( glm::floor( body_center( *b ) ) );
-        state.blockUpdateQueue.addBlockUpdate( std::make_shared<TntExplodeEvent>( state.tick_number + remaining, explode_pos, b->id, inverse ) );
+        state.blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( state.tick_number + remaining, explode_pos, b->id, inverse );
     }
 }
 
