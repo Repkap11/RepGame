@@ -230,6 +230,12 @@ void main() {
             face_scale.xy = mesh_size.zx;
             blockCoords_scale_adjust.xz = blockCoords_scale_adjust.zx;
             texCoordBlock_adjust = vec2(texCoordBlock.y, 1.0f - texCoordBlock.x);
+        } else {
+            // Non-yaw rotations (piston up/down = 4/5): the box is already
+            // world-baked by block_adjust — no texcoord remap, just keep the
+            // merged-quad extent so the tile repeats per cell instead of
+            // stretching over the whole run.
+            face_scale.xy = mesh_size.xz;
         }
         face_scale.x *= blockCoords_scale_adjust.x;
         face_scale.y *= blockCoords_scale_adjust.z;

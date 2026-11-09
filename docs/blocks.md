@@ -180,6 +180,21 @@ pick/collision/icon box (cactus uses `[14,16,14]`/`[1,0,1]`), and
 `can_mesh_*` is disabled so emission stays per-cell — see `cactus.json` and
 the `block->spine_shell` block in chunk.cpp phase 2.
 
+Pistons are the opposite special case: their mesh box depends on state, not
+just the def — a head plate (`is_piston_head`, the
+`*_ARM_COLLISION` blocks) is thin on its facing axis while the def carries
+only the canonical front-facing plate, and an extended base
+(`is_piston` + power) loses the 4px at its head end.
+`block_adjust_coord_based_on_state` bakes the real box per state and
+`piston_head_shape`/`piston_base_shape` (block.hpp) give the same
+world-space box for all six rotations. Phase-2 greedy merging keys off that
+effective box rather than the def scale (chunk.cpp): a run only tiles along
+axes the box fully spans, so head plates merge in the plate plane and never
+along their thin axis. In `chunk_vertex.glsl` the top/bottom face UV window
+must still pick up `mesh_size` for the non-yaw up/down rotations — without
+it a merged run draws one tile stretched over the whole quad instead of
+repeating per cell.
+
 Fences and fence gates draw several box instances per cell in the CPU
 meshing pass (chunk.cpp phase 2, `fence_boxes`/`fence_gate_boxes` in
 block.cpp): a 4x16x4 post plus 2px rails that connect to neighbors.

@@ -1356,7 +1356,25 @@ void Chunk::calculate_populated_blocks( ) {
                         int block_can_mesh_y;
                         int block_can_mesh_z;
 
-                        if ( blockState.rotation == BLOCK_ROTATE_0 || blockState.rotation == BLOCK_ROTATE_180 ) {
+                        if ( block->is_piston_head || ( block->is_piston && blockState.current_redstone_power > 0 ) ) {
+                            // Piston boxes depend on state, not just the def:
+                            // a head plate is thin on its facing axis (the def
+                            // is only the canonical front-facing plate — for
+                            // up/down block_adjust bakes it thin in y) and an
+                            // extended base loses the 4px at its head end. A
+                            // merged run only tiles along axes the effective
+                            // world-space box fully spans, so take the flags
+                            // from the shape helpers instead of the def scale.
+                            short mesh_scale[ 3 ], mesh_offset[ 3 ];
+                            if ( block->is_piston_head ) {
+                                piston_head_shape( blockState.rotation, mesh_scale, mesh_offset );
+                            } else {
+                                piston_base_shape( blockState.rotation, mesh_scale, mesh_offset );
+                            }
+                            block_can_mesh_x = mesh_scale[ 0 ] == 16;
+                            block_can_mesh_y = mesh_scale[ 1 ] == 16;
+                            block_can_mesh_z = mesh_scale[ 2 ] == 16;
+                        } else if ( blockState.rotation == BLOCK_ROTATE_0 || blockState.rotation == BLOCK_ROTATE_180 ) {
                             block_can_mesh_x = block->calculated.can_mesh_x;
                             block_can_mesh_y = block->calculated.can_mesh_y;
                             block_can_mesh_z = block->calculated.can_mesh_z;

@@ -1,0 +1,71 @@
+# Piston staging: rows of same-facing extended pistons greedy-mesh their
+# heads into one quad — the head tile must repeat per cell, not stretch
+# (regression: up/down heads merged along z stretched the tile because
+# face_scale ignored mesh_size for rotations >= 4). Flat floor is
+# SANDSTONE at y=0; AIR starts at y=1.
+wait_idle 20 6000
+# Up-facing piston row along z at x=10 (heads merge along z).
+setblock 9 1 8 REDSTONE_BLOCK
+setblock 9 1 9 REDSTONE_BLOCK
+setblock 9 1 10 REDSTONE_BLOCK
+setblock 9 1 11 REDSTONE_BLOCK
+setblock 10 1 8 PISTON 4
+setblock 10 1 9 PISTON 4
+setblock 10 1 10 PISTON 4
+setblock 10 1 11 PISTON 4
+# Up-facing piston row along x at z=14 (heads merge along x).
+setblock 8 1 15 REDSTONE_BLOCK
+setblock 9 1 15 REDSTONE_BLOCK
+setblock 10 1 15 REDSTONE_BLOCK
+setblock 11 1 15 REDSTONE_BLOCK
+setblock 8 1 14 PISTON 4
+setblock 9 1 14 PISTON 4
+setblock 10 1 14 PISTON 4
+setblock 11 1 14 PISTON 4
+# Down-facing row under a shelf: bases at y=4 facing down, heads at y=3.
+fill 16 4 8 19 4 8 STONE
+setblock 16 5 8 REDSTONE_BLOCK
+setblock 17 5 8 REDSTONE_BLOCK
+setblock 18 5 8 REDSTONE_BLOCK
+setblock 19 5 8 REDSTONE_BLOCK
+setblock 16 4 8 PISTON 5
+setblock 17 4 8 PISTON 5
+setblock 18 4 8 PISTON 5
+setblock 19 4 8 PISTON 5
+# Horizontal row along x facing +z (rot 0) for comparison. The power must
+# sit behind the bases — a source in the head path gets pushed away and the
+# piston retracts again.
+setblock 16 1 13 REDSTONE_BLOCK
+setblock 17 1 13 REDSTONE_BLOCK
+setblock 18 1 13 REDSTONE_BLOCK
+setblock 19 1 13 REDSTONE_BLOCK
+setblock 16 1 14 PISTON 0
+setblock 17 1 14 PISTON 0
+setblock 18 1 14 PISTON 0
+setblock 19 1 14 PISTON 0
+wait 60
+assert_block 10 2 8 PISTON_ARM_COLLISION
+assert_block 10 2 11 PISTON_ARM_COLLISION
+assert_block 8 2 14 PISTON_ARM_COLLISION
+assert_block 11 2 14 PISTON_ARM_COLLISION
+assert_block 16 3 8 PISTON_ARM_COLLISION
+assert_block 19 3 8 PISTON_ARM_COLLISION
+assert_block 16 1 15 PISTON_ARM_COLLISION
+assert_block 19 1 15 PISTON_ARM_COLLISION
+# Straight down over the two up rows: tiled head faces, not one stretch.
+camera 10 9 11 180 85
+wait 20
+screenshot up_heads_top
+# Side view of the z row's rim strips.
+camera 13.5 3.5 9.5 270 20
+wait 20
+screenshot up_heads_side
+# Underneath the down-facing shelf row: bottom head faces.
+camera 17.5 1.5 11 0 -60
+wait 20
+screenshot down_heads
+# Front view of the horizontal +z row.
+camera 17.5 3 17 0 15
+wait 20
+screenshot front_heads
+echo pistons done
