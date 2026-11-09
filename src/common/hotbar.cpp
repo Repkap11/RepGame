@@ -23,7 +23,6 @@ void Hotbar::applySavedInventory( const InventorySlot *savedSlots ) {
     for ( int i_slot = 0; i_slot < this->num_blocks_max; i_slot++ ) {
         const InventorySlot &slot = savedSlots[ i_slot ];
         this->slots[ i_slot ] = slot;
-        itemId_to_slot_map.emplace( slot.item_id, i_slot );
         this->inventory_renderer.changeSlotItem( i_slot, slot );
     }
 }
@@ -75,9 +74,9 @@ bool Hotbar::addItem( const bool alsoSelect, ItemID itemId ) {
         // You can't keep transparent blocks in the inventory
         return false;
     }
-    const auto it = this->itemId_to_slot_map.find( itemId );
+    const int existing_slot = this->findSlotWithItem( itemId, false );
     int affectedSlot;
-    if ( it == this->itemId_to_slot_map.end( ) ) {
+    if ( existing_slot < 0 ) {
         // This is a new block
         int newSlot;
         if ( alsoSelect && this->slots[ this->selected_slot ].item_id == LAST_BLOCK_ID ) {
@@ -90,17 +89,14 @@ bool Hotbar::addItem( const bool alsoSelect, ItemID itemId ) {
             newSlot = this->selected_slot;
         }
         InventorySlot &slot = this->slots[ newSlot ];
-        itemId_to_slot_map.erase( slot.item_id );
         slot.item_id = itemId;
         slot.quantity = 1;
-        itemId_to_slot_map.emplace( itemId, newSlot );
         this->inventory_renderer.changeSlotItem( newSlot, slot );
         affectedSlot = newSlot;
 
     } else {
         // This is an existing block, do nothing for now.
-        affectedSlot = it->second;
-        // int existingSlot = it->second;
+        affectedSlot = existing_slot;
     }
     if ( alsoSelect ) {
         this->setSelectedSlot( affectedSlot );
@@ -157,7 +153,6 @@ bool Hotbar::addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selec
                 int to_add = ( remaining < item_max_stack( itemId ) ) ? remaining : item_max_stack( itemId );
                 slot.item_id = itemId;
                 slot.quantity = to_add;
-                itemId_to_slot_map.emplace( itemId, this->selected_slot );
                 remaining -= to_add;
                 this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
             }
@@ -172,7 +167,6 @@ bool Hotbar::addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selec
             int to_add = ( remaining < item_max_stack( itemId ) ) ? remaining : item_max_stack( itemId );
             slot.item_id = itemId;
             slot.quantity = to_add;
-            itemId_to_slot_map.emplace( itemId, i );
             remaining -= to_add;
             this->inventory_renderer.changeSlotItem( i, slot );
         }
@@ -193,7 +187,6 @@ bool Hotbar::consumeSelected( int amount ) {
     }
     slot.quantity -= amount;
     if ( slot.quantity <= 0 ) {
-        itemId_to_slot_map.erase( slot.item_id );
         slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     }
@@ -252,7 +245,6 @@ ItemID Hotbar::dropSelectedItem( ) {
         // There is no block, so we can't drop anything
         return LAST_BLOCK_ID;
     }
-    itemId_to_slot_map.erase( droppedItem );
     slot.item_id = LAST_BLOCK_ID;
     this->inventory_renderer.changeSlotItem( this->selected_slot, slot );
     return droppedItem;
@@ -274,7 +266,6 @@ void Hotbar::pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_hol
             return;
         }
         held = slot;
-        this->itemId_to_slot_map.erase( slot.item_id );
         slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
         this->inventory_renderer.changeSlotItem( slot_index, slot );
@@ -294,17 +285,10 @@ void Hotbar::pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_hol
             }
             return;
         }
-        // Place / swap. Remove old map entries for both the held item and
-        // the target slot's item (if any), then re-insert after the swap.
-        if ( slot.item_id != LAST_BLOCK_ID && slot.quantity > 0 ) {
-            this->itemId_to_slot_map.erase( slot.item_id );
-        }
+        // Place / swap.
         InventorySlot tmp = slot;
         slot = held;
         held = tmp;
-        if ( slot.item_id != LAST_BLOCK_ID && slot.quantity > 0 ) {
-            this->itemId_to_slot_map[ slot.item_id ] = slot_index;
-        }
         this->inventory_renderer.changeSlotItem( slot_index, slot );
         if ( held.item_id == LAST_BLOCK_ID || held.quantity <= 0 ) {
             is_holding = false;
@@ -327,7 +311,6 @@ void Hotbar::rightClickSlot( int slot_index, InventorySlot &held, bool &is_holdi
         held.quantity = take;
         slot.quantity -= take;
         if ( slot.quantity <= 0 ) {
-            this->itemId_to_slot_map.erase( slot.item_id );
             slot.item_id = LAST_BLOCK_ID;
             slot.quantity = 0;
         }
@@ -338,8 +321,6 @@ void Hotbar::rightClickSlot( int slot_index, InventorySlot &held, bool &is_holdi
         if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             slot.item_id = held.item_id;
             slot.quantity = 1;
-            const ItemID held_id = held.item_id;
-            this->itemId_to_slot_map.emplace( held_id, slot_index );
             held.quantity--;
         } else if ( slot.item_id == held.item_id && slot.quantity < item_max_stack( held.item_id ) ) {
             slot.quantity++;
@@ -376,7 +357,6 @@ bool Hotbar::moveToSurvivalInventory( int slot_index, class SurvivalInventory &s
         return true;
     }
     // Everything was moved; clear the hotbar slot.
-    this->itemId_to_slot_map.erase( slot.item_id );
     slot.item_id = LAST_BLOCK_ID;
     slot.quantity = 0;
     this->inventory_renderer.changeSlotItem( slot_index, slot );
@@ -399,7 +379,6 @@ bool Hotbar::moveHalfToSurvivalInventory( int slot_index, class SurvivalInventor
     }
     slot.quantity -= moved;
     if ( slot.quantity <= 0 ) {
-        this->itemId_to_slot_map.erase( slot.item_id );
         slot.item_id = LAST_BLOCK_ID;
         slot.quantity = 0;
     }
@@ -419,12 +398,6 @@ void Hotbar::setSlotContents( int slot_index, const InventorySlot &value ) {
         return;
     }
     InventorySlot &slot = this->slots[ slot_index ];
-    if ( slot.item_id != LAST_BLOCK_ID && slot.item_id != value.item_id ) {
-        this->itemId_to_slot_map.erase( slot.item_id );
-    }
     slot = value;
-    if ( value.item_id != LAST_BLOCK_ID && value.quantity > 0 ) {
-        this->itemId_to_slot_map[ value.item_id ] = slot_index;
-    }
     this->inventory_renderer.changeSlotItem( slot_index, slot );
 }

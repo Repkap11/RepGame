@@ -2,7 +2,6 @@
 
 #include "common/inventory_renderer.hpp"
 #include "common/item.hpp"
-#include <map>
 
 class FontRenderer;
 
@@ -14,7 +13,6 @@ class Hotbar {
     int height;
     int num_blocks_max;
     InventorySlot *slots;
-    std::map<ItemID, int> itemId_to_slot_map;
     int selected_slot;
 
     int findOpenSlot( ) const;
@@ -47,8 +45,7 @@ class Hotbar {
     void cleanup( );
 
     // Minecraft-style click-to-pick-up / click-to-place. Merges onto matching
-    // stacks instead of swapping. Maintains the itemId_to_slot_map so
-    // addItem/addItemWithQuantity stay consistent.
+    // stacks instead of swapping.
     void pickupOrSwapSlot( int slot_index, InventorySlot &held, bool &is_holding );
 
     // Minecraft-style right-click: picks up half of the slot's stack (rounded
@@ -63,7 +60,7 @@ class Hotbar {
     // inventory. Returns true if anything moved.
     bool moveHalfToSurvivalInventory( int slot_index, class SurvivalInventory &survival_inventory );
 
-    // Read/replace a slot's whole stack, keeping itemId_to_slot_map and the
+    // Read/replace a slot's whole stack, keeping the
     // icon renderer consistent. Used by chest transfers.
     InventorySlot getSlotContents( int slot_index ) const;
     void setSlotContents( int slot_index, const InventorySlot &value );
