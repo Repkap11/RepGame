@@ -15,8 +15,8 @@
 
 ARM_SDK ?= /home/prepka/Software/430/001/d3-renesas-bsp/yocto-sdk
 ARM_OUT ?= out/arm
-ARM_DEVICE ?= root@renesas-v4h
-ARM_DEPLOY_DIR ?= /home/root
+ARM_DEVICE ?= ubuntu@renesas-v4h
+ARM_DEPLOY_DIR ?= /home/ubuntu
 ARM_SDL3_VERSION ?= 3.4.16
 # SDL3 lives outside $(ARM_OUT) so out/arm is created only by the cmake build.
 ARM_SDL3_DIR := out/arm-sdl3
@@ -66,12 +66,20 @@ arm-sdl3: $(ARM_SDL3_PREFIX)/lib/libSDL3.a
 arm-deploy: arm
 	rsync $(ARM_OUT)/release/$(TARGET) $(ARM_DEVICE):$(ARM_DEPLOY_DIR)/
 
+# The Ubuntu image keeps Imagination's proprietary GLES stack in
+# /usr/lib/aarch64-linux-gnu/pvr (package libpvr1-v4h); glvnd only registers
+# Mesa, so an unwrapped run gets llvmpipe (Zink rejects the PowerVR Vulkan
+# device). Pointing LD_LIBRARY_PATH there is what the image's `pvr-run`
+# wrapper does; the dir simply doesn't exist on the Yocto BSP, where the
+# PowerVR libs are already the default, so the line is harmless either way.
+ARM_PVR_LIBS := LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/pvr
+
 arm-run: arm-deploy
-	ssh -t $(ARM_DEVICE) 'cd $(ARM_DEPLOY_DIR) && XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 ./$(TARGET) $(WORLD) www.repkap11.com'
+	ssh -t $(ARM_DEVICE) 'cd $(ARM_DEPLOY_DIR) && XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 $(ARM_PVR_LIBS) ./$(TARGET) $(WORLD) www.repkap11.com'
 
 arm_debug-run: arm_debug
 	rsync $(ARM_OUT)/debug/$(TARGET) $(ARM_DEVICE):$(ARM_DEPLOY_DIR)/$(TARGET)_debug
-	ssh -t $(ARM_DEVICE) 'cd $(ARM_DEPLOY_DIR) && XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 ./$(TARGET)_debug $(WORLD_DEBUG)'
+	ssh -t $(ARM_DEVICE) 'cd $(ARM_DEPLOY_DIR) && XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 $(ARM_PVR_LIBS) ./$(TARGET)_debug $(WORLD_DEBUG)'
 
 clean: clean-arm
 clean-arm:

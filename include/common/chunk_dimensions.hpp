@@ -18,8 +18,6 @@
 // maximum runtime render distance. The active radius starts at
 // CHUNK_RADIUS_XZ_DEFAULT (the old fixed radius) and adjusts live with =/-;
 // the vertical radius is fixed at CHUNK_RADIUS_Y.
-// The GLES (arm) build uses the small radii: the PowerVR board can't carry
-// the desktop-size torus.
 // Same radii as the GLES block for now; the Steam Frame gets its own
 // branch because it's tuned separately from the Yocto board.
 #if defined( REPGAME_STEAMFRAME )
@@ -30,6 +28,14 @@
 #define CHUNK_RADIUS_XZ 32
 #define CHUNK_RADIUS_XZ_DEFAULT 8
 #define CHUNK_RADIUS_Y 4
+#elif defined( REPGAME_LINUX ) && defined( REPGAME_GLES )
+// The Yocto ARM board (REPGAME_LINUX + REPGAME_GLES) renders on llvmpipe,
+// so even the Android-size torus is too heavy: 16 gives 5445 slots while
+// the board can barely draw a radius-3 window. 6/1 keeps 845 slots and
+// starts on the tiny radius it can actually run.
+#define CHUNK_RADIUS_XZ 6
+#define CHUNK_RADIUS_XZ_DEFAULT 1
+#define CHUNK_RADIUS_Y 2
 #elif defined( REPGAME_WASM )
 // The wasm32 heap is a fixed ~3.9GB (makefiles/wasm.mk). A live window of
 // non-air chunks costs ~0.8MB each (512KB cells + light volume + air mask),

@@ -46,7 +46,8 @@ is `docs/chunks.md`; the light model these tunables feed is
   capped at 38% of render distance so small render distances look
   unchanged.
 - `REPGAME_RENDER_DISTANCE` — initial horizontal render distance in chunks
-  (1..`CHUNK_RADIUS_XZ`, default `CHUNK_RADIUS_XZ_DEFAULT` = half the max). The chunk torus is always allocated
+  (1..`CHUNK_RADIUS_XZ`, default `CHUNK_RADIUS_XZ_DEFAULT`; both are
+per-platform defines in `chunk_dimensions.hpp`). The chunk torus is always allocated
   at the compile-time `CHUNK_RADIUS_*`; the runtime radius is an active
   window inside it — out-of-window slots park (`load_state` =
   `CHUNK_PARKED`, so light/draw/tick paths treat them as unloaded). Parking

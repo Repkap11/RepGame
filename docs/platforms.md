@@ -35,13 +35,14 @@ file-level `out/...` rules) are omitted on purpose.
   `clean-openxr`, `clean-server`, `clean-sounds`, `clean-steamframe`,
   `clean-wasm`, `clean-windows`).
 
-## ARM build (aarch64 Yocto board, GLES/Wayland)
+## ARM build (aarch64 board, GLES/Wayland)
 
-Cross-compiles the Linux client for a Yocto aarch64 board (PowerVR GLES 3.2,
-Weston) using a Yocto SDK on the host. `REPGAME_GLES` selects the GLES port:
+Cross-compiles the Linux client for an aarch64 board (PowerVR GLES 3.2,
+Weston; device now runs Ubuntu 24.04) using a Yocto SDK on the host. `REPGAME_GLES` selects the GLES port:
 GLES headers instead of glew, an ES 3.2 context, `glTexStorage2DMultisample`
-resizes + `glCopyImageSubData` for the depth snapshot, and the small chunk
-radii (same as Android/WASM) since the board can't carry the desktop torus.
+resizes + `glCopyImageSubData` for the depth snapshot, and its own even
+smaller chunk radii (`CHUNK_RADIUS_XZ` 6, default 1 — below the
+Android/WASM small torus) since the AXM-8-256 is a weak GPU.
 SDL3 is built static from source under `out/arm-sdl3` with the SDK toolchain.
 Compile is CMake (`REPGAME_PLATFORM=arm`, toolchain
 `cmake/toolchains/arm.cmake` driven by `ARM_SDK`); arm.mk is the task runner,
@@ -53,9 +54,17 @@ so arm can be built in the same invocation as other platforms (e.g.
 - `make arm-deploy` — rsync the release binary to `$(ARM_DEVICE):$(ARM_DEPLOY_DIR)`.
 - `make arm-run` / `make arm_debug-run` — deploy + run over ssh.
 - Overrides: `ARM_SDK` (Yocto SDK path), `ARM_DEVICE` (default
-  `root@renesas-v4h`), `ARM_DEPLOY_DIR`, `ARM_SDL3_VERSION`.
+  `ubuntu@renesas-v4h`), `ARM_DEPLOY_DIR`, `ARM_SDL3_VERSION`.
 - Running over ssh needs Wayland env vars:
   `XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1`.
+- GPU on the Ubuntu image (`libpvr1-v4h`): the proprietary GLES stack lives
+  in `/usr/lib/aarch64-linux-gnu/pvr` and is NOT registered with glvnd, so a
+  plain run loads Mesa — Zink rejects the PowerVR Vulkan device
+  (`fillModeNonSolid`) and you get llvmpipe. `arm-run`/`arm_debug-run` set
+  `LD_LIBRARY_PATH` to the pvr dir (same thing the image's `pvr-run` wrapper
+  does); check the `Using OpenGL Renderer` log line — `PowerVR A-Series
+  AXM-8-256` means GPU, `llvmpipe` means Mesa. On the Yocto BSP the pvr libs
+  were the system default so no wrapper was needed.
 - The device has no working DNS, so `arm-run`'s public-server connect fails —
   use `arm_debug-run` (single-player) or plain ssh.
 
