@@ -14,7 +14,7 @@ void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->num_blocks_max = width * height;
     // Each slot can need several icon instances — multi-box blocks like
     // stairs draw one isometric box per instance (slab + step).
-    this->slots_entities = static_cast<entt::entity *>( calloc( this->num_blocks_max * STAIRS_MAX_BOXES, sizeof( entt::entity ) ) );
+    this->slots_entities = static_cast<entt::entity *>( calloc( this->num_blocks_max * ICON_MAX_BOXES, sizeof( entt::entity ) ) );
 
     this->vb_max_size = this->num_blocks_max * num_points_per_block * ISOMETRIC_FACES;
     this->ib_max_size = this->num_blocks_max * num_index_per_block * ISOMETRIC_FACES;
@@ -25,7 +25,7 @@ void InventoryRenderer::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->render_chain_inventory_icons.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_inventory_background.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
-    for ( int i_slot = 0; i_slot < this->num_blocks_max * STAIRS_MAX_BOXES; i_slot++ ) {
+    for ( int i_slot = 0; i_slot < this->num_blocks_max * ICON_MAX_BOXES; i_slot++ ) {
         this->slots_entities[ i_slot ] = entt::null;
     }
 }
@@ -315,7 +315,7 @@ void InventoryRenderer::renderBackground( ) {
 }
 
 void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &inventory_slot ) {
-    entt::entity *slot_entities = &this->slots_entities[ slot_index * STAIRS_MAX_BOXES ];
+    entt::entity *slot_entities = &this->slots_entities[ slot_index * ICON_MAX_BOXES ];
 
     const ItemID item_id = inventory_slot.item_id;
     int want = 0;
@@ -326,7 +326,7 @@ void InventoryRenderer::singleItemRender( int slot_index, const InventorySlot &i
     }
     const int block_grid_coord_x = slot_index % this->width;
     const int block_grid_coord_y = slot_index / this->width;
-    for ( int box = 0; box < STAIRS_MAX_BOXES; box++ ) {
+    for ( int box = 0; box < ICON_MAX_BOXES; box++ ) {
         entt::entity &slot_entity = slot_entities[ box ];
         if ( box >= want ) {
             if ( slot_entity != entt::null ) {

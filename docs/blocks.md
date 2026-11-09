@@ -156,8 +156,9 @@ importer applies the `cutout` set plus the entry's own properties
 (`is_fence`, `is_stairs`, `scale`, `offset`, ...) and keeps the block's
 plain textures; the entry's optional `"icon_mask"` grid cuts a generated
 `<side_tex>__<shape>`
-tile used as the flat inventory icon (`icon_is_isometric=false`) — stairs
-don't use it, they draw a real two-box isometric icon instead.
+tile used as the flat inventory icon (`icon_is_isometric=false`) — stairs,
+fences and gates don't use it, they draw real multi-box isometric icons
+instead (`block_icon_boxes`).
 **Template shapes** (slab, button, pressure_plate, carpet, trapdoor) copy
 geometry (`scale`/`offset`/`tex_offset`) plus behaviour properties
 (`is_button`, `is_pressure_plate`, `collides_with_player`, ...) from a named
@@ -201,7 +202,15 @@ between adjacent posts nor jump the fence. Because a box can reach above
 its cell, the collision scan includes one layer below the player AABB.
 Open gates still don't collide. Raycast and the `MouseSelection` outline
 consume the rendered `fence_boxes` list — a connected rail is pickable
-and outlined — while gates stay a single bounding box.
+and outlined — while gates stay a single bounding box. Fence and gate
+items draw the model boxes as their icons (`icon_is_isometric`, no
+`icon_mask`): `fence_icon_boxes` shows a connected segment and
+`fence_gate_icon_boxes` the closed leaf — both yawed to span z so the
+long profile lands on the iso view's RIGHT face (a held fence/gate
+points away instead of lying flat across the hand). Both emit the posts
+last because every icon box instance shares one screen depth and later
+boxes draw nearer, so the post faces must win where the rail
+middles/ends sit inside them.
 
 Stairs render as 2-3 box instances per cell (chunk.cpp phase 2,
 `stairs_boxes` in block.cpp): a full-width half slab plus a full-height
@@ -230,10 +239,12 @@ world-space list, so a neighbor change re-shapes every consumer at once.
 Half-height steps ride the normal `STEP_HEIGHT` path, so walking up a
 staircase needs no special movement code. Stair items draw their real
 shape everywhere an icon appears (`icon_is_isometric`, no `icon_mask`):
-`stairs_icon_boxes` gives the straight bottom-half stair yawed 180 so the
+`stairs_icon_boxes` gives the straight bottom-half stair yawed 270 so the
 tread faces the iso view's front, and inventory slots, the dragged item,
 the in-hand block and dropped item entities each emit one instance per
-box (`block_icon_box_count`).
+box (`block_icon_box_count`). Fences and gates ride the same path —
+`block_icon_boxes` dispatches on the block flags and `ICON_MAX_BOXES`
+bounds every per-box instance array.
 
 Half slabs (OAK_SLAB etc. — the derived `is_slab` flag marks any colliding,
 bottom-aligned, half-height box over the full footprint, so the legacy

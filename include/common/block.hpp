@@ -362,6 +362,11 @@ int fence_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] );
 // connected axis, all 24px tall (1.5 blocks, like Minecraft) so fences
 // can't be jumped. Returns the box count.
 int fence_collision_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ] );
+// Icon/pickup shape for a fence item: a lone post reads as a stick, so the
+// item shows a connected segment spanning z — the two z-merged rails then
+// the post. Icon boxes draw back-to-front (one depth per box, later =
+// nearer) and the post's faces must beat the rails' where they overlap.
+int fence_icon_boxes( BlockBox out[ FENCE_MAX_BOXES ] );
 // Fill `out` with the gate's definition-space (rotation 0, spans x) boxes;
 // the shader turns them with face_shift = rot & 3. Returns the box count.
 int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );
@@ -369,6 +374,10 @@ int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] );
 // facing to the player's yaw when it shares the gate's axis (so the gate
 // opens away from the player).
 unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot );
+// Icon/pickup shape for a gate item: the closed leaf yawed 90 to span z,
+// posts emitted last so their faces cover the rail end caps inside them
+// (icon boxes draw back-to-front).
+int fence_gate_icon_boxes( BlockBox out[ FENCE_GATE_MAX_BOXES ] );
 
 // ---- Stairs -----------------------------------------------------------------
 // Stairs store the facing in rotation bits 0-1 — the yaw index doubles as the
@@ -431,6 +440,19 @@ int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], B
 // FRONT — and the steps read ascending to the left. Returns the box count
 // (2: slab + step).
 int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] );
+
+// ---- Item icons -------------------------------------------------------------
+// The largest multi-box item icon (the closed gate's 5 boxes). Every
+// per-box icon path — inventory slots, the dragged item, held and dropped
+// item entities — sizes its instance array by this.
+#define ICON_MAX_BOXES 5
+// The model-space boxes a block's item icon draws: stairs their
+// stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),
+// gates the closed leaf spanning z (fence_gate_icon_boxes). Returns the
+// box count — 0 for blocks whose icon is their single def box
+// (Block::scale/offset/tex_offset), which callers draw through the
+// non-box path.
+int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] );
 
 // ---- Slabs ------------------------------------------------------------------
 // Half slabs store the vertical half in rotation bit 2 — the same bit the

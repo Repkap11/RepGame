@@ -236,7 +236,7 @@ bool ItemEntities::item_chunk_live( World &world, const ItemEntity &it ) const {
 
 void ItemEntities::drop_render_instance( ItemEntity &it ) {
     const bool cube = item_is_block( it.item ) && item_icon_is_isometric( it.item );
-    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+    for ( int i = 0; i < ICON_MAX_BOXES; i++ ) {
         if ( it.entities[ i ] == entt::null ) {
             continue;
         }
@@ -975,14 +975,14 @@ void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntitySta
     }
 }
 
-// Per-box BlockObjectInstance shape for a dropped/held block item: stairs
-// draw their icon boxes (slab + step); other blocks draw one def-space box.
-// item_centered recentres single-box shapes on the spin axis (slab rests on
-// the ground); stair boxes already span the full footprint at y=0.
+// Per-box BlockObjectInstance shape for a dropped/held block item: multi-box
+// icons (stairs, fences, gates) draw their icon boxes; other blocks draw one
+// def-space box. item_centered recentres single-box shapes on the spin axis
+// (slab rests on the ground); icon boxes already span the full footprint at
+// y=0.
 static void block_item_shape( const Block *block, bool item_centered, int box, BlockObjectInstance &inst ) {
-    if ( block->is_stairs ) {
-        BlockBox boxes[ STAIRS_MAX_BOXES ];
-        stairs_icon_boxes( boxes );
+    BlockBox boxes[ ICON_MAX_BOXES ];
+    if ( block_icon_boxes( block, boxes ) > 0 ) {
         const BlockBox &b = boxes[ box ];
         inst.shape_scale = glm::vec3( b.scale[ 0 ], b.scale[ 1 ], b.scale[ 2 ] );
         inst.shape_offset = glm::vec3( b.offset[ 0 ], b.offset[ 1 ], b.offset[ 2 ] );
@@ -1068,7 +1068,7 @@ void ItemEntities::set_held_item( ItemID item ) {
     }
     this->held_item_id = item;
     this->held_entity = entt::null;
-    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+    for ( int i = 0; i < ICON_MAX_BOXES; i++ ) {
         this->held_block_entities[ i ] = entt::null;
     }
     this->render_held.clear( );
@@ -1078,7 +1078,7 @@ void ItemEntities::set_held_item( ItemID item ) {
     }
     if ( item_is_block( item ) && item_icon_is_isometric( item ) ) {
         // Isometric block icon: the same cube mesh dropped block items draw,
-        // one instance per icon box (stairs draw slab + step).
+        // one instance per icon box (stairs/fences/gates draw their boxes).
         const Block *block = block_definition_get_definition( static_cast<BlockID>( item ) );
         const int nboxes = block_icon_box_count( block );
         for ( int i = 0; i < nboxes; i++ ) {
@@ -1107,7 +1107,7 @@ void ItemEntities::update_held( const glm::vec2 &light ) {
         inst.light = light;
         this->render_held.invalidate_all( );
     }
-    for ( int i = 0; i < STAIRS_MAX_BOXES; i++ ) {
+    for ( int i = 0; i < ICON_MAX_BOXES; i++ ) {
         if ( this->held_block_entities[ i ] == entt::null ) {
             continue;
         }

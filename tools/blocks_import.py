@@ -410,9 +410,11 @@ def creative_signature(b, r, layers):
         tuple(b.get("scale", [16, 16, 16])),
         tuple(b.get("offset", [0, 0, 0])),
         tuple(b.get("tex_offset", [0, 0, 0])),
-        # The icon's box count isn't in scale/offset: an isometric stair
-        # draws its own two boxes, distinct from a same-textured cube.
-        b.get("is_stairs", False),
+        # The icon's box count isn't in scale/offset: multi-box model icons
+        # (stairs, fences, gates) draw their own boxes, distinct from a
+        # same-textured single-box icon.
+        (b.get("is_stairs", False), b.get("is_fence", False),
+         b.get("is_fence_gate", False)),
         b.get("render_order", "Opaque"),
     )
 

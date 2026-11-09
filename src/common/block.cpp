@@ -203,6 +203,40 @@ int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {
     return n;
 }
 
+int fence_icon_boxes( BlockBox out[ FENCE_MAX_BOXES ] ) {
+    // A connected segment spanning z: the merged z rails put the fence's
+    // long profile on the iso RIGHT face so a held fence points away
+    // rather than lying flat across the hand. fence_boxes emits the post
+    // first, but icon boxes draw back-to-front and the post's faces must
+    // beat the rails' where they overlap in the isometric projection.
+    const int n = fence_boxes( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z, out );
+    const BlockBox post = out[ 0 ];
+    for ( int i = 1; i < n; i++ ) {
+        out[ i - 1 ] = out[ i ];
+    }
+    out[ n - 1 ] = post;
+    return n;
+}
+
+int fence_gate_icon_boxes( BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {
+    // The closed leaf yawed 90 to span z, putting the leaf profile on the
+    // iso RIGHT face like the fence. fence_gate_boxes emits the two posts
+    // first; the icon wants them last so their faces cover the rail end
+    // caps that sit inside them (icon boxes share one depth each, later =
+    // nearer).
+    const int n = fence_gate_boxes( false, out );
+    const BlockBox posts[ 2 ] = { out[ 0 ], out[ 1 ] };
+    for ( int i = 2; i < n; i++ ) {
+        out[ i - 2 ] = out[ i ];
+    }
+    out[ n - 2 ] = posts[ 0 ];
+    out[ n - 1 ] = posts[ 1 ];
+    for ( int i = 0; i < n; i++ ) {
+        block_rotate_box( BLOCK_ROTATE_90, out[ i ].scale, out[ i ].offset );
+    }
+    return n;
+}
+
 unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot ) {
     if ( rotation & BLOCK_ROTATE_GATE_OPEN ) {
         return static_cast<unsigned char>( rotation & ~BLOCK_ROTATE_GATE_OPEN );
@@ -318,6 +352,19 @@ int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] ) {
         block_rotate_box( BLOCK_ROTATE_270, out[ i ].scale, out[ i ].offset );
     }
     return n;
+}
+
+int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
+    if ( block->is_stairs ) {
+        return stairs_icon_boxes( out );
+    }
+    if ( block->is_fence ) {
+        return fence_icon_boxes( out );
+    }
+    if ( block->is_fence_gate ) {
+        return fence_gate_icon_boxes( out );
+    }
+    return 0;
 }
 
 void block_adjust_coord_based_on_state( const Block *block, const BlockState *blockState, BlockCoords *blockCoord ) {

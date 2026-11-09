@@ -89,11 +89,13 @@ constexpr static unsigned int ib_isometric_quad[ IB_ISOMETRIC_QUAD_SIZE ] = {
     13, 14, 15  //
 };
 
-// Icon instances a block needs: stairs draw their two model boxes (slab +
-// step) so the icon reads as a stair, not a cube; everything else is one
-// icon.
+// Icon instances a block needs: multi-box models (stairs, fences, gates)
+// draw their real boxes so the icon reads as the shape, not a cube;
+// everything else is one icon.
 static inline int block_icon_box_count( const Block *block ) {
-    return block->is_stairs ? 2 : 1; // STAIRS_STRAIGHT is slab + step
+    BlockBox boxes[ ICON_MAX_BOXES ];
+    const int n = block_icon_boxes( block, boxes );
+    return n > 0 ? n : 1;
 }
 
 // Populates the block-specific fields of a UIOverlayInstance from a Block
@@ -115,9 +117,8 @@ inline void set_block_icon( UIOverlayInstance &inst, const Block *block, int box
             inst.id_isos[ face ] = block->textures[ inventory_isometric_face[ face ] ];
         }
     }
-    if ( block->is_stairs ) {
-        BlockBox boxes[ STAIRS_MAX_BOXES ];
-        stairs_icon_boxes( boxes );
+    BlockBox boxes[ ICON_MAX_BOXES ];
+    if ( block_icon_boxes( block, boxes ) > 0 ) {
         const BlockBox &b = boxes[ box_index ];
         for ( int i = 0; i < 3; i++ ) {
             inst.block_scale[ i ] = b.scale[ i ];

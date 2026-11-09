@@ -111,6 +111,26 @@ int test_fences( ) {
                     spruce_gate->offset.x == 0 && spruce_gate->offset.y == 5 && spruce_gate->offset.z == 6 );
     check_bool( "def: NETHER_BRICK_FENCE is_fence", nether->is_fence );
 
+    // --- item icons: the real model boxes, emitted back-to-front ------------
+    const Block *oak_gate = block_definition_get_definition( FENCE_GATE );
+    check_bool( "icon: fence + gate are isometric", oak->icon_is_isometric && oak_gate->icon_is_isometric );
+    const int n_fence_icon = fence_icon_boxes( boxes );
+    check_bool( "icon: fence shows a connected segment", n_fence_icon == 3 );
+    check_bool( "icon: fence rails merged across z",
+                boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 2 ] == 16 && boxes[ 0 ].scale[ 0 ] == 2 && //
+                    boxes[ 1 ].offset[ 2 ] == 0 && boxes[ 1 ].scale[ 2 ] == 16 );
+    check_bool( "icon: fence post drawn last (nearer)",
+                boxes[ n_fence_icon - 1 ].scale[ 0 ] == 4 && boxes[ n_fence_icon - 1 ].scale[ 1 ] == 16 && //
+                    boxes[ n_fence_icon - 1 ].offset[ 0 ] == 6 && boxes[ n_fence_icon - 1 ].offset[ 2 ] == 6 );
+    const int n_gate_icon = fence_gate_icon_boxes( boxes );
+    check_bool( "icon: gate shows the closed leaf", n_gate_icon == 5 );
+    check_bool( "icon: gate leaf yawed to span z",
+                boxes[ 0 ].offset[ 0 ] == 7 && boxes[ 0 ].scale[ 0 ] == 2 && boxes[ 0 ].scale[ 2 ] == 12 );
+    check_bool( "icon: gate posts drawn last",
+                boxes[ n_gate_icon - 2 ].offset[ 2 ] == 0 && boxes[ n_gate_icon - 1 ].offset[ 2 ] == 14 && //
+                    boxes[ n_gate_icon - 1 ].offset[ 0 ] == 7 && boxes[ n_gate_icon - 1 ].scale[ 1 ] == 11 );
+    check_bool( "icon: box counts", block_icon_box_count( oak ) == 3 && block_icon_box_count( oak_gate ) == 5 );
+
     // Creative listing: the oak fence/gate show up as the legacy FENCE and
     // FENCE_GATE ids (they win the dedupe now that OAK_FENCE shares the fence
     // model signature — there is no separate OAK_FENCE_GATE block).
@@ -421,7 +441,7 @@ int test_stairs( ) {
                 strstr( texture_name( oak_stairs->textures[ FACE_LEFT ] ), "__stairs" ) == nullptr );
     check_bool( "def: isometric stair icon", oak_stairs->icon_is_isometric );
 
-    // Icon shape: slab + step yawed 180 so the tread faces +z (iso FRONT).
+    // Icon shape: slab + step yawed 270 so the tread faces +z (iso FRONT).
     BlockBox icon_boxes[ STAIRS_MAX_BOXES ];
     const int n_icon = stairs_icon_boxes( icon_boxes );
     check_bool( "icon: slab + step", n_icon == 2 );
