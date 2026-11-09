@@ -189,7 +189,19 @@ void main() {
     vec2 working_hi = max(v_tex_max - (0.5f / 16.0f), working_lo);
     working = clamp(working, working_lo, working_hi);
 
-    vec4 texColor = textureGrad(u_Texture, vec3(working, v_blockID), uv_dx, uv_dy);
+    vec4 texColor;
+    if(u_FluidAnim == 0 && v_face_normal.y > 0.5f &&
+       (v_blockID == uint(TEX_WATER_FLOW) || v_blockID == uint(TEX_LAVA_FLOW))) {
+        // Static tiers get no flow-strip shading, and the rotated top UVs
+        // would smear under the `working` edge clamp — show the still tile
+        // at the raw (rotated) UVs so sloped tops keep their texture and
+        // match the source surface's hue. (At X_HIGH the u_FluidAnim
+        // branch below shades tops with the flow strip.)
+        uint still_layer = v_blockID == uint(TEX_WATER_FLOW) ? uint(TEX_WATER_STILL) : uint(TEX_LAVA_STILL);
+        texColor = texture(u_Texture, vec3(v_TexCoordBlock, still_layer));
+    } else {
+        texColor = textureGrad(u_Texture, vec3(working, v_blockID), uv_dx, uv_dy);
+    }
     // u_DebugFlags bit 2: texture detail off — resample at a coarse mip.
     if((u_DebugFlags & 2) != 0) {
         texColor.rgb = textureLod(u_Texture, vec3(working, v_blockID), 4.0).rgb;
