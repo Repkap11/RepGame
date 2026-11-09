@@ -257,19 +257,16 @@ void main() {
         }
     }
     if(fluid_instance) {
-        if(faceType == FACE_TOP) {
+        if(faceType == FACE_TOP && dot(v_flow_dir, v_flow_dir) > 0.5) {
             // Rotate the top quad's UVs so +v points along the flow — the
             // strip scroll (fragment shader, always along v) then reads
-            // downstream on any surface slope. v_flow_dir is already the
-            // normalized (cos,sin) in the u=x / v=z basis — and (0,0) for a
-            // flat surface, which is NOT identity: (c,s)=(0,0) collapses
-            // every top UV to one texel and the still-anim resample smears
-            // the tile into long color bands. Treat it as no rotation.
+            // downstream on any surface slope. v_flow_dir is the normalized
+            // (cos,sin) in the u=x / v=z basis. Flat surfaces (0,0) skip
+            // this: (0,0) collapses every UV to one texel, and (1,0) is a
+            // u/v swap, not identity — on a greedy-merged flat quad the
+            // swap squeezes the tile along the long axis into thin
+            // streaks. Sloped cells are always 1x1, where the swap is benign.
             float c = v_flow_dir.x, s = v_flow_dir.y;
-            if(dot(v_flow_dir, v_flow_dir) < 0.5) {
-                c = 1.0f;
-                s = 0.0f;
-            }
             texCoordBlock_adjust = vec2(
                 -texCoordBlock_adjust.x * s + texCoordBlock_adjust.y * c,
                 texCoordBlock_adjust.x * c + texCoordBlock_adjust.y * s);
