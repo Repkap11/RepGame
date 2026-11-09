@@ -846,7 +846,7 @@ int test_mobs( ) {
     // --- 13: every new non-remote type spawns and settles at floor+1 -------
     // (hoverers settle at floor+1+hover_h and never report standing) --------
     {
-        const MobType new_types[] = { MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE };
+        const MobType new_types[] = { MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT };
         for ( MobType t : new_types ) {
             const MobTypeDef &tdef = mob_types[ t ];
             MobManager mobs;
@@ -1072,6 +1072,9 @@ int test_mobs( ) {
         check_bool( "breed: bee refuses wheat + stone",
                     !mob_def_is_breed_item( mob_types[ MOB_BEE ], WHEAT ) && !mob_def_is_breed_item( mob_types[ MOB_BEE ], STONE ) );
         check_bool( "breed: zombie has no foods", !mob_def_is_breed_item( mob_types[ MOB_ZOMBIE ], CARROT ) );
+        check_bool( "breed: cat takes raw fish",
+                    mob_def_is_breed_item( mob_types[ MOB_CAT ], COD ) && mob_def_is_breed_item( mob_types[ MOB_CAT ], SALMON ) );
+        check_bool( "breed: cat refuses wheat", !mob_def_is_breed_item( mob_types[ MOB_CAT ], WHEAT ) );
 
         MobManager mobs;
         mobs.spawner_enabled = false;

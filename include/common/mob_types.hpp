@@ -10,7 +10,7 @@ typedef struct {
     int max;
 } MobDrop;
 
-enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_TYPE_COUNT };
+enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT, MOB_TYPE_COUNT };
 
 // AI profiles — the extension point for future hostile or flying mobs.
 enum MobAI {
@@ -102,6 +102,11 @@ typedef struct {
     const char *bone_arms[ 2 ];
     const char *bone_body;       // humanoid torso for the sneak lean; NULL elsewhere
     const char *bone_wings[ 2 ]; // chicken wing bones (wing0 +z flap, wing1 -z)
+    // Multiplier on the quadruped leg swing; 0 = full 80 degrees. Small
+    // animals read better with a reduced stride (the cat uses 0.3 — a
+    // 10-unit leg at the full swing points out horizontal like a second
+    // tail).
+    float gait_scale;
 } MobTypeDef;
 
 extern const MobTypeDef mob_types[ MOB_TYPE_COUNT ];

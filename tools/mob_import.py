@@ -74,6 +74,7 @@ def parse_bone(b):
                 "size": [float(v) for v in c["size"]],
                 "uv": [float(v) for v in uv],
                 "inflate": float(c.get("inflate", 0.0)),
+                "rot": [0.0, 0.0, 0.0],
                 "mirror": bool(c.get("mirror", bone_mirror)),
             }
         )
@@ -196,13 +197,23 @@ def parse_manifest():
             if len(fields) < 4 or len(fields) > 5:
                 fail("bad manifest line: %s" % line)
             rot_overrides = {}
+            cube_overrides = {}
+            move_overrides = {}
             if len(fields) == 5:
                 for item in fields[4].split(";"):
                     if not item:
                         continue
                     bone, rot = item.split("=", 1)
-                    rot_overrides[bone] = [float(x) for x in rot.split(",")]
-                    if len(rot_overrides[bone]) != 3:
+                    if bone.endswith(".cubes"):
+                        target = cube_overrides
+                        bone = bone[:-6]
+                    elif bone.endswith(".move"):
+                        target = move_overrides
+                        bone = bone[:-5]
+                    else:
+                        target = rot_overrides
+                    target[bone] = [float(x) for x in rot.split(",")]
+                    if len(target[bone]) != 3:
                         fail("bad rest rotation: %s" % item)
             entries.append(
                 {
@@ -211,6 +222,8 @@ def parse_manifest():
                     "geo_id": fields[2],
                     "skins": fields[3].split(","),
                     "rot_overrides": rot_overrides,
+                    "cube_overrides": cube_overrides,
+                    "move_overrides": move_overrides,
                 }
             )
     return entries
@@ -244,8 +257,22 @@ def main():
                 p = all_bones[p]["parent"] if p in all_bones else None
             b["parent"] = p
         for b in bones:
+            if b["name"] in e["move_overrides"]:
+                # .move translates the bone's authored geometry — for models
+                # whose bind layout relies on runtime pivot glue the geo
+                # can't express (Java ports like the cat's tail2, authored
+                # detached). Also reparents to root: a moved child would be
+                # swept out of place by the parent's transform anyway.
+                d = e["move_overrides"][b["name"]]
+                b["pivot"] = [b["pivot"][i] + d[i] for i in range(3)]
+                for c in b["cubes"]:
+                    c["origin"] = [c["origin"][i] + d[i] for i in range(3)]
+                b["parent"] = None
             if b["name"] in e["rot_overrides"]:
                 b["rot"] = e["rot_overrides"][b["name"]]
+            if b["name"] in e["cube_overrides"]:
+                for c in b["cubes"]:
+                    c["rot"] = e["cube_overrides"][b["name"]]
         for b in bones:
             if b["parent"] is not None and not any(p["name"] == b["parent"] for p in bones):
                 fail("%s: bone %s has unknown parent %s" % (e["name"], b["name"], b["parent"]))
@@ -307,6 +334,10 @@ def main():
     out.append("    float size[ 3 ];   // box size (w, h, d), 1/16-block pixels")
     out.append("    float uv[ 2 ];     // box-uv corner in skin pixels")
     out.append("    float inflate;")
+    out.append("    float rot[ 3 ];    // rotation about the bone pivot, degrees;")
+    out.append("                       // rotates the textured box, so each face")
+    out.append("                       // keeps its texels (unlike baking the AABB,")
+    out.append("                       // which scrambles the box-uv layout)")
     out.append("    int mirror;")
     out.append("} MobCubeDef;")
     out.append("")
@@ -340,8 +371,8 @@ def main():
         out.append("static const MobCubeDef mob_cubes_%s[] = {" % name)
         for c in cubes:
             out.append(
-                "    { %s, %s, %s, %s, %d },"
-                % (fmt_vec(c["origin"]), fmt_vec(c["size"]), fmt_vec(c["uv"]), fmt_f(c["inflate"]), 1 if c["mirror"] else 0)
+                "    { %s, %s, %s, %s, %s, %d },"
+                % (fmt_vec(c["origin"]), fmt_vec(c["size"]), fmt_vec(c["uv"]), fmt_f(c["inflate"]), fmt_vec(c["rot"]), 1 if c["mirror"] else 0)
             )
         out.append("};")
         name_index = {b["name"]: i for i, b in enumerate(m["bones"])}

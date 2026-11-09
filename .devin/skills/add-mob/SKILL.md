@@ -16,7 +16,20 @@ Full behaviour/rendering reference: `docs/mobs.md`.
    trailing field overrides rest-pose bone rotations that Bedrock keeps in
    animation files (the pig's `body=-90,0,0` comes from
    `animation.pig.setup.v1.0`; with `+90` the body cube swings up and back
-   instead of lying flat — keep the `-90` sign).
+   instead of lying flat — keep the `-90` sign). `bone.cubes=rx,ry,rz`
+   instead stores the rotation on the bone's own cubes only
+   (`MobCubeDef::rot`, applied about the bone pivot inside the bone
+   transform — children stay put and each face keeps its painted
+   texels; do NOT bake origin/size to an AABB, that scrambles the
+   box-uv face layout) — for models stored with a pre-rotated body
+   cube under a transform hierarchy (the cat's `body.cubes=-90,0,0`).
+   `bone.move=dx,dy,dz` translates the bone's authored cubes and pivot
+   and reparents it to the root — for Java ports whose bind layout
+   relies on runtime pivot glue (the cat's `tail2`, authored detached
+   behind `tail1`) or to tuck a part inside the body (the cat's
+   `frontLeg*` tops, authored 0.2 above the back). `gait_scale` on the
+   def multiplies the quadruped leg swing (0 = full 80°; the cat uses
+   0.3 — its 10-px legs at full swing read as extra tails).
 2. `make mobs-import` runs `tools/mob_import.py` →
    `include/common/mob_models_gen.hpp` + `bitmaps/mobs.png`. Output is
    deterministic (byte-identical reruns); the importer handles geo.json
@@ -53,4 +66,4 @@ as an undercoat marker) — a=0 stays cutout.
 - Combine with `REPGAME_CAPTURE` (see the `capture` skill) to screenshot
   the spawn — capture mode freezes AI/physics so poses are as authored.
 - In-game: `n` drops a mob three blocks ahead, cycling pig → cow →
-  chicken → sheep → zombie → creeper on successive presses.
+  chicken → sheep → zombie → creeper → bee → cat on successive presses.

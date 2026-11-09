@@ -38,6 +38,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { NULL, NULL },
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
+        .gait_scale = 0.0f,
     },
     /* MOB_PLAYER */ {
         // Remote multiplayer players: the Bedrock humanoid (Steve skin),
@@ -79,6 +80,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { "rightArm", "leftArm" },
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
+        .gait_scale = 0.0f,
     },
     /* MOB_COW */ {
         .name = "cow",
@@ -117,6 +119,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { NULL, NULL },
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
+        .gait_scale = 0.0f,
     },
     /* MOB_CHICKEN */ {
         .name = "chicken",
@@ -155,6 +158,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { NULL, NULL },
         .bone_body = NULL,
         .bone_wings = { "wing0", "wing1" },
+        .gait_scale = 0.0f,
     },
     /* MOB_SHEEP */ {
         .name = "sheep",
@@ -195,6 +199,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { NULL, NULL },
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
+        .gait_scale = 0.0f,
     },
     /* MOB_ZOMBIE */ {
         // Hostile: burns in daylight, never chunk-gen spawns (the night
@@ -236,6 +241,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { NULL, NULL },
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
+        .gait_scale = 0.0f,
     },
     /* MOB_CREEPER */ {
         // Hostile: silent (sound_say NULL), fuses and explodes near the
@@ -276,6 +282,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { NULL, NULL },
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
+        .gait_scale = 0.0f,
     },
     /* MOB_BEE */ {
         // Hovering bee: flies ~1 block over the ground and climbs over
@@ -322,5 +329,49 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_arms = { NULL, NULL },
         .bone_body = NULL,
         .bone_wings = { "rightwing_bone", "leftwing_bone" },
+        .gait_scale = 0.0f,
+    },
+    /* MOB_CAT */ {
+        // Passive; breeds on raw fish (no taming/sitting). The tail bones
+        // have no animator slot and hold their rest pose.
+        .name = "cat",
+        .model = MOB_MODEL_CAT,
+        .skins = { MOB_SKIN_CAT_TABBY, MOB_SKIN_CAT_TUXEDO, MOB_SKIN_CAT_RED, MOB_SKIN_CAT_SIAMESECAT },
+        .skin_count = 4,
+        .hitbox_w = 0.6f,
+        .hitbox_h = 0.7f,
+        .eye_h = 0.5f,
+        .max_health = 10.0f,
+        .walk_speed = 0.008f,
+        .panic_speed = 0.02f,
+        .chase_speed = 0.0f,
+        .attack_damage = 0.0f,
+        .fall_cap = 0.0f,
+        .hover_h = 0.0f,
+        .drops = { { STRING, 0, 2 }, { LAST_BLOCK_ID, 0, 0 } },
+        .shear_drop = { LAST_BLOCK_ID, 0, 0 },
+        .sheared_model = MOB_MODEL_COUNT,
+        .spawn_egg = CAT_SPAWN_EGG,
+        .breed_items = { COD, SALMON, LAST_BLOCK_ID, LAST_BLOCK_ID },
+        .breeds_with_flowers = false,
+        .sound_say = "cat_say",
+        .sound_hurt = "cat_hurt",
+        .sound_death = "cat_death",
+        .sound_step = NULL,
+        .step_gain = 0.0f,
+        .spawn_on = GRASS,
+        .spawn_chance = 1.0f / 16.0f,
+        .herd_min = 1,
+        .herd_max = 2,
+        .ai = MOB_AI_PASSIVE_WANDER,
+        .anims = MOB_ANIM_QUADRUPED_WALK | MOB_ANIM_HEAD_LOOK | MOB_ANIM_DEATH_TIP,
+        .bone_head = "head",
+        // Gait slots (0+3 vs 1+2 diagonals) bound to the cat's Bedrock walk:
+        // back-left/front-right swing with +cos, back-right/front-left -cos.
+        .bone_legs = { "backLegL", "backLegR", "frontLegL", "frontLegR" },
+        .bone_arms = { NULL, NULL },
+        .bone_body = NULL,
+        .bone_wings = { NULL, NULL },
+        .gait_scale = 0.3f,
     },
 };

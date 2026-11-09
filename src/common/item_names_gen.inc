@@ -66,3 +66,7 @@
     "BUCKET",
     "WATER_BUCKET",
     "LAVA_BUCKET",
+    "COD",
+    "SALMON",
+    "STRING",
+    "CAT_SPAWN_EGG",

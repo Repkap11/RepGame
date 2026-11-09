@@ -1126,6 +1126,12 @@
   "firefly_bush": {
     "source": "textures/items/firefly_bush"
   },
+  "fish_raw": {
+    "source": "textures/items/fish_raw"
+  },
+  "fish_salmon_raw": {
+    "source": "textures/items/fish_salmon_raw"
+  },
   "fletcher_table_side1": {
     "source": "textures/blocks/fletcher_table_side1"
   },
@@ -2603,6 +2609,9 @@
   "spawn_egg_bee": {
     "source": "textures/items/spawn_eggs/spawn_egg_bee"
   },
+  "spawn_egg_cat": {
+    "source": "textures/items/spawn_eggs/spawn_egg_cat"
+  },
   "spawn_egg_chicken": {
     "source": "textures/items/spawn_eggs/spawn_egg_chicken"
   },
@@ -2698,6 +2707,9 @@
   },
   "stonecutter_top": {
     "source": "textures/blocks/stonecutter_top"
+  },
+  "string": {
+    "source": "textures/items/string"
   },
   "stripped_acacia_log": {
     "source": "textures/blocks/stripped_acacia_log"

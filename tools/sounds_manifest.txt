@@ -205,6 +205,16 @@ bee_hurt_2|mc_pack/mob/bee/hurt2.wav|sfx|Bee hurt
 bee_hurt_3|mc_pack/mob/bee/hurt3.wav|sfx|Bee hurt
 bee_death_1|mc_pack/mob/bee/death1.wav|sfx|Bee death
 bee_death_2|mc_pack/mob/bee/death2.wav|sfx|Bee death
+cat_say_1|mc_pack/mob/cat/meow1.wav|sfx|Cat meow
+cat_say_2|mc_pack/mob/cat/meow2.wav|sfx|Cat meow
+cat_say_3|mc_pack/mob/cat/meow3.wav|sfx|Cat meow
+cat_say_4|mc_pack/mob/cat/meow4.wav|sfx|Cat meow
+cat_hurt_1|mc_pack/mob/cat/hitt1.wav|sfx|Cat hurt
+cat_hurt_2|mc_pack/mob/cat/hitt2.wav|sfx|Cat hurt
+cat_hurt_3|mc_pack/mob/cat/hitt3.wav|sfx|Cat hurt
+cat_death_1|mc_pack/mob/cat/ocelot/death1.wav|sfx|Cat death
+cat_death_2|mc_pack/mob/cat/ocelot/death2.wav|sfx|Cat death
+cat_death_3|mc_pack/mob/cat/ocelot/death3.wav|sfx|Cat death
 player_hurt_1|mc_pack/damage/hit1.wav|sfx|Player hurt
 player_hurt_2|mc_pack/damage/hit2.wav|sfx|Player hurt
 player_hurt_3|mc_pack/damage/hit3.wav|sfx|Player hurt

@@ -4,6 +4,15 @@
 # bedrock-samples/resource_pack in this repo). The optional last field
 # overrides bone rest rotations (degrees) where the rest pose comes from an
 # animation file rather than the geo (the pig body's 90° setup rotation).
+# `bone.cubes=` instead stores the rotation on the bone's own cubes only —
+# for models authored with a pre-rotated cube under a transform hierarchy
+# (the cat's vertical body slab, whose head/legs/tail are children). The
+# textured box rotates at render time, so each face keeps its texels.
+# `bone.move=dx,dy,dz` translates the bone's authored cubes and pivot and
+# reparents it to the root — for Java-ported geometry whose bind layout
+# relies on runtime pivot glue (the cat's tail2, authored detached behind
+# tail1) or to tuck a part inside the body (the cat's front legs, whose
+# authored tops poke 0.2 above the back).
 pig|models/entity/pig_v1.0.geo.json|geometry.pig|textures/entity/pig/pig.png|body=-90,0,0
 player|models/mobs.json|geometry.humanoid.custom|textures/entity/steve.png
 cow|models/entity/cow_v1.0.geo.json|geometry.cow|textures/entity/cow/cow.png|body=-90,0,0
@@ -15,3 +24,4 @@ sheep_sheared|models/entity/sheep_v1.0.geo.json|geometry.sheep.sheared|textures/
 zombie|models/entity/zombie.geo.json|geometry.zombie.v1.8|textures/entity/zombie/zombie.png|rightArm=90,0,0;leftArm=90,0,0
 creeper|models/entity/creeper.geo.json|geometry.creeper.v1.8|textures/entity/creeper/creeper.png
 bee|models/entity/bee.geo.json|geometry.bee|textures/entity/bee/bee.png
+cat|models/entity/cat.geo.json|geometry.cat|textures/entity/cat/tabby.png,textures/entity/cat/tuxedo.png,textures/entity/cat/red.png,textures/entity/cat/siamesecat.png|body.cubes=-90,0,0;tail1=-51.57,0,0;tail2.move=0,-3,-16;tail2=-90,0,0;frontLegL.move=-0.3,-0.4,0;frontLegR.move=0.3,-0.4,0;backLegL.move=-0.3,0,0;backLegR.move=0.3,0,0
