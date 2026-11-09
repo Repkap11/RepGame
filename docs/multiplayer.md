@@ -125,8 +125,9 @@ finalize, so lighting sees the final blocks. The same queue absorbs
 local `BLOCK_UPDATE` writes to parked slots and a sender's own writes to
 unloaded chunks (`World::set_loaded_block`). Server side, recorded edits
 idle for `CHUNK_IDLE_SAVE_SECONDS` before being written to the world's
-`chunk_*` files (`scheduleChunkSave`/`wake_schedule`) — the file format
-is the same `docs/persistence.md` describes.
+`chunk_*` files (`scheduleChunkSave`; the deadline lives on the cache
+entry's `wake_deadline`, `wake_schedule` is just the ordered hint) — the
+file format is the same `docs/persistence.md` describes.
 
 ## Containers
 

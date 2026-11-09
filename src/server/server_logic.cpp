@@ -86,28 +86,23 @@ void ServerLogic::on_client_connected( Server &server, int client_fd ) {
 }
 
 void ServerLogic::cancelChunkSave( const glm::ivec3 &chunk_pos ) {
-    auto it = this->chunk_wake.find( chunk_pos );
-    if ( it == this->chunk_wake.end( ) ) {
-        return;
+    // Lazy cancel: disarming the entry's deadline orphans its wake_schedule
+    // slot, which processTimers skips when it pops.
+    const auto it = this->world_cache.find( chunk_pos );
+    if ( it != this->world_cache.end( ) ) {
+        it->second.wake_deadline = std::chrono::steady_clock::time_point::max( );
     }
-    // Remove the old entry from wake_schedule. There may be multiple chunks
-    // at the same wake time, so find the one matching chunk_pos.
-    auto range = this->wake_schedule.equal_range( it->second );
-    for ( auto i = range.first; i != range.second; ++i ) {
-        if ( i->second == chunk_pos ) {
-            this->wake_schedule.erase( i );
-            break;
-        }
-    }
-    this->chunk_wake.erase( it );
 }
 
 void ServerLogic::scheduleChunkSave( const glm::ivec3 &chunk_pos ) {
     // Cancel any pending timer for this chunk, then schedule a new one.
+    // A container-only arm creates a timer-only cache entry (empty blocks)
+    // to carry the deadline; block readers treat it as a miss.
     this->cancelChunkSave( chunk_pos );
-    auto wake = std::chrono::steady_clock::now( ) + std::chrono::seconds( CHUNK_IDLE_SAVE_SECONDS );
+    ChunkCacheEntry &entry = this->world_cache[ chunk_pos ];
+    const auto wake = std::chrono::steady_clock::now( ) + std::chrono::seconds( CHUNK_IDLE_SAVE_SECONDS );
+    entry.wake_deadline = wake;
     this->wake_schedule.insert( { wake, chunk_pos } );
-    this->chunk_wake[ chunk_pos ] = wake;
 }
 
 void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_state ) {
@@ -139,9 +134,12 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
                 // A chunk missing from the cache was idle-saved and evicted
                 // (or never touched): merge its on-disk diff in first, else
                 // this edit alone would overwrite the file on the next
-                // persist and lose every earlier edit.
-                ChunkCacheEntry &entry = *( it_cache != this->world_cache.end( ) ? &it_cache->second
-                                                                               : this->loadIntoCache( new_chunk_pos ) );
+                // persist and lose every earlier edit. A timer-only entry
+                // (empty blocks, armed by a container edit) hasn't merged
+                // either — route it through loadIntoCache too.
+                ChunkCacheEntry &entry = *( it_cache != this->world_cache.end( ) && !it_cache->second.blocks.empty( )
+                                                ? &it_cache->second
+                                                : this->loadIntoCache( new_chunk_pos ) );
                 entry.blocks[ new_block_index ] = block_state;
                 entry.last_edit_time = std::chrono::steady_clock::now( );
                 // (Re)schedule this chunk's idle-save timer.
@@ -160,7 +158,9 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
     // without being cached.
     std::map<int, BlockState> disk_diffs;
     const std::map<int, BlockState> *chunk_cache_prt;
-    if ( it_world != this->world_cache.end( ) ) {
+    // A timer-only entry (empty blocks) carries no merged diff — fall
+    // through to the disk path like a cache miss.
+    if ( it_world != this->world_cache.end( ) && !it_world->second.blocks.empty( ) ) {
         chunk_cache_prt = &it_world->second.blocks;
     } else {
         if ( this->known_empty_chunks.count( chunk_offset ) ) {
@@ -236,7 +236,6 @@ void ServerLogic::persistAll( ) {
     pr_debug( "World saved (%zu chunks)", saved );
     this->world_cache.clear( );
     this->wake_schedule.clear( );
-    this->chunk_wake.clear( );
 }
 
 void ServerLogic::flushAll( ) {
@@ -247,9 +246,15 @@ void ServerLogic::processTimers( Server &server ) {
     auto now = std::chrono::steady_clock::now( );
     while ( !this->wake_schedule.empty( ) && this->wake_schedule.begin( )->first <= now ) {
         auto it = this->wake_schedule.begin( );
-        glm::ivec3 chunk_pos = it->second;
+        const glm::ivec3 chunk_pos = it->second;
+        const auto deadline = it->first;
         this->wake_schedule.erase( it );
-        this->chunk_wake.erase( chunk_pos );
+        // Stale slot from a reschedule/cancel: the entry's deadline is the
+        // truth, a mismatch means this pop is already superseded.
+        const auto eit = this->world_cache.find( chunk_pos );
+        if ( eit == this->world_cache.end( ) || eit->second.wake_deadline != deadline ) {
+            continue;
+        }
         pr_debug( "Idle-saving chunk:%d %d %d", chunk_pos.x, chunk_pos.y, chunk_pos.z );
         this->persistChunk( chunk_pos );
         this->world_cache.erase( chunk_pos );

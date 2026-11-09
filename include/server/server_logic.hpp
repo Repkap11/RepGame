@@ -19,13 +19,19 @@ class Server;
 
 // Per-chunk in-memory cache of unsaved edits (diffs against generated
 // terrain). The cache holds ONLY chunks with pending edits — diff requests
-// for unedited chunks read the save file without caching.
-// last_edit_time drives the idle-timer save: when a chunk hasn't been
+// for unedited chunks read the save file without caching. An entry with
+// empty `blocks` is timer-only: a container edit armed the idle save so
+// its sidecars get persisted, but no block diff was ever merged — block
+// reads must treat it as a cache miss.
+// wake_deadline drives the idle-timer save: when a chunk hasn't been
 // edited for CHUNK_IDLE_SAVE_SECONDS, it's persisted to disk and evicted
 // from memory.
 struct ChunkCacheEntry {
     std::map<int, BlockState> blocks;
     std::chrono::steady_clock::time_point last_edit_time;
+    // Armed idle-save deadline, max() when unarmed. This is the timer's
+    // truth — wake_schedule may hold stale entries after a reschedule.
+    std::chrono::steady_clock::time_point wake_deadline = std::chrono::steady_clock::time_point::max( );
 };
 
 // How long a chunk must be idle (no edits) before the server saves it to
@@ -58,13 +64,12 @@ class ServerLogic {
     // dropped; it's only an optimization.
     static constexpr size_t KNOWN_EMPTY_CHUNKS_MAX = 1 << 18;
 
-    // Sorted wake-up schedule: time -> set of chunk positions whose idle
-    // timer expires at that time. This is the "sorted list of times to
-    // wake up" — epoll_wait uses the earliest entry as its timeout.
+    // Sorted wake-up schedule: time -> chunk position whose idle timer
+    // expires then. This is the "sorted list of times to wake up" —
+    // epoll_wait uses the earliest entry as its timeout. Reschedules leave
+    // stale entries behind; processTimers skips a popped time that no
+    // longer matches the entry's wake_deadline.
     std::multimap<std::chrono::steady_clock::time_point, glm::ivec3> wake_schedule;
-    // Reverse lookup: chunk position -> its current wake time, so we can
-    // cancel/reschedule a chunk's timer when a new edit arrives.
-    std::map<glm::ivec3, std::chrono::steady_clock::time_point, Compare_I_Vec3> chunk_wake;
 
     // Day/night clock (server-authoritative, world_time units are
     // RepGame::tick ticks — DAY_LENGTH_TICKS per day). While any client is
