@@ -14,6 +14,7 @@
 #include "common/block.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
+#include "common/fluid.hpp"
 #include "common/multiplayer.hpp"
 #include "common/net_entities.hpp"
 #include "common/ui_overlay_buffers.hpp"
@@ -21,12 +22,23 @@
 // Per-tick constants at UPS_RATE (144). Gravity and air drag are MC's item
 // values (0.04/tick², 0.98 at 20 TPS) rescaled to 144 UPS: ~16 blocks/s²
 // (0.00077/tick²) and 0.9972 drag — gentler than the player's
-// GRAVITY_STRENGTH. Ground friction 0.6 on xz. In water gravity is replaced
-// by buoyancy (+0.0015/tick) with a heavy 0.9 drag and a 0.03 upward speed
-// cap, so items rise gently and bob at the surface.
+// GRAVITY_STRENGTH. Ground friction 0.6 on xz. In a fluid the item rides a
+// submersion spring: buoyancy scales with the submerged fraction minus
+// gravity, and drag lerps air->water with it, so nothing in the force model
+// is discontinuous as the item bobs through the surface. The spring's
+// target is the bilinear corner-height surface the renderer draws
+// (item_surface_at) — continuous across cell boundaries, unlike the old
+// per-cell flat level which stepped the target as the item drifted. The
+// surface's own downhill gradient pushes the item with the current
+// (ITEM_FLOW_ACCEL) and a falling column drags it down (ITEM_FALL_*).
 #define ITEM_GRAVITY 0.00077
-#define ITEM_WATER_BUOYANCY 0.0015
+// Fully-submerged rise: (B - G) * 0.9/0.1 — 0.0037 sat at the 0.03 cap,
+// ~1.5x the old 0.0022 terminal.
+#define ITEM_WATER_BUOYANCY 0.0045
 #define ITEM_WATER_RISE_CAP 0.03
+#define ITEM_FLOW_ACCEL 0.004
+#define ITEM_FALL_PULL 0.002
+#define ITEM_FALL_SPEED 0.02
 #define ITEM_AIR_DRAG 0.9972
 #define ITEM_WATER_DRAG 0.9
 #define ITEM_GROUND_FRICTION 0.6
@@ -322,6 +334,50 @@ static int64_t item_cell_key( const glm::ivec3 &c ) {
     return ( ( static_cast<int64_t>( c.x ) & 0x1FFFFF ) << 42 ) | ( ( static_cast<int64_t>( c.y ) & 0x1FFFFF ) << 21 ) | ( static_cast<int64_t>( c.z ) & 0x1FFFFF );
 }
 
+// Bilinear fluid surface at (fx, fz) inside `cell` — the same corner-
+// height field the chunk mesher renders: each corner averages the four
+// cells meeting there (fluid_corner_height), interpolated across the cell
+// face, so the float target slopes smoothly across cell boundaries instead
+// of stepping per level. *flow gets the downhill vector of that surface
+// (-dh/dx, -dh/dz in heights per block); zero on a flat surface, so still
+// water doesn't push.
+static double item_surface_at( World &world, const glm::ivec3 &cell, const BlockID fluid,
+                               const double fx, const double fz, glm::dvec2 *flow ) {
+    const Block *def = block_definition_get_definition( fluid );
+    const int own_height = fluid_level_height( fluid_level( world.get_loaded_block( cell ) ), def->flow_range );
+    // The 3x3 row around the cell, indexed [z+1][x+1]: everything any of
+    // the four corners can touch. An unloaded cell reads as air.
+    FluidCornerCell halo[ 3 ][ 3 ];
+    for ( int dz = 0; dz < 3; dz++ ) {
+        for ( int dx = 0; dx < 3; dx++ ) {
+            const glm::ivec3 p = cell + glm::ivec3( dx - 1, 0, dz - 1 );
+            const BlockState s = world.get_loaded_block( p );
+            const bool same = fluid_in_cell( s ) == fluid;
+            FluidCornerCell &c = halo[ dz ][ dx ];
+            c.level = same ? fluid_level_height( fluid_level( s ), def->flow_range ) : -1;
+            c.fluid_above = fluid_in_cell( world.get_loaded_block( p + glm::ivec3( 0, 1, 0 ) ) ) == fluid;
+            c.solid = !same && s.id != LAST_BLOCK_ID && block_definition_get_definition( s.id )->collides_with_player;
+        }
+    }
+    // Corner (sx, sz) at offset (sx, sz) in the cell averages self + the
+    // three neighbors toward it — the mesher's exact contributor set.
+    double h[ 2 ][ 2 ];
+    for ( int sz = 0; sz < 2; sz++ ) {
+        for ( int sx = 0; sx < 2; sx++ ) {
+            const FluidCornerCell cc[ 4 ] = {
+                halo[ 1 ][ 1 ], halo[ 1 ][ sx * 2 ], halo[ sz * 2 ][ 1 ], halo[ sz * 2 ][ sx * 2 ],
+            };
+            h[ sz ][ sx ] = fluid_corner_height( own_height, cc );
+        }
+    }
+    flow->x = -( ( h[ 0 ][ 1 ] - h[ 0 ][ 0 ] ) * ( 1.0 - fz ) + ( h[ 1 ][ 1 ] - h[ 1 ][ 0 ] ) * fz );
+    flow->y = -( ( h[ 1 ][ 0 ] - h[ 0 ][ 0 ] ) * ( 1.0 - fx ) + ( h[ 1 ][ 1 ] - h[ 0 ][ 1 ] ) * fx );
+    *flow /= static_cast<double>( FLUID_HEIGHT_UNITS );
+    const double surf = ( h[ 0 ][ 0 ] * ( 1.0 - fx ) + h[ 0 ][ 1 ] * fx ) * ( 1.0 - fz ) +
+                        ( h[ 1 ][ 0 ] * ( 1.0 - fx ) + h[ 1 ][ 1 ] * fx ) * fz;
+    return cell.y + surf / static_cast<double>( FLUID_HEIGHT_UNITS );
+}
+
 void ItemEntities::tick( RepGameState &state ) {
     World &world = state.world;
     this->now_tick = state.tick_number;
@@ -373,10 +429,10 @@ void ItemEntities::tick( RepGameState &state ) {
             if ( it.pickup_delay == 0 && cd < ITEM_MAGNET_RADIUS && cd > 1e-6 ) {
                 it.pos += to_chest / cd * ITEM_MAGNET_PULL * 0.02;
             }
-            // Same medium test as the owner so bob floats identically, and
-            // grounded iff ~resting over solid footing.
+            // Same in-water signal as the owner (the render bob reads it):
+            // the cell at the item center holds a fluid.
             const BlockState medium = world.get_loaded_block( glm::ivec3( glm::floor( item_center( it ) ) ) );
-            it.in_water = medium.id == WATER || medium.waterlogged;
+            it.in_water = fluid_in_cell( medium ) != LAST_BLOCK_ID ? 1 : 0;
             const BlockState under = world.get_loaded_block(
                 glm::ivec3( glm::floor( item_center( it ) - glm::dvec3( 0.0, ITEM_SIZE * 0.5 + 1e-3, 0.0 ) ) ) );
             it.grounded = std::fabs( it.net.vel.y ) < 1e-3 &&
@@ -389,12 +445,89 @@ void ItemEntities::tick( RepGameState &state ) {
             it.pickup_delay--;
         }
 
-        // Medium: the cell at the item center is water or waterlogged.
-        const BlockState medium = world.get_loaded_block( glm::ivec3( glm::floor( item_center( it ) ) ) );
-        it.in_water = medium.id == WATER || medium.waterlogged;
-        if ( it.in_water ) {
-            it.vel.y += ITEM_WATER_BUOYANCY;
-            it.vel *= ITEM_WATER_DRAG;
+        // Medium: the cell holding the item's bottom face (pos is
+        // bottom-center). depth is how far that face sits under the
+        // fluid's surface — measured against the bilinear corner-height
+        // surface the renderer draws, so the target is continuous as the
+        // item drifts across cell boundaries instead of stepping a level
+        // at a time. Negative depth = bottom above the surface.
+        const glm::ivec3 medium_cell( glm::floor( it.pos ) );
+        const BlockState medium = world.get_loaded_block( medium_cell );
+        const BlockID medium_fluid = fluid_in_cell( medium );
+        double depth = -1.0;
+        glm::dvec2 flow( 0.0 );
+        if ( medium_fluid != LAST_BLOCK_ID ) {
+            // A covered cell's surface sits at its top — the real surface
+            // can be cells higher. Only depth up to ITEM_SIZE feeds the
+            // spring, so climb same-fluid cells just until this cell's top
+            // clears the item's top face.
+            glm::ivec3 scell = medium_cell;
+            while ( scell.y + 1.0 < it.pos.y + ITEM_SIZE &&
+                    fluid_in_cell( world.get_loaded_block( scell + glm::ivec3( 0, 1, 0 ) ) ) == medium_fluid ) {
+                scell.y += 1;
+            }
+            if ( fluid_in_cell( world.get_loaded_block( scell + glm::ivec3( 0, 1, 0 ) ) ) == medium_fluid ) {
+                // Still covered: fully under — subm clamps to 1 below.
+                depth = ITEM_SIZE;
+            } else {
+                depth = item_surface_at( world, scell, medium_fluid,
+                                         it.pos.x - medium_cell.x, it.pos.z - medium_cell.z,
+                                         &flow )
+                        - it.pos.y;
+            }
+        }
+        // A little hysteresis keeps the flag (and the render bob that reads
+        // it) from chattering as the item crests the surface.
+        it.in_water = medium_fluid != LAST_BLOCK_ID && ( depth > 0.0 || ( it.in_water && depth > -0.03 ) ) ? 1 : 0;
+
+        // Lava and open flame destroy the item on contact — a small burst
+        // of the item's own texels (fire for pure items) stands in for the
+        // burn. pickup_pending hides the entity and keeps it out of the
+        // merge pass until the dead sweep removes it.
+        if ( ( medium_fluid == LAVA && depth > -0.05 ) || medium.id == FIRE || medium.id == SOUL_FIRE ) {
+            const BlockID burn = item_is_block( it.item ) ? static_cast<BlockID>( it.item ) : FIRE;
+            world.spawn_block_debris( medium_cell, { burn, BLOCK_ROTATE_0, 0, burn, 0 }, AIR, 8 );
+            // Mob convention: audible within 16 blocks, linear falloff.
+            const float burn_dist = static_cast<float>( glm::length( item_center( it ) - state.camera.pos ) );
+            if ( burn_dist < 16.0f ) {
+                audio_play_sfx_gain( "fizz", 1.0f - burn_dist / 16.0f );
+            }
+            it.pickup_pending = true;
+            this->send_net_remove( it, NET_REMOVE_DIED );
+            dead.push_back( i );
+            continue;
+        }
+
+        // Submerged fraction of the item's height: the spring's scale and
+        // the air->water drag lerp both key off it, so entering, cresting
+        // and leaving the surface change the forces continuously — the old
+        // binary in_water switch was the fast-bob driver's leftover kick.
+        const double subm = glm::clamp( depth / ITEM_SIZE, 0.0, 1.0 );
+        if ( subm > 0.0 ) {
+            // The fluid is falling when this cell is inside a column
+            // (flowing level with the same fluid above) or sits directly
+            // over one — a stream cell feeding a fall drags whatever
+            // floats on it down with it. Still water (sources) never
+            // falls, so deep pools keep floating items up.
+            const BlockState below = world.get_loaded_block( medium_cell + glm::ivec3( 0, -1, 0 ) );
+            const BlockState above = world.get_loaded_block( medium_cell + glm::ivec3( 0, 1, 0 ) );
+            const bool falling = ( fluid_in_cell( below ) == medium_fluid && fluid_level( below ) > 0 ) ||
+                                 ( fluid_level( medium ) > 0 && fluid_in_cell( above ) == medium_fluid );
+            if ( falling ) {
+                it.vel.y -= ITEM_FALL_PULL;
+                if ( it.vel.y < -ITEM_FALL_SPEED ) {
+                    it.vel.y = -ITEM_FALL_SPEED;
+                }
+            } else {
+                it.vel.y += ITEM_WATER_BUOYANCY * subm - ITEM_GRAVITY;
+            }
+            // Water contact scales the current push and lerps the drag
+            // air->water — full strength once ~1/4 under (the float rest
+            // depth), still continuous through the surface on entry.
+            const double contact = std::min( subm * 4.0, 1.0 );
+            it.vel.x += flow.x * ITEM_FLOW_ACCEL * contact;
+            it.vel.z += flow.y * ITEM_FLOW_ACCEL * contact;
+            it.vel *= ITEM_AIR_DRAG + ( ITEM_WATER_DRAG - ITEM_AIR_DRAG ) * contact;
             if ( it.vel.y > ITEM_WATER_RISE_CAP ) {
                 it.vel.y = ITEM_WATER_RISE_CAP;
             }
@@ -435,7 +568,9 @@ void ItemEntities::tick( RepGameState &state ) {
             }
         }
         it.grounded = standing ? 1 : 0;
-        if ( it.grounded ) {
+        // Friction only out of the water — submerged, water drag governs;
+        // a grounded-in-puddle flicker would just kick the xz velocity.
+        if ( it.grounded && subm <= 0.0 ) {
             it.vel.x *= ITEM_GROUND_FRICTION;
             it.vel.z *= ITEM_GROUND_FRICTION;
         }

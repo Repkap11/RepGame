@@ -101,9 +101,19 @@ fallen into its cell) is depenetrated every tick by
 `Collision::unstick_box` — it slips out the cheapest open side, or floats
 up onto the covering block when walled in (a block per tick under a
 column). Break/mob drops pop with `item_drop_hop` (peak ~0.2–0.35 blocks,
-<0.3 sideways) so they land in the broken cell. In water
-buoyancy +0.0015/tick with 0.9 drag and a 0.03 upward cap floats items to
-the surface. Integration (and aging) freezes in capture mode and while the
+<0.3 sideways) so they land in the broken cell. In a fluid the item rides
+a submersion spring — buoyancy proportional to the submerged fraction
+minus gravity, keyed off the bilinear corner-height surface
+(`item_surface_at` — the same `fluid_corner_height` field the mesher
+draws, so the float target is continuous across cell boundaries), with
+drag lerped air->water and a 0.03 rise cap — settling into a shallow float
+rather than bouncing on a binary in/out-of-water test. It also drifts with
+the current down the local surface slope, and a falling column (flowing
+level under or over same-fluid cells) drags it down. Lava and open fire
+destroy the entity on contact — a small debris burst (the item's own
+texels for block items, fire for pure ones), a `fizz` within 16 blocks,
+and `NET_REMOVE_DIED`. Integration (and aging)
+freezes in capture mode and while the
 item's chunk isn't `CHUNK_LIVE`. Same-item entities within 0.5 blocks merge
 into the older one every 10 ticks, capped at `item_max_stack`. Despawn at 5
 minutes (`ITEM_DESPAWN_TICKS`). `MAX_ITEM_ENTITIES` = 512; spawning at the

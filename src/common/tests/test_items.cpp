@@ -1,5 +1,6 @@
 // Item/inventory/crafting tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
+#include "common/fluid.hpp"
 // Item id space (Phase 1 non-block items): block items share the BlockID
 // value, pure items live at ITEM_ID_BASE+, LAST_BLOCK_ID stays the empty
 // sentinel. Covers item_id_valid/item_is_block/item_max_stack, the wire
@@ -189,15 +190,91 @@ int test_item_entities( ) {
     {
         ItemEntities items;
         items.spawn( STICK, 1, glm::dvec3( 25.5, 11.2, 25.5 ), glm::dvec3( 0.0 ), 0 );
-        double top = -1;
+        double lo = 1e9, hi = -1e9;
+        for ( int i = 0; i < 600; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+            if ( i >= 500 ) {
+                const double y = items.debug_items( )[ 0 ].pos.y;
+                lo = std::min( lo, y );
+                hi = std::max( hi, y );
+            }
+        }
+        const ItemEntities::ItemEntity it = items.debug_items( )[ 0 ];
+        // The submersion spring rests with the bottom face ~0.06 under the
+        // local surface — the open diagonal pulls each corner to 50/64, so
+        // that's ~15.72 rather than a flat 15.875 — and once settled it
+        // holds still instead of bouncing across the surface every tick.
+        check_near( "item: floats to water surface", it.pos.y, 15.72, 0.05 );
+        check_bool( "item: in_water at the surface", it.in_water == 1 );
+        check_near( "item: settled float, no fast bob", hi - lo, 0.0, 0.05 );
+    }
+
+    // --- water current pushes downstream --------------------------------------
+    {
+        // Hand-laid sloped surface (the flow sim isn't running here):
+        // levels climb 1->7 eastward, so the surface slopes down toward +x.
+        for ( int i = 0; i < 4; i++ ) {
+            world.set_loaded_block( glm::ivec3( 18 + i, 11, 20 ), fluid_state( WATER, 1 + i * 2 ) );
+        }
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 19.5, 11.8, 20.5 ), glm::dvec3( 0.0 ), 0 );
         for ( int i = 0; i < 400; i++ ) {
             gs.tick_number++;
             items.tick( gs );
-            top = items.debug_items( )[ 0 ].pos.y;
         }
-        // Buoyancy + rise cap should leave it bobbing near the water surface
-        // (top water cell spans 15..16): resting pos near 16.
-        check_near( "item: floats to water surface", top, 16.0, 0.6 );
+        const ItemEntities::ItemEntity it = items.debug_items( )[ 0 ];
+        check_bool( "item: drifts with the current", it.pos.x > 21.0 );
+        for ( int i = 0; i < 4; i++ ) {
+            world.set_loaded_block( glm::ivec3( 18 + i, 11, 20 ), BLOCK_STATE_AIR );
+        }
+    }
+
+    // --- a falling water column carries items down -----------------------------
+    {
+        // Walled column at (28,*,20): a level-1 fall under a source top.
+        world.set_loaded_block( glm::ivec3( 28, 14, 20 ), water );
+        for ( int y = 11; y <= 13; y++ ) {
+            world.set_loaded_block( glm::ivec3( 28, y, 20 ), fluid_state( WATER, 1 ) );
+        }
+        for ( int y = 11; y <= 14; y++ ) {
+            world.set_loaded_block( glm::ivec3( 27, y, 20 ), stone );
+            world.set_loaded_block( glm::ivec3( 29, y, 20 ), stone );
+            world.set_loaded_block( glm::ivec3( 28, y, 19 ), stone );
+            world.set_loaded_block( glm::ivec3( 28, y, 21 ), stone );
+        }
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 28.5, 14.5, 20.5 ), glm::dvec3( 0.0 ), 0 );
+        for ( int i = 0; i < 400; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+        }
+        const ItemEntities::ItemEntity it = items.debug_items( )[ 0 ];
+        check_near( "item: carried down the fall", it.pos.y, 11.0, 0.5 );
+        world.set_loaded_block( glm::ivec3( 28, 14, 20 ), BLOCK_STATE_AIR );
+        for ( int y = 11; y <= 13; y++ ) {
+            world.set_loaded_block( glm::ivec3( 28, y, 20 ), BLOCK_STATE_AIR );
+        }
+        for ( int y = 11; y <= 14; y++ ) {
+            world.set_loaded_block( glm::ivec3( 27, y, 20 ), BLOCK_STATE_AIR );
+            world.set_loaded_block( glm::ivec3( 29, y, 20 ), BLOCK_STATE_AIR );
+            world.set_loaded_block( glm::ivec3( 28, y, 19 ), BLOCK_STATE_AIR );
+            world.set_loaded_block( glm::ivec3( 28, y, 21 ), BLOCK_STATE_AIR );
+        }
+    }
+
+    // --- lava destroys items ---------------------------------------------------
+    {
+        const BlockState lava = { LAVA, 0, 0, LAVA, 0 };
+        world.set_loaded_block( glm::ivec3( 20, 11, 15 ), lava );
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 20.5, 13.0, 15.5 ), glm::dvec3( 0.0 ), 0 );
+        for ( int i = 0; i < 300 && items.count( ) > 0; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+        }
+        check_bool( "item: lava burns the drop", items.count( ) == 0 );
+        world.set_loaded_block( glm::ivec3( 20, 11, 15 ), BLOCK_STATE_AIR );
     }
 
     // --- merge ---------------------------------------------------------------

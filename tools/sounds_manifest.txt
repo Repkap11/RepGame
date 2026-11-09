@@ -76,6 +76,7 @@ explode_2|mc_pack/random/explode2.wav|sfx|Explode
 explode_3|mc_pack/random/explode3.wav|sfx|Explode
 explode_4|mc_pack/random/explode4.wav|sfx|Explode
 fuse_1|mc_pack/random/fuse.wav|sfx|Fuse
+fizz_1|mc_pack/random/fizz.wav|sfx|Fizz
 step_grass_1|mc_pack/Dstep/grass1.wav|sfx|Step
 step_grass_2|mc_pack/Dstep/grass2.wav|sfx|Step
 step_grass_3|mc_pack/Dstep/grass3.wav|sfx|Step
