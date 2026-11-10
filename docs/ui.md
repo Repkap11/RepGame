@@ -8,6 +8,7 @@ under `ui` only render and route clicks to them.
 
 ```
 UiState
+├── layout     UiLayout      one Clay pass -> all UiRects (ui_layout.*)
 ├── overlay    UIOverlay     crosshair, held block, dragged-item draw
 ├── imgui      ImGuiOverlay  debug window ('g' toggles .shown)
 ├── font       FontRenderer  bitmap text (13px glyphs, pixelScale steps)
