@@ -89,7 +89,7 @@ unsigned int shaderCompile( int type, const ShaderSourceData *shader_data ) {
         free( log );
 
         glDeleteShader( shader );
-        exit( 1 );
+        repgame_fatal( );
         return 0;
     }
 
@@ -148,7 +148,7 @@ unsigned int shaders_compile( const ShaderSourceData *vertex_path, const ShaderS
         }
     }
     pr_debug( "Too many trys linking shader" );
-    exit( 1 );
+    repgame_fatal( );
     return g_program;
 }
 

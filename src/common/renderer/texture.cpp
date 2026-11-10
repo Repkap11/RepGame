@@ -19,7 +19,7 @@ static unsigned char *decode_texture_png( const unsigned char *png, int png_len,
     unsigned char *data = stbi_load_from_memory( png, png_len, &w, &h, &n, BYTES_PER_PIXEL );
     if ( data == NULL || w != ( int )want_w || h != ( int )want_h ) {
         pr_debug( "Texture PNG decode failed (got %dx%d, want %ux%u): %s", w, h, want_w, want_h, data == NULL ? stbi_failure_reason( ) : "size mismatch" );
-        exit( 1 );
+        repgame_fatal( );
     }
     return data;
 }
@@ -35,7 +35,7 @@ static unsigned char *readFileBytes( const char *filename, int *out_len ) {
     FILE *file = fopen( filename, "rb" );
     if ( file == NULL ) {
         pr_debug( "Error reading texture %s", filename );
-        exit( 1 );
+        repgame_fatal( );
     }
     fseek( file, 0, SEEK_END );
     long len = ftell( file );
@@ -43,7 +43,7 @@ static unsigned char *readFileBytes( const char *filename, int *out_len ) {
     unsigned char *data = ( unsigned char * )malloc( len );
     if ( fread( data, len, 1, file ) != 1 ) {
         pr_debug( "Texture file unreadable:%s", filename );
-        exit( 1 );
+        repgame_fatal( );
     }
     fclose( file );
     *out_len = ( int )len;
@@ -401,7 +401,7 @@ void Texture::init_empty_depth_stencil( int blur_mag ) {
     showErrors( );
 #if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
     pr_debug( "Error multi sample not supported on Android" );
-    exit( 1 );
+    repgame_fatal( );
 #else
     // glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT );
     glTexParameteri( SAMPLE_TARGET, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX );
@@ -429,7 +429,7 @@ void Texture::change_size( int width, int height ) {
     if ( this->target == GL_TEXTURE_2D_MULTISAMPLE ) {
 #if defined( REPGAME_ANDROID ) || defined( REPGAME_WASM )
         pr_debug( "Error multi sample not supported on Android or WASM" );
-        exit( 1 );
+        repgame_fatal( );
 #elif defined( REPGAME_GLES )
         // GLES has no glTexImage2DMultisample; glTexStorage2DMultisample
         // allocates immutable storage, so a resize needs a fresh texture

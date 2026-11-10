@@ -157,7 +157,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // SDL_Init, since SDL_Init is idempotent and locks in the driver early.
     if ( !SDL_Init( SDL_INIT_VIDEO ) ) {
         pr_debug( "Unable to initialize SDL: %s", SDL_GetError( ) ); /* Or die on error */
-        exit( 1 );
+        repgame_fatal( );
     }
     // Audio is optional: with no reachable backend (e.g. a sandbox without an
     // audio socket) audio_init's device open fails and the game runs silent.
@@ -258,13 +258,13 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     SDL_DestroyProperties( window_props );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed: %s", SDL_GetError( ) );
-        exit( 1 );
+        repgame_fatal( );
     }
     pr_debug( "Window on display: %d", SDL_GetDisplayForWindow( sdl_window ) );
     sdl_context = SDL_GL_CreateContext( sdl_window );
     if ( !sdl_context ) {
         pr_debug( "Creating the SDL context failed: %s", SDL_GetError( ) );
-        exit( 1 );
+        repgame_fatal( );
     }
 
     const char *opengl_version = reinterpret_cast<const char *>( glGetString( GL_VERSION ) );
@@ -285,7 +285,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
         // this particular error is harmless — the game doesn't use GLX.
         if ( glew_err != GLEW_ERROR_NO_GLX_DISPLAY ) {
             pr_debug( "GLEW init failed: %s (driver=%s)", glewGetErrorString( glew_err ), SDL_GetCurrentVideoDriver( ) );
-            exit( 1 ); // or handle the error in a nicer way
+            repgame_fatal( ); // or handle the error in a nicer way
         }
         pr_debug( "GLEW init: GLX unavailable on %s, using EGL-loaded core functions", SDL_GetCurrentVideoDriver( ) );
     }
@@ -303,7 +303,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 #if !defined( REPGAME_GLES )
     if ( !GLEW_VERSION_3_3 ) { // check that the machine supports the OpenGL 3.3
         pr_debug( "GLEW version wrong" );
-        exit( 1 ); // or handle the error in a nicer way
+        repgame_fatal( ); // or handle the error in a nicer way
     }
 #endif
     // Size the viewport/FBO from the actual GL drawable, not the requested

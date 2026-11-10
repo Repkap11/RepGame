@@ -173,7 +173,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     }
     if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO ) != 0 ) { /* Initialize SDL's Video+Audio subsystems */
         pr_debug( "Unable to initialize SDL" );                 /* Or die on error */
-        exit( 1 );
+        repgame_fatal( );
     }
 
     SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
@@ -209,12 +209,12 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     sdl_window = SDL_CreateWindow( "RepGame", window_x, window_y, default_width, default_height, window_flags );
     if ( !sdl_window ) {
         pr_debug( "Creating the SDL window failed" );
-        exit( 1 );
+        repgame_fatal( );
     }
     sdl_context = SDL_GL_CreateContext( sdl_window );
     if ( !sdl_context ) {
         pr_debug( "Creating the SDL context failed" );
-        exit( 1 );
+        repgame_fatal( );
     }
 
     const char *opengl_version = reinterpret_cast<const char *>( glGetString( GL_VERSION ) );
@@ -228,7 +228,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     glewExperimental = GL_TRUE;
     if ( glewInit( ) ) {
         pr_debug( "GLEW init failed" );
-        exit( 1 ); // or handle the error in a nicer way
+        repgame_fatal( ); // or handle the error in a nicer way
     }
     ignoreErrors( );
     RepGame *repgamePrt = new RepGame( );

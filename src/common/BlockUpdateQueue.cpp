@@ -51,7 +51,7 @@ void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, const
         num_events++;
         if ( num_events > 100000 ) {
             pr_debug( "Error too many events!!!" );
-            exit( 1 );
+            repgame_fatal( );
         }
         event->~BlockUpdateEvent( );
         this->slot_free( event );

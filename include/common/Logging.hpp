@@ -1,10 +1,36 @@
 #pragma once
 
 #include <cstdio>
+#include <cstdlib>
+
+#if defined( __GLIBC__ )
+#include <execinfo.h>
+#include <unistd.h>
+#endif
 
 #if defined( REPGAME_ANDROID )
 #include <android/log.h>
 #endif
+
+// Fatal exit for "cannot continue" paths (showErrors, FBO/shader/texture
+// failures, ...). Must not be exit(): exit runs static destructors, and
+// ChunkLoader's file-static light_threads are typically still joinable, so
+// ~thread() -> std::terminate -> abort anyway — after tearing down libraries
+// (libamdhip64) under live workers. abort() lets the kernel reap the threads.
+// fflush keeps the pr_debug line that reported the error (stdout is fully
+// buffered when piped); the glibc backtrace preserves the fault site in the
+// log even without a core.
+[[noreturn]] inline void repgame_fatal( ) {
+    fflush( NULL );
+#if defined( __GLIBC__ )
+    void *frames[ 64 ];
+    const int n = backtrace( frames, 64 );
+    if ( n > 0 ) {
+        backtrace_symbols_fd( frames, n, STDERR_FILENO );
+    }
+#endif
+    abort( );
+}
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS )
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
@@ -29,7 +55,7 @@
         int errCode;                                                                                                                                                                                                                           \
         if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {                                                                                                                                                                                    \
             pr_debug( "GL Error:%d:%s", errCode, REPGAME_GL_ERROR_STRING( errCode ) );                                                                                                                                                        \
-            exit( 1 );                                                                                                                                                                                                                         \
+            repgame_fatal( );                                                                                                                                                                                                                         \
         }                                                                                                                                                                                                                                      \
     }
 #endif

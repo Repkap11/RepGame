@@ -195,7 +195,7 @@ void World::change_size( int width, int height ) {
         if ( !this->frameBuffer.ok( ) ) {
             pr_debug( "Frame buffer not ok" );
             showErrors( );
-            exit( 1 );
+            repgame_fatal( );
         }
         this->blockTexture.change_size( width, height );
         showErrors( );
@@ -229,7 +229,7 @@ void World::change_size( int width, int height ) {
         if ( !this->frameBuffer.ok( ) ) {
             pr_debug( "Frame buffer not ok" );
             showErrors( );
-            exit( 1 );
+            repgame_fatal( );
         }
     }
 }
