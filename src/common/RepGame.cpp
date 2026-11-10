@@ -58,20 +58,7 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.survival_inventory.inventory_renderer.options.pin_bottom_y = globalGameState.ui.creative.inventory_renderer.getInvBottom( );
     globalGameState.survival_inventory.onScreenSizeChange( w, h );
     globalGameState.hotbar.onScreenSizeChange( w, h );
-    {
-        // The renderer needs a slots array to rebuild icons on resize; use the
-        // live chest contents when one is open, an empty chest otherwise.
-        static const ChestContents empty_chest;
-        const ChestContents *chest_contents = &empty_chest;
-        if ( globalGameState.ui.chest.open ) {
-            const ChestContents *live = globalGameState.world.get_chest_contents( globalGameState.ui.chest.pos );
-            if ( live != nullptr ) {
-                chest_contents = live;
-            }
-        }
-        globalGameState.ui.chest.inventory_renderer.options.pin_top_y = globalGameState.ui.creative.inventory_renderer.getInvTop( );
-        globalGameState.ui.chest.inventory_renderer.onSizeChange( w, h, chest_contents->slots );
-    }
+    repgame_chest_layout( globalGameState );
     repgame_crafting_layout( globalGameState );
     repgame_furnace_layout( globalGameState );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, CAMERA_FAR_PLANE );

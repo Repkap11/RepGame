@@ -633,6 +633,39 @@ void RepGame::close_furnace( ) {
     }
 }
 
+// Chest layout (called from changeSize — panels only depend on the screen
+// size): the chest slab sits where the crafting grid does — same cell
+// stride as the survival inventory, its bottom edge pinned just above the
+// survival items slab — then frames both slabs in one window backdrop.
+void repgame_chest_layout( RepGameState &state ) {
+    const int w = static_cast<int>( state.screen.width );
+    const int h = static_cast<int>( state.screen.height );
+    // The renderer needs a slots array to rebuild icons on resize; use the
+    // live chest contents when one is open, an empty chest otherwise.
+    static const ChestContents empty_chest;
+    const ChestContents *chest_contents = &empty_chest;
+    if ( state.ui.chest.open ) {
+        if ( const ChestContents *live = state.world.get_chest_contents( state.ui.chest.pos ) ) {
+            chest_contents = live;
+        }
+    }
+    const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
+    const float stride = surv.getCellStride( );
+    state.ui.chest.inventory_renderer.options.fixed_cell_stride = stride;
+    state.ui.chest.inventory_renderer.options.center_x = 0;
+    state.ui.chest.inventory_renderer.options.pin_bottom_y = surv.getItemsTop( ) + static_cast<int>( stride * 0.25f );
+    state.ui.chest.inventory_renderer.onSizeChange( w, h, chest_contents->slots );
+    // The window backdrop unifies the chest slab with the survival
+    // inventory — same treatment as the furnace/crafting screens.
+    const int pad = static_cast<int>( stride * 0.35f );
+    const InventoryRenderer &chest = state.ui.chest.inventory_renderer;
+    const int left = std::min( chest.getItemsLeft( ), surv.getItemsLeft( ) ) - pad;
+    const int right = std::max( chest.getItemsRight( ), surv.getItemsRight( ) ) + pad;
+    const int bottom = surv.getItemsBottom( ) - pad;
+    const int top = chest.getItemsTop( ) + pad;
+    state.ui.chest.backdrop = { left, bottom, right - left, top - bottom };
+}
+
 // Lay out the three 1x1 furnace panels: input and output on the top row,
 // fuel centered below them, all pinned above the survival inventory.
 void repgame_furnace_layout( RepGameState &state ) {
@@ -668,6 +701,19 @@ void repgame_furnace_layout( RepGameState &state ) {
         const InventorySlot *slots = &contents->slots[ slot_index ];
         p.panel->onSizeChange( w, h, slots );
     }
+    // The window backdrop unifies the panel group with the survival
+    // inventory: it spans the wider of the two horizontally, runs from the
+    // group's top down through the gap, and frames the survival items slab —
+    // one window, so the gap clicks as inside-the-window.
+    const int pad = static_cast<int>( stride * 0.35f );
+    const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
+    const int group_left = std::min( std::min( state.ui.furnace.input.getInvLeft( ), state.ui.furnace.fuel.getInvLeft( ) ), state.ui.furnace.output.getInvLeft( ) );
+    const int group_right = std::max( std::max( state.ui.furnace.input.getInvRight( ), state.ui.furnace.fuel.getInvRight( ) ), state.ui.furnace.output.getInvRight( ) );
+    const int left = std::min( group_left, surv.getItemsLeft( ) ) - pad;
+    const int right = std::max( group_right, surv.getItemsRight( ) ) + pad;
+    const int bottom = surv.getItemsBottom( ) - pad;
+    const int top = std::max( std::max( state.ui.furnace.input.getInvTop( ), state.ui.furnace.fuel.getInvTop( ) ), state.ui.furnace.output.getInvTop( ) ) + pad;
+    state.ui.furnace.backdrop = { left, bottom, right - left, top - bottom };
 }
 
 // --- Crafting helpers -----------------------------------------------------
@@ -735,6 +781,18 @@ void repgame_crafting_layout( RepGameState &state ) {
             state.ui.crafting.output.options.pin_bottom_y = grid.getInvBottom( ) + static_cast<int>( ( grid_w - out_w ) / 2 );
             InventorySlot out_slot = state.ui.crafting.output_slot;
             state.ui.crafting.output.onSizeChange( w, h, &out_slot );
+            // The window backdrop unifies the panel group with the survival
+            // inventory: it spans the wider of the two horizontally, runs
+            // from the group's top down through the gap, and frames the
+            // survival items slab — one window, so the gap clicks as
+            // inside-the-window.
+            const int pad = static_cast<int>( stride * 0.35f );
+            const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
+            const int left = std::min( std::min( grid.getInvLeft( ), state.ui.crafting.output.getInvLeft( ) ), surv.getItemsLeft( ) ) - pad;
+            const int right = std::max( std::max( grid.getInvRight( ), state.ui.crafting.output.getInvRight( ) ), surv.getItemsRight( ) ) + pad;
+            const int bottom = surv.getItemsBottom( ) - pad;
+            const int top = std::max( grid.getInvTop( ), state.ui.crafting.output.getInvTop( ) ) + pad;
+            state.ui.crafting.backdrop = { left, bottom, right - left, top - bottom };
         }
     }
 }
@@ -1065,31 +1123,47 @@ void repgame_crafting_return_grid( RepGameState &state ) {
 }
 
 // A click while the inventory is open is "outside the panels" when it lands
-// on no visible inventory panel rect — chest (if open), the creative or
-// survival inventory, or the hotbar strip.
+// on no visible UI region — the items slabs of the open panels (chest /
+// furnace / crafting if open, the creative or survival inventory, the
+// hotbar strip) or a container screen's window backdrop rect, whose dead
+// areas (including the gap above the player inventory) count as
+// inside-the-window.
 static bool off_inventory_panels( RepGameState &state ) {
     const int x = state.input.mouse.absPosition.x;
     const int y = state.input.mouse.absPosition.y;
-    if ( state.ui.chest.open && state.ui.chest.inventory_renderer.containsPoint( x, y ) ) {
+    // Centered, y-up coords — the space the backdrop rects live in.
+    const int cx = x - static_cast<int>( state.screen.width ) / 2;
+    const int cy = -( y - static_cast<int>( state.screen.height ) / 2 );
+    // Hit tests run against the visible items slabs (containsItemsPoint)
+    // or the window backdrop rects — the panel rects are laid out far
+    // wider than the slabs they frame, which would swallow clicks that are
+    // clearly outside the window.
+    if ( state.ui.chest.open &&
+         ( state.ui.chest.inventory_renderer.containsItemsPoint( x, y ) || state.ui.chest.backdrop.contains( cx, cy ) ) ) {
         return false;
     }
     if ( state.ui.furnace.open &&
-         ( state.ui.furnace.input.containsPoint( x, y ) || state.ui.furnace.fuel.containsPoint( x, y ) ||
-           state.ui.furnace.output.containsPoint( x, y ) ) ) {
+         ( state.ui.furnace.input.containsItemsPoint( x, y ) || state.ui.furnace.fuel.containsItemsPoint( x, y ) ||
+           state.ui.furnace.output.containsItemsPoint( x, y ) || state.ui.furnace.backdrop.contains( cx, cy ) ) ) {
         return false;
     }
     if ( repgame_crafting_grid_visible( state ) &&
-         ( repgame_crafting_grid( state ).containsPoint( x, y ) || state.ui.crafting.output.containsPoint( x, y ) ) ) {
+         ( repgame_crafting_grid( state ).containsItemsPoint( x, y ) || state.ui.crafting.output.containsItemsPoint( x, y ) ||
+           state.ui.crafting.backdrop.contains( cx, cy ) ) ) {
         return false;
     }
-    if ( state.game_mode == GameMode_Creative ) {
-        if ( state.ui.creative.inventory_renderer.containsPoint( x, y ) || ( state.input.search_focused && state.ui.creative.searchBoxContainsPoint( x, y ) ) ) {
+    // The palette slab is only on screen in creative mode with no
+    // container open; in a container screen the survival slab shows
+    // instead (its backdrop check above already covers it).
+    const bool creative_palette = state.game_mode == GameMode_Creative && !state.ui.chest.open && !state.ui.furnace.open && !state.ui.crafting.table_open;
+    if ( creative_palette ) {
+        if ( state.ui.creative.inventory_renderer.containsItemsPoint( x, y ) || ( state.input.search_focused && state.ui.creative.searchBoxContainsPoint( x, y ) ) ) {
             return false;
         }
-    } else if ( state.survival_inventory.inventory_renderer.containsPoint( x, y ) ) {
+    } else if ( state.survival_inventory.inventory_renderer.containsItemsPoint( x, y ) ) {
         return false;
     }
-    return !state.hotbar.inventory_renderer.containsPoint( x, y );
+    return !state.hotbar.inventory_renderer.containsItemsPoint( x, y );
 }
 
 // Throws the held cursor stack (whole) or one item from it as an item

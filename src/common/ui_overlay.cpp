@@ -59,6 +59,7 @@ void UIOverlay::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Ver
 
     this->render_chain_held_block.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_held, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_dragged_item.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_panel_backdrop.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
     showErrors( );
 
@@ -122,6 +123,27 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     }
     showErrors( );
+}
+
+void UIOverlay::draw_panel_backdrop( int left, int bottom, int width, int height, const Renderer &renderer, const glm::mat4 &mvp_ui ) {
+    this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
+    this->render_chain_panel_backdrop.clear( );
+    auto pair = this->render_chain_panel_backdrop.create_instance( );
+    UIOverlayInstance &ui_vertex = pair.second;
+    ui_vertex.screen_x = static_cast<float>( left );
+    ui_vertex.screen_y = static_cast<float>( bottom );
+    ui_vertex.screen_z = ORDER_Z_PANEL_BACKDROP;
+    ui_vertex.width = static_cast<float>( width );
+    ui_vertex.height = static_cast<float>( height );
+    ui_vertex.is_block = 0;
+    ui_vertex.is_isometric = 0;
+    // Same gray as the per-cell squares inside the panels (0.5) so the
+    // group reads as one continuous window behind the slots.
+    ui_vertex.tint[ 0 ] = 0.5f;
+    ui_vertex.tint[ 1 ] = 0.5f;
+    ui_vertex.tint[ 2 ] = 0.5f;
+    ui_vertex.tint[ 3 ] = 1.0f;
+    this->render_chain_panel_backdrop.draw( renderer, this->shader );
 }
 
 void UIOverlay::draw_slot_panel( InventoryRenderer &panel, const InventorySlot *slots, int n, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui ) {

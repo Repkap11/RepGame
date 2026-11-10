@@ -10,6 +10,10 @@
 
 class Input;
 
+// The floating-panel window backdrop (furnace/crafting groups): below the
+// panel layers, though each panel's draw clears depth anyway — what orders
+// it is being drawn before the panels it groups.
+#define ORDER_Z_PANEL_BACKDROP -0.1f
 #define ORDER_Z_INV_ITEMS_BG 0.0f
 #define ORDER_Z_INV_SELECTED_SLOT 0.1f
 #define ORDER_Z_INV_SLOT_BG 0.2f
@@ -62,6 +66,10 @@ class UIOverlay {
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_crosshair;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_held_block;
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_dragged_item;
+    // Window backdrops for the floating panel groups (furnace, crafting
+    // grid + output) + the survival inventory they sit over. One quad per
+    // draw_panel_backdrop call (the call clears the chain first).
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_panel_backdrop;
     ItemID heldItemID = LAST_BLOCK_ID;
     int screen_width;
     int screen_height;
@@ -86,6 +94,11 @@ class UIOverlay {
     void draw( CreativeInventory &creative_inventory, SurvivalInventory &survival_inventory, Hotbar &hotbar, GameMode game_mode, const Renderer &renderer, const Texture &blocksTexture, Input &input, FontRenderer &font, const glm::mat4 &mvp_ui, InventoryRenderer *chest_renderer, const ChestContents *chest_contents, bool crafting_table_open, bool furnace_open, float held_block_light );
     // Draws a panel plus the stack-size labels for its first n slots.
     void draw_slot_panel( InventoryRenderer &panel, const InventorySlot *slots, int n, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
+    // Paints the window-backdrop quad that frames a floating panel group
+    // plus the survival inventory (furnace/crafting screens). The rect is
+    // in centered y-up UI pixels; call before draw() so the panels and the
+    // inventory slab composite inside it.
+    void draw_panel_backdrop( int left, int bottom, int width, int height, const Renderer &renderer, const glm::mat4 &mvp_ui );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     // Exposes the shared ui_overlay shader so the pause menu (drawn from
     // RepGame::draw_ui_pass) uses the same program.

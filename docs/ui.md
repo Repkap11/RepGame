@@ -27,13 +27,27 @@ draws every grid: hotbar strip, survival grid, creative palette, chest,
 crafting grids. `onSizeChange` lays a `width×height` cell matrix into
 screen space under `InventoryRenderOptions` — percentage bounds, bottom
 gravity (hotbar), top gravity (chest), `pin_*_y` edge anchors for
-stacking panels (chest sits above the player inventory),
+stacking panels (container slabs sit above the player inventory),
 `fixed_cell_stride` overrides. Cells draw as instanced
 `UIOverlayInstance`s through `RenderChain`; block icons are projected
 isometrically in the ui_overlay shader using the same
 `Block::scale/offset` shape data the chunk mesh uses. Hit testing is
 `whichSlotClicked`/`containsPoint` in centered y-up coords;
 `changeSlotItem` repaints a single slot.
+
+Container screens — chest, the furnace trio, and the crafting grid +
+output — get a window backdrop that unifies them with the player
+inventory: `UiPanelBackdrop` (`ui_state.hpp`) stores a centered-coords
+rect each layout pass computes from the group's top down around the
+survival items slab (`repgame_chest_layout`/`repgame_furnace_layout`/
+`repgame_crafting_layout`), `UIOverlay::draw_panel_backdrop` paints one
+flat quad through the shared ui_overlay shader *before* the panels and
+inventory slab composite inside it, and `off_inventory_panels` treats the
+rect's dead areas (the gap included) as inside-the-window rather than
+"outside every panel". Outside a backdrop, clicks hit-test the visible
+items slab (`containsItemsPoint`) — the layout panel rect is laid out far
+wider than the slab, so the items rect is what "outside the window" means
+for held-stack drops.
 
 ## Input routing
 
@@ -70,8 +84,13 @@ GL-less server can call it). Contents live in the owning `Chunk`
 `RepGame::open_chest`/`close_chest` (inventory.cpp): opening sets
 `ui.chest.{open,pos}`, raises `inventory_open`, plays the sound, and —
 in multiplayer — sends `CONTAINER_OPEN` through
-`state.multiplayer.containers`. Inbound `CONTAINER_*` frames only write
-World state (`NetContainers` never touches `ui`); the open panel
+`state.multiplayer.containers`. `repgame_chest_layout` (run from
+`changeSize` — the chest panel only depends on screen size) places the
+chest slab where the crafting grid sits — survival-stride cells, bottom
+edge pinned just above the survival items slab — and lays out the
+`ui.chest.backdrop` window framing chest + survival slabs. Inbound
+`CONTAINER_*` frames only write World state (`NetContainers` never
+touches `ui`); the open panel
 repaints by pulling each tick — `repgame_chest_sync_icons` diffs
 world-owned contents against `ui.chest.drawn[]` and repaints just the
 slots that changed. Every local mutation funnels through
@@ -104,8 +123,9 @@ tick (slots via `ui.furnace.drawn[]`, aux into `cook_progress`/
 three 1x1 `InventoryRenderer`s laid out by `repgame_furnace_layout` —
 input and output on the top row, fuel centered below, pinned above the
 survival inventory (`repgame_furnace_layout` runs from `changeSize`
-too). The draw pass adds a cook-progress percent and remaining burn
-seconds between the input/output panels. `World::tick_furnaces`
+too). The draw pass adds a window backdrop (`ui.furnace.backdrop`)
+unifying the group with the player inventory, plus a cook-progress
+percent and remaining burn seconds between the input/output panels. `World::tick_furnaces`
 advances every loaded furnace each tick in singleplayer (fuel burn →
 cook progress → output, lit-block swap via `set_loaded_block`); in
 multiplayer the server ticks them instead (`docs/multiplayer.md`).

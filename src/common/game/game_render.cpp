@@ -595,6 +595,20 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             cube_shader.set_uniform3f( "u_CameraPos", 0.0f, 0.0f, 0.0f );
             items.draw_held( globalGameState.world.renderer, sprite_shader, cube_shader );
         }
+        // The floating group's window backdrop frames the survival
+        // inventory too, so it paints first — the survival slab and the
+        // floating panels composite inside it. The container screens are
+        // mutually exclusive.
+        if ( repgame_crafting_grid_visible( globalGameState ) ) {
+            const UiPanelBackdrop &backdrop = globalGameState.ui.crafting.backdrop;
+            globalGameState.ui.overlay.draw_panel_backdrop( backdrop.x, backdrop.y, backdrop.w, backdrop.h, globalGameState.world.renderer, globalGameState.screen.ortho_center );
+        } else if ( globalGameState.ui.chest.open ) {
+            const UiPanelBackdrop &backdrop = globalGameState.ui.chest.backdrop;
+            globalGameState.ui.overlay.draw_panel_backdrop( backdrop.x, backdrop.y, backdrop.w, backdrop.h, globalGameState.world.renderer, globalGameState.screen.ortho_center );
+        } else if ( globalGameState.ui.furnace.open && globalGameState.world.get_furnace_contents( globalGameState.ui.furnace.pos ) != nullptr ) {
+            const UiPanelBackdrop &backdrop = globalGameState.ui.furnace.backdrop;
+            globalGameState.ui.overlay.draw_panel_backdrop( backdrop.x, backdrop.y, backdrop.w, backdrop.h, globalGameState.world.renderer, globalGameState.screen.ortho_center );
+        }
         globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );
         if ( repgame_crafting_grid_visible( globalGameState ) ) {
             const int dim = repgame_crafting_dim( globalGameState );

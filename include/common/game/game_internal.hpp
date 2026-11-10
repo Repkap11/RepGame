@@ -27,6 +27,11 @@ void repgame_crafting_layout( RepGameState &state );
 // overlay draw (all in inventory.cpp / game_render.cpp).
 void repgame_furnace_layout( RepGameState &state );
 
+// Chest panel layout (called from changeSize — panels only depend on the
+// screen size): pins the chest slab to the creative panel's top and lays
+// out its window backdrop around the chest + survival slabs.
+void repgame_chest_layout( RepGameState &state );
+
 // Repaints open-chest/furnace slot icons when the world contents changed
 // without a click handler (server CONTAINER_* writes, tick-driven smelts).
 // Called from RepGame::tick — the pull model that keeps the net layer out

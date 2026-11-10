@@ -135,8 +135,9 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.hotbar.inventory_renderer.options.fixed_cell_stride = 0.0f;
     globalGameState.hotbar.inventory_renderer.options.center_x = 0;
 
-    // Chest panel pinned to the top of the screen; the player inventory and
-    // hotbar render below it.
+    // Chest panel: fixed-stride cells laid out by repgame_chest_layout at
+    // changeSize, bottom pinned just above the survival panel's items like
+    // the crafting grid.
     globalGameState.ui.chest.inventory_renderer.options.active_height_percent = 0.5f;
     globalGameState.ui.chest.inventory_renderer.options.max_height_percent = 0.5f;
     globalGameState.ui.chest.inventory_renderer.options.max_width_percent = 0.6f;

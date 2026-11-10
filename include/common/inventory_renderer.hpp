@@ -115,6 +115,14 @@ class InventoryRenderer {
         const int y = -( screen_y - this->screen_height / 2 );
         return x >= this->inv_x && x < this->inv_x + this->inv_width && y >= this->inv_y && y < this->inv_y + this->inv_height;
     }
+    // Same hit test but against the visible items slab — the panel rect is
+    // laid out much wider (max_width_percent of the screen) than the slab it
+    // frames, so "is this click inside the window" wants the tighter one.
+    bool containsItemsPoint( int screen_x, int screen_y ) const {
+        const int x = screen_x - this->screen_width / 2;
+        const int y = -( screen_y - this->screen_height / 2 );
+        return x >= this->inv_items_x && x < this->inv_items_x + this->inv_items_width && y >= this->inv_items_y && y < this->inv_items_y + this->inv_items_height;
+    }
     // Panel edges in centered screen coords (set by onSizeChange) so other
     // panels can align to them via options.pin_bottom_y / pin_top_y.
     int getInvBottom( ) const;
@@ -127,10 +135,20 @@ class InventoryRenderer {
     int getInvRight( ) const {
         return this->inv_x + this->inv_width;
     }
-    // Cell stride and items-rect top edge (centered coords), for stacking
-    // fixed-stride panels at another panel's scale.
+    // Cell stride and items-rect edges (centered coords), for stacking
+    // fixed-stride panels at another panel's scale and for framing a panel
+    // inside a window backdrop.
     float getCellStride( ) const;
     int getItemsTop( ) const;
+    int getItemsBottom( ) const {
+        return this->inv_items_y;
+    }
+    int getItemsLeft( ) const {
+        return this->inv_items_x;
+    }
+    int getItemsRight( ) const {
+        return this->inv_items_x + this->inv_items_width;
+    }
     // Returns the screen-space position of the bottom-right corner of the given
     // slot (for rendering quantity text). Returns false if the slot index is
     // out of bounds.

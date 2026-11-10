@@ -16,6 +16,23 @@
 #include "common/chest.hpp"             // CHEST_SLOTS
 #include "common/furnace.hpp"
 
+// Window backdrop rect behind a group of panels (the furnace slot trio,
+// the crafting grid + output) AND the survival inventory below them, in
+// centered y-up UI pixels — one unified window. The layout helpers fill it
+// in; the draw pass paints it before the panels and the click router
+// treats its dead areas as inside-the-window (not "outside every panel").
+struct UiPanelBackdrop {
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+    // Centered, y-up UI coords (the space InventoryRenderer::containsPoint
+    // works in after its screen-to-center transform).
+    bool contains( int cx, int cy ) const {
+        return cx >= this->x && cx < this->x + this->w && cy >= this->y && cy < this->y + this->h;
+    }
+};
+
 // Chest container the player currently has open (at most one). Contents
 // live in the owning chunk (World::get_chest_contents); this renderer
 // draws them as a top-aligned panel.
@@ -23,6 +40,9 @@ struct ChestUi {
     bool open;
     glm::ivec3 pos;
     InventoryRenderer inventory_renderer;
+    // Window rect framing the chest slab and the survival inventory below,
+    // set by repgame_chest_layout.
+    UiPanelBackdrop backdrop;
     // Last slot values pushed to the renderer. The net layer only writes
     // World state (pull model), so the tick loop repaints through
     // repgame_chest_sync_icons when the world contents differ from this
@@ -41,6 +61,9 @@ struct CraftingUi {
     InventorySlot output_slot;
     int recipe;
     InventoryRenderer grid2, grid3, output;
+    // Window rect framing the active grid + output and the survival
+    // inventory below, set by repgame_crafting_layout.
+    UiPanelBackdrop backdrop;
     // In-progress button-drag split: the applied state is live in slots /
     // held; the snapshots let each new target re-distribute from scratch.
     struct {
@@ -61,6 +84,10 @@ struct FurnaceUi {
     bool open;
     glm::ivec3 pos;
     InventoryRenderer input, fuel, output;
+    // Window rect framing the three panels (and the progress text between
+    // them) plus the survival inventory below, set by
+    // repgame_furnace_layout.
+    UiPanelBackdrop backdrop;
     // Last slot values pushed to the renderers. Furnace contents also change
     // from ticking (fuel consumed, smelts completing), so the tick loop
     // repaints through repgame_furnace_sync_icons when the world contents
