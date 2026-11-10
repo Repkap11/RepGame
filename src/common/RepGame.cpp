@@ -49,7 +49,6 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.input.mouse.previousPosition.x = w / 2;
     globalGameState.input.mouse.previousPosition.y = h / 2;
     globalGameState.ui.overlay.on_screen_size_change( w, h );
-    globalGameState.ui.pause.onScreenSizeChange( w, h, globalGameState.ui.font );
     globalGameState.ui.font.onScreenSizeChange( w, h );
     globalGameState.ui.creative.onScreenSizeChange( w, h );
     // The layout pass sizes the HUD strip from the hotbar's slab metrics —

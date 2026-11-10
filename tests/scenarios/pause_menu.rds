@@ -1,0 +1,9 @@
+# Pause menu layout check — open the menu, screenshot, close.
+wait_idle 20 6000
+camera 0.5 10.0 0.5 0 -30
+menu 1
+wait 30
+screenshot pause_menu
+menu 0
+wait 10
+echo pause_menu done

@@ -22,23 +22,25 @@ class FontRenderer {
     int atlas_width;
     int atlas_height;
 
-    // Glyph metrics for ASCII 32..126
-    stbtt_packedchar glyphs[ 95 ];
-    int first_char;
-    int num_chars;
+    // Glyph metrics for ASCII 32..126. Value-initialized so an uninit'd
+    // FontRenderer measures deterministically (all zeros) — the Clay
+    // layout tests bind one without ever calling init().
+    stbtt_packedchar glyphs[ 95 ] = { };
+    int first_char = 32;
+    int num_chars = 95;
 
     // Proportional metrics computed at init from the thresholded atlas.
     // glyph_shift repositions the quad so the leftmost ink column sits at
     // the pen; glyph_advance is the pen step (ink width + kLetterSpacing,
     // kSpaceAdvance for glyphs with no ink like space).
-    int glyph_shift[ 95 ];
-    int glyph_advance[ 95 ];
-    bool glyph_has_ink[ 95 ];
+    int glyph_shift[ 95 ] = { };
+    int glyph_advance[ 95 ] = { };
+    bool glyph_has_ink[ 95 ] = { };
 
-    float font_size; // rasterized pixel size
-    float ascent;
-    float descent;
-    float line_gap;
+    float font_size = 13.0f; // rasterized pixel size
+    float ascent = 0.0f;
+    float descent = 0.0f;
+    float line_gap = 0.0f;
 
     // Raw GL buffers for dynamic per-frame text quads
     unsigned int vao_id;

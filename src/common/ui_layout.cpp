@@ -6,12 +6,14 @@
 // Element sizes are declared in physical pixels; positions land wherever
 // the metrics put them (the renderer snaps what needs snapping).
 
+#include <math.h>
 #include <stdlib.h>
 
 #include "common/RepGame.hpp"
 #include "common/ui_layout.hpp"
 #include "common/font_renderer.hpp"
 #include "common/inventory_renderer.hpp"
+#include "common/pause_menu.hpp"
 #include "common/vendor/clay.h"
 
 // Selected-item label size (game_render draws at this size too).
@@ -33,6 +35,7 @@ void UiLayout::init( FontRenderer &font ) {
     this->arena_mem = malloc( bytes );
     Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory( bytes, this->arena_mem );
     this->context = Clay_Initialize( arena, { 0, 0 }, { clay_error, nullptr } );
+    this->font_ = &font;
     Clay_SetMeasureTextFunction( clay_measure_text, &font );
 }
 
@@ -56,6 +59,76 @@ static UiRect clay_to_ui( const Clay_BoundingBox &b, float screen_w, float scree
     return r;
 }
 
+// The pause menu: a floating centered panel — a cap-height title band
+// over one full-width row per button line. Clay owns the stacking and
+// fit; PauseMenu::split_row subdivides the returned row rects into equal
+// button cells. `k` is the integer text scale (labels 13k, title
+// 13(k+1)); the caller fit-solves it.
+static void declare_pause( const UiLayoutInput &in, const FontRenderer &font, const int k ) {
+    const float t = 13.0f * k;
+    const float title_size = 13.0f * ( k + 1 );
+    const float bh = t + 2.0f * lroundf( t * 0.35f );
+    const float gap = lroundf( t * 0.4f );
+    const float pad = t;  // outer padding on all four sides
+    const float hpad = t; // text padding inside a button
+
+    PauseMenu::Line lines[ PauseMenu::MAX_ROWS ];
+    const int nl = PauseMenu::build_lines( in.pause_dead, lines, PauseMenu::MAX_ROWS );
+
+    // Content-driven panel width: the widest line measured on worst-case
+    // labels, so live text can never overflow its button.
+    char worst[ 64 ];
+    float panel_inner = 0.0f;
+    for ( int i = 0; i < nl; i++ ) {
+        const PauseMenu::Line &line = lines[ i ];
+        float line_w;
+        if ( line.count == 1 && PauseMenu::is_stepper_row( line.kinds[ 0 ] ) ) {
+            // - and + squares at the ends, reset button between them.
+            const char *label = PauseMenu::worst_label( line.kinds[ 0 ], in.pause_dead, worst, sizeof( worst ) );
+            line_w = 2.0f * bh + 2.0f * gap + 2.0f * hpad + font.getTextWidth( label, t );
+        } else {
+            // Equal cells sharing the line's gap; a single-button line
+            // degenerates to its own worst-label width.
+            float max_cell = 0.0f;
+            for ( int j = 0; j < line.count; j++ ) {
+                const char *label = PauseMenu::worst_label( line.kinds[ j ], in.pause_dead, worst, sizeof( worst ) );
+                const float cell = font.getTextWidth( label, t ) + 2.0f * hpad;
+                if ( cell > max_cell ) {
+                    max_cell = cell;
+                }
+            }
+            line_w = line.count * max_cell + ( line.count - 1 ) * gap;
+        }
+        if ( line_w > panel_inner ) {
+            panel_inner = line_w;
+        }
+    }
+
+    const uint16_t pad_u = static_cast<uint16_t>( pad );
+    const uint16_t gap_u = static_cast<uint16_t>( gap );
+    CLAY( { .id = CLAY_ID( "pause_panel" ),
+            .layout = { .sizing = { CLAY_SIZING_FIXED( panel_inner + 2.0f * pad ), CLAY_SIZING_FIT( ) },
+                        .padding = CLAY_PADDING_ALL( pad_u ),
+                        .childGap = pad_u,
+                        .childAlignment = { .x = CLAY_ALIGN_X_CENTER },
+                        .layoutDirection = CLAY_TOP_TO_BOTTOM },
+            // Floating: the modal panel never displaces the HUD strip.
+            .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_CENTER, .parent = CLAY_ATTACH_POINT_CENTER_CENTER },
+                          .attachTo = CLAY_ATTACH_TO_ROOT } } ) {
+        // Cap-height band; its bottom edge is the title baseline.
+        CLAY( { .id = CLAY_ID( "pause_title" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( font.getCapHeight( title_size ) ) } } } ) { }
+        CLAY( { .layout = { .sizing = { CLAY_SIZING_GROW( ), CLAY_SIZING_FIT( ) },
+                           .childGap = gap_u,
+                           .layoutDirection = CLAY_TOP_TO_BOTTOM } } ) {
+            for ( int i = 0; i < nl; i++ ) {
+                CLAY( { .id = CLAY_IDI( "pause_row", i ),
+                        .layout = { .sizing = { CLAY_SIZING_GROW( ), CLAY_SIZING_FIXED( bh ) } } } ) { }
+            }
+        }
+    }
+}
+
 void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_ = { };
     if ( this->context == nullptr || in.screen_w <= 0.0f || in.screen_h <= 0.0f || in.cell_stride <= 0.0f ) {
@@ -63,10 +136,18 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     }
     Clay_SetCurrentContext( this->context );
     Clay_SetLayoutDimensions( { in.screen_w, in.screen_h } );
-    Clay_BeginLayout( );
 
-    const float s = in.cell_stride;
-    CLAY( { .id = CLAY_ID( "root" ),
+    // Fit-solve the pause menu's integer text scale k: shrink it until the
+    // panel fits the viewport caps (same rule the old k-- loop applied).
+    int pause_k = static_cast<int>( lroundf( ui_layout_height_basis( in.screen_w, in.screen_h ) / 400.0f ) );
+    if ( pause_k < 1 ) {
+        pause_k = 1;
+    }
+    for ( ; ; pause_k-- ) {
+        Clay_BeginLayout( );
+
+        const float s = in.cell_stride;
+        CLAY( { .id = CLAY_ID( "root" ),
             .layout = { .sizing = { CLAY_SIZING_GROW( ), CLAY_SIZING_GROW( ) },
                         .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_BOTTOM },
                         .layoutDirection = CLAY_TOP_TO_BOTTOM } } ) {
@@ -97,8 +178,18 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                       .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
             }
         }
+        // The pause panel floats (attachTo ROOT): it never displaces the
+        // HUD strip, and is laid out whether or not the menu is open.
+        declare_pause( in, *this->font_, pause_k );
+        }
+        Clay_EndLayout( );
+
+        const Clay_ElementData panel = Clay_GetElementData( CLAY_ID( "pause_panel" ) );
+        const bool fits = !panel.found || ( panel.boundingBox.width <= in.screen_w * 0.95f && panel.boundingBox.height <= in.screen_h * 0.9f );
+        if ( fits || pause_k <= 1 ) {
+            break;
+        }
     }
-    Clay_EndLayout( );
 
     const float w = in.screen_w;
     const float h = in.screen_h;
@@ -111,6 +202,17 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_.item_label = rect_of( CLAY_ID( "item_label" ) );
     this->rects_.item_label_low = rect_of( CLAY_ID( "item_label_low" ) );
     this->rects_.hud_strip = rect_of( CLAY_ID( "hud_strip" ) );
+
+    this->rects_.pause_panel = rect_of( CLAY_ID( "pause_panel" ) );
+    this->rects_.pause_title = rect_of( CLAY_ID( "pause_title" ) );
+    this->rects_.pause_k = pause_k;
+    this->rects_.pause_gap = lroundf( 13.0f * pause_k * 0.4f );
+    PauseMenu::Line lines[ PauseMenu::MAX_ROWS ];
+    const int nl = PauseMenu::build_lines( in.pause_dead, lines, PauseMenu::MAX_ROWS );
+    this->rects_.pause_row_count = nl;
+    for ( int i = 0; i < nl; i++ ) {
+        this->rects_.pause_rows[ i ] = rect_of( CLAY_IDI( "pause_row", i ) );
+    }
 }
 
 UiLayoutInput ui_layout_input( const RepGameState &state ) {
@@ -122,5 +224,6 @@ UiLayoutInput ui_layout_input( const RepGameState &state ) {
     in.hotbar_slab_h = static_cast<float>( hotbar.getItemsTop( ) - hotbar.getItemsBottom( ) );
     in.cell_stride = hotbar.getCellStride( );
     in.label_h = state.ui.font.getCapHeight( UI_ITEM_LABEL_SIZE );
+    in.pause_dead = state.ui.pause.is_dead( );
     return in;
 }

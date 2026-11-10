@@ -1323,7 +1323,7 @@ void RepGame::process_inventory_events( ) {
         // and hotbar below it stay inert.
         if ( ( globalGameState.input.mouse.buttons.left && globalGameState.input.mouse.buttons.left_pressed_in_ui && globalGameState.input.mouse.buttons.left_click_handled == false ) || screen_tap ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
-            switch ( globalGameState.ui.pause.hitTest( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y ) ) {
+            switch ( globalGameState.ui.pause.hitTest( globalGameState, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y ) ) {
                 case PauseMenu::BUTTON_RESUME:
                     // On the death screen this button is "Respawn".
                     if ( globalGameState.vitals.dead ) {

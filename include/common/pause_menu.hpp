@@ -5,12 +5,17 @@
 #include "common/font_renderer.hpp"
 
 struct RepGameState;
+struct UiRect;
 
 // Escape / Android-menu pause screen: a dim backdrop, a centered panel, and
 // tappable buttons drawn with the flat (non-block) UIOverlay instancing
 // path, laid out in lines of one or two side-by-side cells. Line contents
 // are compile-time: the graphics-quality button only exists where
 // SUPPORTS_FRAME_BUFFER, the ImGui one where SUPPORTS_IMGUI_OVERLAY.
+//
+// Geometry comes from the central layout pass (UiLayout): it declares one
+// full-width row per line, and split_row below subdivides each row rect
+// into the clickable button cells at draw/hit-test time.
 class PauseMenu {
   public:
     enum Button {
@@ -45,58 +50,50 @@ class PauseMenu {
         NUM_BUTTONS
     };
 
-  private:
-    // A clickable rect in centered UI coords (origin screen center, y up).
-    struct Region {
-        int button;
-        float x, y, w, h;
-    };
-    // Per-button label anchors parallel to the layout pass.
-    struct Row {
-        int button; // BUTTON_*; BUTTON_*_ROW for the -/+ stepper rows
-        float center_x; // label center: cell center, or the stepper's mid button
-        float center_y;
-        float left_cx;  // stepper rows only: minus-button center x
-        float right_cx; // stepper rows only: plus-button center x
+    // One line of the menu: up to three side-by-side cells. A lone
+    // stepper kind (BUTTON_*_ROW) expands to [-] [label] [+] cells via
+    // stepper_ids at split time.
+    struct Line {
+        int kinds[ 3 ];
+        int count;
     };
     static constexpr int MAX_ROWS = 24;
 
+    // Content description consumed by the layout pass (all pure — no GL).
+    static int build_lines( bool dead, Line *lines, int max_lines );
+    // Longest label a button can show — the layout pass measures these so
+    // buttons never resize when the live value changes.
+    static const char *worst_label( int button, bool dead, char *buf, size_t buf_size );
+    static bool is_stepper_row( int button );
+    static void stepper_ids( int row_button, int &minus, int &reset, int &plus );
+
+    // Splits a layout-provided row rect into its per-button cells (equal
+    // widths, whole-pixel x edges — the same edges the old manual layout
+    // produced). Returns the number of cells written (1..3).
+    static int split_row( const Line &line, const UiRect &row, float gap, int ids[ 3 ], UiRect rects[ 3 ] );
+
+  private:
     // Death-screen mode: layout collapses to Respawn + Exit under a
     // "You died!" title (set via set_dead from player_damage/respawn).
     bool dead_mode = false;
-    // The last layout font — kept so set_dead can relayout outside
-    // changeSize. Set by onScreenSizeChange.
-    const FontRenderer *layout_font = nullptr;
 
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_quads;
     // Single-instance chain redrawn each frame over the hovered button
     // (desktop pointer feedback; harmless on touch since absPosition only
     // moves on touch).
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_hover;
-    Region regions[ MAX_ROWS ];
-    int num_regions = 0;
-    Row rows[ MAX_ROWS ];
-    int num_rows = 0;
-    int screen_width = 0;
-    int screen_height = 0;
-    float title_center_y = 0.0f;
-    float title_size = 0.0f;
-    float text_size = 0.0f;
 
   public:
     void init( const VertexBufferLayout &vbl_vertex, const VertexBufferLayout &vbl_instance );
-    // font is used to fit label sizes: text only ever draws at 13*k px
-    // (FontRenderer::pixelScale), so the layout asks it for real widths.
-    void onScreenSizeChange( int width, int height, const FontRenderer &font );
-    // Death-screen mode toggle — relayouts immediately when a layout has
-    // already run (screen size + font known).
-    void set_dead( bool dead );
+    // Death-screen mode toggle — recomputes the layout pass immediately
+    // (the row set and panel tint depend on it).
+    void set_dead( RepGameState &state, bool dead );
     bool is_dead( ) const {
         return this->dead_mode;
     }
     void draw( const Renderer &renderer, Shader &shader, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp, const RepGameState &state );
     // abs_x/abs_y are top-left-origin screen pixels (SDL mouse / touch).
     // Returns a BUTTON_* id or BUTTON_NONE.
-    int hitTest( int abs_x, int abs_y ) const;
+    int hitTest( const RepGameState &state, int abs_x, int abs_y ) const;
     void cleanup( );
 };

@@ -11,6 +11,7 @@
 // centralized in ui_layout.cpp so draw code never mixes conventions.
 
 struct Clay_Context;
+class FontRenderer;
 
 // One axis-aligned rect in centered, y-up UI pixels.
 struct UiRect {
@@ -27,6 +28,9 @@ struct UiRect {
     }
     float center_x( ) const {
         return this->left + this->width * 0.5f;
+    }
+    float center_y( ) const {
+        return this->bottom + this->height * 0.5f;
     }
     bool contains( float x, float y ) const {
         return x >= this->left && x < this->right( ) && y >= this->bottom && y < this->top( );
@@ -45,6 +49,9 @@ struct UiLayoutInput {
     float cell_stride = 0;
     // Cap height of the selected-item label at its drawn size.
     float label_h = 0;
+    // Pause-menu content variant: the death screen collapses to
+    // Respawn + Exit under "You died!".
+    bool pause_dead = false;
 };
 
 // Named regions draw/input code reads instead of re-deriving positions.
@@ -63,13 +70,35 @@ struct UiLayoutRects {
     // Whole bottom HUD strip including top headroom: inventory panels pin
     // their bottom edge to hud_strip.top().
     UiRect hud_strip;
+
+    // Pause menu (modal, centered; always laid out, drawn/hit-tested only
+    // while open). pause_rows[i] is the full-width band of line i;
+    // PauseMenu::split_row subdivides it into equal button cells.
+    UiRect pause_panel;
+    // Title band (one cap-height tall); its bottom edge is the baseline.
+    UiRect pause_title;
+    static constexpr int UI_LAYOUT_MAX_ROWS = 24;
+    UiRect pause_rows[ UI_LAYOUT_MAX_ROWS ];
+    int pause_row_count = 0;
+    // Inter-row/cell gap and the fit-solved integer text scale: button
+    // labels draw at 13*pause_k px, the title at 13*(pause_k+1).
+    float pause_gap = 0;
+    int pause_k = 0;
 };
+
+// 16:9-normalized height basis shared by UI sizing: the UI stays a
+// constant fraction of screen width on displays wider than 16:9, so
+// controls don't shrink on ultrawide phones.
+inline float ui_layout_height_basis( float w, float h ) {
+    const float basis = w * ( 9.0f / 16.0f );
+    return h > basis ? h : basis;
+}
 
 class UiLayout {
   public:
     // Allocates the Clay arena/context and binds `font` as the
     // MeasureText callback used by CLAY_TEXT elements.
-    void init( class FontRenderer &font );
+    void init( FontRenderer &font );
     void destroy( );
     // Runs the layout pass and refreshes rects(). No GL state touched.
     void compute( const UiLayoutInput &in );
@@ -80,6 +109,8 @@ class UiLayout {
   private:
     void *arena_mem = nullptr;
     Clay_Context *context = nullptr;
+    // Kept for content measurement during layout (worst-case labels etc.).
+    FontRenderer *font_ = nullptr;
     UiLayoutRects rects_;
 };
 

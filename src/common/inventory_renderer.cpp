@@ -2,6 +2,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
+#include "common/ui_layout.hpp"
 #include "common/ui_overlay_buffers.hpp"
 #include "common/renderer/shader.hpp"
 
@@ -55,7 +56,7 @@ void InventoryRenderer::compute_layout( const int screen_width, const int screen
     // a constant fraction of screen width on wide screens; 16:9 and narrower
     // are unchanged. Capped at the real height so extreme aspects don't
     // overflow vertically.
-    const float ui_height_basis = fmaxf( ( float )screen_height, screen_width * ( 9.0f / 16.0f ) );
+    const float ui_height_basis = ui_layout_height_basis( screen_width, screen_height );
     this->inv_height = fminf( ui_height_basis * this->options.max_height_percent, ( float )screen_height );
     this->inv_width = this->screen_width * this->options.max_width_percent;
 

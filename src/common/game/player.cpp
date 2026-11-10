@@ -209,7 +209,7 @@ bool RepGame::player_damage( RepGameState &state, const float hp ) {
     if ( state.vitals.health <= 0.0f ) {
         state.vitals.health = 0.0f;
         state.vitals.dead = true;
-        state.ui.pause.set_dead( true );
+        state.ui.pause.set_dead( state, true );
         state.input.menu_open = true;
     }
     return true;
@@ -294,7 +294,7 @@ void repgame_respawn( RepGameState &state ) {
     cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
     state.spawn_pending = true;
     cam.snapshot_prev( );
-    state.ui.pause.set_dead( false );
+    state.ui.pause.set_dead( state, false );
     state.input.menu_open = false;
 }
 

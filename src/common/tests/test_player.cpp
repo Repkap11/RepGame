@@ -493,7 +493,7 @@ int test_vitals( ) {
     check_bool( "lethal hit kills", RepGame::player_damage( gs, 10.0f ) && gs.vitals.dead && gs.vitals.health == 0.0f && gs.input.menu_open );
     check_bool( "dead refuses more damage", !RepGame::player_damage( gs, 1.0f ) );
     gs.vitals = PlayerVitals( );
-    gs.ui.pause.set_dead( false );
+    gs.ui.pause.set_dead( gs, false );
     gs.input.menu_open = false;
 
     // Eating: survival consumes one, heals the food value; refused at full
@@ -587,7 +587,7 @@ int test_vitals( ) {
     gs.vitals.dead = true;
     gs.vitals.air_ticks = 0;
     gs.vitals.fall_dist = 12.0;
-    gs.ui.pause.set_dead( true );
+    gs.ui.pause.set_dead( gs, true );
     gs.input.menu_open = true;
     repgame_respawn( gs );
     check_bool( "respawn restores vitals", gs.vitals.health == PLAYER_MAX_HEALTH && !gs.vitals.dead &&

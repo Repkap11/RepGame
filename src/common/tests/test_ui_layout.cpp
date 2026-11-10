@@ -1,6 +1,7 @@
-// The Clay-backed UI layout pass: HUD-strip rect geometry across aspect
-// ratios. Runs without GL — the FontRenderer here is only bound as the
-// (never-invoked) MeasureText callback; no TEXT elements are declared.
+// The Clay-backed UI layout pass: HUD-strip + pause-menu rect geometry
+// across aspect ratios. Runs without GL — the FontRenderer here is
+// uninit'd, so text measures as zero (deterministic) and only the
+// panel/row structure is asserted, not label widths.
 
 #include "test_util.hpp"
 #include "common/font_renderer.hpp"
@@ -58,6 +59,28 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     is_true( what, r.vitals.top( ) <= r.item_label.bottom + eps );
     snprintf( what, sizeof( what ), "%s: strip inside viewport", name );
     is_true( what, r.hud_strip.bottom >= -h * 0.5f - eps && r.hud_strip.left >= -w * 0.5f - eps && r.hud_strip.right( ) <= w * 0.5f + eps );
+
+    // Pause menu: floating centered panel of stacked rows.
+    snprintf( what, sizeof( what ), "%s: pause panel centered", name );
+    near_to( what, r.pause_panel.center_x( ), 0.0f );
+    snprintf( what, sizeof( what ), "%s: pause panel vertically centered", name );
+    near_to( what, r.pause_panel.center_y( ), 0.0f );
+    snprintf( what, sizeof( what ), "%s: pause text scale sane", name );
+    is_true( what, r.pause_k >= 1 );
+    snprintf( what, sizeof( what ), "%s: pause rows laid out", name );
+    is_true( what, r.pause_row_count > 0 && r.pause_row_count <= UiLayoutRects::UI_LAYOUT_MAX_ROWS );
+    snprintf( what, sizeof( what ), "%s: title above first row", name );
+    is_true( what, r.pause_title.bottom >= r.pause_rows[ 0 ].top( ) - eps );
+    for ( int i = 0; i < r.pause_row_count; i++ ) {
+        snprintf( what, sizeof( what ), "%s: row %d inside panel", name, i );
+        const UiRect &row = r.pause_rows[ i ];
+        is_true( what, row.left >= r.pause_panel.left - eps && row.right( ) <= r.pause_panel.right( ) + eps &&
+                       row.bottom >= r.pause_panel.bottom - eps && row.top( ) <= r.pause_panel.top( ) + eps );
+        if ( i > 0 ) {
+            snprintf( what, sizeof( what ), "%s: row %d below row %d", name, i, i - 1 );
+            is_true( what, row.top( ) <= r.pause_rows[ i - 1 ].bottom + eps );
+        }
+    }
     return failures;
 }
 
@@ -73,6 +96,24 @@ int test_ui_layout( ) {
     failures += check_strip( layout, "32:9", 3840.0f, 1080.0f, 500.0f, 55.0f );
     failures += check_strip( layout, "9:16", 600.0f, 1080.0f, 460.0f, 50.0f );
     failures += check_strip( layout, "tiny", 480.0f, 320.0f, 360.0f, 40.0f );
+
+    // Death screen: the menu collapses to Respawn + Exit.
+    {
+        UiLayoutInput in;
+        in.screen_w = 1920.0f;
+        in.screen_h = 1080.0f;
+        in.hotbar_slab_w = 500.0f;
+        in.hotbar_slab_h = 60.0f;
+        in.cell_stride = 55.0f;
+        in.label_h = 18.0f;
+        in.pause_dead = true;
+        layout.compute( in );
+        const bool ok = layout.rects( ).pause_row_count == 2;
+        pr_test( "  %-58s %s", "dead: pause menu has 2 rows", ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    }
     layout.destroy( );
     return failures;
 }
