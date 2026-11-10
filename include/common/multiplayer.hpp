@@ -2,6 +2,7 @@
 
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
+#include "common/item.hpp"
 #include "common/net/framed_socket.hpp"
 #include "common/net/packet.hpp"
 #include "common/net_containers.hpp"
@@ -23,6 +24,7 @@ class Multiplayer {
     float prev_eye_height = -1.0f;
     uint8_t prev_flags = 0xFF;
     float prev_health = -1.0f;
+    uint32_t prev_held_item = 0;
     friend class World;
     friend class NetEntities;
 
@@ -121,7 +123,7 @@ class Multiplayer {
     // multiplayer was never started (single player).
     const std::string &server_hostname( ) const { return this->hostname; }
     int server_port( ) const { return this->portno; }
-    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health );
+    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item );
     void request_chunk( const glm::ivec3 &chunk_pos );
     // Returns false (and queues nothing) when not connected, so callers
     // retrying one-shot requests (initial_chunk_request_pending) can keep

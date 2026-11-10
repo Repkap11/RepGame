@@ -184,6 +184,15 @@ class MobManager {
         float net_sent_health;
         uint32_t net_sent_flags;
         std::vector<entt::entity> parts; // one render entity per model cube
+        // Item drawn in the right hand: remote players stream it in
+        // NetPlayerPayload (set_remote_held_item). held_drawn is the item the
+        // current held_parts instances were built for (LAST_BLOCK_ID = none);
+        // held_cube picks which render chain owns them (block-object cube vs
+        // extruded sprite).
+        ItemID held_item = LAST_BLOCK_ID;
+        ItemID held_drawn = LAST_BLOCK_ID;
+        bool held_cube = false;
+        std::vector<entt::entity> held_parts;
     };
     // A chunk this manager took ownership of via adopt_chunk: its mobs file
     // was loaded (or the natural-spawn roll ran) and its mobs persist back to
@@ -207,6 +216,12 @@ class MobManager {
     long poll_count;
     long spawn_ticks; // 2 s countdown for the night spawner
     RenderChain<ParticleVertex, MobPartInstance> render_chain;
+    // Held items (remote-player avatars): same meshes/shaders as
+    // ItemEntities' dropped items — isometric block items draw as small
+    // cubes, everything else as an extruded sprite. Instances live on the
+    // mob (held_parts) so they die with it.
+    RenderChain<ParticleVertex, BlockObjectInstance> render_held_cube;
+    RenderChain<ParticleVertex, ItemSpriteInstance> render_held_sprite;
     // Multiplayer sync hub; bound while multiplayer_mode (hostname given).
     NetEntities *net = nullptr;
     bool mp_mode = false;
@@ -218,6 +233,9 @@ class MobManager {
     void poll_owned( World &world );
     void tick_spawner( World &world, const glm::dvec3 &player_feet, const MobTickInput &in );
     std::vector<Mob>::iterator remove_mob( std::vector<Mob>::iterator it );
+    // Releases the mob's held-item render instances (item changed or mob
+    // going away).
+    void drop_held_parts( Mob &mob );
     bool spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent );
     // True while locally owned world mobs (uid == 0 && !net.mirror — not
     // avatars, not mirrors) are under MAX_MOBS. The capped spawn paths gate
@@ -242,7 +260,8 @@ class MobManager {
 
   public:
     MobManager( );
-    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance );
+    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance,
+               const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_item_instance );
     void init_storage( MapStorage *storage ) { this->storage = storage; }
     // capped=false: bypass MAX_MOBS — persisted-mob restores (adopted
     // touched mobs must never be dropped) and explicit player/debug spawns
@@ -256,6 +275,9 @@ class MobManager {
     uint32_t spawn_remote( MobType type );
     void set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg,
                           float eye_height = PLAYER_EYE_HEIGHT );
+    // The remote player's selected hotbar item (from NetPlayerPayload);
+    // drawn in the avatar's right hand when the model has arm bones.
+    void set_remote_held_item( uint32_t uid, ItemID item );
     void remove_remote( uint32_t uid );
     // Remote-player hurt feedback (avatar): red flash + "player_hurt" faded
     // by distance to the local camera — driven by health drops in the
@@ -313,6 +335,9 @@ class MobManager {
     // into `hearts` (null skips emission — tests and pre-init paths).
     void update_render( float alpha, const ChunkLoader &chunk_loader, HeartParticles *hearts, float time_s );
     void draw( const Renderer &renderer, const Shader &shader );
+    // Held items: the item_sprite/block_object shaders carry the same world
+    // uniforms as the dropped-item draw — call wherever mobs.draw runs.
+    void draw_held( const Renderer &renderer, const Shader &block_object_shader, const Shader &item_sprite_shader );
     // Persist every owned chunk's mobs (World::cleanup).
     void persist_all( );
 

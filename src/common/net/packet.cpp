@@ -221,6 +221,7 @@ void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p ) {
     w.write_f32( p.eye_height );
     w.write_u8( p.flags );
     w.write_f32( p.health );
+    w.write_u32( p.held_item );
 }
 
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
@@ -235,6 +236,8 @@ bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
     r.read_u8( p.flags ); // older peers don't send it
     p.health = -1.0f;     // sentinel: peer predates health (or truncated)
     r.read_f32( p.health );
+    p.held_item = LAST_BLOCK_ID; // empty hand: peer predates held_item
+    r.read_u32( p.held_item );
     return true;
 }
 
@@ -749,6 +752,7 @@ void NetCodec<NetPlayerPayload>::fill( NetPlayerPayload &p ) {
     p.eye_height = 1.5f;
     p.flags = NET_PLAYER_FLAG_TARGETABLE;
     p.health = 17.5f;
+    p.held_item = STICK;
 }
 void NetCodec<NetBlockUpdatePayload>::fill( NetBlockUpdatePayload &p ) {
     p.x = 100;

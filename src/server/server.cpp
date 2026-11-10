@@ -157,6 +157,7 @@ void Server::handle_client_ready_for_read( int client_fd ) {
                 client_data[ client_fd ].player_data.eye_height = p.eye_height;
                 client_data[ client_fd ].player_data.flags = p.flags;
                 client_data[ client_fd ].player_data.health = p.health;
+                client_data[ client_fd ].player_data.held_item = p.held_item;
             }
         }
 

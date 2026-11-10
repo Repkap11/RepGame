@@ -39,7 +39,9 @@ protocol 9 retired the `CHEST_*`/`FURNACE_*` wire families for the unified
 `NetEntityKind::ARROW` (bow projectiles — see `docs/entities.md`);
 protocol 11 added `health` to `NetPlayerPayload` (player vitals —
 `docs/player.md`; peers that can't parse it read health as -1 =
-unknown).
+unknown). `held_item` later joined the same payload as another optional
+trailing field — old peers that omit it decode as `LAST_BLOCK_ID` =
+holding nothing.
 
 ## Transports
 
@@ -85,15 +87,20 @@ The client's side after that is driven by data it already produces:
 
 - `PLAYER_LOCATION` — `update_players_position` is called each render
   pass (`src/common/game/game_render.cpp`) but only sends when
-  position/rotation/eye_height/flags/health changed. On receipt, other
-  clients update the avatar (`world.multiplayer_avatars`,
-  `src/common/multiplayer_avatars.cpp`). The `flags` byte carries
-  `NET_PLAYER_FLAG_TARGETABLE` (survival && !no_clip) for mob targeting.
-  `health` is client-authoritative: a drop between updates flashes that
-  player's avatar red (`MobManager::flash_remote_hurt`, the same
-  `hurt_ticks` timer as local mobs) and plays a distance-faded hurt
-  sound. The server also stores the last health in `PacketType_DataPlayer`
-  so `CLIENT_INIT` replays it to late joiners.
+  position/rotation/eye_height/flags/health/held_item changed. On
+  receipt, other clients update the avatar
+  (`world.multiplayer_avatars`, `src/common/multiplayer_avatars.cpp`).
+  The `flags` byte carries `NET_PLAYER_FLAG_TARGETABLE` (survival &&
+  !no_clip) for mob targeting. `health` is client-authoritative: a drop
+  between updates flashes that player's avatar red
+  (`MobManager::flash_remote_hurt`, the same `hurt_ticks` timer as local
+  mobs) and plays a distance-faded hurt sound. `held_item` is the
+  sender's selected hotbar item (`hotbar.getSelectedItem()`): the avatar
+  is drawn holding it in the right hand — flat items and non-isometric
+  block icons as an extruded sprite, isometric block icons as their
+  `block_icon_box_count` shape boxes (see `docs/mobs.md`). The server
+  also stores the last health and held item in `PacketType_DataPlayer`
+  so `CLIENT_INIT` replays them to late joiners.
 - `VIEW` — sent by `NetEntities::send_view` once welcomed: the view
   center chunk plus radius (clamped to `NET_ENTITY_RADIUS_XZ`/`_Y`).
   The server answers with `CHUNK_ROLE` grants — see `docs/entities.md`.

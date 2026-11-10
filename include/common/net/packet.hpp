@@ -291,6 +291,10 @@ struct NetPlayerPayload {
     // Client-authoritative survival health in half-hearts (0..20); a drop
     // between updates flashes the remote avatar. Creative sends max.
     float health;
+    // Optional trailing field (absent on old peers reads as LAST_BLOCK_ID):
+    // the sender's selected hotbar item (ItemID) — the remote avatar's
+    // held-item draw.
+    uint32_t held_item;
 };
 void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p );
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p );

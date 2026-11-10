@@ -61,8 +61,8 @@ the `"flowers"` item tag in `data/item_tags.json` — as food, keeping a
 single flower in `breed_items[0]` only as the `feed` debug command's
 default): a passive mob within
 `MOB_TEMPT_RANGE` (10 blocks, ±4 y) of a player holding its food drops the
-wander AI and follows (`MobTickInput::held_item`; held items aren't
-streamed, so only the local player tempts). Tempting ignores a
+wander AI and follows (`MobTickInput::held_item`; remote held items are
+synced for display only, so only the local player tempts). Tempting ignores a
 no-clipping player but not the hostiles toggle — peaceful worlds still
 tempt. Right-clicking a breedable
 mob while holding a valid food calls `MobManager::feed` — an adult
@@ -148,12 +148,15 @@ always fit, and the live count can exceed the cap.
   persistence) but NOT remote players: `spawn_remote` and remote
   rendering still work.
 - `REPGAME_MOB_SPAWNER=0` — disables only the night spawner.
-- `REPGAME_MOB_TEST="type,x,y,z,yaw[,pitch[,sneak]][;...]"` — exact
+- `REPGAME_MOB_TEST="type,x,y,z,yaw[,pitch[,sneak[,item]]][;...]"` — exact
   deterministic spawns (non-persistent; also disables natural spawn and
   mobs-file loading for the run). `player` entries spawn a remote
   `MOB_PLAYER` at feet position through `set_remote_pose` (the optional
   pitch is the look pitch; the optional sneak is 0..1 and drops the eye
-  height `sneak * PLAYER_SNEAK_EYE_DROP`).
+  height `sneak * PLAYER_SNEAK_EYE_DROP`). The optional trailing `item`
+  is an item/block JSON name resolved by `item_id_from_name` — the remote
+  player is drawn holding it (`set_remote_held_item`); unknown names log
+  a warning and hold nothing.
 - Capture mode (`REPGAME_CAPTURE`) freezes mob AI and physics — spawn
   poses are as authored, no falls or wandering mid-capture.
 - `n` — debug spawn key: drops a mob three blocks in front of the
@@ -181,6 +184,19 @@ The camera rotation matrix is inverted by
 physics/AI, ease toward the latest network pose, walk-animate from the
 horizontal delta (`MOB_ANIM_HUMANOID_WALK`), never persist, never
 raycast, and keep ticking in capture mode.
+
+`update_position` also carries the sender's selected hotbar item
+(`Mob::held_item`); `set_remote_held_item` stores it and `update_render`
+rebuilds `mob.held_parts` on change — a sprite instance via
+`render_held_sprite` for flat items/non-isometric block icons, or one
+`render_held_cube` `BlockObjectInstance` per `block_icon_box_count` box
+for isometric icons (same `resolve_item_faces`/`block_item_shape` rules
+as dropped items). The instances ride the `bone_arms[1]` bone world in
+`update_render` — the arm cube at +X is the character's right hand, the
+bone names being authored mirrored — so walk swing, sneak and the death
+tip-over all carry the item. `MobManager::draw_held` draws both chains
+after the parts pass (`world.cpp` calls it in the normal and reflection
+passes). An invalid/`LAST_BLOCK_ID` item holds nothing.
 
 Adding a mob:
 

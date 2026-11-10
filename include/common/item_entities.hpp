@@ -19,24 +19,18 @@ class MapStorage;
 class NetEntities;
 struct RepGameState;
 
-// Per-instance data for the extruded-sprite item draw: one shared 1536-quad
-// mesh (item_entities.cpp) is instanced per item, sampling a single atlas
-// layer in item_sprite_vertex.glsl. Every quad is pinned to a single texel's
-// center uv so the per-texel alpha test is all-or-nothing per quad — MSAA
-// pixel-center shading then can't drop covered samples at texel boundaries.
-// The transform is rebuilt each frame by ItemEntities::update_render (spin +
-// bob on the CPU).
-typedef struct {
-    unsigned int tex_layer; // atlas layer of the item's flat icon
-    glm::mat4 transform;    // unit-square sprite -> world
-    glm::vec2 light;        // flood-fill light at the item center: x=sky, y=block, [0,1]
-} ItemSpriteInstance;
-
 // The shared extruded-sprite mesh (1536 quads, built lazily by these
 // accessors — safe to call before ItemEntities::init): ArrowEntities
 // renders through the same buffers.
 const ParticleVertex *item_sprite_mesh_vertices( int *count );
 const unsigned int *item_sprite_mesh_indices( int *count );
+
+// Item-instance construction shared with the avatar held-item draw
+// (MobManager): resolve_item_faces bakes a block item's six texture layers
+// (rotation-adjusted); block_item_shape fills a BlockObjectInstance's
+// pixel-space shape for icon box `box` (see block_icon_box_count).
+void resolve_item_faces( ItemID item, unsigned short face[ NUM_FACES_IN_CUBE ] );
+void block_item_shape( const Block *block, bool item_centered, int box, BlockObjectInstance &inst );
 
 // Tick-driven dropped-item entities, modelled on BlockBodies: a headless CPU
 // simulation (rep_tests run it without GL) with render chains only wired up

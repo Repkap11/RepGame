@@ -603,15 +603,18 @@ int test_vitals( ) {
         avatars.add( 2 );
         const glm::dvec3 listener( 0.0 );
         const glm::mat4 rot( 1.0f );
-        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 20.0f, listener );
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 20.0f, LAST_BLOCK_ID, listener );
         check_bool( "first update: no flash", mobs.mobs[ 0 ].hurt_ticks == 0 );
-        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 10.0f, listener );
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 10.0f, LAST_BLOCK_ID, listener );
         check_bool( "health drop: avatar flashes", mobs.mobs[ 0 ].hurt_ticks > 0 );
         mobs.mobs[ 0 ].hurt_ticks = 0;
-        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 15.0f, listener );
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 15.0f, LAST_BLOCK_ID, listener );
         check_bool( "heal: no flash", mobs.mobs[ 0 ].hurt_ticks == 0 );
-        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 15.0f, listener );
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 15.0f, LAST_BLOCK_ID, listener );
         check_bool( "same health: no flash", mobs.mobs[ 0 ].hurt_ticks == 0 );
+        // The streamed held item lands on the avatar's mob.
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 15.0f, STICK, listener );
+        check_bool( "held item reaches the mob", mobs.mobs[ 0 ].held_item == STICK );
     }
 
     return failures;

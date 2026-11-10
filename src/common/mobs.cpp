@@ -13,9 +13,11 @@
 #include "common/utils/env_config.hpp"
 #include "common/utils/profile.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/item_entities.hpp"
 #include "common/light.hpp"
 #include "common/mp_test.hpp"
 #include "common/net_entities.hpp"
+#include "common/ui_overlay_buffers.hpp"
 #include "common/utils/collision.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/utils/angles.hpp"
@@ -62,14 +64,22 @@ MobManager::MobManager( ) {
     this->rng.seed( 0x9e3779b9u );
 }
 
-void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance ) {
+void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance,
+                       const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_item_instance ) {
     // Rendering is always available (remote players draw even under
     // REPGAME_MOBS=0); `enabled` only gates spawning, ticking and persistence.
     this->render_chain.init( vbl_object_vertex, vbl_mob_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
+    // Held items share the dropped-item meshes (item_entities.cpp).
+    this->render_held_cube.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
+    int sv = 0, si = 0;
+    const ParticleVertex *sprite_vb = item_sprite_mesh_vertices( &sv );
+    const unsigned int *sprite_ib = item_sprite_mesh_indices( &si );
+    this->render_held_sprite.init( vbl_object_vertex, vbl_item_instance, sprite_vb, sv, sprite_ib, si );
     this->render_inited = true;
 
     // REPGAME_MOB_TEST="pig,x,y,z,yaw;..." — exact spawns for deterministic
-    // captures and physics tests.
+    // captures and physics tests. Remote types may take a trailing held-item
+    // name: "player,x,y,z,yaw,pitch,sneak,torch".
     const char *spec = env_get( "REPGAME_MOB_TEST" );
     if ( spec != NULL && this->enabled ) {
         char buf[ 1024 ];
@@ -77,9 +87,10 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
         buf[ sizeof( buf ) - 1 ] = 0;
         for ( char *entry = strtok( buf, ";" ); entry != NULL; entry = strtok( NULL, ";" ) ) {
             char type_name[ 32 ];
+            char held_name[ 32 ] = "";
             float x, y, z, yaw = 0.0f, pitch = 0.0f, sneak = 0.0f;
-            if ( sscanf( entry, "%31[^,],%f,%f,%f,%f,%f,%f", type_name, &x, &y, &z, &yaw, &pitch, &sneak ) < 4 ) {
-                pr_debug( "REPGAME_MOB_TEST: bad entry '%s' (want type,x,y,z,yaw[,pitch[,sneak]])", entry );
+            if ( sscanf( entry, "%31[^,],%f,%f,%f,%f,%f,%f,%31[^,]", type_name, &x, &y, &z, &yaw, &pitch, &sneak, held_name ) < 4 ) {
+                pr_debug( "REPGAME_MOB_TEST: bad entry '%s' (want type,x,y,z,yaw[,pitch[,sneak[,item]]])", entry );
                 continue;
             }
             MobType type = MOB_TYPE_COUNT;
@@ -98,6 +109,14 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
                 const uint32_t uid = this->spawn_remote( type );
                 const float eye_height = PLAYER_EYE_HEIGHT - sneak * PLAYER_SNEAK_EYE_DROP;
                 this->set_remote_pose( uid, glm::dvec3( x, y + eye_height, z ), yaw, pitch, eye_height );
+                if ( held_name[ 0 ] != 0 ) {
+                    const ItemID held = item_id_from_name( held_name );
+                    if ( held == LAST_BLOCK_ID ) {
+                        pr_debug( "REPGAME_MOB_TEST: unknown held item '%s'", held_name );
+                    } else {
+                        this->set_remote_held_item( uid, held );
+                    }
+                }
                 continue;
             }
             // MOB_TEST spawns are non-persistent: they never reach a mobs file
@@ -322,6 +341,15 @@ void MobManager::set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float
             mob.look_yaw = look_yaw_deg;
             mob.look_pitch = look_pitch_deg;
             mob.sneak_target = glm::clamp( ( PLAYER_EYE_HEIGHT - eye_height ) / PLAYER_SNEAK_EYE_DROP, 0.0f, 1.0f );
+            return;
+        }
+    }
+}
+
+void MobManager::set_remote_held_item( const uint32_t uid, const ItemID item ) {
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.uid == uid ) {
+            mob.held_item = item;
             return;
         }
     }
@@ -835,7 +863,20 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 }
 
+void MobManager::drop_held_parts( Mob &mob ) {
+    for ( entt::entity e : mob.held_parts ) {
+        if ( mob.held_cube ) {
+            this->render_held_cube.remove( e );
+        } else {
+            this->render_held_sprite.remove( e );
+        }
+    }
+    mob.held_parts.clear( );
+    mob.held_drawn = LAST_BLOCK_ID;
+}
+
 std::vector<MobManager::Mob>::iterator MobManager::remove_mob( std::vector<Mob>::iterator it ) {
+    this->drop_held_parts( *it );
     for ( entt::entity part : it->parts ) {
         this->render_chain.remove( part );
     }
@@ -1663,8 +1704,76 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
             MobPartInstance &inst = this->render_chain.get_instance( mob.parts[ part++ ] );
             inst.transform = glm::mat4( 0.0f );
         }
+
+        // Held item: rebuild the instances when the streamed item changes,
+        // then ride the right-arm bone so walk swing, the sneak pose and the
+        // death tip-over all carry it (bone_world is in model pixels).
+        if ( mob.held_drawn != mob.held_item ) {
+            this->drop_held_parts( mob );
+            mob.held_drawn = mob.held_item;
+            if ( item_id_valid( mob.held_item ) ) {
+                mob.held_cube = item_is_block( mob.held_item ) && item_icon_is_isometric( mob.held_item );
+                if ( mob.held_cube ) {
+                    const Block *block = block_definition_get_definition( static_cast<BlockID>( mob.held_item ) );
+                    const int nboxes = block_icon_box_count( block );
+                    unsigned short face[ NUM_FACES_IN_CUBE ];
+                    resolve_item_faces( mob.held_item, face );
+                    for ( int i = 0; i < nboxes; i++ ) {
+                        const std::pair<entt::entity, BlockObjectInstance &> data = this->render_held_cube.create_instance( );
+                        mob.held_parts.push_back( data.first );
+                        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                            data.second.face[ f ] = face[ f ];
+                        }
+                        block_item_shape( block, true, i, data.second );
+                        data.second.transform = glm::mat4( 0.0f );
+                    }
+                } else {
+                    const std::pair<entt::entity, ItemSpriteInstance &> data = this->render_held_sprite.create_instance( );
+                    mob.held_parts.push_back( data.first );
+                    data.second.tex_layer = item_icon_texture( mob.held_item );
+                    data.second.transform = glm::mat4( 0.0f );
+                }
+            }
+        }
+        if ( !mob.held_parts.empty( ) && def.bone_arms[ 1 ] != NULL ) {
+            int arm = -1;
+            for ( int i = 0; i < bone_count; i++ ) {
+                if ( strcmp( model.bones[ i ].name, def.bone_arms[ 1 ] ) == 0 ) {
+                    arm = i;
+                    break;
+                }
+            }
+            if ( arm >= 0 ) {
+                // The model's bone names are mirrored (front is -Z, so the
+                // arm named "leftArm" at +X is the character's right hand —
+                // matching MC). Grip pose in model pixels: item center at
+                // the fist's bottom-front, icon face diagonal (+X,-Z) so it
+                // reads from the character's front-right, top tipped
+                // forward like a carried tool.
+                glm::mat4 grip = glm::translate( glm::mat4( 1.0f ), glm::vec3( 6.0f, 12.5f, -1.5f ) );
+                grip = glm::rotate( grip, glm::radians( 135.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+                grip = glm::rotate( grip, glm::radians( 30.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+                grip = glm::scale( grip, glm::vec3( 9.5f ) );
+                const glm::mat4 held_m = base * bone_world[ arm ] * grip;
+                if ( mob.held_cube ) {
+                    const glm::mat4 m = held_m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f ) );
+                    for ( entt::entity e : mob.held_parts ) {
+                        BlockObjectInstance &inst = this->render_held_cube.get_instance( e );
+                        inst.transform = m;
+                        inst.light = light;
+                    }
+                } else {
+                    const glm::mat4 m = held_m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f, -0.5f, -0.5f / 16.0f ) );
+                    ItemSpriteInstance &inst = this->render_held_sprite.get_instance( mob.held_parts[ 0 ] );
+                    inst.transform = m;
+                    inst.light = light;
+                }
+            }
+        }
     }
     this->render_chain.invalidate_all( );
+    this->render_held_cube.invalidate_all( );
+    this->render_held_sprite.invalidate_all( );
 }
 
 void MobManager::draw( const Renderer &renderer, const Shader &shader ) {
@@ -1688,8 +1797,18 @@ void MobManager::draw( const Renderer &renderer, const Shader &shader ) {
     glEnable( GL_CULL_FACE );
 }
 
+void MobManager::draw_held( const Renderer &renderer, const Shader &block_object_shader, const Shader &item_sprite_shader ) {
+    if ( !this->render_inited ) {
+        return;
+    }
+    this->render_held_cube.draw( renderer, block_object_shader );
+    this->render_held_sprite.draw( renderer, item_sprite_shader );
+}
+
 void MobManager::cleanup( ) {
     this->render_chain.clear( );
+    this->render_held_cube.clear( );
+    this->render_held_sprite.clear( );
     this->mobs.clear( );
 }
 

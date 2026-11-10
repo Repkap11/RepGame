@@ -63,6 +63,10 @@ TextureID item_icon_texture( ItemID id );
 // Pure items always draw flat (non-isometric); blocks forward icon_is_isometric.
 int item_icon_is_isometric( ItemID id );
 const char *item_name( ItemID id );
+// Case-insensitive name lookup over every defined block name plus the pure
+// item names (REPGAME_ITEM_TEST / REPGAME_MOB_TEST held items).
+// LAST_BLOCK_ID on no match.
+ItemID item_id_from_name( const char *name );
 
 // Per-tick mining-speed multiplier for survival block breaking: the item's
 // mine_speed when its tool_class matches the block's mineable class, else 1.

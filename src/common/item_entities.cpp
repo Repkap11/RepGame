@@ -149,27 +149,6 @@ const unsigned int *item_sprite_mesh_indices( int *count ) {
     return item_sprite_ib;
 }
 
-// Case-insensitive name lookup over every defined block name plus the pure
-// item names (REPGAME_ITEM_TEST). LAST_BLOCK_ID on no match.
-static ItemID item_id_from_name( const char *name ) {
-    for ( unsigned int id = 0; id < static_cast<unsigned int>( LAST_BLOCK_ID ); id++ ) {
-        if ( !block_id_defined( id ) ) {
-            continue;
-        }
-        const char *n = block_definition_get_name( static_cast<BlockID>( id ) );
-        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
-            return id;
-        }
-    }
-    for ( ItemID id = ITEM_ID_BASE; id < ITEM_ID_END; id++ ) {
-        const char *n = item_name( id );
-        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
-            return id;
-        }
-    }
-    return LAST_BLOCK_ID;
-}
-
 void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_item_instance ) {
     build_item_sprite_mesh( );
     this->render_cube.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
@@ -208,7 +187,7 @@ void ItemEntities::init( const VertexBufferLayout &vbl_object_vertex, const Vert
     }
 }
 
-static void resolve_item_faces( const ItemID item, unsigned short face[ NUM_FACES_IN_CUBE ] ) {
+void resolve_item_faces( const ItemID item, unsigned short face[ NUM_FACES_IN_CUBE ] ) {
     const BlockState state = { static_cast<BlockID>( item ), 0, 0, static_cast<BlockID>( item ), 0 };
     const Block *block = block_definition_get_definition( state.id );
     BlockCoords coords = {};
@@ -1027,7 +1006,7 @@ void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntitySta
 // def-space box. item_centered recentres single-box shapes on the spin axis
 // (slab rests on the ground); icon boxes already span the full footprint at
 // y=0.
-static void block_item_shape( const Block *block, bool item_centered, int box, BlockObjectInstance &inst ) {
+void block_item_shape( const Block *block, bool item_centered, int box, BlockObjectInstance &inst ) {
     BlockBox boxes[ ICON_MAX_BOXES ];
     if ( block_icon_boxes( block, boxes ) > 0 ) {
         const BlockBox &b = boxes[ box ];

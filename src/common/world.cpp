@@ -134,7 +134,7 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->arrows.init( this->vbl_object_vertex, this->vbl_item_instance );
     // The sprite program alpha-tests the atlas at exact texels (no mip bleed).
     this->item_sprite_shader.set_uniform1i( "u_ExactTexel", 1 );
-    this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance );
+    this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance, this->vbl_block_object_instance, this->vbl_item_instance );
     this->mobs.init_storage( &map_storage );
     this->items.init_storage( &map_storage );
     this->mouseSelection.init( this->vbl_block, this->vbl_coords );
@@ -608,6 +608,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Dropped items
     this->arrows.draw( this->renderer, this->item_sprite_shader );              // Arrows in flight/stuck
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
+    this->mobs.draw_held( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Avatar held items
     this->heartParticles.draw( this->renderer, this->heart_shader, time_s );    // Breeding hearts
 
     this->chunkLoader.calculate_cull( mvp, false, renderOrigin );
@@ -811,6 +812,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->bodies.draw( this->renderer, this->block_object_shader, this->primed_tnt_shader ); // Reflected bodies
         this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Reflected items
         this->arrows.draw( this->renderer, this->item_sprite_shader );              // Reflected arrows
+        this->mobs.draw_held( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Reflected held items
 
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...

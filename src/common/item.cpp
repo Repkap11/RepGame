@@ -1,5 +1,7 @@
 #include "common/item.hpp"
 
+#include <strings.h>
+
 #include "common/block_definitions.hpp"
 
 const ItemGenDef ITEM_DEFINITIONS[ ITEM_ID_END - ITEM_ID_BASE ] = {
@@ -29,6 +31,25 @@ const char *item_name( ItemID id ) {
         return block_definition_get_name( static_cast<BlockID>( id ) );
     }
     return item_id_defined( id ) ? ITEM_NAMES[ id - ITEM_ID_BASE ] : nullptr;
+}
+
+ItemID item_id_from_name( const char *name ) {
+    for ( unsigned int id = 0; id < static_cast<unsigned int>( LAST_BLOCK_ID ); id++ ) {
+        if ( !block_id_defined( id ) ) {
+            continue;
+        }
+        const char *n = block_definition_get_name( static_cast<BlockID>( id ) );
+        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
+            return id;
+        }
+    }
+    for ( ItemID id = ITEM_ID_BASE; id < ITEM_ID_END; id++ ) {
+        const char *n = item_name( id );
+        if ( n != nullptr && strcasecmp( n, name ) == 0 ) {
+            return id;
+        }
+    }
+    return LAST_BLOCK_ID;
 }
 
 ItemID item_for_crop_block( BlockID id ) {

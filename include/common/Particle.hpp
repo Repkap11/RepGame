@@ -117,6 +117,19 @@ typedef struct {
     glm::vec3 shape_tex_offset;               // Block::tex_offset, pixels
 } BlockObjectInstance;
 
+// Per-instance data for the extruded-sprite item draw: one shared 1536-quad
+// mesh (item_entities.cpp) is instanced per item, sampling a single atlas
+// layer in item_sprite_vertex.glsl. Every quad is pinned to a single texel's
+// center uv so the per-texel alpha test is all-or-nothing per quad — MSAA
+// pixel-center shading then can't drop covered samples at texel boundaries.
+// The transform is rebuilt each frame on the CPU (spin + bob for dropped
+// items; bone-attached for avatar held items).
+typedef struct {
+    unsigned int tex_layer; // atlas layer of the item's flat icon
+    glm::mat4 transform;    // unit-square sprite -> world
+    glm::vec2 light;        // flood-fill light at the item center: x=sky, y=block, [0,1]
+} ItemSpriteInstance;
+
 // Per-instance data for one mob part (one cube of a Bedrock bone). A mob uses
 // as many instances as its model has cubes; MobManager rebuilds every
 // transform each frame (CPU-side bone animation), so updates go through

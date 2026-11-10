@@ -121,7 +121,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             world.multiplayer_avatars.add( player_id );
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, state.camera.pos );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, p.held_item, state.camera.pos );
             break;
         }
         case NetMsgType::PLAYER_LOCATION: {
@@ -131,7 +131,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
                 return;
             }
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, state.camera.pos );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, p.held_item, state.camera.pos );
             break;
         }
         case NetMsgType::PLAYER_CONNECTED: {
@@ -207,11 +207,11 @@ void Multiplayer::send_payload( NetMsgType type, int32_t player_id, const std::v
     }
 }
 
-void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health ) {
+void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item ) {
     if ( !this->active ) {
         return;
     }
-    if ( prev_player_pos == player_pos && prev_rotation == rotation && prev_eye_height == eye_height && prev_flags == flags && prev_health == health ) {
+    if ( prev_player_pos == player_pos && prev_rotation == rotation && prev_eye_height == eye_height && prev_flags == flags && prev_health == health && prev_held_item == held_item ) {
         return;
     }
     prev_player_pos = player_pos;
@@ -219,6 +219,7 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
     prev_eye_height = eye_height;
     prev_flags = flags;
     prev_health = health;
+    prev_held_item = held_item;
     NetPlayerPayload p;
     p.x = player_pos.x;
     p.y = player_pos.y;
@@ -227,6 +228,7 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
     p.eye_height = eye_height;
     p.flags = flags;
     p.health = health;
+    p.held_item = held_item;
     this->send( NetMsgType::PLAYER_LOCATION, p );
 }
 

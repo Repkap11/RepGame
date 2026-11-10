@@ -5,6 +5,7 @@
 #include <set>
 #include <common/constants.hpp>
 #include <common/block.hpp>
+#include <common/item.hpp>
 #include <common/net/framed_socket.hpp>
 #include <server/server_logic.hpp>
 
@@ -22,6 +23,9 @@ struct PacketType_DataPlayer {
     // Last health reported by the client (-1 = unknown / older peer); new
     // joiners get it in their CLIENT_INIT replay.
     float health = -1.0f;
+    // Last selected-hotbar item reported by the client (ItemID;
+    // LAST_BLOCK_ID = empty hand / older peer) — CLIENT_INIT replay too.
+    ItemID held_item = LAST_BLOCK_ID;
 };
 
 struct ClientData {

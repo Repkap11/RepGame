@@ -275,6 +275,7 @@ void send_view( Server &server, SimClient &c, const glm::ivec3 &center, uint8_t 
 void send_player_location( Server &server, SimClient &c, float x, float y, float z ) {
     NetPlayerPayload p;
     memset( &p, 0, sizeof( p ) );
+    p.held_item = LAST_BLOCK_ID;
     p.x = x;
     p.y = y;
     p.z = z;

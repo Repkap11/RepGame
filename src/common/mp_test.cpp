@@ -146,12 +146,14 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
               "\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.4f,%.4f,%.4f],\"yaw\":%.3f,\"health\":%.3f,"
               "\"ai_state\":%d,\"hurt_ticks\":%d,\"death_ticks\":%d,\"fuse_ticks\":%d,"
               "\"walk_dist\":%.4f,\"leg_amp\":%.4f,\"head_yaw\":%.3f,\"head_pitch\":%.3f,"
-              "\"sneak\":%.3f,\"despawnable\":%d,\"targeting\":%d,\"sheared\":%d,\"net_flags\":%u}",
+              "\"sneak\":%.3f,\"despawnable\":%d,\"targeting\":%d,\"sheared\":%d,\"net_flags\":%u,"
+              "\"held_item\":%d}",
               m.net.mirror ? 1 : 0, m.uid, static_cast<int>( m.type ), mob_types[ m.type ].name, m.variant,
               m.pos.x, m.pos.y, m.pos.z, m.vel.x, m.vel.y, m.vel.z, m.yaw, m.health,
               m.ai_state, m.hurt_ticks, m.death_ticks, m.fuse_ticks,
               m.walk_dist, m.leg_amp, m.head_yaw, m.head_pitch,
-              m.sneak, m.despawnable, m.targeting, m.sheared, m.net_flags );
+              m.sneak, m.despawnable, m.targeting, m.sheared, m.net_flags,
+              static_cast<int>( m.held_item ) );
         first = false;
     }
     jput( "]" );

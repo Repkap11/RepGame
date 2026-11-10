@@ -20,7 +20,7 @@ void MultiplayerAvatars::add( const unsigned int player_id ) {
     this->health_map[ player_id ] = -1.0f;
 }
 
-void MultiplayerAvatars::update_position( const int player_id, const float x, const float y, const float z, const glm::mat4 &rotation, const float eye_height, const uint8_t flags, const float health, const glm::dvec3 &listener_pos ) {
+void MultiplayerAvatars::update_position( const int player_id, const float x, const float y, const float z, const glm::mat4 &rotation, const float eye_height, const uint8_t flags, const float health, const ItemID held_item, const glm::dvec3 &listener_pos ) {
     this->flags_map[ player_id ] = flags;
     this->eye_pos_map[ player_id ] = glm::dvec3( x, y, z );
     this->eye_height_map[ player_id ] = eye_height;
@@ -41,6 +41,7 @@ void MultiplayerAvatars::update_position( const int player_id, const float x, co
     float yaw = 0.0f, pitch = 0.0f;
     mob_look_from_camera_rotation( rotation, &yaw, &pitch );
     this->mobs->set_remote_pose( uid, glm::dvec3( x, y, z ), yaw, pitch, eye_height );
+    this->mobs->set_remote_held_item( uid, held_item );
 }
 
 bool MultiplayerAvatars::targetable( const int player_id ) const {

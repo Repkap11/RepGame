@@ -25,7 +25,9 @@ class MultiplayerAvatars {
     void init( MobManager *mob_manager );
     void add( unsigned int player_id );
     // listener_pos fades the health-drop hurt sfx against the local camera.
-    void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, const glm::dvec3 &listener_pos );
+    // held_item is the sender's selected hotbar item (ItemID) — the avatar
+    // draws it in its right hand.
+    void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item, const glm::dvec3 &listener_pos );
     bool targetable( int player_id ) const;
     // Fill `out` with every connected remote player's targeting info.
     void fill_remote_targets( std::vector<MobRemoteTarget> &out ) const;
