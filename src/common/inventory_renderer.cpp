@@ -75,21 +75,6 @@ void InventoryRenderer::compute_layout( const int screen_width, const int screen
         this->inv_height = this->inv_items_height;
     }
 
-    this->inv_x = this->options.center_x - this->inv_width / 2;
-    const bool pinned_bottom = this->options.pin_bottom_y != INV_PIN_Y_DISABLED;
-    const bool pinned_top = this->options.pin_top_y != INV_PIN_Y_DISABLED;
-    if ( pinned_bottom ) {
-        this->inv_y = this->options.pin_bottom_y;
-    } else if ( pinned_top ) {
-        this->inv_y = this->options.pin_top_y - this->inv_height;
-    } else if ( this->options.gravity_bottom ) {
-        this->inv_y = -this->screen_height / 2;
-    } else if ( this->options.gravity_top ) {
-        this->inv_y = this->screen_height / 2 - this->inv_height;
-    } else {
-        this->inv_y = -this->inv_height / 2;
-    }
-
     // Max stride of each cell.
     const int width_limit = this->inv_width / this->width;
     const int height_limit = this->inv_height * this->options.active_height_percent / this->height;
@@ -109,31 +94,19 @@ void InventoryRenderer::compute_layout( const int screen_width, const int screen
         this->inv_cell_offset = this->inv_cell_stride * ( 1.0f - cell_fraction );
         this->inv_items_height = inv_cell_stride * this->height + this->inv_cell_offset;
     }
-    if ( !pinned_bottom && !pinned_top && !this->options.gravity_bottom && !this->options.gravity_top ) {
-        // Stay above UI pinned to the bottom of the screen (e.g. the hotbar),
-        // with a gap the thickness of one cell border.
-        const int bottom_reserved = ( int )( ui_height_basis * this->options.bottom_reserved_percent ) + this->inv_cell_offset;
-        const int inv_y_min = -this->screen_height / 2 + bottom_reserved;
-        if ( this->inv_y < inv_y_min ) {
-            this->inv_y = inv_y_min;
-        }
-    }
 
+    // Fixed baseline position: the items slab sits at the origin and the
+    // panel frames it symmetrically (the panel rect is a sizing span, not
+    // a drawn region). set_items_pos shifts both to the layout rect.
+    this->inv_items_x = 0;
+    this->inv_items_y = 0;
     if ( fixed_stride ) {
         // The panel rect equals the items rect.
-        this->inv_items_x = this->inv_x;
-        this->inv_items_y = this->inv_y;
-    } else if ( this->options.gravity_top ) {
-        this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
-        // Items region hugs the top of the panel.
-        this->inv_items_y = this->inv_y + this->inv_height - this->inv_items_height;
-    } else if ( height_limited || this->options.gravity_bottom ) {
-        this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
-        this->inv_items_y = this->inv_y;
+        this->inv_x = this->inv_items_x;
+        this->inv_y = this->inv_items_y;
     } else {
-        this->inv_items_x = this->inv_x - ( this->inv_items_width - this->inv_width ) / 2;
-        // This adjusts the bottom padding to match the horizontal padding when the horizontal padding has accumulated rounding error.
-        this->inv_items_y = this->inv_y + ( ( this->inv_width - inv_items_width ) / 2 );
+        this->inv_x = this->inv_items_x + ( this->inv_items_width - this->inv_width ) / 2;
+        this->inv_y = this->inv_items_y + ( this->inv_items_height - this->inv_height ) / 2;
     }
 
     float block_fraction = 0.9;
@@ -157,11 +130,6 @@ void InventoryRenderer::set_items_pos( const int items_x, const int items_y ) {
 void InventoryRenderer::rebuild( const InventorySlot *inventory_slots ) {
     this->renderBackground( );
     this->fullItemRender( inventory_slots );
-}
-
-void InventoryRenderer::onSizeChange( const int screen_width, const int screen_height, const InventorySlot *inventory_slots ) {
-    this->compute_layout( screen_width, screen_height );
-    this->rebuild( inventory_slots );
 }
 
 int InventoryRenderer::getInvBottom( ) const {

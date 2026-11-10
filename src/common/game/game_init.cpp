@@ -108,63 +108,34 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.input.render_distance = r;
     }
     // The hotbar's rendered height as a fraction of the UI height basis.
-    // Centered inventories reserve the same amount at the bottom of the
-    // screen so they never cover it.
+    // The creative palette reserves the same amount at the bottom of the
+    // screen (ui_layout_input reads bottom_reserved_percent for its floor).
     constexpr float hotbar_height_percent = 0.1f;
     globalGameState.ui.creative.inventory_renderer.options.active_height_percent = 0.75f;
     globalGameState.ui.creative.inventory_renderer.options.max_height_percent = 0.75f;
     globalGameState.ui.creative.inventory_renderer.options.max_width_percent = 0.75f;
     globalGameState.ui.creative.inventory_renderer.options.bottom_reserved_percent = hotbar_height_percent;
-    globalGameState.ui.creative.inventory_renderer.options.gravity_bottom = false;
-    globalGameState.ui.creative.inventory_renderer.options.gravity_top = false;
-    globalGameState.ui.creative.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
-    globalGameState.ui.creative.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     globalGameState.ui.creative.inventory_renderer.options.shows_selection_slot = false;
     globalGameState.ui.creative.inventory_renderer.options.fixed_cell_stride = 0.0f;
-    globalGameState.ui.creative.inventory_renderer.options.center_x = 0;
 
     globalGameState.hotbar.inventory_renderer.options.active_height_percent = 1.0f;
     globalGameState.hotbar.inventory_renderer.options.max_height_percent = hotbar_height_percent;
     globalGameState.hotbar.inventory_renderer.options.max_width_percent = 0.75f;
     globalGameState.hotbar.inventory_renderer.options.bottom_reserved_percent = 0.0f;
-    globalGameState.hotbar.inventory_renderer.options.gravity_bottom = true;
-    globalGameState.hotbar.inventory_renderer.options.gravity_top = false;
-    globalGameState.hotbar.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
-    globalGameState.hotbar.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
     globalGameState.hotbar.inventory_renderer.options.shows_selection_slot = true;
     globalGameState.hotbar.inventory_renderer.options.fixed_cell_stride = 0.0f;
-    globalGameState.hotbar.inventory_renderer.options.center_x = 0;
 
-    // Chest panel: fixed-stride cells positioned by the shared layout
-    // pass, bottom pinned just above the survival panel's items like the
-    // crafting grid.
-    globalGameState.ui.chest.inventory_renderer.options.active_height_percent = 0.5f;
-    globalGameState.ui.chest.inventory_renderer.options.max_height_percent = 0.5f;
-    globalGameState.ui.chest.inventory_renderer.options.max_width_percent = 0.6f;
-    globalGameState.ui.chest.inventory_renderer.options.bottom_reserved_percent = 0.0f;
-    globalGameState.ui.chest.inventory_renderer.options.gravity_bottom = false;
-    globalGameState.ui.chest.inventory_renderer.options.gravity_top = true;
-    globalGameState.ui.chest.inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
-    globalGameState.ui.chest.inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
+    // Container panels (chest, crafting grids/output, the furnace trio)
+    // are fixed-stride: repgame_layout_containers sets the stride from the
+    // survival grid and the layout pass positions them, so only the
+    // selection-slot flag matters here.
     globalGameState.ui.chest.inventory_renderer.options.shows_selection_slot = false;
     globalGameState.ui.chest.inventory_renderer.options.fixed_cell_stride = 0.0f;
-    globalGameState.ui.chest.inventory_renderer.options.center_x = 0;
 
-    // Crafting panels: fixed-stride cells (the stride comes from the
-    // survival panel at changeSize), bottom pinned just above the survival
-    // panel's items.
-    for ( InventoryRenderer *r : { &globalGameState.ui.crafting.grid2, &globalGameState.ui.crafting.grid3, &globalGameState.ui.crafting.output } ) {
-        r->options.active_height_percent = 0.5f;
-        r->options.max_height_percent = 0.5f;
-        r->options.max_width_percent = 0.6f;
-        r->options.bottom_reserved_percent = 0.0f;
-        r->options.gravity_bottom = false;
-        r->options.gravity_top = false;
-        r->options.pin_bottom_y = INV_PIN_Y_DISABLED;
-        r->options.pin_top_y = INV_PIN_Y_DISABLED;
+    for ( InventoryRenderer *r : { &globalGameState.ui.crafting.grid2, &globalGameState.ui.crafting.grid3, &globalGameState.ui.crafting.output,
+                                   &globalGameState.ui.furnace.input, &globalGameState.ui.furnace.fuel, &globalGameState.ui.furnace.output } ) {
         r->options.shows_selection_slot = false;
         r->options.fixed_cell_stride = 0.0f;
-        r->options.center_x = 0;
     }
     globalGameState.ui.crafting.table_open = false;
     globalGameState.ui.crafting.drag.active = false;

@@ -12,18 +12,14 @@ void SurvivalInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     this->slots = static_cast<InventorySlot *>( calloc( this->num_slots, sizeof( InventorySlot ) ) );
 
     this->inventory_renderer.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, width, height );
-    // Center the survival inventory on screen, above the hotbar.
+    // Sized for the survival slab; the layout pass centers it above the
+    // hotbar.
     this->inventory_renderer.options.max_width_percent = 0.6f;
     this->inventory_renderer.options.max_height_percent = 0.5f;
     this->inventory_renderer.options.active_height_percent = 0.5f;
-    this->inventory_renderer.options.bottom_reserved_percent = 0.1f;
-    this->inventory_renderer.options.gravity_bottom = false;
-    this->inventory_renderer.options.gravity_top = false;
-    this->inventory_renderer.options.pin_bottom_y = INV_PIN_Y_DISABLED;
-    this->inventory_renderer.options.pin_top_y = INV_PIN_Y_DISABLED;
+    this->inventory_renderer.options.bottom_reserved_percent = 0.0f;
     this->inventory_renderer.options.shows_selection_slot = false;
     this->inventory_renderer.options.fixed_cell_stride = 0.0f;
-    this->inventory_renderer.options.center_x = 0;
 
     for ( int i_slot = 0; i_slot < this->num_slots; i_slot++ ) {
         InventorySlot &slot = this->slots[ i_slot ];

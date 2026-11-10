@@ -1,7 +1,5 @@
 #pragma once
 
-#include <limits.h>
-
 #include "renderer/index_buffer.hpp"
 #include "renderer/vertex_buffer.hpp"
 #include "renderer/vertex_array.hpp"
@@ -11,36 +9,19 @@
 #include "common/item.hpp" // InventorySlot
 #include "ui_overlay.hpp"
 
-// #define INVENTORY_BLOCK_SIZE 30
-// #define INVENTORY_BLOCK_SPACING 80
-
-// Disables the pin_*_y overrides below (panel placed by gravity/centering).
-#define INV_PIN_Y_DISABLED INT_MIN
-
 typedef struct {
     float max_width_percent;
     float max_height_percent;
     float active_height_percent;
     // Fraction of the UI height basis to keep clear at the bottom of the
-    // screen (e.g. the hotbar strip). Only affects centered (non
-    // gravity_bottom) inventories, which shift up to stay above it.
+    // screen. Sizing input only — ui_layout_input reads it for the
+    // creative panel's floor; the layout pass positions the panel.
     float bottom_reserved_percent;
-    bool gravity_bottom;
-    // Pin the panel to the top of the screen (chest UI sits above the player
-    // inventory, which keeps its normal centered/bottom-anchored layout).
-    bool gravity_top;
     bool shows_selection_slot;
-    // Pixel-space (centered-origin) edge anchors applied in onSizeChange when
-    // not INV_PIN_DISABLED, taking precedence over gravity/centering. Set
-    // these after another panel's layout so edges align: pin_bottom_y is the
-    // panel's bottom edge, pin_top_y its top edge.
-    int pin_bottom_y;
-    int pin_top_y;
     // Pixel cell stride override (0 = auto): the items rect is exactly
-    // stride*w + offset by stride*h + offset, the panel rect equals the
-    // items rect, and center_x gives the panel's horizontal center.
+    // stride*w + offset by stride*h + offset and the panel rect equals
+    // the items rect.
     float fixed_cell_stride;
-    int center_x;
 } InventoryRenderOptions;
 
 class InventoryRenderer {
@@ -103,40 +84,32 @@ class InventoryRenderer {
   public:
     InventoryRenderOptions options;
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
-    // The pure half of onSizeChange: fills the inv_*/cell/block/selected
-    // geometry fields from the screen size + options, no GL. The UI layout
-    // pass calls it to size elements before the renderer rebuilds GL
-    // instances; onSizeChange calls it then rebuilds.
+    // Sizes the inv_*/cell/block/selected geometry fields from the screen
+    // size + options, no GL, and gives the rects a fixed baseline position
+    // (items slab at the origin, panel centered on it). The UI layout
+    // pass calls it to size elements, then set_items_pos places the slab.
     void compute_layout( int screen_width, int screen_height );
     // Adopts a Clay-computed items-slab position (centered UI coords):
     // shifts the items rect and the panel rect by the delta from wherever
     // compute_layout put them. Call between compute_layout and rebuild.
     void set_items_pos( int items_x, int items_y );
-    // The GL half of onSizeChange: rebuilds the background/icon instances
-    // at the current inv_* geometry.
+    // Rebuilds the background/icon GL instances at the current inv_*
+    // geometry.
     void rebuild( const InventorySlot *inventory_slots );
-    void onSizeChange( int width, int height, const InventorySlot *inventory_slots );
     void changeSlotItem( int slot_index, const InventorySlot &slot );
     void setSelectedSlot( int slot_index );
     void draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader );
     int whichSlotClicked( int screen_x, int screen_y ) const;
-    // True when the raw screen point lands inside the panel's rect (the same
-    // centered, y-up coords whichSlotClicked computes).
-    bool containsPoint( int screen_x, int screen_y ) const {
-        const int x = screen_x - this->screen_width / 2;
-        const int y = -( screen_y - this->screen_height / 2 );
-        return x >= this->inv_x && x < this->inv_x + this->inv_width && y >= this->inv_y && y < this->inv_y + this->inv_height;
-    }
-    // Same hit test but against the visible items slab — the panel rect is
-    // laid out much wider (max_width_percent of the screen) than the slab it
-    // frames, so "is this click inside the window" wants the tighter one.
+    // Hit test against the visible items slab — the panel rect is laid out
+    // much wider (max_width_percent of the screen) than the slab it frames,
+    // so "is this click inside the window" wants the tighter one.
     bool containsItemsPoint( int screen_x, int screen_y ) const {
         const int x = screen_x - this->screen_width / 2;
         const int y = -( screen_y - this->screen_height / 2 );
         return x >= this->inv_items_x && x < this->inv_items_x + this->inv_items_width && y >= this->inv_items_y && y < this->inv_items_y + this->inv_items_height;
     }
-    // Panel edges in centered screen coords (set by onSizeChange) so other
-    // panels can align to them via options.pin_bottom_y / pin_top_y.
+    // Panel edges in centered screen coords — sizing inputs for the UI
+    // layout pass (the creative panel rect's span).
     int getInvBottom( ) const;
     int getInvTop( ) const;
     // Panel horizontal edges (centered coords) — for positioning text in the
