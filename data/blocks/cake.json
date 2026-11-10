@@ -1,7 +1,6 @@
 {
   "casts_shadow": false,
   "hardness": 0.5,
-  "icon": "cake_top",
   "id": 178,
   "is_cake": true,
   "is_seethrough": true,
