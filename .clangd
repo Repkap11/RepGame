@@ -15,3 +15,28 @@ CompileFlags:
 Diagnostics:
   UnusedIncludes: None
   MissingIncludes: None
+---
+# Some include/common headers are dual-dialect include-mid-TU files (see
+# wgsl_dialect.hpp): the includer defines MG_QUAL and friends first, and
+# they #error when parsed without them. clangd opens headers standalone,
+# so give it the CPU view — otherwise editing them shows bogus errors.
+# IDE analysis only; real builds set the macros in the including TU.
+If:
+  PathMatch: include/common/mesh_gen_fns.hpp
+CompileFlags:
+  Add: ["-DMG_QUAL=static inline"]
+---
+If:
+  PathMatch: include/common/perlin_noise_shared.hpp
+CompileFlags:
+  Add: ["-DMG_QUAL=static inline", "-include", "math.h"]
+---
+If:
+  PathMatch: include/common/map_gen_fields.hpp
+CompileFlags:
+  Add:
+    - "-DMG_QUAL=static inline"
+    - "-DMAP_GEN_PERLIN2D(x, z, f, d, s)=perlin_noise2d(x, z, f, d, s)"
+    - "-DMAP_GEN_PERLIN3D(x, y, z, f, d, s)=perlin_noise3d(x, y, z, f, d, s)"
+    - "-include"
+    - common/perlin_noise.hpp
