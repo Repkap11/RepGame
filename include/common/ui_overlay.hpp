@@ -63,6 +63,7 @@ class Hotbar;
 class InventoryRenderer;
 class FontRenderer;
 struct ChestContents;
+struct UiRect;
 
 class UIOverlay {
     Shader shader;
@@ -106,10 +107,11 @@ class UIOverlay {
     // inventory slab composite inside it.
     void draw_panel_backdrop( int left, int bottom, int width, int height, const Renderer &renderer, const glm::mat4 &mvp_ui );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
-    // Heart containers + full/half hearts left-aligned above the hotbar,
-    // air bubbles right-aligned while air is below max (underwater). Sizes
-    // and anchors come from the hotbar's own layout so the row tracks it.
-    void draw_vitals( float health, float max_health, int air_ticks, int max_air_ticks, const InventoryRenderer &hotbar_renderer, const Renderer &renderer, const Texture &blocksTexture, const glm::mat4 &mvp_ui );
+    // Heart containers + full/half hearts left-aligned, air bubbles
+    // right-aligned while air is below max (underwater). `row` is the
+    // layout pass's vitals rect — hotbar-slab width, icon-height tall —
+    // so the row tracks the strip it belongs to.
+    void draw_vitals( float health, float max_health, int air_ticks, int max_air_ticks, const UiRect &row, const Renderer &renderer, const Texture &blocksTexture, const glm::mat4 &mvp_ui );
     // Exposes the shared ui_overlay shader so the pause menu (drawn from
     // RepGame::draw_ui_pass) uses the same program.
     Shader &get_shader( ) {

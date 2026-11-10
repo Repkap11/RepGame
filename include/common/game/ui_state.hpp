@@ -7,6 +7,7 @@
 
 #include "common/player_data.hpp" // GameMode (used by ui_overlay.hpp)
 #include "common/ui_overlay.hpp"
+#include "common/ui_layout.hpp"
 #include "common/imgui_overlay.hpp"
 #include "common/font_renderer.hpp"
 #include "common/creative_inventory.hpp"
@@ -100,6 +101,9 @@ struct FurnaceUi {
 // inventories in RepGameState, which are game data these panels render.
 struct UiState {
     UIOverlay overlay;
+    // The Clay-backed screen-space layout pass; rects() names every
+    // region draw/input code reads.
+    UiLayout layout;
     ImGuiOverlay imgui;
     FontRenderer font;
     CreativeInventory creative;

@@ -37,6 +37,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( save_migration ),  //
     MK_TEST( player_data ),     //
     MK_TEST( creative ),        //
+    MK_TEST( ui_layout ),       //
     MK_TEST( fences ),          //
     MK_TEST( stairs ),          //
     MK_TEST( slabs ),           //

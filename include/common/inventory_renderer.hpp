@@ -103,6 +103,11 @@ class InventoryRenderer {
   public:
     InventoryRenderOptions options;
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
+    // The pure half of onSizeChange: fills the inv_*/cell/block/selected
+    // geometry fields from the screen size + options, no GL. The UI layout
+    // pass calls it to size elements before the renderer rebuilds GL
+    // instances; onSizeChange calls it then rebuilds.
+    void compute_layout( int screen_width, int screen_height );
     void onSizeChange( int width, int height, const InventorySlot *inventory_slots );
     void changeSlotItem( int slot_index, const InventorySlot &slot );
     void setSelectedSlot( int slot_index );

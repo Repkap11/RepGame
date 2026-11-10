@@ -24,6 +24,7 @@ int test_item_entities( );
 int test_save_migration( );
 int test_player_data( );
 int test_creative( );
+int test_ui_layout( );
 int test_fences( );
 int test_doors( );
 int test_block_world( );

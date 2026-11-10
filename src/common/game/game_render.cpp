@@ -615,9 +615,10 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         }
         globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );
         // Survival vitals: hearts above the hotbar (+ air bubbles while
-        // underwater). Hidden in creative and under the death screen.
+        // underwater). Hidden in creative and under the death screen. The
+        // row rect comes from the layout pass.
         if ( globalGameState.game_mode == GameMode_Survival && !globalGameState.vitals.dead ) {
-            globalGameState.ui.overlay.draw_vitals( globalGameState.vitals.health, PLAYER_MAX_HEALTH, globalGameState.vitals.air_ticks, PLAYER_AIR_MAX_TICKS, globalGameState.hotbar.inventory_renderer, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.screen.ortho_center );
+            globalGameState.ui.overlay.draw_vitals( globalGameState.vitals.health, PLAYER_MAX_HEALTH, globalGameState.vitals.air_ticks, PLAYER_AIR_MAX_TICKS, globalGameState.ui.layout.rects( ).vitals, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.screen.ortho_center );
         }
         if ( repgame_crafting_grid_visible( globalGameState ) ) {
             const int dim = repgame_crafting_dim( globalGameState );
@@ -669,22 +670,11 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                 const float text_size = 22.0f;
                 const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
                 const float tx = -globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;
-                // Just above the hotbar: slot 0's cell bottom plus the
-                // selected-slot highlight height (1.15x cell) and a small gap.
-                float slot_x, slot_y;
-                int block_size, cell_size;
-                float ty = -36.0f;
-                if ( globalGameState.hotbar.inventory_renderer.getSlotPosition( 0, slot_x, slot_y ) ) {
-                    globalGameState.hotbar.inventory_renderer.getBlockMetrics( block_size, cell_size );
-                    ty = slot_y + cell_size * 1.15f + 8.0f;
-                }
-                // Survival lifts the label above the hearts row (tops at
-                // itemsTop + 0.65 * stride, see UIOverlay::draw_vitals) —
-                // another 0.15 * stride on top matches the gap under the
-                // hearts so the row reads evenly spaced.
-                if ( globalGameState.game_mode == GameMode_Survival && !globalGameState.vitals.dead ) {
-                    ty = globalGameState.hotbar.inventory_renderer.getItemsTop( ) + globalGameState.hotbar.inventory_renderer.getCellStride( ) * 0.8f + 4.0f;
-                }
+                // Baseline comes from the layout pass: survival sits the
+                // label above the hearts row (the in-strip reservation),
+                // creative hugs the hotbar top.
+                const UiLayoutRects &rects = globalGameState.ui.layout.rects( );
+                const float ty = ( globalGameState.game_mode == GameMode_Survival && !globalGameState.vitals.dead ) ? rects.item_label.bottom : rects.item_label_low.bottom;
                 globalGameState.ui.font.text_append_outlined( buf, tx, ty, text_size, white );
             }
         }

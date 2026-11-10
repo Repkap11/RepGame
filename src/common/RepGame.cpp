@@ -52,23 +52,26 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.ui.pause.onScreenSizeChange( w, h, globalGameState.ui.font );
     globalGameState.ui.font.onScreenSizeChange( w, h );
     globalGameState.ui.creative.onScreenSizeChange( w, h );
+    // The layout pass sizes the HUD strip from the hotbar's slab metrics —
+    // compute_layout is the pure half of onSizeChange (no GL rebuild).
+    globalGameState.hotbar.inventory_renderer.compute_layout( w, h );
+    globalGameState.ui.layout.compute( ui_layout_input( globalGameState ) );
+    // The hotbar sits where the layout put its slab (screen bottom today).
+    globalGameState.hotbar.inventory_renderer.options.pin_bottom_y = static_cast<int>( globalGameState.ui.layout.rects( ).hotbar.bottom );
     globalGameState.hotbar.onScreenSizeChange( w, h );
     // Align the survival panel's bottom edge with the creative panel's bottom,
     // and the chest panel's top edge with the creative panel's top, so the
     // combined chest+player-inventory view spans the creative panel's area.
     int surv_pin = globalGameState.ui.creative.inventory_renderer.getInvBottom( );
-    // Lift the panel stack clear of the vitals strip that rides above the
-    // hotbar in survival: hearts occupy itemsTop + [0.15, 0.65] * stride, the
-    // selected-item label tops out around itemsTop + 0.8 * stride + ~24px of
-    // ascent, and another ~0.3 * stride of headroom keeps the text clear of
-    // the panel above (UIOverlay::draw_vitals, draw_ui_pass). The lift is
-    // unconditional — game mode toggles at runtime without a resize — and in
-    // creative the extra space is just a gap. The chest/crafting/furnace
-    // panels re-pin off the survival items top, so they follow.
-    const float hotbar_stride = globalGameState.hotbar.inventory_renderer.getCellStride( );
-    const int vitals_pin = globalGameState.hotbar.inventory_renderer.getItemsTop( ) + static_cast<int>( hotbar_stride * 1.15f + 28.0f );
-    if ( vitals_pin > surv_pin ) {
-        surv_pin = vitals_pin;
+    // Lift the panel stack clear of the HUD strip (selected-item label over
+    // the vitals row over the hotbar). The strip's measured top replaces
+    // the old estimate; the reservation is unconditional — game mode
+    // toggles at runtime without a resize — and in creative the extra
+    // space is just a gap. The chest/crafting/furnace panels re-pin off
+    // the survival items top, so they follow.
+    const int strip_top = static_cast<int>( globalGameState.ui.layout.rects( ).hud_strip.top( ) );
+    if ( strip_top > surv_pin ) {
+        surv_pin = strip_top;
     }
     globalGameState.survival_inventory.inventory_renderer.options.pin_bottom_y = surv_pin;
     globalGameState.survival_inventory.onScreenSizeChange( w, h );

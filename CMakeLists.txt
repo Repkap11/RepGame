@@ -325,6 +325,16 @@ if(REPGAME_BUILD_CLIENT)
 	# -Wno-missing-(designated-)field-initializers via REPGAME_CLAY_SOURCES.
 	set_source_files_properties(${CMAKE_SOURCE_DIR}/src/common/vendor/clay.cpp
 		PROPERTIES COMPILE_OPTIONS -Wno-error)
+	# Project sources declaring Clay elements leave the rest of the
+	# declaration designated-initializers unmentioned on purpose.
+	set(REPGAME_CLAY_SOURCES ${CMAKE_SOURCE_DIR}/src/common/ui_layout.cpp)
+	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+		set_source_files_properties(${REPGAME_CLAY_SOURCES}
+			PROPERTIES COMPILE_OPTIONS -Wno-missing-designated-field-initializers)
+	else()
+		set_source_files_properties(${REPGAME_CLAY_SOURCES}
+			PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers)
+	endif()
 endif()
 
 # ---- client ---------------------------------------------------------------

@@ -46,7 +46,7 @@ UIOverlayInstance &InventoryRenderer::init_background_cell( const float r, const
     return ui_vertex;
 }
 
-void InventoryRenderer::onSizeChange( const int screen_width, const int screen_height, const InventorySlot *inventory_slots ) {
+void InventoryRenderer::compute_layout( const int screen_width, const int screen_height ) {
     this->screen_width = screen_width;
     this->screen_height = screen_height;
     // Inventory sizes are a fraction of screen height, so displays wider than
@@ -142,7 +142,10 @@ void InventoryRenderer::onSizeChange( const int screen_width, const int screen_h
     float selected_fraction = 1.15;
     this->inv_selected_size = this->inv_cell_size * selected_fraction;
     this->inv_selected_offset = this->inv_cell_offset + ( this->inv_cell_size - this->inv_selected_size ) / 2;
+}
 
+void InventoryRenderer::onSizeChange( const int screen_width, const int screen_height, const InventorySlot *inventory_slots ) {
+    this->compute_layout( screen_width, screen_height );
     this->renderBackground( );
     this->fullItemRender( inventory_slots );
 }

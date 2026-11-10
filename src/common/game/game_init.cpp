@@ -336,6 +336,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.ui.pause.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.ui.imgui );
     globalGameState.ui.font.init( );
+    globalGameState.ui.layout.init( globalGameState.ui.font );
 
     ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
     globalGameState.ui.overlay.set_holding_item( selectedBlock );
@@ -398,6 +399,7 @@ void RepGame::cleanup( ) {
     globalGameState.world.cleanup( globalGameState.map_storage );
     globalGameState.blocksTexture.destroy( );
     globalGameState.ui.overlay.cleanup( );
+    globalGameState.ui.layout.destroy( );
     globalGameState.ui.font.cleanup( );
     globalGameState.ui.creative.cleanup( );
     globalGameState.survival_inventory.cleanup( );

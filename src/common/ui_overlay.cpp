@@ -2,6 +2,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/ui_overlay.hpp"
+#include "common/ui_layout.hpp"
 #include "common/ui_overlay_buffers.hpp"
 #include "common/inventory_renderer.hpp"
 #include "common/renderer/shader.hpp"
@@ -257,18 +258,17 @@ static void vitals_icon( UIOverlayInstance &v, float x, float y, float z, float 
     v.tint[ 3 ] = 1.0f;
 }
 
-void UIOverlay::draw_vitals( float health, float max_health, int air_ticks, int max_air_ticks, const InventoryRenderer &hotbar_renderer, const Renderer &renderer, const Texture &blocksTexture, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw_vitals( float health, float max_health, int air_ticks, int max_air_ticks, const UiRect &row, const Renderer &renderer, const Texture &blocksTexture, const glm::mat4 &mvp_ui ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
     this->shader.set_uniform1f( "u_HeldBlockLight", 1.0f );
     this->render_chain_vitals.clear( );
 
-    const float stride = hotbar_renderer.getCellStride( );
-    const float icon = stride * 0.5f;
+    const float icon = row.height;
     const float dx = icon * 1.1f;
-    const float base_y = hotbar_renderer.getItemsTop( ) + stride * 0.15f;
-    const float left = static_cast<float>( hotbar_renderer.getItemsLeft( ) );
-    const float right = static_cast<float>( hotbar_renderer.getItemsRight( ) );
+    const float base_y = row.bottom;
+    const float left = row.left;
+    const float right = row.right( );
 
     const int n_hearts = static_cast<int>( ceilf( max_health / 2.0f ) );
     for ( int i = 0; i < n_hearts; i++ ) {
