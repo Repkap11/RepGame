@@ -456,35 +456,73 @@ void ItemEntities::tick( RepGameState &state ) {
         const BlockID medium_fluid = fluid_in_cell( medium );
         double depth = -1.0;
         glm::dvec2 flow( 0.0 );
-        if ( medium_fluid != LAST_BLOCK_ID ) {
-            // A covered cell's surface sits at its top — the real surface
-            // can be cells higher. Only depth up to ITEM_SIZE feeds the
-            // spring, so climb same-fluid cells just until this cell's top
-            // clears the item's top face.
-            glm::ivec3 scell = medium_cell;
+        // Depth of the bottom face under one fluid column's surface. A
+        // covered cell's surface sits at its top — the real surface can be
+        // cells higher. Only depth up to ITEM_SIZE feeds the spring, so
+        // climb same-fluid cells just until the cell's top clears the
+        // item's top face.
+        const auto column_depth = [ & ]( const glm::ivec3 &cell, const BlockID fluid, const double fx, const double fz, glm::dvec2 *out_flow ) {
+            glm::ivec3 scell = cell;
             while ( scell.y + 1.0 < it.pos.y + ITEM_SIZE &&
-                    fluid_in_cell( world.get_loaded_block( scell + glm::ivec3( 0, 1, 0 ) ) ) == medium_fluid ) {
+                    fluid_in_cell( world.get_loaded_block( scell + glm::ivec3( 0, 1, 0 ) ) ) == fluid ) {
                 scell.y += 1;
             }
-            if ( fluid_in_cell( world.get_loaded_block( scell + glm::ivec3( 0, 1, 0 ) ) ) == medium_fluid ) {
+            if ( fluid_in_cell( world.get_loaded_block( scell + glm::ivec3( 0, 1, 0 ) ) ) == fluid ) {
                 // Still covered: fully under — subm clamps to 1 below.
-                depth = ITEM_SIZE;
-            } else {
-                depth = item_surface_at( world, scell, medium_fluid,
-                                         it.pos.x - medium_cell.x, it.pos.z - medium_cell.z,
-                                         &flow )
-                        - it.pos.y;
+                return ITEM_SIZE;
+            }
+            return item_surface_at( world, scell, fluid, fx, fz, out_flow ) - it.pos.y;
+        };
+        // The fluid the box floats on. Normally the medium cell's, but the
+        // box also feels a fluid its footprint still overlaps when the
+        // center has already moved on — at a stream's lip the center
+        // crosses onto the air over the drop while the back of the box is
+        // still over the last water cell. Center-only sampling cuts the
+        // current exactly there: the item grounds on the lip and wedges
+        // instead of sliding over the edge.
+        BlockID float_fluid = medium_fluid;
+        if ( medium_fluid != LAST_BLOCK_ID ) {
+            depth = column_depth( medium_cell, medium_fluid,
+                                  it.pos.x - medium_cell.x, it.pos.z - medium_cell.z, &flow );
+        } else {
+            const glm::dvec3 bmin = item_min( it );
+            const glm::dvec3 bmax = bmin + glm::dvec3( ITEM_SIZE );
+            const int x0 = static_cast<int>( floor( bmin.x ) );
+            const int x1 = static_cast<int>( floor( bmax.x - 1e-4 ) );
+            const int z0 = static_cast<int>( floor( bmin.z ) );
+            const int z1 = static_cast<int>( floor( bmax.z - 1e-4 ) );
+            for ( int cx = x0; cx <= x1; cx++ ) {
+                for ( int cz = z0; cz <= z1; cz++ ) {
+                    if ( cx == medium_cell.x && cz == medium_cell.z ) {
+                        continue;
+                    }
+                    const glm::ivec3 cell( cx, medium_cell.y, cz );
+                    const BlockID f = fluid_in_cell( world.get_loaded_block( cell ) );
+                    if ( f == LAST_BLOCK_ID ) {
+                        continue;
+                    }
+                    glm::dvec2 fflow( 0.0 );
+                    const double d = column_depth( cell, f,
+                                                   glm::clamp( it.pos.x - static_cast<double>( cx ), 0.0, 1.0 ),
+                                                   glm::clamp( it.pos.z - static_cast<double>( cz ), 0.0, 1.0 ),
+                                                   &fflow );
+                    if ( d > depth ) {
+                        depth = d;
+                        flow = fflow;
+                        float_fluid = f;
+                    }
+                }
             }
         }
         // A little hysteresis keeps the flag (and the render bob that reads
         // it) from chattering as the item crests the surface.
-        it.in_water = medium_fluid != LAST_BLOCK_ID && ( depth > 0.0 || ( it.in_water && depth > -0.03 ) ) ? 1 : 0;
+        it.in_water = float_fluid != LAST_BLOCK_ID && ( depth > 0.0 || ( it.in_water && depth > -0.03 ) ) ? 1 : 0;
 
         // Lava and open flame destroy the item on contact — a small burst
         // of the item's own texels (fire for pure items) stands in for the
         // burn. pickup_pending hides the entity and keeps it out of the
         // merge pass until the dead sweep removes it.
-        if ( ( medium_fluid == LAVA && depth > -0.05 ) || medium.id == FIRE || medium.id == SOUL_FIRE ) {
+        if ( ( float_fluid == LAVA && depth > -0.05 ) || medium.id == FIRE || medium.id == SOUL_FIRE ) {
             const BlockID burn = item_is_block( it.item ) ? static_cast<BlockID>( it.item ) : FIRE;
             world.spawn_block_debris( medium_cell, { burn, BLOCK_ROTATE_0, 0, burn, 0 }, AIR, 8 );
             // Mob convention: audible within 16 blocks, linear falloff.

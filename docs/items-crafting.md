@@ -109,7 +109,12 @@ draws, so the float target is continuous across cell boundaries), with
 drag lerped air->water and a 0.03 rise cap — settling into a shallow float
 rather than bouncing on a binary in/out-of-water test. It also drifts with
 the current down the local surface slope, and a falling column (flowing
-level under or over same-fluid cells) drags it down. Lava and open fire
+level under or over same-fluid cells) drags it down. The contact isn't
+center-only: when the cell at the bottom face holds no fluid, every
+footprint cell is sampled and the highest surface wins, so a stream keeps
+pushing an item whose center has crossed a lip while the back of its box
+is still over the last water cell — center-only sampling wedged items on
+the lip. Lava and open fire
 destroy the entity on contact — a small debris burst (the item's own
 texels for block items, fire for pure ones), a `fizz` within 16 blocks,
 and `NET_REMOVE_DIED`. Integration (and aging)

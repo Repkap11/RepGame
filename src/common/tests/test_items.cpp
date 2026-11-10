@@ -263,6 +263,38 @@ int test_item_entities( ) {
         }
     }
 
+    // --- a stream ending at a ledge pushes items over the edge -----------------
+    {
+        // Max-distance stream: hand-laid levels 3..7 in a 3-wide lane; the
+        // floor ends at x=30, so the level-7 cell at x=30 is the lip the
+        // flow sim itself would never write past. The item's center leaves
+        // the water while the back of its box is still over the last water
+        // cell — the push has to keep going until the box clears the edge,
+        // or the item grounds on the lip and wedges.
+        for ( int z = 27; z <= 29; z++ ) {
+            for ( int x = 26; x <= 30; x++ ) {
+                world.set_loaded_block( glm::ivec3( x, 11, z ), fluid_state( WATER, 3 + x - 26 ) );
+            }
+        }
+        ItemEntities items;
+        items.spawn( STICK, 1, glm::dvec3( 27.5, 12.0, 28.5 ), glm::dvec3( 0.0 ), 0 );
+        ItemEntities::ItemEntity it;
+        for ( int i = 0; i < 6000; i++ ) {
+            gs.tick_number++;
+            items.tick( gs );
+            it = items.debug_items( )[ 0 ];
+            if ( it.pos.x > 31.2 && it.pos.y < 10.9 ) {
+                break;
+            }
+        }
+        check_bool( "item: carried over the ledge", it.pos.x > 31.2 && it.pos.y < 10.9 );
+        for ( int z = 27; z <= 29; z++ ) {
+            for ( int x = 26; x <= 30; x++ ) {
+                world.set_loaded_block( glm::ivec3( x, 11, z ), BLOCK_STATE_AIR );
+            }
+        }
+    }
+
     // --- lava destroys items ---------------------------------------------------
     {
         const BlockState lava = { LAVA, 0, 0, LAVA, 0 };
