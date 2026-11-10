@@ -118,7 +118,7 @@ void FontRenderer::init( ) {
     }
 
     // Proportional metrics: each glyph's leftmost/rightmost lit column in
-    // the same pen-relative integer geometry drawString uses
+    // the same pen-relative integer geometry text_append uses
     // (align_to_integer=1 from pen 0,0, so the bitmap lands at round(xoff)
     // relative to the pen). The quad is shifted so ink starts at the pen
     // and the pen steps by ink width + kLetterSpacing; glyphs with no ink
@@ -222,7 +222,7 @@ void FontRenderer::onScreenSizeChange( int w, int h ) {
 }
 
 float FontRenderer::getTextWidthSlice( const char *text, int len, float size ) const {
-    // Width is the sum of proportional pen steps, matching drawString, so
+    // Width is the sum of proportional pen steps, matching text_append, so
     // measured and drawn widths always agree. The last glyph's trailing
     // ink gap is excluded so the result is the visible extent (keeps
     // centred/right-aligned text exact).
@@ -385,11 +385,6 @@ void FontRenderer::text_flush( const Renderer &renderer, const glm::mat4 &mvp ) 
     showErrors( );
 }
 
-void FontRenderer::drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
-    this->text_append( text, x, y, size, tint );
-    this->text_flush( renderer, mvp );
-}
-
 void FontRenderer::text_append_outlined( const char *text, float x, float y, float size, const float tint[ 4 ] ) {
     const float k = static_cast<float>( pixelScale( size ) );
     const float black[ 4 ] = { 0.0f, 0.0f, 0.0f, tint[ 3 ] };
@@ -401,11 +396,6 @@ void FontRenderer::text_append_outlined( const char *text, float x, float y, flo
         }
     }
     this->text_append( text, x, y, size, tint );
-}
-
-void FontRenderer::drawStringOutlined( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
-    this->text_append_outlined( text, x, y, size, tint );
-    this->text_flush( renderer, mvp );
 }
 
 void FontRenderer::cleanup( ) {

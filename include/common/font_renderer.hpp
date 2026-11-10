@@ -66,14 +66,11 @@ class FontRenderer {
     // Integer magnification for a requested pixel size: the 13px raster is
     // drawn at k× nearest-neighbour scale so text stays pixel-crisp.
     int pixelScale( float size ) const;
-    void drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp );
-    // drawString with a one-raster-texel black outline (8 offset passes
-    // under the tinted text) so it reads against any background.
-    void drawStringOutlined( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp );
     // Batched drawing: text_begin resets the staging buffer, text_append /
     // text_append_slice queue glyph quads (no GL work), text_flush uploads
-    // and draws everything queued so far in one call. Nested drawString
-    // during a batch still works (it appends then flushes all pending).
+    // and draws everything queued so far in one call. text_append_outlined
+    // queues a one-raster-texel black outline (8 offset passes under the
+    // tinted text) so it reads against any background.
     void text_begin( );
     void text_append( const char *text, float x, float y, float size, const float tint[ 4 ] );
     void text_append_outlined( const char *text, float x, float y, float size, const float tint[ 4 ] );
