@@ -39,6 +39,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( fences ),          //
     MK_TEST( stairs ),          //
     MK_TEST( slabs ),           //
+    MK_TEST( cake ),            //
     MK_TEST( doors ),           //
     MK_TEST( block_world ),     //
     MK_TEST( mapgen ),          //

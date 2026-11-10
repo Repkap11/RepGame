@@ -571,9 +571,10 @@ static inline BlockID block_item_id( BlockID id ) {
 // selection, debris): an open gate or toggled door keeps a yaw and must
 // never reach the rotation >= 4 wall-torch branches. Slabs mask to 0 — their
 // rotation is only the top-half bit (BLOCK_ROTATE_SLAB_TOP), which those
-// consumers read off the raw rotation instead.
+// consumers read off the raw rotation instead. Cake masks to 0 too — its
+// rotation is the bite count, not an orientation.
 static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
-    return ( b->is_fence_gate || b->is_door || b->is_stairs || b->is_slab ) ? ( rot & 3 ) : rot;
+    return ( b->is_fence_gate || b->is_door || b->is_stairs || b->is_slab ) ? ( rot & 3 ) : ( b->is_cake ? 0 : rot );
 }
 
 // face_shift flag bits: the low nibble holds the yaw rotation (0-7).

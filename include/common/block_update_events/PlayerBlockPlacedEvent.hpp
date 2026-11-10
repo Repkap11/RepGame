@@ -33,9 +33,15 @@ void repgame_convert_block_natural( RepGameState &state, const glm::ivec3 &pos, 
 // (natural causes like leaf decay don't care who removed the support).
 enum class BreakDrops : uint8_t { None, Survival, Always };
 
+// Whether the block change spawns break debris: Spawn always; None never —
+// eating the last cake slice consumes the block, so debris would read as a
+// mining break. Remote clients still debris on the packet replay.
+enum class BreakDebris : uint8_t { Spawn, None };
+
 class PlayerBlockPlacedEvent : public BlockUpdateEvent {
   public:
-    PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &block, BlockState blockState, bool state_update, BreakDrops drops = BreakDrops::None );
+    PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &block, BlockState blockState, bool state_update, BreakDrops drops = BreakDrops::None,
+                            BreakDebris debris = BreakDebris::Spawn );
     void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
 
   private:
@@ -43,4 +49,5 @@ class PlayerBlockPlacedEvent : public BlockUpdateEvent {
     BlockState blockState;
     bool state_update;
     BreakDrops drops;
+    BreakDebris debris;
 };

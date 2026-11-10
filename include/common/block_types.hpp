@@ -34,6 +34,11 @@
 #define BLOCK_ROTATE_180 2
 #define BLOCK_ROTATE_270 3
 
+// Cake stores its eaten-slice count (MC "bites") in BlockState::rotation:
+// 0 = whole, CAKE_MAX_BITES = one 2px slice left. Each bite removes 2px
+// from the +x edge of the box; eating the last slice removes the block.
+#define CAKE_MAX_BITES 6
+
 #define NUM_FACES_IN_CUBE 6
 
 #define CORNER_OFFSET_tfl 0
@@ -123,6 +128,12 @@ typedef struct {
     // climbs, sneak hangs, and descent is capped — see
     // Collision::on_climbable and process_movement (docs/player.md).
     bool climbable;
+    // Edible cake (MC's bites property): right-click eats a 2px slice off
+    // the +x edge; the bite count 0..CAKE_MAX_BITES lives in
+    // BlockState::rotation (never a yaw — block_yaw masks it to 0) and the
+    // cut face draws cake_inner. The bite past CAKE_MAX_BITES removes the
+    // block.
+    bool is_cake;
     // Whether the block is a full opaque cube for redstone purposes: solid
     // blocks can hold power (strong or weak), and dust can connect up over
     // them. Glass, leaves, slabs, and other transparent or non-full blocks —

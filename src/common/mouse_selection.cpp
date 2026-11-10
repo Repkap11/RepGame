@@ -211,6 +211,11 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
             blockCoords.offset_y = 16 - blockCoords.scale_y - blockCoords.offset_y;
         }
 
+        // Eaten cake: each bite in rotation removes 2px off the +x edge.
+        if ( block->is_cake ) {
+            blockCoords.scale_x = static_cast<signed char>( blockCoords.scale_x - 2 * blockState.rotation );
+        }
+
         blockCoords.face_shift = block_yaw( block, blockState.rotation );
 
         this->render_chain_mouse_selection.invalidate( this->entity[ 0 ] );

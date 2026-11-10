@@ -1,7 +1,9 @@
 {
+  "casts_shadow": false,
   "hardness": 0.5,
   "icon": "cake_top",
   "id": 178,
+  "is_cake": true,
   "is_seethrough": true,
   "name": "CAKE",
   "needs_place_on_any_solid": {
@@ -12,7 +14,6 @@
     0,
     1
   ],
-  "rotate_on_placement": true,
   "scale": [
     14,
     8,

@@ -1,6 +1,7 @@
 // Block behaviour tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
 #include "common/block_update_events/LeafDecayEvent.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/tree_grow.hpp"
 #include "common/break_drops.hpp"
 #include "common/ui_overlay_buffers.hpp"
@@ -724,6 +725,123 @@ int test_slabs( ) {
         check_bool( "ray: down at bottom slab hits the half-height top",
                     RayTraversal::find_block_from_to( world, glm::dvec3( 20.5, 12.5, 20.75 ), glm::dvec3( 20.5, 10.5, 20.75 ), out, &which_face, 0, &hit_t ) &&
                         out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_TOP && fabs( hit_t - 1.0 ) < 0.01 );
+    }
+    return failures;
+}
+
+// Cake eating: the is_cake flag, bites stored in rotation (never a yaw —
+// block_yaw masks it to 0 so the wall-torch branch can't see it), the +x
+// edge shrinking 2px per bite across block_adjust/collision/raycast, the
+// interior face texture, and the support check keeping the floor face.
+int test_cake( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    // --- generated definitions ---------------------------------------------
+    const Block *cake = block_definition_get_definition( CAKE );
+    check_bool( "def: CAKE is_cake partial box",
+                cake->is_cake && cake->non_full_size &&                                          //
+                    cake->scale.x == 14 && cake->scale.y == 8 && cake->scale.z == 14 &&          //
+                    cake->offset.x == 1 && cake->offset.y == 0 && cake->offset.z == 1 );
+    check_bool( "def: CAKE does not rotate on placement", !cake->rotate_on_placement );
+    // The cake cell is mostly air — it must not be light-opaque or a bitten
+    // sliver still casts a whole-cell shadow on the floor.
+    check_bool( "def: CAKE casts no shadow", !cake->casts_shadow );
+    check_bool( "def: candle cakes are not edible", !block_definition_get_definition( CANDLE_CAKE )->is_cake );
+    check_bool( "def: bites fit the rotation field", CAKE_MAX_BITES <= 7 );
+    check_bool( "def: bite count is never a yaw", block_yaw( cake, CAKE_MAX_BITES ) == 0 && block_yaw( cake, 4 ) == 0 );
+
+    // --- block_adjust_coord_based_on_state ----------------------------------
+    {
+        auto cake_coords = [ & ]( int bites ) {
+            BlockCoords coords = {};
+            coords.scale_x = static_cast<signed char>( cake->scale.x );
+            for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+                coords.face[ i ] = cake->textures[ i ];
+            }
+            BlockState state = { CAKE, static_cast<unsigned char>( bites ), 0, CAKE, 0 };
+            block_adjust_coord_based_on_state( cake, &state, &coords );
+            return coords;
+        };
+        const BlockCoords whole = cake_coords( 0 );
+        check_bool( "adjust: whole cake keeps the box + frosting", whole.scale_x == 14 && whole.face[ FACE_RIGHT ] == TEX_CAKE_SIDE );
+        const BlockCoords half = cake_coords( 3 );
+        check_bool( "adjust: 3 bites shrink to 8px", half.scale_x == 8 && half.face[ FACE_RIGHT ] == TEX_CAKE_INNER );
+        check_bool( "adjust: bite keeps the other faces", half.face[ FACE_LEFT ] == TEX_CAKE_SIDE && half.face[ FACE_FRONT ] == TEX_CAKE_SIDE );
+        check_bool( "adjust: last bite leaves 2px", cake_coords( CAKE_MAX_BITES ).scale_x == 2 );
+    }
+
+    // --- world: support rule, collision, raycast -----------------------------
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        const glm::ivec3 pos( 10, 11, 10 );
+        const BlockState stone = { STONE, 0, 0, STONE, 0 };
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( pos, { CAKE, 4, 0, CAKE, 0 } );
+        // Bites aren't a yaw: 4 slices gone, the support check still reads
+        // the floor face (needs_place_on_any_solid top), not a side face.
+        check_bool( "survive: bitten cake keeps the floor check", block_can_survive_at( world, pos, world.get_loaded_block( pos ) ) );
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), BLOCK_STATE_AIR );
+        check_bool( "survive: bitten cake still needs the floor", !block_can_survive_at( world, pos, world.get_loaded_block( pos ) ) );
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), stone );
+
+        // Collision: 4 bites leave x in [1,7]px — a body inside the eaten
+        // band doesn't collide, one inside the remaining cake does.
+        const double mid_cake = 11.0 + PLAYER_EYE_HEIGHT + 4.0 / 16.0; // feet at y+0.25, inside the 8px-tall box
+        check_bool( "world: eaten band doesn't collide",
+                    !Collision::collides_at( world, glm::dvec3( 10.9, mid_cake, 10.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "world: remaining cake collides",
+                    Collision::collides_at( world, glm::dvec3( 10.1, mid_cake, 10.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+
+        // Raycast: the interior face picks at the shrunken +x edge, and a
+        // ray crossing only the eaten band passes to the block behind.
+        world.set_loaded_block( pos + glm::ivec3( 1, 0, 0 ), stone );
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        double hit_t = -1.0;
+        check_bool( "ray: -x hits the cut face at x=7/16",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 10.9, 11.25, 10.5 ), glm::dvec3( 9.5, 11.25, 10.5 ), out, &which_face, 0, &hit_t ) &&
+                        out == pos && which_face == FACE_RIGHT && fabs( hit_t - 0.4625 ) < 0.01 );
+        check_bool( "ray: through the eaten band hits the block behind",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 10.9, 11.25, 10.5 ), glm::dvec3( 11.5, 11.25, 10.5 ), out, &which_face ) &&
+                        out == pos + glm::ivec3( 1, 0, 0 ) && which_face == FACE_LEFT );
+
+        // --- the eat click: the state-update write lands the bite, the
+        // final slice's AIR write removes the block (BreakDrops::None) -----
+        const glm::ivec3 pos2( 14, 11, 10 );
+        world.set_loaded_block( pos2 + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( pos2, { CAKE, 0, 0, CAKE, 0 } );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BlockState{ CAKE, 1, 0, CAKE, 0 }, true );
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        check_bool( "eat: bite write lands the rotation", world.get_loaded_block( pos2 ).rotation == 1 );
+        world.set_loaded_block( pos2, { CAKE, CAKE_MAX_BITES, 0, CAKE, 0 } );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BLOCK_STATE_AIR, false, BreakDrops::None, BreakDebris::None );
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        failures += check_id( world, "eat: last slice removes the block", pos2, AIR );
+        // The last slice is eaten, not mined — no break debris. A plain
+        // removal still spawns it, so the flag isn't a global no-op.
+        check_bool( "eat: last slice spawns no debris", world.blockDebris.count( ) == 0 );
+        const glm::ivec3 pos3( 18, 11, 10 );
+        world.set_loaded_block( pos3 + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( pos3, { CAKE, 0, 0, CAKE, 0 } );
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos3, BLOCK_STATE_AIR, false );
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        check_bool( "break: normal removal still spawns debris", world.blockDebris.count( ) > 0 );
     }
     return failures;
 }

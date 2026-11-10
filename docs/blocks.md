@@ -365,6 +365,28 @@ from creative) but stay raycast-targetable via `block_is_tall_plant` in
 `contains_block`, and drops/picks map through `block_item_id` (the
 generalized `door_item_id`).
 
+Cake is edible: `"is_cake": true` (plain `CAKE` only — candle cakes keep
+their full-cube placeholder and can't be eaten, matching MC). Right-click
+eats one 2px slice off the +x edge — the bite count lives in
+`BlockState::rotation` (0..`CAKE_MAX_BITES` = 6, the same slot fluid
+levels/stair shapes use — cake's box is yaw-symmetric so
+`rotate_on_placement` was a no-op and went away to free the bits) — and
+eating past `CAKE_MAX_BITES` removes the block with no drop and no break
+debris (the removal queues `BreakDebris::None` — the block was eaten, not
+mined; remote clients still debris on the packet replay). The shrunken
+box is the shared per-site tweak: `block_adjust_coord_based_on_state`
+cuts `scale_x` and swaps the +x face to `cake_inner` (a `keep` texture —
+only C++ references it), and `block_collision_boxes`, `contains_pixel`
+and the `MouseSelection` outline apply the same `-2*bites`. `block_yaw`
+masks the rotation to 0 like slabs so a large bite count never reaches
+the `rotation >= 4` wall-torch branches, and `block_supports_present`
+skips the face rotation for `is_cake` so a bitten cake still reads its
+floor support. `casts_shadow: false` because the cell is mostly air —
+the default-true flag made even a 2px sliver darken a whole cell column.
+Old-world caveat: cakes placed while
+`rotate_on_placement` was set may have yaw 1-3 saved in rotation — they
+render as that many bites taken once disturbed.
+
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,
 water, mobs, persistence and multiplayer are all off — nothing is read or

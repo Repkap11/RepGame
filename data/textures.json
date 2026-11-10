@@ -343,6 +343,10 @@
   "cake_bottom": {
     "source": "textures/blocks/cake_bottom"
   },
+  "cake_inner": {
+    "source": "textures/blocks/cake_inner",
+    "keep": true
+  },
   "cake_side": {
     "source": "textures/blocks/cake_side"
   },

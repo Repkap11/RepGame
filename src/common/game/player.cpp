@@ -481,6 +481,26 @@ void RepGame::process_mouse_events( ) {
             }
         }
     }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
+        // Right-clicking a cake eats one 2px slice — the bite count lives in
+        // rotation (0..CAKE_MAX_BITES) and shrinks the box off the +x edge.
+        // Eating the last slice removes the block like a break (no drop).
+        // Sneaking skips the interaction so a block can be placed.
+        const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+        if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_cake && !globalGameState.input.movement.sneakPressed ) {
+            if ( target_state.rotation < CAKE_MAX_BITES ) {
+                BlockState eaten_state = target_state;
+                eaten_state.rotation = static_cast<unsigned char>( target_state.rotation + 1 );
+                globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, eaten_state, true );
+            } else {
+                // The last slice is eaten, not broken: no drop, no debris.
+                globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, BLOCK_STATE_AIR, false,
+                                                                                       BreakDrops::None, BreakDebris::None );
+            }
+            audio_play_sfx( audio_block_dig_pool( target_state.id ) );
+            globalGameState.input.click_delay_right = 30;
+        }
+    }
     if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.fluidSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Buckets scoop a fluid source or pour theirs out — after the block
         // interactions above (they need the normal pick too), before the

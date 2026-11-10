@@ -125,6 +125,7 @@
     "cactus_side",
     "cactus_top",
     "cake_bottom",
+    "cake_inner",
     "cake_side",
     "cake_top",
     "calcite",

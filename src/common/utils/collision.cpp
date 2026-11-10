@@ -145,6 +145,10 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
         // Top-half slab: the box mirrors into the upper half of the cell.
         offset_y = 16 - scale_y - offset_y;
     }
+    if ( block->is_cake ) {
+        // Eaten cake: each bite in rotation removes 2px off the +x edge.
+        scale_x = static_cast<short>( scale_x - 2 * blockState.rotation );
+    }
     out_min.x = static_cast<double>( block_pos.x ) + PIXEL_TO_FLOAT( offset_x );
     out_max.x = out_min.x + PIXEL_TO_FLOAT( scale_x );
     out_min.z = static_cast<double>( block_pos.z ) + PIXEL_TO_FLOAT( offset_z );

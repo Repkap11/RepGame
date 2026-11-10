@@ -30,6 +30,7 @@ class World {
     friend int test_farming( );
     friend int test_grass( );
     friend int test_grass_persist( );
+    friend int test_cake( );
     friend void test_setup_world( World &world );
 
     friend int test_lighting( );

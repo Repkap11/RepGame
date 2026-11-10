@@ -152,7 +152,9 @@ mob pre-empt the block target for left clicks.
   face or upper side half => top-half block, `docs/blocks.md`).
 - **Use.** The right-click chain handles mob feeding (a breedable mob
   takes precedence over block clicks), buttons, doors/gates, chests,
-  crafting tables, dust toggling, buckets (`repgame_use_bucket` —
+  crafting tables, cake eating (`is_cake` — each click consumes a 2px
+  slice, the last one removes the block; `docs/blocks.md`), dust
+  toggling, buckets (`repgame_use_bucket` —
   `BUCKET` scoops the fluid source under `fluidSelectionInBounds`,
   `WATER_BUCKET`/`LAVA_BUCKET` pour a source at the flowing hit cell,
   `pos_fluid_create` or `pos_create`), bone meal (sapling or crop

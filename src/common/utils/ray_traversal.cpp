@@ -117,6 +117,10 @@ static int contains_pixel( Block *pixel_block, BlockState &block_state, const gl
         // Top-half slab: the pick box mirrors into the upper half of the cell.
         offset_y = 16 - scale_y - offset_y;
     }
+    if ( pixel_block->is_cake ) {
+        // Eaten cake: each bite in rotation removes 2px off the +x edge.
+        scale_x = static_cast<char>( scale_x - 2 * block_state.rotation );
+    }
 
     double c1_x = block.x + PIXEL_TO_FLOAT( offset_x );
     double c1_z = block.z + PIXEL_TO_FLOAT( offset_z );

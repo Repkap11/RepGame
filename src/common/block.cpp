@@ -559,6 +559,14 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         blockCoord->scale_z = 1;
     }
 
+    // Eaten cake: each bite (rotation) removes 2px off the +x edge, and the
+    // cut face exposed there draws the interior tile instead of the frosted
+    // side. The tex_offset window follows the shrink automatically.
+    if ( block->is_cake && blockState->rotation > 0 ) {
+        blockCoord->scale_x = static_cast<signed char>( blockCoord->scale_x - 2 * blockState->rotation );
+        blockCoord->face[ FACE_RIGHT ] = TEX_CAKE_INNER;
+    }
+
     if ( block->is_piston ) {
         const bool extended = blockState->current_redstone_power > 0;
         const unsigned char rot = blockState->rotation;

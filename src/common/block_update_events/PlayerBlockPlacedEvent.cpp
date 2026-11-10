@@ -13,8 +13,9 @@ static float frand( ) {
     return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
 }
 
-PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &offset, BlockState blockState, bool state_update, BreakDrops drops ) //
-    : BlockUpdateEvent( tick_number ), block_pos( offset ), blockState( blockState ), state_update( state_update ), drops( drops ) {
+PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &offset, BlockState blockState, bool state_update, BreakDrops drops,
+                                                BreakDebris debris ) //
+    : BlockUpdateEvent( tick_number ), block_pos( offset ), blockState( blockState ), state_update( state_update ), drops( drops ), debris( debris ) {
     this->name = "PlayerBlockPlacedEvent";
 }
 
@@ -269,8 +270,9 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         break_drops( repGameState, this->block_pos, current_block_state.id );
     }
     // Water flowing into a waterloggable block waterlogs it instead of
-    // breaking it — no debris, nothing was destroyed.
-    if ( !( this->blockState.id == WATER && current_block->waterloggable ) ) {
+    // breaking it — no debris, nothing was destroyed. BreakDebris::None
+    // skips debris for removals that aren't breaks (eating the last slice).
+    if ( this->debris == BreakDebris::Spawn && !( this->blockState.id == WATER && current_block->waterloggable ) ) {
         repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
     }
 

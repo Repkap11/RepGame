@@ -277,7 +277,9 @@ bool block_supports_present( World &world, const glm::ivec3 &block_pos, const Bl
     const Block *block = block_definition_get_definition( block_state.id );
     bool block_is_ok_to_place = true;
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
-        int rotated_face = get_rotated_face( face, block_state.rotation );
+        // Cake's rotation is the bite count, not a yaw — its support face
+        // stays unrotated or a partly-eaten cake would check a side face.
+        int rotated_face = get_rotated_face( face, block->is_cake ? 0 : block_state.rotation );
         if ( block->needs_place_on_any_solid[ rotated_face ] ) {
             BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ face ], block_pos.y - FACE_DIR_Y_OFFSETS[ face ], block_pos.z - FACE_DIR_Z_OFFSETS[ face ] ) ).id;
             if ( block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == block_state.id ) {

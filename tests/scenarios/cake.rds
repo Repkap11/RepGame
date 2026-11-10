@@ -1,0 +1,36 @@
+# Cake staging: bite levels 0..6 live in rotation (setblock's 6th arg) —
+# each bite trims 2px off the +x edge and the cut face draws the interior
+# tile. Flat floor is SANDSTONE at y=0; AIR starts at y=1.
+wait_idle 20 6000
+setblock 4 1 8 CAKE 0
+setblock 6 1 8 CAKE 2
+setblock 8 1 8 CAKE 4
+setblock 10 1 8 CAKE 6
+# Candle cakes are not edible and keep a full cube.
+setblock 12 1 8 WHITE_CANDLE_CAKE 0
+wait 30
+assert_block 4 1 8 CAKE
+assert_block 6 1 8 CAKE
+assert_block 8 1 8 CAKE
+assert_block 10 1 8 CAKE
+# A neighbor write must not pop a bitten cake: rotation is the bite count,
+# not a yaw, so the floor-support face must not rotate with it.
+setblock 8 1 9 SANDSTONE
+wait 30
+assert_block 8 1 8 CAKE
+assert_block 10 1 8 CAKE
+# Front view of the row: eaten sections are missing off each cake's +x
+# (left-on-screen) edge; the candle cake stays whole.
+camera 8 2.5 5 180 15
+wait 20
+screenshot bites_front
+# Oblique view from +x/+z: each cake's cut (+x) face shows the interior
+# tile, shrinking with the bite count.
+camera 15 3 12 300 7
+wait 20
+screenshot bites_inner
+# Close on the candle cake: full cube, untouched by the bite state.
+camera 14 2.5 11 315 15
+wait 20
+screenshot candle
+echo cake done

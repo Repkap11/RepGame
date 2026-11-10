@@ -2753,12 +2753,13 @@ block_definitions[ 178 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
 block_definitions[ 178 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
 block_definitions[ 178 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
 block_definitions[ 178 ].icon_texture = TEX_CAKE_TOP;
+block_definitions[ 178 ].casts_shadow = false;
 block_definitions[ 178 ].hardness = 0.5f;
 block_definitions[ 178 ].icon_is_isometric = false;
+block_definitions[ 178 ].is_cake = true;
 block_definitions[ 178 ].is_seethrough = true;
 block_definitions[ 178 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 178 ].offset = { 1, 0, 1 };
-block_definitions[ 178 ].rotate_on_placement = true;
 block_definitions[ 178 ].scale = { 14, 8, 14 };
 block_definitions[ 178 ].tex_offset = { -1, 0, -1 };
 
