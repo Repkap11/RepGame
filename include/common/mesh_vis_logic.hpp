@@ -92,6 +92,16 @@ if ( visible != 0 ) {
         } else {
             face_vis = mesh_face_seethrough( block_next_to, next_to_power, next_to_rotation, opposing_face );
         }
+        // A powered piston base recesses its head-end face 4px inside the
+        // cell — the throat the arm slides through. Boundary coverage by
+        // the head-direction neighbor can't hide that interior face (the
+        // throat stays open wherever a side neighbor doesn't cover), so it
+        // is always emitted; in a fully sealed throat it's harmless
+        // overdraw.
+        if ( block.is_piston != 0u && mesh_cell_powered( mesh_cell_v ) != 0 &&
+             face == MESH_PISTON_HEAD_FACES[ MG_TERN( block_rotation < 6, block_rotation, 0 ) ] ) {
+            face_vis = 1;
+        }
         vis_mask |= MG_SHL( face_vis, face );
     }
     can_be_seen = MG_TERN( vis_mask != 0, 1, 0 );

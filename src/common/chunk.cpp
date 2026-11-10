@@ -1662,6 +1662,17 @@ void Chunk::calculate_populated_blocks( ) {
                                         arm->mesh_x = 1;
                                         arm->mesh_y = 1;
                                         arm->mesh_z = 1;
+                                        // Shaft quads are all interior to
+                                        // the cell: a boundary-covering
+                                        // neighbor can't hide a lateral
+                                        // while the adjoining cell's
+                                        // throat stays open, so force
+                                        // every face lit before the cap
+                                        // skips. A fully sealed cavity
+                                        // just makes them overdraw.
+                                        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                            arm->packed_lighting[ f ] = NO_LIGHT_BRIGHT;
+                                        }
                                         if ( head_face == FACE_TOP || head_face == FACE_BOTTOM ) {
                                             arm->scale_x = 4;
                                             arm->scale_y = 12;
@@ -1728,6 +1739,12 @@ void Chunk::calculate_populated_blocks( ) {
                                         arm->mesh_x = 1;
                                         arm->mesh_y = 1;
                                         arm->mesh_z = 1;
+                                        // Same interior-face rule as the
+                                        // head shaft: force laterals lit,
+                                        // then skip the end caps.
+                                        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                            arm->packed_lighting[ f ] = NO_LIGHT_BRIGHT;
+                                        }
                                         arm->scale_x = 4;
                                         arm->scale_y = 4;
                                         arm->scale_z = 4;
