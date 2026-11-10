@@ -1433,13 +1433,16 @@ void World::set_loaded_block( const glm::ivec3 &block_pos, BlockState blockState
 #define GRASS_SPREAD_UP 1
 
 // True when the cell above pos is loaded and light-opaque (casts_shadow —
-// the same predicate the light engine's opacity test uses). Cover kills
-// grass and disqualifies a spread target; torches, leaves and partial
-// blocks shade but don't cover. An unloaded cell counts as open (the same
-// permissive rule leaf decay uses).
+// the same predicate the light engine's opacity test uses) or holds a
+// fluid — MC's opacity-3 water also covers (fluid_in_cell counts
+// waterlogged cells as water). Cover kills grass and disqualifies a
+// spread target; torches, leaves and partial blocks shade but don't
+// cover. An unloaded cell counts as open (the same permissive rule leaf
+// decay uses).
 bool World::grass_covered( const glm::ivec3 &pos ) const {
     const BlockState above = this->get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) );
-    return above.id != LAST_BLOCK_ID && block_definition_get_definition( above.id )->casts_shadow;
+    return above.id != LAST_BLOCK_ID &&
+           ( block_definition_get_definition( above.id )->casts_shadow || fluid_in_cell( above ) != LAST_BLOCK_ID );
 }
 
 void World::grass_random_tick( RepGameState &state, const glm::ivec3 &world_pos, const BlockState &cell ) {

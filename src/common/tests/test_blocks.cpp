@@ -1648,6 +1648,27 @@ int test_grass( ) {
     world.grass_random_tick( gs, leaves_src, grass );
     failures += check_id( world, "grass: leaf canopy doesn't kill", leaves_src, GRASS );
 
+    // A fluid cell above is cover too (MC's opacity-3 water): source and
+    // flowing cells both kill, and so does a waterlogged cell.
+    const glm::ivec3 water_src( 20, 22, 20 );
+    world.set_loaded_block( water_src, grass );
+    world.set_loaded_block( water_src + glm::ivec3( 0, 1, 0 ), { WATER, 0, 0, WATER, 0 } );
+    world.grass_random_tick( gs, water_src, grass );
+    failures += check_id( world, "grass: underwater grass dies", water_src, DIRT );
+
+    const glm::ivec3 flow_src( 20, 26, 20 );
+    world.set_loaded_block( flow_src, grass );
+    world.set_loaded_block( flow_src + glm::ivec3( 0, 1, 0 ), { WATER, 4, 0, WATER, 0 } );
+    world.grass_random_tick( gs, flow_src, grass );
+    failures += check_id( world, "grass: grass under a flow dies", flow_src, DIRT );
+
+    const glm::ivec3 wlog_src( 20, 30, 20 );
+    world.set_loaded_block( wlog_src, grass );
+    world.set_loaded_block( wlog_src + glm::ivec3( 0, 1, 0 ), { KELP, 0, 0, KELP, 0 } );
+    world.set_loaded_block( wlog_src + glm::ivec3( 0, 1, 0 ), { WATER, 0, 0, WATER, 0 } ); // waterlogs the kelp
+    world.grass_random_tick( gs, wlog_src, grass );
+    failures += check_id( world, "grass: waterlogged above kills too", wlog_src, DIRT );
+
     // Spread garden: dirt floor at dy=-3 plus a same-level dirt ring, all
     // open-topped — 17 of the 45 picks are eligible, so a passing roll
     // (~1-in-3 per call, deterministic stream) converts something fast.
@@ -1685,6 +1706,8 @@ int test_grass( ) {
     const glm::ivec3 gated_src( 10, 10, 45 );
     world.set_loaded_block( gated_src + glm::ivec3( 1, 0, 1 ), dirt );
     world.set_loaded_block( gated_src + glm::ivec3( 1, 1, 1 ), stone );
+    world.set_loaded_block( gated_src + glm::ivec3( -1, 0, -1 ), dirt );
+    world.set_loaded_block( gated_src + glm::ivec3( -1, 1, -1 ), { WATER, 0, 0, WATER, 0 } );
     for ( int dx = -1; dx <= 1; dx++ ) {
         for ( int dz = -1; dz <= 1; dz++ ) {
             world.set_loaded_block( gated_src + glm::ivec3( dx, -3, dz ), dirt );
@@ -1695,6 +1718,7 @@ int test_grass( ) {
         world.grass_random_tick( gs, gated_src, grass );
     }
     failures += check_id( world, "grass: covered dirt untouched", gated_src + glm::ivec3( 1, 0, 1 ), DIRT );
+    failures += check_id( world, "grass: water-covered dirt untouched", gated_src + glm::ivec3( -1, 0, -1 ), DIRT );
     int opened = 0;
     for ( int dx = -1; dx <= 1; dx++ ) {
         for ( int dz = -1; dz <= 1; dz++ ) {
