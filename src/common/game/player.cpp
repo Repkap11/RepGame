@@ -16,6 +16,7 @@
 #include "common/mp_test.hpp"
 #include "common/harness/run_policy.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/game/game_internal.hpp"
@@ -50,6 +51,15 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
         }
     } else {
         block = globalGameState.block_selection.pos_destroy;
+        // Mining a piston head breaks the piston it belongs to — the head
+        // cell is only the base's collision face: retarget the removal at
+        // the base so the drop and debris land on the piston, and the head
+        // pops off through the support check. An orphaned head breaks in
+        // place.
+        const BlockState target_state = globalGameState.world.get_loaded_block( block );
+        if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_piston_head ) {
+            block = piston_head_base( globalGameState.world, block, target_state );
+        }
     }
     if ( place && !player_placement_valid( globalGameState.world, block, blockState ) ) {
         return LAST_BLOCK_ID;
@@ -227,12 +237,22 @@ void RepGame::process_mouse_events( ) {
         pr_debug( "Selected block:%d rotation:%d redstone_power:%d display:%d", blockState.id, blockState.rotation, blockState.current_redstone_power, blockState.display_id );
         globalGameState.input.click_delay_middle = 30;
         // A door's upper half picks the lower's item; a crop stage picks the
-        // seed/produce item that plants it.
+        // seed/produce item that plants it. A piston head picks the piston
+        // it belongs to — the head cell itself isn't obtainable.
         ItemID pick_id = LAST_BLOCK_ID;
         if ( blockState.id != LAST_BLOCK_ID ) {
+            if ( block_definition_get_definition( blockState.id )->is_piston_head ) {
+                blockState = globalGameState.world.get_loaded_block( piston_head_base( globalGameState.world, globalGameState.block_selection.pos_destroy, blockState ) );
+            }
             pick_id = item_for_crop_block( blockState.id );
             if ( pick_id == LAST_BLOCK_ID ) {
                 pick_id = block_item_id( blockState.id );
+            }
+            // A block id that has no obtainable item — an orphaned piston
+            // head — picks nothing rather than putting the internal cell
+            // block on the bar.
+            if ( item_is_block( pick_id ) && !block_definition_get_definition( static_cast<BlockID>( pick_id ) )->is_pickable ) {
+                pick_id = LAST_BLOCK_ID;
             }
         }
         if ( globalGameState.game_mode == GameMode_Survival && pick_id != LAST_BLOCK_ID ) {

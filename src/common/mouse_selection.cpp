@@ -129,6 +129,12 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
             }
         }
         num_boxes = fence_pick_boxes( connections, boxes );
+    } else if ( block->is_piston_head || ( block->is_piston && blockState.current_redstone_power > 0 ) ) {
+        // The same two boxes the raycast hits and collision blocks with: a
+        // head's plate + arm shaft, or an extended base's recessed body +
+        // throat stub — world-space, so face_shift stays 0 below.
+        num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
+                                        : piston_base_boxes( blockState.rotation, boxes );
     }
     if ( num_boxes > 0 ) {
         for ( int i = 0; i < FENCE_MAX_BOXES; i++ ) {

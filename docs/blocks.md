@@ -212,6 +212,16 @@ coverage `mesh_face_seethrough` special-cases `is_piston_head`: only the
 head-end boundary is covered (`MESH_PISTON_HEAD_COVERED`), since the
 canonical def's `is_seethrough_face` would claim a full side face on the
 wrong axis for up/down rotations and cull solid neighbors into holes.
+Heads are raycast-targetable despite staying `is_pickable: false`
+(creative + drop exclusion — the door upper precedent): `contains_block`
+ORs `is_piston_head` in and picks against `piston_head_boxes` — the plate
+plus the 4x4 arm shaft, the same two boxes the mesher emits and collision
+blocks with, so the arm can't be clicked or walked through. The mirrored
+`piston_base_boxes` covers the extended base (recessed body + throat
+stub); the selection outline draws the pair. Mining or pick-blocking a
+head retargets the base (`piston_head_base` in BlockNextToChangeEvent.cpp —
+the same pairing `block_can_survive_at` checks), so breaking it drops the
+piston and pops the head through the survive check.
 
 Fences and fence gates draw several box instances per cell in the CPU
 meshing pass (chunk.cpp phase 2, `fence_boxes`/`fence_gate_boxes` in

@@ -251,8 +251,12 @@ typedef struct {
     // 4=+y(up) 5=-y(down).
     bool is_piston;
     bool is_sticky_piston;
-    // Internal cell block placed in front of an extended piston. Not pickable,
-    // not in inventories, breaks automatically when its base is removed.
+    // Internal cell block placed in front of an extended piston. Raycast-
+    // targetable via the is_piston_head special case in contains_block (the
+    // pick/collision boxes are piston_head_boxes' plate + arm shaft; mining
+    // retargets the base) — but is_pickable stays false so it stays out of
+    // creative and drops nothing. Breaks automatically when its base is
+    // removed.
     bool is_piston_head;
     // TNT: a redstone mechanism that ignites on a rising power edge — the
     // block leaves the world as a primed entity (PrimedTnt) and a

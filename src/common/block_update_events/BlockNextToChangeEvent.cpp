@@ -195,6 +195,18 @@ inline int get_rotated_face( int face, int rotation ) {
     return result;
 }
 
+// The piston base a head at block_pos is attached to: the cell behind it
+// holds a piston still pointing at the head. Returns block_pos itself for an
+// orphaned head — callers test `!= block_pos` for "attached".
+glm::ivec3 piston_head_base( World &world, const glm::ivec3 &block_pos, const BlockState &block_state ) {
+    const glm::ivec3 base_pos = block_pos - piston_facing_dir( block_state.rotation );
+    const BlockState base_state = world.get_loaded_block( base_pos );
+    if ( base_state.id != LAST_BLOCK_ID && block_definition_get_definition( base_state.id )->is_piston && base_pos + piston_facing_dir( base_state.rotation ) == block_pos ) {
+        return base_pos;
+    }
+    return block_pos;
+}
+
 // Returns false if a block with the given state couldn't survive at block_pos
 // (no required solid face/attachment). Used to reject invalid placements and
 // to break blocks whose support was removed.
@@ -234,10 +246,7 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
     if ( block->is_piston_head ) {
         // A head survives only with a piston base directly behind it that is
         // still pointing at this cell.
-        const glm::ivec3 base_pos = block_pos - piston_facing_dir( block_state.rotation );
-        const BlockState base_state = world.get_loaded_block( base_pos );
-        return base_state.id != LAST_BLOCK_ID && block_definition_get_definition( base_state.id )->is_piston &&
-               base_pos + piston_facing_dir( base_state.rotation ) == block_pos;
+        return piston_head_base( world, block_pos, block_state ) != block_pos;
     }
     if ( block->is_torch && block_state.rotation >= 4 ) {
         // Side-mounted torch: check the attachment block is still solid.

@@ -156,6 +156,81 @@ int fence_collision_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ]
     return n;
 }
 
+static void block_box_from_shape( const short scale[ 3 ], const short offset[ 3 ], BlockBox *out ) {
+    for ( int i = 0; i < 3; i++ ) {
+        out->scale[ i ] = static_cast<signed char>( scale[ i ] );
+        out->offset[ i ] = static_cast<signed char>( offset[ i ] );
+    }
+    out->skip_faces = 0;
+}
+
+int piston_head_boxes( unsigned char rotation, BlockBox out[ PISTON_MAX_BOXES ] ) {
+    short scale[ 3 ], offset[ 3 ];
+    piston_head_shape( rotation, scale, offset );
+    block_box_from_shape( scale, offset, &out[ 0 ] );
+    // The 4x4 shaft fills the 12px between the plate and the cell's base
+    // end, centred on the other two axes — same box chunk.cpp's arm
+    // instance draws.
+    out[ 1 ].scale[ 0 ] = 4;
+    out[ 1 ].scale[ 1 ] = 4;
+    out[ 1 ].scale[ 2 ] = 4;
+    out[ 1 ].offset[ 0 ] = 6;
+    out[ 1 ].offset[ 1 ] = 6;
+    out[ 1 ].offset[ 2 ] = 6;
+    const int face = piston_head_face( rotation );
+    if ( face == FACE_TOP ) {
+        out[ 1 ].scale[ 1 ] = 12;
+        out[ 1 ].offset[ 1 ] = 0;
+    } else if ( face == FACE_BOTTOM ) {
+        out[ 1 ].scale[ 1 ] = 12;
+        out[ 1 ].offset[ 1 ] = 4;
+    } else if ( face == FACE_RIGHT ) {
+        out[ 1 ].scale[ 0 ] = 12;
+        out[ 1 ].offset[ 0 ] = 0;
+    } else if ( face == FACE_LEFT ) {
+        out[ 1 ].scale[ 0 ] = 12;
+        out[ 1 ].offset[ 0 ] = 4;
+    } else if ( face == FACE_FRONT ) {
+        out[ 1 ].scale[ 2 ] = 12;
+        out[ 1 ].offset[ 2 ] = 0;
+    } else { // FACE_BACK
+        out[ 1 ].scale[ 2 ] = 12;
+        out[ 1 ].offset[ 2 ] = 4;
+    }
+    out[ 1 ].skip_faces = 0;
+    return 2;
+}
+
+int piston_base_boxes( unsigned char rotation, BlockBox out[ PISTON_MAX_BOXES ] ) {
+    short scale[ 3 ], offset[ 3 ];
+    piston_base_shape( rotation, scale, offset );
+    block_box_from_shape( scale, offset, &out[ 0 ] );
+    // The 4x4x4 arm stub seated in the open throat at the head end — same
+    // box chunk.cpp's throat-stub instance draws.
+    out[ 1 ].scale[ 0 ] = 4;
+    out[ 1 ].scale[ 1 ] = 4;
+    out[ 1 ].scale[ 2 ] = 4;
+    out[ 1 ].offset[ 0 ] = 6;
+    out[ 1 ].offset[ 1 ] = 6;
+    out[ 1 ].offset[ 2 ] = 6;
+    const int face = piston_head_face( rotation );
+    if ( face == FACE_TOP ) {
+        out[ 1 ].offset[ 1 ] = 12;
+    } else if ( face == FACE_BOTTOM ) {
+        out[ 1 ].offset[ 1 ] = 0;
+    } else if ( face == FACE_RIGHT ) {
+        out[ 1 ].offset[ 0 ] = 12;
+    } else if ( face == FACE_LEFT ) {
+        out[ 1 ].offset[ 0 ] = 0;
+    } else if ( face == FACE_FRONT ) {
+        out[ 1 ].offset[ 2 ] = 12;
+    } else { // FACE_BACK
+        out[ 1 ].offset[ 2 ] = 0;
+    }
+    out[ 1 ].skip_faces = 0;
+    return 2;
+}
+
 // Definition space at rotation 0: the gate spans x, posts at x 0..2 and
 // 14..16. Open leaves fold toward def -z (camera yaw 0 looks toward -z).
 int fence_gate_boxes( bool open, BlockBox out[ FENCE_GATE_MAX_BOXES ] ) {

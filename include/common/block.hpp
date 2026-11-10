@@ -342,6 +342,15 @@ typedef struct {
     unsigned char skip_faces;
 } BlockBox;
 
+// The pick/collision boxes a piston cell actually renders (chunk.cpp emits
+// the same pair): a head is the plate plus the 4x4 arm shaft spanning the
+// 12px back to the cell's base end; an extended base is the recessed body
+// plus the 4x4x4 arm stub seated in its open throat. All world-space for
+// the six rotations; skip_faces is unused (pick/outline ignore it).
+#define PISTON_MAX_BOXES 2
+int piston_head_boxes( unsigned char rotation, BlockBox out[ PISTON_MAX_BOXES ] );
+int piston_base_boxes( unsigned char rotation, BlockBox out[ PISTON_MAX_BOXES ] );
+
 // Fence connection mask bits (the four horizontal directions).
 #define FENCE_CONNECT_POS_X 1u
 #define FENCE_CONNECT_NEG_X 2u

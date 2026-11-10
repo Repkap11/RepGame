@@ -124,7 +124,9 @@ mob pre-empt the block target for left clicks.
   multiplies the rate — anything else mines at 1. Retargeting resets
   progress. Creative breaks instantly. `break_selected_block` plays the
   dig sound, rolls drops (`block_roll_drops` — survival only, spawned as
-  item entities), and loots chest contents.
+  item entities), and loots chest contents. Mining a piston head
+  retargets the removal at its base (`piston_head_base`) so the whole
+  piston drops; the head cell then pops through the survive check.
   While either mouse button is held on the world (mining, mob hits,
   placement, or air), `held_swing` (`tick_input_latches` →
   `HeldSwing::tick`) runs a looping 0..1 chop phase that

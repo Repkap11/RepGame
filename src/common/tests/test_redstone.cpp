@@ -1,5 +1,6 @@
 // Redstone + door mechanics tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 // Redstone mechanics, focused on the redstone torch:
 //
 //        dust(D2) lamp2  dust(G_d)  y=13
@@ -141,6 +142,53 @@ int test_redstone( ) {
     failures += check_power( world, "M1: lamp beside source", glm::ivec3( 28, 11, 18 ), 1 );
     failures += check_power( world, "M2: lamp beside powered lamp (no chain)", glm::ivec3( 29, 11, 18 ), 0 );
 
+    // The extended head at (10,12,12) is raycast-targetable on its plate box
+    // even though is_pickable stays false (the door upper precedent): a ray
+    // at the plate hits the head cell, a ray beside it passes through, and
+    // mining retargets the base via piston_head_base.
+    {
+        auto check_bool = [ & ]( const char *name, bool cond ) {
+            pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+            if ( !cond ) {
+                failures++;
+            }
+        };
+        glm::ivec3 out( -1, -1, -1 );
+        int face = -1;
+        double t = -1.0;
+        check_bool( "piston head: -z ray hits the plate face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 10.5, 12.5, 14.5 ), glm::dvec3( 10.5, 12.5, 11.5 ), out, &face, 0, &t ) &&
+                        out == glm::ivec3( 10, 12, 12 ) && face == FACE_BACK && fabs( t - 1.5 ) < 0.01 );
+        check_bool( "piston head: side ray at plate depth hits",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 8.5, 12.5, 12.9 ), glm::dvec3( 12.5, 12.5, 12.9 ), out, &face ) &&
+                        out == glm::ivec3( 10, 12, 12 ) && face == FACE_LEFT );
+        check_bool( "piston head: side ray through the arm shaft hits",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 8.5, 12.5, 12.5 ), glm::dvec3( 12.5, 12.5, 12.5 ), out, &face, 0, &t ) &&
+                        out == glm::ivec3( 10, 12, 12 ) && face == FACE_LEFT && fabs( t - 1.875 ) < 0.01 );
+        out = glm::ivec3( -1, -1, -1 );
+        RayTraversal::find_block_from_to( world, glm::dvec3( 8.5, 12.7, 12.5 ), glm::dvec3( 12.5, 12.7, 12.5 ), out, &face );
+        check_bool( "piston head: side ray above the shaft misses it", out != glm::ivec3( 10, 12, 12 ) );
+        // The extended base's open throat: a ray threading the recess meets
+        // the 4x4x4 arm stub, not the void behind it.
+        t = -1.0;
+        check_bool( "piston base: ray through the throat hits the arm stub",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 12.5, 12.5, 11.9 ), glm::dvec3( 8.5, 12.5, 11.9 ), out, &face, 0, &t ) &&
+                        out == glm::ivec3( 10, 12, 11 ) && face == FACE_RIGHT && fabs( t - 1.875 ) < 0.01 );
+        // Collision matches the same boxes: a player can't clip through the
+        // shaft region, while a narrow body still threads the arm gap.
+        check_bool( "piston head: player can't clip through the arm",
+                    Collision::collides_at( world, glm::dvec3( 10.5, 14.0, 12.4 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "piston head: thin body still slips beside the arm",
+                    !Collision::collides_at( world, glm::dvec3( 10.2, 14.0, 12.4 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, 0.1 ) );
+        check_bool( "piston head: placement cell beyond the plate",
+                    RayTraversal::placement_cell( glm::ivec3( 10, 12, 12 ), FACE_BACK ) == glm::ivec3( 10, 12, 13 ) );
+        const BlockState head_state = world.get_loaded_block( glm::ivec3( 10, 12, 12 ) );
+        check_bool( "piston head: base pairing finds (10,12,11)",
+                    piston_head_base( world, glm::ivec3( 10, 12, 12 ), head_state ) == glm::ivec3( 10, 12, 11 ) );
+        check_bool( "piston head: orphaned head pairs to itself",
+                    piston_head_base( world, glm::ivec3( 10, 12, 13 ), head_state ) == glm::ivec3( 10, 12, 13 ) );
+    }
+
     // Teardown phase: breaking the source must unpower the whole glass
     // staircase — a missed diagonal update would leave it stuck on. Blocking
     // the corner above s4 must cut the stone staircase's downward feed.
@@ -157,6 +205,17 @@ int test_redstone( ) {
     failures += check_power( world, "s4 after corner blocked", glm::ivec3( 25, 11, 10 ), 0 );
     failures += check_power( world, "M1 after source removed (no latch)", glm::ivec3( 28, 11, 18 ), 0 );
     failures += check_power( world, "M2 after source removed (no latch)", glm::ivec3( 29, 11, 18 ), 0 );
+
+    // Mining a head lands its removal on the base (change_block retargets
+    // pos_destroy through piston_head_base): the base write then pops the
+    // head through the same survive check an orphaned head uses.
+    place( glm::ivec3( 10, 12, 11 ), BLOCK_STATE_AIR );
+    for ( int i = 0; i < 10; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    }
+    failures += check_id( world, "piston base removed", glm::ivec3( 10, 12, 11 ), AIR );
+    failures += check_id( world, "piston head popped with base", glm::ivec3( 10, 12, 12 ), AIR );
     return failures;
 }
 

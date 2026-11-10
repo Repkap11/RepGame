@@ -73,28 +73,9 @@ static int contains_pixel( Block *pixel_block, BlockState &block_state, const gl
     // Fence gates mask their open bit out of the yaw — an open gate
     // (rotation 4-7) must never reach the wall-torch branch below.
     const unsigned char rot = block_yaw( pixel_block, block_state.rotation );
-    if ( pixel_block->is_piston_head ) {
-        // The yaw cases below only remap x/z; piston heads also face up/down,
-        // so take the whole plate box from the shared helper.
-        short head_scale[ 3 ], head_offset[ 3 ];
-        piston_head_shape( rot, head_scale, head_offset );
-        scale_x = head_scale[ 0 ];
-        scale_y = head_scale[ 1 ];
-        scale_z = head_scale[ 2 ];
-        offset_x = head_offset[ 0 ];
-        offset_y = head_offset[ 1 ];
-        offset_z = head_offset[ 2 ];
-    } else if ( pixel_block->is_piston && block_state.current_redstone_power > 0 ) {
-        // Extended base: full cube minus the 4px slab at the head end.
-        short base_scale[ 3 ], base_offset[ 3 ];
-        piston_base_shape( rot, base_scale, base_offset );
-        scale_x = base_scale[ 0 ];
-        scale_y = base_scale[ 1 ];
-        scale_z = base_scale[ 2 ];
-        offset_x = base_offset[ 0 ];
-        offset_y = base_offset[ 1 ];
-        offset_z = base_offset[ 2 ];
-    } else if ( pixel_block->is_torch ) {
+    // Piston cells never get here: contains_block picks them on
+    // piston_head_boxes/piston_base_boxes instead.
+    if ( pixel_block->is_torch ) {
         // Torches pick on a 4px-wide box (easier to hit than the 2px
         // stick). Before the rot==0 case: floor torches are rotation 0.
         short torch_scale[ 3 ], torch_offset[ 3 ];
@@ -250,16 +231,22 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                           : pick_mode == 2   ? block_is_fluid( block )
                           : pick_mode == 3   ? block_is_fluid( block ) && fluid_level( blockState ) == 0
                                              : false;
-    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || fluid_pick;
-    if ( result && ( block->is_stairs || block->is_fence ) ) {
+    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || fluid_pick;
+    const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
+    if ( result && ( block->is_stairs || block->is_fence || block->is_piston_head || piston_extended ) ) {
         // Pick against the block's real boxes — stairs use their collision
         // boxes (slab + step, with the neighbor-derived corner shape),
         // fences the post + merged rail bars (the two rendered rails merged
-        // so the gap between them isn't click-through) — the nearest box
-        // hit wins.
+        // so the gap between them isn't click-through), piston cells the
+        // rendered pair (plate + arm shaft on a head, recessed body +
+        // throat stub on an extended base, so the arm can't be clicked
+        // through) — the nearest box hit wins.
         BlockBox boxes[ FENCE_MAX_BOXES ];
         int num_boxes;
-        if ( block->is_stairs ) {
+        if ( block->is_piston_head || piston_extended ) {
+            num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
+                                            : piston_base_boxes( blockState.rotation, boxes );
+        } else if ( block->is_stairs ) {
             static const glm::ivec3 stair_dirs[ 4 ] = {
                 glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
             };
@@ -307,7 +294,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
         }
         return 1;
     }
-    if ( result && ( block->non_full_size || ( block->is_piston && blockState.current_redstone_power > 0 ) ) ) {
+    if ( result && block->non_full_size ) {
         return contains_pixel( block, blockState, dir, initial, glm::dvec3( block_pos ), which_face, out_t, max_t );
     } else {
         return result;

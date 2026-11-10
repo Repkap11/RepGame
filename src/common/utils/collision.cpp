@@ -96,11 +96,24 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
         }
         return num_boxes;
     }
+    const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
+    if ( block->is_piston_head || piston_extended ) {
+        // Plate + arm shaft (head cell) or recessed body + throat stub
+        // (extended base) — the same boxes the mesher emits, so the gap
+        // around the arm can't be walked or clicked through.
+        BlockBox boxes[ PISTON_MAX_BOXES ];
+        const int num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
+                                                  : piston_base_boxes( blockState.rotation, boxes );
+        for ( int i = 0; i < num_boxes; i++ ) {
+            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
+        }
+        return num_boxes;
+    }
     glm::dvec3 &out_min = mins[ 0 ];
     glm::dvec3 &out_max = maxs[ 0 ];
     const unsigned char rot = block_yaw( block, blockState.rotation );
-    const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
-    if ( !block->non_full_size && !piston_extended ) {
+    if ( !block->non_full_size ) {
         out_min = glm::dvec3( block_pos );
         out_max = glm::dvec3( block_pos ) + glm::dvec3( 1.0 );
         return 1;
@@ -114,28 +127,7 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
     short offset_x = block->offset.x;
     short offset_y = block->offset.y;
     short offset_z = block->offset.z;
-    if ( block->is_piston_head ) {
-        // The yaw cases below only remap x/z; piston heads also face up/down,
-        // so take the whole plate box from the shared helper.
-        short head_scale[ 3 ], head_offset[ 3 ];
-        piston_head_shape( rot, head_scale, head_offset );
-        scale_x = head_scale[ 0 ];
-        scale_y = head_scale[ 1 ];
-        scale_z = head_scale[ 2 ];
-        offset_x = head_offset[ 0 ];
-        offset_y = head_offset[ 1 ];
-        offset_z = head_offset[ 2 ];
-    } else if ( piston_extended ) {
-        // Same deal: the base recesses 4px at its head end, including up/down.
-        short base_scale[ 3 ], base_offset[ 3 ];
-        piston_base_shape( rot, base_scale, base_offset );
-        scale_x = base_scale[ 0 ];
-        scale_y = base_scale[ 1 ];
-        scale_z = base_scale[ 2 ];
-        offset_x = base_offset[ 0 ];
-        offset_y = base_offset[ 1 ];
-        offset_z = base_offset[ 2 ];
-    } else if ( rot == BLOCK_ROTATE_90 ) {
+    if ( rot == BLOCK_ROTATE_90 ) {
         scale_x = block->scale.z;
         scale_z = block->scale.x;
         offset_x = 16 - block->scale.z - block->offset.z;
