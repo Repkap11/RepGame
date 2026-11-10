@@ -755,7 +755,7 @@ int test_cake( ) {
     // The cake cell is mostly air — it must not be light-opaque or a bitten
     // sliver still casts a whole-cell shadow on the floor.
     check_bool( "def: CAKE casts no shadow", !cake->casts_shadow );
-    check_bool( "def: candle cakes are not edible", !block_definition_get_definition( CANDLE_CAKE )->is_cake );
+    check_bool( "def: candles are not edible", !block_definition_get_definition( BLACK_CANDLE )->is_cake );
     check_bool( "def: bites fit the rotation field", CAKE_MAX_BITES <= 7 );
     check_bool( "def: bite count is never a yaw", block_yaw( cake, CAKE_MAX_BITES ) == 0 && block_yaw( cake, 4 ) == 0 );
 

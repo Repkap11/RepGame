@@ -365,8 +365,9 @@ from creative) but stay raycast-targetable via `block_is_tall_plant` in
 `contains_block`, and drops/picks map through `block_item_id` (the
 generalized `door_item_id`).
 
-Cake is edible: `"is_cake": true` (plain `CAKE` only — candle cakes keep
-their full-cube placeholder and can't be eaten, matching MC). Right-click
+Cake is edible: `"is_cake": true` (plain `CAKE` only — the stub
+`*_candle_cake` defs were full-cube placeholders and have been removed;
+their ids stay reserved). Right-click
 eats one 2px slice off the +x edge — the bite count lives in
 `BlockState::rotation` (0..`CAKE_MAX_BITES` = 6, the same slot fluid
 levels/stair shapes use — cake's box is yaw-symmetric so

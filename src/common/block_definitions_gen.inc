@@ -2375,18 +2375,15 @@ block_definitions[ 150 ].hardness = 0.35f;
 block_definitions[ 150 ].is_seethrough = true;
 block_definitions[ 150 ].no_light = 6815743;
 
-// BLACK_CANDLE_CAKE (151)
-block_definitions[ 151 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 151 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 151 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 151 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 151 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 151 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 151 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 151 ].casts_shadow = false;
-block_definitions[ 151 ].hardness = 0.35f;
-block_definitions[ 151 ].is_seethrough = true;
-block_definitions[ 151 ].no_light = 6815743;
+// undefined (151)
+block_definitions[ 151 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 151 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 151 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 151 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 151 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 151 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 151 ].icon_texture = TEX_AIR;
+block_definitions[ 151 ].is_pickable = false;
 
 // BLACK_CARPET (152)
 block_definitions[ 152 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLACK;
@@ -2776,18 +2773,15 @@ block_definitions[ 179 ].hardness = 0.35f;
 block_definitions[ 179 ].is_seethrough = true;
 block_definitions[ 179 ].no_light = 6815743;
 
-// BLUE_CANDLE_CAKE (180)
-block_definitions[ 180 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 180 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 180 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 180 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 180 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 180 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 180 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 180 ].casts_shadow = false;
-block_definitions[ 180 ].hardness = 0.35f;
-block_definitions[ 180 ].is_seethrough = true;
-block_definitions[ 180 ].no_light = 6815743;
+// undefined (180)
+block_definitions[ 180 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 180 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 180 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 180 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 180 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 180 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 180 ].icon_texture = TEX_AIR;
+block_definitions[ 180 ].is_pickable = false;
 
 // BLUE_CARPET (181)
 block_definitions[ 181 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLUE;
@@ -3149,18 +3143,15 @@ block_definitions[ 207 ].hardness = 0.35f;
 block_definitions[ 207 ].is_seethrough = true;
 block_definitions[ 207 ].no_light = 6815743;
 
-// BROWN_CANDLE_CAKE (208)
-block_definitions[ 208 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 208 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 208 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 208 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 208 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 208 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 208 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 208 ].casts_shadow = false;
-block_definitions[ 208 ].hardness = 0.35f;
-block_definitions[ 208 ].is_seethrough = true;
-block_definitions[ 208 ].no_light = 6815743;
+// undefined (208)
+block_definitions[ 208 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 208 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 208 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 208 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 208 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 208 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 208 ].icon_texture = TEX_AIR;
+block_definitions[ 208 ].is_pickable = false;
 
 // BROWN_CARPET (209)
 block_definitions[ 209 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BROWN;
@@ -3637,18 +3628,15 @@ block_definitions[ 242 ].hardness = 0.35f;
 block_definitions[ 242 ].is_seethrough = true;
 block_definitions[ 242 ].no_light = 6815743;
 
-// CANDLE_CAKE (243)
-block_definitions[ 243 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 243 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 243 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 243 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 243 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 243 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 243 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 243 ].casts_shadow = false;
-block_definitions[ 243 ].hardness = 0.35f;
-block_definitions[ 243 ].is_seethrough = true;
-block_definitions[ 243 ].no_light = 6815743;
+// undefined (243)
+block_definitions[ 243 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 243 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 243 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 243 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 243 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 243 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 243 ].icon_texture = TEX_AIR;
+block_definitions[ 243 ].is_pickable = false;
 
 // CARPET (244)
 block_definitions[ 244 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
@@ -6395,18 +6383,15 @@ block_definitions[ 427 ].hardness = 0.35f;
 block_definitions[ 427 ].is_seethrough = true;
 block_definitions[ 427 ].no_light = 6815743;
 
-// CYAN_CANDLE_CAKE (428)
-block_definitions[ 428 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 428 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 428 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 428 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 428 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 428 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 428 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 428 ].casts_shadow = false;
-block_definitions[ 428 ].hardness = 0.35f;
-block_definitions[ 428 ].is_seethrough = true;
-block_definitions[ 428 ].no_light = 6815743;
+// undefined (428)
+block_definitions[ 428 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 428 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 428 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 428 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 428 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 428 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 428 ].icon_texture = TEX_AIR;
+block_definitions[ 428 ].is_pickable = false;
 
 // CYAN_CARPET (429)
 block_definitions[ 429 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
@@ -8867,18 +8852,15 @@ block_definitions[ 602 ].hardness = 0.35f;
 block_definitions[ 602 ].is_seethrough = true;
 block_definitions[ 602 ].no_light = 6815743;
 
-// GRAY_CANDLE_CAKE (603)
-block_definitions[ 603 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 603 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 603 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 603 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 603 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 603 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 603 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 603 ].casts_shadow = false;
-block_definitions[ 603 ].hardness = 0.35f;
-block_definitions[ 603 ].is_seethrough = true;
-block_definitions[ 603 ].no_light = 6815743;
+// undefined (603)
+block_definitions[ 603 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 603 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 603 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 603 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 603 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 603 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 603 ].icon_texture = TEX_AIR;
+block_definitions[ 603 ].is_pickable = false;
 
 // GRAY_CARPET (604)
 block_definitions[ 604 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GRAY;
@@ -9069,18 +9051,15 @@ block_definitions[ 618 ].hardness = 0.35f;
 block_definitions[ 618 ].is_seethrough = true;
 block_definitions[ 618 ].no_light = 6815743;
 
-// GREEN_CANDLE_CAKE (619)
-block_definitions[ 619 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 619 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 619 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 619 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 619 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 619 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 619 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 619 ].casts_shadow = false;
-block_definitions[ 619 ].hardness = 0.35f;
-block_definitions[ 619 ].is_seethrough = true;
-block_definitions[ 619 ].no_light = 6815743;
+// undefined (619)
+block_definitions[ 619 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 619 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 619 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 619 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 619 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 619 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 619 ].icon_texture = TEX_AIR;
+block_definitions[ 619 ].is_pickable = false;
 
 // GREEN_CARPET (620)
 block_definitions[ 620 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_GREEN;
@@ -9871,18 +9850,15 @@ block_definitions[ 678 ].hardness = 0.35f;
 block_definitions[ 678 ].is_seethrough = true;
 block_definitions[ 678 ].no_light = 6815743;
 
-// LIGHT_BLUE_CANDLE_CAKE (679)
-block_definitions[ 679 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 679 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 679 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 679 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 679 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 679 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 679 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 679 ].casts_shadow = false;
-block_definitions[ 679 ].hardness = 0.35f;
-block_definitions[ 679 ].is_seethrough = true;
-block_definitions[ 679 ].no_light = 6815743;
+// undefined (679)
+block_definitions[ 679 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 679 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 679 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 679 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 679 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 679 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 679 ].icon_texture = TEX_AIR;
+block_definitions[ 679 ].is_pickable = false;
 
 // LIGHT_BLUE_CARPET (680)
 block_definitions[ 680 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIGHT_BLUE;
@@ -10073,18 +10049,15 @@ block_definitions[ 694 ].hardness = 0.35f;
 block_definitions[ 694 ].is_seethrough = true;
 block_definitions[ 694 ].no_light = 6815743;
 
-// LIGHT_GRAY_CANDLE_CAKE (695)
-block_definitions[ 695 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 695 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 695 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 695 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 695 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 695 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 695 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 695 ].casts_shadow = false;
-block_definitions[ 695 ].hardness = 0.35f;
-block_definitions[ 695 ].is_seethrough = true;
-block_definitions[ 695 ].no_light = 6815743;
+// undefined (695)
+block_definitions[ 695 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 695 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 695 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 695 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 695 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 695 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 695 ].icon_texture = TEX_AIR;
+block_definitions[ 695 ].is_pickable = false;
 
 // LIGHT_GRAY_CARPET (696)
 block_definitions[ 696 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_SILVER;
@@ -10337,18 +10310,15 @@ block_definitions[ 713 ].hardness = 0.35f;
 block_definitions[ 713 ].is_seethrough = true;
 block_definitions[ 713 ].no_light = 6815743;
 
-// LIME_CANDLE_CAKE (714)
-block_definitions[ 714 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 714 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 714 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 714 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 714 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 714 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 714 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 714 ].casts_shadow = false;
-block_definitions[ 714 ].hardness = 0.35f;
-block_definitions[ 714 ].is_seethrough = true;
-block_definitions[ 714 ].no_light = 6815743;
+// undefined (714)
+block_definitions[ 714 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 714 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 714 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 714 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 714 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 714 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 714 ].icon_texture = TEX_AIR;
+block_definitions[ 714 ].is_pickable = false;
 
 // LIME_CARPET (715)
 block_definitions[ 715 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_LIME;
@@ -10634,18 +10604,15 @@ block_definitions[ 738 ].hardness = 0.35f;
 block_definitions[ 738 ].is_seethrough = true;
 block_definitions[ 738 ].no_light = 6815743;
 
-// MAGENTA_CANDLE_CAKE (739)
-block_definitions[ 739 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 739 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 739 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 739 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 739 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 739 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 739 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 739 ].casts_shadow = false;
-block_definitions[ 739 ].hardness = 0.35f;
-block_definitions[ 739 ].is_seethrough = true;
-block_definitions[ 739 ].no_light = 6815743;
+// undefined (739)
+block_definitions[ 739 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 739 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 739 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 739 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 739 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 739 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 739 ].icon_texture = TEX_AIR;
+block_definitions[ 739 ].is_pickable = false;
 
 // MAGENTA_CARPET (740)
 block_definitions[ 740 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_MAGENTA;
@@ -11990,18 +11957,15 @@ block_definitions[ 833 ].hardness = 0.35f;
 block_definitions[ 833 ].is_seethrough = true;
 block_definitions[ 833 ].no_light = 6815743;
 
-// ORANGE_CANDLE_CAKE (834)
-block_definitions[ 834 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 834 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 834 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 834 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 834 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 834 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 834 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 834 ].casts_shadow = false;
-block_definitions[ 834 ].hardness = 0.35f;
-block_definitions[ 834 ].is_seethrough = true;
-block_definitions[ 834 ].no_light = 6815743;
+// undefined (834)
+block_definitions[ 834 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 834 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 834 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 834 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 834 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 834 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 834 ].icon_texture = TEX_AIR;
+block_definitions[ 834 ].is_pickable = false;
 
 // ORANGE_CARPET (835)
 block_definitions[ 835 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_ORANGE;
@@ -13013,18 +12977,15 @@ block_definitions[ 902 ].hardness = 0.35f;
 block_definitions[ 902 ].is_seethrough = true;
 block_definitions[ 902 ].no_light = 6815743;
 
-// PINK_CANDLE_CAKE (903)
-block_definitions[ 903 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 903 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 903 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 903 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 903 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 903 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 903 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 903 ].casts_shadow = false;
-block_definitions[ 903 ].hardness = 0.35f;
-block_definitions[ 903 ].is_seethrough = true;
-block_definitions[ 903 ].no_light = 6815743;
+// undefined (903)
+block_definitions[ 903 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 903 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 903 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 903 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 903 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 903 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 903 ].icon_texture = TEX_AIR;
+block_definitions[ 903 ].is_pickable = false;
 
 // PINK_CARPET (904)
 block_definitions[ 904 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PINK;
@@ -14609,18 +14570,15 @@ block_definitions[ 1012 ].hardness = 0.35f;
 block_definitions[ 1012 ].is_seethrough = true;
 block_definitions[ 1012 ].no_light = 6815743;
 
-// PURPLE_CANDLE_CAKE (1013)
-block_definitions[ 1013 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 1013 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 1013 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 1013 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 1013 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 1013 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1013 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 1013 ].casts_shadow = false;
-block_definitions[ 1013 ].hardness = 0.35f;
-block_definitions[ 1013 ].is_seethrough = true;
-block_definitions[ 1013 ].no_light = 6815743;
+// undefined (1013)
+block_definitions[ 1013 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1013 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1013 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 1013 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 1013 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 1013 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 1013 ].icon_texture = TEX_AIR;
+block_definitions[ 1013 ].is_pickable = false;
 
 // PURPLE_CARPET (1014)
 block_definitions[ 1014 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_PURPLE;
@@ -15011,18 +14969,15 @@ block_definitions[ 1045 ].hardness = 0.35f;
 block_definitions[ 1045 ].is_seethrough = true;
 block_definitions[ 1045 ].no_light = 6815743;
 
-// RED_CANDLE_CAKE (1046)
-block_definitions[ 1046 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 1046 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 1046 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 1046 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 1046 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 1046 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1046 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 1046 ].casts_shadow = false;
-block_definitions[ 1046 ].hardness = 0.35f;
-block_definitions[ 1046 ].is_seethrough = true;
-block_definitions[ 1046 ].no_light = 6815743;
+// undefined (1046)
+block_definitions[ 1046 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1046 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1046 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 1046 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 1046 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 1046 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 1046 ].icon_texture = TEX_AIR;
+block_definitions[ 1046 ].is_pickable = false;
 
 // RED_CARPET (1047)
 block_definitions[ 1047 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_RED;
@@ -19516,18 +19471,15 @@ block_definitions[ 1367 ].hardness = 0.35f;
 block_definitions[ 1367 ].is_seethrough = true;
 block_definitions[ 1367 ].no_light = 6815743;
 
-// WHITE_CANDLE_CAKE (1368)
-block_definitions[ 1368 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 1368 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 1368 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 1368 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 1368 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 1368 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1368 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 1368 ].casts_shadow = false;
-block_definitions[ 1368 ].hardness = 0.35f;
-block_definitions[ 1368 ].is_seethrough = true;
-block_definitions[ 1368 ].no_light = 6815743;
+// undefined (1368)
+block_definitions[ 1368 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1368 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1368 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 1368 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 1368 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 1368 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 1368 ].icon_texture = TEX_AIR;
+block_definitions[ 1368 ].is_pickable = false;
 
 // WHITE_CARPET (1369)
 block_definitions[ 1369 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;
@@ -19795,18 +19747,15 @@ block_definitions[ 1388 ].hardness = 0.35f;
 block_definitions[ 1388 ].is_seethrough = true;
 block_definitions[ 1388 ].no_light = 6815743;
 
-// YELLOW_CANDLE_CAKE (1389)
-block_definitions[ 1389 ].textures[ FACE_TOP ] = TEX_CAKE_TOP;
-block_definitions[ 1389 ].textures[ FACE_BOTTOM ] = TEX_CAKE_BOTTOM;
-block_definitions[ 1389 ].textures[ FACE_RIGHT ] = TEX_CAKE_SIDE;
-block_definitions[ 1389 ].textures[ FACE_FRONT ] = TEX_CAKE_SIDE;
-block_definitions[ 1389 ].textures[ FACE_LEFT ] = TEX_CAKE_SIDE;
-block_definitions[ 1389 ].textures[ FACE_BACK ] = TEX_CAKE_SIDE;
-block_definitions[ 1389 ].icon_texture = TEX_CAKE_TOP;
-block_definitions[ 1389 ].casts_shadow = false;
-block_definitions[ 1389 ].hardness = 0.35f;
-block_definitions[ 1389 ].is_seethrough = true;
-block_definitions[ 1389 ].no_light = 6815743;
+// undefined (1389)
+block_definitions[ 1389 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1389 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1389 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 1389 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 1389 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 1389 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 1389 ].icon_texture = TEX_AIR;
+block_definitions[ 1389 ].is_pickable = false;
 
 // YELLOW_CARPET (1390)
 block_definitions[ 1390 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_YELLOW;
