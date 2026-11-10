@@ -50,9 +50,19 @@ Controller actions → bindings (suggested per profile, see
 
 Builds:
 
-- `make linux REPGAME_OPENXR=1` — desktop VR build at `out/linux-openxr/`;
-  needs an OpenXR runtime offering `XR_MNDX_egl_enable` (e.g. Monado —
-  SteamVR for Linux x64 lacks it).
+- `make linux-vr` — desktop VR build at `out/linux-openxr/` (shortcut for
+  `make linux REPGAME_OPENXR=1`); needs an OpenXR runtime offering
+  `XR_MNDX_egl_enable` (e.g. Monado — SteamVR for Linux x64 lacks it).
+- `make linux-vr-run` — additionally builds Monado from source
+  (`out/monado-src`, `makefiles/monado.mk`; `make monado` for just the
+  runtime), starts `monado-service` when its IPC socket isn't already up,
+  and runs with `XR_RUNTIME_JSON` pointing at the dev manifest. With no
+  real HMD Monado uses its simulated driver — a fake HMD — so the whole VR
+  path is exercisable on the desktop (`REPGAME_VR_MIRROR` blits eye 0 to
+  the window; keyboard/mouse input still works). For interactive
+  head/controller control, start the service with
+  `P_OVERRIDE_ACTIVE_CONFIG=remote` and run `monado-gui remote` (built
+  under the monado build tree when SDL2 is available).
 - `make steamframe` — Steam Frame build (static OpenXR loader), see
   `docs/platforms.md`.
 

@@ -192,6 +192,24 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
     SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
 
+#if defined( REPGAME_OPENXR )
+    // OpenXR binds via XrGraphicsBindingEGLMNDX, so the SDL GL context must
+    // be EGL (not GLX). REPGAME_VR=0 forces the flat path entirely.
+    const char *vr_env = env_get( "REPGAME_VR" );
+    const bool vr_disabled = ( vr_env && strcmp( vr_env, "0" ) == 0 ) || env_is_set( "REPGAME_CAPTURE" );
+    // Probe the runtime before window creation: while a session runs the
+    // window only mirrors eye 0, and an MSAA default framebuffer both wastes
+    // a resolve and makes that 1-sample -> N-sample mirror blit illegal
+    // (GL_INVALID_OPERATION) — so no window MSAA when VR will be active.
+    OpenXRSession xr;
+    const bool vr_active = !vr_disabled && xr.init( );
+    if ( !vr_disabled ) {
+        SDL_SetHint( SDL_HINT_VIDEO_FORCE_EGL, "1" );
+    }
+#else
+    const bool vr_active = false;
+#endif
+
 #if SUPPORTS_FRAME_BUFFER
     // Request MSAA on the default framebuffer so LOW quality gets edge AA.
     // MEDIUM+ already gets MSAA in the FBO (see MSAA_SAMPLES in
@@ -202,8 +220,8 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // flicker. With a clean 4x this doesn't reproduce; if a driver ever
     // shows it again, REPGAME_WINDOW_MSAA=0 goes back to 0 samples.
     static const bool window_msaa = env_bool( "REPGAME_WINDOW_MSAA", true );
-    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, window_msaa ? 1 : 0 );
-    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, window_msaa ? MSAA_SAMPLES : 0 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, window_msaa && !vr_active ? 1 : 0 );
+    SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, window_msaa && !vr_active ? MSAA_SAMPLES : 0 );
 #endif
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
@@ -226,15 +244,6 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     int window_x = SDL_WINDOWPOS_CENTERED_DISPLAY( display_id );
     int window_y = SDL_WINDOWPOS_CENTERED_DISPLAY( display_id );
 
-#if defined( REPGAME_OPENXR )
-    // OpenXR binds via XrGraphicsBindingEGLMNDX, so the SDL GL context must
-    // be EGL (not GLX). REPGAME_VR=0 forces the flat path entirely.
-    const char *vr_env = env_get( "REPGAME_VR" );
-    const bool vr_disabled = ( vr_env && strcmp( vr_env, "0" ) == 0 ) || env_is_set( "REPGAME_CAPTURE" );
-    if ( !vr_disabled ) {
-        SDL_SetHint( SDL_HINT_VIDEO_FORCE_EGL, "1" );
-    }
-#endif
     // Pass the position at creation so the fullscreen window is born on the
     // chosen display. Moving it afterwards with SDL_SetWindowPosition hangs
     // SDL 3.4 on X11 (recursive fullscreen re-sync that never settles).
@@ -302,8 +311,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // mode (and on HiDPI it can differ from the logical size). Rendering to a
     // viewport larger than the drawable leaves a stale strip at the edges.
 #if defined( REPGAME_OPENXR )
-    OpenXRSession xr;
-    if ( !vr_disabled && xr.init( ) && xr.create_session( ) ) {
+    if ( vr_active && xr.create_session( ) ) {
         repgame.changeSize( xr.eye_width( ), xr.eye_height( ) );
         repgame.set_vr_active( true );
         SDL_GL_SetSwapInterval( 0 );

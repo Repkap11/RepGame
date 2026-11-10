@@ -21,6 +21,8 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
   (`make dev` is an alias)
 - `make linux-run-blocks` — launch the block world (`REPGAME_BLOCK_WORLD=1`,
   see `docs/blocks.md`)
+- `make linux-vr` / `make linux-vr-run` — OpenXR client build / run against
+  a locally built Monado simulated HMD (`docs/vr.md`)
 - `make server` / `make server-run` — build / run the dedicated server
 - Run: `./out/linux/release/RepGame <WorldName> <host>`
   (e.g. `RepGame World1 localhost`); server: `RepGameServer [port|--selftest]`

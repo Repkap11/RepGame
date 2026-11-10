@@ -97,6 +97,17 @@ struct OpenXRSession::Impl {
     bool ui_layer_set = false;
     VrUiLayer ui_layer{ };
 
+    // Frame-end layer structs live in Impl (heap), not on end_frame's stack:
+    // the original code declared `layers[]` inside `if (impl->last_rendered)`
+    // but xrEndFrame is called after the block, so end_info.layers dangled.
+    // With clang 21 + ThinLTO the lifetime-end marker let DSE delete every
+    // store feeding the array and Monado read garbage pointers (release-only
+    // segfault; debug builds get lucky because the stack bytes linger).
+    XrCompositionLayerProjectionView layer_views[ 2 ] = { };
+    XrCompositionLayerProjection proj_layer{ };
+    XrCompositionLayerQuad ui_quad{ };
+    const XrCompositionLayerBaseHeader *end_layers[ 2 ] = { };
+
     XrTime predicted_display_time = 0;
     XrView located_views[ 2 ] = { };
     glm::quat last_head = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
@@ -732,51 +743,46 @@ void OpenXRSession::end_frame( ) {
         impl->ui_acquired_image = -1;
     }
 
-    XrCompositionLayerProjectionView layer_views[ 2 ] = { };
-    XrCompositionLayerProjection layer{ };
-    layer.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
-    XrCompositionLayerQuad ui_quad{ };
-    ui_quad.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
     XrFrameEndInfo end_info{ };
     end_info.type = XR_TYPE_FRAME_END_INFO;
     end_info.displayTime = impl->predicted_display_time;
     end_info.environmentBlendMode = impl->blend_mode;
     if ( impl->last_rendered ) {
+        impl->proj_layer.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
+        impl->ui_quad.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
         for ( int eye = 0; eye < 2; eye++ ) {
-            layer_views[ eye ].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
-            layer_views[ eye ].pose = impl->located_views[ eye ].pose;
-            layer_views[ eye ].fov = impl->located_views[ eye ].fov;
-            layer_views[ eye ].subImage.swapchain = impl->swapchains[ eye ];
-            layer_views[ eye ].subImage.imageRect.offset = { 0, 0 };
-            layer_views[ eye ].subImage.imageRect.extent = { impl->eye_w, impl->eye_h };
-            layer_views[ eye ].subImage.imageArrayIndex = 0;
+            impl->layer_views[ eye ].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
+            impl->layer_views[ eye ].pose = impl->located_views[ eye ].pose;
+            impl->layer_views[ eye ].fov = impl->located_views[ eye ].fov;
+            impl->layer_views[ eye ].subImage.swapchain = impl->swapchains[ eye ];
+            impl->layer_views[ eye ].subImage.imageRect.offset = { 0, 0 };
+            impl->layer_views[ eye ].subImage.imageRect.extent = { impl->eye_w, impl->eye_h };
+            impl->layer_views[ eye ].subImage.imageArrayIndex = 0;
         }
-        layer.space = impl->local_space;
-        layer.viewCount = 2;
-        layer.views = layer_views;
-        const XrCompositionLayerBaseHeader *layers[] = {
-            reinterpret_cast<XrCompositionLayerBaseHeader *>( &layer ),
-            reinterpret_cast<XrCompositionLayerBaseHeader *>( &ui_quad ),
-        };
+        impl->proj_layer.space = impl->local_space;
+        impl->proj_layer.viewCount = 2;
+        impl->proj_layer.views = impl->layer_views;
+        impl->end_layers[ 0 ] = reinterpret_cast<const XrCompositionLayerBaseHeader *>( &impl->proj_layer );
+        impl->end_layers[ 1 ] = reinterpret_cast<const XrCompositionLayerBaseHeader *>( &impl->ui_quad );
         end_info.layerCount = 1;
         if ( impl->ui_layer_set ) {
             // UI quad above the projection layer; the swapchain content is
             // premultiplied alpha, blended against the scene.
-            ui_quad.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-            ui_quad.space = impl->ui_layer.world_locked ? impl->local_space : impl->view_space;
-            ui_quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
-            ui_quad.subImage.swapchain = impl->ui_swapchain;
-            ui_quad.subImage.imageRect.offset = { 0, 0 };
-            ui_quad.subImage.imageRect.extent = { impl->eye_w, impl->eye_h };
-            ui_quad.subImage.imageArrayIndex = 0;
+            impl->ui_quad.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+            impl->ui_quad.space = impl->ui_layer.world_locked ? impl->local_space : impl->view_space;
+            impl->ui_quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+            impl->ui_quad.subImage.swapchain = impl->ui_swapchain;
+            impl->ui_quad.subImage.imageRect.offset = { 0, 0 };
+            impl->ui_quad.subImage.imageRect.extent = { impl->eye_w, impl->eye_h };
+            impl->ui_quad.subImage.imageArrayIndex = 0;
             const glm::quat &o = impl->ui_layer.orientation;
             const glm::vec3 &p = impl->ui_layer.position;
-            ui_quad.pose.orientation = XrQuaternionf{ o.x, o.y, o.z, o.w };
-            ui_quad.pose.position = XrVector3f{ p.x, p.y, p.z };
-            ui_quad.size = XrExtent2Df{ impl->ui_layer.size.x, impl->ui_layer.size.y };
+            impl->ui_quad.pose.orientation = XrQuaternionf{ o.x, o.y, o.z, o.w };
+            impl->ui_quad.pose.position = XrVector3f{ p.x, p.y, p.z };
+            impl->ui_quad.size = XrExtent2Df{ impl->ui_layer.size.x, impl->ui_layer.size.y };
             end_info.layerCount = 2;
         }
-        end_info.layers = layers;
+        end_info.layers = impl->end_layers;
     }
     impl->ui_layer_set = false;
     XR_LOG_CALL( impl->instance, xrEndFrame( impl->session, &end_info ) );
