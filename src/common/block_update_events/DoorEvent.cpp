@@ -45,9 +45,9 @@ void DoorEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState 
         return;
     }
     world.set_loaded_block( lower_pos, lower_state );
-    repGameState.multiplayer.set_block( lower_pos, lower_state );
+    repGameState.multiplayer.set_block( lower_pos, lower_state, NET_BU_FLAG_NO_DEBRIS );
     world.set_loaded_block( upper_pos, upper_state );
-    repGameState.multiplayer.set_block( upper_pos, upper_state );
+    repGameState.multiplayer.set_block( upper_pos, upper_state, NET_BU_FLAG_NO_DEBRIS );
     queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, lower_pos );
     queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, upper_pos );
 }

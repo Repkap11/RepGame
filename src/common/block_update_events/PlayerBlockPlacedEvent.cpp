@@ -75,8 +75,9 @@ static void repgame_convert_block_impl( RepGameState &state, const glm::ivec3 &p
     } else {
         state.world.set_loaded_block( pos, next );
     }
-    state.multiplayer.set_block( pos, next );
-    state.world.spawn_block_debris( pos, current, new_id );
+    // No debris, on the wire or locally: a conversion transforms the cell in
+    // place — grazing, tilling or trampling reads as a swap, not a break.
+    state.multiplayer.set_block( pos, next, NET_BU_FLAG_NO_DEBRIS );
     queue_neighbor_block_updates( state.blockUpdateQueue, state.world, state.tick_number, pos );
 }
 
@@ -251,8 +252,13 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         return;
     }
 
+    // Water flowing into a waterloggable block waterlogs it instead of
+    // breaking it — nothing was destroyed. BreakDebris::None gives the same
+    // verdict for removals that aren't breaks (eating the last slice). The
+    // flag carries it to remote clients; debris_spawn gates the local burst.
+    const bool debris_spawn = this->debris == BreakDebris::Spawn && !( this->blockState.id == WATER && current_block->waterloggable );
     repGameState.world.set_loaded_block( this->block_pos, this->blockState );
-    repGameState.multiplayer.set_block( this->block_pos, this->blockState );
+    repGameState.multiplayer.set_block( this->block_pos, this->blockState, debris_spawn ? 0 : NET_BU_FLAG_NO_DEBRIS );
     // Removal writes requested drops (support loss in survival, natural leaf
     // decay in either mode, water popping a break-in-liquid block): the cell
     // held something real the write destroyed. Reading the partner cell live
@@ -269,10 +275,7 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
          ( this->blockState.id == AIR || fluid_broke ) ) {
         break_drops( repGameState, this->block_pos, current_block_state.id );
     }
-    // Water flowing into a waterloggable block waterlogs it instead of
-    // breaking it — no debris, nothing was destroyed. BreakDebris::None
-    // skips debris for removals that aren't breaks (eating the last slice).
-    if ( this->debris == BreakDebris::Spawn && !( this->blockState.id == WATER && current_block->waterloggable ) ) {
+    if ( debris_spawn ) {
         repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
     }
 

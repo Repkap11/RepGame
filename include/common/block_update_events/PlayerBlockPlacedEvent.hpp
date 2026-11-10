@@ -17,9 +17,9 @@ bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockSta
 // Converts one loaded block into another in place — hoe tilling, farmland
 // trampling, bonemeal crop growth — where a block is replaced by a related
 // block and PlayerBlockPlacedEvent's replaceable-cell rule would reject the
-// write. Mirrors the event's effects: world write, multiplayer diff, swap
-// debris, and neighbour updates (a crop whose farmland reverts pops through
-// the support check).
+// write. Mirrors the event's effects: world write, multiplayer diff, and
+// neighbour updates (a crop whose farmland reverts pops through the support
+// check). No debris: nothing broke.
 void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, BlockID new_id );
 
 // Same conversion for mob-driven writes (grazing, trampling): a natural

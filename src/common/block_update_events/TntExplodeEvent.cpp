@@ -54,7 +54,7 @@ void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
         return;
     }
     world.set_loaded_block( cell, BLOCK_STATE_AIR );
-    repGameState.multiplayer.set_block( cell, BLOCK_STATE_AIR );
+    repGameState.multiplayer.set_block( cell, BLOCK_STATE_AIR, NET_BU_FLAG_NO_DEBRIS );
     queue_neighbor_block_updates( blockUpdateQueue, world, repGameState.tick_number, cell );
     audio_play_sfx( "fuse" );
     tnt_launch( blockUpdateQueue, repGameState, center, velocity, fuse_ticks, inverse );
@@ -147,7 +147,7 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                         continue; // already natural
                     }
                     world.set_loaded_block( pos, gen_state );
-                    repGameState.multiplayer.set_block( pos, gen_state );
+                    repGameState.multiplayer.set_block( pos, gen_state, NET_BU_FLAG_NO_DEBRIS );
                     queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, pos );
                 }
             }
@@ -180,7 +180,7 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                 }
                 if ( block_definition_get_definition( state.id )->is_tnt ) {
                     world.set_loaded_block( pos, BLOCK_STATE_AIR );
-                    repGameState.multiplayer.set_block( pos, BLOCK_STATE_AIR );
+                    repGameState.multiplayer.set_block( pos, BLOCK_STATE_AIR, NET_BU_FLAG_NO_DEBRIS );
                     queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, pos );
                     chained_tnt.push_back( pos );
                     chained_inverse.push_back( block_definition_get_definition( state.id )->is_inverse_tnt );

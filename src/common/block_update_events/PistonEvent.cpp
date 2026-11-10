@@ -36,7 +36,10 @@ static bool piston_can_move( const BlockState &block_state ) {
 // support re-evaluate around every moved block.
 static void piston_set_block( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::ivec3 &pos, const BlockState &block_state ) {
     repGameState.world.set_loaded_block( pos, block_state );
-    repGameState.multiplayer.set_block( pos, block_state );
+    // Moves, extends and retracts aren't breaks — the destroyed push-path
+    // block debris's locally via spawn_block_debris, and remote clients see
+    // only the resulting cell writes.
+    repGameState.multiplayer.set_block( pos, block_state, NET_BU_FLAG_NO_DEBRIS );
     queue_neighbor_block_updates( blockUpdateQueue, repGameState.world, repGameState.tick_number, pos );
 }
 

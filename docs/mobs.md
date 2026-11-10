@@ -120,8 +120,8 @@ Wool regrows by grazing: an idle sheep standing on `GRASS` starts a ~2 s
 the head instead of the player look-at. Finishing over still-`GRASS`
 ground pushes the cell to `MobTickOutput::grazes`, clears `sheared`, and
 sheds ~10% of a baby's remaining growth; `RepGame::tick` converts the
-cell to `DIRT` (no drop, same `repgame_convert_block` hand-off as
-tramples). Panic or losing the ground aborts a started graze.
+cell to `DIRT` (no drop, no debris, same `repgame_convert_block`
+hand-off as tramples). Panic or losing the ground aborts a started graze.
 
 The night spawner runs inside `MobManager::tick` (off under
 `REPGAME_MOB_TEST`, capture mode, fly mode and `REPGAME_MOB_SPAWNER=0`):

@@ -30,7 +30,9 @@ void FallingBlockEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGa
             break; // body cap: this block (and everything above it) stays
         }
         world.set_loaded_block( cell, BLOCK_STATE_AIR );
-        repGameState.multiplayer.set_block( cell, BLOCK_STATE_AIR );
+        // The block becomes a falling body, not debris — peers see the same
+        // via the entity spawn, so suppress the removal burst.
+        repGameState.multiplayer.set_block( cell, BLOCK_STATE_AIR, NET_BU_FLAG_NO_DEBRIS );
         queue_neighbor_block_updates( blockUpdateQueue, world, repGameState.tick_number, cell );
     }
 }

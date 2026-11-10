@@ -240,6 +240,7 @@ void net_serialize_block_update( PacketWriter &w, const NetBlockUpdatePayload &p
     w.write_i32( p.y );
     w.write_i32( p.z );
     w.write_block_state( p.blockState );
+    w.write_u8( p.flags );
 }
 
 bool net_deserialize_block_update( PacketReader &r, NetBlockUpdatePayload &p ) {
@@ -247,6 +248,8 @@ bool net_deserialize_block_update( PacketReader &r, NetBlockUpdatePayload &p ) {
     if ( !r.read_i32( p.y ) ) return false;
     if ( !r.read_i32( p.z ) ) return false;
     if ( !r.read_block_state( p.blockState ) ) return false;
+    p.flags = 0;
+    r.read_u8( p.flags ); // older peers don't send it
     return true;
 }
 
@@ -748,6 +751,7 @@ void NetCodec<NetBlockUpdatePayload>::fill( NetBlockUpdatePayload &p ) {
     p.y = -20;
     p.z = 3000;
     p.blockState = { STONE, 3, 7, DIRT, 1 };
+    p.flags = NET_BU_FLAG_NO_DEBRIS;
 }
 void NetCodec<NetChunkDiffRequestPayload>::fill( NetChunkDiffRequestPayload &p ) {
     p.min_x = -3;

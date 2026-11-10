@@ -53,6 +53,7 @@ the index, not the reference.
 | `REPGAME_MP_DUMP_EVERY` | 5 | all | state-dump cadence in ticks | mp-test skill |
 | `REPGAME_MSAA` | on (4x) | WASM | `0` requests a non-antialiased WebGL context | capture skill |
 | `REPGAME_DEBUG_CRASH` | unset | all | `segv|abort[@tick]` — deliberate crash inside `RepGame::tick` at the first tick `>= @tick`; no `@tick` crashes on the first tick. A debug-tools self-test hook for `rep-dbg --gdb` and the sanitizer builds | docs/debug-tools.md |
+| `REPGAME_DEBUG_DEBRIS` | unset | all | presence logs every `World::spawn_block_debris` call (pos, prev block, new block, particle count) to stdout — every debris burst funnels through that one function | — |
 | `REPGAME_MUSIC` | on | all | `0` mutes music only (SFX still play) | docs/audio.md |
 | `REPGAME_MUSIC_GAP` | 240 | all | max seconds between tracks; gap uniform in `[gap/4, gap]`, `0` = continuous | docs/audio.md |
 | `REPGAME_MUSIC_VOLUME` | 0.5 | all | linear music gain 0..1 | docs/audio.md |

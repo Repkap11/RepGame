@@ -101,7 +101,13 @@ The client's side after that is driven by data it already produces:
 the neighbouring chunk's diff set) and relays the message to every other
 client. Receivers apply it via `world.set_loaded_block` — a plain cell
 write, *not* a redstone event, so remote edits don't re-run neighbour
-checks locally (`docs/redstone.md`).
+checks locally (`docs/redstone.md`). The payload ends with an optional
+`NET_BU_FLAG_*` byte (absent on old peers = 0): senders set
+`NET_BU_FLAG_NO_DEBRIS` on in-place conversions and moves — grazes,
+tills, tramples, grass spread/death, crop growth, lit swaps, piston
+moves, falling-block releases, scripted writes — and receivers suppress
+the break-debris replay on it (`multiplayer_common.cpp`). Unflagged
+writes keep the legacy debris-on-id-change behaviour.
 
 ## Chunk diffs
 

@@ -292,10 +292,17 @@ struct NetPlayerPayload {
 void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p );
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p );
 
+// BLOCK_UPDATE flags byte (optional trailing field; absent reads as 0).
+// NO_DEBRIS: the write is an in-place conversion or move, not a break —
+// receivers suppress the break-debris replay. Unflagged writes keep the
+// legacy behaviour (debris on any id change).
+static constexpr uint8_t NET_BU_FLAG_NO_DEBRIS = 0x01;
+
 // BLOCK_UPDATE
 struct NetBlockUpdatePayload {
     int32_t x, y, z;
     BlockState blockState;
+    uint8_t flags; // NET_BU_FLAG_*
 };
 void net_serialize_block_update( PacketWriter &w, const NetBlockUpdatePayload &p );
 bool net_deserialize_block_update( PacketReader &r, NetBlockUpdatePayload &p );

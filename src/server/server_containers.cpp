@@ -350,6 +350,7 @@ void ServerContainers::tickSet( Server &server, Set &set ) {
                 bp.y = pos.y;
                 bp.z = pos.z;
                 bp.blockState = state;
+                bp.flags = NET_BU_FLAG_NO_DEBRIS; // lit swap is in-place, not a break
                 PacketWriter w;
                 net_serialize_block_update( w, bp );
                 server.broadcast( NetMsgType::BLOCK_UPDATE, 0, w.buf( ) );

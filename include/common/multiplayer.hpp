@@ -77,7 +77,7 @@ class Multiplayer {
     void cleanup( );
 
     void process_events( RepGameState &state );
-    void set_block( const glm::ivec3 &block_pos, BlockState blockState );
+    void set_block( const glm::ivec3 &block_pos, BlockState blockState, uint8_t flags = 0 );
     // Send a world-time set request to the server (PageUp/PgDn skips). The
     // server adopts the value and broadcasts it back to all clients.
     void send_world_time( long world_time );

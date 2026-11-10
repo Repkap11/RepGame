@@ -131,6 +131,7 @@ void send_block_update( Server &server, SimClient &c, const glm::ivec3 &pos, con
     bu.y = pos.y;
     bu.z = pos.z;
     bu.blockState = state;
+    bu.flags = 0;
     PacketWriter w;
     net_serialize_block_update( w, bu );
     server.test_logic( ).on_client_message( server, c.fd, NetMsgType::BLOCK_UPDATE, 0, w.buf( ) );

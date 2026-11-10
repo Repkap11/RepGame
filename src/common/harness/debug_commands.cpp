@@ -269,7 +269,8 @@ bool dbgcmd::setblock( RepGameState &state, const glm::ivec3 &pos, const char *b
          net_container_kind_of_block( state.world.get_loaded_block( pos ).id ) != nullptr ) {
         state.pending_container_loot.insert( pos );
     }
-    state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, pos, bs, false );
+    // Scripted writes aren't breaks — no debris locally or on the wire.
+    state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, pos, bs, false, BreakDrops::None, BreakDebris::None );
     return true;
 }
 
@@ -291,7 +292,7 @@ bool dbgcmd::fill( RepGameState &state, const glm::ivec3 &a, const glm::ivec3 &b
     for ( int x = lo.x; x <= hi.x; x++ ) {
         for ( int y = lo.y; y <= hi.y; y++ ) {
             for ( int z = lo.z; z <= hi.z; z++ ) {
-                state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, glm::ivec3( x, y, z ), bs, false );
+                state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, glm::ivec3( x, y, z ), bs, false, BreakDrops::None, BreakDebris::None );
             }
         }
     }

@@ -135,7 +135,7 @@ class WorldTreeTarget {
         } else {
             state.world.set_loaded_block( pos, blockState );
         }
-        state.multiplayer.set_block( pos, blockState );
+        state.multiplayer.set_block( pos, blockState, NET_BU_FLAG_NO_DEBRIS );
         if ( block_definition_get_definition( blockState.id )->is_log ) {
             trunk_cells.push_back( pos );
         }

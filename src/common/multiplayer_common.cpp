@@ -104,7 +104,13 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             const BlockState prev_state = world.get_loaded_block( block_pos );
             world.set_loaded_block( block_pos, bu.blockState );
-            world.spawn_block_debris( block_pos, prev_state, bu.blockState.id );
+            // NO_DEBRIS marks in-place conversions and moves (grazes, tills,
+            // grass spread/death, crop growth, lit swaps, piston moves) —
+            // nothing broke, so no debris. Legacy unflagged writes keep the
+            // old any-id-change behaviour.
+            if ( ( bu.flags & NET_BU_FLAG_NO_DEBRIS ) == 0 ) {
+                world.spawn_block_debris( block_pos, prev_state, bu.blockState.id );
+            }
             break;
         }
         case NetMsgType::CLIENT_INIT: {
@@ -156,12 +162,13 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
     }
 }
 
-void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState ) {
+void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState, uint8_t flags ) {
     NetBlockUpdatePayload p;
     p.x = block_pos.x;
     p.y = block_pos.y;
     p.z = block_pos.z;
     p.blockState = blockState;
+    p.flags = flags;
     this->send( NetMsgType::BLOCK_UPDATE, p );
 }
 

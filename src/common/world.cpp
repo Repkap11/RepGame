@@ -1254,6 +1254,12 @@ void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &p
     if ( prev_block->renderOrder == RenderOrder_Water ) {
         return;
     }
+    static const bool log_debris = env_is_set( "REPGAME_DEBUG_DEBRIS" );
+    if ( log_debris ) {
+        const char *new_name = new_id < LAST_BLOCK_ID ? block_definition_get_name( new_id ) : nullptr;
+        pr_debug( "DEBRIS pos=(%d,%d,%d) %s -> %s n=%d", block_pos.x, block_pos.y, block_pos.z,
+                  block_definition_get_name( prev_state.id ), new_name != nullptr ? new_name : "?", num_particles );
+    }
     // Particles live <1s and stay near their cell, so a single light sample at
     // the (now-air) block center is baked into every instance.
     this->blockDebris.spawn_block_break( block_pos, prev_state,
@@ -1453,7 +1459,7 @@ void World::grass_random_tick( RepGameState &state, const glm::ivec3 &world_pos,
         next.display_id = DIRT;
         next.rotation = BLOCK_ROTATE_0;
         this->set_loaded_block_natural( world_pos, next );
-        state.multiplayer.set_block( world_pos, next );
+        state.multiplayer.set_block( world_pos, next, NET_BU_FLAG_NO_DEBRIS );
         return;
     }
     this->random_tick_state ^= this->random_tick_state << 13;
@@ -1481,7 +1487,7 @@ void World::grass_random_tick( RepGameState &state, const glm::ivec3 &world_pos,
         next.display_id = spread_id;
         next.rotation = BLOCK_ROTATE_0;
         this->set_loaded_block_natural( target, next );
-        state.multiplayer.set_block( target, next );
+        state.multiplayer.set_block( target, next, NET_BU_FLAG_NO_DEBRIS );
     }
 }
 
@@ -1571,7 +1577,7 @@ void World::process_random_ticks( RepGameState &state ) {
                 next.display_id = cell_def->crop_next;
                 next.rotation = BLOCK_ROTATE_0;
                 this->set_loaded_block_natural( world_pos, next );
-                state.multiplayer.set_block( world_pos, next );
+                state.multiplayer.set_block( world_pos, next, NET_BU_FLAG_NO_DEBRIS );
                 continue;
             }
             if ( this->random_tick_state % SAPLING_GROW_CHANCE_DEN >= SAPLING_GROW_CHANCE_NUM ) {
