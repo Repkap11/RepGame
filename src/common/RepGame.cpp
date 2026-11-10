@@ -55,17 +55,19 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.hotbar.inventory_renderer.compute_layout( w, h );
     globalGameState.survival_inventory.inventory_renderer.compute_layout( w, h );
     globalGameState.ui.creative.inventory_renderer.compute_layout( w, h );
+    // Container grids share the survival stride — size them before the
+    // pass so the declared slab sizes match.
+    repgame_layout_containers( globalGameState );
     globalGameState.ui.layout.compute( ui_layout_input( globalGameState ) );
     // Adopt the measured rects: each slab lands where the layout put it
     // (the hotbar flush at the screen bottom, the survival inventory above
-    // the HUD strip, the creative palette centered + floor-lifted).
+    // the HUD strip, the creative palette centered + floor-lifted, the
+    // container screens floating over the survival slab).
     const UiLayoutRects &rects = globalGameState.ui.layout.rects( );
     globalGameState.hotbar.apply_layout( rects.hotbar );
     globalGameState.survival_inventory.apply_layout( rects.survival_items );
     globalGameState.ui.creative.apply_layout( w, h, rects.creative_items, rects.search_box );
-    repgame_chest_layout( globalGameState );
-    repgame_crafting_layout( globalGameState );
-    repgame_furnace_layout( globalGameState );
+    repgame_apply_ui_layout( globalGameState );
     globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, CAMERA_FAR_PLANE );
     globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
     globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );

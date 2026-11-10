@@ -177,7 +177,67 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                 .childAlignment = { .x = CLAY_ALIGN_X_CENTER },
                                 .layoutDirection = CLAY_TOP_TO_BOTTOM } } ) {
                 CLAY( { .id = CLAY_ID( "survival_items" ),
-                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.surv_slab_w ), CLAY_SIZING_FIXED( in.surv_slab_h ) } } } ) { }
+                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.surv_slab_w ), CLAY_SIZING_FIXED( in.surv_slab_h ) } } } ) {
+                    // The container screens float off the survival slab's
+                    // top edge at the survival grid's stride — every screen
+                    // is declared unconditionally so its rect is always
+                    // fresh (only the open one draws).
+                    const float s2 = in.surv_stride;
+                    if ( s2 > 0.0f ) {
+                        // A fixed-stride slab is stride*dim + one border.
+                        const auto slab = [ s2 ]( float dim ) { return s2 * ( dim + 0.1f ); };
+                        // Chest: 9x3 slab, bottom edge a quarter stride
+                        // above the survival slab.
+                        CLAY( { .id = CLAY_ID( "chest_items" ),
+                                .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 9.0f ) ), CLAY_SIZING_FIXED( slab( 3.0f ) ) } },
+                                .floating = { .offset = { 0, -0.25f * s2 },
+                                              .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                                              .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
+                        // Crafting rows: grid | one-stride arrow gap |
+                        // output, the output cell vertically centered on
+                        // the grid. Bottom edge pinned like the chest's.
+                        for ( int dim = 2; dim <= 3; dim++ ) {
+                            CLAY( { .id = CLAY_IDI( "crafting_row", dim ),
+                                    .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
+                                                .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
+                                                .layoutDirection = CLAY_LEFT_TO_RIGHT },
+                                    .floating = { .offset = { 0, -0.25f * s2 },
+                                                  .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                                                  .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
+                                CLAY( { .id = CLAY_IDI( "crafting_grid", dim ),
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( ( float )dim ) ), CLAY_SIZING_FIXED( slab( ( float )dim ) ) } } } ) { }
+                                CLAY( { .id = CLAY_IDI( "crafting_gap", dim ),
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( s2 ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                CLAY( { .id = CLAY_IDI( "crafting_out", dim ),
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                            }
+                        }
+                        // Furnace: input | mid gap | output on the top
+                        // row, fuel centered below with a 0.2-stride gap;
+                        // the fuel cell's bottom pins at 1.15 strides.
+                        CLAY( { .id = CLAY_ID( "furnace_group" ),
+                                .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
+                                            .childAlignment = { .x = CLAY_ALIGN_X_CENTER },
+                                            .layoutDirection = CLAY_TOP_TO_BOTTOM },
+                                .floating = { .offset = { 0, -1.15f * s2 },
+                                              .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                                              .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
+                            CLAY( { .id = CLAY_ID( "furnace_top" ),
+                                    .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
+                                                .layoutDirection = CLAY_LEFT_TO_RIGHT } } ) {
+                                CLAY( { .id = CLAY_ID( "furnace_input" ),
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                CLAY( { .id = CLAY_ID( "furnace_mid" ),
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( 1.8f * s2 ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                CLAY( { .id = CLAY_ID( "furnace_output" ),
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                            }
+                            CLAY( { .id = CLAY_ID( "furnace_vgap" ), .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( 0.2f * s2 ) } } } ) { }
+                            CLAY( { .id = CLAY_ID( "furnace_fuel" ),
+                                    .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                        }
+                    }
+                }
             }
             CLAY( { .id = CLAY_ID( "pin_gap" ), .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( pin_gap ) } } } ) { }
         }
@@ -257,6 +317,42 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_.creative_items = rect_of( CLAY_ID( "creative_items" ) );
     this->rects_.search_box = rect_of( CLAY_ID( "search_box" ) );
 
+    this->rects_.chest_items = rect_of( CLAY_ID( "chest_items" ) );
+    this->rects_.crafting_grid2 = rect_of( CLAY_IDI( "crafting_grid", 2 ) );
+    this->rects_.crafting_out2 = rect_of( CLAY_IDI( "crafting_out", 2 ) );
+    this->rects_.crafting_gap2 = rect_of( CLAY_IDI( "crafting_gap", 2 ) );
+    this->rects_.crafting_grid3 = rect_of( CLAY_IDI( "crafting_grid", 3 ) );
+    this->rects_.crafting_out3 = rect_of( CLAY_IDI( "crafting_out", 3 ) );
+    this->rects_.crafting_gap3 = rect_of( CLAY_IDI( "crafting_gap", 3 ) );
+    this->rects_.furnace_input = rect_of( CLAY_ID( "furnace_input" ) );
+    this->rects_.furnace_mid = rect_of( CLAY_ID( "furnace_mid" ) );
+    this->rects_.furnace_output = rect_of( CLAY_ID( "furnace_output" ) );
+    this->rects_.furnace_fuel = rect_of( CLAY_ID( "furnace_fuel" ) );
+
+    // Window backdrops: the padded union of the screen's panels and the
+    // survival slab — the gap between them clicks as inside-the-window.
+    const float bpad = 0.35f * in.surv_stride;
+    const auto uni = []( UiRect a, const UiRect &b ) {
+        const float l = fminf( a.left, b.left ), r = fmaxf( a.right( ), b.right( ) );
+        const float bt = fminf( a.bottom, b.bottom ), t = fmaxf( a.top( ), b.top( ) );
+        a.left = l;
+        a.width = r - l;
+        a.bottom = bt;
+        a.height = t - bt;
+        return a;
+    };
+    const auto inflate = [ bpad ]( UiRect r ) {
+        r.left -= bpad;
+        r.width += 2.0f * bpad;
+        r.bottom -= bpad;
+        r.height += 2.0f * bpad;
+        return r;
+    };
+    this->rects_.chest_backdrop = inflate( uni( this->rects_.chest_items, this->rects_.survival_items ) );
+    this->rects_.crafting_backdrop2 = inflate( uni( uni( this->rects_.crafting_grid2, this->rects_.crafting_out2 ), this->rects_.survival_items ) );
+    this->rects_.crafting_backdrop3 = inflate( uni( uni( this->rects_.crafting_grid3, this->rects_.crafting_out3 ), this->rects_.survival_items ) );
+    this->rects_.furnace_backdrop = inflate( uni( uni( uni( this->rects_.furnace_input, this->rects_.furnace_output ), this->rects_.furnace_fuel ), this->rects_.survival_items ) );
+
     this->rects_.pause_panel = rect_of( CLAY_ID( "pause_panel" ) );
     this->rects_.pause_title = rect_of( CLAY_ID( "pause_title" ) );
     this->rects_.pause_k = pause_k;
@@ -281,6 +377,7 @@ UiLayoutInput ui_layout_input( const RepGameState &state ) {
     const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
     in.surv_slab_w = static_cast<float>( surv.getItemsRight( ) - surv.getItemsLeft( ) );
     in.surv_slab_h = static_cast<float>( surv.getItemsTop( ) - surv.getItemsBottom( ) );
+    in.surv_stride = surv.getCellStride( );
     const InventoryRenderer &creative = state.ui.creative.inventory_renderer;
     in.creative_slab_w = static_cast<float>( creative.getItemsRight( ) - creative.getItemsLeft( ) );
     in.creative_slab_h = static_cast<float>( creative.getItemsTop( ) - creative.getItemsBottom( ) );

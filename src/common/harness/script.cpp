@@ -11,6 +11,7 @@
 #include "common/block_definitions.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/game/game_state.hpp"
+#include "common/game/game_internal.hpp"
 #include "common/harness/debug_commands.hpp"
 #include "common/harness/results.hpp"
 #include "common/harness/run_policy.hpp"
@@ -355,6 +356,64 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
     }
     if ( strcmp( cmd, "search" ) == 0 && argc == 2 ) {
         state.input.search_focused = atoi( argv[ 1 ].c_str( ) ) != 0;
+        return false;
+    }
+    // container chest|furnace|table x y z — opens that container UI as a
+    // right-click on the block would (single-player offline path);
+    // container none closes any open container screen.
+    if ( strcmp( cmd, "container" ) == 0 && argc == 2 && strcmp( argv[ 1 ].c_str( ), "none" ) == 0 ) {
+        RepGame::close_chest( state );
+        RepGame::close_furnace( state );
+        if ( state.ui.crafting.table_open ) {
+            state.ui.crafting.table_open = false;
+            repgame_apply_ui_layout( state );
+        }
+        state.input.inventory_open = false;
+        return false;
+    }
+    if ( strcmp( cmd, "container" ) == 0 && argc == 5 ) {
+        const glm::ivec3 pos( ivec_arg( 2 ), ivec_arg( 3 ), ivec_arg( 4 ) );
+        const char *kind = argv[ 1 ].c_str( );
+        if ( strcmp( kind, "chest" ) == 0 ) {
+            RepGame::open_chest( state, pos );
+        } else if ( strcmp( kind, "furnace" ) == 0 ) {
+            RepGame::open_furnace( state, pos );
+        } else if ( strcmp( kind, "table" ) == 0 ) {
+            state.ui.crafting.table_open = true;
+            state.ui.crafting.table_pos = pos;
+            state.input.inventory_open = true;
+            repgame_apply_ui_layout( state );
+        } else {
+            cmd_error( state, line, "container: want chest|furnace|table|none" );
+        }
+        return false;
+    }
+    // uistate — dump the layout rects + each container panel's applied
+    // items-slab position (centered y-up coords), for layout debugging.
+    if ( strcmp( cmd, "uistate" ) == 0 && argc == 1 ) {
+        const UiLayoutRects &r = state.ui.layout.rects( );
+        const auto slab = []( const InventoryRenderer &p ) {
+            char b[ 96 ];
+            snprintf( b, sizeof( b ), "[%d,%d..%d,%d]", p.getItemsLeft( ), p.getItemsBottom( ), p.getItemsRight( ), p.getItemsTop( ) );
+            return std::string( b );
+        };
+        const auto urect = []( const UiRect &u ) {
+            char b[ 96 ];
+            snprintf( b, sizeof( b ), "[%.1f,%.1f %.1fx%.1f]", u.left, u.bottom, u.width, u.height );
+            return std::string( b );
+        };
+        results::event( state.tick_number, "uistate",
+                        "\"open\":{\"chest\":%d,\"furnace\":%d,\"table\":%d},"
+                        "\"chest\":{\"rect\":\"%s\",\"slab\":\"%s\"},"
+                        "\"furnace\":{\"in\":\"%s\",\"fuel\":\"%s\",\"out\":\"%s\",\"in_slab\":\"%s\",\"fuel_slab\":\"%s\",\"out_slab\":\"%s\"},"
+                        "\"craft3\":{\"grid\":\"%s\",\"grid_slab\":\"%s\"},"
+                        "\"surv\":{\"rect\":\"%s\",\"slab\":\"%s\"}",
+                        state.ui.chest.open ? 1 : 0, state.ui.furnace.open ? 1 : 0, state.ui.crafting.table_open ? 1 : 0,
+                        urect( r.chest_items ).c_str( ), slab( state.ui.chest.inventory_renderer ).c_str( ),
+                        urect( r.furnace_input ).c_str( ), urect( r.furnace_fuel ).c_str( ), urect( r.furnace_output ).c_str( ),
+                        slab( state.ui.furnace.input ).c_str( ), slab( state.ui.furnace.fuel ).c_str( ), slab( state.ui.furnace.output ).c_str( ),
+                        urect( r.crafting_grid3 ).c_str( ), slab( state.ui.crafting.grid3 ).c_str( ),
+                        urect( r.survival_items ).c_str( ), slab( state.survival_inventory.inventory_renderer ).c_str( ) );
         return false;
     }
     if ( strcmp( cmd, "assert_health" ) == 0 && argc == 3 ) {

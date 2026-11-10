@@ -6,6 +6,7 @@
 #include "renderer/renderer.hpp"
 #include "common/RenderChain.hpp"
 #include "common/item.hpp"        // ItemID / InventorySlot
+#include "common/ui_layout.hpp"   // UiRect (draw_vitals / draw_panel_backdrop take layout rects)
 #include "common/player_data.hpp" // GameMode (draw takes it by value)
 
 class Input;
@@ -102,10 +103,10 @@ class UIOverlay {
     // Draws a panel plus the stack-size labels for its first n slots.
     void draw_slot_panel( InventoryRenderer &panel, const InventorySlot *slots, int n, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     // Paints the window-backdrop quad that frames a floating panel group
-    // plus the survival inventory (furnace/crafting screens). The rect is
-    // in centered y-up UI pixels; call before draw() so the panels and the
-    // inventory slab composite inside it.
-    void draw_panel_backdrop( int left, int bottom, int width, int height, const Renderer &renderer, const glm::mat4 &mvp_ui );
+    // plus the survival inventory (furnace/crafting screens). `rect` is
+    // the layout pass's backdrop rect; call before draw() so the panels
+    // and the inventory slab composite inside it.
+    void draw_panel_backdrop( const UiRect &rect, const Renderer &renderer, const glm::mat4 &mvp_ui );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     // Heart containers + full/half hearts left-aligned, air bubbles
     // right-aligned while air is below max (underwater). `row` is the

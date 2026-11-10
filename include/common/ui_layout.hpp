@@ -52,6 +52,9 @@ struct UiLayoutInput {
     // Survival inventory items-slab size (from its compute_layout).
     float surv_slab_w = 0;
     float surv_slab_h = 0;
+    // Survival cell stride — the shared grid the container screens draw
+    // their cells at (fixed_cell_stride panels).
+    float surv_stride = 0;
     // Creative palette: items slab, the (undrawn) panel bounds the search
     // bar anchors to, and the cell stride that sizes the search bar.
     float creative_slab_w = 0;
@@ -96,6 +99,24 @@ struct UiLayoutRects {
     UiRect creative_items;
     // Creative search bar, floating above the panel's top edge.
     UiRect search_box;
+
+    // Container screens, all floating above the survival slab (every
+    // rect is always computed — the draw pass decides which screen is
+    // actually open, so nothing needs a relayout on open/close).
+    // Chest: one 9x3 slab.
+    UiRect chest_items;
+    // Crafting: the 2x2 and 3x3 variants side by side — grid, the
+    // one-stride arrow gap, the output cell.
+    UiRect crafting_grid2, crafting_out2, crafting_gap2;
+    UiRect crafting_grid3, crafting_out3, crafting_gap3;
+    // Furnace: input + output on the top row (furnace_mid is the text
+    // gap between them), fuel centered below.
+    UiRect furnace_input, furnace_mid, furnace_output, furnace_fuel;
+    // Window backdrops: each frames its screen's panels plus the survival
+    // slab with a 0.35-stride pad — one unified window.
+    UiRect chest_backdrop;
+    UiRect crafting_backdrop2, crafting_backdrop3;
+    UiRect furnace_backdrop;
 
     // Pause menu (modal, centered; always laid out, drawn/hit-tested only
     // while open). pause_rows[i] is the full-width band of line i;

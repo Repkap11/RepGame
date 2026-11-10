@@ -21,16 +21,13 @@ void repgame_crafting_return_grid( RepGameState &state );
 int repgame_crafting_dim( const RepGameState &state );
 bool repgame_crafting_grid_visible( const RepGameState &state );
 InventoryRenderer &repgame_crafting_grid( RepGameState &state );
-void repgame_crafting_layout( RepGameState &state );
 
-// Furnace panel layout shared by the inventory UI, changeSize(), and the
-// overlay draw (all in inventory.cpp / game_render.cpp).
-void repgame_furnace_layout( RepGameState &state );
-
-// Chest panel layout (called from changeSize — panels only depend on the
-// screen size): pins the chest slab to the creative panel's top and lays
-// out its window backdrop around the chest + survival slabs.
-void repgame_chest_layout( RepGameState &state );
+// Container panel geometry (all in inventory.cpp): repgame_layout_containers
+// sizes the chest/crafting/furnace grids at the survival stride before the
+// layout pass runs; repgame_apply_ui_layout adopts the pass's rects
+// (position + GL rebuild) — called at resize and on container toggles.
+void repgame_layout_containers( RepGameState &state );
+void repgame_apply_ui_layout( RepGameState &state );
 
 // Repaints open-chest/furnace slot icons when the world contents changed
 // without a click handler (server CONTAINER_* writes, tick-driven smelts).

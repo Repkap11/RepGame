@@ -35,12 +35,6 @@ class RepGame {
     // Queues a PressurePlateEvent for each unpressed pressure plate the
     // player's feet overlap; pressed plates re-check themselves via the event.
     void process_pressure_plates( );
-    // Chest open/close (sends CONTAINER_OPEN/CLOSE when connected).
-    void open_chest( const glm::ivec3 &pos );
-    void close_chest( );
-    // Furnace open/close (sends CONTAINER_OPEN/CLOSE when connected).
-    void open_furnace( const glm::ivec3 &pos );
-    void close_furnace( );
     // Shared body of draw()/draw_vr(): everything once per frame, then the
     // world-draw section once per view (flat: a single pass with the screen
     // projection and interpolated camera).
@@ -168,6 +162,12 @@ class RepGame {
     // the owner-side ENTITY_ACTION HIT path; item spawns sync via phase 1).
     static void spawn_mob_drops( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos );
     static void spawn_mob_shear_drop( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos );
+    // Chest open/close (sends CONTAINER_OPEN/CLOSE when connected).
+    static void open_chest( RepGameState &state, const glm::ivec3 &pos );
+    static void close_chest( RepGameState &state );
+    // Furnace open/close (sends CONTAINER_OPEN/CLOSE when connected).
+    static void open_furnace( RepGameState &state, const glm::ivec3 &pos );
+    static void close_furnace( RepGameState &state );
     // mp_test harness: move the pinned camera (re-aims the REPGAME_FLY
     // origin so the pin sticks, or just teleports the camera otherwise).
     static void mp_test_goto( RepGameState &state, const glm::dvec3 &pos );

@@ -419,6 +419,9 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `give <item> [count]`, `slot N` | hotbar add + slot select, refreshing the held-item overlay |
 | `damage <hp>`, `eat`, `respawn` | player vitals (docs/player.md); each emits a `*_result` event with `applied`/`health`/`dead` |
 | `inventory <0|1>` | toggle `input.inventory_open` (shows the survival grid + 2x2 crafting UI in survival) |
+| `menu <0|1>`, `search <0|1>` | toggle `input.menu_open` / `input.search_focused` (pause menu, creative search bar) |
+| `container chest\|furnace\|table x y z`, `container none` | open the container UI at the block as a right-click would (offline path; the block must be placed already — `setblock` lands on the next tick), or close any open container screen |
+| `uistate` | emit a `uistate` event: layout-pass rects + each container panel's applied items-slab position (centered y-up UI coords) |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
 | `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
 | `shear x y z` | shears the shearable mob nearest the point (as if holding shears); mirrors route ENTITY_ACTION like a right-click |

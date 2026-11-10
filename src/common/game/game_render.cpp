@@ -603,15 +603,14 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         // inventory too, so it paints first — the survival slab and the
         // floating panels composite inside it. The container screens are
         // mutually exclusive.
+        const UiLayoutRects &ui_rects = globalGameState.ui.layout.rects( );
         if ( repgame_crafting_grid_visible( globalGameState ) ) {
-            const UiPanelBackdrop &backdrop = globalGameState.ui.crafting.backdrop;
-            globalGameState.ui.overlay.draw_panel_backdrop( backdrop.x, backdrop.y, backdrop.w, backdrop.h, globalGameState.world.renderer, globalGameState.screen.ortho_center );
+            const UiRect &backdrop = repgame_crafting_dim( globalGameState ) == 3 ? ui_rects.crafting_backdrop3 : ui_rects.crafting_backdrop2;
+            globalGameState.ui.overlay.draw_panel_backdrop( backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         } else if ( globalGameState.ui.chest.open ) {
-            const UiPanelBackdrop &backdrop = globalGameState.ui.chest.backdrop;
-            globalGameState.ui.overlay.draw_panel_backdrop( backdrop.x, backdrop.y, backdrop.w, backdrop.h, globalGameState.world.renderer, globalGameState.screen.ortho_center );
+            globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.chest_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         } else if ( globalGameState.ui.furnace.open && globalGameState.world.get_furnace_contents( globalGameState.ui.furnace.pos ) != nullptr ) {
-            const UiPanelBackdrop &backdrop = globalGameState.ui.furnace.backdrop;
-            globalGameState.ui.overlay.draw_panel_backdrop( backdrop.x, backdrop.y, backdrop.w, backdrop.h, globalGameState.world.renderer, globalGameState.screen.ortho_center );
+            globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.furnace_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         }
         globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );
         // Survival vitals: hearts above the hotbar (+ air bubbles while
@@ -627,8 +626,9 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             globalGameState.ui.overlay.draw_slot_panel( globalGameState.ui.crafting.output, &globalGameState.ui.crafting.output_slot, 1, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
             // "->" arrow centered in the one-stride gap between the panels.
             const float arrow_size = 24.0f;
-            const float arrow_x = ( grid.getInvRight( ) + globalGameState.ui.crafting.output.getInvLeft( ) ) / 2.0f - globalGameState.ui.font.getTextWidth( "->", arrow_size ) / 2.0f;
-            const float arrow_y = ( grid.getInvTop( ) + grid.getInvBottom( ) ) / 2.0f - arrow_size / 2.0f;
+            const UiRect &gap = repgame_crafting_dim( globalGameState ) == 3 ? ui_rects.crafting_gap3 : ui_rects.crafting_gap2;
+            const float arrow_x = gap.center_x( ) - globalGameState.ui.font.getTextWidth( "->", arrow_size ) / 2.0f;
+            const float arrow_y = gap.center_y( ) - arrow_size / 2.0f;
             const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
             globalGameState.ui.font.text_append( "->", arrow_x, arrow_y, arrow_size, white );
         }
@@ -640,8 +640,8 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                 globalGameState.ui.overlay.draw_slot_panel( globalGameState.ui.furnace.output, &contents->slots[ FURNACE_SLOT_OUTPUT ], 1, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
                 // Smelt progress + remaining burn time, centered in the gap
                 // between the input and output panels.
-                const float mid_x = ( globalGameState.ui.furnace.input.getInvRight( ) + globalGameState.ui.furnace.output.getInvLeft( ) ) / 2.0f;
-                const float mid_y = ( globalGameState.ui.furnace.input.getInvTop( ) + globalGameState.ui.furnace.input.getInvBottom( ) ) / 2.0f;
+                const float mid_x = ui_rects.furnace_mid.center_x( );
+                const float mid_y = ui_rects.furnace_mid.center_y( );
                 const float text_size = 20.0f;
                 const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
                 const float dim[ 4 ] = { 1.0f, 1.0f, 1.0f, 0.55f };

@@ -151,7 +151,7 @@ void RepGame::close_out_of_reach_containers( ) {
         const glm::dvec3 chest_center = glm::dvec3( globalGameState.ui.chest.pos ) + glm::dvec3( 0.5 );
         const double dist = glm::length( globalGameState.camera.pos - chest_center );
         if ( !block_is_chest( chest_state.id ) || dist > REACH_DISTANCE + 2.0 ) {
-            this->close_chest( );
+            RepGame::close_chest( globalGameState );
             in.inventory_open = false;
         }
     }
@@ -163,7 +163,7 @@ void RepGame::close_out_of_reach_containers( ) {
         const glm::dvec3 furnace_center = glm::dvec3( globalGameState.ui.furnace.pos ) + glm::dvec3( 0.5 );
         const double dist = glm::length( globalGameState.camera.pos - furnace_center );
         if ( !block_is_furnace( furnace_state.id ) || dist > REACH_DISTANCE + 2.0 ) {
-            this->close_furnace( );
+            RepGame::close_furnace( globalGameState );
             in.inventory_open = false;
         }
     }

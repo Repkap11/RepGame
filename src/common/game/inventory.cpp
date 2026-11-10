@@ -1,5 +1,6 @@
 // RepGame member functions: hotbar, chest/crafting/survival inventory UI logic.
 
+#include <math.h>
 #include <stdlib.h>
 
 #include "common/RepGame.hpp"
@@ -51,42 +52,42 @@ void repgame_loot_container( RepGameState &state, const InventorySlot *slots, in
     state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
-void RepGame::open_chest( const glm::ivec3 &pos ) {
-    if ( globalGameState.ui.furnace.open ) {
-        this->close_furnace( );
+void RepGame::open_chest( RepGameState &state, const glm::ivec3 &pos ) {
+    if ( state.ui.furnace.open ) {
+        RepGame::close_furnace( state );
     }
-    if ( globalGameState.ui.chest.open && globalGameState.ui.chest.pos != pos ) {
+    if ( state.ui.chest.open && state.ui.chest.pos != pos ) {
         // Unsubscribes from the previous chest in multiplayer.
-        this->close_chest( );
+        RepGame::close_chest( state );
     }
-    globalGameState.ui.chest.open = true;
-    globalGameState.ui.chest.pos = pos;
-    globalGameState.input.inventory_open = true;
+    state.ui.chest.open = true;
+    state.ui.chest.pos = pos;
+    state.input.inventory_open = true;
     audio_play_sfx( "chest" );
     // An open cancels a pending loot snapshot for the same position.
-    globalGameState.pending_container_loot.erase( pos );
-    if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.containers.open( NetContainerKind::CHEST, pos );
+    state.pending_container_loot.erase( pos );
+    if ( state.multiplayer.is_active( ) ) {
+        state.multiplayer.containers.open( NetContainerKind::CHEST, pos );
     }
     // Ensure a local entry exists (empty until CONTAINER_CONTENTS arrives in
     // multiplayer; the chest file contents in singleplayer) and repaint.
-    const ChestContents *contents = globalGameState.world.get_or_create_chest_contents( pos );
+    const ChestContents *contents = state.world.get_or_create_chest_contents( pos );
     if ( contents != nullptr ) {
         for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-            globalGameState.ui.chest.inventory_renderer.changeSlotItem( i, contents->slots[ i ] );
-            globalGameState.ui.chest.drawn[ i ] = contents->slots[ i ];
+            state.ui.chest.inventory_renderer.changeSlotItem( i, contents->slots[ i ] );
+            state.ui.chest.drawn[ i ] = contents->slots[ i ];
         }
     }
 }
 
-void RepGame::close_chest( ) {
-    if ( !globalGameState.ui.chest.open ) {
+void RepGame::close_chest( RepGameState &state ) {
+    if ( !state.ui.chest.open ) {
         return;
     }
-    globalGameState.ui.chest.open = false;
+    state.ui.chest.open = false;
     audio_play_sfx( "chest_close" );
-    if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.containers.close( NetContainerKind::CHEST, globalGameState.ui.chest.pos );
+    if ( state.multiplayer.is_active( ) ) {
+        state.multiplayer.containers.close( NetContainerKind::CHEST, state.ui.chest.pos );
     }
 }
 
@@ -576,29 +577,29 @@ static int furnace_slot_clicked( RepGameState &state, int screen_x, int screen_y
     return -1;
 }
 
-void RepGame::open_furnace( const glm::ivec3 &pos ) {
-    if ( globalGameState.ui.chest.open ) {
+void RepGame::open_furnace( RepGameState &state, const glm::ivec3 &pos ) {
+    if ( state.ui.chest.open ) {
         // One container UI at a time (the panels would overlap).
-        this->close_chest( );
+        RepGame::close_chest( state );
     }
-    if ( globalGameState.ui.furnace.open && globalGameState.ui.furnace.pos != pos ) {
-        this->close_furnace( );
+    if ( state.ui.furnace.open && state.ui.furnace.pos != pos ) {
+        RepGame::close_furnace( state );
     }
-    globalGameState.ui.furnace.open = true;
-    globalGameState.ui.furnace.pos = pos;
-    globalGameState.input.inventory_open = true;
+    state.ui.furnace.open = true;
+    state.ui.furnace.pos = pos;
+    state.input.inventory_open = true;
     audio_play_sfx( "chest" );
-    globalGameState.pending_container_loot.erase( pos );
-    if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.containers.open( NetContainerKind::FURNACE, pos );
+    state.pending_container_loot.erase( pos );
+    if ( state.multiplayer.is_active( ) ) {
+        state.multiplayer.containers.open( NetContainerKind::FURNACE, pos );
     }
     // Ensure a local entry exists (empty until CONTAINER_CONTENTS arrives in
     // multiplayer; the furnace file contents in singleplayer) and repaint.
-    const FurnaceContents *contents = globalGameState.world.get_or_create_furnace_contents( pos );
+    const FurnaceContents *contents = state.world.get_or_create_furnace_contents( pos );
     for ( int i = 0; i < FURNACE_INVENTORY_SLOTS; i++ ) {
         const InventorySlot slot = contents != nullptr ? contents->slots[ i ] : InventorySlot{ LAST_BLOCK_ID, 0 };
-        furnace_slot_renderer( globalGameState, i ).changeSlotItem( 0, slot );
-        globalGameState.ui.furnace.drawn[ i ] = slot;
+        furnace_slot_renderer( state, i ).changeSlotItem( 0, slot );
+        state.ui.furnace.drawn[ i ] = slot;
     }
 }
 
@@ -622,26 +623,45 @@ void repgame_furnace_sync_icons( RepGameState &state ) {
     }
 }
 
-void RepGame::close_furnace( ) {
-    if ( !globalGameState.ui.furnace.open ) {
+void RepGame::close_furnace( RepGameState &state ) {
+    if ( !state.ui.furnace.open ) {
         return;
     }
-    globalGameState.ui.furnace.open = false;
+    state.ui.furnace.open = false;
     audio_play_sfx( "chest_close" );
-    if ( globalGameState.multiplayer.is_active( ) ) {
-        globalGameState.multiplayer.containers.close( NetContainerKind::FURNACE, globalGameState.ui.furnace.pos );
+    if ( state.multiplayer.is_active( ) ) {
+        state.multiplayer.containers.close( NetContainerKind::FURNACE, state.ui.furnace.pos );
     }
 }
 
-// Chest layout (called from changeSize — panels only depend on the screen
-// size): the chest slab sits where the crafting grid does — same cell
-// stride as the survival inventory, its bottom edge pinned just above the
-// survival items slab — then frames both slabs in one window backdrop.
-void repgame_chest_layout( RepGameState &state ) {
+// Container sizing (called from changeSize before the layout pass): the
+// chest/crafting/furnace panels draw their cells at the survival grid's
+// stride — compute_layout gives them the fixed-stride metrics the pass's
+// slab sizes assume. Positions are adopted later from the layout rects.
+void repgame_layout_containers( RepGameState &state ) {
     const int w = static_cast<int>( state.screen.width );
     const int h = static_cast<int>( state.screen.height );
-    // The renderer needs a slots array to rebuild icons on resize; use the
-    // live chest contents when one is open, an empty chest otherwise.
+    const float stride = state.survival_inventory.inventory_renderer.getCellStride( );
+    for ( InventoryRenderer *r : { &state.ui.chest.inventory_renderer, &state.ui.crafting.grid2, &state.ui.crafting.grid3,
+                                   &state.ui.crafting.output, &state.ui.furnace.input, &state.ui.furnace.fuel, &state.ui.furnace.output } ) {
+        r->options.fixed_cell_stride = stride;
+        r->compute_layout( w, h );
+    }
+}
+
+// Adopts the layout pass's rects for the container panels: positions each
+// slab and rebuilds its background/icons. Runs at resize and whenever a
+// container screen toggles (the crafting table's open moves the output
+// panel between the 2x2 and 3x3 groups without a resize).
+void repgame_apply_ui_layout( RepGameState &state ) {
+    const UiLayoutRects &r = state.ui.layout.rects( );
+    const auto place = []( InventoryRenderer &panel, const UiRect &rect, const InventorySlot *slots ) {
+        panel.set_items_pos( static_cast<int>( lroundf( rect.left ) ), static_cast<int>( lroundf( rect.bottom ) ) );
+        panel.rebuild( slots );
+    };
+
+    // The renderer rebuilds icons from a slots pointer; use the live chest
+    // contents when one is open, an empty chest otherwise.
     static const ChestContents empty_chest;
     const ChestContents *chest_contents = &empty_chest;
     if ( state.ui.chest.open ) {
@@ -649,71 +669,25 @@ void repgame_chest_layout( RepGameState &state ) {
             chest_contents = live;
         }
     }
-    const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
-    const float stride = surv.getCellStride( );
-    state.ui.chest.inventory_renderer.options.fixed_cell_stride = stride;
-    state.ui.chest.inventory_renderer.options.center_x = 0;
-    state.ui.chest.inventory_renderer.options.pin_bottom_y = surv.getItemsTop( ) + static_cast<int>( stride * 0.25f );
-    state.ui.chest.inventory_renderer.onSizeChange( w, h, chest_contents->slots );
-    // The window backdrop unifies the chest slab with the survival
-    // inventory — same treatment as the furnace/crafting screens.
-    const int pad = static_cast<int>( stride * 0.35f );
-    const InventoryRenderer &chest = state.ui.chest.inventory_renderer;
-    const int left = std::min( chest.getItemsLeft( ), surv.getItemsLeft( ) ) - pad;
-    const int right = std::max( chest.getItemsRight( ), surv.getItemsRight( ) ) + pad;
-    const int bottom = surv.getItemsBottom( ) - pad;
-    const int top = chest.getItemsTop( ) + pad;
-    state.ui.chest.backdrop = { left, bottom, right - left, top - bottom };
-}
+    place( state.ui.chest.inventory_renderer, r.chest_items, chest_contents->slots );
 
-// Lay out the three 1x1 furnace panels: input and output on the top row,
-// fuel centered below them, all pinned above the survival inventory.
-void repgame_furnace_layout( RepGameState &state ) {
-    const int w = static_cast<int>( state.screen.width );
-    const int h = static_cast<int>( state.screen.height );
-    const float stride = state.survival_inventory.inventory_renderer.getCellStride( );
-    const float surv_top = state.survival_inventory.inventory_renderer.getItemsTop( );
-    struct {
-        InventoryRenderer *panel;
-        float center_x;
-        float bottom_y;
-    } panels[] = {
-        { &state.ui.furnace.input, -stride * 1.45f, surv_top + stride * 2.45f },
-        { &state.ui.furnace.output, stride * 1.45f, surv_top + stride * 2.45f },
-        { &state.ui.furnace.fuel, 0.0f, surv_top + stride * 1.15f },
-    };
-    for ( auto &p : panels ) {
-        p.panel->options.fixed_cell_stride = stride;
-        p.panel->options.center_x = static_cast<int>( p.center_x );
-        p.panel->options.pin_bottom_y = static_cast<int>( p.bottom_y );
-        // The renderer rebuilds icons from its slots pointer; use the live
-        // furnace contents when one is open, an empty furnace otherwise.
-        static const FurnaceContents empty_furnace;
-        const FurnaceContents *contents = &empty_furnace;
-        if ( state.ui.furnace.open ) {
-            if ( const FurnaceContents *live = state.world.get_furnace_contents( state.ui.furnace.pos ) ) {
-                contents = live;
-            }
+    // Both crafting grids adopt their slabs (only the active dim draws);
+    // the shared output panel joins the active group.
+    place( state.ui.crafting.grid2, r.crafting_grid2, state.ui.crafting.slots );
+    place( state.ui.crafting.grid3, r.crafting_grid3, state.ui.crafting.slots );
+    place( state.ui.crafting.output, state.ui.crafting.table_open ? r.crafting_out3 : r.crafting_out2, &state.ui.crafting.output_slot );
+
+    // Furnace panels: live contents when open, empty furnace otherwise.
+    static const FurnaceContents empty_furnace;
+    const FurnaceContents *contents = &empty_furnace;
+    if ( state.ui.furnace.open ) {
+        if ( const FurnaceContents *live = state.world.get_furnace_contents( state.ui.furnace.pos ) ) {
+            contents = live;
         }
-        const int slot_index = p.panel == &state.ui.furnace.input   ? FURNACE_SLOT_INPUT
-                               : p.panel == &state.ui.furnace.fuel ? FURNACE_SLOT_FUEL
-                                                                  : FURNACE_SLOT_OUTPUT;
-        const InventorySlot *slots = &contents->slots[ slot_index ];
-        p.panel->onSizeChange( w, h, slots );
     }
-    // The window backdrop unifies the panel group with the survival
-    // inventory: it spans the wider of the two horizontally, runs from the
-    // group's top down through the gap, and frames the survival items slab —
-    // one window, so the gap clicks as inside-the-window.
-    const int pad = static_cast<int>( stride * 0.35f );
-    const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
-    const int group_left = std::min( std::min( state.ui.furnace.input.getInvLeft( ), state.ui.furnace.fuel.getInvLeft( ) ), state.ui.furnace.output.getInvLeft( ) );
-    const int group_right = std::max( std::max( state.ui.furnace.input.getInvRight( ), state.ui.furnace.fuel.getInvRight( ) ), state.ui.furnace.output.getInvRight( ) );
-    const int left = std::min( group_left, surv.getItemsLeft( ) ) - pad;
-    const int right = std::max( group_right, surv.getItemsRight( ) ) + pad;
-    const int bottom = surv.getItemsBottom( ) - pad;
-    const int top = std::max( std::max( state.ui.furnace.input.getInvTop( ), state.ui.furnace.fuel.getInvTop( ) ), state.ui.furnace.output.getInvTop( ) ) + pad;
-    state.ui.furnace.backdrop = { left, bottom, right - left, top - bottom };
+    place( state.ui.furnace.input, r.furnace_input, &contents->slots[ FURNACE_SLOT_INPUT ] );
+    place( state.ui.furnace.fuel, r.furnace_fuel, &contents->slots[ FURNACE_SLOT_FUEL ] );
+    place( state.ui.furnace.output, r.furnace_output, &contents->slots[ FURNACE_SLOT_OUTPUT ] );
 }
 
 // --- Crafting helpers -----------------------------------------------------
@@ -752,49 +726,6 @@ static void crafting_recompute( RepGameState &state ) {
         state.ui.crafting.output_slot.quantity = 0;
     }
     state.ui.crafting.output.changeSlotItem( 0, state.ui.crafting.output_slot );
-}
-
-// Lay out the grid + output panels: fixed stride taken from the survival
-// panel, grid bottom pinned a quarter stride above the survival items,
-// and the grid + one-stride gap + 1x1 output group centered horizontally.
-void repgame_crafting_layout( RepGameState &state ) {
-    const int w = static_cast<int>( state.screen.width );
-    const int h = static_cast<int>( state.screen.height );
-    const float stride = state.survival_inventory.inventory_renderer.getCellStride( );
-    const int active_dim = repgame_crafting_dim( state );
-    InventoryRenderer *grids[] = { &state.ui.crafting.grid2, &state.ui.crafting.grid3 };
-    for ( int i = 0; i < 2; i++ ) {
-        const int dim = i + 2;
-        const float off = stride * 0.1f;
-        const float grid_w = stride * dim + off;
-        const float out_w = stride + off;
-        const float group_w = grid_w + stride + out_w;
-        InventoryRenderer &grid = *grids[ i ];
-        grid.options.fixed_cell_stride = stride;
-        grid.options.center_x = static_cast<int>( grid_w - group_w ) / 2;
-        grid.options.pin_bottom_y = state.survival_inventory.inventory_renderer.getItemsTop( ) + static_cast<int>( stride * 0.25f );
-        grid.onSizeChange( w, h, state.ui.crafting.slots );
-        if ( dim == active_dim ) {
-            state.ui.crafting.output.options.fixed_cell_stride = stride;
-            state.ui.crafting.output.options.center_x = static_cast<int>( group_w - out_w ) / 2;
-            // Vertically centered on the grid (the grid panel is square).
-            state.ui.crafting.output.options.pin_bottom_y = grid.getInvBottom( ) + static_cast<int>( ( grid_w - out_w ) / 2 );
-            InventorySlot out_slot = state.ui.crafting.output_slot;
-            state.ui.crafting.output.onSizeChange( w, h, &out_slot );
-            // The window backdrop unifies the panel group with the survival
-            // inventory: it spans the wider of the two horizontally, runs
-            // from the group's top down through the gap, and frames the
-            // survival items slab — one window, so the gap clicks as
-            // inside-the-window.
-            const int pad = static_cast<int>( stride * 0.35f );
-            const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
-            const int left = std::min( std::min( grid.getInvLeft( ), state.ui.crafting.output.getInvLeft( ) ), surv.getItemsLeft( ) ) - pad;
-            const int right = std::max( std::max( grid.getInvRight( ), state.ui.crafting.output.getInvRight( ) ), surv.getItemsRight( ) ) + pad;
-            const int bottom = surv.getItemsBottom( ) - pad;
-            const int top = std::max( grid.getInvTop( ), state.ui.crafting.output.getInvTop( ) ) + pad;
-            state.ui.crafting.backdrop = { left, bottom, right - left, top - bottom };
-        }
-    }
 }
 
 // Generic slot click semantics for the crafting grid (the chest variants
@@ -1116,7 +1047,7 @@ void repgame_crafting_return_grid( RepGameState &state ) {
     }
     if ( was_open ) {
         // The output panel moves back to the 2x2 group.
-        repgame_crafting_layout( state );
+        repgame_apply_ui_layout( state );
     }
     crafting_recompute( state );
     state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
@@ -1138,18 +1069,19 @@ static bool off_inventory_panels( RepGameState &state ) {
     // or the window backdrop rects — the panel rects are laid out far
     // wider than the slabs they frame, which would swallow clicks that are
     // clearly outside the window.
+    const UiLayoutRects &ui_rects = state.ui.layout.rects( );
     if ( state.ui.chest.open &&
-         ( state.ui.chest.inventory_renderer.containsItemsPoint( x, y ) || state.ui.chest.backdrop.contains( cx, cy ) ) ) {
+         ( state.ui.chest.inventory_renderer.containsItemsPoint( x, y ) || ui_rects.chest_backdrop.contains( cx, cy ) ) ) {
         return false;
     }
     if ( state.ui.furnace.open &&
          ( state.ui.furnace.input.containsItemsPoint( x, y ) || state.ui.furnace.fuel.containsItemsPoint( x, y ) ||
-           state.ui.furnace.output.containsItemsPoint( x, y ) || state.ui.furnace.backdrop.contains( cx, cy ) ) ) {
+           state.ui.furnace.output.containsItemsPoint( x, y ) || ui_rects.furnace_backdrop.contains( cx, cy ) ) ) {
         return false;
     }
     if ( repgame_crafting_grid_visible( state ) &&
          ( repgame_crafting_grid( state ).containsItemsPoint( x, y ) || state.ui.crafting.output.containsItemsPoint( x, y ) ||
-           state.ui.crafting.backdrop.contains( cx, cy ) ) ) {
+           ( repgame_crafting_dim( state ) == 3 ? ui_rects.crafting_backdrop3 : ui_rects.crafting_backdrop2 ).contains( cx, cy ) ) ) {
         return false;
     }
     // The palette slab is only on screen in creative mode with no
@@ -1755,8 +1687,8 @@ void RepGame::process_inventory_events( ) {
         // Closing the inventory (E / tap) also closes any open chest/furnace
         // and returns any crafting-grid contents to the player (idempotent —
         // this branch runs every tick while the inventory is closed).
-        this->close_chest( );
-        this->close_furnace( );
+        RepGame::close_chest( globalGameState );
+        RepGame::close_furnace( globalGameState );
         repgame_crafting_return_grid( globalGameState );
         // If we were holding an inventory item when the inventory closed, return
         // it to the survival inventory to avoid item loss.

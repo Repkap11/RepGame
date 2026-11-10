@@ -129,16 +129,16 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
     showErrors( );
 }
 
-void UIOverlay::draw_panel_backdrop( int left, int bottom, int width, int height, const Renderer &renderer, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw_panel_backdrop( const UiRect &rect, const Renderer &renderer, const glm::mat4 &mvp_ui ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->render_chain_panel_backdrop.clear( );
     auto pair = this->render_chain_panel_backdrop.create_instance( );
     UIOverlayInstance &ui_vertex = pair.second;
-    ui_vertex.screen_x = static_cast<float>( left );
-    ui_vertex.screen_y = static_cast<float>( bottom );
+    ui_vertex.screen_x = rect.left;
+    ui_vertex.screen_y = rect.bottom;
     ui_vertex.screen_z = ORDER_Z_PANEL_BACKDROP;
-    ui_vertex.width = static_cast<float>( width );
-    ui_vertex.height = static_cast<float>( height );
+    ui_vertex.width = rect.width;
+    ui_vertex.height = rect.height;
     ui_vertex.is_block = 0;
     ui_vertex.is_isometric = 0;
     // Same gray as the per-cell squares inside the panels (0.5) so the

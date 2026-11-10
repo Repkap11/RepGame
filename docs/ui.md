@@ -24,30 +24,41 @@ UiState
 
 One reusable panel class (`include/common/inventory_renderer.hpp`)
 draws every grid: hotbar strip, survival grid, creative palette, chest,
-crafting grids. `onSizeChange` lays a `width×height` cell matrix into
-screen space under `InventoryRenderOptions` — percentage bounds, bottom
-gravity (hotbar), top gravity (chest), `pin_*_y` edge anchors for
-stacking panels (container slabs sit above the player inventory),
-`fixed_cell_stride` overrides. Cells draw as instanced
+crafting grids. `compute_layout` sizes a `width×height` cell matrix under
+`InventoryRenderOptions` — percentage bounds, `fixed_cell_stride`
+overrides — and `set_items_pos` + `rebuild` place and repaint it once the
+shared layout pass decides where the slab goes. Cells draw as instanced
 `UIOverlayInstance`s through `RenderChain`; block icons are projected
 isometrically in the ui_overlay shader using the same
 `Block::scale/offset` shape data the chunk mesh uses. Hit testing is
 `whichSlotClicked`/`containsPoint` in centered y-up coords;
 `changeSlotItem` repaints a single slot.
 
+Screen-space placement is owned by `UiLayout` (`include/common/ui_layout.hpp`):
+one Clay pass declares the whole UI tree — the bottom HUD strip (item
+label reservation, vitals row, hotbar slab), the survival/creative
+inventory slabs, the container screens floating off the survival slab's
+top edge, and the floating pause menu — and emits named `UiRect`s in
+centered y-up coords (`ui_layout.cpp` owns the conversion from Clay's
+top-left y-down space). `RepGame::changeSize` runs it as:
+`compute_layout` sizing for every renderer, the pass, then `apply_layout`
+/`repgame_apply_ui_layout` adopting the rects into the renderers. Draw
+code and click routing both read `state.ui.layout.rects()` — nothing
+re-derives positions at draw time.
+
 Container screens — chest, the furnace trio, and the crafting grid +
-output — get a window backdrop that unifies them with the player
-inventory: `UiPanelBackdrop` (`ui_state.hpp`) stores a centered-coords
-rect each layout pass computes from the group's top down around the
-survival items slab (`repgame_chest_layout`/`repgame_furnace_layout`/
-`repgame_crafting_layout`), `UIOverlay::draw_panel_backdrop` paints one
-flat quad through the shared ui_overlay shader *before* the panels and
-inventory slab composite inside it, and `off_inventory_panels` treats the
-rect's dead areas (the gap included) as inside-the-window rather than
-"outside every panel". Outside a backdrop, clicks hit-test the visible
-items slab (`containsItemsPoint`) — the layout panel rect is laid out far
-wider than the slab, so the items rect is what "outside the window" means
-for held-stack drops.
+output (both 2x2 and 3x3 variants declared, so `table_open` toggles just
+re-apply) — get a window backdrop that unifies them with the player
+inventory: the layout pass computes each `*_backdrop` rect as the padded
+union of the screen's panels and the survival items slab,
+`UIOverlay::draw_panel_backdrop` paints one flat quad through the shared
+ui_overlay shader *before* the panels and inventory slab composite inside
+it, and `off_inventory_panels` treats the rect's dead areas (the gap
+included) as inside-the-window rather than "outside every panel".
+Outside a backdrop, clicks hit-test the visible items slab
+(`containsItemsPoint`) — the layout panel rect is laid out far wider than
+the slab, so the items rect is what "outside the window" means for
+held-stack drops.
 
 ## Input routing
 
@@ -84,11 +95,10 @@ GL-less server can call it). Contents live in the owning `Chunk`
 `RepGame::open_chest`/`close_chest` (inventory.cpp): opening sets
 `ui.chest.{open,pos}`, raises `inventory_open`, plays the sound, and —
 in multiplayer — sends `CONTAINER_OPEN` through
-`state.multiplayer.containers`. `repgame_chest_layout` (run from
-`changeSize` — the chest panel only depends on screen size) places the
-chest slab where the crafting grid sits — survival-stride cells, bottom
-edge pinned just above the survival items slab — and lays out the
-`ui.chest.backdrop` window framing chest + survival slabs. Inbound
+`state.multiplayer.containers`. The layout pass places the chest slab
+where the crafting grid sits — survival-stride cells, bottom edge
+floating just above the survival items slab — inside the
+`chest_backdrop` window framing chest + survival slabs. Inbound
 `CONTAINER_*` frames only write World state (`NetContainers` never
 touches `ui`); the open panel
 repaints by pulling each tick — `repgame_chest_sync_icons` diffs
@@ -120,12 +130,12 @@ and `repgame_furnace_sync_icons` pulls diffs into the three panels each
 tick (slots via `ui.furnace.drawn[]`, aux into `cook_progress`/
 `burn_ticks`). Every local mutation funnels through `furnace_sync_slot`
 (world write + repaint + `CONTAINER_SET_SLOT`). Furnace panels are
-three 1x1 `InventoryRenderer`s laid out by `repgame_furnace_layout` —
-input and output on the top row, fuel centered below, pinned above the
-survival inventory (`repgame_furnace_layout` runs from `changeSize`
-too). The draw pass adds a window backdrop (`ui.furnace.backdrop`)
-unifying the group with the player inventory, plus a cook-progress
-percent and remaining burn seconds between the input/output panels. `World::tick_furnaces`
+three 1x1 `InventoryRenderer`s placed by the layout pass — input and
+output on the top row, fuel centered below, all floating above the
+survival inventory. The draw pass adds a window backdrop
+(`furnace_backdrop`) unifying the group with the player inventory, plus
+a cook-progress percent and remaining burn seconds in the `furnace_mid`
+gap between the input/output panels. `World::tick_furnaces`
 advances every loaded furnace each tick in singleplayer (fuel burn →
 cook progress → output, lit-block swap via `set_loaded_block`); in
 multiplayer the server ticks them instead (`docs/multiplayer.md`).
@@ -163,16 +173,17 @@ matching and the output slot are documented with the item/recipe data in
   icon rotation about the sprite center).
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
   (`item_name`) just above the hotbar — above the hearts row in
-  survival — black-outlined via `FontRenderer::drawStringOutlined`;
-  empty slots show nothing.
+  survival — black-outlined via `FontRenderer::text_append_outlined`;
+  empty slots show nothing. All UI text is batched: callers queue
+  glyphs with `text_append*`, `text_flush` draws them in one call.
 - `UIOverlay::draw_vitals` renders the survival health row above the
   hotbar — ten `TEX_HEART_CONTAINER` slots with `TEX_HEART` /
   `TEX_HEART_HALF` filled by `vitals.health` (half-hearts), plus a
   `TEX_BUBBLE` breath row while `air_ticks` is below max underwater —
   through the same ui_overlay shader atlas path as the crosshair.
-  `RepGame::changeSize` pins the survival inventory panel's bottom edge
-  above this vitals strip (hearts + item label), and the
-  chest/crafting/furnace panels follow since they re-pin off the
+  The layout pass keeps the survival inventory slab's bottom edge above
+  the HUD strip (label reservation + vitals + hotbar), and the
+  chest/crafting/furnace screens follow since they float off the
   survival items top.
 - `PauseMenu` lays out buttons in centered coords (`hitTest` returns
   `BUTTON_*`), grouped into lines of one or two side-by-side cells; line

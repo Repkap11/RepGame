@@ -170,13 +170,13 @@ void RepGame::break_selected_block( ) {
         switch ( def->kind ) {
             case NetContainerKind::CHEST:
                 if ( globalGameState.ui.chest.open && globalGameState.ui.chest.pos == pos ) {
-                    this->close_chest( );
+                    RepGame::close_chest( globalGameState );
                     globalGameState.input.inventory_open = false;
                 }
                 break;
             case NetContainerKind::FURNACE:
                 if ( globalGameState.ui.furnace.open && globalGameState.ui.furnace.pos == pos ) {
-                    this->close_furnace( );
+                    RepGame::close_furnace( globalGameState );
                     globalGameState.input.inventory_open = false;
                 }
                 break;
@@ -586,7 +586,7 @@ void RepGame::process_mouse_events( ) {
         // Sneaking skips the interaction so the block can be placed.
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         if ( block_is_chest( target_state.id ) && !globalGameState.input.movement.sneakPressed ) {
-            this->open_chest( globalGameState.block_selection.pos_destroy );
+            RepGame::open_chest( globalGameState, globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
         // Right-clicking a crafting table opens the 3x3 grid instead of
@@ -595,13 +595,13 @@ void RepGame::process_mouse_events( ) {
             globalGameState.ui.crafting.table_open = true;
             globalGameState.ui.crafting.table_pos = globalGameState.block_selection.pos_destroy;
             globalGameState.input.inventory_open = true;
-            repgame_crafting_layout( globalGameState );
+            repgame_apply_ui_layout( globalGameState );
             globalGameState.input.click_delay_right = 30;
         }
         // Right-clicking a furnace (lit or unlit) opens its smelt UI instead
         // of placing against it. Sneaking skips the interaction.
         if ( block_is_furnace( target_state.id ) && !globalGameState.input.movement.sneakPressed ) {
-            this->open_furnace( globalGameState.block_selection.pos_destroy );
+            RepGame::open_furnace( globalGameState, globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
     }

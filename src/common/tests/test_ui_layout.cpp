@@ -21,6 +21,7 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     // sized with a 0.1*basis bottom reservation.
     in.surv_slab_w = 9.1f * stride;
     in.surv_slab_h = 3.1f * stride;
+    in.surv_stride = stride;
     in.creative_slab_w = fminf( w * 0.7f, 720.0f );
     in.creative_slab_h = 6.1f * 60.0f;
     in.creative_panel_w = w * 0.75f;
@@ -94,6 +95,61 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     snprintf( what, sizeof( what ), "%s: search bar spans the panel", name );
     near_to( what, r.search_box.left, r.creative_panel.left );
     near_to( what, r.search_box.width, r.creative_panel.width );
+
+    // Container screens float off the survival slab's top edge, all drawn
+    // at the survival stride (slab = stride*dim + 0.1*stride border).
+    const float s2 = in.surv_stride;
+    const float surv_top = r.survival_items.top( );
+    snprintf( what, sizeof( what ), "%s: chest bottom pins above survival", name );
+    near_to( what, r.chest_items.bottom, surv_top + 0.25f * s2 );
+    snprintf( what, sizeof( what ), "%s: chest slab centered", name );
+    near_to( what, r.chest_items.center_x( ), r.survival_items.center_x( ) );
+    snprintf( what, sizeof( what ), "%s: chest slab is 9x3 at stride", name );
+    near_to( what, r.chest_items.width, 9.1f * s2 );
+    near_to( what, r.chest_items.height, 3.1f * s2 );
+    // Crafting rows: grid | 1-stride arrow gap | output, row centered.
+    for ( int dim = 2; dim <= 3; dim++ ) {
+        const UiRect &g = dim == 2 ? r.crafting_grid2 : r.crafting_grid3;
+        const UiRect &gap = dim == 2 ? r.crafting_gap2 : r.crafting_gap3;
+        const UiRect &out = dim == 2 ? r.crafting_out2 : r.crafting_out3;
+        const float group_w = ( dim + 0.1f ) * s2 + s2 + 1.1f * s2;
+        snprintf( what, sizeof( what ), "%s: crafting %dx%d row centered", name, dim, dim );
+        near_to( what, g.left, -group_w * 0.5f );
+        snprintf( what, sizeof( what ), "%s: crafting %dx%d row above survival", name, dim, dim );
+        near_to( what, g.bottom, surv_top + 0.25f * s2 );
+        snprintf( what, sizeof( what ), "%s: crafting %dx%d gap is one stride", name, dim, dim );
+        near_to( what, gap.width, s2 );
+        near_to( what, gap.left, g.right( ) );
+        snprintf( what, sizeof( what ), "%s: crafting %dx%d output right of gap", name, dim, dim );
+        near_to( what, out.left, gap.right( ) );
+        snprintf( what, sizeof( what ), "%s: crafting %dx%d output centers on grid", name, dim, dim );
+        near_to( what, out.center_y( ), g.center_y( ) );
+    }
+    // Furnace: input | mid | output row with fuel centered below.
+    snprintf( what, sizeof( what ), "%s: furnace fuel centered below", name );
+    near_to( what, r.furnace_fuel.center_x( ), 0.0f );
+    near_to( what, r.furnace_fuel.bottom, surv_top + 1.15f * s2 );
+    snprintf( what, sizeof( what ), "%s: furnace in/out row above fuel", name );
+    near_to( what, r.furnace_input.bottom, surv_top + 2.45f * s2 );
+    near_to( what, r.furnace_output.bottom, surv_top + 2.45f * s2 );
+    snprintf( what, sizeof( what ), "%s: furnace input/output mirrored", name );
+    near_to( what, r.furnace_input.center_x( ), -1.45f * s2 );
+    near_to( what, r.furnace_output.center_x( ), 1.45f * s2 );
+    snprintf( what, sizeof( what ), "%s: furnace mid spans the gap", name );
+    near_to( what, r.furnace_mid.left, r.furnace_input.right( ) );
+    near_to( what, r.furnace_mid.right( ), r.furnace_output.left );
+    // Backdrops: padded unions of each screen's panels + the survival slab.
+    const float bp = 0.35f * s2;
+    snprintf( what, sizeof( what ), "%s: chest backdrop unions + pads", name );
+    near_to( what, r.chest_backdrop.bottom, r.survival_items.bottom - bp );
+    near_to( what, r.chest_backdrop.top( ), r.chest_items.top( ) + bp );
+    near_to( what, r.chest_backdrop.left, fminf( r.chest_items.left, r.survival_items.left ) - bp );
+    snprintf( what, sizeof( what ), "%s: crafting3 backdrop tops grid", name );
+    near_to( what, r.crafting_backdrop3.top( ), r.crafting_grid3.top( ) + bp );
+    snprintf( what, sizeof( what ), "%s: furnace backdrop tops in/out row", name );
+    near_to( what, r.furnace_backdrop.top( ), r.furnace_input.top( ) + bp );
+    snprintf( what, sizeof( what ), "%s: furnace backdrop covers fuel", name );
+    is_true( what, r.furnace_backdrop.left <= r.furnace_fuel.left && r.furnace_backdrop.bottom <= r.furnace_fuel.bottom );
 
     // Pause menu: floating centered panel of stacked rows.
     snprintf( what, sizeof( what ), "%s: pause panel centered", name );
