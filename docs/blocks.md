@@ -9,8 +9,14 @@ faces `TEX_AIR`) so creative skips them. **Id 1249 is permanently reserved**:
 it was the empty-slot sentinel in pre-2047 saves and the importer fails if
 any file claims it; load paths map it to empty (`save_slot_id_is_empty`) /
 `AIR` (`save_chunk_block_id`). Removing a block frees its id for reuse — old
-saves holding a removed id get the AIR/empty migration paths (the file name
-must equal the lowercased `name`). Face keys in `"textures"`: `all`, `side`,
+saves holding a removed id get the AIR/empty migration paths, but only while
+the id stays undefined: once a new def claims it, those cells become the new
+block, so reuse freed ids only for defs that never reached real saves. The
+17 stub `*_candle_cake` ids freed in 2026-11 are the current reuse pool:
+151, 180, 208, 243, 428, 603, 619, 679, 695, 714, 739, 834, 903, 1013,
+1046, 1368, 1389 — claim one of them in a new `"id"` before taking from the
+top of the range. (The file name
+must equal the lowercased `name`.) Face keys in `"textures"`: `all`, `side`,
 `top`, `bottom`, `left`, `right`, `front`, `back` (specific beats `side` beats
 `all`, mapped to the `FACE_*` constants); `"icon"` names the non-isometric
 inventory texture and implies `icon_is_isometric=false`. Remaining keys are
@@ -366,8 +372,8 @@ from creative) but stay raycast-targetable via `block_is_tall_plant` in
 generalized `door_item_id`).
 
 Cake is edible: `"is_cake": true` (plain `CAKE` only — the stub
-`*_candle_cake` defs were full-cube placeholders and have been removed;
-their ids stay reserved). Right-click
+`*_candle_cake` defs were full-cube placeholders and were removed; their
+ids join the freed-id pool above). Right-click
 eats one 2px slice off the +x edge — the bite count lives in
 `BlockState::rotation` (0..`CAKE_MAX_BITES` = 6, the same slot fluid
 levels/stair shapes use — cake's box is yaw-symmetric so
