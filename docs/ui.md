@@ -162,13 +162,18 @@ matching and the output slot are documented with the item/recipe data in
   into the `ImGuiDebugVars` defaults. The bow adds `bow_spin` (in-plane
   icon rotation about the sprite center).
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
-  (`item_name`) just above the hotbar, black-outlined via
-  `FontRenderer::drawStringOutlined`; empty slots show nothing.
+  (`item_name`) just above the hotbar — above the hearts row in
+  survival — black-outlined via `FontRenderer::drawStringOutlined`;
+  empty slots show nothing.
 - `UIOverlay::draw_vitals` renders the survival health row above the
   hotbar — ten `TEX_HEART_CONTAINER` slots with `TEX_HEART` /
   `TEX_HEART_HALF` filled by `vitals.health` (half-hearts), plus a
   `TEX_BUBBLE` breath row while `air_ticks` is below max underwater —
   through the same ui_overlay shader atlas path as the crosshair.
+  `RepGame::changeSize` pins the survival inventory panel's bottom edge
+  above this vitals strip (hearts + item label), and the
+  chest/crafting/furnace panels follow since they re-pin off the
+  survival items top.
 - `PauseMenu` lays out buttons in centered coords (`hitTest` returns
   `BUTTON_*`), grouped into lines of one or two side-by-side cells; line
   contents are compile-time-gated

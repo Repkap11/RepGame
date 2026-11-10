@@ -674,6 +674,13 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                     globalGameState.hotbar.inventory_renderer.getBlockMetrics( block_size, cell_size );
                     ty = slot_y + cell_size * 1.15f + 8.0f;
                 }
+                // Survival lifts the label above the hearts row (tops at
+                // itemsTop + 0.65 * stride, see UIOverlay::draw_vitals) —
+                // another 0.15 * stride on top matches the gap under the
+                // hearts so the row reads evenly spaced.
+                if ( globalGameState.game_mode == GameMode_Survival && !globalGameState.vitals.dead ) {
+                    ty = globalGameState.hotbar.inventory_renderer.getItemsTop( ) + globalGameState.hotbar.inventory_renderer.getCellStride( ) * 0.8f + 4.0f;
+                }
                 globalGameState.ui.font.drawStringOutlined( globalGameState.world.renderer, buf, tx, ty, text_size, white, globalGameState.screen.ortho_center );
             }
         }

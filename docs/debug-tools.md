@@ -418,6 +418,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells |
 | `give <item> [count]`, `slot N` | hotbar add + slot select, refreshing the held-item overlay |
 | `damage <hp>`, `eat`, `respawn` | player vitals (docs/player.md); each emits a `*_result` event with `applied`/`health`/`dead` |
+| `inventory <0|1>` | toggle `input.inventory_open` (shows the survival grid + 2x2 crafting UI in survival) |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
 | `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
 | `shear x y z` | shears the shearable mob nearest the point (as if holding shears); mirrors route ENTITY_ACTION like a right-click |

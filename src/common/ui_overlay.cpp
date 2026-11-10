@@ -265,7 +265,7 @@ void UIOverlay::draw_vitals( float health, float max_health, int air_ticks, int 
 
     const float stride = hotbar_renderer.getCellStride( );
     const float icon = stride * 0.5f;
-    const float dx = icon * 0.9f;
+    const float dx = icon * 1.1f;
     const float base_y = hotbar_renderer.getItemsTop( ) + stride * 0.15f;
     const float left = static_cast<float>( hotbar_renderer.getItemsLeft( ) );
     const float right = static_cast<float>( hotbar_renderer.getItemsRight( ) );
