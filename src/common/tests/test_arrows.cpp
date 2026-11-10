@@ -172,7 +172,7 @@ int test_arrows( ) {
                 break;
             }
             const ArrowEntities::ArrowMobHit &hit = out.mob_hits[ 0 ];
-            const bool killed = mobs.hurt( hit.mob_index, hit.damage, hit.pos );
+            const bool killed = mobs.hurt( hit.mob_index, hit.damage, hit.pos, gs.camera.pos );
             check_bool( shot == 0 ? "mob: 9 damage leaves 10hp pig" : "mob: second arrow kills", killed == ( shot == 1 ) );
             if ( killed ) {
                 RepGame::spawn_mob_drops( gs, mobs.def_at( hit.mob_index ), mobs.pos_at( hit.mob_index ) );

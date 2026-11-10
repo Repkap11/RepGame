@@ -53,6 +53,14 @@ static void arrow_apply_net_flags( ArrowEntities::Arrow &a, const uint32_t flags
     }
 }
 
+// arrow_hit with the same 16-block linear falloff as the fizz/mob SFX.
+static void arrow_hit_sfx( const RepGameState &state, const glm::dvec3 &pos ) {
+    const float dist = static_cast<float>( glm::length( pos - state.camera.pos ) );
+    if ( dist < 16.0f ) {
+        audio_play_sfx_gain( "arrow_hit", 1.0f - dist / 16.0f );
+    }
+}
+
 bool ArrowEntities::arrow_chunk_live( World &world, const Arrow &a ) const {
     const Chunk *chunk = world.get_loaded_chunk( glm::ivec3( glm::floor( a.pos ) ) );
     return chunk != nullptr && chunk->load_state == CHUNK_LIVE;
@@ -217,7 +225,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
             a.stuck = 1;
             a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
-            audio_play_sfx( "arrow_hit" );
+            arrow_hit_sfx( state, a.pos );
             continue;
         }
 
@@ -243,7 +251,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             if ( out != nullptr ) {
                 out->mob_hits.push_back( { mob, a.pos, a.damage, a.attacker_survival } );
             }
-            audio_play_sfx( "arrow_hit" );
+            arrow_hit_sfx( state, a.pos );
             this->send_net_remove( a, NET_REMOVE_DIED );
             dead.push_back( i );
             continue;
@@ -256,7 +264,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
             a.stuck = 1;
             a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
-            audio_play_sfx( "arrow_hit" );
+            arrow_hit_sfx( state, a.pos );
         }
     }
 

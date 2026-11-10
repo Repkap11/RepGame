@@ -268,8 +268,10 @@ class MobManager {
     int resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist,
                         int selectionInBounds, const glm::ivec3 &pos_destroy, double *out_dist ) const;
     // Apply damage + knockback away from attacker_pos; returns true if this
-    // hit started the death animation.
-    bool hurt( int index, float damage, const glm::dvec3 &attacker_pos );
+    // hit started the death animation. The hurt/death sfx gain falls off
+    // against listener_pos (the local camera — an arrow's impact point is
+    // at the mob, not the ear).
+    bool hurt( int index, float damage, const glm::dvec3 &attacker_pos, const glm::dvec3 &listener_pos );
     // Feeding (breeding): whether the mob accepts `item` right now — a valid
     // breed food for the type, and it can take effect (a baby always eats
     // for the growth boost; an adult only while neither in love nor on the
@@ -317,11 +319,13 @@ class MobManager {
     // sends ENTITY_ACTION instead of applying damage locally).
     bool net_mirror_at( int index ) const { return index >= 0 && this->mobs[ index ].net.mirror; }
     NetEntityId net_id_at( int index ) const { return index >= 0 ? this->mobs[ index ].net.id : 0; }
-    // Local hurt feedback for a mirror hit (flash + sfx, no damage).
-    void mirror_hit_feedback( int index, const glm::dvec3 &attacker_pos );
+    // Local hurt feedback for a mirror hit (flash + sfx, no damage). The
+    // sfx gain falls off against listener_pos (the local camera).
+    void mirror_hit_feedback( int index, const glm::dvec3 &listener_pos );
     // Incoming record handlers (called by NetEntities).
     void net_apply_spawn( const NetEntityRecord &rec, bool mirror );
-    void net_apply_state( const NetEntityStateEntry &e );
+    // listener_pos (the local camera) fades the flag-edge sfx playback.
+    void net_apply_state( const NetEntityStateEntry &e, const glm::dvec3 &listener_pos );
     void net_apply_remove( NetEntityId net_id );
     // ENTITY_ACTION forwarded to us as the chunk's owner (HIT).
     void net_apply_action( RepGameState &state, const NetEntityActionPayload &p );

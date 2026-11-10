@@ -324,7 +324,7 @@ void RepGame::tick_entities( ) {
     // a remote-owned mob gets the ENTITY_ACTION forwarded to its owner.
     for ( const ArrowEntities::ArrowMobHit &hit : arrow_out.mob_hits ) {
         if ( gs.world.mobs.net_mirror_at( hit.mob_index ) ) {
-            gs.world.mobs.mirror_hit_feedback( hit.mob_index, hit.pos );
+            gs.world.mobs.mirror_hit_feedback( hit.mob_index, gs.camera.pos );
             NetEntityActionPayload act;
             act.id = gs.world.mobs.net_id_at( hit.mob_index );
             act.action = NET_ACTION_HIT;
@@ -336,7 +336,7 @@ void RepGame::tick_entities( ) {
             act.item = 0;
             gs.multiplayer.entities.send_entity_action( act );
         } else {
-            const bool killed = gs.world.mobs.hurt( hit.mob_index, hit.damage, hit.pos );
+            const bool killed = gs.world.mobs.hurt( hit.mob_index, hit.damage, hit.pos, gs.camera.pos );
             if ( killed && hit.attacker_survival && !gs.world.mobs.is_baby_at( hit.mob_index ) ) {
                 spawn_mob_drops( gs, gs.world.mobs.def_at( hit.mob_index ), gs.world.mobs.pos_at( hit.mob_index ) );
             }

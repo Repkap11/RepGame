@@ -123,7 +123,7 @@ bool dbgcmd::hit( RepGameState &state, const unsigned long long net_id, std::str
             act.attacker_survival = state.game_mode == GameMode_Survival ? 1 : 0;
             state.multiplayer.entities.send_entity_action( act );
         } else {
-            const bool killed = mobs.hurt( static_cast<int>( i ), state.game_mode == GameMode_Survival ? 4.0f : 1000.0f, state.camera.pos );
+            const bool killed = mobs.hurt( static_cast<int>( i ), state.game_mode == GameMode_Survival ? 4.0f : 1000.0f, state.camera.pos, state.camera.pos );
             if ( killed && state.game_mode == GameMode_Survival ) {
                 RepGame::spawn_mob_drops( state, mobs.def_at( static_cast<int>( i ) ), mobs.pos_at( static_cast<int>( i ) ) );
             }

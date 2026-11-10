@@ -916,7 +916,7 @@ void MobManager::mark_touched( Mob &mob ) {
 // x0.85 per tick (~1 block of travel) plus a 0.07 blocks/tick vertical bump
 // (~0.2 block hop under the player gravity constant). Returns true when the
 // hit started the death tip-over.
-bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos ) {
+bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos, const glm::dvec3 &listener_pos ) {
     if ( index < 0 || index >= static_cast<int>( this->mobs.size( ) ) ) {
         return false;
     }
@@ -940,7 +940,7 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos )
         mob.kb = away / len * 0.15;
     }
     mob.vel.y += 0.07;
-    const double dist = glm::distance( mob.pos, attacker_pos );
+    const double dist = glm::distance( mob.pos, listener_pos );
     const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
     if ( mob.health <= 0.0f ) {
         mob.death_ticks = 1;
@@ -1881,7 +1881,7 @@ void MobManager::net_apply_spawn( const NetEntityRecord &rec, const bool mirror 
     this->spawn_record( rec, mirror );
 }
 
-void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
+void MobManager::net_apply_state( const NetEntityStateEntry &e, const glm::dvec3 &listener_pos ) {
     if ( !this->enabled ) {
         return;
     }
@@ -1923,11 +1923,13 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
     }
     const MobTypeDef &def = mob_types[ mob->type ];
     // Rising-edge flag visuals: the owner's sim already played its sfx, so
-    // mirror playback is full-gain (no attacker distance to fade against).
+    // mirrors replay it here faded against the listener distance.
+    const double sfx_dist = glm::distance( mob->pos, listener_pos );
+    const float sfx_gain = glm::clamp( 1.0f - static_cast<float>( sfx_dist ) / 16.0f, 0.0f, 1.0f );
     if ( ( e.flags & NET_MOB_FLAG_HURT ) && !( old_flags & NET_MOB_FLAG_HURT ) ) {
         mob->hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
         if ( def.sound_hurt != NULL ) {
-            audio_play_sfx( def.sound_hurt );
+            audio_play_sfx_gain( def.sound_hurt, sfx_gain );
         }
     }
     // LOVE rides the same edge: the owner's feed() opens its own heart
@@ -1936,20 +1938,20 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e ) {
         mob->heart_ticks = HEART_TICKS;
     }
     // The snip is the SHEARED edge's sound — the owner's shear() already
-    // played it for the shearer, mirrors play it here at full gain.
+    // played it for the shearer, mirrors replay it at the listener gain.
     if ( ( e.flags & NET_MOB_FLAG_SHEARED ) && !( old_flags & NET_MOB_FLAG_SHEARED ) ) {
-        audio_play_sfx( "sheep_shear" );
+        audio_play_sfx_gain( "sheep_shear", sfx_gain );
     }
     if ( ( e.flags & NET_MOB_FLAG_DYING ) && !( old_flags & NET_MOB_FLAG_DYING ) ) {
         mob->death_ticks = 1;
         if ( def.sound_death != NULL ) {
-            audio_play_sfx( def.sound_death );
+            audio_play_sfx_gain( def.sound_death, sfx_gain );
         }
     }
     if ( e.flags & NET_MOB_FLAG_FUSE ) {
         if ( !( old_flags & NET_MOB_FLAG_FUSE ) ) {
             mob->fuse_ticks = 1;
-            audio_play_sfx( "fuse" );
+            audio_play_sfx_gain( "fuse", sfx_gain );
         }
     } else {
         mob->fuse_ticks = 0;
@@ -2005,7 +2007,7 @@ void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPay
     }
     if ( p.action == NET_ACTION_SHEAR ) {
         // Same claimed-item validation: shearable() wants real shears.
-        const bool sheared = this->shear( index, static_cast<ItemID>( p.item ), glm::dvec3( p.ax, p.ay, p.az ) );
+        const bool sheared = this->shear( index, static_cast<ItemID>( p.item ), state.camera.pos );
         mp_test::event( &state, "mob_action_shear", "\"id\":\"%llu\",\"item\":%u,\"sheared\":%d",
                         (unsigned long long)p.id, p.item, (int)sheared );
         if ( sheared ) {
@@ -2013,7 +2015,7 @@ void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPay
         }
         return;
     }
-    const bool killed = this->hurt( index, p.damage, glm::dvec3( p.ax, p.ay, p.az ) );
+    const bool killed = this->hurt( index, p.damage, glm::dvec3( p.ax, p.ay, p.az ), state.camera.pos );
     mp_test::event( &state, "mob_action_hit", "\"id\":\"%llu\",\"dmg\":%g,\"killed\":%d,\"survival\":%d",
                     (unsigned long long)p.id, p.damage, (int)killed, (int)p.attacker_survival );
     if ( killed && p.attacker_survival && !this->is_baby_at( index ) ) {
@@ -2021,14 +2023,14 @@ void MobManager::net_apply_action( RepGameState &state, const NetEntityActionPay
     }
 }
 
-void MobManager::mirror_hit_feedback( const int index, const glm::dvec3 &attacker_pos ) {
+void MobManager::mirror_hit_feedback( const int index, const glm::dvec3 &listener_pos ) {
     if ( index < 0 || index >= static_cast<int>( this->mobs.size( ) ) ) {
         return;
     }
     Mob &mob = this->mobs[ index ];
     const MobTypeDef &def = mob_types[ mob.type ];
     mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
-    const double dist = glm::distance( mob.pos, attacker_pos );
+    const double dist = glm::distance( mob.pos, listener_pos );
     const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
     if ( def.sound_hurt != NULL ) {
         audio_play_sfx_gain( def.sound_hurt, gain );

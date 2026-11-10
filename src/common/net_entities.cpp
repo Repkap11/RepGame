@@ -271,7 +271,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 if ( e.kind == static_cast<uint8_t>( NetEntityKind::ITEM ) ) {
                     state.world.items.net_apply_state( e );
                 } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::MOB ) ) {
-                    state.world.mobs.net_apply_state( e );
+                    state.world.mobs.net_apply_state( e, state.camera.pos );
                 } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::BODY ) ) {
                     state.world.bodies.net_apply_state( e );
                 } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::ARROW ) ) {

@@ -619,7 +619,7 @@ int test_net_mobs( ) {
         e.y = rec.y;
         e.z = rec.z;
         e.flags = NET_MOB_FLAG_DYING;
-        mobs.net_apply_state( e );
+        mobs.net_apply_state( e, player_pos );
         check_bool( "mirror: DYING starts death anim", mobs.mobs[ 0 ].death_ticks > 0 );
         for ( int i = 0; i < 200; i++ ) {
             mobs.tick( world, player_pos );

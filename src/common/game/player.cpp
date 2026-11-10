@@ -320,7 +320,8 @@ void RepGame::process_mouse_events( ) {
             // Survival: HIT_DAMAGE per click; creative kills in one hit. A
             // survival kill hands the type's drops to the player's
             // inventories — babies never drop.
-            const bool killed = globalGameState.world.mobs.hurt( hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f, globalGameState.camera.pos );
+            const bool killed = globalGameState.world.mobs.hurt( hit_mob, globalGameState.game_mode == GameMode_Survival ? HIT_DAMAGE : 1000.0f,
+                                                                 globalGameState.camera.pos, globalGameState.camera.pos );
             if ( killed && globalGameState.game_mode == GameMode_Survival && !globalGameState.world.mobs.is_baby_at( hit_mob ) ) {
                 spawn_mob_drops( globalGameState, globalGameState.world.mobs.def_at( hit_mob ), globalGameState.world.mobs.pos_at( hit_mob ) );
             }

@@ -331,12 +331,12 @@ int test_mobs( ) {
         MobManager mobs;
         mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
         const glm::dvec3 attacker( 8.5, 11.5, 10.5 );
-        check_bool( "hit 1: survives", !mobs.hurt( 0, 4.0f, attacker ) );
+        check_bool( "hit 1: survives", !mobs.hurt( 0, 4.0f, attacker, attacker ) );
         check_bool( "hit: red flash set", mobs.mobs[ 0 ].hurt_ticks > 0 );
         check_bool( "hit: panic set", mobs.mobs[ 0 ].panic_ticks > 0 );
         check_bool( "hit: knockback away", mobs.mobs[ 0 ].kb.x > 0.0 );
-        check_bool( "hit 2: survives", !mobs.hurt( 0, 4.0f, attacker ) );
-        check_bool( "hit 3: kills (survival)", mobs.hurt( 0, 4.0f, attacker ) );
+        check_bool( "hit 2: survives", !mobs.hurt( 0, 4.0f, attacker, attacker ) );
+        check_bool( "hit 3: kills (survival)", mobs.hurt( 0, 4.0f, attacker, attacker ) );
         check_bool( "death: tip-over started", mobs.mobs[ 0 ].death_ticks > 0 );
         // Survival drop path: the killed pig's drops go to the player.
         const MobTypeDef &pig_def = mob_types[ MOB_PIG ];
@@ -346,7 +346,7 @@ int test_mobs( ) {
         // Creative: one hit kills; the caller simply doesn't run the drop.
         MobManager mobs2;
         mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
-        check_bool( "creative hit: kills in 1", mobs2.hurt( 0, 1000.0f, attacker ) );
+        check_bool( "creative hit: kills in 1", mobs2.hurt( 0, 1000.0f, attacker, attacker ) );
     }
 
     // --- 6: mobs file round trip, net_id + removed, empty removes file -----
@@ -453,7 +453,7 @@ int test_mobs( ) {
         check_bool( "pristine naturals: no file written", storage.load_mobs( home, out, &removed ) == 0 );
         // A player hit makes the mob touched: its record persists (net_id +
         // provenance flags) and its roll index is tombstoned.
-        mobs.hurt( 0, 1.0f, glm::dvec3( 318.5, 11.5, 10.5 ) );
+        mobs.hurt( 0, 1.0f, glm::dvec3( 318.5, 11.5, 10.5 ), glm::dvec3( 318.5, 11.5, 10.5 ) );
         mobs.persist_all( );
         check_bool( "touched natural: file written", storage.load_mobs( home, out, &removed ) == 1 && out.size( ) == 1 );
         if ( out.size( ) == 1 ) {
