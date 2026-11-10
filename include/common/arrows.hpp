@@ -38,6 +38,9 @@ class ArrowEntities {
     static constexpr size_t MAX_ARROWS = 256;
     // Despawn at 5 minutes of un-frozen ticks, same budget as dropped items.
     static constexpr int ARROW_DESPAWN_TICKS = 5 * 60 * UPS_RATE;
+    // Walk-over pickup cooldown after landing — the same delay a
+    // player-thrown item spawns with (ItemEntities).
+    static constexpr int ARROW_PICKUP_DELAY_TICKS = 2 * UPS_RATE;
     // Full-draw release speed in blocks/tick (~60 blocks/s at UPS_RATE).
     static constexpr double ARROW_SPEED = 0.42;
     // Flat hit damage in survival; creative firing uses the one-shot
@@ -55,6 +58,7 @@ class ArrowEntities {
         int stuck = 0;             // parked in a block: no integration
         glm::ivec3 stuck_cell = glm::ivec3( 0 ); // cell the embedded tip rests in
         int age_ticks = 0;
+        int pickup_delay = 0; // stuck-tick countdown before walk-over pickup
         entt::entity entity = entt::null; // render chain entity (render_inited only)
         // Multiplayer sync (net.id 0 / net.mirror false in single player):
         // mirrors ease toward net.pos and render net.vel as the orientation.

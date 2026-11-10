@@ -159,11 +159,15 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
                 a.stuck = 0;
                 a.vel = glm::dvec3( 0.0 );
             } else {
+                if ( a.pickup_delay > 0 ) {
+                    a.pickup_delay--;
+                }
                 // Walk-over pickup: shaft box vs feet AABB (expanded a
                 // little). A full inventory leaves the arrow in place.
                 const glm::dvec3 amin = a.pos - glm::dvec3( ARROW_LEN * 0.5 );
                 const glm::dvec3 amax = a.pos + glm::dvec3( ARROW_LEN * 0.5 );
-                if ( amax.x > state.camera.pos.x - half_w - ARROW_PICKUP_EXPAND_XZ && amin.x < state.camera.pos.x + half_w + ARROW_PICKUP_EXPAND_XZ && //
+                if ( a.pickup_delay == 0 && //
+                     amax.x > state.camera.pos.x - half_w - ARROW_PICKUP_EXPAND_XZ && amin.x < state.camera.pos.x + half_w + ARROW_PICKUP_EXPAND_XZ && //
                      amax.z > state.camera.pos.z - half_w - ARROW_PICKUP_EXPAND_XZ && amin.z < state.camera.pos.z + half_w + ARROW_PICKUP_EXPAND_XZ && //
                      amax.y > feet_y - ARROW_PICKUP_EXPAND_Y && amin.y < feet_y + state.camera.player_height + ARROW_PICKUP_EXPAND_Y ) {
                     const int leftover = RepGame::give_item_to_player( state, ARROW, 1 );
@@ -219,6 +223,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
             a.stuck = 1;
             a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
+            a.pickup_delay = ARROW_PICKUP_DELAY_TICKS;
             arrow_hit_sfx( state, a.pos );
             continue;
         }
@@ -258,6 +263,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
             a.stuck = 1;
             a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
+            a.pickup_delay = ARROW_PICKUP_DELAY_TICKS;
             arrow_hit_sfx( state, a.pos );
         }
     }
@@ -380,6 +386,11 @@ bool ArrowEntities::spawn_record( const NetEntityRecord &rec, const bool mirror 
     a.damage = rec.health > 0.0f ? rec.health : ARROW_DAMAGE;
     arrow_apply_net_flags( a, rec.flags, a.pos, a.vel );
     a.age_ticks = rec.age_ticks;
+    if ( a.stuck ) {
+        // Adopted straight onto a wall: hold the same pickup cooldown as a
+        // locally-landed arrow (the delay isn't streamed).
+        a.pickup_delay = ARROW_PICKUP_DELAY_TICKS;
+    }
     netsync_apply_record( a.net, rec, mirror );
     this->arrows.push_back( a );
     return true;
@@ -434,6 +445,9 @@ void ArrowEntities::net_apply_transfer( const NetEntityRecord &rec ) {
         // mirror's eased approximation.
         a->pos = a->net.pos;
         a->vel = a->net.vel;
+    }
+    if ( a->stuck && a->pickup_delay == 0 ) {
+        a->pickup_delay = ARROW_PICKUP_DELAY_TICKS;
     }
     a->net.mirror = false;
     a->net.sent = false; // stream resumes with the next collect

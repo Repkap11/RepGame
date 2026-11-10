@@ -130,6 +130,14 @@ int test_arrows( ) {
         gs.camera.pos = glm::dvec3( apos.x, apos.y + PLAYER_EYE_HEIGHT - 0.5, apos.z );
         gs.tick_number++;
         arrows.tick( gs, &out );
+        check_bool( "pickup: fresh landing isn't collectable", arrows.count( ) == 1 );
+        for ( int i = 0; i < ArrowEntities::ARROW_PICKUP_DELAY_TICKS - 2 && arrows.count( ) == 1; i++ ) {
+            gs.tick_number++;
+            arrows.tick( gs, &out );
+        }
+        check_bool( "pickup: still waiting out the delay", arrows.count( ) == 1 );
+        gs.tick_number++;
+        arrows.tick( gs, &out );
         check_bool( "pickup: stuck arrow collected", arrows.count( ) == 0 );
         check_bool( "pickup: ARROW lands on the hotbar", gs.hotbar.findSlotWithItem( ARROW, false ) >= 0 );
         gs.camera.pos = glm::dvec3( 1.5, 60.0, 1.5 ); // back out of range
