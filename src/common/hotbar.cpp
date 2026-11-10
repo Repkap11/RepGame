@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "common/RepGame.hpp"
 #include "common/inventory_renderer.hpp"
 #include "common/font_renderer.hpp"
@@ -33,8 +35,9 @@ void Hotbar::saveInventory( InventorySlot *savedSlots ) const {
     }
 }
 
-void Hotbar::onScreenSizeChange( const int width, const int height ) {
-    this->inventory_renderer.onSizeChange( width, height, this->slots );
+void Hotbar::apply_layout( const UiRect &slab ) {
+    this->inventory_renderer.set_items_pos( lroundf( slab.left ), lroundf( slab.bottom ) );
+    this->inventory_renderer.rebuild( this->slots );
 }
 
 void Hotbar::draw( const Renderer &renderer, const Texture &blocksTexture, const Shader &shader ) {

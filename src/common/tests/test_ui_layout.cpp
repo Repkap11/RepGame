@@ -16,6 +16,18 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     in.hotbar_slab_h = stride + 5.0f;
     in.cell_stride = stride;
     in.label_h = 18.0f;
+    // Inventory slabs mirror compute_layout's outputs: survival is a 9x3
+    // grid at its own stride; the creative palette is screen-fraction
+    // sized with a 0.1*basis bottom reservation.
+    in.surv_slab_w = 9.1f * stride;
+    in.surv_slab_h = 3.1f * stride;
+    in.creative_slab_w = fminf( w * 0.7f, 720.0f );
+    in.creative_slab_h = 6.1f * 60.0f;
+    in.creative_panel_w = w * 0.75f;
+    const float basis = fmaxf( h, w * ( 9.0f / 16.0f ) );
+    in.creative_panel_h = fminf( 0.75f * basis, h );
+    in.creative_stride = 60.0f;
+    in.creative_floor = -h * 0.5f + 0.1f * basis + 6.0f;
     layout.compute( in );
     const UiLayoutRects &r = layout.rects( );
 
@@ -59,6 +71,29 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     is_true( what, r.vitals.top( ) <= r.item_label.bottom + eps );
     snprintf( what, sizeof( what ), "%s: strip inside viewport", name );
     is_true( what, r.hud_strip.bottom >= -h * 0.5f - eps && r.hud_strip.left >= -w * 0.5f - eps && r.hud_strip.right( ) <= w * 0.5f + eps );
+
+    // Inventory panels: the survival slab pins to the higher of the
+    // creative panel's bottom or the HUD strip's top; the palette is
+    // centered + floor-lifted with the search bar above it.
+    snprintf( what, sizeof( what ), "%s: survival slab centered", name );
+    near_to( what, r.survival_items.left, -in.surv_slab_w * 0.5f );
+    snprintf( what, sizeof( what ), "%s: creative panel centered", name );
+    near_to( what, r.creative_panel.left, -in.creative_panel_w * 0.5f );
+    snprintf( what, sizeof( what ), "%s: creative panel bottom = center+floor", name );
+    near_to( what, r.creative_panel.bottom, fmaxf( -in.creative_panel_h * 0.5f, in.creative_floor ) );
+    snprintf( what, sizeof( what ), "%s: creative slab hugs panel bottom", name );
+    near_to( what, r.creative_items.bottom, r.creative_panel.bottom );
+    snprintf( what, sizeof( what ), "%s: creative slab centered in panel", name );
+    near_to( what, r.creative_items.center_x( ), r.creative_panel.center_x( ) );
+    snprintf( what, sizeof( what ), "%s: survival pins above strip/creative", name );
+    near_to( what, r.survival_items.bottom, fmaxf( r.creative_panel.bottom, r.hud_strip.top( ) ) );
+    snprintf( what, sizeof( what ), "%s: search bar over panel top + gap", name );
+    near_to( what, r.search_box.bottom, r.creative_panel.top( ) + 0.15f * in.creative_stride );
+    snprintf( what, sizeof( what ), "%s: search bar sized by stride", name );
+    near_to( what, r.search_box.height, 0.55f * in.creative_stride );
+    snprintf( what, sizeof( what ), "%s: search bar spans the panel", name );
+    near_to( what, r.search_box.left, r.creative_panel.left );
+    near_to( what, r.search_box.width, r.creative_panel.width );
 
     // Pause menu: floating centered panel of stacked rows.
     snprintf( what, sizeof( what ), "%s: pause panel centered", name );

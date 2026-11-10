@@ -7,6 +7,7 @@
 // By-reference draw() params only — forward declared so this header stays
 // standalone-parseable.
 class FontRenderer;
+struct UiRect;
 
 // Max chars the creative search box holds (not counting the terminator).
 #define CREATIVE_SEARCH_MAX 48
@@ -30,7 +31,7 @@ class CreativeInventory {
     char search_text[ CREATIVE_SEARCH_MAX ];
     int search_len;
     // The search box: a single tinted quad laid out above the panel top
-    // edge (centered screen coords), rebuilt by onScreenSizeChange.
+    // edge (centered screen coords), rebuilt by apply_layout.
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_search;
     float search_box_x;
     float search_box_y;
@@ -43,7 +44,10 @@ class CreativeInventory {
   public:
     InventoryRenderer inventory_renderer;
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
-    void onScreenSizeChange( int width, int height );
+    // Adopts the layout pass's items-slab and search-box rects and rebuilds
+    // the slot + search-bar instances (compute_layout must already have
+    // sized the grid).
+    void apply_layout( int width, int height, const UiRect &items, const UiRect &search );
     // search_visible draws the search box + its text above the panel (the
     // flag lives in Input::search_focused — the palette itself only owns
     // the query text).

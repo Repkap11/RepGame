@@ -145,10 +145,23 @@ void InventoryRenderer::compute_layout( const int screen_width, const int screen
     this->inv_selected_offset = this->inv_cell_offset + ( this->inv_cell_size - this->inv_selected_size ) / 2;
 }
 
-void InventoryRenderer::onSizeChange( const int screen_width, const int screen_height, const InventorySlot *inventory_slots ) {
-    this->compute_layout( screen_width, screen_height );
+void InventoryRenderer::set_items_pos( const int items_x, const int items_y ) {
+    const int dx = items_x - this->inv_items_x;
+    const int dy = items_y - this->inv_items_y;
+    this->inv_x += dx;
+    this->inv_y += dy;
+    this->inv_items_x += dx;
+    this->inv_items_y += dy;
+}
+
+void InventoryRenderer::rebuild( const InventorySlot *inventory_slots ) {
     this->renderBackground( );
     this->fullItemRender( inventory_slots );
+}
+
+void InventoryRenderer::onSizeChange( const int screen_width, const int screen_height, const InventorySlot *inventory_slots ) {
+    this->compute_layout( screen_width, screen_height );
+    this->rebuild( inventory_slots );
 }
 
 int InventoryRenderer::getInvBottom( ) const {

@@ -108,6 +108,13 @@ class InventoryRenderer {
     // pass calls it to size elements before the renderer rebuilds GL
     // instances; onSizeChange calls it then rebuilds.
     void compute_layout( int screen_width, int screen_height );
+    // Adopts a Clay-computed items-slab position (centered UI coords):
+    // shifts the items rect and the panel rect by the delta from wherever
+    // compute_layout put them. Call between compute_layout and rebuild.
+    void set_items_pos( int items_x, int items_y );
+    // The GL half of onSizeChange: rebuilds the background/icon instances
+    // at the current inv_* geometry.
+    void rebuild( const InventorySlot *inventory_slots );
     void onSizeChange( int width, int height, const InventorySlot *inventory_slots );
     void changeSlotItem( int slot_index, const InventorySlot &slot );
     void setSelectedSlot( int slot_index );
@@ -144,6 +151,9 @@ class InventoryRenderer {
     // fixed-stride panels at another panel's scale and for framing a panel
     // inside a window backdrop.
     float getCellStride( ) const;
+    int getCellOffset( ) const {
+        return this->inv_cell_offset;
+    }
     int getItemsTop( ) const;
     int getItemsBottom( ) const {
         return this->inv_items_y;

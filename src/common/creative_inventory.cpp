@@ -1,3 +1,4 @@
+#include <math.h>
 #include <string.h>
 
 #include "common/RepGame.hpp"
@@ -177,18 +178,18 @@ void CreativeInventory::load_blocks_for_selected_page( ) {
     }
 }
 
-void CreativeInventory::onScreenSizeChange( int width, int height ) {
+void CreativeInventory::apply_layout( int width, int height, const UiRect &items, const UiRect &search ) {
     this->screen_width = width;
     this->screen_height = height;
-    this->inventory_renderer.onSizeChange( width, height, this->slots );
+    this->inventory_renderer.set_items_pos( lroundf( items.left ), lroundf( items.bottom ) );
+    this->inventory_renderer.rebuild( this->slots );
 
     // The search box is a bar spanning the panel's width, floating just
-    // above its top edge with a gap proportional to a cell stride.
-    const float stride = this->inventory_renderer.getCellStride( );
-    this->search_box_h = stride * 0.55f;
-    this->search_box_x = static_cast<float>( this->inventory_renderer.getInvLeft( ) );
-    this->search_box_y = this->inventory_renderer.getInvTop( ) + stride * 0.15f;
-    this->search_box_w = static_cast<float>( this->inventory_renderer.getInvRight( ) - this->inventory_renderer.getInvLeft( ) );
+    // above its top edge — the rect comes from the layout pass.
+    this->search_box_x = search.left;
+    this->search_box_y = search.bottom;
+    this->search_box_w = search.width;
+    this->search_box_h = search.height;
     this->render_chain_search.clear( );
     auto pair = this->render_chain_search.create_instance( );
     UIOverlayInstance &box = pair.second;

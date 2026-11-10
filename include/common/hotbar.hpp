@@ -4,6 +4,7 @@
 #include "common/item.hpp"
 
 class FontRenderer;
+struct UiRect;
 
 class Hotbar {
     friend int test_mobs( );
@@ -20,7 +21,9 @@ class Hotbar {
   public:
     InventoryRenderer inventory_renderer;
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
-    void onScreenSizeChange( int width, int height );
+    // Adopts the layout pass's items-slab rect and rebuilds the slot
+    // background/icons (compute_layout must already have sized the grid).
+    void apply_layout( const UiRect &slab );
     bool addItem( bool alsoSelect, ItemID itemId );
     bool addItemWithQuantity( ItemID itemId, int quantity );
     bool addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selected_slot );

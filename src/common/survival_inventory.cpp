@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "common/RepGame.hpp"
 #include "common/survival_inventory.hpp"
 #include "common/hotbar.hpp"
@@ -30,8 +32,9 @@ void SurvivalInventory::init( const VertexBufferLayout &ui_overlay_vbl_vertex, c
     }
 }
 
-void SurvivalInventory::onScreenSizeChange( int width, int height ) {
-    this->inventory_renderer.onSizeChange( width, height, this->slots );
+void SurvivalInventory::apply_layout( const UiRect &slab ) {
+    this->inventory_renderer.set_items_pos( lroundf( slab.left ), lroundf( slab.bottom ) );
+    this->inventory_renderer.rebuild( this->slots );
 }
 
 int SurvivalInventory::addItem( ItemID itemId, int quantity ) {

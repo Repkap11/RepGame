@@ -137,6 +137,24 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     Clay_SetCurrentContext( this->context );
     Clay_SetLayoutDimensions( { in.screen_w, in.screen_h } );
 
+    const float s = in.cell_stride;
+    // The HUD strip is all-FIXED children, so its height is known before
+    // the pass — the survival slab's pin and the creative panel's floor
+    // lift can be solved here instead of read back. Distances and the
+    // centered-coords edges below are pixel values either way; only the
+    // sign convention differs.
+    const float strip_h = 1.1f * s + in.hotbar_slab_h + in.label_h + 4.0f;
+    const float strip_top = -in.screen_h * 0.5f + strip_h; // centered coords
+    // Survival slab bottom: the higher of the creative panel's bottom or
+    // the HUD strip's top (the old surv_pin rule, expressed as dead space
+    // under the inventory group).
+    const float creative_bottom = in.creative_panel_h > 0.0f ? fmaxf( -in.creative_panel_h * 0.5f, in.creative_floor ) : -1.0e30f;
+    const float pin_gap = fmaxf( 0.0f, creative_bottom - strip_top );
+    // The creative panel is screen-centered, lifted off its bottom floor.
+    const float creative_lift = fmaxf( 0.0f, in.creative_floor + in.creative_panel_h * 0.5f );
+    const float search_h = 0.55f * in.creative_stride;
+    const float search_gap = 0.15f * in.creative_stride;
+
     // Fit-solve the pause menu's integer text scale k: shrink it until the
     // panel fits the viewport caps (same rule the old k-- loop applied).
     int pause_k = static_cast<int>( lroundf( ui_layout_height_basis( in.screen_w, in.screen_h ) / 400.0f ) );
@@ -146,11 +164,23 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     for ( ; ; pause_k-- ) {
         Clay_BeginLayout( );
 
-        const float s = in.cell_stride;
         CLAY( { .id = CLAY_ID( "root" ),
             .layout = { .sizing = { CLAY_SIZING_GROW( ), CLAY_SIZING_GROW( ) },
                         .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_BOTTOM },
                         .layoutDirection = CLAY_TOP_TO_BOTTOM } } ) {
+        // The inventory group: container screens stack above the survival
+        // slab here (added with those migrations); pin_gap keeps the whole
+        // group clear of the HUD strip when it would otherwise overlap.
+        if ( in.surv_slab_w > 0.0f ) {
+            CLAY( { .id = CLAY_ID( "inventory_group" ),
+                    .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
+                                .childAlignment = { .x = CLAY_ALIGN_X_CENTER },
+                                .layoutDirection = CLAY_TOP_TO_BOTTOM } } ) {
+                CLAY( { .id = CLAY_ID( "survival_items" ),
+                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.surv_slab_w ), CLAY_SIZING_FIXED( in.surv_slab_h ) } } } ) { }
+            }
+            CLAY( { .id = CLAY_ID( "pin_gap" ), .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( pin_gap ) } } } ) { }
+        }
         // The bottom HUD strip: label slot over the vitals row over the
         // hotbar slab, plus headroom under the lowest panel. Panel layouts
         // pin to hud_strip.top() — measured, not re-derived.
@@ -174,6 +204,26 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                 CLAY( { .id = CLAY_ID( "item_label_low" ),
                         .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( in.label_h ) } },
                         .floating = { .offset = { 0, -( 0.035f * s + 8.0f ) },
+                                      .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                                      .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
+            }
+        }
+        // The creative palette: a floating screen-centered panel (the old
+        // max_width/max_height bounds), lifted off its bottom floor when
+        // the screen is too small to center it. The items slab hugs the
+        // panel's bottom edge; the search bar floats above its top edge.
+        if ( in.creative_panel_w > 0.0f ) {
+            CLAY( { .id = CLAY_ID( "creative_panel" ),
+                    .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_panel_w ), CLAY_SIZING_FIXED( in.creative_panel_h ) },
+                                .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_BOTTOM } },
+                    .floating = { .offset = { 0, -creative_lift },
+                                  .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_CENTER, .parent = CLAY_ATTACH_POINT_CENTER_CENTER },
+                                  .attachTo = CLAY_ATTACH_TO_ROOT } } ) {
+                CLAY( { .id = CLAY_ID( "creative_items" ),
+                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_slab_w ), CLAY_SIZING_FIXED( in.creative_slab_h ) } } } ) { }
+                CLAY( { .id = CLAY_ID( "search_box" ),
+                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_panel_w ), CLAY_SIZING_FIXED( search_h ) } },
+                        .floating = { .offset = { 0, -search_gap },
                                       .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                                       .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
             }
@@ -202,6 +252,10 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_.item_label = rect_of( CLAY_ID( "item_label" ) );
     this->rects_.item_label_low = rect_of( CLAY_ID( "item_label_low" ) );
     this->rects_.hud_strip = rect_of( CLAY_ID( "hud_strip" ) );
+    this->rects_.survival_items = rect_of( CLAY_ID( "survival_items" ) );
+    this->rects_.creative_panel = rect_of( CLAY_ID( "creative_panel" ) );
+    this->rects_.creative_items = rect_of( CLAY_ID( "creative_items" ) );
+    this->rects_.search_box = rect_of( CLAY_ID( "search_box" ) );
 
     this->rects_.pause_panel = rect_of( CLAY_ID( "pause_panel" ) );
     this->rects_.pause_title = rect_of( CLAY_ID( "pause_title" ) );
@@ -224,6 +278,18 @@ UiLayoutInput ui_layout_input( const RepGameState &state ) {
     in.hotbar_slab_h = static_cast<float>( hotbar.getItemsTop( ) - hotbar.getItemsBottom( ) );
     in.cell_stride = hotbar.getCellStride( );
     in.label_h = state.ui.font.getCapHeight( UI_ITEM_LABEL_SIZE );
+    const InventoryRenderer &surv = state.survival_inventory.inventory_renderer;
+    in.surv_slab_w = static_cast<float>( surv.getItemsRight( ) - surv.getItemsLeft( ) );
+    in.surv_slab_h = static_cast<float>( surv.getItemsTop( ) - surv.getItemsBottom( ) );
+    const InventoryRenderer &creative = state.ui.creative.inventory_renderer;
+    in.creative_slab_w = static_cast<float>( creative.getItemsRight( ) - creative.getItemsLeft( ) );
+    in.creative_slab_h = static_cast<float>( creative.getItemsTop( ) - creative.getItemsBottom( ) );
+    in.creative_panel_w = static_cast<float>( creative.getInvRight( ) - creative.getInvLeft( ) );
+    in.creative_panel_h = static_cast<float>( creative.getInvTop( ) - creative.getInvBottom( ) );
+    in.creative_stride = creative.getCellStride( );
+    // The panel's bottom floor: the reserved strip above the screen bottom
+    // (one cell border of breathing room, mirroring compute_layout).
+    in.creative_floor = -in.screen_h * 0.5f + static_cast<int>( ui_layout_height_basis( in.screen_w, in.screen_h ) * creative.options.bottom_reserved_percent ) + creative.getCellOffset( );
     in.pause_dead = state.ui.pause.is_dead( );
     return in;
 }

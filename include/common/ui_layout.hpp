@@ -49,6 +49,19 @@ struct UiLayoutInput {
     float cell_stride = 0;
     // Cap height of the selected-item label at its drawn size.
     float label_h = 0;
+    // Survival inventory items-slab size (from its compute_layout).
+    float surv_slab_w = 0;
+    float surv_slab_h = 0;
+    // Creative palette: items slab, the (undrawn) panel bounds the search
+    // bar anchors to, and the cell stride that sizes the search bar.
+    float creative_slab_w = 0;
+    float creative_slab_h = 0;
+    float creative_panel_w = 0;
+    float creative_panel_h = 0;
+    float creative_stride = 0;
+    // Lowest y (centered coords) the creative panel bottom may sit at —
+    // its bottom_reserved_percent floor.
+    float creative_floor = 0;
     // Pause-menu content variant: the death screen collapses to
     // Respawn + Exit under "You died!".
     bool pause_dead = false;
@@ -70,6 +83,19 @@ struct UiLayoutRects {
     // Whole bottom HUD strip including top headroom: inventory panels pin
     // their bottom edge to hud_strip.top().
     UiRect hud_strip;
+
+    // Survival inventory items slab — bottom edge at the higher of the
+    // creative panel's bottom or the HUD strip top (matching the old
+    // surv_pin rule), horizontally centered. Container screens stack
+    // above it inside the same group.
+    UiRect survival_items;
+    // Creative palette window bounds (not drawn — the search bar anchors
+    // to its top edge and its bottom edge feeds the survival pin).
+    UiRect creative_panel;
+    // Creative palette items slab, bottom-anchored in the panel.
+    UiRect creative_items;
+    // Creative search bar, floating above the panel's top edge.
+    UiRect search_box;
 
     // Pause menu (modal, centered; always laid out, drawn/hit-tested only
     // while open). pause_rows[i] is the full-width band of line i;

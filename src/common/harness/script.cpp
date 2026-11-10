@@ -353,6 +353,10 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         state.input.menu_open = atoi( argv[ 1 ].c_str( ) ) != 0;
         return false;
     }
+    if ( strcmp( cmd, "search" ) == 0 && argc == 2 ) {
+        state.input.search_focused = atoi( argv[ 1 ].c_str( ) ) != 0;
+        return false;
+    }
     if ( strcmp( cmd, "assert_health" ) == 0 && argc == 3 ) {
         const double expected = atof( argv[ 2 ].c_str() );
         char actual[ 32 ];

@@ -4,6 +4,7 @@
 #include "common/item.hpp"
 
 class FontRenderer;
+struct UiRect;
 
 class SurvivalInventory {
     friend void test_setup_inventories( struct RepGameState &gs );
@@ -16,7 +17,9 @@ class SurvivalInventory {
   public:
     InventoryRenderer inventory_renderer;
     void init( const VertexBufferLayout &ui_overlay_vbl_vertex, const VertexBufferLayout &ui_overlay_vbl_instance, int width, int height );
-    void onScreenSizeChange( int width, int height );
+    // Adopts the layout pass's items-slab rect and rebuilds the slot
+    // background/icons (compute_layout must already have sized the grid).
+    void apply_layout( const UiRect &slab );
 
     // Adds the given item to the inventory. Returns the number of items that
     // could not be added (0 = all added). If the inventory is full, the leftover

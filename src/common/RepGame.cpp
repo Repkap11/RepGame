@@ -50,30 +50,19 @@ void RepGame::changeSize( const int w, const int h ) {
     globalGameState.input.mouse.previousPosition.y = h / 2;
     globalGameState.ui.overlay.on_screen_size_change( w, h );
     globalGameState.ui.font.onScreenSizeChange( w, h );
-    globalGameState.ui.creative.onScreenSizeChange( w, h );
-    // The layout pass sizes the HUD strip from the hotbar's slab metrics —
-    // compute_layout is the pure half of onSizeChange (no GL rebuild).
+    // Sizing pass: every panel the Clay layout positions gets its grid
+    // metrics first — compute_layout is pure (no GL rebuild).
     globalGameState.hotbar.inventory_renderer.compute_layout( w, h );
+    globalGameState.survival_inventory.inventory_renderer.compute_layout( w, h );
+    globalGameState.ui.creative.inventory_renderer.compute_layout( w, h );
     globalGameState.ui.layout.compute( ui_layout_input( globalGameState ) );
-    // The hotbar sits where the layout put its slab (screen bottom today).
-    globalGameState.hotbar.inventory_renderer.options.pin_bottom_y = static_cast<int>( globalGameState.ui.layout.rects( ).hotbar.bottom );
-    globalGameState.hotbar.onScreenSizeChange( w, h );
-    // Align the survival panel's bottom edge with the creative panel's bottom,
-    // and the chest panel's top edge with the creative panel's top, so the
-    // combined chest+player-inventory view spans the creative panel's area.
-    int surv_pin = globalGameState.ui.creative.inventory_renderer.getInvBottom( );
-    // Lift the panel stack clear of the HUD strip (selected-item label over
-    // the vitals row over the hotbar). The strip's measured top replaces
-    // the old estimate; the reservation is unconditional — game mode
-    // toggles at runtime without a resize — and in creative the extra
-    // space is just a gap. The chest/crafting/furnace panels re-pin off
-    // the survival items top, so they follow.
-    const int strip_top = static_cast<int>( globalGameState.ui.layout.rects( ).hud_strip.top( ) );
-    if ( strip_top > surv_pin ) {
-        surv_pin = strip_top;
-    }
-    globalGameState.survival_inventory.inventory_renderer.options.pin_bottom_y = surv_pin;
-    globalGameState.survival_inventory.onScreenSizeChange( w, h );
+    // Adopt the measured rects: each slab lands where the layout put it
+    // (the hotbar flush at the screen bottom, the survival inventory above
+    // the HUD strip, the creative palette centered + floor-lifted).
+    const UiLayoutRects &rects = globalGameState.ui.layout.rects( );
+    globalGameState.hotbar.apply_layout( rects.hotbar );
+    globalGameState.survival_inventory.apply_layout( rects.survival_items );
+    globalGameState.ui.creative.apply_layout( w, h, rects.creative_items, rects.search_box );
     repgame_chest_layout( globalGameState );
     repgame_crafting_layout( globalGameState );
     repgame_furnace_layout( globalGameState );
