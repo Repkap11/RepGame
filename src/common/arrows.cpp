@@ -208,6 +208,19 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
         }
         const glm::dvec3 dir = a.vel / seg_len;
 
+        glm::dvec3 amin = arrow_min( a );
+        glm::dvec3 amax = amin + glm::dvec3( ARROW_HALF * 2 );
+        // move_box only clamps faces the leading edge crosses — a spawn
+        // already inside a solid (a point-blank release into a wall) would
+        // tunnel straight through. Settle it like a face hit where it sits.
+        if ( Collision::box_collides( world, amin, amax ) ) {
+            a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
+            a.stuck = 1;
+            a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
+            audio_play_sfx( "arrow_hit" );
+            continue;
+        }
+
         // First mob hitbox along the full intended segment — resolved
         // against the block hit below so a nearer wall wins.
         double mob_t = 0.0;
@@ -216,8 +229,6 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
         // Move a tiny box at the arrow center: stops flush on the first
         // colliding face (plants/torches don't collide), so the tip reads
         // as embedded once the pose is adjusted below.
-        glm::dvec3 amin = arrow_min( a );
-        glm::dvec3 amax = amin + glm::dvec3( ARROW_HALF * 2 );
         const glm::dvec3 want = a.vel;
         bool hit_axis[ 3 ];
         int hit_extra_axis[ 3 ];
@@ -283,11 +294,10 @@ void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_l
         m[ 1 ] = glm::vec4( fwd * s, 0.0f );
         m[ 2 ] = glm::vec4( normal * s, 0.0f );
         m[ 3 ] = glm::vec4( glm::vec3( rpos ), 1.0f );
-        // Recentre the unit-square sprite on the shaft, then rotate the
-        // icon's diagonal onto +y with the tip leading (the mesh's +y
-        // samples image-down, so the tail→tip diagonal maps to +y at
-        // 315°, not 135°).
-        m = m * glm::translate( glm::mat4( 1.0f ), glm::vec3( 0.5f, 0.5f, 0.5f / 16.0f ) );
+        // Rotate the icon's diagonal onto +y with the tip leading (the
+        // mesh's +y samples image-down, so the tail→tip diagonal maps to
+        // +y at 315°, not 135°) about the sprite's own center — the shaft
+        // stays centered on pos, tip at +ARROW_LEN/2 along the flight dir.
         m = m * glm::rotate( glm::mat4( 1.0f ), glm::radians( 315.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
         m = m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f, -0.5f, -0.5f / 16.0f ) );
         inst.transform = m;

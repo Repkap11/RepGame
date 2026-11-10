@@ -74,6 +74,23 @@ int test_arrows( ) {
         check_bool( "stick: tip cell inside the wall", a.stuck_cell.x == 15 );
     }
 
+    // --- point-blank release: a spawn already inside the wall sticks where
+    // it sits instead of tunnelling through (move_box only clamps faces the
+    // leading edge crosses) ----------------------------------------------
+    {
+        ArrowEntities arrows;
+        arrows.spawn( glm::dvec3( 15.1, 20.0, 10.5 ), glm::dvec3( ArrowEntities::ARROW_SPEED, 0.0, 0.0 ), ArrowEntities::ARROW_DAMAGE, 1 );
+        ArrowEntities::ArrowTickOutput out;
+        for ( int i = 0; i < 10 && ( arrows.count( ) == 0 || !arrows.debug_arrows( )[ 0 ].stuck ); i++ ) {
+            gs.tick_number++;
+            arrows.tick( gs, &out );
+        }
+        check_bool( "embedded: parked instead of tunnelling", arrows.count( ) == 1 && arrows.debug_arrows( )[ 0 ].stuck == 1 );
+        const ArrowEntities::Arrow a = arrows.debug_arrows( )[ 0 ];
+        check_bool( "embedded: stayed on the near side", a.pos.x < 15.0 );
+        check_bool( "embedded: tip cell inside the wall", a.stuck_cell.x == 15 );
+    }
+
     // --- stuck arrow falls free when the anchor block breaks -------------------
     {
         ArrowEntities arrows;

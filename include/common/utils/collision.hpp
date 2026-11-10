@@ -54,6 +54,11 @@ class Collision {
     // rewrites `eye` to the resolved position. Returns false (eye untouched)
     // when a few pushes can't free it — a pocket tighter than the box.
     static bool unstick( World &world, glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // Returns true if the AABB [min,max] overlaps any colliding block box
+    // (unloaded cells count as solid). move_box only clamps faces the leading
+    // edge crosses, so a box that already overlaps is invisible to it — this
+    // is how a caller detects one.
+    static bool box_collides( World &world, const glm::dvec3 &min, const glm::dvec3 &max );
     // Depenetrates an arbitrary AABB already embedded in solid terrain —
     // e.g. a dropped-item box a block was placed onto, where move_box's
     // face-crossing clamps can never help. Prefers the cheapest horizontal

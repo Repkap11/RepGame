@@ -528,6 +528,10 @@ bool Collision::unstick( World &world, glm::dvec3 &eye, double player_height, do
     return false;
 }
 
+bool Collision::box_collides( World &world, const glm::dvec3 &min, const glm::dvec3 &max ) {
+    return aabb_collides_world( world, min, max );
+}
+
 bool Collision::unstick_box( World &world, glm::dvec3 &amin, glm::dvec3 &amax ) {
     if ( !aabb_collides_world( world, amin, amax ) ) {
         return true;

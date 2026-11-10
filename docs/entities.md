@@ -85,7 +85,10 @@ still sink underwater), then moves a point-sized collision box
 (`Collision::move_box`, so plants/torches don't collide) along the
 segment and cross-checks `MobManager::raycast` against the whole intended
 path — the nearer of block-vs-mob wins, so a fast arrow can't tunnel
-through either. Lava/fire contact destroys the arrow with a `fizz`.
+through either. move_box only clamps faces the leading edge crosses, so
+a spawn already inside a solid (a point-blank release into a wall) is
+settled as a block hit where it sits (`Collision::box_collides`) instead
+of tunnelling through. Lava/fire contact destroys the arrow with a `fizz`.
 
 A block hit parks the arrow: `stuck` freezes the sim with the tip ~0.1
 inside the hit cell (`stuck_cell` is rechecked each tick — breaking that
