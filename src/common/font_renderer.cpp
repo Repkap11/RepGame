@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <math.h>
+#include <string.h>
 
 #include "common/RepGame.hpp"
 #include "common/font_renderer.hpp"
@@ -47,10 +48,12 @@ static constexpr int kLetterSpacing = 1;
 // texels; 4 reads as a word gap in a proportional pixel font.
 static constexpr int kSpaceAdvance = 4;
 
-// Interleaved vertex: position (x,y) + UV (u,v) per corner.
+// Interleaved vertex: position (x,y) + UV (u,v) + per-vertex tint per corner.
+// The tint is per-vertex (not a uniform) so one batched draw can mix colours.
 struct TextVertex {
     float x, y;
     float u, v;
+    float r, g, b, a;
 };
 
 void FontRenderer::init( ) {
@@ -177,6 +180,9 @@ void FontRenderer::init( ) {
     // UV attribute (location 1): 2 floats
     glEnableVertexAttribArray( 1 );
     glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( TextVertex ), ( const void * )( 2 * sizeof( float ) ) );
+    // Tint attribute (location 2): 4 floats
+    glEnableVertexAttribArray( 2 );
+    glVertexAttribPointer( 2, 4, GL_FLOAT, GL_FALSE, sizeof( TextVertex ), ( const void * )( 4 * sizeof( float ) ) );
 
     // Allocate VBO storage with GL_DYNAMIC_DRAW for per-frame updates.
     glBufferData( GL_ARRAY_BUFFER, max_quads * 4 * sizeof( TextVertex ), NULL, GL_DYNAMIC_DRAW );
@@ -215,7 +221,7 @@ void FontRenderer::onScreenSizeChange( int w, int h ) {
     this->screen_height = h;
 }
 
-float FontRenderer::getTextWidth( const char *text, float size ) const {
+float FontRenderer::getTextWidthSlice( const char *text, int len, float size ) const {
     // Width is the sum of proportional pen steps, matching drawString, so
     // measured and drawn widths always agree. The last glyph's trailing
     // ink gap is excluded so the result is the visible extent (keeps
@@ -223,7 +229,7 @@ float FontRenderer::getTextWidth( const char *text, float size ) const {
     const int k = pixelScale( size );
     float width = 0;
     int last_idx = -1;
-    for ( const char *p = text; *p; p++ ) {
+    for ( const char *p = text, *end = text + len; p < end && *p; p++ ) {
         int codepoint = static_cast<unsigned char>( *p );
         if ( codepoint < first_char || codepoint >= first_char + num_chars ) continue;
         const int cur_idx = codepoint - first_char;
@@ -234,6 +240,15 @@ float FontRenderer::getTextWidth( const char *text, float size ) const {
         width -= kLetterSpacing;
     }
     return width * k;
+}
+
+float FontRenderer::getTextWidth( const char *text, float size ) const {
+    return this->getTextWidthSlice( text, static_cast<int>( strlen( text ) ), size );
+}
+
+void FontRenderer::measureSlice( const char *text, int len, float size, float &out_w, float &out_h ) const {
+    out_w = this->getTextWidthSlice( text, len, size );
+    out_h = this->getAscent( size ) - this->getDescent( size );
 }
 
 float FontRenderer::getAscent( float size ) const {
@@ -253,20 +268,15 @@ float FontRenderer::getCapHeight( float size ) const {
     return roundf( -glyphs[ 'H' - first_char ].yoff ) * pixelScale( size );
 }
 
-void FontRenderer::drawStringOutlined( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
-    const float k = static_cast<float>( pixelScale( size ) );
-    const float black[ 4 ] = { 0.0f, 0.0f, 0.0f, tint[ 3 ] };
-    for ( int dy = -1; dy <= 1; dy++ ) {
-        for ( int dx = -1; dx <= 1; dx++ ) {
-            if ( dx || dy ) {
-                drawString( renderer, text, x + dx * k, y + dy * k, size, black, mvp );
-            }
-        }
-    }
-    drawString( renderer, text, x, y, size, tint, mvp );
+void FontRenderer::text_begin( ) {
+    this->batch_quads = 0;
 }
 
-void FontRenderer::drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
+void FontRenderer::text_append( const char *text, float x, float y, float size, const float tint[ 4 ] ) {
+    this->text_append_slice( text, static_cast<int>( strlen( text ) ), x, y, size, tint );
+}
+
+void FontRenderer::text_append_slice( const char *text, int len, float x, float y, float size, const float tint[ 4 ] ) {
     const int k = pixelScale( size );
     float pen_x = 0;
     float pen_y = 0;
@@ -278,13 +288,24 @@ void FontRenderer::drawString( const Renderer &renderer, const char *text, float
     const float ox = floorf( x + this->screen_width * 0.5f ) - this->screen_width * 0.5f;
     const float oy = floorf( y + this->screen_height * 0.5f ) - this->screen_height * 0.5f;
 
+    // Grow the staging buffer to fit this string's worst case (one quad per
+    // char); each append at least doubles so growth amortizes.
+    const int needed = this->batch_quads + len;
+    if ( needed > this->batch_capacity ) {
+        int capacity = this->batch_capacity > 0 ? this->batch_capacity : 256;
+        while ( capacity < needed ) {
+            capacity *= 2;
+        }
+        this->batch = static_cast<TextVertex *>( realloc( this->batch, static_cast<size_t>( capacity ) * 4 * sizeof( TextVertex ) ) );
+        this->batch_capacity = capacity;
+    }
+    TextVertex *vertices = this->batch + this->batch_quads * 4;
+    int quad_count = 0;
+
     // Build vertex data for all glyphs using stbtt_GetPackedQuad.
     // We render at the native font_size (pen starts at 0,0), then scale
     // and translate the final quad positions to (x, y) at the requested size.
-    TextVertex *vertices = static_cast<TextVertex *>( malloc( max_quads * 4 * sizeof( TextVertex ) ) );
-    int quad_count = 0;
-
-    for ( const char *p = text; *p && quad_count < max_quads; p++ ) {
+    for ( const char *p = text, *end = text + len; p < end && *p; p++ ) {
         int codepoint = static_cast<unsigned char>( *p );
         if ( codepoint < first_char || codepoint >= first_char + num_chars ) continue;
         const int cur_idx = codepoint - first_char;
@@ -317,31 +338,25 @@ void FontRenderer::drawString( const Renderer &renderer, const char *text, float
         // glTexImage2D puts atlas row 0 at v=0 (bottom of texture in OpenGL),
         // so the atlas is flipped in the texture. Swap t0/t1 to compensate.
         // Bottom-left (lower y on screen = bottom of glyph)
-        quad[ 0 ] = { sx0, sy1, q.s0, q.t1 };
+        quad[ 0 ] = { sx0, sy1, q.s0, q.t1, tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] };
         // Top-left (higher y on screen = top of glyph)
-        quad[ 1 ] = { sx0, sy0, q.s0, q.t0 };
+        quad[ 1 ] = { sx0, sy0, q.s0, q.t0, tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] };
         // Top-right (higher y on screen = top of glyph)
-        quad[ 2 ] = { sx1, sy0, q.s1, q.t0 };
+        quad[ 2 ] = { sx1, sy0, q.s1, q.t0, tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] };
         // Bottom-right (lower y on screen = bottom of glyph)
-        quad[ 3 ] = { sx1, sy1, q.s1, q.t1 };
+        quad[ 3 ] = { sx1, sy1, q.s1, q.t1, tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] };
 
         quad_count++;
     }
+    this->batch_quads += quad_count;
+}
 
-    if ( quad_count == 0 ) {
-        free( vertices );
+void FontRenderer::text_flush( const Renderer &renderer, const glm::mat4 &mvp ) {
+    if ( this->batch_quads == 0 ) {
         return;
     }
-
-    // Upload vertex data with glBufferSubData (VBO is pre-allocated).
-    glBindBuffer( GL_ARRAY_BUFFER, vbo_id );
-    glBufferSubData( GL_ARRAY_BUFFER, 0, quad_count * 4 * sizeof( TextVertex ), vertices );
-    free( vertices );
-
-    // Draw.
     shader.bind( );
     shader.set_uniform_mat4f( "u_MVP", mvp );
-    shader.set_uniform4f( "u_Tint", tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] );
 
     // Bind the atlas to texture unit 0.
     glActiveTexture( GL_TEXTURE0 );
@@ -352,15 +367,45 @@ void FontRenderer::drawString( const Renderer &renderer, const char *text, float
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_CULL_FACE );
 
-    // Draw using glDrawElements (non-instanced).
     glBindVertexArray( vao_id );
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ibo_id );
-    glDrawElements( GL_TRIANGLES, quad_count * 6, GL_UNSIGNED_INT, NULL );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_id );
+    // Upload + draw in max_quads chunks — the VBO is a fixed-size staging
+    // buffer while batch is unbounded.
+    for ( int base = 0; base < this->batch_quads; base += max_quads ) {
+        const int count = this->batch_quads - base < max_quads ? this->batch_quads - base : max_quads;
+        glBufferSubData( GL_ARRAY_BUFFER, 0, count * 4 * sizeof( TextVertex ), this->batch + base * 4 );
+        glDrawElements( GL_TRIANGLES, count * 6, GL_UNSIGNED_INT, NULL );
+    }
     glBindVertexArray( 0 );
 
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_CULL_FACE );
+    this->batch_quads = 0;
     showErrors( );
+}
+
+void FontRenderer::drawString( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
+    this->text_append( text, x, y, size, tint );
+    this->text_flush( renderer, mvp );
+}
+
+void FontRenderer::text_append_outlined( const char *text, float x, float y, float size, const float tint[ 4 ] ) {
+    const float k = static_cast<float>( pixelScale( size ) );
+    const float black[ 4 ] = { 0.0f, 0.0f, 0.0f, tint[ 3 ] };
+    for ( int dy = -1; dy <= 1; dy++ ) {
+        for ( int dx = -1; dx <= 1; dx++ ) {
+            if ( dx || dy ) {
+                this->text_append( text, x + dx * k, y + dy * k, size, black );
+            }
+        }
+    }
+    this->text_append( text, x, y, size, tint );
+}
+
+void FontRenderer::drawStringOutlined( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp ) {
+    this->text_append_outlined( text, x, y, size, tint );
+    this->text_flush( renderer, mvp );
 }
 
 void FontRenderer::cleanup( ) {

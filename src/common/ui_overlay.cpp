@@ -167,7 +167,7 @@ void UIOverlay::draw_slot_panel( InventoryRenderer &panel, const InventorySlot *
         const float tx = slot_x - text_width - 2.0f;
         const float ty = slot_y + 2.0f;
         float tint[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
+        font.text_append( buf, tx, ty, text_size, tint );
     }
 }
 
@@ -229,7 +229,7 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
     float tx = slot_x - text_width - 2.0f;
     float ty = slot_y + 2.0f;
     float tint[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
+    font.text_append( buf, tx, ty, text_size, tint );
 
     showErrors( );
 }

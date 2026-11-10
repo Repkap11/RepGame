@@ -316,6 +316,17 @@ if(REPGAME_BUILD_CLIENT)
 	endif()
 endif()
 
+# ---- clay (vendored: warnings are not errors in the upstream impl) --------
+if(REPGAME_BUILD_CLIENT)
+	# Same treatment as imgui: the vendored clay.h implementation trips
+	# -Wmissing-(designated-)field-initializers, which we don't want to
+	# patch out of the vendored file. Project files *declaring* Clay
+	# elements use partial designated initializers; those get
+	# -Wno-missing-(designated-)field-initializers via REPGAME_CLAY_SOURCES.
+	set_source_files_properties(${CMAKE_SOURCE_DIR}/src/common/vendor/clay.cpp
+		PROPERTIES COMPILE_OPTIONS -Wno-error)
+endif()
+
 # ---- client ---------------------------------------------------------------
 if(REPGAME_BUILD_CLIENT)
 	if(REPGAME_PLATFORM STREQUAL "wasm")

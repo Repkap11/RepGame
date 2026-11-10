@@ -46,6 +46,13 @@ class FontRenderer {
     unsigned int ibo_id;
     int max_quads;
 
+    // CPU-side staging for batched text: text_append builds glyph quads
+    // here; text_flush uploads and draws them in one call. Owned by
+    // text_begin (reallocs as needed).
+    struct TextVertex *batch = nullptr;
+    int batch_capacity = 0;  // in quads
+    int batch_quads = 0;
+
     // Screen size, needed to snap text origins to the pixel grid (the UI
     // ortho origin is the screen center, so odd dimensions offset by half).
     int screen_width = 0;
@@ -61,7 +68,20 @@ class FontRenderer {
     // drawString with a one-raster-texel black outline (8 offset passes
     // under the tinted text) so it reads against any background.
     void drawStringOutlined( const Renderer &renderer, const char *text, float x, float y, float size, const float tint[ 4 ], const glm::mat4 &mvp );
+    // Batched drawing: text_begin resets the staging buffer, text_append /
+    // text_append_slice queue glyph quads (no GL work), text_flush uploads
+    // and draws everything queued so far in one call. Nested drawString
+    // during a batch still works (it appends then flushes all pending).
+    void text_begin( );
+    void text_append( const char *text, float x, float y, float size, const float tint[ 4 ] );
+    void text_append_outlined( const char *text, float x, float y, float size, const float tint[ 4 ] );
+    void text_append_slice( const char *text, int len, float x, float y, float size, const float tint[ 4 ] );
+    void text_flush( const Renderer &renderer, const glm::mat4 &mvp );
     float getTextWidth( const char *text, float size ) const;
+    // getTextWidth for a non-null-terminated slice (Clay StringSlice).
+    float getTextWidthSlice( const char *text, int len, float size ) const;
+    // Width + line-box height of a slice — the Clay MeasureText shape.
+    void measureSlice( const char *text, int len, float size, float &out_w, float &out_h ) const;
     float getAscent( float size ) const;
     float getDescent( float size ) const;
     // Capital-letter height (top of 'H' above baseline) at the snapped scale;

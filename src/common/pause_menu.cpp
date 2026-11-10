@@ -310,8 +310,8 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
     // Center by cap height so the capital letters sit symmetric in the button
     // (FontRenderer snaps the baseline to the pixel grid itself).
     const char *title = this->dead_mode ? "You died!" : "Paused";
-    font.drawString( renderer, title, -font.getTextWidth( title, this->title_size ) / 2.0f,
-                     this->title_center_y - font.getCapHeight( this->title_size ) / 2.0f, this->title_size, white, mvp );
+    font.text_append( title, -font.getTextWidth( title, this->title_size ) / 2.0f,
+                      this->title_center_y - font.getCapHeight( this->title_size ) / 2.0f, this->title_size, white );
 
     for ( int i = 0; i < this->num_rows; i++ ) {
         const Row &row = this->rows[ i ];
@@ -364,11 +364,11 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
                 break;
         }
         if ( is_stepper_row( row.button ) ) {
-            font.drawString( renderer, "-", row.left_cx - font.getTextWidth( "-", this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
-            font.drawString( renderer, "+", row.right_cx - font.getTextWidth( "+", this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
+            font.text_append( "-", row.left_cx - font.getTextWidth( "-", this->text_size ) / 2.0f, baseline, this->text_size, white );
+            font.text_append( "+", row.right_cx - font.getTextWidth( "+", this->text_size ) / 2.0f, baseline, this->text_size, white );
         }
         if ( buf[ 0 ] != '\0' ) {
-            font.drawString( renderer, buf, row.center_x - font.getTextWidth( buf, this->text_size ) / 2.0f, baseline, this->text_size, white, mvp );
+            font.text_append( buf, row.center_x - font.getTextWidth( buf, this->text_size ) / 2.0f, baseline, this->text_size, white );
         }
     }
     showErrors( );

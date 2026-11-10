@@ -221,10 +221,10 @@ void CreativeInventory::draw( const Renderer &renderer, const Texture &blocksTex
     const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
     if ( this->search_len > 0 ) {
         snprintf( buf, sizeof( buf ), "%s|", this->search_text );
-        font.drawString( renderer, buf, text_x, baseline, text_size, white, mvp_ui );
+        font.text_append( buf, text_x, baseline, text_size, white );
     } else {
         const float dim[ 4 ] = { 1.0f, 1.0f, 1.0f, 0.55f };
-        font.drawString( renderer, "Search items|", text_x, baseline, text_size, dim, mvp_ui );
+        font.text_append( "Search items|", text_x, baseline, text_size, dim );
     }
 }
 

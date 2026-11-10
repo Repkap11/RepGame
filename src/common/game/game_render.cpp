@@ -498,6 +498,10 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         imgui_overlay_draw( &globalGameState.ui.imgui, globalGameState.input, globalGameState );
     }
 
+    // All UI text this pass is batched: callers queue glyphs with
+    // text_append*; one flush draws them at the end.
+    globalGameState.ui.font.text_begin( );
+
     if ( !run_policy().capture.enabled ) {
         const ChestContents *chest_contents = nullptr;
         if ( globalGameState.ui.chest.open ) {
@@ -625,7 +629,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             const float arrow_x = ( grid.getInvRight( ) + globalGameState.ui.crafting.output.getInvLeft( ) ) / 2.0f - globalGameState.ui.font.getTextWidth( "->", arrow_size ) / 2.0f;
             const float arrow_y = ( grid.getInvTop( ) + grid.getInvBottom( ) ) / 2.0f - arrow_size / 2.0f;
             const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
-            globalGameState.ui.font.drawString( globalGameState.world.renderer, "->", arrow_x, arrow_y, arrow_size, white, globalGameState.screen.ortho_center );
+            globalGameState.ui.font.text_append( "->", arrow_x, arrow_y, arrow_size, white );
         }
         if ( globalGameState.ui.furnace.open ) {
             const FurnaceContents *contents = globalGameState.world.get_furnace_contents( globalGameState.ui.furnace.pos );
@@ -645,13 +649,13 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                     const int pct = contents->cook_progress * 100 / SMELT_TICKS;
                     snprintf( buf, sizeof( buf ), "%d%%", pct );
                     const float tx = mid_x - globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;
-                    globalGameState.ui.font.drawStringOutlined( globalGameState.world.renderer, buf, tx, mid_y - text_size / 2.0f, text_size, white, globalGameState.screen.ortho_center );
+                    globalGameState.ui.font.text_append_outlined( buf, tx, mid_y - text_size / 2.0f, text_size, white );
                 }
                 if ( contents->burn_ticks > 0 ) {
                     char buf[ 32 ];
                     snprintf( buf, sizeof( buf ), "%ds", contents->burn_ticks / UPS_RATE );
                     const float tx = mid_x - globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;
-                    globalGameState.ui.font.drawString( globalGameState.world.renderer, buf, tx, mid_y + text_size * 0.6f, text_size * 0.8f, dim, globalGameState.screen.ortho_center );
+                    globalGameState.ui.font.text_append( buf, tx, mid_y + text_size * 0.6f, text_size * 0.8f, dim );
                 }
             }
         }
@@ -681,7 +685,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                 if ( globalGameState.game_mode == GameMode_Survival && !globalGameState.vitals.dead ) {
                     ty = globalGameState.hotbar.inventory_renderer.getItemsTop( ) + globalGameState.hotbar.inventory_renderer.getCellStride( ) * 0.8f + 4.0f;
                 }
-                globalGameState.ui.font.drawStringOutlined( globalGameState.world.renderer, buf, tx, ty, text_size, white, globalGameState.screen.ortho_center );
+                globalGameState.ui.font.text_append_outlined( buf, tx, ty, text_size, white );
             }
         }
     }
@@ -701,6 +705,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         const float marker_x = static_cast<float>( globalGameState.input.mouse.absPosition.x ) - globalGameState.screen.width / 2.0f - globalGameState.ui.font.getTextWidth( "+", marker_size ) / 2.0f;
         const float marker_y = globalGameState.screen.height / 2.0f - static_cast<float>( globalGameState.input.mouse.absPosition.y );
         const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        globalGameState.ui.font.drawString( globalGameState.world.renderer, "+", marker_x, marker_y, marker_size, white, globalGameState.screen.ortho_center );
+        globalGameState.ui.font.text_append( "+", marker_x, marker_y, marker_size, white );
     }
+    globalGameState.ui.font.text_flush( globalGameState.world.renderer, globalGameState.screen.ortho_center );
 }

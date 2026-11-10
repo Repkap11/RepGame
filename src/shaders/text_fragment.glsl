@@ -3,9 +3,9 @@
 precision highp float;
 
 uniform sampler2D u_Texture;
-uniform vec4 u_Tint;
 
 in vec2 v_TexCoord;
+in vec4 v_Tint;
 
 layout(location = 0) out vec4 color;
 
@@ -14,5 +14,5 @@ void main() {
     if (alpha == 0.0) {
         discard;
     }
-    color = vec4(u_Tint.rgb, u_Tint.a * alpha);
+    color = vec4(v_Tint.rgb, v_Tint.a * alpha);
 }

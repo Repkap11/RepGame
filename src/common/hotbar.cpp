@@ -58,7 +58,7 @@ void Hotbar::drawQuantities( const Renderer &renderer, FontRenderer &font, const
         float tx = slot_x - text_width - 2.0f;
         float ty = slot_y + 2.0f;
         float tint[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        font.drawString( renderer, buf, tx, ty, text_size, tint, mvp );
+        font.text_append( buf, tx, ty, text_size, tint );
     }
 }
 
