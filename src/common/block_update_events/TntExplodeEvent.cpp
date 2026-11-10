@@ -217,9 +217,10 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
     }
 
     // The blast shoves every live body — still-fusing primed TNT and any
-    // falling blocks already in flight.
+    // falling blocks already in flight — and damages/shoves the player.
     world.bodies.impulse( center, TNT_IMPULSE_RADIUS, TNT_IMPULSE_STRENGTH );
     world.items.impulse( center, TNT_IMPULSE_RADIUS, TNT_IMPULSE_STRENGTH );
+    repgame_explosion_affect_player( repGameState, center, TNT_IMPULSE_RADIUS );
 
     // Pass 3: launch the collected TNT. The world now holds only what
     // survives the blast, so the new bodies fly through the final terrain —

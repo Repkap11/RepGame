@@ -386,6 +386,9 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             }
             state.world.bodies.impulse( center, p.radius, TNT_IMPULSE_STRENGTH );
             state.world.items.impulse( center, p.radius, TNT_IMPULSE_STRENGTH );
+            // Remote blast: each client damages/shoves only its own player —
+            // health is client-authoritative.
+            repgame_explosion_affect_player( state, center, p.radius );
             return true;
         }
         case NetMsgType::ENTITY_ACTION: {

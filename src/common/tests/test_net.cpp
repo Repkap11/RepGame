@@ -362,16 +362,18 @@ int test_net_entities( ) {
         NetExplosionPayload in{ 0.0, 0.0, 0.0, 0.0f };
         report( "net entities: EXPLOSION round trip", net_deserialize_explosion( r, in ) && in.x == 10.5 && in.y == 64.0 && in.z == -20.25 && in.radius == 4.0f );
     }
-    { // NetPlayerPayload flags survive.
+    { // NetPlayerPayload flags + health survive.
         NetPlayerPayload out;
         memset( &out, 0, sizeof( out ) );
         out.flags = NET_PLAYER_FLAG_TARGETABLE;
+        out.health = 13.5f;
         PacketWriter w;
         net_serialize_player( w, out );
         PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
         NetPlayerPayload in;
         memset( &in, 0, sizeof( in ) );
-        report( "net entities: player flags round trip", net_deserialize_player( r, in ) && in.flags == NET_PLAYER_FLAG_TARGETABLE );
+        report( "net entities: player flags+health round trip",
+                net_deserialize_player( r, in ) && in.flags == NET_PLAYER_FLAG_TARGETABLE && in.health == 13.5f );
     }
     { // CHUNK_POPULATED
         NetChunkPopulatedPayload out{ -3, 0, 7 };

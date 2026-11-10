@@ -417,6 +417,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `time <ticks>`, `mode survival|creative`, `peaceful on|off`, `fly on|off` | world time / game mode / hostile-mob targeting / `input.player_flying` (flat worlds spawn flying) |
 | `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells |
 | `give <item> [count]`, `slot N` | hotbar add + slot select, refreshing the held-item overlay |
+| `damage <hp>`, `eat`, `respawn` | player vitals (docs/player.md); each emits a `*_result` event with `applied`/`health`/`dead` |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
 | `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
 | `shear x y z` | shears the shearable mob nearest the point (as if holding shears); mirrors route ENTITY_ACTION like a right-click |
@@ -424,6 +425,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `assert_block x y z <name|id>` | assert the loaded block |
 | `assert_light x y z sky|block <op> <n>` | op is `== != < <= > >=` |
 | `assert_mob_count <op> <n> [type]` | count mobs, optionally filtered by type |
+| `assert_health <op> <hp>`, `assert_dead <op> <0|1>` | player vitals |
 | `echo <text...>` | `echo` event |
 | `dump` | force a metric record now |
 | `quit` | exit now (else the script exits at EOF) |

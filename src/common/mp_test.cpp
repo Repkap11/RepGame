@@ -93,6 +93,7 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
         jput( ",\"tag\":\"%s\"", tag );
     }
     jput( ",\"pos\":[%.4f,%.4f,%.4f]", state.camera.pos.x, state.camera.pos.y, state.camera.pos.z );
+    jput( ",\"health\":%.3f,\"dead\":%d,\"air_ticks\":%d", state.vitals.health, state.vitals.dead ? 1 : 0, state.vitals.air_ticks );
 
     // Inventory totals (hotbar + survival) keyed by item name.
     std::map<ItemID, int> inv;
@@ -342,6 +343,28 @@ static void run_cmd( RepGameState &state, char *line ) {
                         "\"kind\":\"%s\",\"pos\":[%d,%d,%d],\"is\":%d,\"rev\":%u,\"slots\":[%s],\"aux\":[%s]", def->name, pos.x,
                         pos.y, pos.z, is_container ? 1 : 0, state.multiplayer.containers.last_revision( def->kind, pos ),
                         slots.c_str( ), aux.c_str( ) );
+        return;
+    }
+    if ( strcmp( cmd, "give" ) == 0 && ( argc == 2 || argc == 3 ) ) {
+        if ( !dbgcmd::give( state, argv[ 1 ], argc == 3 ? atoi( argv[ 2 ] ) : 1, &err ) ) {
+            cmd_error( state, line );
+        }
+        return;
+    }
+    if ( strcmp( cmd, "damage" ) == 0 && argc == 2 ) {
+        const bool applied = RepGame::player_damage( state, static_cast<float>( atof( argv[ 1 ] ) ) );
+        mp_test::event( &state, "damage_result", "\"applied\":%d,\"health\":%.3f,\"dead\":%d",
+                        applied ? 1 : 0, state.vitals.health, state.vitals.dead ? 1 : 0 );
+        return;
+    }
+    if ( strcmp( cmd, "eat" ) == 0 && argc == 1 ) {
+        const bool applied = repgame_eat_food( state );
+        mp_test::event( &state, "eat_result", "\"applied\":%d,\"health\":%.3f", applied ? 1 : 0, state.vitals.health );
+        return;
+    }
+    if ( strcmp( cmd, "respawn" ) == 0 && argc == 1 ) {
+        repgame_respawn( state );
+        mp_test::event( &state, "respawn_result", "\"health\":%.3f", state.vitals.health );
         return;
     }
     if ( strcmp( cmd, "mode" ) == 0 && argc == 2 ) {

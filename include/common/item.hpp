@@ -36,6 +36,9 @@ typedef struct {
     // item accelerates (MINEABLE_NONE = not a tool) and the multiplier it
     // mines at when the target block's mineable matches.
     unsigned char tool_class;
+    // Health restored on eat, in half-hearts ("food" in data/items);
+    // 0 = not edible.
+    unsigned char food_heal;
     float mine_speed;
     // Block this item plants on farmland ("plants" in data/items);
     // LAST_BLOCK_ID when the item plants nothing.
@@ -91,6 +94,14 @@ static inline BlockID item_plant_block( ItemID id ) {
     return ( !item_is_block( id ) && item_id_defined( id ) ) ? //
                ITEM_DEFINITIONS[ id - ITEM_ID_BASE ].plant_block
                                                            : LAST_BLOCK_ID;
+}
+
+// Health an edible item restores on right-click eat, in half-hearts
+// ("food" in data/items); 0 = not edible.
+static inline int item_food_heal( ItemID id ) {
+    return ( !item_is_block( id ) && item_id_defined( id ) ) ? //
+               ITEM_DEFINITIONS[ id - ITEM_ID_BASE ].food_heal
+                                                           : 0;
 }
 
 // The seed/produce item that plants a crop block, or LAST_BLOCK_ID when no

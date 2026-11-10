@@ -81,7 +81,7 @@ GameMode RepGame::getGameMode( ) const {
 }
 
 bool RepGame::player_targetable( const RepGameState &state ) {
-    return !state.peaceful && !state.input.no_clip;
+    return !state.peaceful && !state.input.no_clip && !state.vitals.dead;
 }
 
 Input &RepGame::getInputState( ) {

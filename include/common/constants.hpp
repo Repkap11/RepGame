@@ -217,6 +217,32 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define MOVEMENT_SENSITIVITY_SNEAKING ( MOVEMENT_SENSITIVITY_WALKING * 0.5f )
 #define MOVEMENT_SENSITIVITY_SNEAKING_SPRINTING ( MOVEMENT_SENSITIVITY_WALKING * 1.5f )
 
+// Player health: 20 half-hearts (10 hearts on the HUD). Damage below
+// applies in survival only (creative is invulnerable). HURT_COOLDOWN is the
+// post-hit invulnerability window that also paces periodic sources
+// (lava, fire, drowning) — all of them strike at most once per cooldown.
+#define PLAYER_MAX_HEALTH 20.0f
+#define PLAYER_HURT_COOLDOWN_TICKS ( UPS_RATE / 2 )
+// Breath meter: ~15 s of air shown as 10 bubbles (1.5 s each), then
+// drowning damage per hurt cooldown.
+#define PLAYER_AIR_MAX_TICKS ( 15 * UPS_RATE )
+#define PLAYER_DROWN_DAMAGE 2.0f
+// Per-tick fall distance (blocks) above which a landing damages; MC's
+// rule: floor(distance) - 3 hp.
+#define PLAYER_FALL_SAFE_DISTANCE 3.0
+// Standing in lava burns fast; standing in fire burns slowly — both paced
+// by the hurt cooldown (~0.5 s), so these are ~2x per second.
+#define PLAYER_LAVA_DAMAGE 4.0f
+#define PLAYER_FIRE_DAMAGE 1.0f
+// Explosion damage falls off linearly from EXPLOSION_MAX_DAMAGE at the
+// center to 0 at this radius (same reach as the entity impulse).
+#define PLAYER_EXPLOSION_MAX_DAMAGE 16.0f
+// Peaceful regeneration: +1 hp per interval while the "Mobs" toggle is
+// peaceful, survival, alive and hurt.
+#define PLAYER_PEACEFUL_REGEN_TICKS ( 4 * UPS_RATE )
+// Right-click eat also sets the standard click cadence (30 ticks) — same
+// as the bow, so holding the button eats at ~5/s.
+
 // #define EYE_POSITION_OFFSET 0.1f
 #define EYE_POSITION_OFFSET ( PLAYER_EYE_HEIGHT - ( PLAYER_HEIGHT / 2.0f ) )
 

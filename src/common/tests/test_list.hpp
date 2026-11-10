@@ -16,6 +16,7 @@ int test_ray_face_neighbor( );
 int test_player_placement_valid( );
 int test_sneak( );
 int test_climb( );
+int test_vitals( );
 int test_held_swing( );
 int test_items( );
 int test_furnace( );

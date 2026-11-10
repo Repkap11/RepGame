@@ -1325,7 +1325,12 @@ void RepGame::process_inventory_events( ) {
             globalGameState.input.mouse.buttons.left_click_handled = true;
             switch ( globalGameState.ui.pause.hitTest( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y ) ) {
                 case PauseMenu::BUTTON_RESUME:
-                    globalGameState.input.menu_open = false;
+                    // On the death screen this button is "Respawn".
+                    if ( globalGameState.vitals.dead ) {
+                        this->respawn( );
+                    } else {
+                        globalGameState.input.menu_open = false;
+                    }
                     break;
                 case PauseMenu::BUTTON_GRAPHICS:
                     // Same as the 'r' key.

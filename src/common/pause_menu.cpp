@@ -61,9 +61,20 @@ static UIOverlayInstance &add_quad( RenderChain<UIOverlayVertex, UIOverlayInstan
     return quad;
 }
 
+void PauseMenu::set_dead( const bool dead ) {
+    if ( this->dead_mode == dead ) {
+        return;
+    }
+    this->dead_mode = dead;
+    if ( this->layout_font != nullptr && this->screen_width > 0 ) {
+        this->onScreenSizeChange( this->screen_width, this->screen_height, *this->layout_font );
+    }
+}
+
 void PauseMenu::onScreenSizeChange( const int width, const int height, const FontRenderer &font ) {
     this->screen_width = width;
     this->screen_height = height;
+    this->layout_font = &font;
     this->num_regions = 0;
     this->num_rows = 0;
 
@@ -76,21 +87,28 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
     };
     Line lines[ MAX_ROWS ];
     int nl = 0;
-    lines[ nl++ ] = Line{ { BUTTON_RESUME }, 1 };
+    if ( this->dead_mode ) {
+        // Death screen: the RESUME button relabels to "Respawn" in draw();
+        // everything else hides — settings mid-death would be weird.
+        lines[ nl++ ] = Line{ { BUTTON_RESUME }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_EXIT }, 1 };
+    } else {
+        lines[ nl++ ] = Line{ { BUTTON_RESUME }, 1 };
 #if SUPPORTS_FRAME_BUFFER
-    lines[ nl++ ] = Line{ { BUTTON_GRAPHICS, BUTTON_SHADOW }, 2 };
+        lines[ nl++ ] = Line{ { BUTTON_GRAPHICS, BUTTON_SHADOW }, 2 };
 #else
-    lines[ nl++ ] = Line{ { BUTTON_SHADOW }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_SHADOW }, 1 };
 #endif
-    lines[ nl++ ] = Line{ { BUTTON_RENDER_ROW }, 1 };
-    lines[ nl++ ] = Line{ { BUTTON_BRIGHT_ROW }, 1 };
-    lines[ nl++ ] = Line{ { BUTTON_TIME_ROW }, 1 };
-    lines[ nl++ ] = Line{ { BUTTON_GAME_MODE, BUTTON_PEACEFUL }, 2 };
-    lines[ nl++ ] = Line{ { BUTTON_FLYING, BUTTON_DEBUG_VIEW }, 2 };
+        lines[ nl++ ] = Line{ { BUTTON_RENDER_ROW }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_BRIGHT_ROW }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_TIME_ROW }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_GAME_MODE, BUTTON_PEACEFUL }, 2 };
+        lines[ nl++ ] = Line{ { BUTTON_FLYING, BUTTON_DEBUG_VIEW }, 2 };
 #if SUPPORTS_IMGUI_OVERLAY
-    lines[ nl++ ] = Line{ { BUTTON_IMGUI }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_IMGUI }, 1 };
 #endif
-    lines[ nl++ ] = Line{ { BUTTON_EXIT }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_EXIT }, 1 };
+    }
 
     // Like InventoryRenderer::onSizeChange, the UI is sized as a fraction of
     // a 16:9-normalized height so buttons stay finger-sized on wide phones.
@@ -98,10 +116,10 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
 
     // Worst-case label per row kind; the panel width is derived from these,
     // so labels can't overflow their buttons.
-    auto worst_label = []( int button, char *buf, size_t buf_size ) -> const char * {
+    auto worst_label = [this]( int button, char *buf, size_t buf_size ) -> const char * {
         switch ( button ) {
             case BUTTON_RESUME:
-                return "Resume";
+                return this->dead_mode ? "Respawn" : "Resume";
             case BUTTON_GRAPHICS:
                 return "Graphics: X_HIGH";
             case BUTTON_SHADOW:
@@ -191,7 +209,12 @@ void PauseMenu::onScreenSizeChange( const int width, const int height, const Fon
     this->title_center_y = panel_top - pad - title_height + font.getCapHeight( this->title_size ) / 2.0f;
 
     this->render_chain_quads.clear( );
-    add_quad( this->render_chain_quads, panel_left, panel_bottom, panel_width, panel_height, ORDER_Z_MENU_PANEL, 0.1f, 0.1f, 0.1f, 0.85f );
+    if ( this->dead_mode ) {
+        // Slightly blood-tinged panel for the death screen.
+        add_quad( this->render_chain_quads, panel_left, panel_bottom, panel_width, panel_height, ORDER_Z_MENU_PANEL, 0.22f, 0.08f, 0.08f, 0.9f );
+    } else {
+        add_quad( this->render_chain_quads, panel_left, panel_bottom, panel_width, panel_height, ORDER_Z_MENU_PANEL, 0.1f, 0.1f, 0.1f, 0.85f );
+    }
 
     const float buttons_left = panel_left + pad;
     const float buttons_right = panel_right - pad;
@@ -286,7 +309,8 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
 
     // Center by cap height so the capital letters sit symmetric in the button
     // (FontRenderer snaps the baseline to the pixel grid itself).
-    font.drawString( renderer, "Paused", -font.getTextWidth( "Paused", this->title_size ) / 2.0f,
+    const char *title = this->dead_mode ? "You died!" : "Paused";
+    font.drawString( renderer, title, -font.getTextWidth( title, this->title_size ) / 2.0f,
                      this->title_center_y - font.getCapHeight( this->title_size ) / 2.0f, this->title_size, white, mvp );
 
     for ( int i = 0; i < this->num_rows; i++ ) {
@@ -294,7 +318,7 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
         const float baseline = row.center_y - font.getCapHeight( this->text_size ) / 2.0f;
         switch ( row.button ) {
             case BUTTON_RESUME:
-                snprintf( buf, sizeof( buf ), "Resume" );
+                snprintf( buf, sizeof( buf ), "%s", this->dead_mode ? "Respawn" : "Resume" );
                 break;
             case BUTTON_GRAPHICS:
                 snprintf( buf, sizeof( buf ), "Graphics: %s", quality_names[ state.input.worldDrawQuality ] );

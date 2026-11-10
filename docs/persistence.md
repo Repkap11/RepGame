@@ -158,6 +158,7 @@ peaceful <0|1>
 world_time <int64>
 render_distance <int>
 min_ambient <float>
+health <float>
 hotbar_selected <int>
 hotbar <slot> <item_id> <quantity>
 survival <slot> <item_id> <quantity>
@@ -168,6 +169,12 @@ missing keys keep `PlayerData` defaults, malformed lines ignored; a file
 is this format iff its first non-comment line is `format <n>`, and must
 then contain `pos`. **New fields go in as new keys — never rename or
 reuse an existing key.**
+
+`health` is the vitals health in half-hearts (`docs/player.md`): absent
+or negative in old saves means full; a saved 0 means the player quit on
+the death screen and loads as a fresh spawn (health restored to max,
+`spawn_pending` re-pins the spawn column). The transient fields —
+breath, hurt cooldown, dead, fall distance — are not saved.
 
 `player_data_parse` falls through to five frozen legacy binary layouts
 (`PlayerDataLegacy` → `PlayerDataBinary` in player_data.cpp) when no

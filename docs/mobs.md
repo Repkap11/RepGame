@@ -27,8 +27,8 @@ untargeted hostiles wander like passives but don't panic when hit.
 Zombies melee in reach (mob half-width + 0.3 + 0.5, |dy| < 1.5) with a
 1 s cooldown → a `MobPlayerHit`, handled by `RepGame::player_hurt`
 (knockback away from the hit + a hop off the ground + the `player_hurt`
-sound pool; there is no player health system yet, so `damage` is
-otherwise unused). In daylight (`light_daylight_factor > 0.5`, head sky
+sound pool, then `damage` half-hearts through the `player_damage` funnel
+— docs/player.md). In daylight (`light_daylight_factor > 0.5`, head sky
 light ≥ 0.95, not in water — see `mob_burns_in_daylight`) zombies burn at
 1 hp/s with hurt flash/sound and no knockback. Creepers chase like
 zombies, stop within 3 blocks, hiss for ~1.5 s (the `fuse` sfx +

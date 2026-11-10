@@ -18,9 +18,19 @@
 //   mob <type> x y z               spawn a mob via MobManager::spawn
 //   hit <net_id>                   player melee hit on that mob (local damage,
 //                                  or feedback + ENTITY_ACTION on a mirror)
+//   feed x y z [item]              feed the mob nearest the point (default:
+//                                  its first breed food)
+//   shear x y z                    shear the shearable mob nearest the point
 //   fall <block> x y z             spawn a falling block body
 //   tnt x y z                      spawn a primed TNT body (normal ignite path)
+//   shoot fx fy fz dx dy dz        release an arrow from (f) along (d)
 //   setblock x y z <block>         normal player edit (BLOCK_UPDATE)
+//   give <item> [count]            add to the hotbar like a real pickup
+//   damage <hp>                    player_damage on the local player; emits
+//                                  damage_result {applied,health,dead}
+//   eat                            right-click eat of the held food; emits
+//                                  eat_result {applied,health}
+//   respawn                        death-screen Respawn; emits respawn_result
 //   probe x y z                    emit a "probe" event with the block there
 //   role x y z                     emit a "role" event with this client's
 //                                  role for that chunk
@@ -42,7 +52,10 @@
 // Events on the dump stream: welcome, ready (connected + WELCOME + the
 // camera's chunk is CHUNK_LIVE + at least one CHUNK_ROLE grant applied),
 // cmd_error, explosion_received, pickup_result, player_hit_received,
-// entity_transfer, probe, role, cprobe, quit.
+// entity_transfer, probe, role, cprobe, damage_result, eat_result,
+// respawn_result, quit.
+//
+// State lines additionally carry: health (half-hearts), dead, air_ticks.
 //
 // The world-action implementations (setblock/drop/mob/hit/fall/tnt/mode/
 // time/goto/probe + name lookups) live in common/harness/debug_commands

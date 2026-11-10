@@ -96,7 +96,7 @@ STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
 KNOWN_KEYS = STRUCT_META | BOOL_FIELDS | INT_FIELDS | FLOAT_FIELDS | VEC3_SHORT | VEC3_BOOL | BLOCK_REF_FIELDS
 
 ITEM_KNOWN_KEYS = {"id", "name", "icon", "max_stack", "aliases", "tool",
-                   "mining_speed", "plants"}
+                   "mining_speed", "plants", "food"}
 
 # "mineable" block classes / "tool" item classes: the tool family that speeds
 # up survival mining (see MINEABLE_* in block_definitions.hpp).
@@ -681,6 +681,10 @@ def load_items(block_names):
             tgt = it["plants"]
             if not isinstance(tgt, str) or not re.match(r"^[A-Z][A-Z0-9_]*$", tgt) or tgt not in block_names:
                 fail("%s: plants must name a block" % fname)
+        if "food" in it:
+            fh = it["food"]
+            if not isinstance(fh, int) or not (1 <= fh <= 20):
+                fail("%s: bad food %r (need 1-20 half-hearts)" % (fname, fh))
         it["_file"] = fname
         items[iid] = it
         names[name] = iid
@@ -1302,12 +1306,13 @@ def main():
     for iid in range(ITEM_ID_BASE, item_id_end):
         it = items.get(iid)
         if it is None:
-            out.append("    { TEX_AIR, 0, MINEABLE_NONE, 1.0f, LAST_BLOCK_ID },\n")
+            out.append("    { TEX_AIR, 0, MINEABLE_NONE, 0, 1.0f, LAST_BLOCK_ID },\n")
             continue
         cls, speed = item_tool(it)
         cls_enum = "MINEABLE_" + cls.upper()
-        out.append("    { TEX_%s, %d, %s, %sf, %s },\n" %
+        out.append("    { TEX_%s, %d, %s, %d, %sf, %s },\n" %
                    (it["icon"].upper(), it.get("max_stack", 64), cls_enum,
+                    it.get("food", 0),
                     fmt_float(speed), it.get("plants", "LAST_BLOCK_ID")))
     with open(OUT_ITEM_INC, "w") as f:
         f.writelines(out)

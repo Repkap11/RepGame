@@ -192,17 +192,60 @@ the other interactions):
   through the neighbor kill path. Mobs trample the same way via
   `MobTickOutput::tramples` (`docs/mobs.md`).
 
+## Health & food
+
+`PlayerVitals` (`include/common/game/player_state.hpp`, `state.vitals`)
+holds the local player's health in half-hearts (0..
+`PLAYER_MAX_HEALTH` = 20, drawn as ten heart slots on the HUD), the
+`air_ticks` breath meter, the shared `hurt_cooldown` i-frame window, the
+peaceful `regen_accum`, the `dead` flag and the `fall_dist` tracker.
+
+Every damage source funnels through `RepGame::player_damage` — survival
+only (creative is invulnerable), refused while dead or inside
+`PLAYER_HURT_COOLDOWN_TICKS`, which also paces the periodic sources to
+~2 hits/s. Sources: mob melee via `player_hurt` (knockback + hurt sfx,
+then the funnel), fall damage (the movement loop's `fall_dist`:
+`floor(dist) - PLAYER_FALL_SAFE_DISTANCE` half-hearts on landing, same
+accumulator as farmland trampling), lava at the eye/body/feet
+(`PLAYER_LAVA_DAMAGE`), standing in `FIRE`/`SOUL_FIRE`
+(`PLAYER_FIRE_DAMAGE`), explosions (`repgame_explosion_affect_player`,
+linear falloff from `PLAYER_EXPLOSION_MAX_DAMAGE` plus a shove — both
+local TNT and remote `EXPLOSION` frames; each client damages only
+itself), and drowning once `air_ticks` runs out under water
+(`PLAYER_DROWN_DAMAGE`). `repgame_tick_vitals` runs this upkeep each
+tick after movement; breath drains while the head is under water and
+refills at the surface.
+
+Right-click with a food item (`"food"` in `data/items`,
+`item_food_heal`) eats it: `repgame_eat_food` heals the item's value
+instantly (beta-MC style, no eating animation) and consumes one item in
+survival — refused at full health or on non-food. Eating plays `eat`.
+
+While `state.peaceful` is on, survival health regenerates one
+half-heart per `PLAYER_PEACEFUL_REGEN_TICKS` (MC's peaceful
+difficulty).
+
+At 0 health `player_damage` sets `dead` and raises the death screen:
+`PauseMenu` dead mode ("You died!" + only Respawn and Exit — Esc can't
+dismiss it; `tick_vitals` re-pins `menu_open` each tick). Inventory is
+kept. `repgame_respawn` restores full vitals and re-pins the world-spawn
+column (`spawn_pending` does the ground snap once it loads). Health is
+persisted in `player.dat` (`docs/persistence.md`); a saved 0 — quitting
+on the death screen — loads as a fresh spawn. In multiplayer the local
+health rides the player-location payload and a drop flashes the avatar
+red on other clients (`docs/multiplayer.md`).
+
 ## Game modes
 
 `input.toggle_game_mode` flips `state.game_mode`
 (`GameMode_Creative`/`GameMode_Survival`, persisted in `player.dat`).
 Creative: instant break, unlimited placement, the creative palette
 inventory. Survival: timed mining, item consumption, drops, chest
-loot, mob `HIT_DAMAGE` melee with knockback (`player_hurt` — there is
-no player health yet; damage is only forwarded). Whether hostile mobs
-target the player is a separate `state.peaceful` toggle (pause menu
-"Mobs" button, `peaceful` key in `player.dat`, `RepGame::player_targetable`
-= `!peaceful && !no_clip`); `NET_PLAYER_FLAG_TARGETABLE` carries it to
+loot, health, mob `HIT_DAMAGE` melee with knockback (`player_hurt` —
+see "Health & food"). Whether hostile mobs target the player is a
+separate `state.peaceful` toggle (pause menu "Mobs" button, `peaceful`
+key in `player.dat`, `RepGame::player_targetable` =
+`!peaceful && !no_clip && !dead`); `NET_PLAYER_FLAG_TARGETABLE` carries it to
 remote clients (`docs/multiplayer.md`).
 
 ## Scripted/debug paths

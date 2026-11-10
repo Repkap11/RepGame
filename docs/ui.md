@@ -164,6 +164,11 @@ matching and the output slot are documented with the item/recipe data in
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
   (`item_name`) just above the hotbar, black-outlined via
   `FontRenderer::drawStringOutlined`; empty slots show nothing.
+- `UIOverlay::draw_vitals` renders the survival health row above the
+  hotbar — ten `TEX_HEART_CONTAINER` slots with `TEX_HEART` /
+  `TEX_HEART_HALF` filled by `vitals.health` (half-hearts), plus a
+  `TEX_BUBBLE` breath row while `air_ticks` is below max underwater —
+  through the same ui_overlay shader atlas path as the crosshair.
 - `PauseMenu` lays out buttons in centered coords (`hitTest` returns
   `BUTTON_*`), grouped into lines of one or two side-by-side cells; line
   contents are compile-time-gated
@@ -172,7 +177,11 @@ matching and the output slot are documented with the item/recipe data in
   (`min_ambient_step`), and time of day (`input.time_skip_hours`, same
   path as PgUp/PgDn); a "Mobs: Peaceful/Hostile" button flips
   `state.peaceful`. `input.menu_open` swallows gameplay input
-  while it's up.
+  while it's up. Dead mode (`set_dead`, raised by
+  `RepGame::player_damage` at 0 health) relayouts to a "You died!"
+  screen with only Respawn (the RESUME button, relabelled) and Exit —
+  `tick_vitals` re-pins `menu_open` each tick so it can't be dismissed
+  without respawning (`docs/player.md`).
 - `ImGuiOverlay` (`SUPPORTS_IMGUI_OVERLAY` platforms): `shown` toggled
   by 'g' or `SHOW_IMGUI` at start; `ImGuiDebugVars` (position, world
   time, daylight, ambient floors, `LoaderDebugStats`, entity counts) is

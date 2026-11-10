@@ -1487,7 +1487,16 @@
   "hay_block_top": {
     "source": "textures/blocks/hay_block_top"
   },
+  "bubble": {
+    "keep": true
+  },
   "heart": {
+    "keep": true
+  },
+  "heart_container": {
+    "keep": true
+  },
+  "heart_half": {
     "keep": true
   },
   "heavy_core": {

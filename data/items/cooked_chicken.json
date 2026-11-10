@@ -1,5 +1,6 @@
 {
+  "food": 6,
+  "icon": "chicken_cooked",
   "id": 2088,
-  "name": "COOKED_CHICKEN",
-  "icon": "chicken_cooked"
+  "name": "COOKED_CHICKEN"
 }

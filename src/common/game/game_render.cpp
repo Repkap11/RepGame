@@ -102,7 +102,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                                                     : static_cast<float>( globalGameState.camera.eye_height_render );
     const uint8_t send_flags = RepGame::player_targetable( globalGameState ) ? NET_PLAYER_FLAG_TARGETABLE : 0;
     if ( !globalGameState.spawn_pending ) {
-        globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height, send_flags );
+        globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height, send_flags, globalGameState.vitals.health );
     }
 
 #if defined( REPGAME_WASM )
@@ -610,6 +610,11 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             globalGameState.ui.overlay.draw_panel_backdrop( backdrop.x, backdrop.y, backdrop.w, backdrop.h, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         }
         globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );
+        // Survival vitals: hearts above the hotbar (+ air bubbles while
+        // underwater). Hidden in creative and under the death screen.
+        if ( globalGameState.game_mode == GameMode_Survival && !globalGameState.vitals.dead ) {
+            globalGameState.ui.overlay.draw_vitals( globalGameState.vitals.health, PLAYER_MAX_HEALTH, globalGameState.vitals.air_ticks, PLAYER_AIR_MAX_TICKS, globalGameState.hotbar.inventory_renderer, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.screen.ortho_center );
+        }
         if ( repgame_crafting_grid_visible( globalGameState ) ) {
             const int dim = repgame_crafting_dim( globalGameState );
             InventoryRenderer &grid = repgame_crafting_grid( globalGameState );

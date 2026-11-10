@@ -18,6 +18,9 @@ class Input;
 #define ORDER_Z_INV_SELECTED_SLOT 0.1f
 #define ORDER_Z_INV_SLOT_BG 0.2f
 #define ORDER_Z_INV_BLOCKS 0.3f
+// Vitals HUD row (hearts/air bubbles) drawn above the hotbar.
+#define ORDER_Z_VITALS_BG 0.4f
+#define ORDER_Z_VITALS 0.5f
 
 typedef struct {
     float screen_x;
@@ -70,6 +73,9 @@ class UIOverlay {
     // grid + output) + the survival inventory they sit over. One quad per
     // draw_panel_backdrop call (the call clears the chain first).
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_panel_backdrop;
+    // Flat icon instances for the hearts/air-bubble row above the hotbar —
+    // cleared and rebuilt each draw_vitals call.
+    RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_vitals;
     ItemID heldItemID = LAST_BLOCK_ID;
     int screen_width;
     int screen_height;
@@ -100,6 +106,10 @@ class UIOverlay {
     // inventory slab composite inside it.
     void draw_panel_backdrop( int left, int bottom, int width, int height, const Renderer &renderer, const glm::mat4 &mvp_ui );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
+    // Heart containers + full/half hearts left-aligned above the hotbar,
+    // air bubbles right-aligned while air is below max (underwater). Sizes
+    // and anchors come from the hotbar's own layout so the row tracks it.
+    void draw_vitals( float health, float max_health, int air_ticks, int max_air_ticks, const InventoryRenderer &hotbar_renderer, const Renderer &renderer, const Texture &blocksTexture, const glm::mat4 &mvp_ui );
     // Exposes the shared ui_overlay shader so the pause menu (drawn from
     // RepGame::draw_ui_pass) uses the same program.
     Shader &get_shader( ) {

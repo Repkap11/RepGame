@@ -1168,6 +1168,76 @@ def avatar_mobs_of(st):
     return [m for m in (st.get("mobs", []) if st else []) if m.get("uid", 0) != 0]
 
 
+def cmd_health(run, c, cmd, event_name, timeout=30):
+    """Send a health command until its *_result event reports applied=1 —
+    the shared i-frame window (72 ticks) can refuse a `damage` that lands
+    too soon after the previous hit, so retry with a >0.5s gap."""
+    deadline = time.time() + timeout
+    n0 = len(c.dump.events)
+    while time.time() < deadline:
+        c.cmd(cmd)
+        time.sleep(0.7)
+        c.dump.poll()
+        hits = [e for e in c.dump.events[n0:]
+                if e.get("name") == event_name and e.get("detail", {}).get("applied") == 1]
+        if hits:
+            return hits[-1]["detail"]
+    raise Fail("%s never applied on %s" % (cmd, c.name))
+
+
+def sc_health(run, A, B):
+    """Player health: the shared damage funnel, instant food healing,
+    fire at the feet cell, death + respawn, and the remote avatar hurt
+    flash a health drop triggers on the peer."""
+    gy = settle(run, A, B)
+    A.cmd("mode survival")
+    A.cmd("peaceful off")  # deterministic health — no regen (no mobs spawned)
+    run.wait("A at full health",
+             lambda: (A.dump.last_state() or {}).get("health") == 20.0, timeout=30)
+
+    # Shared damage funnel (survival only — gated by i-frames).
+    cmd_health(run, A, "damage 6", "damage_result")
+    run.wait("A damaged", lambda: (A.dump.last_state() or {}).get("health") == 14.0, timeout=30)
+
+    # The drop rides the player-location payload: B's avatar for A flashes.
+    # The flash lives ~0.3s, so scan the state history — the check starts
+    # after the applied-wait, by which time the window may have passed.
+    run.wait("B saw avatar hurt flash",
+             lambda: any(m.get("hurt_ticks", 0) > 0
+                         for st in B.dump.states for m in avatar_mobs_of(st)),
+             timeout=60)
+
+    # Instant eat (beta-style): apple heals 4 half-hearts, one is consumed.
+    A.cmd("give APPLE 4")
+    run.wait("apples held", lambda: inv_count(A.dump.last_state(), "APPLE") >= 4, timeout=30)
+    A.cmd("eat")
+    run.wait("eat applied", lambda: any(
+        e.get("name") == "eat_result" and e.get("detail", {}).get("applied") == 1
+        for e in A.dump.events), timeout=30)
+    run.wait("eat healed + consumed",
+             lambda: (A.dump.last_state() or {}).get("health") == 18.0 and
+                     inv_count(A.dump.last_state(), "APPLE") == 3, timeout=30)
+
+    # Environmental damage: fire in the feet cell burns per i-frame window.
+    A.cmd("setblock 10 %d 10 FIRE" % gy)
+    run.wait("fire burns A",
+             lambda: 0.0 < (A.dump.last_state() or {}).get("health", 20.0) < 18.0, timeout=60)
+    A.cmd("setblock 10 %d 10 AIR" % gy)
+
+    # Death: health pins at 0, dead raises the (locked) death screen.
+    cmd_health(run, A, "damage 40", "damage_result")
+    run.wait("A dead", lambda: (A.dump.last_state() or {}).get("dead") == 1 and
+             (A.dump.last_state() or {}).get("health") == 0.0, timeout=30)
+
+    # Respawn clears the death state with full vitals. (The REPGAME_FLY pin
+    # re-asserts the camera every tick, so the spawn teleport itself isn't
+    # observable here — rep_tests covers repgame_respawn's position reset.)
+    A.cmd("respawn")
+    run.wait("respawn applied", lambda: A.dump.has_event("respawn_result"), timeout=30)
+    run.wait("A alive again", lambda: (A.dump.last_state() or {}).get("health") == 20.0 and
+             (A.dump.last_state() or {}).get("dead") == 0, timeout=30)
+
+
 def sc_avatar_at_mob_cap(run, A, B):
     """A full mob list must not drop a late joiner's avatar (MAX_MOBS gates
     locally created mobs, not storage)."""
@@ -1200,6 +1270,7 @@ SCENARIOS = [
     ("natural_persist", sc_natural_persist),
     ("mob_hit_kill", sc_mob_hit_kill),
     ("hostile_targets_remote", sc_hostile_targets_remote),
+    ("health", sc_health),
     ("falling_block", sc_falling_block),
     ("tnt_explosion", sc_tnt_explosion),
     ("tnt_handover", sc_tnt_handover),

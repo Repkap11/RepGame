@@ -7,6 +7,7 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
 #include "common/fluid.hpp"
+#include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/profile.hpp"
 #include "common/renderer/texture.hpp"
@@ -195,9 +196,35 @@ void RepGame::break_selected_block( ) {
 
 // Hotbar first (stacking onto matching slots), survival inventory for the
 // overflow — shared by block-break pickups and mob drops.
+// Applies `hp` damage (half-hearts) to the local player — survival only
+// (creative is invulnerable), gated by the shared post-hit i-frame window
+// that also paces the periodic sources (lava, fire, drowning) to ~2/s.
+// Reaching 0 raises the death screen via dead + menu_open.
+bool RepGame::player_damage( RepGameState &state, const float hp ) {
+    if ( hp <= 0.0f || state.game_mode != GameMode_Survival || state.vitals.dead || state.vitals.hurt_cooldown > 0 ) {
+        return false;
+    }
+    state.vitals.health -= hp;
+    state.vitals.hurt_cooldown = PLAYER_HURT_COOLDOWN_TICKS;
+    if ( state.vitals.health <= 0.0f ) {
+        state.vitals.health = 0.0f;
+        state.vitals.dead = true;
+        state.ui.pause.set_dead( true );
+        state.input.menu_open = true;
+    }
+    return true;
+}
+
+void RepGame::player_heal( RepGameState &state, const float hp ) {
+    state.vitals.health = fminf( state.vitals.health + hp, PLAYER_MAX_HEALTH );
+}
+
 // Mob melee hits: a small knockback hop away from the attacker plus the hurt
-// sound. There is no player health system yet — damage is only forwarded.
+// sound, then survival health damage through the shared funnel.
 void RepGame::player_hurt( RepGameState &state, const glm::dvec3 &from, float damage ) {
+    if ( state.vitals.dead ) {
+        return;
+    }
     glm::dvec3 away = state.camera.pos - from;
     away.y = 0.0;
     const double len = glm::length( away );
@@ -209,6 +236,128 @@ void RepGame::player_hurt( RepGameState &state, const glm::dvec3 &from, float da
         }
     }
     audio_play_sfx( "player_hurt" );
+    player_damage( state, damage );
+}
+
+// Explosion blast on the local player — damage falls off linearly with
+// distance and the shove scales with it. Both local blasts
+// (TntExplodeEvent) and remote ones (inbound EXPLOSION) land here; health
+// is client-authoritative, so every client damages only itself.
+void repgame_explosion_affect_player( RepGameState &state, const glm::dvec3 &center, const float radius ) {
+    const glm::dvec3 delta = state.camera.pos - center;
+    const double dist = glm::length( delta );
+    if ( dist >= radius || dist < 1e-6 || state.vitals.dead ) {
+        return;
+    }
+    const double scale = 1.0 - dist / radius;
+    const glm::dvec3 away = delta / dist;
+    state.camera.horizontal_vel += glm::dvec2( away.x, away.z ) * scale * 0.3;
+    state.camera.y_speed += scale * JUMP_STRENGTH * 1.5;
+    if ( RepGame::player_damage( state, static_cast<float>( scale ) * PLAYER_EXPLOSION_MAX_DAMAGE ) ) {
+        audio_play_sfx( "player_hurt" );
+    }
+}
+
+// Right-click eat: heals instantly like beta MC — one item from the held
+// stack per call, only while hurt (a full-health click wastes nothing).
+bool repgame_eat_food( RepGameState &state ) {
+    const ItemID held = state.hotbar.getSelectedItem( );
+    const int heal = item_food_heal( held );
+    if ( heal <= 0 || state.vitals.health >= PLAYER_MAX_HEALTH ) {
+        return false;
+    }
+    RepGame::player_heal( state, static_cast<float>( heal ) );
+    if ( state.game_mode == GameMode_Survival ) {
+        state.hotbar.consumeSelected( 1 );
+        state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+    }
+    audio_play_sfx( "eat" );
+    state.vr.haptic_pending = true;
+    return true;
+}
+
+// Death-screen exit: stand the player back on the world-spawn column with
+// full vitals, inventory kept. spawn_pending reuses the same topmost-
+// colliding-block snap as a fresh spawn once the column loads. A free
+// function so rep_tests and the mp-test ctl can drive it.
+void repgame_respawn( RepGameState &state ) {
+    PlayerVitals &v = state.vitals;
+    v.health = PLAYER_MAX_HEALTH;
+    v.air_ticks = PLAYER_AIR_MAX_TICKS;
+    v.hurt_cooldown = 0;
+    v.regen_accum = 0;
+    v.dead = false;
+    v.fall_dist = 0.0;
+    CameraState &cam = state.camera;
+    cam.horizontal_vel = glm::dvec2( 0.0 );
+    cam.y_speed = 0.0;
+    cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+    state.spawn_pending = true;
+    cam.snapshot_prev( );
+    state.ui.pause.set_dead( false );
+    state.input.menu_open = false;
+}
+
+void RepGame::respawn( ) {
+    repgame_respawn( globalGameState );
+}
+
+// Per-tick vitals upkeep — runs right after movement each tick: hurt
+// i-frames count down, a submerged head drains breath then drowns,
+// lava/fire contact burns, and the peaceful "Mobs" toggle slowly
+// regenerates health (MC's peaceful difficulty). A free function so
+// rep_tests can drive it.
+void repgame_tick_vitals( RepGameState &state ) {
+    PlayerVitals &v = state.vitals;
+    if ( v.hurt_cooldown > 0 ) {
+        v.hurt_cooldown--;
+    }
+    if ( v.dead ) {
+        v.air_ticks = PLAYER_AIR_MAX_TICKS;
+        // The death screen may not be dismissed by Esc/E — it can only be
+        // left through Respawn (or Exit).
+        state.input.menu_open = true;
+        return;
+    }
+    const glm::dvec3 &eye = state.camera.pos;
+    const double feet_y = eye.y - state.camera.eye_height;
+    const BlockState eye_block = state.world.get_loaded_block( glm::ivec3( glm::round( eye - glm::dvec3( 0.5 ) ) ) );
+    const BlockState feet_block = state.world.get_loaded_block( glm::ivec3( glm::round( glm::dvec3( eye.x, feet_y + 0.05, eye.z ) - glm::dvec3( 0.5 ) ) ) );
+    const glm::dvec3 body_center( eye.x, feet_y + PLAYER_HEIGHT / 2.0, eye.z );
+    const BlockState body_block = state.world.get_loaded_block( glm::ivec3( glm::round( body_center - glm::dvec3( 0.5 ) ) ) );
+    // Breath drains while the head is under water (the render path's
+    // headInWater test uses the same eye cell) and refills at the surface.
+    if ( fluid_in_cell( eye_block ) == WATER ) {
+        if ( v.air_ticks > 0 ) {
+            v.air_ticks--;
+        } else if ( RepGame::player_damage( state, PLAYER_DROWN_DAMAGE ) ) {
+            audio_play_sfx( "player_hurt" );
+        }
+    } else {
+        v.air_ticks = PLAYER_AIR_MAX_TICKS;
+    }
+    // Lava burns fast anywhere it touches the body; open fire burns slowly.
+    if ( fluid_in_cell( eye_block ) == LAVA || fluid_in_cell( body_block ) == LAVA || fluid_in_cell( feet_block ) == LAVA ) {
+        if ( RepGame::player_damage( state, PLAYER_LAVA_DAMAGE ) ) {
+            audio_play_sfx( "player_hurt" );
+        }
+    } else if ( feet_block.id == FIRE || body_block.id == FIRE || feet_block.id == SOUL_FIRE || body_block.id == SOUL_FIRE ) {
+        if ( RepGame::player_damage( state, PLAYER_FIRE_DAMAGE ) ) {
+            audio_play_sfx( "player_hurt" );
+        }
+    }
+    if ( state.peaceful && state.game_mode == GameMode_Survival && v.health < PLAYER_MAX_HEALTH ) {
+        if ( ++v.regen_accum >= PLAYER_PEACEFUL_REGEN_TICKS ) {
+            v.regen_accum = 0;
+            RepGame::player_heal( state, 1.0f );
+        }
+    } else {
+        v.regen_accum = 0;
+    }
+}
+
+void RepGame::tick_vitals( ) {
+    repgame_tick_vitals( globalGameState );
 }
 
 // Fires one arrow from the eye along the look direction: survival draws a
@@ -599,6 +748,14 @@ void RepGame::process_mouse_events( ) {
         // still opens), outside the placement path (the bow is a pure item
         // and fires at air too).
         if ( globalGameState.hotbar.getSelectedItem( ) == BOW && repgame_fire_arrow( globalGameState ) ) {
+            globalGameState.input.click_delay_right = 30;
+        }
+    }
+    if ( globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
+        // Right-click with food held eats one instantly (beta-style heal)
+        // — same tier as the bow: after the block interactions above and
+        // at air too. Full health refuses so food isn't wasted.
+        if ( repgame_eat_food( globalGameState ) ) {
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -1028,13 +1185,14 @@ void RepGame::process_movement( ) {
         }
     }
 
-    // Farmland trampling: landing after real downward travel (>0.5 — a jump
-    // lands ~1.3, a step-up 0) converts the field underfoot back to dirt;
-    // the crop on top pops via the neighbour-update kill path. Flying,
-    // no-clip and swimming don't count (same model as the mob sim).
+    // Farmland trampling and fall damage share one fall tracker: landing
+    // after real downward travel (>0.5 — a jump lands ~1.3, a step-up 0)
+    // converts a field underfoot back to dirt and, past the safe distance,
+    // hurts the player. Flying, no-clip and swimming don't count (same
+    // model as the mob sim) — water entry resets the distance.
     {
-        static double fall_dist = 0.0;
         static bool was_grounded_trample = false;
+        double &fall_dist = globalGameState.vitals.fall_dist;
         const bool grounded = globalGameState.camera.standing_on_solid && !player_flying && !globalGameState.input.no_clip;
         if ( grounded ) {
             if ( !was_grounded_trample && fall_dist > 0.5 ) {
@@ -1043,9 +1201,16 @@ void RepGame::process_movement( ) {
                 if ( globalGameState.world.get_loaded_block( under_pos ).id == FARMLAND ) {
                     repgame_convert_block( globalGameState, under_pos, DIRT );
                 }
+                // MC's rule: floor(distance) - 3 half-hearts.
+                const float fall_damage = static_cast<float>( floor( fall_dist ) ) - static_cast<float>( PLAYER_FALL_SAFE_DISTANCE );
+                if ( RepGame::player_damage( globalGameState, fall_damage ) ) {
+                    audio_play_sfx( fall_damage >= 8.0f ? "fall_big" : "fall_small" );
+                }
             }
             fall_dist = 0.0;
-        } else if ( movement_vector.y < 0.0 && !player_flying && !globalGameState.input.no_clip && !player_swimming && !player_climbing ) {
+        } else if ( player_swimming ) {
+            fall_dist = 0.0;
+        } else if ( movement_vector.y < 0.0 && !player_flying && !globalGameState.input.no_clip && !player_climbing ) {
             fall_dist += -movement_vector.y;
         }
         was_grounded_trample = grounded;

@@ -1,5 +1,6 @@
 {
+  "food": 8,
+  "icon": "beef_cooked",
   "id": 2086,
-  "name": "COOKED_BEEF",
-  "icon": "beef_cooked"
+  "name": "COOKED_BEEF"
 }

@@ -1,5 +1,6 @@
 {
+  "food": 6,
+  "icon": "mutton_cooked",
   "id": 2089,
-  "name": "COOKED_MUTTON",
-  "icon": "mutton_cooked"
+  "name": "COOKED_MUTTON"
 }

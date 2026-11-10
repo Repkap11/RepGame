@@ -336,6 +336,16 @@ void MobManager::remove_remote( uint32_t uid ) {
     }
 }
 
+void MobManager::flash_remote_hurt( const uint32_t uid, const glm::dvec3 &listener_pos ) {
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.uid == uid ) {
+            mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
+            audio_play_sfx_gain( "player_hurt", audio_distance_gain( glm::distance( mob.pos, listener_pos ) ) );
+            return;
+        }
+    }
+}
+
 // Network-driven pose: ease toward the latest target (snap over 8 blocks),
 // accumulate walk_dist from the applied horizontal motion, drive leg_amp
 // like Java's limbSwingAmount, and keep the head within 50° of the body.
@@ -343,6 +353,10 @@ void MobManager::tick_remote( Mob &mob ) {
     mob.prev_pos = mob.pos;
     mob.prev_yaw = mob.yaw;
     mob.prev_sneak = mob.sneak;
+    // Avatar hurt flash (flash_remote_hurt) uses the same timer as local mobs.
+    if ( mob.hurt_ticks > 0 ) {
+        mob.hurt_ticks--;
+    }
     const glm::dvec3 delta = mob.target - mob.pos;
     if ( glm::length( delta ) > 8.0 ) {
         mob.pos = mob.target;

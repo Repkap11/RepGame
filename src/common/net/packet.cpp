@@ -220,6 +220,7 @@ void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p ) {
     }
     w.write_f32( p.eye_height );
     w.write_u8( p.flags );
+    w.write_f32( p.health );
 }
 
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
@@ -232,6 +233,8 @@ bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
     if ( !r.read_f32( p.eye_height ) ) return false;
     p.flags = 0;
     r.read_u8( p.flags ); // older peers don't send it
+    p.health = -1.0f;     // sentinel: peer predates health (or truncated)
+    r.read_f32( p.health );
     return true;
 }
 
@@ -745,6 +748,7 @@ void NetCodec<NetPlayerPayload>::fill( NetPlayerPayload &p ) {
     }
     p.eye_height = 1.5f;
     p.flags = NET_PLAYER_FLAG_TARGETABLE;
+    p.health = 17.5f;
 }
 void NetCodec<NetBlockUpdatePayload>::fill( NetBlockUpdatePayload &p ) {
     p.x = 100;

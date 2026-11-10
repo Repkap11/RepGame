@@ -50,6 +50,23 @@ struct CameraState {
     }
 };
 
+// Local-player health and breath. `health` is in half-hearts
+// (0..PLAYER_MAX_HEALTH) — the HUD shows 10 heart slots, so 2 hp per
+// heart. `air_ticks` is the breath meter (bubbles on the HUD while below
+// max); `hurt_cooldown` is the post-hit invulnerability window shared by
+// every damage source; `dead` drives the death screen until respawn.
+struct PlayerVitals {
+    float health = PLAYER_MAX_HEALTH;
+    int air_ticks = PLAYER_AIR_MAX_TICKS;
+    int hurt_cooldown = 0;
+    int regen_accum = 0;
+    bool dead = false;
+    // Real downward travel since last ground contact (shared by the
+    // farmland trample and fall damage); flying, no-clip, climbing and
+    // swimming don't count — water entry resets it.
+    double fall_dist = 0.0;
+};
+
 // The block/mob under the crosshair this tick: block cell selection plus
 // the mob raycast winner when it is nearer than the block cell.
 struct BlockSelection {

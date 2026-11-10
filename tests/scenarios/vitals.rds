@@ -1,0 +1,41 @@
+# Player vitals: hearts render above the hotbar in survival, damage drops
+# heart fills, eating food restores them, drowning shows air bubbles, and
+# lethal damage opens the death screen until respawn.
+wait_idle 20 6000
+peaceful off
+mode survival
+# Full health: ten full hearts above the hotbar.
+wait 10
+screenshot vitals_full
+# 8hp damage -> 12/20 = six filled hearts over containers.
+damage 8
+assert_health == 12
+wait 10
+screenshot vitals_hurt
+# Eating an apple (+4) refills two hearts.
+give APPLE 4
+eat
+assert_health == 16
+wait 10
+screenshot vitals_eat
+# A capped water column around the player starts the air countdown ->
+# bubble row appears on the right of the hearts.
+goto 5 1 5
+fill 5 1 5 5 3 5 WATER
+setblock 5 4 5 GLASS
+wait 30
+screenshot vitals_bubbles
+fill 5 1 5 5 4 5 AIR
+goto 1 1 1
+# Lethal damage -> death screen (wait out the i-frame cooldown first).
+wait 80
+damage 30
+assert_dead == 1
+wait 10
+screenshot vitals_dead
+respawn
+assert_dead == 0
+assert_health == 20
+wait 10
+screenshot vitals_respawned
+echo vitals done

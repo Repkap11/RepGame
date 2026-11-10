@@ -19,6 +19,9 @@ struct PacketType_DataPlayer {
     float rotation[ 4 * 4 ];
     float eye_height;
     uint8_t flags; // NET_PLAYER_FLAG_* (targetable etc.)
+    // Last health reported by the client (-1 = unknown / older peer); new
+    // joiners get it in their CLIENT_INIT replay.
+    float health = -1.0f;
 };
 
 struct ClientData {

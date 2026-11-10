@@ -3,7 +3,9 @@
 #include "common/RepGame.hpp"
 #include "common/ui_overlay.hpp"
 #include "common/ui_overlay_buffers.hpp"
+#include "common/inventory_renderer.hpp"
 #include "common/renderer/shader.hpp"
+#include "common/texture_ids_gen.hpp"
 
 #define WIDTH ( 1.5f )
 #define SCALE ( 10.0f )
@@ -60,6 +62,7 @@ void UIOverlay::init( const VertexBufferLayout &ui_overlay_vbl_vertex, const Ver
     this->render_chain_held_block.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_held, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_dragged_item.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
     this->render_chain_panel_backdrop.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
+    this->render_chain_vitals.init( ui_overlay_vbl_vertex, ui_overlay_vbl_instance, vb_isometric_quad_inventory, VB_ISOMETRIC_QUAD_SIZE, ib_isometric_quad, IB_ISOMETRIC_QUAD_SIZE );
 
     showErrors( );
 
@@ -228,6 +231,66 @@ void UIOverlay::draw_held_inventory_item( const InventorySlot &held, bool is_hol
     float tint[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
     font.drawString( renderer, buf, tx, ty, text_size, tint, mvp_ui );
 
+    showErrors( );
+}
+
+// One flat atlas icon for the vitals row. is_block makes the shader sample
+// the texture layer in id_isos; the 1.25 tint cancels the 0.8 front-face
+// darkening so HUD icons draw at full texture brightness.
+static void vitals_icon( UIOverlayInstance &v, float x, float y, float z, float size, float texture_id ) {
+    v.screen_x = x;
+    v.screen_y = y;
+    v.screen_z = z;
+    v.width = size;
+    v.height = size;
+    v.is_block = 1;
+    v.is_isometric = 0;
+    for ( int f = 0; f < ISOMETRIC_FACES; f++ ) {
+        v.id_isos[ f ] = texture_id;
+    }
+    for ( int i = 0; i < 3; i++ ) {
+        v.tint[ i ] = 1.25f;
+        v.block_scale[ i ] = 16.0f;
+        v.block_offset[ i ] = 0.0f;
+        v.block_tex_offset[ i ] = 0.0f;
+    }
+    v.tint[ 3 ] = 1.0f;
+}
+
+void UIOverlay::draw_vitals( float health, float max_health, int air_ticks, int max_air_ticks, const InventoryRenderer &hotbar_renderer, const Renderer &renderer, const Texture &blocksTexture, const glm::mat4 &mvp_ui ) {
+    this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
+    this->shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+    this->shader.set_uniform1f( "u_HeldBlockLight", 1.0f );
+    this->render_chain_vitals.clear( );
+
+    const float stride = hotbar_renderer.getCellStride( );
+    const float icon = stride * 0.5f;
+    const float dx = icon * 0.9f;
+    const float base_y = hotbar_renderer.getItemsTop( ) + stride * 0.15f;
+    const float left = static_cast<float>( hotbar_renderer.getItemsLeft( ) );
+    const float right = static_cast<float>( hotbar_renderer.getItemsRight( ) );
+
+    const int n_hearts = static_cast<int>( ceilf( max_health / 2.0f ) );
+    for ( int i = 0; i < n_hearts; i++ ) {
+        auto pair = this->render_chain_vitals.create_instance( );
+        vitals_icon( pair.second, left + i * dx, base_y, ORDER_Z_VITALS_BG, icon, TEX_HEART_CONTAINER );
+        const float hp = health - i * 2.0f;
+        if ( hp > 0.0f ) {
+            auto fill = this->render_chain_vitals.create_instance( );
+            vitals_icon( fill.second, left + i * dx, base_y, ORDER_Z_VITALS, icon, hp > 1.0f ? TEX_HEART : TEX_HEART_HALF );
+        }
+    }
+    // Bubbles pop off from the right as air runs out — only drawn while the
+    // meter is below max, matching the underwater-only display.
+    if ( air_ticks < max_air_ticks ) {
+        const int n_bubbles = ( air_ticks * n_hearts + max_air_ticks - 1 ) / max_air_ticks;
+        for ( int i = 0; i < n_bubbles; i++ ) {
+            auto pair = this->render_chain_vitals.create_instance( );
+            vitals_icon( pair.second, right - ( i + 1 ) * dx, base_y, ORDER_Z_VITALS, icon, TEX_BUBBLE );
+        }
+    }
+
+    this->render_chain_vitals.draw( renderer, this->shader );
     showErrors( );
 }
 

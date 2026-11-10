@@ -17,11 +17,15 @@ class MultiplayerAvatars {
     // targets (mob phase of entity sync).
     glm::dvec3 eye_pos_map[ MAX_CLIENT_FDS ];
     float eye_height_map[ MAX_CLIENT_FDS ];
+    // Last health received per player (-1 unknown): a drop between updates
+    // flashes that player's avatar red and plays the hurt sound.
+    float health_map[ MAX_CLIENT_FDS ];
 
   public:
     void init( MobManager *mob_manager );
     void add( unsigned int player_id );
-    void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation, float eye_height, uint8_t flags );
+    // listener_pos fades the health-drop hurt sfx against the local camera.
+    void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, const glm::dvec3 &listener_pos );
     bool targetable( int player_id ) const;
     // Fill `out` with every connected remote player's targeting info.
     void fill_remote_targets( std::vector<MobRemoteTarget> &out ) const;

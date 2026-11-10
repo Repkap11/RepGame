@@ -1,5 +1,6 @@
 {
+  "food": 2,
+  "icon": "fish_salmon_raw",
   "id": 2116,
-  "name": "SALMON",
-  "icon": "fish_salmon_raw"
+  "name": "SALMON"
 }

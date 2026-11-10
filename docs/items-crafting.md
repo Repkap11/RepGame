@@ -75,6 +75,12 @@ does the field check). `item_plant_block(item)` resolves it. The same
 items double as breeding food via `MobTypeDef::breed_items`
 (`docs/mobs.md`; bees eat `is_flower` blocks instead), and `BREAD` crafts shapeless 3 wheat.
 
+Edible items carry `"food": <half-hearts>` (apple, bread, raw + cooked
+meats, produce). The importer lands it in `ItemGenDef::food_heal`;
+`item_food_heal(item)` resolves it for the right-click eat path
+(`repgame_eat_food` — heals instantly in beta-MC style, consumes one in
+survival; `docs/player.md`).
+
 Mining speed: `ItemGenDef` carries `tool_class` (the `MineableClass` the
 item accelerates) and `mine_speed` (per-tick multiplier). Optional item
 JSON keys `"tool"` (`"pickaxe"`/`"axe"`/`"shovel"`/`"shears"`/`"hoe"`) and

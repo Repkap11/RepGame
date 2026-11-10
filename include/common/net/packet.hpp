@@ -26,7 +26,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 10;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 11;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -288,6 +288,9 @@ struct NetPlayerPayload {
     float rotation[ 16 ];
     float eye_height; // feet-to-eye distance (drops while sneaking)
     uint8_t flags;    // NET_PLAYER_FLAG_*
+    // Client-authoritative survival health in half-hearts (0..20); a drop
+    // between updates flashes the remote avatar. Creative sends max.
+    float health;
 };
 void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p );
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p );

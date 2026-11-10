@@ -329,6 +329,34 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         results::probe( state, loader, glm::ivec3( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) ) );
         return false;
     }
+    if ( strcmp( cmd, "damage" ) == 0 && argc == 2 ) {
+        const bool applied = RepGame::player_damage( state, static_cast<float>( farg( 1 ) ) );
+        results::event( state.tick_number, "damage_result", "\"applied\":%d,\"health\":%.3f,\"dead\":%d",
+                        applied ? 1 : 0, state.vitals.health, state.vitals.dead ? 1 : 0 );
+        return false;
+    }
+    if ( strcmp( cmd, "eat" ) == 0 && argc == 1 ) {
+        const bool applied = repgame_eat_food( state );
+        results::event( state.tick_number, "eat_result", "\"applied\":%d,\"health\":%.3f", applied ? 1 : 0, state.vitals.health );
+        return false;
+    }
+    if ( strcmp( cmd, "respawn" ) == 0 && argc == 1 ) {
+        repgame_respawn( state );
+        results::event( state.tick_number, "respawn_result", "\"health\":%.3f", state.vitals.health );
+        return false;
+    }
+    if ( strcmp( cmd, "assert_health" ) == 0 && argc == 3 ) {
+        const double expected = atof( argv[ 2 ].c_str() );
+        char actual[ 32 ];
+        snprintf( actual, sizeof( actual ), "%.3f", state.vitals.health );
+        results::assert_( state, line, argv[ 0 ].c_str( ), script::eval_cmp( argv[ 1 ].c_str( ), state.vitals.health, expected ), argv[ 2 ].c_str( ), actual );
+        return false;
+    }
+    if ( strcmp( cmd, "assert_dead" ) == 0 && argc == 3 ) {
+        const double expected = atof( argv[ 2 ].c_str() );
+        results::assert_( state, line, argv[ 0 ].c_str( ), script::eval_cmp( argv[ 1 ].c_str( ), state.vitals.dead ? 1.0 : 0.0, expected ), argv[ 2 ].c_str( ), state.vitals.dead ? "1" : "0" );
+        return false;
+    }
     if ( strcmp( cmd, "assert_block" ) == 0 && argc == 5 ) {
         const glm::ivec3 pos( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) );
         const BlockState bs = state.world.get_loaded_block( pos );

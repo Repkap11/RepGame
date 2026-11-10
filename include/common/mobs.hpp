@@ -92,6 +92,7 @@ inline bool hostile_spawn_light_ok( float sky, float block, float daylight ) {
 class MobManager {
     friend int test_mobs( );
     friend int test_net_mobs( );
+    friend int test_vitals( );
     struct Mob {
         MobType type;
         int variant;
@@ -256,6 +257,10 @@ class MobManager {
     void set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg,
                           float eye_height = PLAYER_EYE_HEIGHT );
     void remove_remote( uint32_t uid );
+    // Remote-player hurt feedback (avatar): red flash + "player_hurt" faded
+    // by distance to the local camera — driven by health drops in the
+    // player's streamed NetPlayerPayload.
+    void flash_remote_hurt( uint32_t uid, const glm::dvec3 &listener_pos );
     // Spawn `type` three blocks in front of `camera_pos` along `look`, dropped
     // onto the ground (persistent). Debug spawn key.
     bool spawn_in_front( MobType type, const glm::dvec3 &camera_pos, const glm::dvec3 &look, World &world );

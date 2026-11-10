@@ -12,6 +12,7 @@
 //   world_time <int64>
 //   render_distance <int>
 //   min_ambient <float>
+//   health <float>                        (absent -> full)
 //   hotbar_selected <int>
 //   hotbar <slot> <item_id> <quantity>     (one line per non-empty slot)
 //   survival <slot> <item_id> <quantity>
@@ -200,6 +201,8 @@ std::string player_data_serialize( const PlayerData &data ) {
     out += line;
     snprintf( line, sizeof( line ), "min_ambient %.9g\n", data.min_ambient );
     out += line;
+    snprintf( line, sizeof( line ), "health %.9g\n", data.health );
+    out += line;
     snprintf( line, sizeof( line ), "hotbar_selected %d\n", data.selected_hotbar_slot );
     out += line;
     write_slots( out, "hotbar", data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
@@ -354,6 +357,11 @@ static bool player_data_parse_text( const char *buf, size_t len, PlayerData &out
             double a = 0.0;
             if ( parse_double( v, &v, a ) ) {
                 out.min_ambient = static_cast<float>( a );
+            }
+        } else if ( key_len == 6 && memcmp( s, "health", 6 ) == 0 ) {
+            double hp = 0.0;
+            if ( parse_double( v, &v, hp ) ) {
+                out.health = static_cast<float>( hp );
             }
         } else if ( key_len == 15 && memcmp( s, "hotbar_selected", 15 ) == 0 ) {
             if ( parse_int( v, &v, iv ) ) {

@@ -85,6 +85,7 @@ struct RepGameState {
     // inventories (persisted in player.dat; the panels in `ui` render them).
     Input input;
     CameraState camera;
+    PlayerVitals vitals;
     Hotbar hotbar;
     SurvivalInventory survival_inventory;
     BlockSelection block_selection;

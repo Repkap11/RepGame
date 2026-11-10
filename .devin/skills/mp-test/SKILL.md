@@ -58,6 +58,10 @@ Artifacts land in `/tmp/mptest_<scenario>_*` and contain `server.log` plus
 | `fall <block> x y z` | spawn a falling-block body |
 | `tnt x y z` | spawn a primed TNT body (normal ignite path, `TNT_FUSE_TICKS`) |
 | `setblock x y z <block>` | normal player edit (BLOCK_UPDATE) |
+| `give <item> [count]` | add to the hotbar like a real pickup (fills the selected slot first) |
+| `damage <hp>` | `player_damage` on the local player; emits `damage_result {applied,health,dead}` (i-frames can refuse — retry after >0.5s) |
+| `eat` | right-click eat of the held food; emits `eat_result {applied,health}` |
+| `respawn` | death-screen Respawn; emits `respawn_result {health}` |
 | `probe x y z` | emit a `probe` event with the block at that cell |
 | `role x y z` | emit a `role` event with the client's role for that chunk |
 | `copen kind x y z` | subscribe to the container (CONTAINER_OPEN) |
@@ -79,10 +83,12 @@ Two line types:
 - `{"type":"event","tick":N,"name":"...", "detail":{...}}` — emitted
   immediately. Event names: `welcome`, `ready`, `view_sent`, `cmd_error`,
   `explosion_received`, `pickup_result`, `player_hit_received`,
-  `entity_transfer`, `probe`, `role`, `cprobe`, `quit`.
+  `entity_transfer`, `probe`, `role`, `cprobe`, `damage_result`,
+  `eat_result`, `respawn_result`, `quit`.
 - `{"type":"state",...}` — every `REPGAME_MP_DUMP_EVERY` ticks:
   - top level: `tick`, `session` (string), `connected` (0/1),
-    `world_time`, `pos` (camera, `[x,y,z]` floats), `tag` (when dumped via
+    `world_time`, `pos` (camera, `[x,y,z]` floats), `health` (half-hearts),
+    `dead`, `air_ticks`, `tag` (when dumped via
     `dump <tag>`), `roles` `{"owner":N,"viewer":N}`.
   - `inventory`: `{ITEM_NAME: total}` across hotbar + survival.
   - `items`: `{net_id, remote, pickup_pending, item, item_name, count,

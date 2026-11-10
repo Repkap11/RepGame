@@ -22,6 +22,7 @@ class Multiplayer {
     glm::mat4 prev_rotation;
     float prev_eye_height = -1.0f;
     uint8_t prev_flags = 0xFF;
+    float prev_health = -1.0f;
     friend class World;
     friend class NetEntities;
 
@@ -120,7 +121,7 @@ class Multiplayer {
     // multiplayer was never started (single player).
     const std::string &server_hostname( ) const { return this->hostname; }
     int server_port( ) const { return this->portno; }
-    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags );
+    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health );
     void request_chunk( const glm::ivec3 &chunk_pos );
     // Returns false (and queues nothing) when not connected, so callers
     // retrying one-shot requests (initial_chunk_request_pending) can keep

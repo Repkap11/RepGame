@@ -219,6 +219,12 @@ cat_death_3|mc_pack/mob/cat/ocelot/death3.wav|sfx|Cat death
 player_hurt_1|mc_pack/damage/hit1.wav|sfx|Player hurt
 player_hurt_2|mc_pack/damage/hit2.wav|sfx|Player hurt
 player_hurt_3|mc_pack/damage/hit3.wav|sfx|Player hurt
+eat_1|mc_pack/random/eat1.wav|sfx|Player eat
+eat_2|mc_pack/random/eat2.wav|sfx|Player eat
+eat_3|mc_pack/random/eat3.wav|sfx|Player eat
+burp_1|mc_pack/random/burp.wav|sfx|Player burp after eating
+fall_small_1|mc_pack/damage/fallsmall.wav|sfx|Small fall damage
+fall_big_1|mc_pack/damage/fallbig.wav|sfx|Big fall damage
 pop_1|mc_pack/random/pop.wav|sfx|Item pickup
 bow_shoot_1|mc_pack/random/bow.wav|sfx|Bow shoot
 arrow_hit_1|mc_pack/random/bowhit1.wav|sfx|Arrow hit

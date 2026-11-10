@@ -45,6 +45,9 @@ struct PlayerData {
     int render_distance = 0;
     // Negative = absent (old saves) -> the default min_ambient is used.
     float min_ambient = -1.0f;
+    // Negative = absent (old saves) -> full health. A saved 0 means the
+    // player exited on the death screen -> respawned fresh at spawn.
+    float health = -1.0f;
 };
 
 // Serializes player data to the text format written to player.dat.

@@ -67,6 +67,7 @@ class RepGame {
     void update_break_progress( );
     void recenter_mouse( );
     void apply_harness_input_overrides( );
+    void tick_vitals( );
     void tick_entities( );
     void tick_fly_flight( );
     void tick_input_latches( );
@@ -122,8 +123,8 @@ class RepGame {
     void save_player_data( );
     Input &getInputState( );
     GameMode getGameMode( ) const;
-    // True while hostile mobs may target the local player — not peaceful
-    // and not no-clip. Drives MobTickInput.player_targetable and the
+    // True while hostile mobs may target the local player — not peaceful,
+    // not no-clip, not dead. Drives MobTickInput.player_targetable and the
     // NET_PLAYER_FLAG_TARGETABLE sent to other clients.
     static bool player_targetable( const RepGameState &state );
 
@@ -150,9 +151,19 @@ class RepGame {
     // block outline (or place/pick through the mob) happens. Static so
     // rep_tests can drive it.
     static void resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_origin );
-    // A hostile mob's melee hit lands here: knockback away from `from` plus
-    // the player_hurt sound. `damage` is unused until player health exists.
+    // A hostile mob's melee hit lands here: knockback away from `from`
+    // plus survival-mode health damage via player_damage.
     static void player_hurt( RepGameState &state, const glm::dvec3 &from, float damage );
+    // Applies `hp` damage (half-hearts) to the local player in survival:
+    // gated by dead/creative and the hurt-cooldown i-frame window that
+    // paces every periodic source. Returns whether damage landed — callers
+    // play their sound only then. Reaching 0 opens the death screen.
+    static bool player_damage( RepGameState &state, float hp );
+    // Heals the local player by `hp` half-hearts (clamped to max), e.g. food.
+    static void player_heal( RepGameState &state, float hp );
+    // Death screen -> respawn at the world spawn with full vitals,
+    // inventory kept, reusing the spawn-column snap.
+    void respawn( );
     // Spawn a killed mob's drops at `pos` (used by the local kill path and
     // the owner-side ENTITY_ACTION HIT path; item spawns sync via phase 1).
     static void spawn_mob_drops( RepGameState &state, const MobTypeDef &def, const glm::dvec3 &pos );
@@ -184,3 +195,25 @@ bool repgame_use_bucket( RepGameState &state );
 // then the survival inventory); creative shoots free. False when no arrow
 // could fly. A free function so rep_tests can drive it.
 bool repgame_fire_arrow( RepGameState &state );
+
+// Right-click with a food item held (item_food_heal > 0) and health below
+// max: eats one — heals `food_heal` half-hearts instantly (beta-style, no
+// eat animation), consumes one in survival, plays the eat sound. False
+// when the held item isn't food or health is already full. A free
+// function so rep_tests and the mp-test harness can drive it.
+bool repgame_eat_food( RepGameState &state );
+
+// Explosion blast on the local player: distance-falloff damage
+// (PLAYER_EXPLOSION_MAX_DAMAGE at the center fading to 0 at `radius`)
+// plus a shove away from the blast. Called from TntExplodeEvent for local
+// blasts and from the inbound EXPLOSION frame for remote ones.
+void repgame_explosion_affect_player( RepGameState &state, const glm::dvec3 &center, float radius );
+
+// Per-tick vitals upkeep (the body of RepGame::tick_vitals): i-frame
+// countdown, breath drain + drowning underwater, lava/fire burns, and
+// peaceful regen. A free function so rep_tests can drive it.
+void repgame_tick_vitals( RepGameState &state );
+
+// Death-screen Respawn (the body of RepGame::respawn): full vitals, menu
+// closed, player back on the world-spawn column — inventory kept.
+void repgame_respawn( RepGameState &state );

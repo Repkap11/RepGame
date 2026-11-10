@@ -73,6 +73,7 @@ int test_player_data( ) {
     in.hotbar_inventory[ 3 ].quantity = 17;
     in.survival_inventory[ 20 ].item_id = APPLE;
     in.survival_inventory[ 20 ].quantity = 3;
+    in.health = 6.5f;
     const std::string text = player_data_serialize( in );
     PlayerData out;
     check_bool( "player: text parses", player_data_parse( reinterpret_cast<const unsigned char *>( text.data( ) ), text.size( ), out ) );
@@ -82,6 +83,7 @@ int test_player_data( ) {
                 out.flying == in.flying && out.no_clip == in.no_clip && out.worldDrawQuality == in.worldDrawQuality && out.game_mode == in.game_mode &&
                     out.peaceful == in.peaceful );
     check_bool( "player: time+rd+ambient", out.world_time == in.world_time && out.render_distance == in.render_distance && out.min_ambient == in.min_ambient );
+    check_bool( "player: health round trips", out.health == 6.5f );
     check_bool( "player: slots round trip",
                 out.hotbar_inventory[ 3 ].item_id == STICK && out.hotbar_inventory[ 3 ].quantity == 17 &&
                     out.survival_inventory[ 20 ].item_id == APPLE && out.survival_inventory[ 20 ].quantity == 3 );
@@ -103,6 +105,7 @@ int test_player_data( ) {
                                               loose_out.angle_H == 10.0f && loose_out.angle_V == 20.0f );
     check_bool( "player: oob+malformed slots ignored", loose_out.hotbar_inventory[ 0 ].item_id == LAST_BLOCK_ID );
     check_bool( "player: missing peaceful key defaults on", loose_out.peaceful );
+    check_bool( "player: missing health key -> full", loose_out.health < 0.0f );
 
     // --- rejection: no pos, no format, garbage ------------------------------
     const char *no_pos = "format 1\nflying 1\n";

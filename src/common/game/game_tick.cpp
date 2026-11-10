@@ -73,6 +73,7 @@ void RepGame::tick( ) {
     // sync with the look direction.
     RepGame::process_camera_angle( );
     RepGame::process_movement( );
+    tick_vitals( );
     tick_entities( );
     // Furnaces burn and cook only in singleplayer; in multiplayer the server
     // ticks them authoritatively and streams CONTAINER_CONTENTS + lit-state

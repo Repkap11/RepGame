@@ -426,3 +426,193 @@ int test_held_swing( ) {
     return failures;
 }
 
+
+// Player vitals: player_damage gates on game mode / dead / the shared
+// i-frame window and raises the death screen at 0; player_heal clamps at
+// max; repgame_eat_food heals the item's "food" value and consumes one in
+// survival; repgame_tick_vitals drains breath underwater then drowns,
+// burns on lava/fire, regenerates in peaceful; the explosion helper does
+// distance-falloff damage plus a shove; respawn restores vitals and pins
+// the player back on the spawn column.
+//
+//   eye at (8.5, 10.5, 8.5), eye_height 1.62:
+//     eye cell (8,10,8)  body cell (8,9,8)  feet cell (8,8,8)
+int test_vitals( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    // Interior of the single test chunk — set_loaded_block refuses border
+    // writes (a missing neighbor can't be fixed up).
+    gs.camera.pos = glm::dvec3( 8.5, 10.5, 8.5 );
+    test_setup_world( gs.world );
+    test_setup_inventories( gs );
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto check_near = [ & ]( const char *name, double actual, double expected ) {
+        const bool ok = fabs( actual - expected ) <= 1e-4;
+        pr_test( "  %-55s value=%-9.4f expected=%-9.4f  %s", name, actual, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    gs.game_mode = GameMode_Survival;
+
+    // Food metadata lands in the generated item table.
+    check_bool( "food heal values (apple/bread/beef)",
+                item_food_heal( APPLE ) == 4 && item_food_heal( BREAD ) == 5 && item_food_heal( COOKED_BEEF ) == 8 );
+    check_bool( "non-food heals 0", item_food_heal( STONE ) == 0 && item_food_heal( ARROW ) == 0 && item_food_heal( LAST_BLOCK_ID ) == 0 );
+
+    // player_damage: survival takes it, i-frames gate the follow-up.
+    check_bool( "survival takes damage", RepGame::player_damage( gs, 5.0f ) && gs.vitals.health == 15.0f );
+    check_bool( "i-frames gate the next hit", !RepGame::player_damage( gs, 5.0f ) && gs.vitals.health == 15.0f );
+    gs.vitals.hurt_cooldown = 0;
+    check_bool( "cooldown expiry lets damage through", RepGame::player_damage( gs, 3.0f ) && gs.vitals.health == 12.0f );
+    check_bool( "non-positive damage refused", !RepGame::player_damage( gs, 0.0f ) );
+    gs.game_mode = GameMode_Creative;
+    gs.vitals.hurt_cooldown = 0;
+    check_bool( "creative is invulnerable", !RepGame::player_damage( gs, 5.0f ) && gs.vitals.health == 12.0f );
+    gs.game_mode = GameMode_Survival;
+
+    // Heal clamps at max.
+    gs.vitals.health = 19.0f;
+    RepGame::player_heal( gs, 5.0f );
+    check_bool( "heal clamps at max", gs.vitals.health == PLAYER_MAX_HEALTH );
+
+    // Lethal hit: health pins at 0, dead raises the (locked) death screen.
+    gs.vitals.hurt_cooldown = 0;
+    gs.vitals.health = 4.0f;
+    check_bool( "lethal hit kills", RepGame::player_damage( gs, 10.0f ) && gs.vitals.dead && gs.vitals.health == 0.0f && gs.input.menu_open );
+    check_bool( "dead refuses more damage", !RepGame::player_damage( gs, 1.0f ) );
+    gs.vitals = PlayerVitals( );
+    gs.ui.pause.set_dead( false );
+    gs.input.menu_open = false;
+
+    // Eating: survival consumes one, heals the food value; refused at full
+    // health or on a non-food item; creative heals without consuming.
+    gs.hotbar.setSlotContents( 0, { APPLE, 4 } );
+    gs.vitals.health = 10.0f;
+    check_bool( "eat heals + consumes one",
+                repgame_eat_food( gs ) && gs.vitals.health == 14.0f && gs.hotbar.getSelectedItem( ) == APPLE && gs.hotbar.getSelectedQuantity( ) == 3 );
+    gs.vitals.health = PLAYER_MAX_HEALTH;
+    check_bool( "eat refused at full health", !repgame_eat_food( gs ) && gs.hotbar.getSelectedQuantity( ) == 3 );
+    gs.hotbar.setSlotContents( 0, { STONE, 4 } );
+    gs.vitals.health = 10.0f;
+    check_bool( "eat refused on non-food", !repgame_eat_food( gs ) && gs.vitals.health == 10.0f && gs.hotbar.getSelectedQuantity( ) == 4 );
+    gs.game_mode = GameMode_Creative;
+    gs.hotbar.setSlotContents( 0, { BREAD, 2 } );
+    check_bool( "creative eat heals, keeps stack", repgame_eat_food( gs ) && gs.vitals.health == 15.0f && gs.hotbar.getSelectedQuantity( ) == 2 );
+    gs.game_mode = GameMode_Survival;
+
+    // tick_vitals: breath drains with the head in water, then drowning hits
+    // through the shared damage funnel (paced by i-frames).
+    gs.vitals = PlayerVitals( );
+    gs.vitals.health = 12.0f;
+    gs.world.set_loaded_block( glm::ivec3( 8, 10, 8 ), { WATER, 0, 0, WATER, 0 } );
+    repgame_tick_vitals( gs );
+    check_bool( "submerged: breath drains", gs.vitals.air_ticks == PLAYER_AIR_MAX_TICKS - 1 );
+    gs.vitals.air_ticks = 0;
+    repgame_tick_vitals( gs );
+    check_near( "breath out: drowns", gs.vitals.health, 12.0f - PLAYER_DROWN_DAMAGE );
+    check_bool( "drowning sets i-frames", gs.vitals.hurt_cooldown == PLAYER_HURT_COOLDOWN_TICKS );
+    repgame_tick_vitals( gs );
+    check_near( "drowning paced by i-frames", gs.vitals.health, 12.0f - PLAYER_DROWN_DAMAGE );
+    gs.world.set_loaded_block( glm::ivec3( 8, 10, 8 ), BLOCK_STATE_AIR );
+    gs.vitals.air_ticks = 5;
+    repgame_tick_vitals( gs );
+    check_bool( "surfaced: breath refills", gs.vitals.air_ticks == PLAYER_AIR_MAX_TICKS );
+
+    // Lava burns fast at the feet cell; open fire burns slower.
+    gs.vitals.hurt_cooldown = 0;
+    gs.vitals.health = 12.0f;
+    gs.world.set_loaded_block( glm::ivec3( 8, 8, 8 ), { LAVA, 0, 0, LAVA, 0 } );
+    repgame_tick_vitals( gs );
+    check_near( "lava at feet burns", gs.vitals.health, 12.0f - PLAYER_LAVA_DAMAGE );
+    gs.world.set_loaded_block( glm::ivec3( 8, 8, 8 ), { FIRE, 0, 0, FIRE, 0 } );
+    gs.vitals.hurt_cooldown = 0;
+    repgame_tick_vitals( gs );
+    check_near( "fire at feet burns slower", gs.vitals.health, 12.0f - PLAYER_LAVA_DAMAGE - PLAYER_FIRE_DAMAGE );
+    gs.world.set_loaded_block( glm::ivec3( 8, 8, 8 ), BLOCK_STATE_AIR );
+
+    // Peaceful regen: one half-heart per PLAYER_PEACEFUL_REGEN_TICKS while
+    // hurt in survival; off without the toggle.
+    gs.vitals = PlayerVitals( );
+    gs.vitals.health = 10.0f;
+    gs.peaceful = true;
+    for ( int i = 0; i < PLAYER_PEACEFUL_REGEN_TICKS; i++ ) {
+        repgame_tick_vitals( gs );
+    }
+    check_near( "peaceful regen ticks to +1", gs.vitals.health, 11.0f );
+    gs.peaceful = false;
+    gs.vitals.regen_accum = 0;
+    for ( int i = 0; i < PLAYER_PEACEFUL_REGEN_TICKS * 2; i++ ) {
+        repgame_tick_vitals( gs );
+    }
+    check_near( "no regen without peaceful", gs.vitals.health, 11.0f );
+
+    // Dead: vitals tick holds the menu open and keeps breath full.
+    gs.vitals.dead = true;
+    gs.input.menu_open = false;
+    gs.vitals.air_ticks = 0;
+    repgame_tick_vitals( gs );
+    check_bool( "dead: menu held open, breath refilled", gs.input.menu_open && gs.vitals.air_ticks == PLAYER_AIR_MAX_TICKS );
+    gs.vitals = PlayerVitals( );
+    gs.input.menu_open = false;
+
+    // Explosion: linear falloff inside the radius, a shove away; nothing
+    // past the edge.
+    gs.vitals.health = PLAYER_MAX_HEALTH;
+    gs.camera.horizontal_vel = glm::dvec2( 0.0 );
+    gs.camera.y_speed = 0.0;
+    repgame_explosion_affect_player( gs, glm::dvec3( 10.5, 10.5, 8.5 ), 8.0f );
+    check_near( "blast in radius damages (75% falloff)", gs.vitals.health, PLAYER_MAX_HEALTH - 0.75 * PLAYER_EXPLOSION_MAX_DAMAGE );
+    check_bool( "blast pushes away from center", gs.camera.horizontal_vel.x < 0.0 && gs.camera.y_speed > 0.0 );
+    gs.vitals = PlayerVitals( );
+    gs.camera.horizontal_vel = glm::dvec2( 0.0 );
+    gs.camera.y_speed = 0.0;
+    repgame_explosion_affect_player( gs, glm::dvec3( 28.5, 10.5, 8.5 ), 8.0f );
+    check_bool( "outside radius: untouched", gs.vitals.health == PLAYER_MAX_HEALTH && gs.camera.horizontal_vel.x == 0.0 );
+
+    // respawn restores vitals, clears the death screen and re-pins the
+    // spawn column (spawn_pending does the ground snap once it loads).
+    gs.vitals.health = 0.0f;
+    gs.vitals.dead = true;
+    gs.vitals.air_ticks = 0;
+    gs.vitals.fall_dist = 12.0;
+    gs.ui.pause.set_dead( true );
+    gs.input.menu_open = true;
+    repgame_respawn( gs );
+    check_bool( "respawn restores vitals", gs.vitals.health == PLAYER_MAX_HEALTH && !gs.vitals.dead &&
+                                              gs.vitals.air_ticks == PLAYER_AIR_MAX_TICKS && gs.vitals.fall_dist == 0.0 );
+    check_bool( "respawn closes menu + re-pins spawn", !gs.input.menu_open && gs.spawn_pending );
+
+    // Avatar hurt flash: a health drop between remote updates flashes the
+    // player's mob red; the first packet (-1 -> known) and a heal don't.
+    {
+        MobManager mobs;
+        MultiplayerAvatars avatars;
+        avatars.init( &mobs );
+        avatars.add( 2 );
+        const glm::dvec3 listener( 0.0 );
+        const glm::mat4 rot( 1.0f );
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 20.0f, listener );
+        check_bool( "first update: no flash", mobs.mobs[ 0 ].hurt_ticks == 0 );
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 10.0f, listener );
+        check_bool( "health drop: avatar flashes", mobs.mobs[ 0 ].hurt_ticks > 0 );
+        mobs.mobs[ 0 ].hurt_ticks = 0;
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 15.0f, listener );
+        check_bool( "heal: no flash", mobs.mobs[ 0 ].hurt_ticks == 0 );
+        avatars.update_position( 2, 1.0f, 10.0f, 1.0f, rot, PLAYER_EYE_HEIGHT, 0, 15.0f, listener );
+        check_bool( "same health: no flash", mobs.mobs[ 0 ].hurt_ticks == 0 );
+    }
+
+    return failures;
+}

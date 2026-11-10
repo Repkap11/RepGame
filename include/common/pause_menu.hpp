@@ -61,6 +61,13 @@ class PauseMenu {
     };
     static constexpr int MAX_ROWS = 24;
 
+    // Death-screen mode: layout collapses to Respawn + Exit under a
+    // "You died!" title (set via set_dead from player_damage/respawn).
+    bool dead_mode = false;
+    // The last layout font — kept so set_dead can relayout outside
+    // changeSize. Set by onScreenSizeChange.
+    const FontRenderer *layout_font = nullptr;
+
     RenderChain<UIOverlayVertex, UIOverlayInstance> render_chain_quads;
     // Single-instance chain redrawn each frame over the hovered button
     // (desktop pointer feedback; harmless on touch since absPosition only
@@ -81,6 +88,12 @@ class PauseMenu {
     // font is used to fit label sizes: text only ever draws at 13*k px
     // (FontRenderer::pixelScale), so the layout asks it for real widths.
     void onScreenSizeChange( int width, int height, const FontRenderer &font );
+    // Death-screen mode toggle — relayouts immediately when a layout has
+    // already run (screen size + font known).
+    void set_dead( bool dead );
+    bool is_dead( ) const {
+        return this->dead_mode;
+    }
     void draw( const Renderer &renderer, Shader &shader, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp, const RepGameState &state );
     // abs_x/abs_y are top-left-origin screen pixels (SDL mouse / touch).
     // Returns a BUTTON_* id or BUTTON_NONE.

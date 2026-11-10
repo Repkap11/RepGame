@@ -230,6 +230,17 @@ void RepGame::initializeGameState( const char *world_name ) {
         if ( !env_is_set( "REPGAME_MIN_AMBIENT" ) && saved_data.min_ambient >= 0.0f ) {
             imgui_overlay_get_imgui_debug_vars( ).min_ambient = glm::clamp( saved_data.min_ambient, 0.0f, MIN_AMBIENT_MAX );
         }
+        // Saved health: absent/negative in old saves -> full. A saved 0
+        // means the player quit on the death screen — respawn them fresh
+        // at the world spawn (position snap via spawn_pending), like the
+        // death screen's Respawn button.
+        if ( saved_data.health >= 0.0f ) {
+            globalGameState.vitals.health = glm::clamp( saved_data.health, 0.0f, PLAYER_MAX_HEALTH );
+            if ( globalGameState.vitals.health <= 0.0f ) {
+                globalGameState.vitals.health = PLAYER_MAX_HEALTH;
+                globalGameState.spawn_pending = true;
+            }
+        }
     }
     // Fly mode pins the camera every tick, but the pin runs after the network
     // tick: start at the pin so the first VIEW/location is already correct.
@@ -361,6 +372,7 @@ void RepGame::save_player_data( ) {
     saved_data.world_time = globalGameState.world_time;
     saved_data.render_distance = globalGameState.input.render_distance;
     saved_data.min_ambient = imgui_overlay_get_imgui_debug_vars( ).min_ambient;
+    saved_data.health = globalGameState.vitals.health;
 
     globalGameState.map_storage.write_player_data( saved_data );
 }

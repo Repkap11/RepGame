@@ -1,5 +1,6 @@
 {
+  "food": 4,
+  "icon": "rotten_flesh",
   "id": 2055,
-  "name": "ROTTEN_FLESH",
-  "icon": "rotten_flesh"
+  "name": "ROTTEN_FLESH"
 }

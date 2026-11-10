@@ -7,6 +7,9 @@ void MultiplayerAvatars::init( MobManager *mob_manager ) {
     this->mobs = mob_manager;
     memset( this->uid_map, 0, sizeof( this->uid_map ) );
     memset( this->flags_map, 0, sizeof( this->flags_map ) );
+    for ( float &h : this->health_map ) {
+        h = -1.0f;
+    }
 }
 
 void MultiplayerAvatars::add( const unsigned int player_id ) {
@@ -14,15 +17,24 @@ void MultiplayerAvatars::add( const unsigned int player_id ) {
     // at its last position) — remove it first.
     this->remove( player_id );
     this->uid_map[ player_id ] = this->mobs->spawn_remote( MOB_PLAYER );
+    this->health_map[ player_id ] = -1.0f;
 }
 
-void MultiplayerAvatars::update_position( const int player_id, const float x, const float y, const float z, const glm::mat4 &rotation, const float eye_height, const uint8_t flags ) {
+void MultiplayerAvatars::update_position( const int player_id, const float x, const float y, const float z, const glm::mat4 &rotation, const float eye_height, const uint8_t flags, const float health, const glm::dvec3 &listener_pos ) {
     this->flags_map[ player_id ] = flags;
     this->eye_pos_map[ player_id ] = glm::dvec3( x, y, z );
     this->eye_height_map[ player_id ] = eye_height;
+    // Health is client-authoritative: a drop means the remote player just
+    // took damage — flash their avatar red + hurt sound. -1 (unknown)
+    // never triggers, so a joiner's first packet can't spuriously flash.
+    const float prev_health = this->health_map[ player_id ];
+    this->health_map[ player_id ] = health;
     const uint32_t uid = this->uid_map[ player_id ];
     if ( uid == 0 ) {
         return;
+    }
+    if ( health >= 0.0f && prev_health >= 0.0f && health < prev_health ) {
+        this->mobs->flash_remote_hurt( uid, listener_pos );
     }
     // The packet's (x,y,z) is the eye position; the rotation carries the
     // sender's camera angles (see mob_look_from_camera_rotation).
@@ -51,9 +63,13 @@ void MultiplayerAvatars::remove( const unsigned int player_id ) {
     }
     this->mobs->remove_remote( uid );
     this->uid_map[ player_id ] = 0;
+    this->health_map[ player_id ] = -1.0f;
 }
 
 void MultiplayerAvatars::cleanup( ) {
     memset( this->uid_map, 0, sizeof( this->uid_map ) );
     memset( this->flags_map, 0, sizeof( this->flags_map ) );
+    for ( float &h : this->health_map ) {
+        h = -1.0f;
+    }
 }
