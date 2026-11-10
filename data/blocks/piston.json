@@ -1,4 +1,5 @@
 {
+  "casts_shadow": false,
   "connects_to_redstone_dust": true,
   "icon": "piston_top_normal",
   "icon_is_isometric": true,

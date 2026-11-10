@@ -218,7 +218,11 @@ ORs `is_piston_head` in and picks against `piston_head_boxes` — the plate
 plus the 4x4 arm shaft, the same two boxes the mesher emits and collision
 blocks with, so the arm can't be clicked or walked through. The mirrored
 `piston_base_boxes` covers the extended base (recessed body + throat
-stub); the selection outline draws the pair. Mining or pick-blocking a
+stub); the selection outline draws the pair. For lighting both base
+defs are `casts_shadow: false` like the heads — light flows through a
+piston cell (they shade nothing, and a piston over grass doesn't count
+as cover), while mesh culling still treats them as the full cubes they
+draw as. Mining or pick-blocking a
 head retargets the base (`piston_head_base` in BlockNextToChangeEvent.cpp —
 the same pairing `block_can_survive_at` checks), so breaking it drops the
 piston and pops the head through the survive check.
