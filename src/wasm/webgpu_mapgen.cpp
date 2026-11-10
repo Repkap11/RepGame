@@ -504,7 +504,7 @@ constexpr uint64_t MESH_CELLS_BYTES = (uint64_t)CHUNK_BLOCK_SIZE * sizeof( Block
 constexpr uint64_t MESH_RESULTS_BYTES = (uint64_t)CHUNK_BLOCK_SIZE * sizeof( WorkingSpace );
 static_assert( CHUNK_BLOCK_SIZE % 2 == 0, "cells buffer must pack evenly into u32s" );
 static_assert( sizeof( WorkingSpace ) == 4 + NUM_FACES_IN_CUBE * 4, "WorkingSpace layout drifted from the WGSL MeshResult" );
-static_assert( sizeof( GPUBlockDef ) == 5 * 4 + 2 * NUM_FACES_IN_CUBE * 4, "GPUBlockDef layout drifted from the WGSL struct" );
+static_assert( sizeof( GPUBlockDef ) == 6 * 4 + 2 * NUM_FACES_IN_CUBE * 4, "GPUBlockDef layout drifted from the WGSL struct" );
 
 char *load_mesh_wgsl_source( ) {
     FILE *f = fopen( "src/shaders/mesh_gen.wgsl", "rb" );

@@ -566,16 +566,16 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         // 12-15. After the loader's X-flip those regions are wood bands on
         // tiles 115 (band at image right) and 114 (band at image bottom), so
         // each rim face gets the band tile matching its thin axis and reads
-        // as a wooden plate edge. The head-end face keeps the head tile; the
-        // plate's interior back face gets the plain body tile.
+        // as a wooden plate edge. Only the plate's head-end face carries the
+        // (possibly sticky) head tile — the tail face is always plain wood.
         const TextureID head_tile = block->id == STICKY_PISTON_ARM_COLLISION ? TEX_PISTON_TOP_STICKY : TEX_PISTON_TOP_NORMAL;
         const unsigned char rot = blockState->rotation;
         if ( rot == PISTON_ROTATE_UP || rot == PISTON_ROTATE_DOWN ) {
             // Horizontal plate — the shader only applies yaw to the canonical
             // forward-facing plate, so bake the vertical geometry here. Every
             // lateral slot lands on a rim thin in v.
-            blockCoord->face[ FACE_TOP ] = rot == PISTON_ROTATE_UP ? head_tile : TEX_PISTON_BOTTOM;
-            blockCoord->face[ FACE_BOTTOM ] = rot == PISTON_ROTATE_UP ? TEX_PISTON_BOTTOM : head_tile;
+            blockCoord->face[ FACE_TOP ] = rot == PISTON_ROTATE_UP ? head_tile : TEX_PISTON_TOP_NORMAL;
+            blockCoord->face[ FACE_BOTTOM ] = rot == PISTON_ROTATE_DOWN ? head_tile : TEX_PISTON_TOP_NORMAL;
             blockCoord->face[ FACE_FRONT ] = TEX_PISTON_SIDE_DOWN;
             blockCoord->face[ FACE_BACK ] = TEX_PISTON_SIDE_DOWN;
             blockCoord->face[ FACE_RIGHT ] = TEX_PISTON_SIDE_DOWN;
@@ -586,11 +586,14 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
             blockCoord->offset_y = rot == PISTON_ROTATE_UP ? 12 : 0;
         } else {
             blockCoord->face[ FACE_FRONT ] = head_tile;
-            blockCoord->face[ FACE_BACK ] = TEX_PISTON_BOTTOM;
+            blockCoord->face[ FACE_BACK ] = TEX_PISTON_TOP_NORMAL;
             if ( rot == BLOCK_ROTATE_90 || rot == BLOCK_ROTATE_270 ) {
-                // Plate thin in x: all four rim faces sample columns 0-3.
-                blockCoord->face[ FACE_TOP ] = TEX_PISTON_SIDE_RIGHT;
-                blockCoord->face[ FACE_BOTTOM ] = TEX_PISTON_SIDE_RIGHT;
+                // Plate thin in x. The ±z rims sample columns 0-3 (SIDE_RIGHT's
+                // band), but the shader's top/bottom texcoord rotation puts the
+                // thin axis on v for those faces, so they need the tile whose
+                // band sits at rows 12-15 instead.
+                blockCoord->face[ FACE_TOP ] = TEX_PISTON_SIDE_DOWN;
+                blockCoord->face[ FACE_BOTTOM ] = TEX_PISTON_SIDE_DOWN;
                 blockCoord->face[ FACE_RIGHT ] = TEX_PISTON_SIDE_RIGHT;
                 blockCoord->face[ FACE_LEFT ] = TEX_PISTON_SIDE_RIGHT;
             } else {

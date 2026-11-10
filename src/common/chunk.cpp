@@ -1481,7 +1481,9 @@ void Chunk::calculate_populated_blocks( ) {
                         // A lit redstone torch emits a second instance: the
                         // 4-wide orb head around the stick's top.
                         const bool redstone_orb = blockState.display_id == REDSTONE_TORCH && blockState.current_redstone_power > 0;
-                        const int emit_count = ( num_boxes > 0 ? num_boxes : 1 ) + ( redstone_orb ? 1 : 0 ) + ( block->spine_shell ? 2 : 0 );
+                        const bool piston_arm_cell = block->is_piston_head || ( block->is_piston && blockState.current_redstone_power > 0 );
+                        const int emit_count = ( num_boxes > 0 ? num_boxes : 1 ) + ( redstone_orb ? 1 : 0 ) + ( block->spine_shell ? 2 : 0 ) +
+                                               ( piston_arm_cell ? size_x * size_y * size_z : 0 );
                         ensure_capacity( block->renderOrder, emit_count );
                         if ( num_instances[ block->renderOrder ] + emit_count > capacity[ block->renderOrder ] ) {
                             continue; // OOM — drop this cell's instances.
@@ -1628,6 +1630,126 @@ void Chunk::calculate_populated_blocks( ) {
                             orb->tex_offset_z = -13;
                             for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                                 orb->face[ f ] = TEX_REDSTONE_TORCH_GLOW;
+                            }
+                        }
+
+                        // Piston heads emit a second instance per run cell:
+                        // the 4x4 arm spanning from the plate back to the
+                        // cell's base end. Horizontal heads use the
+                        // definition-space shaft (the shader yaws it with the
+                        // plate); up/down get the world-baked column the same
+                        // way block_adjust bakes the plate. Laterals use the
+                        // wood arm tile (Bedrock pistonArm.png's board style:
+                        // planks framed in steel) and both end caps are
+                        // skipped — the head end is buried in the plate, the
+                        // base end meets the throat stub the extended base
+                        // emits. Plate runs merge across cells, so the arms
+                        // loop the run volume to give every merged cell its
+                        // own shaft.
+                        if ( block->is_piston_head ) {
+                            const int head_face = piston_head_face( blockState.rotation );
+                            const unsigned char yaw = blockState.rotation & 3;
+                            for ( int ax = 0; ax < size_x; ax++ ) {
+                                for ( int ay = 0; ay < size_y; ay++ ) {
+                                    for ( int az = 0; az < size_z; az++ ) {
+                                        BlockCoords *arm =
+                                            &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                                        num_instances[ block->renderOrder ] += 1;
+                                        *arm = *blockCoord;
+                                        arm->x = blockCoord->x + ax;
+                                        arm->y = blockCoord->y + ay;
+                                        arm->z = blockCoord->z + az;
+                                        arm->mesh_x = 1;
+                                        arm->mesh_y = 1;
+                                        arm->mesh_z = 1;
+                                        if ( head_face == FACE_TOP || head_face == FACE_BOTTOM ) {
+                                            arm->scale_x = 4;
+                                            arm->scale_y = 12;
+                                            arm->scale_z = 4;
+                                            arm->offset_x = 6;
+                                            arm->offset_y = head_face == FACE_TOP ? 0 : 4;
+                                            arm->offset_z = 6;
+                                            arm->packed_lighting[ FACE_TOP ] = NO_LIGHT_NO_DRAW;
+                                            arm->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                                        } else {
+                                            arm->scale_x = 4;
+                                            arm->scale_y = 4;
+                                            arm->scale_z = 12;
+                                            arm->offset_x = 6;
+                                            arm->offset_y = 6;
+                                            arm->offset_z = 0;
+                                            // Definition-space end caps: land
+                                            // them on their world-space
+                                            // packed_lighting slots like the
+                                            // multi-box skip_faces remap.
+                                            arm->packed_lighting[ mesh_rotated_face( FACE_FRONT, ( 4 - yaw ) & 3 ) ] = NO_LIGHT_NO_DRAW;
+                                            arm->packed_lighting[ mesh_rotated_face( FACE_BACK, ( 4 - yaw ) & 3 ) ] = NO_LIGHT_NO_DRAW;
+                                        }
+                                        // Wood grain runs along the shaft on
+                                        // every lateral. In def space the
+                                        // shaft always lies along its
+                                        // sampled v — except the horizontal
+                                        // LEFT/RIGHT slots, whose u runs
+                                        // along z; those take the rotated
+                                        // tile.
+                                        const bool vertical = head_face == FACE_TOP || head_face == FACE_BOTTOM;
+                                        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                            arm->face[ f ] = !vertical && ( f == FACE_LEFT || f == FACE_RIGHT ) ? TEX_PISTON_ARM_H : TEX_PISTON_ARM;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Extended piston bases emit the other piece of the
+                        // arm: the 4x4x4 stub inside the body's recessed
+                        // throat (Java's piston_extended model keeps it on
+                        // the base). It continues the head's shaft through
+                        // the open 4px of this cell up to the body face.
+                        // Same layout as the head arm — def-space for
+                        // horizontal yaws, world-baked for up/down — and the
+                        // same arm tiles, so the whole arm reads as one
+                        // wooden shaft. Both caps are skipped: the head end
+                        // meets the head arm's skipped cap at the boundary,
+                        // the body end is coplanar with the recessed face.
+                        if ( block->is_piston && blockState.current_redstone_power > 0 ) {
+                            const int head_face = piston_head_face( blockState.rotation );
+                            const unsigned char yaw = blockState.rotation & 3;
+                            for ( int ax = 0; ax < size_x; ax++ ) {
+                                for ( int ay = 0; ay < size_y; ay++ ) {
+                                    for ( int az = 0; az < size_z; az++ ) {
+                                        BlockCoords *arm =
+                                            &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                                        num_instances[ block->renderOrder ] += 1;
+                                        *arm = *blockCoord;
+                                        arm->x = blockCoord->x + ax;
+                                        arm->y = blockCoord->y + ay;
+                                        arm->z = blockCoord->z + az;
+                                        arm->mesh_x = 1;
+                                        arm->mesh_y = 1;
+                                        arm->mesh_z = 1;
+                                        arm->scale_x = 4;
+                                        arm->scale_y = 4;
+                                        arm->scale_z = 4;
+                                        arm->offset_x = 6;
+                                        arm->offset_z = 6;
+                                        if ( head_face == FACE_TOP || head_face == FACE_BOTTOM ) {
+                                            arm->offset_y = head_face == FACE_TOP ? 12 : 0;
+                                            arm->packed_lighting[ FACE_TOP ] = NO_LIGHT_NO_DRAW;
+                                            arm->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                                        } else {
+                                            arm->offset_y = 6;
+                                            arm->offset_z = 12;
+                                            arm->packed_lighting[ mesh_rotated_face( FACE_FRONT, ( 4 - yaw ) & 3 ) ] = NO_LIGHT_NO_DRAW;
+                                            arm->packed_lighting[ mesh_rotated_face( FACE_BACK, ( 4 - yaw ) & 3 ) ] = NO_LIGHT_NO_DRAW;
+                                        }
+                                        // Same grain rule as the head arm.
+                                        const bool vertical = head_face == FACE_TOP || head_face == FACE_BOTTOM;
+                                        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                            arm->face[ f ] = !vertical && ( f == FACE_LEFT || f == FACE_RIGHT ) ? TEX_PISTON_ARM_H : TEX_PISTON_ARM;
+                                        }
+                                    }
+                                }
                             }
                         }
 

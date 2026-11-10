@@ -193,7 +193,25 @@ axes the box fully spans, so head plates merge in the plate plane and never
 along their thin axis. In `chunk_vertex.glsl` the top/bottom face UV window
 must still pick up `mesh_size` for the non-yaw up/down rotations — without
 it a merged run draws one tile stretched over the whole quad instead of
-repeating per cell.
+repeating per cell. The arm is two instances (like Java's split between
+`piston_head` and `piston_extended`): each head cell emits a second
+instance — the 4x4 shaft spanning from the plate back to the base end —
+def-space for the yaw rotations, world-baked for up/down — with both end
+caps skipped and one instance per merged-run cell; each powered base cell
+emits the matching 4x4x4 stub inside its recessed throat so the shaft
+reads continuous from plate to body. The shaft uses the authored
+`piston_arm` tile (wood boards with steel edges, after Bedrock's
+`pistonArm.png`); since the grain must run along the axis on every
+lateral, the horizontal LEFT/RIGHT slots — whose u runs along the shaft —
+get the rotated twin `piston_arm_h`. Both plate faces get the head tile —
+the interior face shows through the throat gap — and the head defs carry
+an explicit `tex_offset: [0,0,0]`: the importer's default `tex_offset =
+-offset` would wrap the 4px-shifted tile across the plate's front face
+and push the rim sampling windows off the band quarter. For neighbor-face
+coverage `mesh_face_seethrough` special-cases `is_piston_head`: only the
+head-end boundary is covered (`MESH_PISTON_HEAD_COVERED`), since the
+canonical def's `is_seethrough_face` would claim a full side face on the
+wrong axis for up/down rotations and cull solid neighbors into holes.
 
 Fences and fence gates draw several box instances per cell in the CPU
 meshing pass (chunk.cpp phase 2, `fence_boxes`/`fence_gate_boxes` in

@@ -734,6 +734,8 @@
     "pinecone",
     "pink_candle",
     "pink_petals",
+    "piston_arm",
+    "piston_arm_h",
     "piston_bottom",
     "piston_front_extended",
     "piston_side_down",

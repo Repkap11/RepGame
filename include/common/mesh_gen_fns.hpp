@@ -47,6 +47,10 @@ MG_FN1( int, mesh_piston_covered_face, int, rotation ) {
     return MESH_PISTON_COVERED[ MG_TERN( rotation < 6, rotation, 0 ) ];
 }
 
+MG_FN1( int, mesh_piston_head_covered_face, int, rotation ) {
+    return MESH_PISTON_HEAD_COVERED[ MG_TERN( rotation < 6, rotation, 0 ) ];
+}
+
 // A slab's coverage face for a world-space face: a top-half slab
 // (BLOCK_ROTATE_SLAB_TOP == rotation bit 2) mirrors its box into the cell's
 // upper half, so its def-space TOP face covers the cell like a bottom
@@ -60,8 +64,14 @@ MG_FN3( int, mesh_slab_face, GPUBlockDef, block, int, rotation, int, face ) {
 
 // Mirror of chunk.cpp's face_is_seethrough: a powered piston base recesses
 // 4px at its head end, so every def-space face except the covered back face
-// lets neighbor faces show through. Only used for covering-block lookups.
+// lets neighbor faces show through. A piston head plate only ever covers
+// its head-end face — the def's is_seethrough_face can't express the
+// vertical rotations, which would claim sideways coverage and cull
+// neighbors into holes. Only used for covering-block lookups.
 MG_FN4( int, mesh_face_seethrough, GPUBlockDef, block, int, power, int, rotation, int, face ) {
+    if ( block.is_piston_head != 0u ) {
+        return MG_TERN( face != mesh_piston_head_covered_face( rotation ), 1, 0 );
+    }
     if ( block.is_piston != 0u && power > 0 ) {
         return MG_TERN( face != mesh_piston_covered_face( rotation ), 1, 0 );
     }

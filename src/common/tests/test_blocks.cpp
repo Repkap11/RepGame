@@ -637,6 +637,24 @@ int test_slabs( ) {
                 mesh_slab_face( defs[ STONE ], TOP, FACE_TOP ) == FACE_TOP && //
                     mesh_slab_face( defs[ OAK_SLAB ], 0, FACE_TOP ) == FACE_TOP );
 
+    // --- piston head coverage -------------------------------------------------
+    // A head plate only ever covers its head-end boundary — every other
+    // side stays open (the arm doesn't cover a face), so a solid neighbor
+    // beside a vertical head must still draw its face instead of culling
+    // into a see-through hole.
+    check_bool( "mesh: piston head covers only the head-end face",
+                !mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, 0, FACE_FRONT ) && //
+                    mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, 0, FACE_BACK ) != 0 && //
+                    mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, 0, FACE_TOP ) != 0 && //
+                    mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, 0, FACE_RIGHT ) != 0 );
+    check_bool( "mesh: up/down piston heads cover only the plate plane",
+                !mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, PISTON_ROTATE_UP, FACE_TOP ) &&   //
+                    mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, PISTON_ROTATE_UP, FACE_BOTTOM ) != 0 && //
+                    mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, PISTON_ROTATE_UP, FACE_FRONT ) != 0 && //
+                    !mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, PISTON_ROTATE_DOWN, FACE_BOTTOM ) && //
+                    mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, PISTON_ROTATE_DOWN, FACE_TOP ) != 0 && //
+                    mesh_face_seethrough( defs[ PISTON_ARM_COLLISION ], 0, PISTON_ROTATE_DOWN, FACE_BACK ) != 0 );
+
     // --- world-level collision + raycast -------------------------------------
     {
         RepGameState &gs2 = *new RepGameState( );

@@ -2248,7 +2248,7 @@ block_definitions[ 143 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 143 ].offset = { 0, 0, 12 };
 block_definitions[ 143 ].piston_immovable = true;
 block_definitions[ 143 ].scale = { 16, 16, 4 };
-block_definitions[ 143 ].tex_offset = { 0, 0, -12 };
+block_definitions[ 143 ].tex_offset = { 0, 0, 0 };
 
 // STICKY_PISTON_ARM_COLLISION (144)
 block_definitions[ 144 ].textures[ FACE_TOP ] = TEX_PISTON_TOP_STICKY;
@@ -2266,7 +2266,7 @@ block_definitions[ 144 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 144 ].offset = { 0, 0, 12 };
 block_definitions[ 144 ].piston_immovable = true;
 block_definitions[ 144 ].scale = { 16, 16, 4 };
-block_definitions[ 144 ].tex_offset = { 0, 0, -12 };
+block_definitions[ 144 ].tex_offset = { 0, 0, 0 };
 
 // BURNT_OUT_TORCH (145)
 block_definitions[ 145 ].textures[ FACE_TOP ] = TEX_BURNT_OUT_TORCH_TOP;

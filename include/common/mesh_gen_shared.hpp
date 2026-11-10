@@ -63,6 +63,11 @@
 // an extended base still fully covers (opposite the head end).
 #define MESH_PISTON_HEAD_FACES_VALUES FACE_FRONT, FACE_LEFT, FACE_BACK, FACE_RIGHT, FACE_TOP, FACE_BOTTOM
 #define MESH_PISTON_COVERED_VALUES FACE_BACK, FACE_BACK, FACE_BACK, FACE_BACK, FACE_BOTTOM, FACE_TOP
+// The def-space face a piston head plate fully covers — the head end itself:
+// FRONT for the four yaws (the canonical def box), TOP/BOTTOM for up/down,
+// where block_adjust bakes the vertical plate and the rotated-face table's
+// "rotation & 3" lookup still maps TOP/BOTTOM to themselves.
+#define MESH_PISTON_HEAD_COVERED_VALUES FACE_FRONT, FACE_FRONT, FACE_FRONT, FACE_FRONT, FACE_TOP, FACE_BOTTOM
 // ROTATED_FACE_TABLE rows — ROTATED_FACE_TABLE[rotation][face]:
 #define MESH_ROT_ROW0 FACE_TOP, FACE_BOTTOM, FACE_RIGHT, FACE_FRONT, FACE_LEFT, FACE_BACK
 #define MESH_ROT_ROW1 FACE_TOP, FACE_BOTTOM, FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT
@@ -87,6 +92,7 @@ const FACE_ROTATE_90 : array<i32, 6> = array<i32, 6>( MESH_FACE_ROTATE_90_VALUES
 const OPPOSITE_FACE : array<i32, 6> = array<i32, 6>( MESH_OPPOSITE_FACE_VALUES );
 const MESH_PISTON_HEAD_FACES : array<i32, 6> = array<i32, 6>( MESH_PISTON_HEAD_FACES_VALUES );
 const MESH_PISTON_COVERED : array<i32, 6> = array<i32, 6>( MESH_PISTON_COVERED_VALUES );
+const MESH_PISTON_HEAD_COVERED : array<i32, 6> = array<i32, 6>( MESH_PISTON_HEAD_COVERED_VALUES );
 const ROTATED_FACE_TABLE : array<array<i32, 6>, 4> = array<array<i32, 6>, 4>( array<i32, 6>( MESH_ROT_ROW0 ),
                                                                             array<i32, 6>( MESH_ROT_ROW1 ),
                                                                             array<i32, 6>( MESH_ROT_ROW2 ),
@@ -100,6 +106,7 @@ struct GPUBlockDef {
     no_light : u32,
     id : u32,
     is_piston : u32,
+    is_piston_head : u32,
     is_slab : u32,
     is_seethrough_face : array<u32, 6>,
     hides_self : array<u32, 6>,
@@ -116,6 +123,7 @@ static const int FACE_ROTATE_90[ NUM_FACES_IN_CUBE ] = { MESH_FACE_ROTATE_90_VAL
 static const int OPPOSITE_FACE[ NUM_FACES_IN_CUBE ] = { MESH_OPPOSITE_FACE_VALUES };
 static const int MESH_PISTON_HEAD_FACES[ NUM_FACES_IN_CUBE ] = { MESH_PISTON_HEAD_FACES_VALUES };
 static const int MESH_PISTON_COVERED[ NUM_FACES_IN_CUBE ] = { MESH_PISTON_COVERED_VALUES };
+static const int MESH_PISTON_HEAD_COVERED[ NUM_FACES_IN_CUBE ] = { MESH_PISTON_HEAD_COVERED_VALUES };
 static constexpr int ROTATED_FACE_TABLE[ 4 ][ NUM_FACES_IN_CUBE ] = {
     { MESH_ROT_ROW0 },
     { MESH_ROT_ROW1 },
@@ -137,6 +145,7 @@ struct GPUBlockDef {
     unsigned no_light;
     unsigned id; // BlockID
     unsigned is_piston;
+    unsigned is_piston_head;
     // rotation bit 2 (BLOCK_ROTATE_SLAB_TOP) mirrors the box into the cell's
     // top half — mesh_slab_face flips y coverage lookups for it
     unsigned is_slab;

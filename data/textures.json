@@ -1936,6 +1936,12 @@
   "pink_petals": {
     "source": "textures/items/pink_petals"
   },
+  "piston_arm": {
+    "keep": true
+  },
+  "piston_arm_h": {
+    "keep": true
+  },
   "piston_bottom": {
     "source": "textures/blocks/piston_bottom"
   },

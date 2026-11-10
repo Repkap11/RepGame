@@ -16,6 +16,11 @@
     16,
     4
   ],
+  "tex_offset": [
+    0,
+    0,
+    0
+  ],
   "textures": {
     "all": "piston_top_sticky"
   }
