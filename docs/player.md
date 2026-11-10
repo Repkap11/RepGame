@@ -96,8 +96,11 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   `y_speed` so a step-up can't launch the player; a blocked axis zeroes
   that velocity component.
 - **Feel.** Footsteps accumulate collision-resolved ground distance and
-  play the underfoot block's step sound; water entry splashes and
-  submerged strokes run per distance swum (both in player.cpp).
+  play the underfoot block's step sound; the water-entry splash scales
+  its gain by entry speed (walking in is a lap, a real fall is the heavy
+  splash) and only fires after ~0.5 s out of liquid, so fluid rewrites
+  reshaping the cell underfoot don't re-splash; submerged strokes run
+  per distance swum (all in player.cpp).
 
 ## Look & selection
 

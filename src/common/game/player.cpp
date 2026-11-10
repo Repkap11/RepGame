@@ -1031,17 +1031,19 @@ void RepGame::process_movement( ) {
         was_grounded_trample = grounded;
     }
 
-    // Water: a splash on entry — heavy when falling in fast — and swim
-    // strokes every ~1.5 blocks of submerged movement (3D distance, so
-    // diving straight down counts). Wading keeps footsteps instead. The
-    // liquid checks below use the POST-movement position (player_swimming /
-    // player_wading are computed pre-movement and lag one tick — that delay
-    // is audible on the splash).
+    // Water: a splash on entry — heavy when falling in fast, and gain
+    // scaled by entry speed so wading in quietly laps instead of booming
+    // like a dive — and swim strokes every ~1.5 blocks of submerged
+    // movement (3D distance, so diving straight down counts). Wading keeps
+    // footsteps instead. The liquid checks below use the POST-movement
+    // position (player_swimming / player_wading are computed pre-movement
+    // and lag one tick — that delay is audible on the splash).
     {
         static bool was_in_liquid = false;
         static bool liquid_state_known = false;
         static double swim_distance = 0.0;
         static long last_swim_tick = -1000;
+        static long last_liquid_tick = -1000;
         const double feet_y = globalGameState.camera.pos.y - globalGameState.camera.eye_height;
         const BlockState feet_block_now = globalGameState.world.get_loaded_block( glm::ivec3( glm::round( glm::dvec3( globalGameState.camera.pos.x, feet_y + 0.05, globalGameState.camera.pos.z ) - 0.5 ) ) );
         const BlockState body_block_now = globalGameState.world.get_loaded_block( glm::ivec3( glm::round( body_center - 0.5 ) ) );
@@ -1057,7 +1059,15 @@ void RepGame::process_movement( ) {
         }
         if ( in_liquid ) {
             if ( !was_in_liquid ) {
-                audio_play_sfx( globalGameState.camera.y_speed < -0.25 ? "heavy_splash" : "splash" );
+                // Only a real dry spell counts as a fresh entry: flow writes
+                // receding/refilling the cell underfoot toggle in_liquid as
+                // the shape settles, and each rewrite used to re-splash.
+                const long dry_ticks = globalGameState.tick_number - last_liquid_tick;
+                const double entry_speed = glm::length( movement_vector );
+                if ( dry_ticks >= ( long )( 0.5 * UPS_RATE ) && entry_speed > 0.01 ) {
+                    const float gain = glm::clamp( (float)( entry_speed / 0.35 ), 0.05f, 1.0f );
+                    audio_play_sfx_gain( -movement_vector.y > 0.25 ? "heavy_splash" : "splash", gain );
+                }
                 swim_distance = 0.0;
                 last_swim_tick = globalGameState.tick_number;
             } else if ( body_in_liquid_now ) {
@@ -1074,6 +1084,9 @@ void RepGame::process_movement( ) {
         }
         if ( blocks_loaded ) {
             was_in_liquid = in_liquid;
+            if ( in_liquid ) {
+                last_liquid_tick = globalGameState.tick_number;
+            }
         }
     }
 }
