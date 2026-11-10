@@ -220,3 +220,8 @@ player_hurt_1|mc_pack/damage/hit1.wav|sfx|Player hurt
 player_hurt_2|mc_pack/damage/hit2.wav|sfx|Player hurt
 player_hurt_3|mc_pack/damage/hit3.wav|sfx|Player hurt
 pop_1|mc_pack/random/pop.wav|sfx|Item pickup
+bow_shoot_1|mc_pack/random/bow.wav|sfx|Bow shoot
+arrow_hit_1|mc_pack/random/bowhit1.wav|sfx|Arrow hit
+arrow_hit_2|mc_pack/random/bowhit2.wav|sfx|Arrow hit
+arrow_hit_3|mc_pack/random/bowhit3.wav|sfx|Arrow hit
+arrow_hit_4|mc_pack/random/bowhit4.wav|sfx|Arrow hit

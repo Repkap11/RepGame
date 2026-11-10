@@ -242,6 +242,17 @@ bool dbgcmd::tnt( RepGameState &state, const glm::vec3 &center, std::string *err
     return true;
 }
 
+bool dbgcmd::shoot( RepGameState &state, const glm::dvec3 &from, const glm::dvec3 &dir, std::string *err ) {
+    if ( glm::length( dir ) < 1e-6 ) {
+        *err = "shoot: zero direction";
+        return false;
+    }
+    const bool survival = state.game_mode == GameMode_Survival;
+    state.world.arrows.spawn( from, glm::normalize( dir ) * ArrowEntities::ARROW_SPEED,
+                              survival ? ArrowEntities::ARROW_DAMAGE : 1000.0f, survival ? 1 : 0 );
+    return true;
+}
+
 bool dbgcmd::setblock( RepGameState &state, const glm::ivec3 &pos, const char *block_name, std::string *err, unsigned char rotation ) {
     const ItemID id = item_from_name( block_name );
     if ( id == LAST_BLOCK_ID ) {

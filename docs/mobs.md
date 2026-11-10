@@ -302,3 +302,9 @@ selected block takes `HIT_DAMAGE` (4.0, creative kills in one hit), gets
 knockback + a 0.3 s red flash + 5 s panic, and rolls `MobTypeDef::drops`
 in survival when killed (zombies: rotten flesh 0-2 plus bones 0-2 — the
 bone feeds the bone-meal recipe). Babies (`is_baby_at`) drop nothing.
+Bow arrows reach the same `MobManager::raycast` during `arrows.tick` —
+`ArrowTickOutput::mob_hits` are applied in `RepGame::tick_entities`
+through the identical hurt path (survival `ARROW_DAMAGE` 9.0, `hurt()`
+knockback/flash/panic, drops on kill) or forwarded as
+ENTITY_ACTION/NET_ACTION_HIT for remote-owned mobs — see
+`docs/entities.md` "Arrows".

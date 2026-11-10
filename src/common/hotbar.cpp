@@ -194,6 +194,24 @@ bool Hotbar::consumeSelected( int amount ) {
     return true;
 }
 
+bool Hotbar::consumeItem( const ItemID itemId, const int amount ) {
+    const int slot_index = this->findSlotWithItem( itemId, false );
+    if ( slot_index < 0 ) {
+        return false;
+    }
+    InventorySlot &slot = this->slots[ slot_index ];
+    if ( slot.quantity < amount ) {
+        return false;
+    }
+    slot.quantity -= amount;
+    if ( slot.quantity <= 0 ) {
+        slot.item_id = LAST_BLOCK_ID;
+        slot.quantity = 0;
+    }
+    this->inventory_renderer.changeSlotItem( slot_index, slot );
+    return true;
+}
+
 int Hotbar::getSelectedQuantity( ) const {
     return this->slots[ this->selected_slot ].quantity;
 }

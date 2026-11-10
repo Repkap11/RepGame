@@ -8,6 +8,7 @@ struct RepGameState;
 #include "common/multiplayer_avatars.hpp"
 #include "common/block_debris.hpp"
 #include "common/heart_particles.hpp"
+#include "common/arrows.hpp"
 #include "common/block_bodies.hpp"
 #include "common/item_entities.hpp"
 #include "common/mobs.hpp"
@@ -33,6 +34,7 @@ class World {
 
     friend int test_lighting( );
     friend int test_falling_blocks( );
+    friend int test_arrows( );
 
     ChunkLoader chunkLoader;
     // World-owned xorshift state for random ticks — kept off rand() so debug
@@ -148,6 +150,9 @@ class World {
     // after bodies, rendered as mini cubes (isometric block items) or
     // extruded sprites.
     ItemEntities items;
+    // Arrow projectiles: causer-simulated like bodies, ticked right after
+    // items; rendered as velocity-aligned extruded sprites.
+    ArrowEntities arrows;
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );

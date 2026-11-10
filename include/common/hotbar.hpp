@@ -26,6 +26,10 @@ class Hotbar {
     bool addItemWithQuantity( ItemID itemId, int quantity, bool prefer_selected_slot );
     bool canPlaceSelected( ) const;
     bool consumeSelected( int amount );
+    // Removes `amount` of itemId from the first matching stack (any slot,
+    // not just the selected one — bow ammo draw). True when a stack had
+    // enough.
+    bool consumeItem( ItemID itemId, int amount );
     int getSelectedQuantity( ) const;
     void setSelectedSlot( int selected_slot );
     ItemID incrementSelectedSlot( int offset );

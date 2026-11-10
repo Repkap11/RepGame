@@ -134,7 +134,13 @@ matching and the output slot are documented with the item/recipe data in
   faces); isometric block icons use the same cube mesh as dropped
   block items (`block_object_shader` + `BlockObjectInstance`), shaped
   by the block's scale/offset. The poses come from
-  `ImGuiDebugVars::held_*`/`held_block_*`.
+  `ImGuiDebugVars::held_*`/`held_block_*`/`bow_*`, tunable live from the
+  overlay's "Held Item" section while the cursor is free
+  (inventory/menu open) when `IMGUI_OVERLAY_LIVE_TUNE` is set to 1 in
+  `imgui_overlay.cpp`; edits are logged via `pr_debug` on slider
+  release / the "Log pose" button so a settled pose can be baked back
+  into the `ImGuiDebugVars` defaults. The bow adds `bow_spin` (in-plane
+  icon rotation about the sprite center).
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
   (`item_name`) just above the hotbar, black-outlined via
   `FontRenderer::drawStringOutlined`; empty slots show nothing.

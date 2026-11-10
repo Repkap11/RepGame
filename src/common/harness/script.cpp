@@ -319,6 +319,12 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         dbgcmd::tnt( state, glm::vec3( farg( 1 ), farg( 2 ), farg( 3 ) ), &err );
         return false;
     }
+    if ( strcmp( cmd, "shoot" ) == 0 && argc == 7 ) {
+        if ( !dbgcmd::shoot( state, glm::dvec3( farg( 1 ), farg( 2 ), farg( 3 ) ), glm::dvec3( farg( 4 ), farg( 5 ), farg( 6 ) ), &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
     if ( ( strcmp( cmd, "probe" ) == 0 || strcmp( cmd, "probe_light" ) == 0 ) && argc == 4 ) {
         results::probe( state, loader, glm::ivec3( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) ) );
         return false;

@@ -171,6 +171,20 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
     }
     jput( "]" );
 
+    jput( ",\"arrows\":[" );
+    first = true;
+    for ( const ArrowEntities::Arrow &a : state.world.arrows.debug_arrows( ) ) {
+        jput( "%s{\"net_id\":", first ? "" : "," );
+        jnet_id( a.net.id );
+        jput( ",\"remote\":%d,\"stuck\":%d,"
+              "\"stuck_cell\":[%d,%d,%d],"
+              "\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.4f,%.4f,%.4f],\"age\":%d}",
+              a.net.mirror ? 1 : 0, a.stuck, a.stuck_cell.x, a.stuck_cell.y, a.stuck_cell.z,
+              a.pos.x, a.pos.y, a.pos.z, a.vel.x, a.vel.y, a.vel.z, a.age_ticks );
+        first = false;
+    }
+    jput( "]" );
+
     int owners, viewers;
     net.role_counts( &owners, &viewers );
     jput( ",\"roles\":{\"owner\":%d,\"viewer\":%d}", owners, viewers );
@@ -244,6 +258,13 @@ static void run_cmd( RepGameState &state, char *line ) {
     }
     if ( strcmp( cmd, "tnt" ) == 0 && argc == 4 ) {
         dbgcmd::tnt( state, glm::vec3( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) ), &err );
+        return;
+    }
+    if ( strcmp( cmd, "shoot" ) == 0 && argc == 7 ) {
+        if ( !dbgcmd::shoot( state, glm::dvec3( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) ),
+                           glm::dvec3( atof( argv[ 4 ] ), atof( argv[ 5 ] ), atof( argv[ 6 ] ) ), &err ) ) {
+            cmd_error( state, line );
+        }
         return;
     }
     if ( strcmp( cmd, "setblock" ) == 0 && argc == 5 ) {

@@ -35,7 +35,8 @@ Protocol 6 added `removed_natural` (tombstoned natural-roll indices) to
 into `CONTAINER_*`); protocol 8 added `item` to
 `NetEntityActionPayload` plus `NET_ACTION_FEED` — see `docs/entities.md`;
 protocol 9 retired the `CHEST_*`/`FURNACE_*` wire families for the unified
-`CONTAINER_*` family (see "Containers").
+`CONTAINER_*` family (see "Containers"); protocol 10 added
+`NetEntityKind::ARROW` (bow projectiles — see `docs/entities.md`).
 
 ## Transports
 

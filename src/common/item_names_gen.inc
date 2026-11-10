@@ -70,3 +70,5 @@
     "SALMON",
     "STRING",
     "CAT_SPAWN_EGG",
+    "BOW",
+    "ARROW",

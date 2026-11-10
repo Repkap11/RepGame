@@ -1,0 +1,6 @@
+{
+  "pattern": [" sS", "s S", " sS"],
+  "key": {"s": "STICK", "S": "STRING"},
+  "result": "BOW",
+  "count": 1
+}

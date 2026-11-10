@@ -27,6 +27,10 @@ class SurvivalInventory {
     // matching slots plus empty slots).
     int spaceFor( ItemID itemId ) const;
 
+    // Removes `amount` of itemId from the first matching stack. True when a
+    // stack had enough (bow ammo draw falls back here after the hotbar).
+    bool consumeItem( ItemID itemId, int amount );
+
     // Moves the entire stack from the given slot to the hotbar. Returns true if
     // the move succeeded. prefer_selected_slot is forwarded to
     // Hotbar::addItemWithQuantity (fills the selected hotbar slot first).

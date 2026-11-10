@@ -277,6 +277,17 @@ def bodies_of(st):
     return st.get("bodies", []) if st else []
 
 
+def arrows_of(st):
+    return st.get("arrows", []) if st else []
+
+
+def find_arrow(st, net_id=None):
+    for a in arrows_of(st):
+        if net_id is None or a["net_id"] == net_id:
+            return a
+    return None
+
+
 def find_item(st, net_id=None):
     for it in items_of(st):
         if net_id is None or it["net_id"] == net_id:
@@ -872,6 +883,114 @@ def sc_tnt_handover(run, A, B):
         raise Fail("late joiner sees different block: %s vs %s" % (p, pc))
 
 
+def sc_arrow_shoot(run, A, B):
+    """Bow arrow: the shooter simulates, the peer mirrors — spawn relay,
+    block sticking, anchor release and owner walk-over pickup."""
+    gy = settle(run, A, B)
+    A.cmd("mode survival")  # pickup feeds the survival inventory
+    # Wall at x=20 plus a runway row so the released arrow lands on stone.
+    for x in range(13, 22):
+        A.cmd("setblock %d %d 10 STONE" % (x, gy - 1))
+    for y in range(gy, gy + 3):
+        A.cmd("setblock 20 %d 10 STONE" % y)
+    run.sleep_ticks(10)
+    A.cmd("shoot 14.5 %f 10.5 1 0 0" % (gy + 1.0))
+    run.wait("arrow on A", lambda: find_arrow(A.dump.last_state()) is not None, timeout=30)
+    run.wait("arrow mirror on B", lambda: find_arrow(B.dump.last_state()) is not None, timeout=60)
+    run.wait("arrow stuck on both", lambda: (
+        (find_arrow(A.dump.last_state()) or {}).get("stuck") == 1 and
+        (find_arrow(B.dump.last_state()) or {}).get("stuck") == 1), timeout=120)
+    a, b = find_arrow(A.dump.last_state()), find_arrow(B.dump.last_state())
+    if a["net_id"] != b["net_id"]:
+        raise Fail("net_id mismatch %s vs %s" % (a["net_id"], b["net_id"]))
+    if a["remote"] != 0 or b["remote"] != 1:
+        raise Fail("role flags wrong: A.remote=%s B.remote=%s" % (a["remote"], b["remote"]))
+    if dist(a["pos"], b["pos"]) > 0.5:
+        raise Fail("stuck mirror diverged: %s vs %s" % (a["pos"], b["pos"]))
+    nid = a["net_id"]
+    # Breaking the anchor cell releases the arrow; it drops and re-sticks
+    # on the runway top on both clients.
+    A.cmd("setblock %d %d %d AIR" % tuple(a["stuck_cell"]))
+    run.wait("arrow drops to runway", lambda: (
+        find_arrow(A.dump.last_state(), nid) is not None and
+        find_arrow(A.dump.last_state(), nid)["pos"][1] < gy + 0.5), timeout=120)
+    run.wait("re-stuck on both", lambda: (
+        (find_arrow(A.dump.last_state(), nid) or {}).get("stuck") == 1 and
+        (find_arrow(B.dump.last_state(), nid) or {}).get("stuck") == 1), timeout=60)
+    # Only the sim owner picks up: A walks over the shaft, the mirror dies
+    # via ENTITY_REMOVE and an ARROW lands in A's inventory.
+    p = find_arrow(A.dump.last_state(), nid)["pos"]
+    A.goto(p[0], gy + 1.7, p[2])
+    run.wait("arrow picked up on both", lambda: (
+        find_arrow(A.dump.last_state(), nid) is None and
+        find_arrow(B.dump.last_state(), nid) is None), timeout=60)
+    run.wait("A inventory has ARROW", lambda: inv_count(A.dump.last_state(), "ARROW") >= 1, timeout=30)
+
+
+def sc_arrow_mob_hit(run, A, B):
+    """A viewer's arrow hitting an owner-side mob: the sim raycasts the
+    mirror, ENTITY_ACTION lands the damage on the owner, the hurt state
+    streams back."""
+    gy = settle(run, A, B)
+    B.cmd("mode survival")  # ARROW_DAMAGE (9) wounds the 10hp pig, no kill
+    pre = {m["net_id"] for m in mobs_of(A.dump.last_state())}
+    A.cmd("mob PIG 14.5 %d 10.5" % gy)
+    run.wait("pig on A", lambda: any(
+        m["net_id"] not in pre for m in mobs_of(A.dump.last_state())), timeout=60)
+    nid = next(m["net_id"] for m in mobs_of(A.dump.last_state()) if m["net_id"] not in pre)
+    run.wait("pig on B", lambda: find_mob(B.dump.last_state(), nid) is not None, timeout=60)
+    h0 = find_mob(A.dump.last_state(), nid)["health"]
+
+    def pig_hurt():
+        ma = find_mob(A.dump.last_state(), nid)
+        mb = find_mob(B.dump.last_state(), nid)
+        return ma is not None and mb is not None and ma["health"] < h0 and mb["health"] < h0
+
+    # Pigs wander — re-aim at the streamed position each attempt.
+    for _ in range(5):
+        m = find_mob(B.dump.last_state(), nid)
+        if m is None:
+            break
+        B.cmd("shoot %f %f %f -1 0.02 0" % (m["pos"][0] + 4.0, m["pos"][1] + 0.5, m["pos"][2]))
+        try:
+            run.wait("pig hurt on both", pig_hurt, timeout=90)
+            break
+        except Fail:
+            continue
+    else:
+        raise Fail("arrow never hit the pig")
+    run.wait("arrow consumed", lambda: len(arrows_of(A.dump.last_state())) == 0 and
+             len(arrows_of(B.dump.last_state())) == 0, timeout=60)
+
+
+def sc_arrow_handover(run, A, B):
+    """Sim disconnect: the stuck arrow's chunk owner adopts it via
+    ENTITY_TRANSFER; a late joiner mirrors the parked state."""
+    gy = settle(run, A, B)
+    for y in range(gy, gy + 3):
+        A.cmd("setblock 20 %d 10 STONE" % y)
+    run.sleep_ticks(10)
+    A.cmd("shoot 14.5 %f 10.5 1 0 0" % (gy + 1.0))
+    run.wait("arrow stuck on both", lambda: (
+        (find_arrow(A.dump.last_state()) or {}).get("stuck") == 1 and
+        (find_arrow(B.dump.last_state()) or {}).get("stuck") == 1), timeout=120)
+    nid = find_arrow(A.dump.last_state())["net_id"]
+    A.quit()
+    run.wait("B adopts arrow", lambda: (
+        find_arrow(B.dump.last_state(), nid) is not None and
+        find_arrow(B.dump.last_state(), nid)["remote"] == 0), timeout=90)
+    b = find_arrow(B.dump.last_state(), nid)
+    if b["stuck"] != 1:
+        raise Fail("adopted arrow lost stuck state: %s" % (b,))
+    # A late joiner mirrors the same parked arrow.
+    C = run.client("C", POS_C)
+    run.wait_ready(C)
+    run.wait("C mirrors arrow", lambda: (
+        find_arrow(C.dump.last_state(), nid) is not None and
+        find_arrow(C.dump.last_state(), nid)["remote"] == 1 and
+        find_arrow(C.dump.last_state(), nid)["stuck"] == 1), timeout=120)
+
+
 def sc_persistence(run, A, B):
     gy = settle(run, A, B)
     A.cmd("drop DIRT 3 10.5 %d 10.5" % gy)
@@ -1084,6 +1203,9 @@ SCENARIOS = [
     ("falling_block", sc_falling_block),
     ("tnt_explosion", sc_tnt_explosion),
     ("tnt_handover", sc_tnt_handover),
+    ("arrow_shoot", sc_arrow_shoot),
+    ("arrow_mob_hit", sc_arrow_mob_hit),
+    ("arrow_handover", sc_arrow_handover),
     ("persistence", sc_persistence),
     ("disconnect_cleanup", sc_disconnect_cleanup),
     ("first_view_correct", sc_first_view_correct),

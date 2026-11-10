@@ -151,8 +151,17 @@ mob pre-empt the block target for left clicks.
   `BUCKET` scoops the fluid source under `fluidSelectionInBounds`,
   `WATER_BUCKET`/`LAVA_BUCKET` pour a source at the flowing hit cell,
   `pos_fluid_create` or `pos_create`), bone meal (sapling or crop
-  stage), hoe tilling and spawn eggs before falling through to placement
-  (`docs/redstone.md`, `docs/ui.md`).
+  stage), hoe tilling, spawn eggs and the bow before falling through to
+  placement (`docs/redstone.md`, `docs/ui.md`). A held `BOW` fires an
+  arrow along the camera look vector at the standard 30-tick click
+  cadence (`repgame_fire_arrow` — no charge-up; release is biased a
+  step along the aim so it can't collide with the shooter's own head
+  cell). Survival consumes one `ARROW` — hotbar first, then the
+  survival inventory (`consumeItem` helpers on both) — and refuses to
+  fire empty; creative fires free and one-shots (1000 damage vs the
+  survival `ARROW_DAMAGE`). Block interactions keep precedence — a
+  right-click aimed at a chest/door still opens/toggles it — and VR's
+  use-binding lands here the same way (`vr.haptic_pending`).
 
 ## Farming
 

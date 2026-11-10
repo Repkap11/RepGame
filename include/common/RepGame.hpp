@@ -178,3 +178,9 @@ void repgame_loot_container( RepGameState &state, const InventorySlot *slots, in
 // keeps it). Returns true when a bucket action happened; a free function so
 // rep_tests can drive it.
 bool repgame_use_bucket( RepGameState &state );
+
+// Right-click with the bow held: releases an arrow along the camera look
+// direction at full draw speed. Survival consumes one ARROW (hotbar first,
+// then the survival inventory); creative shoots free. False when no arrow
+// could fly. A free function so rep_tests can drive it.
+bool repgame_fire_arrow( RepGameState &state );

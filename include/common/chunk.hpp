@@ -298,6 +298,7 @@ class Chunk {
     friend class StructureGen;
     friend class MapStorage;
     friend class MobManager;
+    friend class ArrowEntities;
     friend class BlockBodies;
     friend class ItemEntities;
     friend class NetEntities;

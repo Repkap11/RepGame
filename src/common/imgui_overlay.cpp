@@ -7,6 +7,10 @@
 #include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
 
+// Set to 1 to make the overlay interactive while the cursor is free
+// (inventory/menu open) and show the held-pose tuning controls.
+#define IMGUI_OVERLAY_LIVE_TUNE 0
+
 ImGuiDebugVars debug_vars;
 
 ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
@@ -86,8 +90,10 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
     // Don't persist window layout to imgui.ini — the overlay is fixed and
     // a leftover ini can shrink the window or add a scrollbar on next launch.
     io.IniFilename = nullptr;
-    // The overlay is read-only debug text; don't let it capture the mouse or
-    // it eats clicks/motion/wheel whenever the cursor is over the HUD.
+    // The overlay is read-only debug text while the game owns the mouse;
+    // NoMouse keeps it from capturing clicks/motion/wheel over the HUD.
+    // imgui_overlay_draw lifts it per-frame while the cursor is free
+    // (inventory/menu open) so the live-tuning controls are usable.
     io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
 
     // Setup Dear ImGui style
@@ -110,9 +116,11 @@ void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *windo
 void imgui_overlay_handle_sdl2_event( ImGuiOverlay *ui_overlay, SDL_Event *event, bool *handledMouse, bool *handledKeyboard ) {
     ImGui_ImplSDL_ProcessEvent( event );
     ImGuiIO &io = ImGui::GetIO( );
-    // ImGuiConfigFlags_NoMouse keeps io.WantCaptureMouse false, but never
-    // report mouse capture regardless: the game always owns the mouse.
-    *handledMouse = false;
+    // While the cursor is free (inventory/menu open) imgui_overlay_draw
+    // clears NoMouse and ImGui reports real capture, so ImGui eats clicks on
+    // its windows instead of the game/inventory. In gameplay NoMouse keeps
+    // WantCaptureMouse false and this stays false.
+    *handledMouse = io.WantCaptureMouse && ui_overlay->shown;
     *handledKeyboard = io.WantCaptureKeyboard && ui_overlay->shown;
 }
 
@@ -131,6 +139,15 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
     // draw_ui_pass puts the menu on top.
     if ( imgui_overlay->shown ) {
         ImGuiIO &io = ImGui::GetIO( );
+        // The overlay is read-only while the game owns the mouse; with the
+        // cursor free (inventory/menu open) make ImGui interactive so the
+        // live-tuning controls below are usable (IMGUI_OVERLAY_LIVE_TUNE).
+        const bool interactive = IMGUI_OVERLAY_LIVE_TUNE && ( input.inventory_open || input.menu_open );
+        if ( interactive ) {
+            io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+        } else {
+            io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+        }
         const char *worldDrawQualityNames[] = { "LOW", "MEDIUM", "HIGH", "X_HIGH" };
         const char *qualityName = worldDrawQualityNames[ static_cast<int>( input.worldDrawQuality ) ];
 
@@ -142,10 +159,13 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
 
         // Black background, 50% transparent; no title bar, not movable/selectable.
         ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.0f, 0.0f, 0.0f, 0.5f ) );
-        // ImGuiConfigFlags_NoMouse (set at attach) already makes the
-        // overlay non-interactive; NoInputs keeps the window itself from
-        // reacting if mouse support is ever re-enabled.
-        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
+        // ImGuiConfigFlags_NoMouse makes the overlay non-interactive
+        // during gameplay; NoInputs is the same guard at the window
+        // level. Both lift when the cursor is free (interactive above).
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav;
+        if ( !interactive ) {
+            windowFlags |= ImGuiWindowFlags_NoInputs;
+        }
 
         ImGui::SetNextWindowPos( ImVec2( 10.0f, 10.0f ) );
         ImGui::SetNextWindowSize( ImVec2( overlay_width, 0 ) );
@@ -219,6 +239,47 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         ImGui::Text( "Mobs: %d (players %d)", static_cast<int>( state.world.mobs.count( ) - state.world.mobs.remote_count( ) ),
                      static_cast<int>( state.world.mobs.remote_count( ) ) );
         ImGui::Text( "Items: %d", debug_vars.item_entities );
+
+#if IMGUI_OVERLAY_LIVE_TUNE
+        ImGui::Separator( );
+        // Live tuning for the in-hand poses (see draw_ui_pass); usable
+        // only while the cursor is free. Edits log once the mouse button
+        // comes up; "Log pose" dumps the current values on demand so a
+        // settled pose can be baked back into ImGuiDebugVars defaults.
+        bool pose_dirty = false;
+        if ( ImGui::CollapsingHeader( "Held Item", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            pose_dirty |= ImGui::DragFloat3( "Position", &debug_vars.held_pos.x, 0.01f );
+            pose_dirty |= ImGui::DragFloat( "Yaw", &debug_vars.held_rot.y, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "Pitch", &debug_vars.held_rot.x, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "Roll", &debug_vars.held_rot.z, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "Scale", &debug_vars.held_scale, 0.005f, 0.01f, 2.0f );
+            ImGui::SeparatorText( "Bow" );
+            pose_dirty |= ImGui::DragFloat3( "Bow Position", &debug_vars.bow_pos.x, 0.01f );
+            pose_dirty |= ImGui::DragFloat( "Bow Yaw", &debug_vars.bow_rot.y, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "Bow Pitch", &debug_vars.bow_rot.x, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "Bow Roll", &debug_vars.bow_rot.z, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "Bow Scale", &debug_vars.bow_scale, 0.005f, 0.01f, 2.0f );
+            pose_dirty |= ImGui::DragFloat( "Bow Spin", &debug_vars.bow_spin, 0.5f );
+            ImGui::SeparatorText( "Held Block" );
+            pose_dirty |= ImGui::DragFloat3( "B-Position", &debug_vars.held_block_pos.x, 0.01f );
+            pose_dirty |= ImGui::DragFloat( "B-Yaw", &debug_vars.held_block_rot.y, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "B-Pitch", &debug_vars.held_block_rot.x, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "B-Roll", &debug_vars.held_block_rot.z, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "B-Scale", &debug_vars.held_block_scale, 0.005f, 0.01f, 2.0f );
+        }
+        static bool pose_pending_log = false;
+        pose_pending_log |= pose_dirty;
+        if ( ImGui::Button( "Log pose" ) || ( pose_pending_log && ImGui::IsMouseReleased( ImGuiMouseButton_Left ) ) ) {
+            pose_pending_log = false;
+            pr_debug( "held pose: pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f | "
+                      "bow pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f spin=%.2f",
+                      debug_vars.held_pos.x, debug_vars.held_pos.y, debug_vars.held_pos.z,
+                      debug_vars.held_rot.x, debug_vars.held_rot.y, debug_vars.held_rot.z, debug_vars.held_scale,
+                      debug_vars.bow_pos.x, debug_vars.bow_pos.y, debug_vars.bow_pos.z,
+                      debug_vars.bow_rot.x, debug_vars.bow_rot.y, debug_vars.bow_rot.z,
+                      debug_vars.bow_scale, debug_vars.bow_spin );
+        }
+#endif
 
         ImGui::End( );
         ImGui::PopStyleColor( );

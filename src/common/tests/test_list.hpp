@@ -53,6 +53,7 @@ int test_net_item_grant( );
 int test_net_item_mirror_visuals( );
 int test_net_mobs( );
 int test_net_bodies( );
+int test_arrows( );
 int test_net_multiplayer_mode( );
 int test_crafting( );
 int test_results( );

@@ -32,6 +32,12 @@ typedef struct {
     glm::vec2 light;        // flood-fill light at the item center: x=sky, y=block, [0,1]
 } ItemSpriteInstance;
 
+// The shared extruded-sprite mesh (1536 quads, built lazily by these
+// accessors — safe to call before ItemEntities::init): ArrowEntities
+// renders through the same buffers.
+const ParticleVertex *item_sprite_mesh_vertices( int *count );
+const unsigned int *item_sprite_mesh_indices( int *count );
+
 // Tick-driven dropped-item entities, modelled on BlockBodies: a headless CPU
 // simulation (rep_tests run it without GL) with render chains only wired up
 // after init() (the render_inited pattern). Items are 0.25 cubes that fall,

@@ -72,6 +72,22 @@ int SurvivalInventory::addItem( ItemID itemId, int quantity ) {
     return remaining;
 }
 
+bool SurvivalInventory::consumeItem( const ItemID itemId, const int amount ) {
+    for ( int i = 0; i < this->num_slots; i++ ) {
+        InventorySlot &slot = this->slots[ i ];
+        if ( slot.item_id == itemId && slot.quantity >= amount ) {
+            slot.quantity -= amount;
+            if ( slot.quantity <= 0 ) {
+                slot.item_id = LAST_BLOCK_ID;
+                slot.quantity = 0;
+            }
+            this->inventory_renderer.changeSlotItem( i, slot );
+            return true;
+        }
+    }
+    return false;
+}
+
 int SurvivalInventory::spaceFor( ItemID itemId ) const {
     int space = 0;
     for ( int i = 0; i < this->num_slots; i++ ) {

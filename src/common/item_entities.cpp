@@ -137,6 +137,18 @@ static void build_item_sprite_mesh( ) {
     }
 }
 
+const ParticleVertex *item_sprite_mesh_vertices( int *count ) {
+    build_item_sprite_mesh( );
+    *count = ITEM_SPRITE_VERTS;
+    return item_sprite_vb;
+}
+
+const unsigned int *item_sprite_mesh_indices( int *count ) {
+    build_item_sprite_mesh( );
+    *count = ITEM_SPRITE_INDICES;
+    return item_sprite_ib;
+}
+
 // Case-insensitive name lookup over every defined block name plus the pure
 // item names (REPGAME_ITEM_TEST). LAST_BLOCK_ID on no match.
 static ItemID item_id_from_name( const char *name ) {

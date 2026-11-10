@@ -521,12 +521,23 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         if ( !globalGameState.vr.active ) {
             const ImGuiDebugVars &held_vars = imgui_overlay_get_imgui_debug_vars( );
             ItemEntities &items = globalGameState.world.items;
-            items.set_held_item( globalGameState.ui.overlay.held_item( ) );
-            glm::mat4 held_pose = glm::translate( glm::mat4( 1.0f ), held_vars.held_pos );
-            held_pose = glm::rotate( held_pose, glm::radians( held_vars.held_rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-            held_pose = glm::rotate( held_pose, glm::radians( held_vars.held_rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
-            held_pose = glm::rotate( held_pose, glm::radians( held_vars.held_rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-            held_pose = glm::scale( held_pose, glm::vec3( held_vars.held_scale ) );
+            const ItemID held_item_id = globalGameState.ui.overlay.held_item( );
+            items.set_held_item( held_item_id );
+            const bool bow_held = held_item_id == BOW;
+            const glm::vec3 &held_pos = bow_held ? held_vars.bow_pos : held_vars.held_pos;
+            const glm::vec3 &held_rot = bow_held ? held_vars.bow_rot : held_vars.held_rot;
+            const float held_scale = bow_held ? held_vars.bow_scale : held_vars.held_scale;
+            glm::mat4 held_pose = glm::translate( glm::mat4( 1.0f ), held_pos );
+            held_pose = glm::rotate( held_pose, glm::radians( held_rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            held_pose = glm::rotate( held_pose, glm::radians( held_rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+            held_pose = glm::rotate( held_pose, glm::radians( held_rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+            held_pose = glm::scale( held_pose, glm::vec3( held_scale ) );
+            if ( bow_held ) {
+                // bow_spin rotates the icon in-plane about the sprite
+                // center, applied before the recenter translate below
+                // cancels the offsets.
+                held_pose = glm::rotate( held_pose, glm::radians( held_vars.bow_spin ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+            }
             held_pose = glm::translate( held_pose, glm::vec3( -0.5f, -0.5f, -0.03125f ) );
             glm::mat4 cube_pose = glm::translate( glm::mat4( 1.0f ), held_vars.held_block_pos );
             cube_pose = glm::rotate( cube_pose, glm::radians( held_vars.held_block_rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
@@ -556,7 +567,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                     swing_mat = glm::translate( swing_mat, -pivot );
                     pose = swing_mat * pose;
                 };
-                apply_swing( held_pose, held_vars.held_pos );
+                apply_swing( held_pose, held_pos );
                 apply_swing( cube_pose, held_vars.held_block_pos );
             }
             items.update_held( held_light );

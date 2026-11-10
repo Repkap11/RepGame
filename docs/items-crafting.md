@@ -60,6 +60,12 @@ on right-click (`item_is_bucket`/`item_bucket_fluid`,
 `repgame_use_bucket` in `src/common/game/bucket.cpp` — see
 `docs/fluids.md`); a held bucket
 arms the mode-2 fluid raycast into `BlockSelection::pos_fluid`.
+`BOW` (`bow_standby` icon, `max_stack` 1; 3 sticks + 3 string in the
+spiral pattern) releases an `ARROW` projectile on right-click — see
+`docs/entities.md` "Arrows" for the flight/hit/pickup sim and
+`docs/player.md` "Use" for the input. `ARROW` (`arrow` icon) crafts
+flint + stick + feather x4 and doubles as both the ammo drawn by the bow
+and the item a picked-up stuck arrow returns.
 
 Farm produce items (`WHEAT`, `WHEAT_SEEDS`, `CARROT`, `POTATO`,
 `BEETROOT`, `BEETROOT_SEEDS`, `BREAD`) are ordinary pure items; the

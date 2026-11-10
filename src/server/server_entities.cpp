@@ -281,7 +281,7 @@ void ServerEntities::uncover_chunk( const glm::ivec3 &chunk ) {
 
 void ServerEntities::persist_stray_entity( const NetEntityRecord &rec, const glm::ivec3 &chunk ) {
     this->entity_chunk.erase( rec.id );
-    if ( this->storage == nullptr || rec.kind == NetEntityKind::BODY ) {
+    if ( this->storage == nullptr || net_entity_causer_simulated( rec.kind ) ) {
         return;
     }
     if ( rec.kind == NetEntityKind::MOB && ( rec.flags & NET_MOB_FLAG_NATURAL ) && !( rec.flags & NET_MOB_FLAG_TOUCHED ) ) {
@@ -511,8 +511,8 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             if ( rec.kind == NetEntityKind::MOB && ( rec.flags & NET_MOB_FLAG_NATURAL ) ) {
                 return true; // natural spawns only land in owned covered chunks
             }
-            if ( rec.kind == NetEntityKind::BODY ) {
-                return true; // bodies are never persisted — the causer keeps simulating
+            if ( net_entity_causer_simulated( rec.kind ) ) {
+                return true; // bodies/arrows are never persisted — the causer keeps simulating
             }
             // Uncovered: persist straight to the sidecar and stop.
             this->persist_stray_entity( rec, chunk );
@@ -555,7 +555,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             this->note_touched_natural( rec.id );
         }
         this->entity_chunk[ rec.id ] = chunk;
-        if ( rec.kind == NetEntityKind::BODY ) {
+        if ( net_entity_causer_simulated( rec.kind ) ) {
             this->body_sim_fd[ rec.id ] = client_fd; // causer simulates
         }
         this->mark_dirty( it->second, rec.kind );
@@ -583,10 +583,10 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             if ( ce == nullptr ) {
                 continue;
             }
-            const bool is_body = ce->entities[ e.id ].kind == NetEntityKind::BODY;
-            // BODY: only its simulating client may move it. Others: only the
-            // chunk owner.
-            if ( is_body ? this->body_sim_fd[ e.id ] != client_fd : ce->owner_fd != client_fd ) {
+            const bool is_causer_sim = net_entity_causer_simulated( ce->entities[ e.id ].kind );
+            // Causer-simulated: only its simulating client may move it.
+            // Others: only the chunk owner.
+            if ( is_causer_sim ? this->body_sim_fd[ e.id ] != client_fd : ce->owner_fd != client_fd ) {
                 continue;
             }
             NetEntityRecord &rec = ce->entities[ e.id ];
@@ -620,7 +620,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 this->entity_chunk.erase( e.id );
                 auto nit = this->chunks.find( new_chunk );
                 if ( nit == this->chunks.end( ) ) {
-                    if ( is_body ) {
+                    if ( is_causer_sim ) {
                         // Bodies are never persisted and keep being simulated
                         // by their causer — just drop the record, tell no one.
                         this->body_sim_fd.erase( e.id );
@@ -659,7 +659,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                     // Ownership transfer when the new chunk has a different
                     // owner. Bodies never transfer — the causer keeps
                     // simulating across chunk boundaries.
-                    if ( !is_body && nit->second.owner_fd != client_fd ) {
+                    if ( !is_causer_sim && nit->second.owner_fd != client_fd ) {
                         NetEntityTransferPayload adopt{ moved, 1 };
                         PacketWriter wa;
                         net_serialize_entity_transfer( wa, adopt );
@@ -706,7 +706,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         const NetEntityKind kind = ce->entities[ p.id ].kind;
         // BODY removals come from the simulating client; others from the
         // chunk owner.
-        if ( kind == NetEntityKind::BODY ? this->body_sim_fd[ p.id ] != client_fd : ce->owner_fd != client_fd ) {
+        if ( net_entity_causer_simulated( kind ) ? this->body_sim_fd[ p.id ] != client_fd : ce->owner_fd != client_fd ) {
             return true;
         }
         ce->entities.erase( p.id );

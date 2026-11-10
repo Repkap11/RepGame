@@ -60,11 +60,12 @@ class ServerEntities {
     // instead of scanning every covered chunk. Maintained on every
     // insert/move/erase of the live table.
     std::unordered_map<NetEntityId, glm::ivec3> entity_chunk;
-    // BODY records are simulated by their spawning client ("causer
-    // simulates"), not by the chunk owner — ENTITY_STATE/REMOVE for a body
-    // is accepted only from this fd. On that client's disconnect the sim
-    // role hands over to the body's chunk owner (ENTITY_TRANSFER adopt=1)
-    // or the record is dropped when the chunk is uncovered.
+    // Causer-simulated kinds (BODY falling blocks/TNT, ARROW projectiles —
+    // see net_entity_causer_simulated) are simulated by their spawning
+    // client, not by the chunk owner — ENTITY_STATE/REMOVE is accepted only
+    // from this fd. On that client's disconnect the sim role hands over to
+    // the entity's chunk owner (ENTITY_TRANSFER adopt=1) or the record is
+    // dropped when the chunk is uncovered.
     std::unordered_map<NetEntityId, int> body_sim_fd;
     std::map<int, EntityClientView> clients;
     std::map<int, uint32_t> session_ids;

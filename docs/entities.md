@@ -1,4 +1,4 @@
-# Entities: block bodies and multiplayer sync
+# Entities: block bodies, arrows and multiplayer sync
 
 The dedicated server is a thin C++ binary under `src/server/`
 (`out/server/RepGameServer`, `make server` / `make server-run`): it holds
@@ -71,9 +71,60 @@ net). In multiplayer each body is simulated by the client that caused it
 run these events) and mirrored to viewers; see "Multiplayer entity sync"
 below for the spawn/state/remove/handover rules.
 
+## Arrows
+
+`ArrowEntities` (`include/common/arrows.hpp`, `src/common/arrows.cpp`,
+owned by `World` as `world.arrows`) is the projectile sim for bow arrows —
+a headless CPU tick in the same shape as `ItemEntities`/`BlockBodies`
+(`MAX_ARROWS` = 256, oldest evicted at the cap; frozen in capture mode and
+while the center's chunk isn't `CHUNK_LIVE`). `repgame_fire_arrow` (the
+bow's right-click) spawns one at `ARROW_SPEED` (0.42 blocks/tick, ~60
+blocks/s) biased a step along the look vector; each tick integrates
+gravity 0.001/tick² + drag (air 0.9986, water/lava medium 0.93 — arrows
+still sink underwater), then moves a point-sized collision box
+(`Collision::move_box`, so plants/torches don't collide) along the
+segment and cross-checks `MobManager::raycast` against the whole intended
+path — the nearer of block-vs-mob wins, so a fast arrow can't tunnel
+through either. Lava/fire contact destroys the arrow with a `fizz`.
+
+A block hit parks the arrow: `stuck` freezes the sim with the tip ~0.1
+inside the hit cell (`stuck_cell` is rechecked each tick — breaking that
+block releases the arrow to fall again), the `arrow_hit` pool plays, and
+the shooter-side stuck arrow can be walked over to collect one `ARROW`
+into the inventory (item-pickup box semantics, `pop` sound; full
+inventory leaves it in place) and despawns after
+`ARROW_DESPAWN_TICKS` (5 minutes). A mob hit emits an
+`ArrowEntities::ArrowMobHit` via `ArrowTickOutput` and removes the arrow;
+`RepGame::tick_entities` applies it through the melee path —
+`mobs.hurt` (survival `ARROW_DAMAGE` 9.0, creative bows carry the
+one-shot 1000.0) + `spawn_mob_drops` on kill, or ENTITY_ACTION/
+NET_ACTION_HIT to the owner of a mirrored mob — so knockback, hurt
+flash, panic and baby-drop rules all match melee.
+
+Rendering reuses the dropped-item extruded-sprite mesh/shader
+(`ItemSpriteInstance` over the shared `item_sprite_vertices` buffers,
+`item_sprite_shader`): the `arrow` icon's diagonal is rotated in-plane
+onto the shaft (the sprite mesh's +y samples image-down, so the
+in-plane rotation is 315° so the tip leads), the sprite's +y aligns to the flight
+direction (`orient` — the last nonzero velocity direction, which
+stays put while stuck). The sprite plane is fixed in world space:
+its normal is `cross(world up, fwd)` (x-axis fallback for vertical
+shots), so a stuck arrow never reorients as the camera moves —
+viewed shaft-on it correctly reads as a thin edge. Arrows are
+never persisted to disk.
+
+Multiplayer follows the body's "causer simulates" model (`NetEntityKind::ARROW`):
+the shooting client runs the sim and streams ENTITY_STATE (stuck plus the
+shooter's survival flag ride `NetEntityStateEntry::flags`,
+`NET_ARROW_FLAG_*`); viewers hold mirrors that ease toward the streamed
+pose with no physics/pickup/despawn of their own; the shooter's
+disconnect hands the sim to the arrow's chunk owner via ENTITY_TRANSFER
+adopt=1, and arrows in uncovered chunks are dropped rather than
+persisted. Remote mob hits still go through ENTITY_ACTION.
+
 ## Multiplayer entity sync
 
-Protocol v8 (`include/common/net/packet.hpp`) — "server arbitrates, owner
+Protocol v10 (`include/common/net/packet.hpp`) — "server arbitrates, owner
 client simulates". The server (`ServerEntities`, `server_entities.cpp`)
 holds the authoritative entity table per chunk and never simulates;
 clients (`NetEntities`, `net_entities.cpp`) announce what they own and
@@ -167,13 +218,15 @@ spawns and state entries — see `docs/mobs.md` "Shearing"), its rising
 edge playing `sheep_shear` on mirrors, and persists through the
 provenance mask in the `mobs_` sidecars like TOUCHED.
 
-Bodies (falling blocks + primed TNT) differ: the *causing* client
-simulates — ENTITY_SPAWN fixes a sim fd, only that client's states and
-removals count, chunk crossings never transfer, and crossing/spawning
-into uncovered space just drops the server record (bodies are never
-persisted). When the sim disconnects, the body's chunk owner takes over
-via ENTITY_TRANSFER adopt=1 (primed TNT reschedules its fuse event
-locally); bodies in uncovered chunks are erased. Mirrors interpolate
+Bodies (falling blocks + primed TNT) and arrows differ: the *causing*
+client simulates — ENTITY_SPAWN fixes a sim fd
+(`net_entity_causer_simulated`, the server's `body_sim_fd` table covers
+both kinds), only that client's states and removals count, chunk
+crossings never transfer, and crossing/spawning into uncovered space
+just drops the server record (bodies and arrows are never persisted).
+When the sim disconnects, the entity's chunk owner takes over via
+ENTITY_TRANSFER adopt=1 (primed TNT reschedules its fuse event
+locally); entities in uncovered chunks are erased. Mirrors interpolate
 only — no physics, landing, impulses, or collisions — and die on
 ENTITY_REMOVE, CHUNK_ROLE NONE, or disconnect. Blasts send EXPLOSION
 after running locally; receivers play the sound and impulse their own

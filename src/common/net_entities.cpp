@@ -180,6 +180,7 @@ void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &gran
     state.world.items.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
     state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, records, grant.removed_natural, grant.late_ids );
     state.world.bodies.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
+    state.world.arrows.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
 }
 
 bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_id, PacketReader &r ) {
@@ -254,6 +255,9 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 // Bodies are causer-simulated: a relayed spawn is always a
                 // mirror here (unless we already own that net_id).
                 state.world.bodies.net_apply_spawn( rec, true, state.tick_number );
+            } else if ( rec.kind == NetEntityKind::ARROW ) {
+                // Same causer-simulated model as bodies.
+                state.world.arrows.net_apply_spawn( rec, true );
             }
             return true;
         }
@@ -270,6 +274,8 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                     state.world.mobs.net_apply_state( e );
                 } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::BODY ) ) {
                     state.world.bodies.net_apply_state( e );
+                } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::ARROW ) ) {
+                    state.world.arrows.net_apply_state( e );
                 }
             }
             return true;
@@ -285,10 +291,11 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             for ( PendingRole &pend : this->pending_roles ) {
                 pend.late_ids.erase( p.id );
             }
-            // One kind owns the id; try all three.
+            // One kind owns the id; try all four.
             state.world.items.net_apply_remove( p.id );
             state.world.mobs.net_apply_remove( p.id );
             state.world.bodies.net_apply_remove( p.id );
+            state.world.arrows.net_apply_remove( p.id );
             return true;
         }
         case NetMsgType::ENTITY_TRANSFER: {
@@ -323,6 +330,10 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 // Sim handover after the previous sim disconnected.
                 if ( p.adopt ) {
                     state.world.bodies.net_apply_transfer( state, p.record );
+                }
+            } else if ( p.record.kind == NetEntityKind::ARROW ) {
+                if ( p.adopt ) {
+                    state.world.arrows.net_apply_transfer( p.record );
                 }
             }
             return true;
@@ -396,8 +407,9 @@ void NetEntities::tick( RepGameState &state ) {
     if ( !this->mp->is_active( ) ) {
         if ( this->welcomed || !this->roles.empty( ) || this->view_sent ) {
             this->reset( );
-            // Mirror bodies would freeze mid-air without their sim.
+            // Mirror bodies/arrows would freeze mid-flight without their sim.
             state.world.bodies.net_disconnect( );
+            state.world.arrows.net_disconnect( );
         }
         return;
     }
@@ -434,6 +446,7 @@ void NetEntities::tick( RepGameState &state ) {
         state.world.items.collect_net_state( *this, p.entries, state.tick_number );
         state.world.mobs.collect_net_state( *this, p.entries, state.tick_number );
         state.world.bodies.collect_net_state( p.entries, state.tick_number );
+        state.world.arrows.collect_net_state( p.entries, state.tick_number );
         if ( !p.entries.empty( ) ) {
             this->mp->send( NetMsgType::ENTITY_STATE, p );
         }

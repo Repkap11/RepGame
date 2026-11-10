@@ -201,6 +201,24 @@ void RepGame::player_hurt( RepGameState &state, const glm::dvec3 &from, float da
     audio_play_sfx( "player_hurt" );
 }
 
+// Fires one arrow from the eye along the look direction: survival draws a
+// round from the hotbar first then the survival inventory (no ammo, no
+// shot); creative fires free and one-shots. Returns whether it fired.
+bool repgame_fire_arrow( RepGameState &state ) {
+    const bool survival = state.game_mode == GameMode_Survival;
+    if ( survival && !state.hotbar.consumeItem( ARROW, 1 ) && !state.survival_inventory.consumeItem( ARROW, 1 ) ) {
+        return false; // Out of arrows.
+    }
+    // Release from the eye, biased a step along the aim so the flight
+    // segment can't collide with the shooter's own head cell.
+    const glm::dvec3 dir = glm::dvec3( state.camera.look );
+    state.world.arrows.spawn( state.camera.pos + dir * 0.4, dir * ArrowEntities::ARROW_SPEED,
+                              survival ? ArrowEntities::ARROW_DAMAGE : 1000.0f, survival ? 1 : 0 );
+    audio_play_sfx( "bow_shoot" );
+    state.vr.haptic_pending = true;
+    return true;
+}
+
 // Throws `count` of `item` out of the player as an item entity: spawned just
 // ahead of the eye, tossed along the look direction with a little lift, and
 void RepGame::process_mouse_events( ) {
@@ -532,6 +550,15 @@ void RepGame::process_mouse_events( ) {
             } else {
                 pr_debug( "Spawn egg failed: mobs disabled" );
             }
+        }
+    }
+    if ( globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
+        // Right-click with the bow held releases an arrow along the look
+        // direction — after the block interactions above (a chest aimed at
+        // still opens), outside the placement path (the bow is a pure item
+        // and fires at air too).
+        if ( globalGameState.hotbar.getSelectedItem( ) == BOW && repgame_fire_arrow( globalGameState ) ) {
+            globalGameState.input.click_delay_right = 30;
         }
     }
     if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {

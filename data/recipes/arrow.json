@@ -1,0 +1,6 @@
+{
+  "pattern": ["F", "S", "E"],
+  "key": {"F": "FLINT", "S": "STICK", "E": "FEATHER"},
+  "result": "ARROW",
+  "count": 4
+}

@@ -26,7 +26,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 9;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 10;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -91,7 +91,16 @@ enum class NetEntityKind : uint8_t {
     MOB = 0,
     ITEM = 1,
     BODY = 2,
+    ARROW = 3,
 };
+
+// Kinds simulated by their causing client rather than the chunk owner:
+// ENTITY_SPAWN fixes the sim fd, ENTITY_STATE/REMOVE are accepted only from
+// it, records are never persisted and never transfer on chunk crossing —
+// the sim hands over to the chunk owner only when the causer disconnects.
+inline bool net_entity_causer_simulated( NetEntityKind kind ) {
+    return kind == NetEntityKind::BODY || kind == NetEntityKind::ARROW;
+}
 
 // Entity sync window (half-extent in chunks, chebyshev). The client clamps
 // its VIEW radius to these.

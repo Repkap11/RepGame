@@ -130,6 +130,8 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->heartParticles.init( this->vbl_object_vertex, this->vbl_debris_instance );
     this->bodies.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_primed_tnt_instance );
     this->items.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_item_instance );
+    // Arrows share the extruded item-sprite mesh + shader.
+    this->arrows.init( this->vbl_object_vertex, this->vbl_item_instance );
     // The sprite program alpha-tests the atlas at exact texels (no mip bleed).
     this->item_sprite_shader.set_uniform1i( "u_ExactTexel", 1 );
     this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance );
@@ -241,6 +243,8 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
     this->mobs.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     // Bodies too: causer-simulated spawn announcements and mirrors.
     this->bodies.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
+    // Arrows follow the same causer-simulated model.
+    this->arrows.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
     // Hand each just-finalized chunk's pending mobs to the manager (loaded
     // records or the natural-spawn roll); skipped chunks stay owned next pass.
@@ -597,9 +601,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->bodies.update_render( alpha, this->chunkLoader );
     // Rebuild the dropped-item transforms (cubes + extruded sprites).
     this->items.update_render( alpha, this->chunkLoader );
+    // Rebuild the arrow transforms (velocity-aligned extruded sprites).
+    this->arrows.update_render( alpha, this->chunkLoader );
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
     this->bodies.draw( this->renderer, this->block_object_shader, this->primed_tnt_shader ); // Falling blocks + ignited TNT
     this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Dropped items
+    this->arrows.draw( this->renderer, this->item_sprite_shader );              // Arrows in flight/stuck
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
     this->heartParticles.draw( this->renderer, this->heart_shader, time_s );    // Breeding hearts
 
@@ -803,6 +810,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->item_sprite_shader.set_uniform1i( "u_TintUnderWater", object_water_tint_type );
         this->bodies.draw( this->renderer, this->block_object_shader, this->primed_tnt_shader ); // Reflected bodies
         this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Reflected items
+        this->arrows.draw( this->renderer, this->item_sprite_shader );              // Reflected arrows
 
         this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", true );
         this->chunkLoader.shader.set_uniform1f( "u_ExtraAlpha", 1.0f ); // this make reflections not solid...
@@ -918,6 +926,7 @@ void World::cleanup( MapStorage &map_storage ) {
     this->blockDebris.cleanup( );
     this->bodies.cleanup( );
     this->items.cleanup( );
+    this->arrows.cleanup( );
     this->mobs.cleanup( );
     this->heartParticles.cleanup( );
     this->mouseSelection.destroy( );
