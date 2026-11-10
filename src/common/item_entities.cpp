@@ -537,11 +537,8 @@ void ItemEntities::tick( RepGameState &state ) {
         if ( ( float_fluid == LAVA && depth > -0.05 ) || medium.id == FIRE || medium.id == SOUL_FIRE ) {
             const BlockID burn = item_is_block( it.item ) ? static_cast<BlockID>( it.item ) : FIRE;
             world.spawn_block_debris( medium_cell, { burn, BLOCK_ROTATE_0, 0, burn, 0 }, AIR, 8 );
-            // Mob convention: audible within 16 blocks, linear falloff.
-            const float burn_dist = static_cast<float>( glm::length( item_center( it ) - state.camera.pos ) );
-            if ( burn_dist < 16.0f ) {
-                audio_play_sfx_gain( "fizz", 1.0f - burn_dist / 16.0f );
-            }
+            // Shared listener-distance falloff (audio_distance_gain).
+            audio_play_sfx_gain( "fizz", audio_distance_gain( glm::length( item_center( it ) - state.camera.pos ) ) );
             it.pickup_pending = true;
             this->send_net_remove( it, NET_REMOVE_DIED );
             dead.push_back( i );

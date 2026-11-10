@@ -11,6 +11,19 @@ const char *audio_block_place_pool( int block_id );
 // steps sound like stone — the pack has no glass step files).
 const char *audio_block_step_pool( int block_id );
 
+// Distance falloff shared by every positional SFX: inverse distance with a
+// 4-block full-volume radius — gain 1.0 within 4, 0.5 at 8, 0.25 at 16,
+// 0.125 at 32 — hard cut to silence at AUDIO_SFX_RANGE. Pure math,
+// compiled on every platform so game code calls it unconditionally.
+constexpr double AUDIO_SFX_RANGE = 64.0;
+static inline float audio_distance_gain( const double dist ) {
+    if ( dist >= AUDIO_SFX_RANGE ) {
+        return 0.0f;
+    }
+    const double gain = 4.0 / dist;
+    return gain < 1.0 ? static_cast<float>( gain ) : 1.0f;
+}
+
 // Embedded audio: OGG Vorbis (tools/sounds_manifest.txt) decoded by
 // stb_vorbis and played through SDL audio — SDL3 device-bound streams on
 // Linux/Windows/ARM/SteamFrame, a main-thread mix callback + WASMFS files on

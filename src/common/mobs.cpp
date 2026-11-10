@@ -479,7 +479,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                 mob.health -= 1.0f;
                 mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
                 const double dist = glm::distance( mob.pos, player_pos );
-                const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
+                const float gain = audio_distance_gain( dist );
                 if ( mob.health <= 0.0f ) {
                     mob.death_ticks = 1;
                     if ( def.sound_death != NULL ) {
@@ -519,7 +519,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                         mob.needs_unstick = mob.age_ticks == 0;
                     }
                     const double graze_dist = glm::distance( mob.pos, player_feet );
-                    audio_play_sfx_gain( "dig_grass", glm::clamp( 1.0f - static_cast<float>( graze_dist ) / 16.0f, 0.0f, 1.0f ) );
+                    audio_play_sfx_gain( "dig_grass", audio_distance_gain( graze_dist ) );
                 }
             } else {
                 mob.graze_ticks = 0;
@@ -581,7 +581,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                 speed = 0.0f;
                 if ( mob.fuse_ticks == 0 ) {
                     mob.fuse_ticks = 1;
-                    audio_play_sfx( "fuse" );
+                    audio_play_sfx_gain( "fuse", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
                 }
             }
         }
@@ -805,23 +805,19 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     const float amp_target = got_h > 1e-4 ? 1.0f : 0.0f;
     mob.leg_amp += ( amp_target - mob.leg_amp ) * 0.15f;
 
-    // Sounds: ambient say every 10-30 s within 16 blocks, step every ~0.7
-    // blocks of ground travel within 8 blocks. Distance gain is 1 - d/16;
-    // audio_play_sfx_gain is a no-op on silent/capture builds.
+    // Sounds: ambient say every 10-30 s, step every ~0.7 blocks of ground
+    // travel — both faded by audio_distance_gain (silent past 64 blocks;
+    // audio_play_sfx_gain is a no-op on silent/capture builds).
     const double dist = glm::distance( mob.pos, player_pos );
     if ( def.sound_say != NULL && --mob.say_ticks <= 0 ) {
         std::uniform_int_distribution<int> say( 10 * UPS_RATE, 30 * UPS_RATE );
         mob.say_ticks = say( this->rng );
-        if ( dist < 16.0 ) {
-            audio_play_sfx_gain( def.sound_say, 1.0f - static_cast<float>( dist ) / 16.0f );
-        }
+        audio_play_sfx_gain( def.sound_say, audio_distance_gain( dist ) );
     }
     mob.step_acc += static_cast<float>( got_h );
     if ( def.sound_step != NULL && standing && mob.step_acc >= 0.7f ) {
         mob.step_acc = 0.0f;
-        if ( dist < 8.0 ) {
-            audio_play_sfx_gain( def.sound_step, def.step_gain * ( 1.0f - static_cast<float>( dist ) / 16.0f ) );
-        }
+        audio_play_sfx_gain( def.sound_step, def.step_gain * audio_distance_gain( dist ) );
     }
 }
 
@@ -941,7 +937,7 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos, 
     }
     mob.vel.y += 0.07;
     const double dist = glm::distance( mob.pos, listener_pos );
-    const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
+    const float gain = audio_distance_gain( dist );
     if ( mob.health <= 0.0f ) {
         mob.death_ticks = 1;
         if ( def.sound_death != NULL ) {
@@ -1043,7 +1039,7 @@ bool MobManager::shear( const int index, const ItemID item, const glm::dvec3 &so
     this->mark_touched( mob );
     mob.sheared = 1;
     const double dist = glm::distance( mob.pos, sound_pos );
-    const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
+    const float gain = audio_distance_gain( dist );
     audio_play_sfx_gain( "sheep_shear", gain );
     return true;
 }
@@ -1806,14 +1802,12 @@ void MobManager::tick_mirror( Mob &mob, const glm::dvec3 &player_pos ) {
     if ( def.sound_say != NULL && --mob.say_ticks <= 0 ) {
         std::uniform_int_distribution<int> say( 10 * UPS_RATE, 30 * UPS_RATE );
         mob.say_ticks = say( this->rng );
-        if ( dist < 16.0 ) {
-            audio_play_sfx_gain( def.sound_say, 1.0f - static_cast<float>( dist ) / 16.0f );
-        }
+        audio_play_sfx_gain( def.sound_say, audio_distance_gain( dist ) );
     }
     mob.step_acc += static_cast<float>( hd );
-    if ( def.sound_step != NULL && mob.step_acc >= 0.7f && dist < 8.0 ) {
+    if ( def.sound_step != NULL && mob.step_acc >= 0.7f ) {
         mob.step_acc = 0.0f;
-        audio_play_sfx_gain( def.sound_step, def.step_gain * ( 1.0f - static_cast<float>( dist ) / 16.0f ) );
+        audio_play_sfx_gain( def.sound_step, def.step_gain * audio_distance_gain( dist ) );
     }
 }
 
@@ -1924,8 +1918,7 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e, const glm::dvec3
     const MobTypeDef &def = mob_types[ mob->type ];
     // Rising-edge flag visuals: the owner's sim already played its sfx, so
     // mirrors replay it here faded against the listener distance.
-    const double sfx_dist = glm::distance( mob->pos, listener_pos );
-    const float sfx_gain = glm::clamp( 1.0f - static_cast<float>( sfx_dist ) / 16.0f, 0.0f, 1.0f );
+    const float sfx_gain = audio_distance_gain( glm::distance( mob->pos, listener_pos ) );
     if ( ( e.flags & NET_MOB_FLAG_HURT ) && !( old_flags & NET_MOB_FLAG_HURT ) ) {
         mob->hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
         if ( def.sound_hurt != NULL ) {
@@ -2031,7 +2024,7 @@ void MobManager::mirror_hit_feedback( const int index, const glm::dvec3 &listene
     const MobTypeDef &def = mob_types[ mob.type ];
     mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
     const double dist = glm::distance( mob.pos, listener_pos );
-    const float gain = glm::clamp( 1.0f - static_cast<float>( dist ) / 16.0f, 0.0f, 1.0f );
+    const float gain = audio_distance_gain( dist );
     if ( def.sound_hurt != NULL ) {
         audio_play_sfx_gain( def.sound_hurt, gain );
     }

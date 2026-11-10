@@ -53,12 +53,9 @@ static void arrow_apply_net_flags( ArrowEntities::Arrow &a, const uint32_t flags
     }
 }
 
-// arrow_hit with the same 16-block linear falloff as the fizz/mob SFX.
+// arrow_hit faded by the shared listener-distance falloff.
 static void arrow_hit_sfx( const RepGameState &state, const glm::dvec3 &pos ) {
-    const float dist = static_cast<float>( glm::length( pos - state.camera.pos ) );
-    if ( dist < 16.0f ) {
-        audio_play_sfx_gain( "arrow_hit", 1.0f - dist / 16.0f );
-    }
+    audio_play_sfx_gain( "arrow_hit", audio_distance_gain( glm::length( pos - state.camera.pos ) ) );
 }
 
 bool ArrowEntities::arrow_chunk_live( World &world, const Arrow &a ) const {
@@ -194,10 +191,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
         const BlockState medium = world.get_loaded_block( medium_cell );
         const BlockID medium_fluid = fluid_in_cell( medium );
         if ( medium_fluid == LAVA || medium.id == FIRE || medium.id == SOUL_FIRE ) {
-            const float burn_dist = static_cast<float>( glm::length( a.pos - state.camera.pos ) );
-            if ( burn_dist < 16.0f ) {
-                audio_play_sfx_gain( "fizz", 1.0f - burn_dist / 16.0f );
-            }
+            audio_play_sfx_gain( "fizz", audio_distance_gain( glm::length( a.pos - state.camera.pos ) ) );
             this->send_net_remove( a, NET_REMOVE_DIED );
             dead.push_back( i );
             continue;

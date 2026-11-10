@@ -38,7 +38,11 @@ variant. `audio_block_dig_pool(block_id)` maps BlockID → break pool
 glass-type blocks → dig_stone (the pack's `random/glass*` is the shatter
 only — there is no glass place "tink"); `audio_block_step_pool(block_id)`
 is the same map for footsteps (step_* pools, glass → step_stone). For the
-currently wired SFX hooks see the `audio_play_sfx` call sites. The ImGui
+currently wired SFX hooks see the `audio_play_sfx` call sites. Positional
+SFX share `audio_distance_gain(dist)` (audio.hpp): an inverse-distance
+falloff — full gain within 4 blocks, 0.5 at 8, 0.25 at 16, 0.125 at 32 —
+silent past `AUDIO_SFX_RANGE` (64); `audio_play_sfx_gain` drops gain<=0
+plays without claiming a stream. The ImGui
 overlay shows `Music: <title>` while a track plays.
 
 IMPORTANT: the device is opened with `SDL_OpenAudioDevice` and the music

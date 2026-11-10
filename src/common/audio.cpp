@@ -750,7 +750,9 @@ void audio_play_sfx( const char *base_name ) {
 }
 
 void audio_play_sfx_gain( const char *base_name, float gain ) {
-    if ( !audio_enabled ) {
+    // gain <= 0 is a silenced distant play (audio_distance_gain cutoff) —
+    // don't burn a stream/voice on it.
+    if ( !audio_enabled || gain <= 0.0f ) {
         return;
     }
     int variants[ 16 ];
