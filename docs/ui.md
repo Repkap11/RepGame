@@ -31,7 +31,7 @@ shared layout pass decides where the slab goes. Cells draw as instanced
 `UIOverlayInstance`s through `RenderChain`; block icons are projected
 isometrically in the ui_overlay shader using the same
 `Block::scale/offset` shape data the chunk mesh uses. Hit testing is
-`whichSlotClicked`/`containsPoint` in centered y-up coords;
+`whichSlotClicked`/`containsItemsPoint` in centered y-up coords;
 `changeSlotItem` repaints a single slot.
 
 Screen-space placement is owned by `UiLayout` (`include/common/ui_layout.hpp`):
@@ -44,7 +44,12 @@ top-left y-down space). `RepGame::changeSize` runs it as:
 `compute_layout` sizing for every renderer, the pass, then `apply_layout`
 /`repgame_apply_ui_layout` adopting the rects into the renderers. Draw
 code and click routing both read `state.ui.layout.rects()` — nothing
-re-derives positions at draw time.
+re-derives positions at draw time. The pass also self-checks:
+`UiLayout::validate` flags screens whose rects escape the viewport
+(`UiLayoutRects::overflow`, a `UI_OVERFLOW_*` bitmask — inspectable,
+surfaces in `rep_tests` across aspect ratios) and warns once per
+newly-overlapping sibling pair, so an overlap regression shows up at
+resize time rather than as a visual bug.
 
 Container screens — chest, the furnace trio, and the crafting grid +
 output (both 2x2 and 3x3 variants declared, so `table_open` toggles just
@@ -185,10 +190,14 @@ matching and the output slot are documented with the item/recipe data in
   the HUD strip (label reservation + vitals + hotbar), and the
   chest/crafting/furnace screens follow since they float off the
   survival items top.
-- `PauseMenu` lays out buttons in centered coords (`hitTest` returns
-  `BUTTON_*`), grouped into lines of one or two side-by-side cells; line
-  contents are compile-time-gated
-  (`SUPPORTS_FRAME_BUFFER`/`SUPPORTS_IMGUI_OVERLAY`). Three `[-][label][+]`
+- `PauseMenu` content is static tables (`build_lines`/`Line::kinds`):
+  rows of one or two side-by-side cells, compile-time-gated
+  (`SUPPORTS_FRAME_BUFFER`/`SUPPORTS_IMGUI_OVERLAY`). The layout pass
+  owns the geometry — `pause_panel` is a floating screen-centered Clay
+  element (measured against real font metrics, fit-solved by shrinking
+  the integer text scale `pause_k` until it fits), `pause_title` the
+  title band, `pause_rows[i]` the row bands `hitTest`/`split_row` slice
+  into equal cells (`hitTest` returns `BUTTON_*`). Three `[-][label][+]`
   stepper rows cover render distance, cave brightness
   (`min_ambient_step`), and time of day (`input.time_skip_hours`, same
   path as PgUp/PgDn); a "Mobs: Peaceful/Hostile" button flips

@@ -7,7 +7,7 @@
 #include "common/font_renderer.hpp"
 #include "common/ui_layout.hpp"
 
-static int check_strip( UiLayout &layout, const char *name, float w, float h, float slab_w, float stride ) {
+static int check_strip( UiLayout &layout, const char *name, float w, float h, float slab_w, float stride, unsigned want_overflow, bool check_positions = true ) {
     int failures = 0;
     UiLayoutInput in;
     in.screen_w = w;
@@ -18,16 +18,17 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     in.label_h = 18.0f;
     // Inventory slabs mirror compute_layout's outputs: survival is a 9x3
     // grid at its own stride; the creative palette is screen-fraction
-    // sized with a 0.1*basis bottom reservation.
+    // sized with a 0.1*basis bottom reservation and a height-limited
+    // (0.75*panel) items slab.
     in.surv_slab_w = 9.1f * stride;
     in.surv_slab_h = 3.1f * stride;
     in.surv_stride = stride;
     in.creative_slab_w = fminf( w * 0.7f, 720.0f );
-    in.creative_slab_h = 6.1f * 60.0f;
     in.creative_panel_w = w * 0.75f;
     const float basis = fmaxf( h, w * ( 9.0f / 16.0f ) );
     in.creative_panel_h = fminf( 0.75f * basis, h );
-    in.creative_stride = 60.0f;
+    in.creative_slab_h = fminf( 6.1f * 60.0f, 0.75f * in.creative_panel_h );
+    in.creative_stride = in.creative_slab_h / 6.1f;
     in.creative_floor = -h * 0.5f + 0.1f * basis + 6.0f;
     layout.compute( in );
     const UiLayoutRects &r = layout.rects( );
@@ -49,6 +50,16 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     };
 
     char what[ 128 ];
+    snprintf( what, sizeof( what ), "%s: overflow mask (want %#x)", name, want_overflow );
+    near_to( what, static_cast<float>( r.overflow ), static_cast<float>( want_overflow ) );
+    if ( !check_positions ) {
+        // Degenerate sizes: Clay clamps/repositions rather than centers —
+        // only the overflow flags and rect finiteness are meaningful.
+        for ( const UiRect *q : { &r.hotbar, &r.survival_items, &r.chest_items, &r.pause_panel } ) {
+            is_true( "extreme: rects finite", std::isfinite( q->left ) && std::isfinite( q->bottom ) && std::isfinite( q->width ) && std::isfinite( q->height ) );
+        }
+        return failures;
+    }
     snprintf( what, sizeof( what ), "%s: hotbar slab flush bottom-center", name );
     near_to( what, r.hotbar.bottom, -h * 0.5f );
     snprintf( what, sizeof( what ), "%s: hotbar slab centered", name );
@@ -88,8 +99,8 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     near_to( what, r.creative_items.center_x( ), r.creative_panel.center_x( ) );
     snprintf( what, sizeof( what ), "%s: survival pins above strip/creative", name );
     near_to( what, r.survival_items.bottom, fmaxf( r.creative_panel.bottom, r.hud_strip.top( ) ) );
-    snprintf( what, sizeof( what ), "%s: search bar over panel top + gap", name );
-    near_to( what, r.search_box.bottom, r.creative_panel.top( ) + 0.15f * in.creative_stride );
+    snprintf( what, sizeof( what ), "%s: search bar over slab top + gap", name );
+    near_to( what, r.search_box.bottom, r.creative_items.top( ) + 0.15f * in.creative_stride );
     snprintf( what, sizeof( what ), "%s: search bar sized by stride", name );
     near_to( what, r.search_box.height, 0.55f * in.creative_stride );
     snprintf( what, sizeof( what ), "%s: search bar spans the panel", name );
@@ -182,11 +193,21 @@ int test_ui_layout( ) {
     int failures = 0;
     // Slab dims mirror what InventoryRenderer::compute_layout produces:
     // the auto-fit stride shrinks so the slab always fits the screen.
-    failures += check_strip( layout, "16:9", 1920.0f, 1080.0f, 500.0f, 55.0f );
-    failures += check_strip( layout, "21:9", 2560.0f, 1080.0f, 500.0f, 55.0f );
-    failures += check_strip( layout, "32:9", 3840.0f, 1080.0f, 500.0f, 55.0f );
-    failures += check_strip( layout, "9:16", 600.0f, 1080.0f, 460.0f, 50.0f );
-    failures += check_strip( layout, "tiny", 480.0f, 320.0f, 360.0f, 40.0f );
+    failures += check_strip( layout, "16:9", 1920.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE );
+    failures += check_strip( layout, "21:9", 2560.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE );
+    failures += check_strip( layout, "32:9", 3840.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE );
+    failures += check_strip( layout, "9:16", 600.0f, 1080.0f, 460.0f, 50.0f, UI_OVERFLOW_NONE );
+    // A 480x320 window fits the HUD + survival but not the tall screens
+    // (every container backdrop tops out above the viewport).
+    failures += check_strip( layout, "tiny", 480.0f, 320.0f, 360.0f, 40.0f,
+                           UI_OVERFLOW_CHEST | UI_OVERFLOW_CRAFTING2 | UI_OVERFLOW_CRAFTING3 | UI_OVERFLOW_FURNACE );
+    // 240x160 fits nothing but the creative screen (its screen-fraction
+    // sizing shrinks with the window); Clay repositions rather than
+    // centers at degenerate sizes, so only the mask is asserted.
+    failures += check_strip( layout, "extreme", 240.0f, 160.0f, 360.0f, 40.0f,
+                           UI_OVERFLOW_HUD | UI_OVERFLOW_SURVIVAL | UI_OVERFLOW_CHEST |
+                               UI_OVERFLOW_CRAFTING2 | UI_OVERFLOW_CRAFTING3 | UI_OVERFLOW_FURNACE | UI_OVERFLOW_PAUSE,
+                           false );
 
     // Death screen: the menu collapses to Respawn + Exit.
     {

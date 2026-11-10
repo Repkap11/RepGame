@@ -131,6 +131,25 @@ struct UiLayoutRects {
     // labels draw at 13*pause_k px, the title at 13*(pause_k+1).
     float pause_gap = 0;
     int pause_k = 0;
+
+    // Bitmask of UiOverflow — which screens exceeded the viewport this
+    // pass. Overflow is possible (a window can be smaller than a screen
+    // needs) but inspectable: the draw code still runs, and tests/debug
+    // runs can assert it is 0 at supported sizes.
+    unsigned overflow = 0;
+};
+
+// Viewport-overflow flags reported in UiLayoutRects::overflow.
+enum UiOverflow : unsigned {
+    UI_OVERFLOW_NONE = 0,
+    UI_OVERFLOW_HUD = 1u << 0,
+    UI_OVERFLOW_SURVIVAL = 1u << 1,
+    UI_OVERFLOW_CREATIVE = 1u << 2,
+    UI_OVERFLOW_CHEST = 1u << 3,
+    UI_OVERFLOW_CRAFTING2 = 1u << 4,
+    UI_OVERFLOW_CRAFTING3 = 1u << 5,
+    UI_OVERFLOW_FURNACE = 1u << 6,
+    UI_OVERFLOW_PAUSE = 1u << 7,
 };
 
 // 16:9-normalized height basis shared by UI sizing: the UI stays a
@@ -154,11 +173,18 @@ class UiLayout {
     }
 
   private:
+    // Fills rects_.overflow and warns (once per newly-overflowing screen)
+    // when emitted rects escape the viewport or overlap their siblings.
+    void validate( const UiLayoutInput &in );
     void *arena_mem = nullptr;
     Clay_Context *context = nullptr;
     // Kept for content measurement during layout (worst-case labels etc.).
     FontRenderer *font_ = nullptr;
     UiLayoutRects rects_;
+    // Last pass's overflow mask — warnings log only on newly-set bits so
+    // a window drag doesn't spam one line per resize event.
+    unsigned last_overflow_ = 0;
+    unsigned last_overlap_ = 0;
 };
 
 struct RepGameState;

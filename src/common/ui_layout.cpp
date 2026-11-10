@@ -271,7 +271,9 @@ void UiLayout::compute( const UiLayoutInput &in ) {
         // The creative palette: a floating screen-centered panel (the old
         // max_width/max_height bounds), lifted off its bottom floor when
         // the screen is too small to center it. The items slab hugs the
-        // panel's bottom edge; the search bar floats above its top edge.
+        // panel's bottom edge; the search bar floats above the SLAB's top
+        // edge — the panel can be taller than the screen, so anchoring to
+        // it would put the bar off-screen at ultrawide aspects.
         if ( in.creative_panel_w > 0.0f ) {
             CLAY( { .id = CLAY_ID( "creative_panel" ),
                     .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_panel_w ), CLAY_SIZING_FIXED( in.creative_panel_h ) },
@@ -280,12 +282,13 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                   .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_CENTER, .parent = CLAY_ATTACH_POINT_CENTER_CENTER },
                                   .attachTo = CLAY_ATTACH_TO_ROOT } } ) {
                 CLAY( { .id = CLAY_ID( "creative_items" ),
-                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_slab_w ), CLAY_SIZING_FIXED( in.creative_slab_h ) } } } ) { }
-                CLAY( { .id = CLAY_ID( "search_box" ),
-                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_panel_w ), CLAY_SIZING_FIXED( search_h ) } },
-                        .floating = { .offset = { 0, -search_gap },
-                                      .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
-                                      .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
+                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_slab_w ), CLAY_SIZING_FIXED( in.creative_slab_h ) } } } ) {
+                    CLAY( { .id = CLAY_ID( "search_box" ),
+                            .layout = { .sizing = { CLAY_SIZING_FIXED( in.creative_panel_w ), CLAY_SIZING_FIXED( search_h ) } },
+                            .floating = { .offset = { 0, -search_gap },
+                                          .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                                          .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
+                }
             }
         }
         // The pause panel floats (attachTo ROOT): it never displaces the
@@ -363,6 +366,86 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     for ( int i = 0; i < nl; i++ ) {
         this->rects_.pause_rows[ i ] = rect_of( CLAY_IDI( "pause_row", i ) );
     }
+
+    this->validate( in );
+}
+
+void UiLayout::validate( const UiLayoutInput &in ) {
+    UiLayoutRects &r = this->rects_;
+    r.overflow = UI_OVERFLOW_NONE;
+
+    const float eps = 0.5f;
+    const auto finite = []( const UiRect &q ) {
+        return isfinite( q.left ) && isfinite( q.bottom ) && isfinite( q.width ) && isfinite( q.height );
+    };
+    const auto overflows = [ & ]( const UiRect &q ) {
+        return q.left < -in.screen_w * 0.5f - eps || q.right( ) > in.screen_w * 0.5f + eps ||
+               q.bottom < -in.screen_h * 0.5f - eps || q.top( ) > in.screen_h * 0.5f + eps;
+    };
+    const auto screen = [ & ]( unsigned bit, const char *name, const UiRect &q ) {
+        if ( !finite( q ) ) {
+            pr_debug( "ui_layout: %s is non-finite [%g,%g %gx%g]", name, q.left, q.bottom, q.width, q.height );
+            r.overflow |= bit;
+            return;
+        }
+        if ( overflows( q ) ) {
+            r.overflow |= bit;
+            if ( !( this->last_overflow_ & bit ) ) {
+                pr_debug( "ui_layout: %s overflows %.0fx%.0f viewport: [%.0f,%.0f %.0fx%.0f]", name, in.screen_w, in.screen_h, q.left, q.bottom, q.width, q.height );
+            }
+        }
+    };
+    screen( UI_OVERFLOW_HUD, "hud_strip", r.hud_strip );
+    screen( UI_OVERFLOW_SURVIVAL, "survival_items", r.survival_items );
+    // The creative screen's drawn parts: items slab + floating search bar
+    // (the panel is undrawn bounds and may legitimately be screen-tall).
+    screen( UI_OVERFLOW_CREATIVE, "creative_items", r.creative_items );
+    screen( UI_OVERFLOW_CREATIVE, "search_box", r.search_box );
+    screen( UI_OVERFLOW_CHEST, "chest", r.chest_backdrop );
+    screen( UI_OVERFLOW_CRAFTING2, "crafting2", r.crafting_backdrop2 );
+    screen( UI_OVERFLOW_CRAFTING3, "crafting3", r.crafting_backdrop3 );
+    screen( UI_OVERFLOW_FURNACE, "furnace", r.furnace_backdrop );
+    screen( UI_OVERFLOW_PAUSE, "pause_panel", r.pause_panel );
+
+    // Sibling non-overlap invariants — a violation here is a real layout
+    // bug (not a fit problem). Each pair gets a bit so warnings fire once
+    // per newly-overlapping pair, not per resize event.
+    unsigned overlap_mask = 0;
+    const auto overlap = [ & ]( unsigned bit, const char *name, const UiRect &a, const UiRect &b ) {
+        if ( !( finite( a ) && finite( b ) &&
+                a.left < b.right( ) - eps && a.right( ) > b.left + eps &&
+                a.bottom < b.top( ) - eps && a.top( ) > b.bottom + eps ) ) {
+            return;
+        }
+        overlap_mask |= bit;
+        if ( !( this->last_overlap_ & bit ) ) {
+            pr_debug( "ui_layout: %s overlaps [%g,%g %gx%g] vs [%g,%g %gx%g]", name,
+                      a.left, a.bottom, a.width, a.height, b.left, b.bottom, b.width, b.height );
+        }
+    };
+    // Container screens stack above the survival slab — never inside it.
+    overlap( 1u << 0, "chest_items/survival_items", r.chest_items, r.survival_items );
+    overlap( 1u << 1, "crafting_grid2/survival_items", r.crafting_grid2, r.survival_items );
+    overlap( 1u << 2, "crafting_grid3/survival_items", r.crafting_grid3, r.survival_items );
+    overlap( 1u << 3, "furnace_input/survival_items", r.furnace_input, r.survival_items );
+    overlap( 1u << 4, "furnace_fuel/survival_items", r.furnace_fuel, r.survival_items );
+    // Crafting row: grid | gap | output are disjoint.
+    overlap( 1u << 5, "crafting_grid2/gap", r.crafting_grid2, r.crafting_gap2 );
+    overlap( 1u << 6, "crafting_gap2/out", r.crafting_gap2, r.crafting_out2 );
+    overlap( 1u << 7, "crafting_grid3/gap", r.crafting_grid3, r.crafting_gap3 );
+    overlap( 1u << 8, "crafting_gap3/out", r.crafting_gap3, r.crafting_out3 );
+    // Furnace trio are disjoint.
+    overlap( 1u << 9, "furnace_input/fuel", r.furnace_input, r.furnace_fuel );
+    overlap( 1u << 10, "furnace_output/fuel", r.furnace_output, r.furnace_fuel );
+    overlap( 1u << 11, "furnace_input/output", r.furnace_input, r.furnace_output );
+    // Search bar floats above the panel's items slab, never inside it.
+    overlap( 1u << 12, "search_box/creative_items", r.search_box, r.creative_items );
+    // Pause rows are disjoint.
+    for ( int i = 0; i + 1 < r.pause_row_count; i++ ) {
+        overlap( 1u << ( 13 + i ), "pause_row/next", r.pause_rows[ i ], r.pause_rows[ i + 1 ] );
+    }
+    this->last_overlap_ = overlap_mask;
+    this->last_overflow_ = r.overflow;
 }
 
 UiLayoutInput ui_layout_input( const RepGameState &state ) {
