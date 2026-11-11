@@ -1580,8 +1580,8 @@ int test_support_drops( ) {
     check_bool( "sign def: standing/wall variants paired",
                 standing_sign_def->wall_variant == WALL_SIGN && wall_sign_def->standing_variant == STANDING_SIGN &&
                     block_item_id( WALL_SIGN ) == STANDING_SIGN );
-    // The standing sign renders as board plate + post (standing_sign_boxes);
-    // its def box stays the pick column.
+    // The standing sign renders and picks as board plate + post
+    // (standing_sign_boxes, yawed by block_rotate_box for the ray/outline).
     BlockBox sign_boxes[ SIGN_MAX_BOXES ];
     check_bool( "sign def: standing sign renders board + post",
                 standing_sign_def->is_standing_sign && standing_sign_boxes( sign_boxes ) == 2 &&
@@ -1590,6 +1590,11 @@ int test_support_drops( ) {
                     sign_boxes[ 1 ].scale[ 0 ] == 2 && sign_boxes[ 1 ].scale[ 1 ] == 7 && sign_boxes[ 1 ].scale[ 2 ] == 2 &&
                     sign_boxes[ 1 ].offset[ 0 ] == 7 && sign_boxes[ 1 ].offset[ 2 ] == 7 &&
                     ( sign_boxes[ 1 ].skip_faces & ( 1u << FACE_TOP ) ) != 0 );
+    // Yawed 90 the board plate spans z — the pick/outline box follows the
+    // drawn orientation.
+    block_rotate_box( BLOCK_ROTATE_90, sign_boxes[ 0 ].scale, sign_boxes[ 0 ].offset );
+    check_bool( "sign def: pick box yaws with the board",
+                sign_boxes[ 0 ].scale[ 0 ] == 2 && sign_boxes[ 0 ].scale[ 2 ] == 16 && sign_boxes[ 0 ].offset[ 2 ] == 0 );
     {
         bool standing_listed = false, wall_listed = false;
         for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {

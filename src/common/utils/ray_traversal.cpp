@@ -237,7 +237,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                                              : false;
     const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || fluid_pick;
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
-    if ( result && ( block->is_stairs || block->is_fence || block->is_piston_head || piston_extended ) ) {
+    if ( result && ( block->is_stairs || block->is_fence || block->is_piston_head || piston_extended || block->is_standing_sign ) ) {
         // Pick against the block's real boxes — stairs use their collision
         // boxes (slab + step, with the neighbor-derived corner shape),
         // fences the post + merged rail bars (the two rendered rails merged
@@ -250,6 +250,13 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
         if ( block->is_piston_head || piston_extended ) {
             num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
                                             : piston_base_boxes( blockState.rotation, boxes );
+        } else if ( block->is_standing_sign ) {
+            // Board plate + post — the rendered pair, yawed to world space so
+            // aiming at the board's edge selects the sign.
+            num_boxes = standing_sign_boxes( boxes );
+            for ( int i = 0; i < num_boxes; i++ ) {
+                block_rotate_box( block_yaw( block, blockState.rotation ), boxes[ i ].scale, boxes[ i ].offset );
+            }
         } else if ( block->is_stairs ) {
             static const glm::ivec3 stair_dirs[ 4 ] = {
                 glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),

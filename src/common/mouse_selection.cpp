@@ -135,6 +135,13 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         // throat stub — world-space, so face_shift stays 0 below.
         num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
                                         : piston_base_boxes( blockState.rotation, boxes );
+    } else if ( block->is_standing_sign ) {
+        // The same board plate + post the raycast hits and chunk.cpp draws —
+        // yawed to world space like the stair boxes.
+        num_boxes = standing_sign_boxes( boxes );
+        for ( int i = 0; i < num_boxes; i++ ) {
+            block_rotate_box( block_yaw( block, blockState.rotation ), boxes[ i ].scale, boxes[ i ].offset );
+        }
     }
     if ( num_boxes > 0 ) {
         for ( int i = 0; i < FENCE_MAX_BOXES; i++ ) {
