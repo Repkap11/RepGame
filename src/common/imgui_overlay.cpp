@@ -9,7 +9,7 @@
 
 // Set to 1 to make the overlay interactive while the cursor is free
 // (inventory/menu open) and show the held-pose tuning controls.
-#define IMGUI_OVERLAY_LIVE_TUNE 1
+#define IMGUI_OVERLAY_LIVE_TUNE 0
 
 ImGuiDebugVars debug_vars;
 
