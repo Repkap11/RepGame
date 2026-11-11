@@ -171,10 +171,11 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 - `make server-systemd-install` — installs `RepGameServer.service` as a
   user-level unit (`~/.config/systemd/user`) on repkap11.com, enables it,
   and sets `loginctl enable-linger` so it starts on boot without a login.
-  No sudo needed. `server-systemd-status`/`-logs`/`-uninstall` wrap the
-  matching `systemctl --user`/`journalctl --user` calls over ssh.
+  No sudo needed. `server-systemd-status`/`-uninstall` and
+  `server-logs-live` wrap the matching `systemctl --user`/
+  `journalctl --user` calls over ssh.
   `make server-logs` dumps the last `LOG_LINES` (200) journal lines —
-  the tmux capture-pane equivalent; `server-systemd-logs` follows live.
+  the tmux capture-pane equivalent; `server-logs-live` follows live.
 - `make server-systemd-install` / `server-systemd-status` /
-  `server-systemd-logs` / `server-systemd-uninstall` — install, inspect and
+  `server-logs-live` / `server-systemd-uninstall` — install, inspect and
   remove the `RepGameServer.service` systemd unit.

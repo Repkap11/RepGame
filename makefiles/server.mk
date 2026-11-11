@@ -63,12 +63,12 @@ server-systemd-status:
 	ssh $(SERVER_SSH) 'systemctl --user status $(REPSERVER).service'
 
 # Non-following dump of recent log lines — the tmux capture-pane
-# equivalent. `server-systemd-logs` follows live output instead.
+# equivalent. `server-logs-live` follows live output instead.
 LOG_LINES ?= 200
 server-logs:
 	ssh $(SERVER_SSH) 'journalctl --user -u $(REPSERVER).service -n $(LOG_LINES) --no-pager'
 
-server-systemd-logs:
+server-logs-live:
 	ssh -t $(SERVER_SSH) 'journalctl --user -u $(REPSERVER).service -f'
 
 server-systemd-uninstall:
@@ -79,4 +79,4 @@ clean: clean-server
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run server-test mp-test server-deploy server-restart server-install server-systemd-install server-systemd-status server-logs server-systemd-logs server-systemd-uninstall
+.PHONY: server clean-server server-run server-test mp-test server-deploy server-restart server-install server-systemd-install server-systemd-status server-logs server-logs-live server-systemd-uninstall
