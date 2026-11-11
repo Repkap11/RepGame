@@ -33,6 +33,7 @@ server-run: server
 # both ends run the same toolchain. rsync's temp-file+rename is safe on a
 # running binary. Restart it afterwards with `make server-restart`.
 SERVER_DEPLOY_REMOTE := paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
+deploy: server-deploy
 server-deploy: server
 	rsync out/server/$(REPSERVER) $(SERVER_DEPLOY_REMOTE)/
 	@echo "Deployed. Run 'make server-restart' to restart the live server."
