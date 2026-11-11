@@ -38,7 +38,9 @@ void tnt_launch( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
 // upward kick and a shorter fuse. Queued by tnt_launch. When `inverse` is
 // set the blast instead restores every loaded block in the sphere to the
 // terrain generator's output (MapGen::gen_block_id, CPU only) — no
-// destruction, no chain ignition.
+// destruction, but TNT blocks still chain-ignite: their cells restore like
+// any other and each launches a primed body of its own flavor afterwards
+// (a body regenerated inside solid terrain detonates in place).
 class TntExplodeEvent : public BlockUpdateEvent {
   public:
     TntExplodeEvent( long tick_number, const glm::ivec3 &pos, uint32_t body_id, bool inverse );

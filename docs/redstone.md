@@ -154,7 +154,8 @@ pairing and hinge rules: `docs/blocks.md`.
 applies the power change: `tnt_ignite` removes the block, spawns a
 primed body with a small hop, and queues `TntExplodeEvent` at
 `tick + TNT_FUSE_TICKS`. `is_inverse_tnt` blasts restore terrain instead
-of destroying it. The body physics, blast and multiplayer rules are in
+of destroying it — TNT caught in the restore sphere still chain-ignites.
+The body physics, blast and multiplayer rules are in
 `docs/entities.md`.
 
 **Falling blocks** (`falls_with_gravity`): `perform_checks` queues

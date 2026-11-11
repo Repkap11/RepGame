@@ -60,6 +60,27 @@ void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
     tnt_launch( blockUpdateQueue, repGameState, center, velocity, fuse_ticks, inverse );
 }
 
+// Shared chain launch for both blast flavors: each TNT block the blast
+// collected becomes a primed body flung away from the center with an
+// upward kick and a short fuse, keeping its own normal/inverse flavor.
+static void launch_chained_tnt( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::dvec3 &center, const std::vector<glm::ivec3> &chained_tnt, const std::vector<bool> &chained_inverse ) {
+    for ( size_t i = 0; i < chained_tnt.size( ); i++ ) {
+        const glm::vec3 tnt_center = glm::vec3( chained_tnt[ i ] ) + 0.5f;
+        glm::vec3 away = tnt_center - glm::vec3( center );
+        away.y = 0.0f;
+        glm::vec3 velocity;
+        if ( const float hlen = glm::length( away ); hlen > 0.01f ) {
+            velocity = away / hlen * ( TNT_CHAIN_VEL_MIN + frand( ) * TNT_CHAIN_VEL_SPREAD );
+        } else {
+            const float angle = frand( ) * 6.2832f;
+            velocity = glm::vec3( cosf( angle ), 0.0f, sinf( angle ) ) * ( TNT_CHAIN_VEL_MIN + frand( ) * TNT_CHAIN_VEL_SPREAD );
+        }
+        velocity.y = TNT_CHAIN_VEL_UP_MIN + frand( ) * TNT_CHAIN_VEL_UP_SPREAD;
+        const long fuse = TNT_CHAIN_FUSE_MIN_TICKS + rand( ) % TNT_CHAIN_FUSE_SPREAD_TICKS;
+        tnt_launch( blockUpdateQueue, repGameState, tnt_center, velocity, fuse, chained_inverse[ i ] );
+    }
+}
+
 void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
     World &world = repGameState.world;
     audio_play_sfx( "explode" );
@@ -83,10 +104,12 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
     // cell in the sphere is read from its owning chunk's interior. Structure
     // gen is deterministic and chunk-independent, so a chunk's interior holds
     // every structure part that belongs in it, including canopies from trees
-    // rooted in neighboring chunks. No destruction, no debris, no chain
-    // ignition: TNT blocks in the radius become whatever was naturally there,
-    // so there is nothing to launch. Cells already matching the natural
-    // state are left alone to avoid needless remesh/light churn.
+    // rooted in neighboring chunks. No destruction, no debris — but TNT
+    // blocks still chain-ignite: each is collected while its cell restores
+    // like any other, then launched as a primed body once the sphere is
+    // rewritten. A body regenerated inside solid terrain is embedded and
+    // simply detonates in place. Cells already matching the natural state
+    // are left alone to avoid needless remesh/light churn.
     if ( this->inverse ) {
         // The blast sphere spans at most 2 chunks per axis (radius 4 << 62).
         // Generate each touched chunk once, then read blocks from it.
@@ -125,6 +148,9 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
             }
         }
 
+        std::vector<glm::ivec3> chained_tnt;
+        std::vector<bool> chained_inverse;
+
         for ( int dx = -TNT_BLAST_RADIUS; dx <= TNT_BLAST_RADIUS; dx++ ) {
             for ( int dy = -TNT_BLAST_RADIUS; dy <= TNT_BLAST_RADIUS; dy++ ) {
                 for ( int dz = -TNT_BLAST_RADIUS; dz <= TNT_BLAST_RADIUS; dz++ ) {
@@ -135,6 +161,13 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                     const BlockState state = world.get_loaded_block( pos );
                     if ( state.id == LAST_BLOCK_ID ) {
                         continue; // unloaded chunk — leave it alone
+                    }
+                    const Block *cur_block = block_definition_get_definition( state.id );
+                    if ( cur_block->is_tnt ) {
+                        // Ignites instead of being overwritten — the cell
+                        // still restores below, the launch happens after.
+                        chained_tnt.push_back( pos );
+                        chained_inverse.push_back( cur_block->is_inverse_tnt );
                     }
                     const glm::ivec3 cpos = glm::floor( glm::vec3( pos ) / CHUNK_SIZE_F );
                     Chunk *gc = find_gen_chunk( cpos );
@@ -157,6 +190,8 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
             gc.chunk->free_generated_buffers( );
             delete gc.chunk;
         }
+
+        launch_chained_tnt( blockUpdateQueue, repGameState, center, chained_tnt, chained_inverse );
         return;
     }
 
@@ -225,19 +260,5 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
     // Pass 3: launch the collected TNT. The world now holds only what
     // survives the blast, so the new bodies fly through the final terrain —
     // they can't collide with blocks this explosion removed.
-    for ( size_t i = 0; i < chained_tnt.size( ); i++ ) {
-        const glm::vec3 tnt_center = glm::vec3( chained_tnt[ i ] ) + 0.5f;
-        glm::vec3 away = tnt_center - glm::vec3( center );
-        away.y = 0.0f;
-        glm::vec3 velocity;
-        if ( const float hlen = glm::length( away ); hlen > 0.01f ) {
-            velocity = away / hlen * ( TNT_CHAIN_VEL_MIN + frand( ) * TNT_CHAIN_VEL_SPREAD );
-        } else {
-            const float angle = frand( ) * 6.2832f;
-            velocity = glm::vec3( cosf( angle ), 0.0f, sinf( angle ) ) * ( TNT_CHAIN_VEL_MIN + frand( ) * TNT_CHAIN_VEL_SPREAD );
-        }
-        velocity.y = TNT_CHAIN_VEL_UP_MIN + frand( ) * TNT_CHAIN_VEL_UP_SPREAD;
-        const long fuse = TNT_CHAIN_FUSE_MIN_TICKS + rand( ) % TNT_CHAIN_FUSE_SPREAD_TICKS;
-        tnt_launch( blockUpdateQueue, repGameState, tnt_center, velocity, fuse, chained_inverse[ i ] );
-    }
+    launch_chained_tnt( blockUpdateQueue, repGameState, center, chained_tnt, chained_inverse );
 }

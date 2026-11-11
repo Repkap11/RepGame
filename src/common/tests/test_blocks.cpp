@@ -1128,6 +1128,37 @@ int test_tnt( ) {
     world.bodies.take( shoved, &shoved_pos );
     check_bool( "primed TNT pushed by nearby blast", glm::distance( shoved_pos, shoved_spawn ) > 0.05 );
     check_bool( "no primed TNT bodies remain", world.bodies.count_tnt( ) == 0 );
+
+    // --- Inverse TNT: the restore blast chain-ignites TNT caught in its
+    // sphere instead of silently overwriting it with regenerated terrain. ---
+    world.set_loaded_block( glm::ivec3( 40, 10, 40 ), stone ); // floor for the primed body
+    world.set_loaded_block( glm::ivec3( 43, 10, 40 ), stone );
+    world.set_loaded_block( glm::ivec3( 37, 10, 40 ), stone );
+    world.set_loaded_block( glm::ivec3( 43, 11, 40 ), { TNT, 0, 0, TNT, 0 } );
+    world.set_loaded_block( glm::ivec3( 37, 11, 40 ), { INVERSE_TNT, 0, 0, INVERSE_TNT, 0 } );
+    place( glm::ivec3( 40, 11, 40 ), { INVERSE_TNT, 0, 0, INVERSE_TNT, 0 } );
+    place( glm::ivec3( 40, 11, 41 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+
+    for ( int i = 0; i < 10; i++ ) {
+        tick( );
+    }
+    failures += check_id( world, "inverse: ignited cell is air", glm::ivec3( 40, 11, 40 ), AIR );
+    check_bool( "inverse: one primed body", world.bodies.count_tnt( ) == 1 );
+
+    // Once the main fuse has elapsed, both in-sphere TNT blocks must be
+    // airborne primed bodies — not deleted by the terrain restore. The
+    // shortest chain fuse is far longer than the few ticks since the blast.
+    for ( long i = 0; i < TNT_FUSE_TICKS; i++ ) {
+        tick( );
+    }
+    check_bool( "inverse: two chained bodies launched", world.bodies.count_tnt( ) == 2 );
+
+    for ( long i = 0; i < wait; i++ ) {
+        tick( );
+    }
+    check_bool( "inverse: no primed TNT bodies remain", world.bodies.count_tnt( ) == 0 );
+    check_bool( "inverse: chained TNT cell restored", world.get_loaded_block( glm::ivec3( 43, 11, 40 ) ).id != TNT && world.get_loaded_block( glm::ivec3( 43, 11, 40 ) ).id != INVERSE_TNT );
+    check_bool( "inverse: chained inverse TNT cell restored", world.get_loaded_block( glm::ivec3( 37, 11, 40 ) ).id != TNT && world.get_loaded_block( glm::ivec3( 37, 11, 40 ) ).id != INVERSE_TNT );
     return failures;
 }
 
