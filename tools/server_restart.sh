@@ -9,4 +9,4 @@ HOST=${SERVER_HOST:-paul@repkap11.com}
 SERVICE=${SERVER_SERVICE:-RepGameServer}
 
 ssh "$HOST" "systemctl --user restart '$SERVICE' && systemctl --user is-active '$SERVICE'"
-echo "Attach logs with: ssh -t $HOST journalctl --user -u $SERVICE -f"
+echo "Follow logs with: make server-logs-live"
