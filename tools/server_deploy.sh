@@ -21,6 +21,16 @@ SHA=$(git rev-parse HEAD)
 echo "Pushing $(git log -1 --format='%h %s') to $GIT_REMOTE/$BRANCH"
 git push "$GIT_REMOTE" "HEAD:refs/heads/$BRANCH"
 
+# The VPS is too small to compile optimized builds (clang -O2 on
+# block_definitions.cpp needs ~500 MB; the box has ~450 MB free and no swap).
+# Both ends run the same toolchain, so ship the locally built binary instead.
+# SERVER_REMOTE_BUILD=1 restores the old remote `make server` behaviour.
+REMOTE_BUILD=${SERVER_REMOTE_BUILD:-0}
+if [ "$REMOTE_BUILD" != 1 ]; then
+    make server
+    scp out/server/RepGameServer "$HOST:$REMOTE_DIR/out/server/RepGameServer.new"
+fi
+
 ssh "$HOST" bash -s -- "$REMOTE_DIR" "$BRANCH" "$SHA" "$SESSION" <<'REMOTE'
 set -euo pipefail
 DIR=$1 BRANCH=$2 SHA=$3 SESSION=$4
@@ -31,7 +41,13 @@ git merge --ff-only "origin/$BRANCH"
 [ "$(git rev-parse HEAD)" = "$SHA" ] || { echo "Server HEAD $(git rev-parse --short HEAD) != pushed ${SHA:0:7}" >&2; exit 1; }
 
 # Build before stopping anything, so a broken build leaves the old server up.
-make server
+if [ -f out/server/RepGameServer.new ]; then
+    mv out/server/RepGameServer.new out/server/RepGameServer
+    RUN_CMD="./out/server/RepGameServer"
+else
+    make server
+    RUN_CMD="make server-run"
+fi
 
 if systemctl is-active --quiet RepGameServer.service; then
     echo "RepGameServer.service is active; stop it (make server-systemd-uninstall) or restart it instead." >&2
@@ -62,7 +78,7 @@ if pgrep -x RepGameServer >/dev/null; then
     exit 1
 fi
 
-tmux send-keys -t "$PANE" "cd '$DIR' && make server-run" Enter
+tmux send-keys -t "$PANE" "cd '$DIR' && $RUN_CMD" Enter
 tmux select-window -t "$PANE"
 echo "Server started in tmux session '$SESSION' at ${SHA:0:7}"
 REMOTE
