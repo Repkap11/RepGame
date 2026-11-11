@@ -301,19 +301,24 @@ if(REPGAME_BUILD_CLIENT)
 		${REPGAME_IMGUI_BACKEND})
 	target_link_libraries(repgame_imgui PRIVATE repgame_flags repgame_platform)
 	# Source-level options append after the interface -Werror, so this wins.
-	set_source_files_properties(${REPGAME_IMGUI_CORE_SOURCES} ${REPGAME_IMGUI_BACKEND}
-		PROPERTIES COMPILE_OPTIONS -Wno-error)
-	# No PCH on this target: imgui.cpp/imgui_draw/... define
-	# IMGUI_DEFINE_MATH_OPERATORS before including imgui.h — a pch without
-	# the define freezes the header without the ImVec2 operators and they
-	# fail to compile. Six sources compile once; the win would be nil.
+	set(_imgui_options -Wno-error)
+	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|Emscripten")
+		# clang-only warning: imgui_widgets.cpp passes an uninitialized
+		# empty_string to stb_textedit_replace. Vendored — don't patch it.
+		list(APPEND _imgui_options -Wno-uninitialized-const-pointer)
+	endif()
 	if(REPGAME_PLATFORM STREQUAL "wasm")
 		# imgui_impl_opengl3 auto-detects Emscripten as GLES2/WebGL1, but the
 		# game creates a WebGL2/GLES3 context (SDL_GL_CONTEXT_MAJOR_VERSION=3,
 		# MAX_WEBGL_VERSION=2), so force the ES3 path ("#version 300 es").
-		set_source_files_properties(${REPGAME_IMGUI_CORE_SOURCES} ${REPGAME_IMGUI_BACKEND}
-			PROPERTIES COMPILE_OPTIONS "-Wno-error;-DIMGUI_IMPL_OPENGL_ES3")
+		list(APPEND _imgui_options -DIMGUI_IMPL_OPENGL_ES3)
 	endif()
+	set_source_files_properties(${REPGAME_IMGUI_CORE_SOURCES} ${REPGAME_IMGUI_BACKEND}
+		PROPERTIES COMPILE_OPTIONS "${_imgui_options}")
+	# No PCH on this target: imgui.cpp/imgui_draw/... define
+	# IMGUI_DEFINE_MATH_OPERATORS before including imgui.h — a pch without
+	# the define freezes the header without the ImVec2 operators and they
+	# fail to compile. Six sources compile once; the win would be nil.
 endif()
 
 # ---- clay (vendored: warnings are not errors in the upstream impl) --------
