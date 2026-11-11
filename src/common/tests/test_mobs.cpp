@@ -397,6 +397,10 @@ int test_mobs( ) {
         check_bool( "hit 2: survives", !mobs.hurt( 0, 4.0f, attacker, attacker ) );
         check_bool( "hit 3: kills (survival)", mobs.hurt( 0, 4.0f, attacker, attacker ) );
         check_bool( "death: tip-over started", mobs.mobs[ 0 ].death_ticks > 0 );
+        // A corpse freezes where it stood — streamed vel must be zero or
+        // dead-reckoning mirrors ride it between corrections.
+        check_bool( "death: vel zeroed for the stream", glm::length( mobs.mobs[ 0 ].vel ) == 0.0 );
+        check_bool( "death: kb zeroed", glm::length( mobs.mobs[ 0 ].kb ) == 0.0 );
         // Survival drop path: the killed pig's drops go to the player.
         const MobTypeDef &pig_def = mob_types[ MOB_PIG ];
         check_bool( "pig drops: PORKCHOP 1-3", pig_def.drops[ 0 ].item == PORKCHOP && pig_def.drops[ 0 ].min == 1 && pig_def.drops[ 0 ].max == 3 );
@@ -405,7 +409,9 @@ int test_mobs( ) {
         // Creative: one hit kills; the caller simply doesn't run the drop.
         MobManager mobs2;
         mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs2.mobs[ 0 ].vel = glm::dvec3( 0.01, 0.02, 0.01 ); // mid-stride vel
         check_bool( "creative hit: kills in 1", mobs2.hurt( 0, 1000.0f, attacker, attacker ) );
+        check_bool( "creative kill: stale walk vel zeroed", glm::length( mobs2.mobs[ 0 ].vel ) == 0.0 );
     }
 
     // --- 6: mobs file round trip, net_id + removed, empty removes file -----

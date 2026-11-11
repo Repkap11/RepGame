@@ -178,7 +178,12 @@ believed chunk fresh for silent movers), the record is >2 blocks stale
 pos), or the 10 s move-gated keyframe backstop is due
 (`netsync_keyframe_due` — stationary entities never keyframe at all: a
 still entity would only re-send its own record). Stuck arrows predict
-vel=0 (their streamed vel is the entry direction, not motion). The delta baseline is the
+vel=0 (their streamed vel is the entry direction, not motion). Dying mobs
+stream vel=0 too — a corpse freezes where it stood (tick_mob returns
+early on death_ticks, so the kill blow's kb/hop vel is never integrated),
+and mirrors also zero the prediction on the DYING flag edge — otherwise
+the leftover vel would dead-reckon the corpse into a sawtooth bob between
+drift corrections. The delta baseline is the
 entity's sent_pos for owners, the server's pre-update record for relays,
 and `net.recv_pos` for receivers; chunk crossings apply the
 shared `net_entity_next_chunk` margin — an entity only changes chunks once

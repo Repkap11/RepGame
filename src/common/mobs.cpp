@@ -526,6 +526,10 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                 const double dist = glm::distance( mob.pos, player_pos );
                 const float gain = audio_distance_gain( dist );
                 if ( mob.health <= 0.0f ) {
+                    // Frozen where it stands — see hurt()'s kill path for
+                    // why the streamed vel must be zero.
+                    mob.vel = glm::dvec3( 0.0 );
+                    mob.kb = glm::dvec3( 0.0 );
                     mob.death_ticks = 1;
                     if ( def.sound_death != NULL ) {
                         audio_play_sfx_gain( def.sound_death, gain );
@@ -1020,6 +1024,22 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos, 
     const MobTypeDef &def = mob_types[ mob.type ];
     mob.health -= damage;
     mob.hurt_ticks = static_cast<int>( 0.3f * UPS_RATE );
+    const double dist = glm::distance( mob.pos, listener_pos );
+    const float gain = audio_distance_gain( dist );
+    if ( mob.health <= 0.0f ) {
+        // A dying mob freezes where it stood and tips over — the knockback
+        // hop below is never integrated (tick_mob returns early once
+        // death_ticks is set). Any residual vel would stream to mirrors,
+        // whose dead reckoning would then ride the corpse up or sideways
+        // between corrections; a dead mob's honest velocity is zero.
+        mob.vel = glm::dvec3( 0.0 );
+        mob.kb = glm::dvec3( 0.0 );
+        mob.death_ticks = 1;
+        if ( def.sound_death != NULL ) {
+            audio_play_sfx_gain( def.sound_death, gain );
+        }
+        return true;
+    }
     // Hostiles take knockback but don't panic.
     mob.panic_ticks = def.ai == MOB_AI_PASSIVE_WANDER ? 5 * UPS_RATE : 0;
     mob.ai_state = 0;
@@ -1030,15 +1050,6 @@ bool MobManager::hurt( int index, float damage, const glm::dvec3 &attacker_pos, 
         mob.kb = away / len * 0.15;
     }
     mob.vel.y += 0.07;
-    const double dist = glm::distance( mob.pos, listener_pos );
-    const float gain = audio_distance_gain( dist );
-    if ( mob.health <= 0.0f ) {
-        mob.death_ticks = 1;
-        if ( def.sound_death != NULL ) {
-            audio_play_sfx_gain( def.sound_death, gain );
-        }
-        return true;
-    }
     if ( def.sound_hurt != NULL ) {
         audio_play_sfx_gain( def.sound_hurt, gain );
     }
@@ -2038,6 +2049,8 @@ bool MobManager::spawn_record( const NetEntityRecord &rec, const bool mirror ) {
     }
     if ( rec.flags & NET_MOB_FLAG_DYING ) {
         mob.death_ticks = 1;
+        // The corpse is frozen — don't dead-reckon it off the record's vel.
+        mob.net.vel = glm::dvec3( 0.0 );
     }
     if ( rec.flags & NET_MOB_FLAG_FUSE ) {
         mob.fuse_ticks = 1;
@@ -2144,6 +2157,9 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e, const glm::dvec3
     }
     if ( ( e.flags & NET_MOB_FLAG_DYING ) && !( old_flags & NET_MOB_FLAG_DYING ) ) {
         mob->death_ticks = 1;
+        // The corpse is frozen — stop dead-reckoning it even if this entry
+        // (or a stale one still in flight) carried a nonzero vel.
+        mob->net.vel = glm::dvec3( 0.0 );
         if ( def.sound_death != NULL ) {
             audio_play_sfx_gain( def.sound_death, sfx_gain );
         }
