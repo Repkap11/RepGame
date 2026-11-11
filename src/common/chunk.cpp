@@ -341,6 +341,7 @@ void Chunk::release_terrain( ) {
     this->dirty = 0;
     this->edits_read_failed = 0;
     this->applying_edits = 0;
+    this->mpload_diff_ms = 0;
     this->containers.chests.clear( );
     this->containers.chests_loaded = 0;
     this->containers.furnaces.clear( );
@@ -720,6 +721,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     // fold below calls that while edits must survive to the next persist.
     free( this->edited );
     this->edited = nullptr;
+    this->mpload_diff_ms = 0;
     // Under REMEMBER_BLOCKS, cells stays null while the chunk is all-air:
     // MapStorage::load_chunk allocates it only when a save file exists, and
     // Chunk::set_block allocates on the first real write (every existing cell

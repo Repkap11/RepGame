@@ -128,14 +128,16 @@ class Multiplayer {
     // Returns false (and queues nothing) when not connected, so callers
     // retrying one-shot requests (initial_chunk_request_pending) can keep
     // their retry flag set.
-    bool request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz );
+    bool request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz, bool initial = false );
 
     // Queue a chunk diff for a chunk that isn't loaded yet. Called from
     // process_events when get_chunk returns nullptr.
     void queue_pending_diff( const NetChunkDiffResultPayload &diff );
+    // Size of the pending-diff queue (MPLOAD trace / diagnostics).
+    size_t pending_diffs_count( ) const { return this->pending_diffs.size( ); }
     // Apply any pending diffs for this chunk, then remove them from the
     // pending queue. Called from ChunkLoader::render_chunks after a chunk
     // finishes loading; boundary cells are mirrored into loaded neighbors
-    // via chunkLoader.apply_diff_block.
-    void apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk );
+    // via chunkLoader.apply_diff_block. Returns true when an entry existed.
+    bool apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk );
 };

@@ -5,7 +5,7 @@ REPSERVER := $(TARGET)Server
 CMAKE_SERVER_DFLAGS := -DCMAKE_CXX_COMPILER=$(LINUX_CXX) -DREPGAME_AUDIO=$(REPGAME_AUDIO)
 
 # Thin wrapper over CMake (see CMakeLists.txt — REPGAME_BUILD_SERVER). The
-# server preset is Debug with CLIENT=OFF so hosts without SDL3/GLEW/wayland
+# server preset is RelWithDebInfo with CLIENT=OFF so hosts without SDL3/GLEW/wayland
 # still configure (repkap11.com builds it via tools/server_deploy.sh).
 out/server/$(REPSERVER): FORCE
 	$(call cmake_build,server,out/server/cmake,$(CMAKE_SERVER_DFLAGS))

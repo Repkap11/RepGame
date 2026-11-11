@@ -15,6 +15,7 @@
 #include "common/chunk_loader.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/multiplayer.hpp"
+#include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
@@ -263,7 +264,11 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     process_chunk_position( chunk, center_next, 1 );
     // Apply any chunk diffs that arrived from the server before this chunk's
     // terrain gen finished (Phase 2 eager requests).
-    multiplayer.apply_pending_diffs( *this, chunk );
+    const bool had_pending = multiplayer.apply_pending_diffs( *this, chunk );
+    if ( mpload_trace_enabled( ) ) {
+        mpload_tracef( "finalize chunk=%d,%d,%d pending=%d",
+                       chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, had_pending ? 1 : 0 );
+    }
     // Blocks are final now: hand the chunk to the lighting thread
     // (cascade/border sync/propagation). Inline when no light thread is
     // running (tests, WASM).
@@ -441,7 +446,8 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         this->initial_chunk_request_pending = !multiplayer.request_chunks_box( box_min,
                                                                                static_cast<uint8_t>( 2 * this->render_radius + 1 ),
                                                                                static_cast<uint8_t>( 2 * CHUNK_RADIUS_Y + 1 ),
-                                                                               static_cast<uint8_t>( 2 * this->render_radius + 1 ) );
+                                                                               static_cast<uint8_t>( 2 * this->render_radius + 1 ),
+                                                                               /* initial = */ true );
     }
 
     {
@@ -598,6 +604,28 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // Idle heal for far-cap stale flags; no-ops while the queue is busy.
     this->light_heal_idle( );
     this->rebuild_drawable_list( );
+
+    // MPLOAD trace: per-second load-in summary while the gate is on.
+    if ( mpload_trace_enabled( ) ) {
+        static double last_stats_ms = 0.0;
+        static long stats_frames = 0;
+        stats_frames++;
+        const double now_ms = mpload_now_ms( );
+        if ( now_ms - last_stats_ms >= 1000.0 ) {
+            int remesh_backlog = 0;
+            for ( int i = 0; i < this->num_drawable; i++ ) {
+                remesh_backlog += this->drawable_chunks[ i ]->needs_repopulation ? 1 : 0;
+            }
+            int loading = 0;
+            for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+                loading += this->chunkArray[ i ].load_state == CHUNK_LOADING ? 1 : 0;
+            }
+            mpload_tracef( "frame_stats fps=%ld remesh_backlog=%d pending_diffs=%zu loading=%d",
+                           stats_frames, remesh_backlog, multiplayer.pending_diffs_count( ), loading );
+            stats_frames = 0;
+            last_stats_ms = now_ms;
+        }
+    }
 }
 
 void ChunkLoader::repop_must_enqueue( Chunk &chunk ) {
@@ -611,6 +639,13 @@ void ChunkLoader::repop_must_enqueue( Chunk &chunk ) {
 }
 
 void ChunkLoader::remesh_now( Chunk &chunk ) {
+    if ( chunk.mpload_diff_ms != 0 ) {
+        // Diff-to-remesh latency for the live-apply path (MPLOAD trace).
+        mpload_tracef( "diff_remesh chunk=%d,%d,%d wait_ms=%lld",
+                       chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z,
+                       mpload_now_ms_i( ) - chunk.mpload_diff_ms );
+        chunk.mpload_diff_ms = 0;
+    }
     chunk.unprogram_terrain( );
     chunk.calculate_populated_blocks( );
     chunk.program_terrain( );
@@ -646,6 +681,11 @@ void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *b
     // A server diff (or queued local diff) is a player edit: mark the chunk
     // so natural mobs standing in it count as penned (MobManager::tick).
     chunk.sidecars.player_edited = 1;
+    // Stamp the live-apply path for the diff→remesh latency trace
+    // (mpload_diff_ms). First write wins; remesh_now reads and clears it.
+    if ( mpload_trace_enabled( ) && chunk.mpload_diff_ms == 0 && chunk.load_state == CHUNK_LIVE ) {
+        chunk.mpload_diff_ms = mpload_now_ms_i( );
+    }
     // The same world cell is also stored in a neighbor chunk whenever pos
     // sits on a boundary: interior cells at 0/size-1 live in the neighbor's
     // halo, halo cells at -1/size live in the neighbor's interior. Diffs

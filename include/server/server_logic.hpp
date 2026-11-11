@@ -88,7 +88,9 @@ class ServerLogic {
     void broadcastWorldTime( Server &server );
 
     void record_block( const glm::ivec3 &block_pos, BlockState &block_state );
-    void respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
+    // Queues a CHUNK_DIFF_RESULT frame for chunks with diffs. Returns the
+    // payload bytes queued (0 when the chunk has no diffs).
+    size_t respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
     void persistChunk( const glm::ivec3 &chunk_pos );
     void persistAll( );
     ChunkCacheEntry *loadIntoCache( const glm::ivec3 &chunk_offset );
@@ -98,6 +100,17 @@ class ServerLogic {
 
   public:
     void init( const char *world_name );
+    // MPLOAD srv_mem counters (REPGAME_MPLOAD_TRACE); file-index/diff-cache
+    // fields land here in later phases.
+    size_t worldCacheChunks( ) const { return this->world_cache.size( ); }
+    size_t worldCacheDirtyCells( ) const {
+        size_t n = 0;
+        for ( const auto &pair : this->world_cache ) {
+            n += pair.second.blocks.size( );
+        }
+        return n;
+    }
+    size_t knownEmptyCount( ) const { return this->known_empty_chunks.size( ); }
     void on_client_connected( Server &server, int client_fd );
     void on_client_message( Server &server, int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
     void on_client_disconnected( Server &server, int client_fd );

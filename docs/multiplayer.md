@@ -252,3 +252,36 @@ advancing locally between syncs. The server persists the clock to
 - `make mp-test` drives real server + headless clients through JSONL
   assertions — see the `mp-test` skill and `docs/entities.md`; the
   `containers` scenario drives `copen`/`cset`/`cprobe` end to end.
+
+## Load-in tracing (`REPGAME_MPLOAD_TRACE`)
+
+`REPGAME_MPLOAD_TRACE=1` makes both sides print `MPLOAD t=<ms> <event>` lines
+(ms since process start, `include/common/net/mpload_trace.hpp`) for the
+chunk-diff load-in path:
+
+- client: `connected` (first active `process_events`), `req` (each
+  `CHUNK_DIFF_REQUEST` send, `initial=1` for the connect box), `recv`
+  (each `CHUNK_DIFF_RESULT`, `state=live|queued`), `apply_pending`
+  (queued diff applied at finalize), `pe` (per `process_events` drain:
+  frame count, 100-frame cap hit, elapsed µs, diff count), `finalize`
+  (per `finalize_loaded_chunk`, `pending=1` when a queued diff existed),
+  `diff_remesh` (live diff → remesh latency), `frame_stats` (once a
+  second: fps, remesh backlog, pending diff queue, chunks loading);
+- server: `srv_req`/`srv_served` (diff request box: chunks, frames and
+  bytes queued, loop µs), `srv_flush` (per write-ready flush: frames
+  sent/left, µs), `srv_stats` (once a second: inbound frame counts by
+  type, epoll iterations), `srv_mem` (every 10 s: RSS, `world_cache`
+  chunks, dirty cells, known-empty set).
+
+`tools/mp_probe.py` measures the same path without a game client:
+
+```
+tools/mp_probe.py <host> <port> [--box minx,miny,minz,sx,sy,sz] \
+    [--view cx,cy,cz,rxz,ry] [--repeat N] [--duration S] [--json]
+```
+
+Each repeat opens a fresh connection, sends one `CHUNK_DIFF_REQUEST` box
+(default `-9,-4,-8 17×9×17`, the client's startup box), optionally a
+`VIEW` right after, and reports connect time, total bytes, and
+count/first/last-arrival ms for `CHUNK_DIFF_RESULT` and `CHUNK_ROLE`.
+The wire version is parsed from `packet.hpp` (`--version` overrides).

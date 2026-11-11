@@ -9,8 +9,15 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <algorithm>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "server/server.hpp"
 #include "server/server_logic.hpp"
+#include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
@@ -112,6 +119,12 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
     this->server_logic.on_client_connected( *this, client_fd );
 }
 
+// MPLOAD trace (REPGAME_MPLOAD_TRACE): inbound accounting drained once per
+// second by Server::serve into a srv_stats line. Static file scope — the
+// read loop and the epoll loop both live here.
+static int mpload_in_frames = 0;
+static std::map<NetMsgType, int> mpload_in_by_type;
+
 void Server::handle_client_ready_for_read( int client_fd ) {
     int disconnected = 0;
     while ( true ) {
@@ -138,6 +151,10 @@ void Server::handle_client_ready_for_read( int client_fd ) {
             | ( static_cast<uint32_t>( ( *payload )[ 3 ] ) << 8 )
             | ( static_cast<uint32_t>( ( *payload )[ 4 ] ) << 16 )
             | ( static_cast<uint32_t>( ( *payload )[ 5 ] ) << 24 ) );
+        if ( mpload_trace_enabled( ) ) {
+            mpload_in_frames++;
+            mpload_in_by_type[ type ]++;
+        }
         if ( version != NET_PROTOCOL_VERSION ) {
             pr_debug( "Protocol version mismatch: client_fd %d got %u expected %u", client_fd, version, NET_PROTOCOL_VERSION );
             disconnected = 1;
@@ -226,7 +243,20 @@ PacketType_DataPlayer *Server::get_data_if_client_connected( int client_id ) {
 }
 
 void Server::handle_client_ready_for_write( int client_fd ) {
-    this->client_data[ client_fd ].socket.flush( );
+    FramedSocket &socket = this->client_data[ client_fd ].socket;
+    const bool trace = mpload_trace_enabled( );
+    const size_t queued_before = trace ? socket.outbound_frames( ) : 0;
+    const double flush_t0 = trace ? mpload_now_ms( ) : 0.0;
+    socket.flush( );
+    if ( trace ) {
+        const size_t left = socket.outbound_frames( );
+        const size_t sent = queued_before > left ? queued_before - left : 0;
+        if ( sent > 0 || left > 0 ) {
+            mpload_tracef( "srv_flush fd=%d sent_frames=%zu left=%zu us=%lld",
+                           client_fd, sent, left,
+                           ( long long )( ( mpload_now_ms( ) - flush_t0 ) * 1000.0 ) );
+        }
+    }
     if ( this->client_data[ client_fd ].socket.had_error( ) ) {
         this->client_data[ client_fd ].socket.clear_error( );
         this->server_logic.on_client_disconnected( *this, client_fd );
@@ -278,7 +308,12 @@ void Server::cleanup( ) {
 }
 
 void Server::serve( ) {
+    const bool trace = mpload_trace_enabled( );
+    double last_stats_ms = 0.0;
+    double last_mem_ms = 0.0;
+    long loop_iters = 0;
     while ( this->epoll_fd >= 0 ) {
+        loop_iters++;
         int timeout_ms = this->server_logic.nextWakeTimeoutMs( );
         int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, timeout_ms );
         for ( int i = 0; i < num_ready; i++ ) {
@@ -307,6 +342,52 @@ void Server::serve( ) {
         // returned events or a timeout. This is cheap (O(k log n) where k
         // is the number of chunks whose timers just expired).
         this->server_logic.processTimers( *this );
+        if ( trace ) {
+            const double now_ms = mpload_now_ms( );
+            if ( now_ms - last_stats_ms >= 1000.0 ) {
+                bool any_client = false;
+                for ( int fd = 0; fd < MAX_CLIENT_FDS && !any_client; fd++ ) {
+                    any_client = this->client_data[ fd ].connected;
+                }
+                if ( any_client ) {
+                    // Top 5 inbound frame types by count this second.
+                    std::vector<std::pair<NetMsgType, int>> by_type( mpload_in_by_type.begin( ), mpload_in_by_type.end( ) );
+                    std::sort( by_type.begin( ), by_type.end( ), []( const auto &a, const auto &b ) { return a.second > b.second; } );
+                    std::string list;
+                    for ( size_t i = 0; i < by_type.size( ) && i < 5; i++ ) {
+                        char entry[ 64 ];
+                        snprintf( entry, sizeof( entry ), "%s%s:%d", i ? "," : "",
+                                  net_msg_type_name( by_type[ i ].first ), by_type[ i ].second );
+                        list += entry;
+                    }
+                    mpload_tracef( "srv_stats in_frames=%d in_by_type=%s loop_iters=%ld",
+                                   mpload_in_frames, list.c_str( ), loop_iters );
+                }
+                mpload_in_frames = 0;
+                mpload_in_by_type.clear( );
+                loop_iters = 0;
+                last_stats_ms = now_ms;
+            }
+            // Slower cadence: memory/dirty-state snapshot every 10 s
+            // (file-index and diff-cache fields join this line in later
+            // phases).
+            if ( now_ms - last_mem_ms >= 10000.0 ) {
+                long rss_kb = -1;
+                FILE *statm = fopen( "/proc/self/statm", "r" );
+                if ( statm != nullptr ) {
+                    long long pages = 0;
+                    if ( fscanf( statm, "%*lld %lld", &pages ) == 1 ) {
+                        rss_kb = static_cast<long>( pages * sysconf( _SC_PAGESIZE ) / 1024 );
+                    }
+                    fclose( statm );
+                }
+                mpload_tracef( "srv_mem rss_kb=%ld world_cache=%zu dirty_cells=%zu known_empty=%zu",
+                               rss_kb, this->server_logic.worldCacheChunks( ),
+                               this->server_logic.worldCacheDirtyCells( ),
+                               this->server_logic.knownEmptyCount( ) );
+                last_mem_ms = now_ms;
+            }
+        }
     }
     pr_debug( "Server Exiting" );
 }

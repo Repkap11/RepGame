@@ -354,6 +354,10 @@ class Chunk {
     // inconsistent run list): persist_chunk refuses to write so a corrupt
     // file isn't clobbered.
     mutable int edits_read_failed;
+    // MPLOAD trace (REPGAME_MPLOAD_TRACE): timestamp (mpload_now_ms) of the
+    // first live-applied diff cell since the last remesh, 0 when unset.
+    // Read/reset by ChunkLoader::remesh_now; reset on reload/release.
+    long long mpload_diff_ms = 0;
     // Set by load_terrain while it overlays saved edits — mark_edited no-ops
     // so the overlay can't mark its own cells.
     int applying_edits;

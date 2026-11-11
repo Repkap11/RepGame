@@ -15,6 +15,7 @@
 #include "common/chunk.hpp"
 #include "common/constants.hpp"
 #include "common/multiplayer.hpp"
+#include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
 
 void Multiplayer::init( const char *hostname, const int port ) {
@@ -147,6 +148,13 @@ void Multiplayer::process_events( RepGameState &state ) {
     if ( !this->active ) {
         return;
     }
+    if ( mpload_trace_enabled( ) ) {
+        static bool once = false;
+        if ( !once ) {
+            once = true;
+            mpload_tracef( "connected" );
+        }
+    }
     // Drain any pending sends first so the outbound queue doesn't grow unbounded.
     this->framed_socket.flush( );
     if ( this->framed_socket.had_error( ) ) {
@@ -155,7 +163,11 @@ void Multiplayer::process_events( RepGameState &state ) {
         return;
     }
 
+    const bool trace = mpload_trace_enabled( );
+    const double pe_t0 = trace ? mpload_now_ms( ) : 0.0;
     int event_count = 0;
+    int frames = 0, diffs = 0;
+    bool capped = false;
     while ( event_count < 100 ) {
         event_count++;
         auto payload = this->framed_socket.recv_message( );
@@ -167,12 +179,23 @@ void Multiplayer::process_events( RepGameState &state ) {
         }
         if ( !payload ) {
             // No more complete frames right now.
-            return;
+            break;
+        }
+        frames++;
+        if ( trace && payload->size( ) > 1 &&
+             static_cast<NetMsgType>( ( *payload )[ 1 ] ) == NetMsgType::CHUNK_DIFF_RESULT ) {
+            diffs++;
         }
         this->handle_frame( state, *payload );
         if ( !this->active ) {
             return;
         }
+    }
+    // The cap stopped the loop only when 100 real frames were handled.
+    capped = frames >= 100;
+    if ( trace && frames > 0 ) {
+        mpload_tracef( "pe frames=%d capped=%d us=%lld diffs=%d",
+                       frames, capped ? 1 : 0, ( long long )( mpload_now_ms( ) * 1000.0 - pe_t0 * 1000.0 ), diffs );
     }
 }
 

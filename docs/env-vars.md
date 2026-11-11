@@ -51,6 +51,7 @@ the index, not the reference.
 | `REPGAME_MP_CTL` | unset | all | append-only command file drained each tick (mp-test seam) | mp-test skill |
 | `REPGAME_MP_DUMP` | unset | all | JSONL dump path; presence enables the mp-test client harness | mp-test skill |
 | `REPGAME_MP_DUMP_EVERY` | 5 | all | state-dump cadence in ticks | mp-test skill |
+| `REPGAME_MPLOAD_TRACE` | off | all | `1` prints `MPLOAD` timing lines for multiplayer chunk-diff load-in (client + server) | docs/multiplayer.md |
 | `REPGAME_MSAA` | on (4x) | WASM | `0` requests a non-antialiased WebGL context | capture skill |
 | `REPGAME_DEBUG_CRASH` | unset | all | `segv|abort[@tick]` — deliberate crash inside `RepGame::tick` at the first tick `>= @tick`; no `@tick` crashes on the first tick. A debug-tools self-test hook for `rep-dbg --gdb` and the sanitizer builds | docs/debug-tools.md |
 | `REPGAME_DEBUG_DEBRIS` | unset | all | presence logs every `World::spawn_block_debris` call (pos, prev block, new block, particle count) to stdout — every debris burst funnels through that one function | — |

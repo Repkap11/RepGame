@@ -3,6 +3,7 @@
 #include "server/server.hpp"
 #include "common/chunk.hpp"
 #include "common/light.hpp"
+#include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
 
 #include <climits>
@@ -151,7 +152,7 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
     }
 }
 
-void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
+size_t ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
 
     const auto it_world = this->world_cache.find( chunk_offset );
 
@@ -167,7 +168,7 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
     } else {
         if ( this->known_empty_chunks.count( chunk_offset ) ) {
             // Known to have no diffs — skip the disk entirely.
-            return;
+            return 0;
         }
         this->loadDiffsFromDisk( chunk_offset, disk_diffs );
         if ( disk_diffs.empty( ) ) {
@@ -181,7 +182,7 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
     const std::map<int, BlockState> &chunk_cache = *chunk_cache_prt;
     if ( chunk_cache.empty( ) ) {
         // No diffs for this chunk; emit no frame.
-        return;
+        return 0;
     }
 
     NetChunkDiffResultPayload diff;
@@ -200,7 +201,10 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
 
     PacketWriter w;
     net_serialize_chunk_diff_result( w, diff );
-    server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, w.take_buf( ) );
+    const std::vector<uint8_t> &buf = w.buf( );
+    const size_t payload_bytes = buf.size( );
+    server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, buf );
+    return payload_bytes;
 }
 
 void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
@@ -384,13 +388,30 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
             return;
         }
         // Respond for each chunk in the box.
+        const bool trace = mpload_trace_enabled( );
+        const double req_t0 = trace ? mpload_now_ms( ) : 0.0;
+        if ( trace ) {
+            mpload_tracef( "srv_req fd=%d min=%d,%d,%d size=%d,%d,%d",
+                           client_fd, req.min_x, req.min_y, req.min_z,
+                           ( int )req.size_x, ( int )req.size_y, ( int )req.size_z );
+        }
+        int frames_queued = 0;
+        size_t bytes_queued = 0;
         for ( uint8_t dx = 0; dx < req.size_x; dx++ ) {
             for ( uint8_t dy = 0; dy < req.size_y; dy++ ) {
                 for ( uint8_t dz = 0; dz < req.size_z; dz++ ) {
                     glm::ivec3 chunk_pos = glm::ivec3( req.min_x + dx, req.min_y + dy, req.min_z + dz );
-                    this->respondToChunkRequest( server, client_fd, chunk_pos );
+                    const size_t n = this->respondToChunkRequest( server, client_fd, chunk_pos );
+                    bytes_queued += n;
+                    frames_queued += n > 0 ? 1 : 0;
                 }
             }
+        }
+        if ( trace ) {
+            mpload_tracef( "srv_served fd=%d chunks=%d frames=%d bytes=%zu us=%lld",
+                           client_fd, ( int )req.size_x * ( int )req.size_y * ( int )req.size_z,
+                           frames_queued, bytes_queued,
+                           ( long long )( ( mpload_now_ms( ) - req_t0 ) * 1000.0 ) );
         }
     } else if ( type == NetMsgType::PLAYER_LOCATION ) {
         NetPlayerPayload p;

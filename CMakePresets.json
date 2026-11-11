@@ -45,10 +45,10 @@
     },
     {
       "name": "server",
-      "displayName": "Dedicated server (debug)",
+      "displayName": "Dedicated server (RelWithDebInfo)",
       "binaryDir": "${sourceDir}/out/server/cmake",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "REPGAME_PLATFORM": "linux",
         "REPGAME_BUILD_CLIENT": "OFF",
         "REPGAME_BUILD_SERVER": "ON"

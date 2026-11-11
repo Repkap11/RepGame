@@ -11,6 +11,7 @@
 #include "common/chunk.hpp"
 #include "common/constants.hpp"
 #include "common/multiplayer.hpp"
+#include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
 
 void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> &payload ) {
@@ -59,11 +60,19 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             glm::ivec3 chunk_pos = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
             Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
             if ( chunk_prt == nullptr || chunk_prt->load_state ) {
+                if ( mpload_trace_enabled( ) ) {
+                    mpload_tracef( "recv chunk=%d,%d,%d n=%u bytes=%zu state=queued",
+                                   chunk_pos.x, chunk_pos.y, chunk_pos.z, diff.num_diffs, payload.size( ) );
+                }
                 // Chunk isn't loaded yet (terrain gen still running, or
                 // no chunk slot at this position). Queue the diff to apply
                 // when the chunk finishes loading.
                 this->queue_pending_diff( diff );
                 return;
+            }
+            if ( mpload_trace_enabled( ) ) {
+                mpload_tracef( "recv chunk=%d,%d,%d n=%u bytes=%zu state=live",
+                               chunk_pos.x, chunk_pos.y, chunk_pos.z, diff.num_diffs, payload.size( ) );
             }
             Chunk &chunk = *chunk_prt;
             for ( uint32_t i = 0; i < diff.num_diffs; i++ ) {
@@ -177,7 +186,7 @@ void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
     request_chunks_box( chunk_pos, 1, 1, 1 );
 }
 
-bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz ) {
+bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz, bool initial ) {
     if ( !this->active ) {
         return false;
     }
@@ -189,6 +198,10 @@ bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t
     p.size_y = sy;
     p.size_z = sz;
     this->send( NetMsgType::CHUNK_DIFF_REQUEST, p );
+    if ( mpload_trace_enabled( ) ) {
+        mpload_tracef( "req min=%d,%d,%d size=%d,%d,%d initial=%d",
+                       min.x, min.y, min.z, ( int )sx, ( int )sy, ( int )sz, initial ? 1 : 0 );
+    }
     return true;
 }
 
@@ -253,10 +266,14 @@ void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {
     }
 }
 
-void Multiplayer::apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk ) {
+bool Multiplayer::apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk ) {
     auto it = this->pending_diffs.find( chunk.chunk_pos );
     if ( it == this->pending_diffs.end( ) ) {
-        return;
+        return false;
+    }
+    if ( mpload_trace_enabled( ) ) {
+        mpload_tracef( "apply_pending chunk=%d,%d,%d n=%u",
+                       chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, it->second.num_diffs );
     }
     const NetChunkDiffResultPayload &diff = it->second;
     for ( uint32_t i = 0; i < diff.num_diffs; i++ ) {
@@ -268,4 +285,5 @@ void Multiplayer::apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk ) 
         chunkLoader.apply_diff_block( chunk, static_cast<int>( entry.blocks_index ), &entry.blockState );
     }
     this->pending_diffs.erase( it );
+    return true;
 }

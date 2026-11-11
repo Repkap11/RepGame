@@ -78,6 +78,8 @@ class FramedSocket {
     void clear_error( ) { had_error_ = false; }
 
     bool has_outbound( ) const { return !send_queue_.empty( ); }
+    // Complete frames still queued (the front one may be part-sent).
+    size_t outbound_frames( ) const { return send_queue_.size( ); }
 
   private:
     int fd_ = -1;
