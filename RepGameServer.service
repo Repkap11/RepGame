@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=paul
-WorkingDirectory=/home/paul/Software/RepGame/RepGame/out/server
-ExecStart=/home/paul/Software/RepGame/RepGame/out/server/RepGameServer
+WorkingDirectory=/home/paul/website/repgame
+ExecStart=/home/paul/website/repgame/RepGameServer
 Restart=always
 RestartSec=5
 

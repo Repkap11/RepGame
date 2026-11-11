@@ -6,7 +6,8 @@ CMAKE_SERVER_DFLAGS := -DCMAKE_CXX_COMPILER=$(LINUX_CXX) -DREPGAME_AUDIO=$(REPGA
 
 # Thin wrapper over CMake (see CMakeLists.txt — REPGAME_BUILD_SERVER). The
 # server preset is RelWithDebInfo with CLIENT=OFF so hosts without SDL3/GLEW/wayland
-# still configure (repkap11.com builds it via tools/server_deploy.sh).
+# still configure. Deploys ship this binary (make server-deploy); repkap11.com
+# no longer builds — it's too small to compile optimized clang builds.
 out/server/$(REPSERVER): FORCE
 	$(call cmake_build,server,out/server/cmake,$(CMAKE_SERVER_DFLAGS))
 
@@ -27,10 +28,19 @@ server-install:
 server-run: server
 	./out/server/$(REPSERVER)
 
-# Push HEAD to the repkap11 remote, rebuild on repkap11.com and restart the
-# server in tmux session 'repgame' (see tools/server_deploy.sh for overrides).
-server-deploy:
-	./tools/server_deploy.sh
+# Ship the release binary to repkap11.com's website dir like the other
+# deploy targets — the VPS is too small to compile optimized builds, and
+# both ends run the same toolchain. rsync's temp-file+rename is safe on a
+# running binary. Restart it afterwards with `make server-restart`.
+SERVER_DEPLOY_REMOTE := paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
+server-deploy: server
+	rsync out/server/$(REPSERVER) $(SERVER_DEPLOY_REMOTE)/
+	@echo "Deployed. Run 'make server-restart' to restart the live server."
+
+# (Re)start the deployed binary in tmux session 'repgame' on repkap11.com
+# (see tools/server_restart.sh for overrides).
+server-restart:
+	./tools/server_restart.sh
 
 server-test: server
 	./out/server/$(REPSERVER) --selftest
@@ -62,4 +72,4 @@ clean: clean-server
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run server-test mp-test server-deploy server-install
+.PHONY: server clean-server server-run server-test mp-test server-deploy server-restart server-install

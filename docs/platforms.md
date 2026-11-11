@@ -160,16 +160,18 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   just `SERVER_PACKAGES` (clang, ccache, cmake, ninja, wget, bsdtar, tmux) and
   fetches `entt_build/`. No SDL3/GLEW/CUDA/HIP/imgui — use it instead of
   `make install` on repkap11.com.
-- `make server-deploy` — `tools/server_deploy.sh`: push HEAD to the `repkap11`
-  remote's master, ff-pull + `make server` on repkap11.com (cmake `server`
-  preset — configures with no SDL3/GLEW/wayland; build happens before
-  the old server is stopped), Ctrl-C the server in tmux session `repgame`
-  (pane found via the `@repgame_server` pane option, since automatic-rename
-  clobbers window names; graceful flush), start `make server-run` there, then attach.
-  Uncommitted changes only warn. Aborts if `RepGameServer.service` is active or
-  another RepGameServer is running outside that session. Overrides:
-  `SERVER_HOST`, `SERVER_DIR`, `SERVER_GIT_REMOTE`, `SERVER_BRANCH`,
-  `SERVER_TMUX_SESSION`, `SERVER_ATTACH=0`.
+- `make server-deploy` — rsync `out/server/RepGameServer` to
+  repkap11.com's `/home/paul/website/repgame/` like the other deploy
+  targets. The VPS is too small to compile optimized builds, so nothing
+  builds or pushes on the remote; both ends run the same toolchain. rsync's
+  temp-file+rename is safe against the running binary.
+- `make server-restart` — `tools/server_restart.sh`: Ctrl-C the server in
+  tmux session `repgame` (pane found via the `@repgame_server` pane option,
+  since automatic-rename clobbers window names; graceful flush), start the
+  deployed binary there, then attach. Aborts if `RepGameServer.service` is
+  active or another RepGameServer is running outside that session.
+  Overrides: `SERVER_HOST`, `SERVER_BIN_DIR`, `SERVER_TMUX_SESSION`,
+  `SERVER_ATTACH=0`.
 - `make server-systemd-install` / `server-systemd-status` /
   `server-systemd-logs` / `server-systemd-uninstall` — install, inspect and
   remove the `RepGameServer.service` systemd unit.
