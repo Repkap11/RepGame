@@ -3866,18 +3866,25 @@ block_definitions[ 254 ].is_pickable = false;
 block_definitions[ 254 ].mineable = MINEABLE_PICKAXE;
 
 // CHAIN (255)
-block_definitions[ 255 ].textures[ FACE_TOP ] = TEX_CHAIN;
-block_definitions[ 255 ].textures[ FACE_BOTTOM ] = TEX_CHAIN;
-block_definitions[ 255 ].textures[ FACE_RIGHT ] = TEX_CHAIN;
-block_definitions[ 255 ].textures[ FACE_FRONT ] = TEX_CHAIN;
-block_definitions[ 255 ].textures[ FACE_LEFT ] = TEX_CHAIN;
-block_definitions[ 255 ].textures[ FACE_BACK ] = TEX_CHAIN;
+block_definitions[ 255 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 255 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 255 ].textures[ FACE_RIGHT ] = TEX_CHAIN_BLOCK;
+block_definitions[ 255 ].textures[ FACE_FRONT ] = TEX_CHAIN_BLOCK;
+block_definitions[ 255 ].textures[ FACE_LEFT ] = TEX_CHAIN_BLOCK;
+block_definitions[ 255 ].textures[ FACE_BACK ] = TEX_CHAIN_BLOCK;
 block_definitions[ 255 ].icon_texture = TEX_CHAIN;
+block_definitions[ 255 ].affected_by_redstone_power = false;
 block_definitions[ 255 ].casts_shadow = false;
-block_definitions[ 255 ].hardness = 0.35f;
+block_definitions[ 255 ].hardness = 4.0f;
+block_definitions[ 255 ].icon_is_isometric = false;
 block_definitions[ 255 ].is_seethrough = true;
 block_definitions[ 255 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 255 ].no_light = 6815743;
+block_definitions[ 255 ].no_light = 0;
+block_definitions[ 255 ].offset = { 6, 0, 6 };
+block_definitions[ 255 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 255 ].scale = { 3, 16, 3 };
+block_definitions[ 255 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 255 ].waterloggable = true;
 
 // CHAIN_COMMAND_BLOCK (256)
 block_definitions[ 256 ].textures[ FACE_TOP ] = TEX_CHAIN_COMMAND_BLOCK_CONDITIONAL_MIPMAP;
@@ -5040,18 +5047,25 @@ block_definitions[ 335 ].icon_texture = TEX_COPPER_BULB;
 block_definitions[ 335 ].mineable = MINEABLE_PICKAXE;
 
 // COPPER_CHAIN (336)
-block_definitions[ 336 ].textures[ FACE_TOP ] = TEX_COPPER_CHAIN;
-block_definitions[ 336 ].textures[ FACE_BOTTOM ] = TEX_COPPER_CHAIN;
-block_definitions[ 336 ].textures[ FACE_RIGHT ] = TEX_COPPER_CHAIN;
-block_definitions[ 336 ].textures[ FACE_FRONT ] = TEX_COPPER_CHAIN;
-block_definitions[ 336 ].textures[ FACE_LEFT ] = TEX_COPPER_CHAIN;
-block_definitions[ 336 ].textures[ FACE_BACK ] = TEX_COPPER_CHAIN;
+block_definitions[ 336 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 336 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 336 ].textures[ FACE_RIGHT ] = TEX_COPPER_CHAIN_BLOCK;
+block_definitions[ 336 ].textures[ FACE_FRONT ] = TEX_COPPER_CHAIN_BLOCK;
+block_definitions[ 336 ].textures[ FACE_LEFT ] = TEX_COPPER_CHAIN_BLOCK;
+block_definitions[ 336 ].textures[ FACE_BACK ] = TEX_COPPER_CHAIN_BLOCK;
 block_definitions[ 336 ].icon_texture = TEX_COPPER_CHAIN;
+block_definitions[ 336 ].affected_by_redstone_power = false;
 block_definitions[ 336 ].casts_shadow = false;
-block_definitions[ 336 ].hardness = 0.35f;
+block_definitions[ 336 ].hardness = 4.0f;
+block_definitions[ 336 ].icon_is_isometric = false;
 block_definitions[ 336 ].is_seethrough = true;
 block_definitions[ 336 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 336 ].no_light = 6815743;
+block_definitions[ 336 ].no_light = 0;
+block_definitions[ 336 ].offset = { 6, 0, 6 };
+block_definitions[ 336 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 336 ].scale = { 3, 16, 3 };
+block_definitions[ 336 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 336 ].waterloggable = true;
 
 // COPPER_CHEST (337)
 block_definitions[ 337 ].textures[ FACE_TOP ] = TEX_COPPER_CHEST_INVENTORY_TOP;
@@ -8393,18 +8407,25 @@ block_definitions[ 561 ].icon_texture = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 561 ].mineable = MINEABLE_PICKAXE;
 
 // EXPOSED_COPPER_CHAIN (562)
-block_definitions[ 562 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 562 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 562 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 562 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 562 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 562 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHAIN;
+block_definitions[ 562 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 562 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 562 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
+block_definitions[ 562 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
+block_definitions[ 562 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
+block_definitions[ 562 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
 block_definitions[ 562 ].icon_texture = TEX_EXPOSED_COPPER_CHAIN;
+block_definitions[ 562 ].affected_by_redstone_power = false;
 block_definitions[ 562 ].casts_shadow = false;
-block_definitions[ 562 ].hardness = 0.35f;
+block_definitions[ 562 ].hardness = 4.0f;
+block_definitions[ 562 ].icon_is_isometric = false;
 block_definitions[ 562 ].is_seethrough = true;
 block_definitions[ 562 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 562 ].no_light = 6815743;
+block_definitions[ 562 ].no_light = 0;
+block_definitions[ 562 ].offset = { 6, 0, 6 };
+block_definitions[ 562 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 562 ].scale = { 3, 16, 3 };
+block_definitions[ 562 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 562 ].waterloggable = true;
 
 // EXPOSED_COPPER_CHEST (563)
 block_definitions[ 563 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_CHEST_INVENTORY_TOP;
@@ -12531,18 +12552,25 @@ block_definitions[ 859 ].icon_texture = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 859 ].mineable = MINEABLE_PICKAXE;
 
 // OXIDIZED_COPPER_CHAIN (860)
-block_definitions[ 860 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 860 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 860 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 860 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 860 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 860 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHAIN;
+block_definitions[ 860 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 860 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 860 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
+block_definitions[ 860 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
+block_definitions[ 860 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
+block_definitions[ 860 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
 block_definitions[ 860 ].icon_texture = TEX_OXIDIZED_COPPER_CHAIN;
+block_definitions[ 860 ].affected_by_redstone_power = false;
 block_definitions[ 860 ].casts_shadow = false;
-block_definitions[ 860 ].hardness = 0.35f;
+block_definitions[ 860 ].hardness = 4.0f;
+block_definitions[ 860 ].icon_is_isometric = false;
 block_definitions[ 860 ].is_seethrough = true;
 block_definitions[ 860 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 860 ].no_light = 6815743;
+block_definitions[ 860 ].no_light = 0;
+block_definitions[ 860 ].offset = { 6, 0, 6 };
+block_definitions[ 860 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 860 ].scale = { 3, 16, 3 };
+block_definitions[ 860 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 860 ].waterloggable = true;
 
 // OXIDIZED_COPPER_CHEST (861)
 block_definitions[ 861 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_TOP;
@@ -18718,18 +18746,25 @@ block_definitions[ 1288 ].icon_texture = TEX_COPPER_BULB;
 block_definitions[ 1288 ].mineable = MINEABLE_PICKAXE;
 
 // WAXED_COPPER_CHAIN (1289)
-block_definitions[ 1289 ].textures[ FACE_TOP ] = TEX_COPPER_CHAIN;
-block_definitions[ 1289 ].textures[ FACE_BOTTOM ] = TEX_COPPER_CHAIN;
-block_definitions[ 1289 ].textures[ FACE_RIGHT ] = TEX_COPPER_CHAIN;
-block_definitions[ 1289 ].textures[ FACE_FRONT ] = TEX_COPPER_CHAIN;
-block_definitions[ 1289 ].textures[ FACE_LEFT ] = TEX_COPPER_CHAIN;
-block_definitions[ 1289 ].textures[ FACE_BACK ] = TEX_COPPER_CHAIN;
+block_definitions[ 1289 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1289 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1289 ].textures[ FACE_RIGHT ] = TEX_COPPER_CHAIN_BLOCK;
+block_definitions[ 1289 ].textures[ FACE_FRONT ] = TEX_COPPER_CHAIN_BLOCK;
+block_definitions[ 1289 ].textures[ FACE_LEFT ] = TEX_COPPER_CHAIN_BLOCK;
+block_definitions[ 1289 ].textures[ FACE_BACK ] = TEX_COPPER_CHAIN_BLOCK;
 block_definitions[ 1289 ].icon_texture = TEX_COPPER_CHAIN;
+block_definitions[ 1289 ].affected_by_redstone_power = false;
 block_definitions[ 1289 ].casts_shadow = false;
-block_definitions[ 1289 ].hardness = 0.35f;
+block_definitions[ 1289 ].hardness = 4.0f;
+block_definitions[ 1289 ].icon_is_isometric = false;
 block_definitions[ 1289 ].is_seethrough = true;
 block_definitions[ 1289 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1289 ].no_light = 6815743;
+block_definitions[ 1289 ].no_light = 0;
+block_definitions[ 1289 ].offset = { 6, 0, 6 };
+block_definitions[ 1289 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1289 ].scale = { 3, 16, 3 };
+block_definitions[ 1289 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1289 ].waterloggable = true;
 
 // WAXED_COPPER_CHEST (1290)
 block_definitions[ 1290 ].textures[ FACE_TOP ] = TEX_COPPER_CHEST_INVENTORY_TOP;
@@ -18922,18 +18957,25 @@ block_definitions[ 1303 ].icon_texture = TEX_EXPOSED_COPPER_BULB;
 block_definitions[ 1303 ].mineable = MINEABLE_PICKAXE;
 
 // WAXED_EXPOSED_COPPER_CHAIN (1304)
-block_definitions[ 1304 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 1304 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 1304 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 1304 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 1304 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_CHAIN;
-block_definitions[ 1304 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHAIN;
+block_definitions[ 1304 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1304 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1304 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1304 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1304 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1304 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_CHAIN_BLOCK;
 block_definitions[ 1304 ].icon_texture = TEX_EXPOSED_COPPER_CHAIN;
+block_definitions[ 1304 ].affected_by_redstone_power = false;
 block_definitions[ 1304 ].casts_shadow = false;
-block_definitions[ 1304 ].hardness = 0.35f;
+block_definitions[ 1304 ].hardness = 4.0f;
+block_definitions[ 1304 ].icon_is_isometric = false;
 block_definitions[ 1304 ].is_seethrough = true;
 block_definitions[ 1304 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1304 ].no_light = 6815743;
+block_definitions[ 1304 ].no_light = 0;
+block_definitions[ 1304 ].offset = { 6, 0, 6 };
+block_definitions[ 1304 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1304 ].scale = { 3, 16, 3 };
+block_definitions[ 1304 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1304 ].waterloggable = true;
 
 // WAXED_EXPOSED_COPPER_CHEST (1305)
 block_definitions[ 1305 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_CHEST_INVENTORY_TOP;
@@ -19154,18 +19196,25 @@ block_definitions[ 1320 ].icon_texture = TEX_OXIDIZED_COPPER_BULB;
 block_definitions[ 1320 ].mineable = MINEABLE_PICKAXE;
 
 // WAXED_OXIDIZED_COPPER_CHAIN (1321)
-block_definitions[ 1321 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 1321 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 1321 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 1321 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 1321 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_CHAIN;
-block_definitions[ 1321 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHAIN;
+block_definitions[ 1321 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1321 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1321 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1321 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1321 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1321 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_CHAIN_BLOCK;
 block_definitions[ 1321 ].icon_texture = TEX_OXIDIZED_COPPER_CHAIN;
+block_definitions[ 1321 ].affected_by_redstone_power = false;
 block_definitions[ 1321 ].casts_shadow = false;
-block_definitions[ 1321 ].hardness = 0.35f;
+block_definitions[ 1321 ].hardness = 4.0f;
+block_definitions[ 1321 ].icon_is_isometric = false;
 block_definitions[ 1321 ].is_seethrough = true;
 block_definitions[ 1321 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1321 ].no_light = 6815743;
+block_definitions[ 1321 ].no_light = 0;
+block_definitions[ 1321 ].offset = { 6, 0, 6 };
+block_definitions[ 1321 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1321 ].scale = { 3, 16, 3 };
+block_definitions[ 1321 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1321 ].waterloggable = true;
 
 // WAXED_OXIDIZED_COPPER_CHEST (1322)
 block_definitions[ 1322 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_CHEST_INVENTORY_TOP;
@@ -19372,18 +19421,25 @@ block_definitions[ 1336 ].icon_texture = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1336 ].mineable = MINEABLE_PICKAXE;
 
 // WAXED_WEATHERED_COPPER_CHAIN (1337)
-block_definitions[ 1337 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1337 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1337 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1337 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1337 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1337 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHAIN;
+block_definitions[ 1337 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1337 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1337 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1337 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1337 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1337 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
 block_definitions[ 1337 ].icon_texture = TEX_WEATHERED_COPPER_CHAIN;
+block_definitions[ 1337 ].affected_by_redstone_power = false;
 block_definitions[ 1337 ].casts_shadow = false;
-block_definitions[ 1337 ].hardness = 0.35f;
+block_definitions[ 1337 ].hardness = 4.0f;
+block_definitions[ 1337 ].icon_is_isometric = false;
 block_definitions[ 1337 ].is_seethrough = true;
 block_definitions[ 1337 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1337 ].no_light = 6815743;
+block_definitions[ 1337 ].no_light = 0;
+block_definitions[ 1337 ].offset = { 6, 0, 6 };
+block_definitions[ 1337 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1337 ].scale = { 3, 16, 3 };
+block_definitions[ 1337 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1337 ].waterloggable = true;
 
 // WAXED_WEATHERED_COPPER_CHEST (1338)
 block_definitions[ 1338 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_CHEST_INVENTORY_TOP;
@@ -19590,18 +19646,25 @@ block_definitions[ 1352 ].icon_texture = TEX_WEATHERED_COPPER_BULB;
 block_definitions[ 1352 ].mineable = MINEABLE_PICKAXE;
 
 // WEATHERED_COPPER_CHAIN (1353)
-block_definitions[ 1353 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1353 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1353 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1353 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1353 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_CHAIN;
-block_definitions[ 1353 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHAIN;
+block_definitions[ 1353 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1353 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1353 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1353 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1353 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
+block_definitions[ 1353 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_CHAIN_BLOCK;
 block_definitions[ 1353 ].icon_texture = TEX_WEATHERED_COPPER_CHAIN;
+block_definitions[ 1353 ].affected_by_redstone_power = false;
 block_definitions[ 1353 ].casts_shadow = false;
-block_definitions[ 1353 ].hardness = 0.35f;
+block_definitions[ 1353 ].hardness = 4.0f;
+block_definitions[ 1353 ].icon_is_isometric = false;
 block_definitions[ 1353 ].is_seethrough = true;
 block_definitions[ 1353 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1353 ].no_light = 6815743;
+block_definitions[ 1353 ].no_light = 0;
+block_definitions[ 1353 ].offset = { 6, 0, 6 };
+block_definitions[ 1353 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1353 ].scale = { 3, 16, 3 };
+block_definitions[ 1353 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1353 ].waterloggable = true;
 
 // WEATHERED_COPPER_CHEST (1354)
 block_definitions[ 1354 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_CHEST_INVENTORY_TOP;
