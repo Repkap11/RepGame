@@ -180,8 +180,12 @@ matching and the output slot are documented with the item/recipe data in
 - `draw_ui_pass` (`game_render.cpp`) names the selected hotbar item
   (`item_name`) just above the hotbar — above the hearts row in
   survival — black-outlined via `FontRenderer::text_append_outlined`;
-  empty slots show nothing. All UI text is batched: callers queue
-  glyphs with `text_append*`, `text_flush` draws them in one call.
+  empty slots show nothing, and the label hides while `menu_open` so
+  it can't peek out past the pause panel's edge. All UI text is
+  batched: callers queue glyphs with `text_append*` and `text_flush`
+  rasterizes the queue — so flush order *is* layer order. The pass
+  flushes the HUD/inventory text before `pause.draw` and the menu's
+  text after, keeping menu text on top and HUD text underneath.
 - `UIOverlay::draw_vitals` renders the survival health row above the
   hotbar — ten `TEX_HEART_CONTAINER` slots with `TEX_HEART` /
   `TEX_HEART_HALF` filled by `vitals.health` (half-hearts), plus a
