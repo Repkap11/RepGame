@@ -13,6 +13,7 @@
 #include "common/utils/env_config.hpp"
 #include "common/utils/profile.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/imgui_overlay.hpp"
 #include "common/item_entities.hpp"
 #include "common/light.hpp"
 #include "common/mp_test.hpp"
@@ -1746,14 +1747,20 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
             if ( arm >= 0 ) {
                 // The model's bone names are mirrored (front is -Z, so the
                 // arm named "leftArm" at +X is the character's right hand —
-                // matching MC). Grip pose in model pixels: item center at
-                // the fist's bottom-front, icon face diagonal (+X,-Z) so it
-                // reads from the character's front-right, top tipped
-                // forward like a carried tool.
-                glm::mat4 grip = glm::translate( glm::mat4( 1.0f ), glm::vec3( 6.0f, 12.5f, -1.5f ) );
-                grip = glm::rotate( grip, glm::radians( 135.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-                grip = glm::rotate( grip, glm::radians( 30.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
-                grip = glm::scale( grip, glm::vec3( 9.5f ) );
+                // matching MC). Grip pose in model pixels, tunable live in
+                // the ImGui overlay's Avatar Held sections
+                // (IMGUI_OVERLAY_LIVE_TUNE): item center near the fist's
+                // bottom-front, icon face diagonal so it reads from the
+                // character's front-right, top tipped forward.
+                const ImGuiDebugVars &dv = imgui_overlay_get_imgui_debug_vars( );
+                const glm::vec3 &grip_pos = mob.held_cube ? dv.avatar_held_block_pos : dv.avatar_held_pos;
+                const glm::vec3 &grip_rot = mob.held_cube ? dv.avatar_held_block_rot : dv.avatar_held_rot;
+                const float grip_scale = mob.held_cube ? dv.avatar_held_block_scale : dv.avatar_held_scale;
+                glm::mat4 grip = glm::translate( glm::mat4( 1.0f ), grip_pos );
+                grip = glm::rotate( grip, glm::radians( grip_rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+                grip = glm::rotate( grip, glm::radians( grip_rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+                grip = glm::rotate( grip, glm::radians( grip_rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+                grip = glm::scale( grip, glm::vec3( grip_scale ) );
                 const glm::mat4 held_m = base * bone_world[ arm ] * grip;
                 if ( mob.held_cube ) {
                     const glm::mat4 m = held_m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f ) );

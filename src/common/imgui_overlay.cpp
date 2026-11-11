@@ -9,7 +9,7 @@
 
 // Set to 1 to make the overlay interactive while the cursor is free
 // (inventory/menu open) and show the held-pose tuning controls.
-#define IMGUI_OVERLAY_LIVE_TUNE 0
+#define IMGUI_OVERLAY_LIVE_TUNE 1
 
 ImGuiDebugVars debug_vars;
 
@@ -266,18 +266,38 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
             pose_dirty |= ImGui::DragFloat( "B-Pitch", &debug_vars.held_block_rot.x, 0.5f );
             pose_dirty |= ImGui::DragFloat( "B-Roll", &debug_vars.held_block_rot.z, 0.5f );
             pose_dirty |= ImGui::DragFloat( "B-Scale", &debug_vars.held_block_scale, 0.005f, 0.01f, 2.0f );
+            // Remote avatar grip: model-pixel space on the right-arm bone,
+            // so positions/scale run 0-32 not 0-1.
+            ImGui::SeparatorText( "Avatar Held" );
+            pose_dirty |= ImGui::DragFloat3( "A-Position", &debug_vars.avatar_held_pos.x, 0.25f );
+            pose_dirty |= ImGui::DragFloat( "A-Yaw", &debug_vars.avatar_held_rot.y, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "A-Pitch", &debug_vars.avatar_held_rot.x, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "A-Roll", &debug_vars.avatar_held_rot.z, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "A-Scale", &debug_vars.avatar_held_scale, 0.1f, 0.5f, 32.0f );
+            ImGui::SeparatorText( "Avatar Held Block" );
+            pose_dirty |= ImGui::DragFloat3( "AB-Position", &debug_vars.avatar_held_block_pos.x, 0.25f );
+            pose_dirty |= ImGui::DragFloat( "AB-Yaw", &debug_vars.avatar_held_block_rot.y, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "AB-Pitch", &debug_vars.avatar_held_block_rot.x, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "AB-Roll", &debug_vars.avatar_held_block_rot.z, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "AB-Scale", &debug_vars.avatar_held_block_scale, 0.1f, 0.5f, 32.0f );
         }
         static bool pose_pending_log = false;
         pose_pending_log |= pose_dirty;
         if ( ImGui::Button( "Log pose" ) || ( pose_pending_log && ImGui::IsMouseReleased( ImGuiMouseButton_Left ) ) ) {
             pose_pending_log = false;
             pr_debug( "held pose: pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f | "
-                      "bow pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f spin=%.2f",
+                      "bow pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f spin=%.2f | "
+                      "avatar pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f | "
+                      "avatar block pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f",
                       debug_vars.held_pos.x, debug_vars.held_pos.y, debug_vars.held_pos.z,
                       debug_vars.held_rot.x, debug_vars.held_rot.y, debug_vars.held_rot.z, debug_vars.held_scale,
                       debug_vars.bow_pos.x, debug_vars.bow_pos.y, debug_vars.bow_pos.z,
                       debug_vars.bow_rot.x, debug_vars.bow_rot.y, debug_vars.bow_rot.z,
-                      debug_vars.bow_scale, debug_vars.bow_spin );
+                      debug_vars.bow_scale, debug_vars.bow_spin,
+                      debug_vars.avatar_held_pos.x, debug_vars.avatar_held_pos.y, debug_vars.avatar_held_pos.z,
+                      debug_vars.avatar_held_rot.x, debug_vars.avatar_held_rot.y, debug_vars.avatar_held_rot.z, debug_vars.avatar_held_scale,
+                      debug_vars.avatar_held_block_pos.x, debug_vars.avatar_held_block_pos.y, debug_vars.avatar_held_block_pos.z,
+                      debug_vars.avatar_held_block_rot.x, debug_vars.avatar_held_block_rot.y, debug_vars.avatar_held_block_rot.z, debug_vars.avatar_held_block_scale );
         }
 #endif
 
