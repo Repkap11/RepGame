@@ -1,8 +1,14 @@
 {
+ "icon": "sign_jungle",
  "id": 665,
  "name": "JUNGLE_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "planks_jungle"
+  "back": "sign_jungle_wall",
+  "bottom": "planks_jungle",
+  "front": "sign_jungle_wall",
+  "left": "planks_jungle",
+  "right": "planks_jungle",
+  "top": "planks_jungle"
  }
 }

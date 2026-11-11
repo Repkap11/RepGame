@@ -909,6 +909,13 @@ int test_block_world( ) {
     }
     check_bool( "bw: every defined non-AIR id placed once", seen_count == expected_count && dupes == 0 && strays == 0 );
 
+    // Sign showcase (z<0): standing signs on the floor, wall signs on the
+    // +z face of the stones at z=-21, hanging signs under the y=2 beam.
+    check_bool( "bw: standing sign on floor", MapGen::block_world_id( -9, 1, -19 ) == STANDING_SIGN );
+    check_bool( "bw: wall sign in front of its stone", MapGen::block_world_id( -9, 1, -20 ) == WALL_SIGN && MapGen::block_world_id( -9, 1, -21 ) == STONE );
+    check_bool( "bw: hanging sign below beam", MapGen::block_world_id( -9, 1, -24 ) == OAK_HANGING_SIGN && MapGen::block_world_id( -9, 2, -24 ) == STONE );
+    check_bool( "bw: beam ends at x=-3", MapGen::block_world_id( -2, 2, -24 ) == AIR );
+
     // Flat world (world_type `flat`): sandstone floor at y=0, air above —
     // same ground as block world without the grid.
     check_bool( "flat: floor is sandstone at y=0", MapGen::flat_world_id( 0, 0, 0 ) == SANDSTONE );
@@ -1550,6 +1557,50 @@ int test_support_drops( ) {
     // Break the floor: the lower fails its ground check (drops), the upper
     // then finds no partner (no drop).
     door_case( "floor break", glm::ivec3( 18, 21, 20 ), glm::ivec3( 18, 20, 20 ), false );
+
+    // --- Signs: each variant rides one support face through
+    // needs_place_on_any_solid and pops when that support is removed. ---
+    const Block *standing_sign_def = block_definition_get_definition( STANDING_SIGN );
+    check_bool( "sign def: standing sign is a floor column",
+                standing_sign_def->needs_place_on_any_solid[ FACE_TOP ] && !standing_sign_def->collides_with_player &&
+                    standing_sign_def->scale.x == 8 && standing_sign_def->scale.y == 16 && standing_sign_def->offset.x == 4 );
+    const Block *wall_sign_def = block_definition_get_definition( WALL_SIGN );
+    check_bool( "sign def: wall sign mounts like a ladder",
+                wall_sign_def->rotate_on_placement && wall_sign_def->needs_place_on_any_solid[ FACE_FRONT ] &&
+                    wall_sign_def->scale.z == 2 && !wall_sign_def->collides_with_player );
+    const Block *hanging_sign_def = block_definition_get_definition( OAK_HANGING_SIGN );
+    check_bool( "sign def: hanging sign hangs from above",
+                hanging_sign_def->needs_place_on_any_solid[ FACE_BOTTOM ] && !hanging_sign_def->collides_with_player );
+    check_bool( "sign def: signs waterlog instead of breaking",
+                standing_sign_def->waterloggable && wall_sign_def->waterloggable && hanging_sign_def->waterloggable &&
+                    standing_sign_def->breaks_in_liquid && wall_sign_def->breaks_in_liquid && hanging_sign_def->breaks_in_liquid );
+
+    // Wall sign (rotation 0: plate hugs -z, support at z-1 like a ladder).
+    world.set_loaded_block( glm::ivec3( 34, 10, 30 ), stone );
+    world.set_loaded_block( glm::ivec3( 34, 10, 31 ), { WALL_SIGN, 0, 0, WALL_SIGN, 0 } );
+    before = test_count_items( world, WALL_SIGN );
+    place( glm::ivec3( 34, 10, 30 ), BLOCK_STATE_AIR );
+    run( 20 );
+    check_bool( "support: wall sign dropped once", test_count_items( world, WALL_SIGN ) - before == 1 );
+    failures += check_id( world, "support: wall sign cell cleared", glm::ivec3( 34, 10, 31 ), AIR );
+
+    // Standing sign sits on the floor cell below.
+    world.set_loaded_block( glm::ivec3( 38, 10, 30 ), stone );
+    world.set_loaded_block( glm::ivec3( 38, 11, 30 ), { STANDING_SIGN, 0, 0, STANDING_SIGN, 0 } );
+    before = test_count_items( world, STANDING_SIGN );
+    place( glm::ivec3( 38, 10, 30 ), BLOCK_STATE_AIR );
+    run( 20 );
+    check_bool( "support: standing sign dropped once", test_count_items( world, STANDING_SIGN ) - before == 1 );
+    failures += check_id( world, "support: standing sign cell cleared", glm::ivec3( 38, 11, 30 ), AIR );
+
+    // Hanging sign needs the block above (needs bottom => support at +y).
+    world.set_loaded_block( glm::ivec3( 42, 10, 30 ), stone );
+    world.set_loaded_block( glm::ivec3( 42, 9, 30 ), { OAK_HANGING_SIGN, 0, 0, OAK_HANGING_SIGN, 0 } );
+    before = test_count_items( world, OAK_HANGING_SIGN );
+    place( glm::ivec3( 42, 10, 30 ), BLOCK_STATE_AIR );
+    run( 20 );
+    check_bool( "support: hanging sign dropped once", test_count_items( world, OAK_HANGING_SIGN ) - before == 1 );
+    failures += check_id( world, "support: hanging sign cell cleared", glm::ivec3( 42, 9, 30 ), AIR );
 
     // --- Creative: support loss spawns nothing. ---
     gs.game_mode = GameMode_Creative;

@@ -244,6 +244,28 @@ int test_fluids( ) {
         check_drained( "plants: pending fluid updates drained", gs );
     }
 
+    // --- Signs: breaks_in_liquid + waterloggable (the kelp pattern), so
+    // flow never pops them — a sign cell is a wall to the flow just like
+    // dry kelp, and a source write waterlogs the sign instead of breaking
+    // it. ----------------------------------------------------------------
+    {
+        RepGameState &gs = new_fluid_state( );
+        World &world = gs.world;
+        fill_floor( world, 10, 28, 56, 28, 56, fluid_stone );
+        world.set_loaded_block( glm::ivec3( 39, 11, 38 ), { STANDING_SIGN, 0, 0, STANDING_SIGN, 0 } );
+        world.set_loaded_block( glm::ivec3( 45, 11, 45 ), { WALL_SIGN, 0, 0, WALL_SIGN, 0 } );
+        world.set_loaded_block( glm::ivec3( 45, 11, 44 ), fluid_stone ); // wall behind the wall sign
+        place( gs, glm::ivec3( 38, 11, 38 ), { WATER, 0, 0, WATER, 0 } );
+        place( gs, glm::ivec3( 45, 11, 45 ), { WATER, 0, 0, WATER, 0 } ); // waterlogs the sign
+        settle( gs, 1500 );
+        const BlockState sign = world.get_loaded_block( glm::ivec3( 39, 11, 38 ) );
+        check_bool( "signs: sign cell is a wall to flow", sign.id == STANDING_SIGN && sign.waterlogged == 0 );
+        check_rot( "signs: flow wraps around the sign", world, glm::ivec3( 40, 11, 38 ), 4 );
+        const BlockState wet_sign = world.get_loaded_block( glm::ivec3( 45, 11, 45 ) );
+        check_bool( "signs: placed water waterlogs sign", wet_sign.id == WALL_SIGN && wet_sign.waterlogged == 1 );
+        check_drained( "signs: pending fluid updates drained", gs );
+    }
+
     // --- Break-in-liquid drops: water popping a breakable block spawns its
     // item in survival. A waterloggable breakable cell gets waterlogged
     // instead, so nothing is destroyed and nothing drops. -----------------

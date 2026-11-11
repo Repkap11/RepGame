@@ -1,8 +1,11 @@
 {
+ "icon": "bamboo_sign",
  "id": 104,
  "name": "BAMBOO_STANDING_SIGN",
- "shape": "sign",
+ "shape": "standing_sign",
  "textures": {
-  "all": "bamboo_planks"
+  "bottom": "bamboo_planks",
+  "side": "bamboo_sign",
+  "top": "bamboo_planks"
  }
 }

@@ -1,8 +1,38 @@
 {
+ "breaks_in_liquid": true,
+ "casts_shadow": false,
+ "collides_with_player": false,
+ "hardness": 1,
+ "icon": "sign",
  "id": 1264,
+ "is_seethrough": true,
  "name": "WALL_SIGN",
- "shape": "sign",
+ "needs_place_on_any_solid": {
+  "front": true
+ },
+ "offset": [
+  0,
+  4,
+  0
+ ],
+ "rotate_on_placement": true,
+ "scale": [
+  16,
+  9,
+  2
+ ],
+ "tex_offset": [
+  0,
+  -4,
+  0
+ ],
  "textures": {
-  "all": "planks_oak"
- }
+  "back": "sign_oak_wall",
+  "bottom": "planks_oak",
+  "front": "sign_oak_wall",
+  "left": "planks_oak",
+  "right": "planks_oak",
+  "top": "planks_oak"
+ },
+ "waterloggable": true
 }

@@ -1,8 +1,11 @@
 {
+ "icon": "mangrove_hanging_sign",
  "id": 761,
  "name": "MANGROVE_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "mangrove_planks"
+  "bottom": "mangrove_planks",
+  "side": "mangrove_hanging_sign",
+  "top": "mangrove_planks"
  }
 }

@@ -1,8 +1,34 @@
 {
+ "breaks_in_liquid": true,
+ "casts_shadow": false,
+ "collides_with_player": false,
+ "hardness": 1,
+ "icon": "sign",
  "id": 1161,
+ "is_seethrough": true,
  "name": "STANDING_SIGN",
- "shape": "sign",
+ "needs_place_on_any_solid": {
+  "top": true
+ },
+ "offset": [
+  4,
+  0,
+  4
+ ],
+ "scale": [
+  8,
+  16,
+  8
+ ],
+ "tex_offset": [
+  -4,
+  0,
+  -4
+ ],
  "textures": {
-  "all": "planks_oak"
- }
+  "bottom": "planks_oak",
+  "side": "sign",
+  "top": "planks_oak"
+ },
+ "waterloggable": true
 }

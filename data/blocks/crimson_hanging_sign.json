@@ -1,8 +1,11 @@
 {
+ "icon": "crimson_hanging_sign",
  "id": 397,
  "name": "CRIMSON_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "crimson_planks"
+  "bottom": "crimson_planks",
+  "side": "crimson_hanging_sign",
+  "top": "crimson_planks"
  }
 }

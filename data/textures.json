@@ -2549,6 +2549,227 @@
   "shulker_top_yellow": {
     "source": "textures/blocks/shulker_top_yellow"
   },
+  "sign_acacia_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign_acacia"
+  },
+  "sign_bamboo_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/bamboo_sign"
+  },
+  "sign_birch_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign_birch"
+  },
+  "sign_cherry_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/cherry_sign"
+  },
+  "sign_crimson_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign_crimson"
+  },
+  "sign_darkoak_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign_darkoak"
+  },
+  "sign_jungle_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign_jungle"
+  },
+  "sign_mangrove_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/mangrove_sign"
+  },
+  "sign_oak_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign"
+  },
+  "sign_pale_oak_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/pale_oak_sign"
+  },
+  "sign_poplar_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/poplar_sign"
+  },
+  "sign_spruce_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign_spruce"
+  },
+  "sign_warped_wall": {
+    "extract": {
+      "from": [
+        2,
+        2
+      ],
+      "size": [
+        13,
+        9
+      ],
+      "to": [
+        2,
+        4
+      ]
+    },
+    "source": "textures/items/sign_warped"
+  },
   "slime": {
     "source": "textures/blocks/slime"
   },

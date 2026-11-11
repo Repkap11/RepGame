@@ -1,8 +1,11 @@
 {
+ "icon": "sign_spruce",
  "id": 1153,
  "name": "SPRUCE_STANDING_SIGN",
- "shape": "sign",
+ "shape": "standing_sign",
  "textures": {
-  "all": "planks_spruce"
+  "bottom": "planks_spruce",
+  "side": "sign_spruce",
+  "top": "planks_spruce"
  }
 }

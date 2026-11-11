@@ -1,8 +1,11 @@
 {
+ "icon": "warped_hanging_sign",
  "id": 1271,
  "name": "WARPED_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "warped_planks"
+  "bottom": "warped_planks",
+  "side": "warped_hanging_sign",
+  "top": "warped_planks"
  }
 }

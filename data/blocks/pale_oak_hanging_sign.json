@@ -1,8 +1,11 @@
 {
+ "icon": "pale_oak_hanging_sign",
  "id": 886,
  "name": "PALE_OAK_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "pale_oak_planks"
+  "bottom": "pale_oak_planks",
+  "side": "pale_oak_hanging_sign",
+  "top": "pale_oak_planks"
  }
 }

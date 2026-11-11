@@ -377,6 +377,36 @@ int test_climb( ) {
                     block_mount_rotation( block_definition_get_definition( STONE ), glm::ivec3( 0, 0, 1 ) ) < 0 );
     }
 
+    // Wall signs share the wall-mount machinery (rotate_on_placement +
+    // needs front): the same side clicks must mount them onto the clicked
+    // face of a solid block.
+    {
+        const Block *wall_sign_def = block_definition_get_definition( WALL_SIGN );
+        const glm::ivec3 wall( 30, 10, 30 );
+        struct MountCase {
+            glm::ivec3 dir;
+            int rot;
+        };
+        const MountCase mount_cases[] = {
+            { glm::ivec3( 0, 0, 1 ), 0 },  // clicked +z face
+            { glm::ivec3( 0, 0, -1 ), 2 }, // clicked -z face
+            { glm::ivec3( 1, 0, 0 ), 3 },  // clicked +x face
+            { glm::ivec3( -1, 0, 0 ), 1 }, // clicked -x face
+        };
+        for ( const MountCase &c : mount_cases ) {
+            const glm::ivec3 create = wall + c.dir;
+            char name[ 96 ];
+            snprintf( name, sizeof( name ), "wall sign click (%d,%d,%d) -> rot %d", c.dir.x, c.dir.y, c.dir.z, c.rot );
+            check_bool( name, block_mount_rotation( wall_sign_def, c.dir ) == c.rot );
+            snprintf( name, sizeof( name ), "wall sign click (%d,%d,%d) survives", c.dir.x, c.dir.y, c.dir.z );
+            check_bool( name, player_placement_valid( world, create, { WALL_SIGN, (unsigned char)c.rot, 0, WALL_SIGN, 0 } ) );
+        }
+        check_bool( "wall sign top click falls back to yaw", block_mount_rotation( wall_sign_def, glm::ivec3( 0, 1, 0 ) ) < 0 );
+        // A clicked face with nothing solid behind it rejects placement.
+        check_bool( "wall sign without support rejected",
+                    !player_placement_valid( world, glm::ivec3( 35, 11, 35 ), { WALL_SIGN, 0, 0, WALL_SIGN, 0 } ) );
+    }
+
     return failures;
 }
 

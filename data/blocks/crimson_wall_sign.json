@@ -1,8 +1,14 @@
 {
+ "icon": "sign_crimson",
  "id": 416,
  "name": "CRIMSON_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "crimson_planks"
+  "back": "sign_crimson_wall",
+  "bottom": "crimson_planks",
+  "front": "sign_crimson_wall",
+  "left": "crimson_planks",
+  "right": "crimson_planks",
+  "top": "crimson_planks"
  }
 }

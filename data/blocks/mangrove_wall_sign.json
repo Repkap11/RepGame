@@ -1,8 +1,14 @@
 {
+ "icon": "mangrove_sign",
  "id": 773,
  "name": "MANGROVE_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "mangrove_planks"
+  "back": "sign_mangrove_wall",
+  "bottom": "mangrove_planks",
+  "front": "sign_mangrove_wall",
+  "left": "mangrove_planks",
+  "right": "mangrove_planks",
+  "top": "mangrove_planks"
  }
 }

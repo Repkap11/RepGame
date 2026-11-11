@@ -1,8 +1,11 @@
 {
+ "icon": "acacia_hanging_sign",
  "id": 11,
  "name": "ACACIA_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "planks_acacia"
+  "bottom": "planks_acacia",
+  "side": "acacia_hanging_sign",
+  "top": "planks_acacia"
  }
 }

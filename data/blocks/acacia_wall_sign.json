@@ -1,8 +1,14 @@
 {
+ "icon": "sign_acacia",
  "id": 40,
  "name": "ACACIA_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "planks_acacia"
+  "back": "sign_acacia_wall",
+  "bottom": "planks_acacia",
+  "front": "sign_acacia_wall",
+  "left": "planks_acacia",
+  "right": "planks_acacia",
+  "top": "planks_acacia"
  }
 }

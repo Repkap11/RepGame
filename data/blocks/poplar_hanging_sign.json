@@ -1,8 +1,11 @@
 {
+ "icon": "poplar_hanging_sign",
  "id": 974,
  "name": "POPLAR_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "poplar_planks"
+  "bottom": "poplar_planks",
+  "side": "poplar_hanging_sign",
+  "top": "poplar_planks"
  }
 }

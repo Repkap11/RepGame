@@ -1,8 +1,14 @@
 {
+ "icon": "sign_warped",
  "id": 1283,
  "name": "WARPED_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "warped_planks"
+  "back": "sign_warped_wall",
+  "bottom": "warped_planks",
+  "front": "sign_warped_wall",
+  "left": "warped_planks",
+  "right": "warped_planks",
+  "top": "warped_planks"
  }
 }

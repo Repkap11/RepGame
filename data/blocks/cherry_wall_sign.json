@@ -1,8 +1,14 @@
 {
+ "icon": "cherry_sign",
  "id": 277,
  "name": "CHERRY_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "cherry_planks"
+  "back": "sign_cherry_wall",
+  "bottom": "cherry_planks",
+  "front": "sign_cherry_wall",
+  "left": "cherry_planks",
+  "right": "cherry_planks",
+  "top": "cherry_planks"
  }
 }

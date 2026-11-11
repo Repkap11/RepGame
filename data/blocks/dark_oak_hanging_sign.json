@@ -1,8 +1,11 @@
 {
+ "icon": "dark_oak_hanging_sign",
  "id": 450,
  "name": "DARK_OAK_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "planks_big_oak"
+  "bottom": "planks_big_oak",
+  "side": "dark_oak_hanging_sign",
+  "top": "planks_big_oak"
  }
 }

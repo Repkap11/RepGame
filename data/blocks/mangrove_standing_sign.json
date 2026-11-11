@@ -1,8 +1,11 @@
 {
+ "icon": "mangrove_sign",
  "id": 771,
  "name": "MANGROVE_STANDING_SIGN",
- "shape": "sign",
+ "shape": "standing_sign",
  "textures": {
-  "all": "mangrove_planks"
+  "bottom": "mangrove_planks",
+  "side": "mangrove_sign",
+  "top": "mangrove_planks"
  }
 }

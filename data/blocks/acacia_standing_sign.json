@@ -1,8 +1,11 @@
 {
+ "icon": "sign_acacia",
  "id": 24,
  "name": "ACACIA_STANDING_SIGN",
- "shape": "sign",
+ "shape": "standing_sign",
  "textures": {
-  "all": "planks_acacia"
+  "bottom": "planks_acacia",
+  "side": "sign_acacia",
+  "top": "planks_acacia"
  }
 }

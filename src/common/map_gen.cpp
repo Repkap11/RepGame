@@ -66,6 +66,25 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
         }
         return AIR;
     }
+    // Hanging signs (needs_place_on_any_solid.bottom => support at y+1):
+    // a stone beam at y=2 with signs below it at y=1.
+    if ( z == -24 && ( y == 1 || y == 2 ) ) {
+        static const struct {
+            int x;
+            BlockID id;
+        } hanging_showcase[] = {
+            { -9, OAK_HANGING_SIGN }, { -7, ACACIA_HANGING_SIGN }, { -5, SPRUCE_HANGING_SIGN }, { -3, WARPED_HANGING_SIGN },
+        };
+        if ( y == 2 ) {
+            return x >= -9 && x <= -3 ? STONE : AIR;
+        }
+        for ( const auto &h : hanging_showcase ) {
+            if ( h.x == x ) {
+                return h.id;
+            }
+        }
+        return AIR;
+    }
     if ( y != 1 ) {
         return AIR;
     }
@@ -100,6 +119,12 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
             // straight model's silhouette, and a mixed-material pair.
             { -2, -13, OAK_STAIRS }, { -2, -14, OAK_STAIRS }, { -2, -15, OAK_STAIRS }, { -2, -16, OAK_STAIRS },
             { 2, -14, OAK_STAIRS }, { 4, -14, OAK_STAIRS }, { 6, -14, STONE_STAIRS }, { 8, -14, COBBLED_DEEPSLATE_STAIRS },
+            // Signs: standing signs on the floor; wall signs mounted on
+            // the +z face of the stones at z=-21 (rotation 0 puts the
+            // plate on the cell's -z edge, support at z-1).
+            { -9, -19, STANDING_SIGN }, { -7, -19, SPRUCE_STANDING_SIGN }, { -5, -19, BIRCH_STANDING_SIGN }, { -3, -19, ACACIA_STANDING_SIGN },
+            { -9, -21, STONE }, { -7, -21, STONE }, { -5, -21, STONE }, { -3, -21, STONE },
+            { -9, -20, WALL_SIGN }, { -7, -20, SPRUCE_WALL_SIGN }, { -5, -20, BIRCH_WALL_SIGN }, { -3, -20, ACACIA_WALL_SIGN },
         };
         for ( const auto &s : showcase ) {
             if ( s.x == x && s.z == z ) {

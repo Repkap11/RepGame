@@ -1,8 +1,14 @@
 {
+ "icon": "poplar_sign",
  "id": 984,
  "name": "POPLAR_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "poplar_planks"
+  "back": "sign_poplar_wall",
+  "bottom": "poplar_planks",
+  "front": "sign_poplar_wall",
+  "left": "poplar_planks",
+  "right": "poplar_planks",
+  "top": "poplar_planks"
  }
 }

@@ -1,8 +1,11 @@
 {
+ "icon": "sign_darkoak",
  "id": 466,
  "name": "DARKOAK_STANDING_SIGN",
- "shape": "sign",
+ "shape": "standing_sign",
  "textures": {
-  "all": "planks_big_oak"
+  "bottom": "planks_big_oak",
+  "side": "sign_darkoak",
+  "top": "planks_big_oak"
  }
 }

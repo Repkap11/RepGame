@@ -1,8 +1,11 @@
 {
+ "icon": "sign_jungle",
  "id": 663,
  "name": "JUNGLE_STANDING_SIGN",
- "shape": "sign",
+ "shape": "standing_sign",
  "textures": {
-  "all": "planks_jungle"
+  "bottom": "planks_jungle",
+  "side": "sign_jungle",
+  "top": "planks_jungle"
  }
 }

@@ -1,8 +1,14 @@
 {
+ "icon": "sign_spruce",
  "id": 1155,
  "name": "SPRUCE_WALL_SIGN",
- "shape": "sign",
+ "shape": "wall_sign",
  "textures": {
-  "all": "planks_spruce"
+  "back": "sign_spruce_wall",
+  "bottom": "planks_spruce",
+  "front": "sign_spruce_wall",
+  "left": "planks_spruce",
+  "right": "planks_spruce",
+  "top": "planks_spruce"
  }
 }

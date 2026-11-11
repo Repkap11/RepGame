@@ -105,7 +105,7 @@ block rather than hand-tuned: opaque cubes use the defaults; binary-cutout
 tiles copy `GLASS`/leaves (see-through, `should_draw_*` off);
 partial-alpha tiles copy a translucent template like `GLASS_LIGHT_BLUE`;
 cross-quad plants copy the `Flowers` render template. Unrenderable shapes
-(walls, signs, beds, rails, panes, trapdoors...) are placeholder full cubes
+(walls, banners, beds, rails, panes...) are placeholder full cubes
 until a render class exists for them — see `data/shapes.json` below for the
 workaround. Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
@@ -151,8 +151,8 @@ prefixes and one shape suffix, with dye-coloured blocks grouped into colour
 families (WOOL, CONCRETE, STAINED_GLASS, ...) sorted in dye order.
 
 A block JSON may set `"shape": "<name>"` (defined in `data/shapes.json`,
-three kinds). **Mask shapes** (wall, banner,
-hanging_sign, sign) are for silhouettes we can't render: the importer
+three kinds). **Mask shapes** (wall, banner) are for silhouettes we can't
+render: the importer
 replaces the 4 side faces with generated `<face_tex>__<shape>` tiles — the
 resolved source tile with the mask's `.` pixels cut to transparent black —
 and applies the shared `cutout` property set (see-through, no light
@@ -165,12 +165,35 @@ plain textures; the entry's optional `"icon_mask"` grid cuts a generated
 tile used as the flat inventory icon (`icon_is_isometric=false`) — stairs,
 fences and gates don't use it, they draw real multi-box isometric icons
 instead (`block_icon_boxes`).
-**Template shapes** (slab, button, pressure_plate, carpet, trapdoor) copy
+**Template shapes** (slab, button, pressure_plate, carpet, trapdoor,
+standing_sign, wall_sign, hanging_sign) copy
 geometry (`scale`/`offset`/`tex_offset`) plus behaviour properties
 (`is_button`, `is_pressure_plate`, `collides_with_player`, ...) from a named
 kept block via `"template"`; `"drop"` removes copied keys and other entry
 keys override the template but not the block's own JSON. Textures always
 stay the block's own.
+
+Signs are single thin boxes whose faces sample the Bedrock item sprites
+(the same alpha-cutout trick the mask tiles faked, but with real sign art).
+A `*_STANDING_SIGN` is an 8-wide full-height post (`scale [8,16,8]`,
+`offset [4,0,4]` — MC's AABB) standing on the cell floor
+(`needs_place_on_any_solid.top`); its side quads sample the middle 8
+columns of the `sign*`/`*_sign` item icon (board + post). A `*_WALL_SIGN`
+is a 2px plate hugging the clicked block face (`scale [16,9,2]`,
+`offset [0,4,0]`, `rotate_on_placement` + `needs_place_on_any_solid.front`
+— the ladder/button wall-mount convention): its front/back quads sample a
+`sign_*_wall` tile, the `extract`-lifted 13x9 board rect out of the species'
+standing item icon, while edge quads stay plain planks. A
+`*_HANGING_SIGN` is a 10-wide column suspended from the block above
+(`needs_place_on_any_solid.bottom` — the support sits at pos - dir, i.e.
+`bottom` means "colliding block overhead") whose sides sample the
+`*_hanging_sign` item icon (bar, chains and board). All three are
+non-colliding, see-through, non-shadow-casting and carry
+`breaks_in_liquid` + `waterloggable` (the kelp pattern): flow treats the
+cell as a wall and never pops them, while a direct water write waterlogs
+the sign instead of breaking it. Signs share the one generic 4-yaw rotation, so
+a wall sign reads its support through `block_supports_present` like any
+ladder and pops when the block behind it breaks.
 
 `"spine_shell": true` (cactus) replaces the block's mesh with Java's
 three-element cactus model: a full-cell box drawing only top/bottom, plus

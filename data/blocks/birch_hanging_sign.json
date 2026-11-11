@@ -1,8 +1,11 @@
 {
+ "icon": "birch_hanging_sign",
  "id": 127,
  "name": "BIRCH_HANGING_SIGN",
  "shape": "hanging_sign",
  "textures": {
-  "all": "planks_birch"
+  "bottom": "planks_birch",
+  "side": "birch_hanging_sign",
+  "top": "planks_birch"
  }
 }
