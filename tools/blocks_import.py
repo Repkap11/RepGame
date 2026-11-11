@@ -1104,19 +1104,28 @@ def resolve_image(name, meta):
         # may carry "source"/"frame" to blit from a different image or
         # frame than the tile's own — the standing-sign tile composes the
         # entity texture's board band (frame 0) with its post strip
-        # (frame 1) that way.
+        # (frame 1) that way. "mirror": true writes the rect in sampled
+        # space instead of PNG space: the GL upload mirrors every tile in
+        # X (loadTexture), so a plain paste lands at sampled column
+        # 15-x. With mirror the rect's content is flipped and pasted at
+        # 16-to.x-size.x, so the tile as sampled shows the rect at
+        # columns [to.x, to.x+size.x) in its authored left-to-right
+        # order — use it when `to` was computed from a face's sampled
+        # window (e.g. the chain strip filling a 3px cross-quad box).
         if isinstance(extract, dict):
             extract = [extract]
         if not isinstance(extract, list):
             fail("texture %r: extract must be {from, size, to} or a list of them" % name)
         out = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
         for rect in extract:
-            if not isinstance(rect, dict) or not {"from", "size", "to"} <= set(rect) or set(rect) - {"from", "size", "to", "source", "frame"}:
-                fail("texture %r: extract rect must be {from, size, to, source?, frame?}" % name)
+            if not isinstance(rect, dict) or not {"from", "size", "to"} <= set(rect) or set(rect) - {"from", "size", "to", "source", "frame", "mirror"}:
+                fail("texture %r: extract rect must be {from, size, to, source?, frame?, mirror?}" % name)
             fr, sz, to = rect["from"], rect["size"], rect["to"]
             if any(not isinstance(v, list) or len(v) != 2 or
                    not all(isinstance(i, int) for i in v) for v in (fr, sz, to)):
                 fail("texture %r: extract from/size/to must be [x, y] int pairs" % name)
+            if not isinstance(rect.get("mirror", False), bool):
+                fail("texture %r: extract mirror must be a bool" % name)
             if not (0 <= fr[0] and 0 <= fr[1] and sz[0] > 0 and sz[1] > 0 and
                     fr[0] + sz[0] <= TILE and fr[1] + sz[1] <= TILE and
                     0 <= to[0] and 0 <= to[1] and
@@ -1134,7 +1143,11 @@ def resolve_image(name, meta):
                 rimg = rimg.crop((0, rframe * TILE, TILE, (rframe + 1) * TILE))
                 if rimg.size != (TILE, TILE):
                     fail("texture %r extract (%s): not %dx%d after frame crop" % (name, os.path.relpath(rpath, ROOT), TILE, TILE))
-            out.paste(rimg.crop((fr[0], fr[1], fr[0] + sz[0], fr[1] + sz[1])), tuple(to))
+            piece = rimg.crop((fr[0], fr[1], fr[0] + sz[0], fr[1] + sz[1]))
+            if rect.get("mirror"):
+                piece = piece.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                to = [TILE - to[0] - sz[0], to[1]]
+            out.paste(piece, tuple(to))
         img = out
     return img
 

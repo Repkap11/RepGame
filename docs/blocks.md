@@ -34,6 +34,13 @@ sprite. Deviations are deliberate artistic alignment (slabs sample the
 middle rows, buttons/heads centre their sprite) — set the values from the
 sprite's opaque bounding box for cross-quad blocks.
 
+That window is in *sampled space*: `loadTexture` mirrors every tile in X
+at GL upload, so sampled column `c` is PNG column `15 - c` (the cube
+texcoords and face-rotation remap are all authored for the flipped tile,
+so the flip is load-bearing — don't remove it). `extract` rect fields are
+PNG space by default; `"mirror": true` on a rect reinterprets `to` in
+sampled space for strips/bands that must land on an exact sampled column.
+
 Texture layers are independent `TextureID`s. `data/textures/<name>.png` holds
 repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
 
@@ -66,7 +73,13 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   BLOCK_COORDS_HALF_PIXEL` `face_shift` flags — INSIDE_OUT mirrors the unit
   cube so every quad faces inward (back-face culling leaves the far walls),
   HALF_PIXEL makes scale/offset/tex_offset 1/32-block units instead of
-  1/16.
+  1/16. A rect may set `"mirror": true` to write `to` in sampled space
+  (see the X-flip note under `scale`/`offset`/`tex_offset`): the rect's
+  content is flipped and pasted at `16 - to.x - size.x`, so the tile as
+  sampled shows it at `[to.x, to.x + size.x)` in authored order —
+  `chain_block` uses it to park Bedrock's 3px chain strip on sampled
+  cols 6-8, the window the `Flowers` cross quads cover for a
+  `scale [3,16,3]`/`offset [6,0,6]` box.
 - `random_rotate` — tile participates in per-block random rotation. Used by
   dirt, grass top, snow and all leaf tiles.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
