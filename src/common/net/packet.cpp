@@ -4,6 +4,8 @@
 #include "common/item.hpp"
 #include "common/utils/env_config.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 // Keep NET_CHUNK_BLOCK_SIZE in sync with CHUNK_BLOCK_SIZE in chunk.hpp.
@@ -559,25 +561,113 @@ bool net_deserialize_chunk_role( PacketReader &r, NetChunkRolePayload &p ) {
     return true;
 }
 
-void net_serialize_entity_state( PacketWriter &w, const NetEntityStatePayload &p ) {
-    w.write_u16( static_cast<uint16_t>( p.entries.size( ) ) );
-    for ( const NetEntityStateEntry &e : p.entries ) {
-        w.write_u64( e.id );
-        w.write_u8( e.kind );
+static void write_i16( PacketWriter &w, const int32_t v ) {
+    const int32_t c = std::max<int32_t>( -32767, std::min<int32_t>( 32767, v ) );
+    w.write_u16( static_cast<uint16_t>( static_cast<int16_t>( c ) ) );
+}
+
+void net_state_write_entry( PacketWriter &w, const NetEntityStateEntry &e ) {
+    uint8_t mask = e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA | NET_SE_VEL | //
+                                 NET_SE_YAW | NET_SE_COUNT | NET_SE_HEALTH | NET_SE_FLAGS );
+    glm::dvec3 d( 0.0 );
+    if ( mask & NET_SE_POS_DELTA ) {
+        d = glm::dvec3( e.x, e.y, e.z ) - e.baseline;
+        // A delta past the i16 range falls back to an absolute pos.
+        if ( glm::any( glm::greaterThan( glm::abs( d ), glm::dvec3( 127.5 ) ) ) ) {
+            mask = static_cast<uint8_t>( ( mask & ~NET_SE_POS_DELTA ) | NET_SE_POS_ABS );
+        }
+    }
+    w.write_u8( mask );
+    w.write_u64( e.id );
+    w.write_u8( e.kind );
+    if ( mask & NET_SE_POS_ABS ) {
         w.write_f64( e.x );
         w.write_f64( e.y );
         w.write_f64( e.z );
-        w.write_f32( e.vx );
-        w.write_f32( e.vy );
-        w.write_f32( e.vz );
-        w.write_f32( e.yaw );
+    } else if ( mask & NET_SE_POS_DELTA ) {
+        write_i16( w, lround( d.x * NET_STATE_POS_SCALE ) );
+        write_i16( w, lround( d.y * NET_STATE_POS_SCALE ) );
+        write_i16( w, lround( d.z * NET_STATE_POS_SCALE ) );
+    }
+    if ( mask & NET_SE_VEL ) {
+        write_i16( w, lround( e.vx * NET_STATE_VEL_SCALE ) );
+        write_i16( w, lround( e.vy * NET_STATE_VEL_SCALE ) );
+        write_i16( w, lround( e.vz * NET_STATE_VEL_SCALE ) );
+    }
+    if ( mask & NET_SE_YAW ) {
+        const float norm = e.yaw - 360.0f * floorf( e.yaw / 360.0f );
+        w.write_u8( static_cast<uint8_t>( lround( norm * ( 256.0f / 360.0f ) ) & 0xFF ) );
+    }
+    if ( mask & NET_SE_COUNT ) {
         w.write_i32( e.count );
+    }
+    if ( mask & NET_SE_HEALTH ) {
         w.write_f32( e.health );
+    }
+    if ( mask & NET_SE_FLAGS ) {
         w.write_u32( e.flags );
     }
 }
 
-bool net_deserialize_entity_state( PacketReader &r, NetEntityStatePayload &p ) {
+bool net_state_read_entry( PacketReader &r, NetEntityStateEntry &e, const glm::dvec3 &baseline ) {
+    uint8_t mask;
+    if ( !r.read_u8( mask ) ) {
+        return false;
+    }
+    e.present = mask;
+    e.baseline = baseline;
+    if ( !r.read_u64( e.id ) || !r.read_u8( e.kind ) ) {
+        return false;
+    }
+    if ( mask & NET_SE_POS_ABS ) {
+        if ( !r.read_f64( e.x ) || !r.read_f64( e.y ) || !r.read_f64( e.z ) ) {
+            return false;
+        }
+    } else if ( mask & NET_SE_POS_DELTA ) {
+        uint16_t dx, dy, dz;
+        if ( !r.read_u16( dx ) || !r.read_u16( dy ) || !r.read_u16( dz ) ) {
+            return false;
+        }
+        e.x = baseline.x + static_cast<int16_t>( dx ) / NET_STATE_POS_SCALE;
+        e.y = baseline.y + static_cast<int16_t>( dy ) / NET_STATE_POS_SCALE;
+        e.z = baseline.z + static_cast<int16_t>( dz ) / NET_STATE_POS_SCALE;
+    }
+    if ( mask & NET_SE_VEL ) {
+        uint16_t vx, vy, vz;
+        if ( !r.read_u16( vx ) || !r.read_u16( vy ) || !r.read_u16( vz ) ) {
+            return false;
+        }
+        e.vx = static_cast<int16_t>( vx ) / static_cast<float>( NET_STATE_VEL_SCALE );
+        e.vy = static_cast<int16_t>( vy ) / static_cast<float>( NET_STATE_VEL_SCALE );
+        e.vz = static_cast<int16_t>( vz ) / static_cast<float>( NET_STATE_VEL_SCALE );
+    }
+    if ( mask & NET_SE_YAW ) {
+        uint8_t y;
+        if ( !r.read_u8( y ) ) {
+            return false;
+        }
+        e.yaw = static_cast<float>( y ) * ( 360.0f / 256.0f );
+    }
+    if ( mask & NET_SE_COUNT && !r.read_i32( e.count ) ) {
+        return false;
+    }
+    if ( mask & NET_SE_HEALTH && !r.read_f32( e.health ) ) {
+        return false;
+    }
+    if ( mask & NET_SE_FLAGS && !r.read_u32( e.flags ) ) {
+        return false;
+    }
+    return true;
+}
+
+void net_serialize_entity_state( PacketWriter &w, const NetEntityStatePayload &p ) {
+    w.write_u16( static_cast<uint16_t>( p.entries.size( ) ) );
+    for ( const NetEntityStateEntry &e : p.entries ) {
+        net_state_write_entry( w, e );
+    }
+}
+
+bool net_deserialize_entity_state( PacketReader &r, NetEntityStatePayload &p, NetStateBaselineFn baseline_fn, void *ctx ) {
     uint16_t n;
     if ( !r.read_u16( n ) ) return false;
     if ( n > NET_ENTITY_MAX_LIST ) {
@@ -587,20 +677,26 @@ bool net_deserialize_entity_state( PacketReader &r, NetEntityStatePayload &p ) {
     p.entries.resize( n );
     for ( uint16_t i = 0; i < n; i++ ) {
         NetEntityStateEntry &e = p.entries[ i ];
-        if ( !r.read_u64( e.id ) ) return false;
-        if ( !r.read_u8( e.kind ) ) return false;
-        if ( !r.read_f64( e.x ) ) return false;
-        if ( !r.read_f64( e.y ) ) return false;
-        if ( !r.read_f64( e.z ) ) return false;
-        if ( !r.read_f32( e.vx ) ) return false;
-        if ( !r.read_f32( e.vy ) ) return false;
-        if ( !r.read_f32( e.vz ) ) return false;
-        if ( !r.read_f32( e.yaw ) ) return false;
-        if ( !r.read_i32( e.count ) ) return false;
-        if ( !r.read_f32( e.health ) ) return false;
-        if ( !r.read_u32( e.flags ) ) return false;
+        glm::dvec3 baseline( 0.0 );
+        if ( baseline_fn != nullptr ) {
+            // The delta baseline keys off id+kind — peek the entry header
+            // (mask u8, id u64, kind u8) without consuming it.
+            PacketReader peek = r;
+            uint8_t m, k;
+            NetEntityId id;
+            if ( peek.read_u8( m ) && peek.read_u64( id ) && peek.read_u8( k ) ) {
+                baseline_fn( ctx, id, k, baseline );
+            }
+        }
+        if ( !net_state_read_entry( r, e, baseline ) ) {
+            return false;
+        }
     }
     return true;
+}
+
+bool net_deserialize_entity_state( PacketReader &r, NetEntityStatePayload &p ) {
+    return net_deserialize_entity_state( r, p, nullptr, nullptr );
 }
 
 void net_serialize_entity_remove( PacketWriter &w, const NetEntityRemovePayload &p ) {
@@ -834,22 +930,34 @@ void NetCodec<NetEntityRecord>::fill( NetEntityRecord &p ) {
     net_fill_record( p );
 }
 void NetCodec<NetEntityStatePayload>::fill( NetEntityStatePayload &p ) {
+    // Values must survive the quantized wire fields (pos deltas snap to
+    // 1/256, vel to 1/4096, yaw to 360/256) so de->ser reproduces bytes.
     NetEntityStateEntry e;
     e.id = 42;
     e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
+    e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_YAW | NET_SE_COUNT | NET_SE_HEALTH | NET_SE_FLAGS;
     e.x = 1.0;
     e.y = 2.0;
     e.z = 3.0;
     e.vx = 0.5f;
     e.vy = -0.5f;
     e.vz = 0.25f;
-    e.yaw = 2.0f;
+    e.yaw = 45.0f;
     e.count = 7;
     e.health = 8.0f;
     e.flags = NET_MOB_FLAG_TOUCHED;
     p.entries.push_back( e );
+    // Delta-mode entry (baseline {0,0,0}, so the delta is the pos itself).
     e.id = 43;
     e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
+    e.present = NET_SE_POS_DELTA | NET_SE_VEL;
+    e.baseline = glm::dvec3( 0.0 );
+    e.x = 0.5;
+    e.y = -0.25;
+    e.z = 1.0;
+    e.count = 0;
+    e.health = 0.0f;
+    e.flags = 0;
     p.entries.push_back( e );
 }
 void NetCodec<NetEntityRemovePayload>::fill( NetEntityRemovePayload &p ) {

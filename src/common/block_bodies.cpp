@@ -366,7 +366,9 @@ void BlockBodies::tick( RepGameState &state ) {
         if ( b.net.mirror ) {
             // Mirror of a remote-simulated body: interpolation only — no
             // physics, settling, impulses or collisions. ENTITY_REMOVE (or
-            // CHUNK_ROLE NONE / disconnect) ends it.
+            // CHUNK_ROLE NONE / disconnect) ends it. The streamed target is
+            // dead-reckoned forward between states.
+            b.net.pos += b.net.vel;
             const glm::dvec3 delta = b.net.pos - b.min;
             if ( glm::length( delta ) > 4.0 ) {
                 b.min = b.net.pos;
@@ -666,6 +668,11 @@ BlockBodies::Body *BlockBodies::find_by_net_id( const NetEntityId net_id ) {
     return netsync_find( this->bodies, net_id );
 }
 
+const NetSync *BlockBodies::find_net_sync( const NetEntityId net_id ) {
+    const Body *b = this->find_by_net_id( net_id );
+    return b == nullptr ? nullptr : &b->net;
+}
+
 bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
     if ( this->bodies.size( ) >= MAX_BLOCK_BODIES || rec.type > BODY_PRIMED_TNT ) {
         return false;
@@ -698,6 +705,7 @@ void BlockBodies::net_apply_spawn( const NetEntityRecord &rec, const bool mirror
     if ( existing != nullptr ) {
         if ( existing->net.mirror ) {
             existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net.recv_pos = existing->net.pos;
             existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
             existing->net.chunk = body_net_chunk_of( existing->net.pos );
         }
@@ -711,9 +719,14 @@ void BlockBodies::net_apply_state( const NetEntityStateEntry &e ) {
     if ( b == nullptr || !b->net.mirror ) {
         return;
     }
-    b->net.pos = glm::dvec3( e.x, e.y, e.z );
-    b->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
-    netsync_track_chunk( b->net, b->net.pos );
+    if ( e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA ) ) {
+        b->net.recv_pos = glm::dvec3( e.x, e.y, e.z );
+        b->net.pos = b->net.recv_pos;
+        netsync_track_chunk( b->net, b->net.pos );
+    }
+    if ( e.present & NET_SE_VEL ) {
+        b->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
+    }
 }
 
 void BlockBodies::net_apply_remove( const NetEntityId net_id ) {
@@ -782,6 +795,7 @@ void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t r
         if ( existing != nullptr ) {
             if ( existing->net.mirror ) {
                 existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+                existing->net.recv_pos = existing->net.pos;
                 existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
                 // The grant's chunk is authoritative (margin records have
                 // floor(pos) != the server's chunk).
@@ -810,22 +824,27 @@ void BlockBodies::collect_net_state( std::vector<NetEntityStateEntry> &out, cons
         if ( b.net.id == 0 || b.net.mirror ) {
             continue;
         }
-        const bool keyframe = netsync_keyframe_due( b.net, tick_number );
-        const bool changed = !b.net.sent || netsync_moved( b.net, b.min, b.vel );
-        if ( !changed && !keyframe ) {
+        const bool keyframe = !b.net.sent || netsync_keyframe_due( b.net, tick_number );
+        // Dead reckoning: emit only when the sim diverges from what the
+        // receiver predicts (or the keyframe is due).
+        if ( !keyframe && !netsync_drifted( b.net, b.min, b.vel, tick_number ) ) {
             continue;
         }
         NetEntityStateEntry e;
         e.id = b.net.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::BODY );
-        e.x = b.min.x;
-        e.y = b.min.y;
-        e.z = b.min.z;
-        e.vx = static_cast<float>( b.vel.x );
-        e.vy = static_cast<float>( b.vel.y );
-        e.vz = static_cast<float>( b.vel.z );
+        e.baseline = b.net.sent_pos;
+        e.present = static_cast<uint8_t>( ( keyframe ? NET_SE_POS_ABS : NET_SE_POS_DELTA ) | NET_SE_VEL );
+        const glm::dvec3 wire_pos = netsync_decoded_pos( b.net, b.min, keyframe );
+        e.x = wire_pos.x;
+        e.y = wire_pos.y;
+        e.z = wire_pos.z;
+        const glm::dvec3 wire_vel = netsync_wire_vel( b.vel );
+        e.vx = static_cast<float>( wire_vel.x );
+        e.vy = static_cast<float>( wire_vel.y );
+        e.vz = static_cast<float>( wire_vel.z );
         out.push_back( e );
         // The server now applies its boundary hysteresis to this pos.
-        netsync_mark_sent( b.net, b.min, b.vel, tick_number, keyframe );
+        netsync_mark_sent( b.net, wire_pos, wire_vel, tick_number, keyframe );
     }
 }

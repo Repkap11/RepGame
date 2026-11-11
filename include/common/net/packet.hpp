@@ -26,7 +26,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 11;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 12;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -106,8 +106,8 @@ inline bool net_entity_causer_simulated( NetEntityKind kind ) {
 // its VIEW radius to these.
 static constexpr int NET_ENTITY_RADIUS_XZ = 8;
 static constexpr int NET_ENTITY_RADIUS_Y = 3;
-// How often an owner streams ENTITY_STATE for its entities (~24 Hz).
-static constexpr int NET_ENTITY_STATE_INTERVAL_TICKS = 6;
+// How often an owner batches ENTITY_STATE for its entities (~12 Hz).
+static constexpr int NET_ENTITY_STATE_INTERVAL_TICKS = 12;
 // Bound on batched record/state lists per message.
 static constexpr uint32_t NET_ENTITY_MAX_LIST = 4096;
 
@@ -456,11 +456,33 @@ bool net_deserialize_chunk_role( PacketReader &r, NetChunkRolePayload &p );
 // Serialization is net_write_entity_record / net_read_entity_record.
 
 // ENTITY_STATE (owner -> server -> viewers; also server-originated):
-// lightweight per-entity update.
+// mask-coded per-entity update. `present` is both the wire mask and the
+// in-memory "which fields are valid" bitmap. Positions are absolute f64
+// (POS_ABS — keyframes and first sends) or i16 deltas in 1/256-block units
+// against the receiver's last-known pos (POS_DELTA). Receivers
+// dead-reckon the pos forward with the streamed vel between states, so
+// owners only emit when the sim diverges from that prediction.
+// `baseline` is in-memory only (never serialized): the pos the receiver
+// last knew — sent_pos for owner sends, the pre-update record for server
+// relays, and the decoder's last-received pos on apply paths.
+static constexpr uint8_t NET_SE_POS_ABS = 0x01;
+static constexpr uint8_t NET_SE_POS_DELTA = 0x02;
+static constexpr uint8_t NET_SE_VEL = 0x04;
+static constexpr uint8_t NET_SE_YAW = 0x08;
+static constexpr uint8_t NET_SE_COUNT = 0x10;
+static constexpr uint8_t NET_SE_HEALTH = 0x20;
+static constexpr uint8_t NET_SE_FLAGS = 0x40;
+// Pos deltas: i16 units of 1/256 block -> +-128 block range per entry.
+static constexpr double NET_STATE_POS_SCALE = 256.0;
+// Vel: i16 units of 1/4096 block/tick -> +-8 range (game vels are < 1).
+static constexpr double NET_STATE_VEL_SCALE = 4096.0;
+
 struct NetEntityStateEntry {
     NetEntityId id = 0;
     uint8_t kind = 0;
-    double x = 0.0, y = 0.0, z = 0.0;
+    uint8_t present = 0;                          // NET_SE_*
+    glm::dvec3 baseline = glm::dvec3( 0.0 );      // in-memory delta anchor
+    double x = 0.0, y = 0.0, z = 0.0;             // absolute pos (decoded value)
     float vx = 0.0f, vy = 0.0f, vz = 0.0f;
     float yaw = 0.0f;
     int32_t count = 0;
@@ -470,8 +492,21 @@ struct NetEntityStateEntry {
 struct NetEntityStatePayload {
     std::vector<NetEntityStateEntry> entries;
 };
+
+// Resolves the pos a receiver last knew for `id` (POS_DELTA decode);
+// return false -> baseline 0 (unknown ids decode to garbage and are
+// skipped by the handlers as usual).
+typedef bool ( *NetStateBaselineFn )( void *ctx, NetEntityId id, uint8_t kind, glm::dvec3 &out );
+
 void net_serialize_entity_state( PacketWriter &w, const NetEntityStatePayload &p );
 bool net_deserialize_entity_state( PacketReader &r, NetEntityStatePayload &p );
+bool net_deserialize_entity_state( PacketReader &r, NetEntityStatePayload &p, NetStateBaselineFn baseline_fn, void *ctx );
+// Single-entry codec shared by the batch (de)serializers. Write encodes
+// vs e.baseline (delta out of range falls back to POS_ABS); read resolves
+// POS_DELTA against `baseline` into absolute x/y/z and records it in
+// e.baseline.
+void net_state_write_entry( PacketWriter &w, const NetEntityStateEntry &e );
+bool net_state_read_entry( PacketReader &r, NetEntityStateEntry &e, const glm::dvec3 &baseline );
 
 // ENTITY_REMOVE (owner -> server -> viewers).
 struct NetEntityRemovePayload {

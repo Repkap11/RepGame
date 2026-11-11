@@ -41,7 +41,10 @@ protocol 11 added `health` to `NetPlayerPayload` (player vitals —
 `docs/player.md`; peers that can't parse it read health as -1 =
 unknown). `held_item` later joined the same payload as another optional
 trailing field — old peers that omit it decode as `LAST_BLOCK_ID` =
-holding nothing.
+holding nothing. Protocol 12 reworked `ENTITY_STATE` into a mask-coded
+delta stream (`docs/entities.md`): pos deltas vs the receiver's
+last-known pos, quantized vel/yaw, gated aux fields, dead-reckoned
+send-throttling, and a 12-tick batch cadence.
 
 ## Transports
 

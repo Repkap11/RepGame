@@ -18,6 +18,33 @@ static glm::ivec3 chunk_of_dpos( const glm::dvec3 &pos ) {
     return glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
 }
 
+// POS_DELTA decode baseline for an incoming ENTITY_STATE entry: the pos
+// this client last received for the entity (NetSync::recv_pos). Unknown
+// ids get {0,0,0} — their deltas decode meaningless and net_apply_state
+// ignores the entry as usual.
+static bool entity_state_baseline( void *ctx, const NetEntityId id, const uint8_t kind, glm::dvec3 &out ) {
+    World &world = *static_cast<World *>( ctx );
+    const NetSync *net = nullptr;
+    if ( kind == static_cast<uint8_t>( NetEntityKind::ITEM ) ) {
+        if ( ItemEntities::ItemEntity *e = world.items.find_by_net_id( id ) ) {
+            net = &e->net;
+        }
+    } else if ( kind == static_cast<uint8_t>( NetEntityKind::MOB ) ) {
+        net = world.mobs.find_net_sync( id );
+    } else if ( kind == static_cast<uint8_t>( NetEntityKind::BODY ) ) {
+        net = world.bodies.find_net_sync( id );
+    } else if ( kind == static_cast<uint8_t>( NetEntityKind::ARROW ) ) {
+        if ( ArrowEntities::Arrow *e = world.arrows.find_by_net_id( id ) ) {
+            net = &e->net;
+        }
+    }
+    if ( net == nullptr ) {
+        return false;
+    }
+    out = net->recv_pos;
+    return true;
+}
+
 bool NetEntities::chunk_live( RepGameState &state, const glm::ivec3 &chunk ) const {
     const glm::ivec3 block = chunk * CHUNK_SIZE_I + CHUNK_SIZE_I / 2;
     const Chunk *c = state.world.get_loaded_chunk( block );
@@ -263,7 +290,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
         }
         case NetMsgType::ENTITY_STATE: {
             NetEntityStatePayload p;
-            if ( !net_deserialize_entity_state( r, p ) ) {
+            if ( !net_deserialize_entity_state( r, p, entity_state_baseline, &state.world ) ) {
                 pr_debug( "Malformed ENTITY_STATE" );
                 return true;
             }
@@ -443,7 +470,8 @@ void NetEntities::tick( RepGameState &state ) {
         mp_test::event( &state, "view_sent", "\"center\":[%d,%d,%d],\"rx\":%d,\"ry\":%d", center.x, center.y, center.z, rx, ry );
     }
 
-    // Owned entities stream state at ~24 Hz.
+    // Owned entities batch state at ~12 Hz (dead-reckoned — quiet sims
+    // emit nothing between keyframes).
     if ( state.tick_number % NET_ENTITY_STATE_INTERVAL_TICKS == 0 ) {
         NetEntityStatePayload p;
         state.world.items.collect_net_state( *this, p.entries, state.tick_number );

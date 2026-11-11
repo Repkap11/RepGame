@@ -22,12 +22,19 @@ struct NetSync {
     glm::dvec3 pos = glm::dvec3( 0.0 ); // mirror interpolation target (entity-anchor semantics per type)
     glm::dvec3 vel = glm::dvec3( 0.0 );
 
-    // Outbound owner-side throttle tracking: last-streamed pos/vel and the
-    // last keyframe send (a forced update every UPS_RATE ticks).
+    // Outbound owner-side throttle tracking: last-streamed pos/vel (the
+    // receiver's dead-reckoning baseline) and the last keyframe send (a
+    // forced update every UPS_RATE ticks).
     bool sent = false;
     glm::dvec3 sent_pos = glm::dvec3( 0.0 );
     glm::dvec3 sent_vel = glm::dvec3( 0.0 );
+    long sent_tick = 0;
     long keyframe_tick = -1;
+
+    // Inbound receiver-side tracking: last streamed pos (the POS_DELTA
+    // decode baseline). `pos` is the same value extrapolated forward for
+    // dead reckoning between states; `recv_pos` stays the anchor.
+    glm::dvec3 recv_pos = glm::dvec3( 0.0 );
 
     bool synced( ) const { return id != 0; }
     bool owned( ) const { return !mirror; }
@@ -54,6 +61,7 @@ inline void netsync_apply_record( NetSync &s, const NetEntityRecord &rec, const 
     s.mirror = mirror;
     s.pos = glm::dvec3( rec.x, rec.y, rec.z );
     s.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
+    s.recv_pos = s.pos;
     s.chunk = net_entity_chunk_of( s.pos );
 }
 
@@ -83,24 +91,63 @@ inline void netsync_send_remove( NetEntities *net, const NetSync &s, const uint8
     net->send_remove( s.id, reason );
 }
 
-// Owner-side send throttle shared by all three collect_net_state loops: the
-// 1e-4 pos/vel drift tolerance and the once-a-second keyframe. Callers OR in
-// their extra changed-fields (item count, mob yaw/health/flags).
+// Owner-side send throttle shared by the collect_net_state loops: since
+// protocol 12 receivers dead-reckon pos forward with the streamed vel, an
+// owner only emits when the sim diverges from what the receiver predicts
+// (pos off by more than ~1/16 block, or vel changed), when aux fields
+// changed, or on the once-a-second keyframe. Callers OR in their extra
+// changed-fields (item count, mob yaw/health/flags).
+static constexpr double NET_STATE_DRIFT_EPS = 0.0625;
+static constexpr double NET_STATE_VEL_EPS = 1e-3;
+
 inline bool netsync_keyframe_due( const NetSync &s, const long tick ) {
     return tick - s.keyframe_tick >= UPS_RATE;
 }
 
-inline bool netsync_moved( const NetSync &s, const glm::dvec3 &pos, const glm::dvec3 &vel ) {
-    return glm::length( pos - s.sent_pos ) > 1e-4 || glm::length( vel - s.sent_vel ) > 1e-4;
+// Is the receiver's dead-reckoned pose (sent_pos + sent_vel * dt) far
+// enough off the sim to need a new state? `vel` is the velocity the
+// receiver predicts with — callers pass the effective sim vel (a stuck
+// arrow predicts 0 even though it streams its entry direction for
+// orientation).
+inline bool netsync_drifted( const NetSync &s, const glm::dvec3 &pos, const glm::dvec3 &vel, const long tick ) {
+    if ( !s.sent ) {
+        return true;
+    }
+    const glm::dvec3 predicted = s.sent_pos + s.sent_vel * static_cast<double>( tick - s.sent_tick );
+    return glm::length( pos - predicted ) > NET_STATE_DRIFT_EPS || //
+           glm::length( vel - s.sent_vel ) > NET_STATE_VEL_EPS;
 }
 
-// After an ENTITY_STATE entry is pushed: record what was streamed and
-// advance the server-belief chunk (the server applies the same hysteresis
-// to this pos).
+// The pos value the receiver actually holds after this send: POS_DELTA
+// snaps to the 1/256-block wire grid (or falls back to POS_ABS when out of
+// range) — predicting against the raw pos would drift against the wire.
+inline glm::dvec3 netsync_decoded_pos( const NetSync &s, const glm::dvec3 &pos, const bool send_abs ) {
+    if ( send_abs ) {
+        return pos;
+    }
+    const glm::dvec3 d = pos - s.sent_pos;
+    if ( glm::any( glm::greaterThan( glm::abs( d ), glm::dvec3( 127.5 ) ) ) ) {
+        return pos; // encoder falls back to POS_ABS
+    }
+    return s.sent_pos + glm::round( d * NET_STATE_POS_SCALE ) / NET_STATE_POS_SCALE;
+}
+
+// The vel value the receiver decodes (i16 @1/4096 quantization, clamped to
+// the +-8 wire range): dead reckoning must predict with the wire value,
+// not the raw sim vel.
+inline glm::dvec3 netsync_wire_vel( const glm::dvec3 &vel ) {
+    return glm::clamp( glm::round( vel * NET_STATE_VEL_SCALE ), -32767.0, 32767.0 ) / NET_STATE_VEL_SCALE;
+}
+
+// After an ENTITY_STATE entry is pushed: record what the receiver holds
+// (decoded pos, wire vel) as the dead-reckoning baseline and advance the
+// server-belief chunk (the server applies the same hysteresis to this pos).
 inline void netsync_mark_sent( NetSync &s, const glm::dvec3 &pos, const glm::dvec3 &vel, const long tick, const bool keyframe ) {
     s.sent = true;
     s.sent_pos = pos;
     s.sent_vel = vel;
+    s.recv_pos = pos;
+    s.sent_tick = tick;
     s.chunk = net_entity_next_chunk( s.chunk, pos );
     if ( keyframe ) {
         s.keyframe_tick = tick;

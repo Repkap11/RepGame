@@ -137,7 +137,8 @@ persisted. Remote mob hits still go through ENTITY_ACTION.
 
 ## Multiplayer entity sync
 
-Protocol v10 (`include/common/net/packet.hpp`) — "server arbitrates, owner
+Protocol v10+ (`include/common/net/packet.hpp`; ENTITY_STATE became
+mask-coded delta stream in v12) — "server arbitrates, owner
 client simulates". The server (`ServerEntities`, `server_entities.cpp`)
 holds the authoritative entity table per chunk and never simulates;
 clients (`NetEntities`, `net_entities.cpp`) announce what they own and
@@ -162,8 +163,19 @@ ENTITY_SPAWN announces a new entity — relayed to *all* viewers including
 the sender, whose echo doubles as the spawn's ack (a CHUNK_ROLE snapshot
 generated before the spawn reached the server would otherwise wipe the
 sender's predicted copy on apply and never restore it); ENTITY_STATE
-streams pos/vel (batched
-every 6 ticks, changed-epsilon + ~1 s keyframes; chunk crossings apply the
+streams state (batched
+every 12 ticks; since protocol 12 each entry is mask-coded — `NetEntityStateEntry::
+present` picks which fields follow: pos absolute f64 (POS_ABS — first
+send, ~1 s keyframes, out-of-range deltas) or a 1/256-block i16 delta
+(POS_DELTA) against the receiver's last-known pos, vel as 1/4096 i16s,
+yaw as a u8, and count/health/flags only when changed. Receivers
+dead-reckon `net.pos += net.vel` per tick, so the owner only emits when
+the sim diverges from that prediction (`netsync_drifted`: >1/16 block of
+pos drift or >1e-3 vel change) or an aux field changed — a steady walker
+is silent between keyframes. Stuck arrows predict vel=0 (their streamed
+vel is the entry direction, not motion). The delta baseline is the
+entity's sent_pos for owners, the server's pre-update record for relays,
+and `net.recv_pos` for receivers; chunk crossings apply the
 shared `net_entity_next_chunk` margin — an entity only changes chunks once
 it sits NET_ENTITY_CHUNK_MARGIN=0.5 blocks inside the new one, so a
 boundary-resting entity never flip-flops owners); ENTITY_REMOVE removes
@@ -185,14 +197,16 @@ a remote mob's melee hit to its target; EXPLOSION relays a blast.
 
 Client-side, items, mobs and bodies share one bookkeeping struct:
 `NetSync` (`include/common/net/net_sync.hpp`) carries the net id, the
-mirror/owned flag, the server's-belief `chunk`, the easing target
-`pos`/`vel`, and the sent-state snapshot + keyframe tick that drive the
-6-tick batch cadence. The `netsync_*` helpers (`netsync_find`,
+mirror/owned flag, the server's-belief `chunk`, the dead-reckoned easing
+target `pos`/`vel` plus its `recv_pos` anchor, and the sent-state
+snapshot + keyframe tick that drive the 12-tick batch cadence. The
+`netsync_*` helpers (`netsync_find`,
 `netsync_apply_record`, `netsync_track_chunk`, `netsync_send_remove`,
-`netsync_keyframe_due`/`netsync_moved`/`netsync_mark_sent`) implement the
+`netsync_keyframe_due`/`netsync_drifted`/`netsync_decoded_pos`/
+`netsync_wire_vel`/`netsync_mark_sent`) implement the
 parts all three entity types used to duplicate: find-by-net-id, spawn
 from a record, chunk tracking via `net_entity_next_chunk`, removal, and
-send-throttle. Entity-specific payload (item count/pickup, mob
+dead-reckoned send-throttle. Entity-specific payload (item count/pickup, mob
 yaw/health/variant/flags, body kind/fuse/transfer) stays per-type.
 
 Items and mobs are chunk-owner simulated: the OWNER spawns, streams

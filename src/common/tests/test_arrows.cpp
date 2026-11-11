@@ -371,6 +371,7 @@ int test_arrows( ) {
         NetEntityStateEntry e{};
         e.id = rec.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::ARROW );
+        e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_FLAGS;
         e.x = 12.0;
         e.y = 24.0;
         e.z = 10.5;
@@ -427,6 +428,7 @@ int test_arrows( ) {
         NetEntityStateEntry es{};
         es.id = rec4.id;
         es.kind = static_cast<uint8_t>( NetEntityKind::ARROW );
+        es.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_FLAGS;
         es.x = 14.9;
         es.y = 20.0;
         es.z = 10.5;

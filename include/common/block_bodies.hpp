@@ -111,6 +111,8 @@ class BlockBodies {
     void net_disconnect( );
     // ENTITY_STATE entries for bodies we simulate (ownership = !net_mirror).
     void collect_net_state( std::vector<NetEntityStateEntry> &out, long tick_number );
+    // Sync state of a live body by net id (ENTITY_STATE delta baselines).
+    const NetSync *find_net_sync( NetEntityId net_id );
 
   private:
     // Writes the body back into the world at its rest cell (set block +

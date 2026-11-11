@@ -1903,6 +1903,11 @@ MobManager::Mob *MobManager::find_by_net_id( const NetEntityId net_id ) {
     return netsync_find( this->mobs, net_id );
 }
 
+const NetSync *MobManager::find_net_sync( const NetEntityId net_id ) {
+    const Mob *mob = this->find_by_net_id( net_id );
+    return mob == nullptr ? nullptr : &mob->net;
+}
+
 // Mirror of a remote-owned mob: no physics/AI/spawner/despawn — ease pos and
 // yaw toward the last streamed targets, derive the gait from the applied
 // horizontal motion, and let the flag-driven visuals (hurt flash, tip-over,
@@ -1911,6 +1916,9 @@ void MobManager::tick_mirror( Mob &mob, const glm::dvec3 &player_pos ) {
     mob.prev_pos = mob.pos;
     mob.prev_yaw = mob.yaw;
     mob.prev_sneak = mob.sneak;
+    // Dead-reckon the streamed target forward between ENTITY_STATEs — the
+    // owner only sends again when the sim diverges from this prediction.
+    mob.net.pos += mob.net.vel;
     const glm::dvec3 delta = mob.net.pos - mob.pos;
     if ( glm::length( delta ) > 4.0 ) {
         mob.pos = mob.net.pos;
@@ -2007,6 +2015,7 @@ void MobManager::net_apply_spawn( const NetEntityRecord &rec, const bool mirror 
     if ( existing != nullptr ) {
         existing->net.mirror = mirror;
         existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+        existing->net.recv_pos = existing->net.pos;
         existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
         existing->net_yaw = rec.yaw;
         existing->net.chunk = mob_net_chunk_of( existing->net.pos );
@@ -2023,25 +2032,45 @@ void MobManager::net_apply_state( const NetEntityStateEntry &e, const glm::dvec3
     if ( mob == nullptr ) {
         return;
     }
-    // Track the chunk the server's copy sits in (same boundary hysteresis
-    // the server applies); a predicted local spawn we don't own flips to a
-    // mirror on its first authoritative state.
-    netsync_track_chunk( mob->net, glm::dvec3( e.x, e.y, e.z ) );
+    const bool has_pos = ( e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA ) ) != 0;
+    if ( has_pos ) {
+        // Track the chunk the server's copy sits in (same boundary
+        // hysteresis the server applies); a predicted local spawn we don't
+        // own flips to a mirror on its first authoritative state. recv_pos
+        // is the delta baseline the next entry decodes against.
+        mob->net.recv_pos = glm::dvec3( e.x, e.y, e.z );
+        netsync_track_chunk( mob->net, mob->net.recv_pos );
+    }
     const bool owned_here = this->net != nullptr && this->net->owns_chunk( mob->net.chunk );
     if ( !mob->net.mirror && owned_here ) {
         // Owned: no server-originated mob state (partial pickups are items
         // only); just keep the provenance flag bits in sync.
-        mob->net_flags = ( mob->net_flags & ~( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) ) |
-                         ( e.flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) );
+        if ( e.present & NET_SE_FLAGS ) {
+            mob->net_flags = ( mob->net_flags & ~( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) ) |
+                             ( e.flags & ( NET_MOB_FLAG_DESPAWNABLE | NET_MOB_FLAG_NATURAL | NET_MOB_FLAG_TOUCHED ) );
+        }
         return;
     }
     const uint32_t old_flags = mob->net_flags;
     mob->net.mirror = true;
-    mob->net.pos = glm::dvec3( e.x, e.y, e.z );
-    mob->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
-    mob->net_yaw = e.yaw;
-    mob->variant = e.count;
-    mob->health = e.health;
+    if ( has_pos ) {
+        mob->net.pos = mob->net.recv_pos;
+    }
+    if ( e.present & NET_SE_VEL ) {
+        mob->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
+    }
+    if ( e.present & NET_SE_YAW ) {
+        mob->net_yaw = e.yaw;
+    }
+    if ( e.present & NET_SE_COUNT ) {
+        mob->variant = e.count;
+    }
+    if ( e.present & NET_SE_HEALTH ) {
+        mob->health = e.health;
+    }
+    if ( !( e.present & NET_SE_FLAGS ) ) {
+        return;
+    }
     mob->net_flags = e.flags;
     mob->despawnable = ( e.flags & NET_MOB_FLAG_DESPAWNABLE ) ? 1 : 0;
     mob->touched = ( e.flags & NET_MOB_FLAG_TOUCHED ) != 0;
@@ -2108,6 +2137,7 @@ void MobManager::net_release_entity( const NetEntityRecord &rec, const bool stil
     if ( still_viewed ) {
         mob->net.mirror = true;
         mob->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+        mob->net.recv_pos = mob->net.pos;
         mob->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
         mob->net_yaw = rec.yaw;
         mob->net.chunk = mob_net_chunk_of( mob->net.pos );
@@ -2220,6 +2250,7 @@ void MobManager::net_apply_chunk_role( RepGameState &state, const glm::ivec3 &ch
         if ( existing != nullptr ) {
             existing->net.mirror = !owned;
             existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net.recv_pos = existing->net.pos;
             existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
             existing->net_yaw = rec.yaw;
             // The grant's chunk is authoritative — a record resting in the
@@ -2302,33 +2333,59 @@ void MobManager::collect_net_state( NetEntities &net, std::vector<NetEntityState
             continue;
         }
         const uint32_t flags = mob_net_flags( mob );
-        const bool keyframe = netsync_keyframe_due( mob.net, tick_number );
-        const bool changed = !mob.net.sent ||                                 //
-                             netsync_moved( mob.net, mob.pos, mob.vel ) ||    //
-                             fabsf( mob.yaw - mob.net_sent_yaw ) > 1e-4f ||   //
-                             mob.health != mob.net_sent_health ||             //
-                             flags != mob.net_sent_flags;
-        if ( !changed && !keyframe ) {
+        const bool keyframe = !mob.net.sent || netsync_keyframe_due( mob.net, tick_number );
+        const bool yaw_changed = fabsf( mob.yaw - mob.net_sent_yaw ) > 1e-4f;
+        const bool health_changed = mob.health != mob.net_sent_health;
+        const bool flags_changed = flags != mob.net_sent_flags;
+        // Receivers dead-reckon the streamed pos/vel forward, so emit only
+        // when the sim diverges from that prediction (or aux fields changed
+        // or the once-a-second keyframe is due).
+        if ( !keyframe && !netsync_drifted( mob.net, mob.pos, mob.vel, tick_number ) && //
+             !yaw_changed && !health_changed && !flags_changed ) {
             continue;
         }
         NetEntityStateEntry e;
         e.id = mob.net.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
-        e.x = mob.pos.x;
-        e.y = mob.pos.y;
-        e.z = mob.pos.z;
-        e.vx = static_cast<float>( mob.vel.x );
-        e.vy = static_cast<float>( mob.vel.y );
-        e.vz = static_cast<float>( mob.vel.z );
-        e.yaw = mob.yaw;
-        e.count = mob.variant;
-        e.health = mob.health;
-        e.flags = flags;
+        e.baseline = mob.net.sent_pos;
+        e.present = static_cast<uint8_t>( ( keyframe ? NET_SE_POS_ABS : NET_SE_POS_DELTA ) | NET_SE_VEL );
+        // Stream the value the receiver decodes (quantized) so the next
+        // delta/dead-reckon builds on what it actually holds.
+        const glm::dvec3 wire_pos = netsync_decoded_pos( mob.net, mob.pos, keyframe );
+        e.x = wire_pos.x;
+        e.y = wire_pos.y;
+        e.z = wire_pos.z;
+        const glm::dvec3 wire_vel = netsync_wire_vel( mob.vel );
+        e.vx = static_cast<float>( wire_vel.x );
+        e.vy = static_cast<float>( wire_vel.y );
+        e.vz = static_cast<float>( wire_vel.z );
+        if ( keyframe || yaw_changed ) {
+            e.present |= NET_SE_YAW;
+            e.yaw = mob.yaw;
+        }
+        if ( keyframe || health_changed ) {
+            e.present |= NET_SE_HEALTH;
+            e.health = mob.health;
+        }
+        if ( keyframe || flags_changed ) {
+            e.present |= NET_SE_FLAGS;
+            e.flags = flags;
+        }
+        if ( keyframe ) {
+            e.present |= NET_SE_COUNT;
+            e.count = mob.variant;
+        }
         out.push_back( e );
-        mob.net_sent_yaw = mob.yaw;
-        mob.net_sent_health = mob.health;
-        mob.net_sent_flags = flags;
+        if ( e.present & NET_SE_YAW ) {
+            mob.net_sent_yaw = mob.yaw;
+        }
+        if ( e.present & NET_SE_HEALTH ) {
+            mob.net_sent_health = mob.health;
+        }
+        if ( e.present & NET_SE_FLAGS ) {
+            mob.net_sent_flags = flags;
+        }
         // The server now applies its boundary hysteresis to this pos.
-        netsync_mark_sent( mob.net, mob.pos, mob.vel, tick_number, keyframe );
+        netsync_mark_sent( mob.net, wire_pos, wire_vel, tick_number, keyframe );
     }
 }

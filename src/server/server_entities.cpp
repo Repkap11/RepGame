@@ -570,16 +570,37 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
     }
 
     if ( type == NetMsgType::ENTITY_STATE ) {
-        NetEntityStatePayload p;
-        if ( !net_deserialize_entity_state( r, p ) ) {
+        uint16_t n;
+        if ( !r.read_u16( n ) || n > NET_ENTITY_MAX_LIST ) {
             se_pr_debug( "Malformed ENTITY_STATE from:%d", client_fd );
             return true;
         }
         // Per-recipient batched relays.
         std::map<int, NetEntityStatePayload> relays;
-        for ( const NetEntityStateEntry &e : p.entries ) {
+        for ( uint16_t i = 0; i < n; i++ ) {
+            // POS_DELTA entries encode against the record's pre-update pos —
+            // which is also what every viewer last saw, so the decoded entry
+            // re-encodes to identical deltas on the relay (e.baseline).
+            glm::dvec3 baseline( 0.0 );
             glm::ivec3 cur_chunk;
-            ServerChunkEntities *ce = find_entity_chunk( e.id, &cur_chunk );
+            ServerChunkEntities *ce = nullptr;
+            {
+                PacketReader peek = r;
+                uint8_t mask, kind;
+                NetEntityId id;
+                if ( peek.read_u8( mask ) && peek.read_u64( id ) && peek.read_u8( kind ) ) {
+                    ce = this->find_entity_chunk( id, &cur_chunk );
+                    if ( ce != nullptr ) {
+                        const NetEntityRecord &prev = ce->entities[ id ];
+                        baseline = glm::dvec3( prev.x, prev.y, prev.z );
+                    }
+                }
+            }
+            NetEntityStateEntry e;
+            if ( !net_state_read_entry( r, e, baseline ) ) {
+                se_pr_debug( "Malformed ENTITY_STATE from:%d", client_fd );
+                return true;
+            }
             if ( ce == nullptr ) {
                 continue;
             }
@@ -591,20 +612,34 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             }
             NetEntityRecord &rec = ce->entities[ e.id ];
             const uint32_t prev_flags = rec.flags;
-            rec.x = e.x;
-            rec.y = e.y;
-            rec.z = e.z;
-            rec.vx = e.vx;
-            rec.vy = e.vy;
-            rec.vz = e.vz;
-            rec.yaw = e.yaw;
-            rec.count = e.count;
-            rec.health = e.health;
-            rec.flags = e.flags;
+            const bool has_pos = ( e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA ) ) != 0;
+            if ( has_pos ) {
+                rec.x = e.x;
+                rec.y = e.y;
+                rec.z = e.z;
+            }
+            if ( e.present & NET_SE_VEL ) {
+                rec.vx = e.vx;
+                rec.vy = e.vy;
+                rec.vz = e.vz;
+            }
+            if ( e.present & NET_SE_YAW ) {
+                rec.yaw = e.yaw;
+            }
+            if ( e.present & NET_SE_COUNT ) {
+                rec.count = e.count;
+            }
+            if ( e.present & NET_SE_HEALTH ) {
+                rec.health = e.health;
+            }
+            if ( e.present & NET_SE_FLAGS ) {
+                rec.flags = e.flags;
+            }
             this->mark_dirty( *ce, rec.kind );
             // A natural mob that just became TOUCHED: tombstone its roll
             // index in the home chunk so re-rolls skip it.
-            if ( ( rec.flags & NET_MOB_FLAG_NATURAL ) && ( rec.flags & NET_MOB_FLAG_TOUCHED ) && !( prev_flags & NET_MOB_FLAG_TOUCHED ) ) {
+            if ( ( e.present & NET_SE_FLAGS ) && ( rec.flags & NET_MOB_FLAG_NATURAL ) && ( rec.flags & NET_MOB_FLAG_TOUCHED ) &&
+                 !( prev_flags & NET_MOB_FLAG_TOUCHED ) ) {
                 this->note_touched_natural( rec.id );
             }
 
@@ -612,7 +647,10 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             // resting on a boundary stays in its current chunk instead of
             // bouncing the record between owners every state packet. The
             // client applies the same rule to net_chunk after each send.
-            const glm::ivec3 new_chunk = net_entity_next_chunk( cur_chunk, glm::dvec3( e.x, e.y, e.z ) );
+            glm::ivec3 new_chunk = cur_chunk;
+            if ( has_pos ) {
+                new_chunk = net_entity_next_chunk( cur_chunk, glm::dvec3( e.x, e.y, e.z ) );
+            }
             if ( new_chunk != cur_chunk ) {
                 // The entity crossed a chunk boundary: move the record.
                 NetEntityRecord moved = rec;
@@ -752,23 +790,22 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 server.broadcast_to( ce->viewers, NetMsgType::ENTITY_REMOVE, 0, w.buf( ) );
             } else if ( granted > 0 ) {
                 // Partial: reduce the count and push a server-originated
-                // state (header player_id 0) to every viewer.
+                // state (header player_id 0) to every viewer. Absolute pos
+                // so the entry also re-anchors receivers' delta baselines.
                 rec->count -= granted;
                 ce->items_dirty = true;
                 NetEntityStatePayload sp;
                 NetEntityStateEntry e;
                 e.id = rec->id;
                 e.kind = static_cast<uint8_t>( rec->kind );
+                e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_COUNT;
                 e.x = rec->x;
                 e.y = rec->y;
                 e.z = rec->z;
                 e.vx = rec->vx;
                 e.vy = rec->vy;
                 e.vz = rec->vz;
-                e.yaw = rec->yaw;
                 e.count = rec->count;
-                e.health = rec->health;
-                e.flags = rec->flags;
                 sp.entries.push_back( e );
                 PacketWriter w;
                 net_serialize_entity_state( w, sp );

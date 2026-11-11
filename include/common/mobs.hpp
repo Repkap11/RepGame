@@ -370,6 +370,8 @@ class MobManager {
     void net_release_entity( const NetEntityRecord &rec, bool still_viewed );
     // Owner-side outbound batch (same cadence/keyframes as items).
     void collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, long tick_number );
+    // Sync state of a live mob by net id (ENTITY_STATE delta baselines).
+    const NetSync *find_net_sync( NetEntityId net_id );
 
     size_t count( ) const { return this->mobs.size( ); }
     // mp_test dump seam: snapshot of every live mob (remote players

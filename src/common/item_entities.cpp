@@ -407,6 +407,8 @@ void ItemEntities::tick( RepGameState &state ) {
             if ( it.pickup_delay > 0 ) {
                 it.pickup_delay--;
             }
+            // Dead-reckon the streamed target forward between ENTITY_STATEs.
+            it.net.pos += it.net.vel;
             const glm::dvec3 delta = it.net.pos - it.pos;
             if ( glm::length( delta ) > 4.0 ) {
                 it.pos = it.net.pos;
@@ -842,6 +844,7 @@ void ItemEntities::net_apply_spawn( const NetEntityRecord &rec, const bool mirro
         // Already local (e.g. our own predicted spawn): just set ownership.
         existing->net.mirror = mirror;
         existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+        existing->net.recv_pos = existing->net.pos;
         existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
         existing->net.chunk = net_entity_chunk_of( existing->net.pos );
         return;
@@ -857,16 +860,26 @@ void ItemEntities::net_apply_state( const NetEntityStateEntry &e ) {
     // The incoming state reflects the server's belief: track the chunk it
     // places the entity in (same boundary hysteresis the server applies),
     // and only treat it as ours when we own that chunk.
-    netsync_track_chunk( it->net, glm::dvec3( e.x, e.y, e.z ) );
+    const bool has_pos = ( e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA ) ) != 0;
+    if ( has_pos ) {
+        it->net.recv_pos = glm::dvec3( e.x, e.y, e.z );
+        netsync_track_chunk( it->net, it->net.recv_pos );
+    }
     const bool owned_here = this->net != nullptr && this->net->owns_chunk( it->net.chunk );
     if ( it->net.mirror || !owned_here ) {
         // Mirror (or a predicted spawn we don't own): the streamed state is
         // authoritative — ease toward it.
         it->net.mirror = true;
-        it->net.pos = glm::dvec3( e.x, e.y, e.z );
-        it->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
-        it->count = e.count;
-    } else {
+        if ( has_pos ) {
+            it->net.pos = it->net.recv_pos;
+        }
+        if ( e.present & NET_SE_VEL ) {
+            it->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
+        }
+        if ( e.present & NET_SE_COUNT ) {
+            it->count = e.count;
+        }
+    } else if ( e.present & NET_SE_COUNT ) {
         // Owned: only the count is server-driven (partial pickups).
         it->count = e.count;
     }
@@ -891,6 +904,7 @@ void ItemEntities::net_release_entity( const NetEntityRecord &rec, const bool st
     if ( still_viewed ) {
         it->net.mirror = true;
         it->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+        it->net.recv_pos = it->net.pos;
         it->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
         it->net.chunk = net_entity_chunk_of( it->net.pos );
     } else {
@@ -952,6 +966,7 @@ void ItemEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t 
         if ( existing != nullptr ) {
             existing->net.mirror = !owned;
             existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net.recv_pos = existing->net.pos;
             existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
             // The grant's chunk is authoritative — a record resting in the
             // boundary margin has floor(pos) != the server's chunk.
@@ -977,27 +992,36 @@ void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntitySta
         if ( !net.owns_chunk( it.net.chunk ) ) {
             continue;
         }
-        const bool keyframe = netsync_keyframe_due( it.net, tick_number );
-        const bool changed = !it.net.sent ||               //
-                             netsync_moved( it.net, it.pos, it.vel ) || //
-                             it.count != it.net_sent_count;
-        if ( !changed && !keyframe ) {
+        const bool keyframe = !it.net.sent || netsync_keyframe_due( it.net, tick_number );
+        const bool count_changed = it.count != it.net_sent_count;
+        // Dead reckoning: emit only when the sim diverges from what the
+        // receiver predicts (or the count changed / keyframe is due).
+        if ( !keyframe && !netsync_drifted( it.net, it.pos, it.vel, tick_number ) && !count_changed ) {
             continue;
         }
         NetEntityStateEntry e;
         e.id = it.net.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
-        e.x = it.pos.x;
-        e.y = it.pos.y;
-        e.z = it.pos.z;
-        e.vx = static_cast<float>( it.vel.x );
-        e.vy = static_cast<float>( it.vel.y );
-        e.vz = static_cast<float>( it.vel.z );
-        e.count = it.count;
+        e.baseline = it.net.sent_pos;
+        e.present = static_cast<uint8_t>( ( keyframe ? NET_SE_POS_ABS : NET_SE_POS_DELTA ) | NET_SE_VEL );
+        const glm::dvec3 wire_pos = netsync_decoded_pos( it.net, it.pos, keyframe );
+        e.x = wire_pos.x;
+        e.y = wire_pos.y;
+        e.z = wire_pos.z;
+        const glm::dvec3 wire_vel = netsync_wire_vel( it.vel );
+        e.vx = static_cast<float>( wire_vel.x );
+        e.vy = static_cast<float>( wire_vel.y );
+        e.vz = static_cast<float>( wire_vel.z );
+        if ( keyframe || count_changed ) {
+            e.present |= NET_SE_COUNT;
+            e.count = it.count;
+        }
         out.push_back( e );
-        it.net_sent_count = it.count;
+        if ( e.present & NET_SE_COUNT ) {
+            it.net_sent_count = it.count;
+        }
         // The server now applies its boundary hysteresis to this pos.
-        netsync_mark_sent( it.net, it.pos, it.vel, tick_number, keyframe );
+        netsync_mark_sent( it.net, wire_pos, wire_vel, tick_number, keyframe );
     }
 }
 

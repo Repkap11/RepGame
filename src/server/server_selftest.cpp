@@ -297,6 +297,7 @@ void send_entity_state( Server &server, SimClient &c, NetEntityId id, double x, 
     NetEntityStateEntry e;
     e.id = id;
     e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
+    e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_COUNT;
     e.x = x;
     e.y = y;
     e.z = z;
@@ -312,6 +313,7 @@ void send_mob_state( Server &server, SimClient &c, NetEntityId id, double x, dou
     NetEntityStateEntry e{};
     e.id = id;
     e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
+    e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_FLAGS;
     e.x = x;
     e.y = y;
     e.z = z;

@@ -198,7 +198,12 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             // Mirror of a remote-simulated arrow: no physics — ease toward
             // the last streamed pose. vel tracks net.vel so the render
             // orientation follows the stream (stuck arrows keep their
-            // entry direction).
+            // entry direction). The streamed target is dead-reckoned
+            // forward between states — except stuck arrows, whose streamed
+            // vel is the entry direction, not motion.
+            if ( !a.stuck ) {
+                a.net.pos += a.net.vel;
+            }
             const glm::dvec3 delta = a.net.pos - a.pos;
             if ( glm::length( delta ) > 4.0 ) {
                 a.pos = a.net.pos;
@@ -508,6 +513,7 @@ void ArrowEntities::net_apply_spawn( const NetEntityRecord &rec, const bool mirr
         // mirrors; owned arrows keep simulating.
         if ( existing->net.mirror ) {
             existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+            existing->net.recv_pos = existing->net.pos;
             existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
             existing->net.chunk = net_entity_chunk_of( existing->net.pos );
             arrow_apply_net_flags( *existing, rec.flags, existing->net.pos, existing->net.vel );
@@ -522,10 +528,17 @@ void ArrowEntities::net_apply_state( const NetEntityStateEntry &e ) {
     if ( a == nullptr || !a->net.mirror ) {
         return;
     }
-    a->net.pos = glm::dvec3( e.x, e.y, e.z );
-    a->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
-    arrow_apply_net_flags( *a, e.flags, a->net.pos, a->net.vel );
-    netsync_track_chunk( a->net, a->net.pos );
+    if ( e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA ) ) {
+        a->net.recv_pos = glm::dvec3( e.x, e.y, e.z );
+        a->net.pos = a->net.recv_pos;
+        netsync_track_chunk( a->net, a->net.pos );
+    }
+    if ( e.present & NET_SE_VEL ) {
+        a->net.vel = glm::dvec3( e.vx, e.vy, e.vz );
+    }
+    if ( e.present & NET_SE_FLAGS ) {
+        arrow_apply_net_flags( *a, e.flags, a->net.pos, a->net.vel );
+    }
 }
 
 void ArrowEntities::net_apply_remove( const NetEntityId net_id ) {
@@ -593,6 +606,7 @@ void ArrowEntities::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t
         if ( existing != nullptr ) {
             if ( existing->net.mirror ) {
                 existing->net.pos = glm::dvec3( rec.x, rec.y, rec.z );
+                existing->net.recv_pos = existing->net.pos;
                 existing->net.vel = glm::dvec3( rec.vx, rec.vy, rec.vz );
                 // The grant's chunk is authoritative (margin records have
                 // floor(pos) != the server's chunk).
@@ -622,23 +636,32 @@ void ArrowEntities::collect_net_state( std::vector<NetEntityStateEntry> &out, co
         if ( a.net.id == 0 || a.net.mirror ) {
             continue;
         }
-        const bool keyframe = netsync_keyframe_due( a.net, tick_number );
-        const bool changed = !a.net.sent || netsync_moved( a.net, a.pos, a.vel );
-        if ( !changed && !keyframe ) {
+        const bool keyframe = !a.net.sent || netsync_keyframe_due( a.net, tick_number );
+        // Dead reckoning: emit only when the sim diverges from what the
+        // receiver predicts (or the keyframe is due). Stuck arrows predict
+        // vel 0 — the streamed vel is the entry direction (orientation),
+        // not motion.
+        const glm::dvec3 eff_vel = a.stuck ? glm::dvec3( 0.0 ) : a.vel;
+        if ( !keyframe && !netsync_drifted( a.net, a.pos, eff_vel, tick_number ) ) {
             continue;
         }
         NetEntityStateEntry e;
         e.id = a.net.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::ARROW );
-        e.x = a.pos.x;
-        e.y = a.pos.y;
-        e.z = a.pos.z;
-        e.vx = static_cast<float>( a.vel.x );
-        e.vy = static_cast<float>( a.vel.y );
-        e.vz = static_cast<float>( a.vel.z );
+        e.baseline = a.net.sent_pos;
+        e.present = static_cast<uint8_t>( ( keyframe ? NET_SE_POS_ABS : NET_SE_POS_DELTA ) | NET_SE_VEL | NET_SE_FLAGS );
+        const glm::dvec3 wire_pos = netsync_decoded_pos( a.net, a.pos, keyframe );
+        e.x = wire_pos.x;
+        e.y = wire_pos.y;
+        e.z = wire_pos.z;
+        const glm::dvec3 wire_vel = netsync_wire_vel( a.vel );
+        e.vx = static_cast<float>( wire_vel.x );
+        e.vy = static_cast<float>( wire_vel.y );
+        e.vz = static_cast<float>( wire_vel.z );
         e.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u );
         out.push_back( e );
-        // The server now applies its boundary hysteresis to this pos.
-        netsync_mark_sent( a.net, a.pos, a.vel, tick_number, keyframe );
+        // The server now applies its boundary hysteresis to this pos. The
+        // receiver's prediction runs on eff_vel (0 while stuck).
+        netsync_mark_sent( a.net, wire_pos, netsync_wire_vel( eff_vel ), tick_number, keyframe );
     }
 }

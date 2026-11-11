@@ -268,6 +268,7 @@ int test_net_entities( ) {
         NetEntityStateEntry e;
         e.id = 42;
         e.kind = static_cast<uint8_t>( NetEntityKind::ITEM );
+        e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_YAW | NET_SE_COUNT | NET_SE_HEALTH | NET_SE_FLAGS;
         e.x = 1.5;
         e.y = -2.5;
         e.z = 3.5;
@@ -286,9 +287,11 @@ int test_net_entities( ) {
         PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
         NetEntityStatePayload in;
         const NetEntityStateEntry &g = in.entries.size( ) == 2 ? in.entries[ 0 ] : e;
+        // ABS pos is exact f64; vel quantizes to 1/4096 and yaw to 360/256.
         report( "net entities: ENTITY_STATE round trip",
                 net_deserialize_entity_state( r, in ) && in.entries.size( ) == 2 && g.id == 42 && g.kind == static_cast<uint8_t>( NetEntityKind::ITEM ) &&
-                    g.x == 1.5 && g.y == -2.5 && g.z == 3.5 && g.vx == 0.01f && g.vy == -0.02f && g.vz == 0.03f && g.yaw == 0.5f && g.count == 7 && g.health == 4.5f && g.flags == 9 );
+                    g.x == 1.5 && g.y == -2.5 && g.z == 3.5 && fabsf( g.vx - 0.01f ) < 1e-3f && fabsf( g.vy + 0.02f ) < 1e-3f &&
+                    fabsf( g.vz - 0.03f ) < 1e-3f && fabsf( g.yaw - 0.5f ) < 1.5f && g.count == 7 && g.health == 4.5f && g.flags == 9 );
         PacketReader rt( w.buf( ).data( ), w.buf( ).size( ) - 1 );
         NetEntityStatePayload junk;
         report( "net entities: ENTITY_STATE truncated fails", !net_deserialize_entity_state( rt, junk ) );
@@ -617,9 +620,7 @@ int test_net_mobs( ) {
         NetEntityStateEntry e{};
         e.id = rec.id;
         e.kind = static_cast<uint8_t>( NetEntityKind::MOB );
-        e.x = rec.x;
-        e.y = rec.y;
-        e.z = rec.z;
+        e.present = NET_SE_FLAGS;
         e.flags = NET_MOB_FLAG_DYING;
         mobs.net_apply_state( e, player_pos );
         check_bool( "mirror: DYING starts death anim", mobs.mobs[ 0 ].death_ticks > 0 );
