@@ -5,29 +5,26 @@
  "hardness": 1,
  "icon": "oak_hanging_sign",
  "id": 825,
+ "is_hanging_sign": true,
  "is_seethrough": true,
  "name": "OAK_HANGING_SIGN",
  "needs_place_on_any_solid": {
   "bottom": true
  },
  "offset": [
-  3,
   0,
-  3
+  0,
+  7
  ],
+ "rotate_on_placement": true,
  "scale": [
-  10,
   16,
-  10
- ],
- "tex_offset": [
-  -3,
-  0,
-  -3
+  9,
+  2
  ],
  "textures": {
   "bottom": "planks_oak",
-  "side": "oak_hanging_sign",
+  "side": "sign_oak_hanging",
   "top": "planks_oak"
  },
  "waterloggable": true

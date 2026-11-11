@@ -1571,7 +1571,16 @@ int test_support_drops( ) {
                     wall_sign_def->scale.z == 2 && !wall_sign_def->collides_with_player );
     const Block *hanging_sign_def = block_definition_get_definition( OAK_HANGING_SIGN );
     check_bool( "sign def: hanging sign hangs from above",
-                hanging_sign_def->needs_place_on_any_solid[ FACE_BOTTOM ] && !hanging_sign_def->collides_with_player );
+                hanging_sign_def->needs_place_on_any_solid[ FACE_BOTTOM ] && !hanging_sign_def->collides_with_player &&
+                    hanging_sign_def->rotate_on_placement );
+    // The hanging sign renders and picks as board plate + two chain
+    // strands (hanging_sign_boxes, yawed like the standing pair).
+    BlockBox hanging_boxes[ SIGN_MAX_BOXES ];
+    check_bool( "sign def: hanging sign renders board + chains",
+                hanging_sign_def->is_hanging_sign && hanging_sign_boxes( hanging_boxes ) == 3 &&
+                    hanging_boxes[ 0 ].scale[ 0 ] == 16 && hanging_boxes[ 0 ].scale[ 1 ] == 9 && hanging_boxes[ 0 ].offset[ 1 ] == 0 &&
+                    hanging_boxes[ 1 ].scale[ 1 ] == 7 && hanging_boxes[ 2 ].offset[ 0 ] == 12 &&
+                    ( hanging_boxes[ 1 ].skip_faces & ( 1u << FACE_TOP ) ) != 0 );
     check_bool( "sign def: signs waterlog instead of breaking",
                 standing_sign_def->waterloggable && wall_sign_def->waterloggable && hanging_sign_def->waterloggable &&
                     standing_sign_def->breaks_in_liquid && wall_sign_def->breaks_in_liquid && hanging_sign_def->breaks_in_liquid );

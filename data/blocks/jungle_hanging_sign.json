@@ -5,7 +5,7 @@
  "shape": "hanging_sign",
  "textures": {
   "bottom": "planks_jungle",
-  "side": "jungle_hanging_sign",
+  "side": "sign_jungle_hanging",
   "top": "planks_jungle"
  }
 }

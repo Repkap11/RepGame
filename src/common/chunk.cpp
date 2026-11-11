@@ -1624,6 +1624,10 @@ void Chunk::calculate_populated_blocks( ) {
                             // Board plate + post — def space, yawed by the
                             // shader like the fence/stair boxes.
                             num_boxes = standing_sign_boxes( boxes );
+                        } else if ( block->is_hanging_sign ) {
+                            // Board plate + chain strands — same def-space,
+                            // shader-yawed path.
+                            num_boxes = hanging_sign_boxes( boxes );
                         }
                         // A lit redstone torch emits a second instance: the
                         // 4-wide orb head around the stick's top.
@@ -2025,7 +2029,7 @@ void Chunk::calculate_populated_blocks( ) {
                                 // full-width band at cols 0-15. The plate's
                                 // top/bottom quads then sample rows 0-1 of
                                 // the cap tile (planks cover them).
-                                if ( block->is_standing_sign && i == 0 ) {
+                                if ( ( block->is_standing_sign || block->is_hanging_sign ) && i == 0 ) {
                                     boxCoord->tex_offset_z = 0;
                                 }
                                 boxCoord->face_shift = yaw;

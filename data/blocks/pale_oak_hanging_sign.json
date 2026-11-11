@@ -5,7 +5,7 @@
  "shape": "hanging_sign",
  "textures": {
   "bottom": "pale_oak_planks",
-  "side": "pale_oak_hanging_sign",
+  "side": "sign_pale_oak_hanging",
   "top": "pale_oak_planks"
  }
 }

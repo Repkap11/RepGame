@@ -5,7 +5,7 @@
  "shape": "hanging_sign",
  "textures": {
   "bottom": "mangrove_planks",
-  "side": "mangrove_hanging_sign",
+  "side": "sign_mangrove_hanging",
   "top": "mangrove_planks"
  }
 }

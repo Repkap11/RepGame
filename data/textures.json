@@ -2693,6 +2693,88 @@
   "shulker_top_yellow": {
     "source": "textures/blocks/shulker_top_yellow"
   },
+  "sign_acacia_hanging": {
+    "source": "textures/entity/acacia_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
+  },
   "sign_acacia_standing": {
     "extract": [
       {
@@ -2743,6 +2825,88 @@
       ]
     },
     "source": "textures/entity/sign_acacia"
+  },
+  "sign_bamboo_hanging": {
+    "source": "textures/entity/bamboo_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
   },
   "sign_bamboo_standing": {
     "extract": [
@@ -2795,6 +2959,88 @@
     },
     "source": "textures/entity/bamboo_sign"
   },
+  "sign_birch_hanging": {
+    "source": "textures/entity/birch_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
+  },
   "sign_birch_standing": {
     "extract": [
       {
@@ -2845,6 +3091,88 @@
       ]
     },
     "source": "textures/entity/sign_birch"
+  },
+  "sign_cherry_hanging": {
+    "source": "textures/entity/cherry_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
   },
   "sign_cherry_standing": {
     "extract": [
@@ -2897,6 +3225,88 @@
     },
     "source": "textures/entity/cherry_sign"
   },
+  "sign_crimson_hanging": {
+    "source": "textures/entity/crimson_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
+  },
   "sign_crimson_standing": {
     "extract": [
       {
@@ -2947,6 +3357,88 @@
       ]
     },
     "source": "textures/entity/sign_crimson"
+  },
+  "sign_darkoak_hanging": {
+    "source": "textures/entity/dark_oak_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
   },
   "sign_darkoak_standing": {
     "extract": [
@@ -2999,6 +3491,88 @@
     },
     "source": "textures/entity/sign_darkoak"
   },
+  "sign_jungle_hanging": {
+    "source": "textures/entity/jungle_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
+  },
   "sign_jungle_standing": {
     "extract": [
       {
@@ -3049,6 +3623,88 @@
       ]
     },
     "source": "textures/entity/sign_jungle"
+  },
+  "sign_mangrove_hanging": {
+    "source": "textures/entity/mangrove_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
   },
   "sign_mangrove_standing": {
     "extract": [
@@ -3101,6 +3757,88 @@
     },
     "source": "textures/entity/mangrove_sign"
   },
+  "sign_oak_hanging": {
+    "source": "textures/entity/oak_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
+  },
   "sign_oak_standing": {
     "extract": [
       {
@@ -3151,6 +3889,88 @@
       ]
     },
     "source": "textures/entity/sign"
+  },
+  "sign_pale_oak_hanging": {
+    "source": "textures/entity/pale_oak_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
   },
   "sign_pale_oak_standing": {
     "extract": [
@@ -3203,6 +4023,88 @@
     },
     "source": "textures/entity/pale_oak_sign"
   },
+  "sign_poplar_hanging": {
+    "source": "textures/entity/poplar_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
+  },
   "sign_poplar_standing": {
     "extract": [
       {
@@ -3254,6 +4156,88 @@
     },
     "source": "textures/entity/poplar_sign"
   },
+  "sign_spruce_hanging": {
+    "source": "textures/entity/spruce_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
+  },
   "sign_spruce_standing": {
     "extract": [
       {
@@ -3304,6 +4288,88 @@
       ]
     },
     "source": "textures/entity/sign_spruce"
+  },
+  "sign_warped_hanging": {
+    "source": "textures/entity/warped_hanging_sign",
+    "extract": [
+      {
+        "from": [
+         0,
+         14
+        ],
+        "size": [
+         16,
+         2
+        ],
+        "to": [
+         0,
+         7
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+         0,
+         0
+        ],
+        "size": [
+         16,
+         7
+        ],
+        "to": [
+         0,
+         9
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         6,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         1,
+         0
+        ]
+      },
+      {
+        "from": [
+         0,
+         0
+        ],
+        "mirror": true,
+        "size": [
+         3,
+         7
+        ],
+        "source": "textures/blocks/chain1",
+        "to": [
+         12,
+         0
+        ]
+      }
+    ]
   },
   "sign_warped_standing": {
     "extract": [

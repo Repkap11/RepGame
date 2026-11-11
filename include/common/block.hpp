@@ -482,8 +482,18 @@ int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] );
 // Every lateral quad samples its side tile at the model-space rows/cols it
 // covers (tex_offset = -offset), so the tile lays the board band over the
 // post column; the shader yaws the pair with face_shift like fences/stairs.
-#define SIGN_MAX_BOXES 2
+#define SIGN_MAX_BOXES 3
 int standing_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] );
+
+// ---- Hanging signs ----------------------------------------------------------
+// The three definition-space boxes of a hanging sign: box 0 is the same
+// 16x9x2 board plate the standing sign mounts, parked at the bottom of the
+// cell (y 0..8); boxes 1-2 are 3x7x3 chain strands rising from the board's
+// top edge to the cell's top face (the support sits overhead). The strands'
+// caps are skipped — top is coplanar with the support's bottom face, bottom
+// with the board's top quad. The shader yaws the trio with face_shift like
+// the standing pair.
+int hanging_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] );
 
 // ---- Item icons -------------------------------------------------------------
 // The model-space boxes a block's item icon draws: stairs their

@@ -51,6 +51,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_slab = false;
         block->spine_shell = false;
         block->is_standing_sign = false;
+        block->is_hanging_sign = false;
         block->is_door = false;
         block->is_door_upper = false;
         block->door_redstone_only = false;

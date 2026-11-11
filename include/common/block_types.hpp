@@ -196,6 +196,11 @@ typedef struct {
     // it. The block's own scale/offset stays the pick box — MC's selection
     // column — so the board's outer edges aren't clickable, matching MC.
     bool is_standing_sign;
+    // Hanging signs draw as three boxes (hanging_sign_boxes in block.cpp):
+    // the same 16x9x2 board plate parked at the bottom of the cell plus two
+    // 3-wide chain strands rising to the support block overhead. The
+    // block's own scale/offset is the board plate — the pick fallback.
+    bool is_hanging_sign;
     // Doors are two-cell blocks: a lower half and an upper half (linked by
     // door_partner) whose 3px slab hitbox swings to an adjacent facing when
     // opened. Both halves store the current slab yaw in rotation bits 0-1 so

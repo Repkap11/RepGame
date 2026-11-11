@@ -5,7 +5,7 @@
  "shape": "hanging_sign",
  "textures": {
   "bottom": "warped_planks",
-  "side": "warped_hanging_sign",
+  "side": "sign_warped_hanging",
   "top": "warped_planks"
  }
 }

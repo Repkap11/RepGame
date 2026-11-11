@@ -226,10 +226,19 @@ species' 64x32 `textures/entity/*sign*` texture (the band fills tile rows
 sides; the item icon is unusable here — it's a small board+post sprite
 whose outline bleeds dark texels into the crop), while edge quads stay
 plain planks. A
-`*_HANGING_SIGN` is a 10-wide column suspended from the block above
-(`needs_place_on_any_solid.bottom` — the support sits at pos - dir, i.e.
-`bottom` means "colliding block overhead") whose sides sample the
-`*_hanging_sign` item icon (bar, chains and board). All three are
+`*_HANGING_SIGN` (`is_hanging_sign`) renders as three boxes
+(`hanging_sign_boxes`): the same 16x9x2 board plate parked at the bottom
+of the cell plus two 3x7x3 chain strands rising from the board's top edge
+to the support block overhead (`needs_place_on_any_solid.bottom` — the
+support sits at pos - dir, i.e. `bottom` means "colliding block
+overhead"); strand caps are skipped (coplanar with the support face and
+the board's top quad). Lateral quads sample the `sign_*_hanging`
+composite tile: the entity texture's board band pasted into the rows the
+plate covers plus three `mirror` extracts of the chain link strip into
+the strand windows (front/back anchor u at the z offset, left/right at
+each x offset). Hanging signs share the sign yaw —
+`rotate_on_placement` — so the board turns with the placer's look angle.
+All three are
 non-colliding, see-through, non-shadow-casting and carry
 `breaks_in_liquid` + `waterloggable` (the kelp pattern): flow treats the
 cell as a wall and never pops them, while a direct water write waterlogs
