@@ -5,14 +5,32 @@
 #include "common/light.hpp"
 #include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
+#include "common/utils/env_config.hpp"
 
+#include <algorithm>
 #include <climits>
 #include <stdio.h>
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 
+// Read a non-negative size cap from the environment; a negative value
+// falls back to the default so a malformed setting can't disable or
+// un-bound the structure.
+static size_t env_size_cap( const char *name, long fallback ) {
+    const long v = env_long( name, fallback );
+    return v >= 0 ? static_cast<size_t>( v ) : static_cast<size_t>( fallback );
+}
+
 void ServerLogic::init( const char *world_name ) {
     this->map_storage.init( world_name );
+    // Bounded diff payload cache (clean chunks only): byte budget in MB,
+    // plus a hard entry cap for pathological tiny payloads. A 0 setting
+    // disables the cache.
+    this->diff_cache.set_limits( env_size_cap( "REPGAME_SERVER_DIFF_CACHE_MB", 16 ) * 1024 * 1024,
+                                 env_size_cap( "REPGAME_SERVER_DIFF_CACHE_MAX", 65536 ) );
+    // Cap on total dirty cells held in world_cache; 0 forces every edit to
+    // persist+evict immediately.
+    this->dirty_cells_max_ = env_size_cap( "REPGAME_SERVER_DIRTY_CELLS_MAX", 200000 );
     // The save-file index turns per-request existence checks into hash
     // lookups — a CHUNK_DIFF_REQUEST box otherwise stats every file in it.
     this->map_storage.enable_file_index( );
@@ -142,6 +160,10 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
                 int new_block_index = Chunk::get_index_from_coords( new_diff );
 
                 // pr_debug( "Updating chunk: %d %d %d  %d", new_chunk_pos.x, new_chunk_pos.y, new_chunk_pos.z, new_block_index );
+                // The chunk is going dirty: any cached clean payload is
+                // now stale. Erased before world_cache changes so the two
+                // stores can never overlap for one chunk.
+                this->diff_cache.erase( new_chunk_pos );
                 auto it_cache = this->world_cache.find( new_chunk_pos );
                 // A chunk missing from the cache was idle-saved and evicted
                 // (or never touched): merge its on-disk diff in first, else
@@ -152,63 +174,85 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
                 ChunkCacheEntry &entry = *( it_cache != this->world_cache.end( ) && !it_cache->second.blocks.empty( )
                                                 ? &it_cache->second
                                                 : this->loadIntoCache( new_chunk_pos ) );
+                const size_t cells_before = entry.blocks.size( );
                 entry.blocks[ new_block_index ] = block_state;
+                this->dirty_cells_ += entry.blocks.size( ) - cells_before;
                 entry.last_edit_time = std::chrono::steady_clock::now( );
                 // (Re)schedule this chunk's idle-save timer.
                 this->scheduleChunkSave( new_chunk_pos );
             }
         }
     }
+    // The edit may have pushed total dirty state past the cap: persist and
+    // evict the least-recently-edited chunks early rather than waiting out
+    // the idle timers.
+    this->enforceDirtyCap( );
 }
 
-size_t ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
-
-    const auto it_world = this->world_cache.find( chunk_offset );
-
-    // The cache holds only chunks with unsaved edits; a hit is newer than
-    // the save file. Unedited chunks stream their diffs straight from disk
-    // without being cached.
-    std::map<int, BlockState> disk_diffs;
-    const std::map<int, BlockState> *chunk_cache_prt;
-    // A timer-only entry (empty blocks) carries no merged diff — fall
-    // through to the disk path like a cache miss.
-    if ( it_world != this->world_cache.end( ) && !it_world->second.blocks.empty( ) ) {
-        chunk_cache_prt = &it_world->second.blocks;
-    } else {
-        // The file index answers "no file" in-memory, so a box of
-        // fileless chunks costs hash lookups, not stats.
-        this->loadDiffsFromDisk( chunk_offset, disk_diffs );
-        chunk_cache_prt = &disk_diffs;
-    }
-    const std::map<int, BlockState> &chunk_cache = *chunk_cache_prt;
-    if ( chunk_cache.empty( ) ) {
-        // No diffs for this chunk; emit no frame.
-        return 0;
-    }
-
+// Serializes a chunk's diff map into CHUNK_DIFF_RESULT payload bytes. The
+// live path and the DiffCache fill share this so a cached payload is
+// byte-identical to a fresh encode.
+static std::vector<uint8_t> encode_chunk_diff_result( const glm::ivec3 &chunk_offset, const std::map<int, BlockState> &diffs ) {
     NetChunkDiffResultPayload diff;
     diff.chunk_x = chunk_offset.x;
     diff.chunk_y = chunk_offset.y;
     diff.chunk_z = chunk_offset.z;
-    diff.diffs.clear( );
-    diff.diffs.reserve( chunk_cache.size( ) );
-    for ( auto [ blocks_index, blockState ] : chunk_cache ) {
+    diff.diffs.reserve( diffs.size( ) );
+    for ( auto [ blocks_index, blockState ] : diffs ) {
         NetChunkDiffEntry entry;
         entry.blocks_index = static_cast<uint32_t>( blocks_index );
         entry.blockState = blockState;
         diff.diffs.push_back( entry );
     }
     diff.num_diffs = static_cast<uint32_t>( diff.diffs.size( ) );
-
     PacketWriter w;
     net_serialize_chunk_diff_result( w, diff );
-    const std::vector<uint8_t> &buf = w.buf( );
-    const size_t payload_bytes = buf.size( );
-    server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, buf );
+    return w.take_buf( );
+}
+
+size_t ServerLogic::respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset ) {
+
+    const auto it_world = this->world_cache.find( chunk_offset );
+
+    // 1. A world_cache hit is authoritative — it holds edits newer than
+    // the save file. (A timer-only entry with empty blocks carries no
+    // merged diff and falls through like a miss.) Dirty chunks are encoded
+    // fresh each request and never enter the DiffCache.
+    if ( it_world != this->world_cache.end( ) && !it_world->second.blocks.empty( ) ) {
+        std::vector<uint8_t> payload = encode_chunk_diff_result( chunk_offset, it_world->second.blocks );
+        const size_t payload_bytes = payload.size( );
+        server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, payload );
+        return payload_bytes;
+    }
+
+    // 2. DiffCache hit: the chunk is clean and the file already decoded —
+    // replay the stored payload bytes untouched.
+    if ( const std::vector<uint8_t> *cached = this->diff_cache.find( chunk_offset ) ) {
+        server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, *cached );
+        return cached->size( );
+    }
+
+    // 3. Clean chunk: the file index answers "no file" in-memory, so a box
+    // of fileless chunks costs hash lookups, not stats. A decoded
+    // non-empty diff is encoded once and cached for the next request.
+    std::map<int, BlockState> disk_diffs;
+    this->loadDiffsFromDisk( chunk_offset, disk_diffs );
+    if ( disk_diffs.empty( ) ) {
+        // No diffs for this chunk; emit no frame.
+        return 0;
+    }
+    std::vector<uint8_t> payload = encode_chunk_diff_result( chunk_offset, disk_diffs );
+    const size_t payload_bytes = payload.size( );
+    this->diff_cache.insert( chunk_offset, payload );
+    server.queue_message( client_fd, NetMsgType::CHUNK_DIFF_RESULT, 0, payload );
     return payload_bytes;
 }
 
 void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
+    // The file is being (re)written — any cached payload for it is stale.
+    // (In practice dirty chunks never reach the DiffCache; this is a
+    // cheap guard against future writers forgetting to invalidate.)
+    this->diff_cache.erase( chunk_pos );
     auto it = this->world_cache.find( chunk_pos );
     if ( it != this->world_cache.end( ) && !it->second.blocks.empty( ) ) {
         // The cache is a sorted index->state map: fold adjacent equal
@@ -250,6 +294,10 @@ void ServerLogic::persistAll( ) {
     pr_debug( "World saved (%zu chunks)", saved );
     this->world_cache.clear( );
     this->wake_schedule.clear( );
+    this->dirty_cells_ = 0;
+    // Every file was just rewritten from memory — drop all cached
+    // payloads; the next requests repopulate.
+    this->diff_cache.clear( );
 }
 
 void ServerLogic::flushAll( ) {
@@ -270,12 +318,7 @@ void ServerLogic::processTimers( Server &server ) {
             continue;
         }
         pr_debug( "Idle-saving chunk:%d %d %d", chunk_pos.x, chunk_pos.y, chunk_pos.z );
-        this->persistChunk( chunk_pos );
-        this->world_cache.erase( chunk_pos );
-        // Container data survives eviction only while nobody is viewing it;
-        // subscribers keep the entry (and its file stays saved) so an open
-        // container remains editable.
-        this->containers.evict_unwatched( chunk_pos );
+        this->evictChunk( eit );
     }
     // Furnace ticking runs at UPS_RATE, but only while some ticking
     // container can still change — an idle cached container doesn't earn a
@@ -289,6 +332,56 @@ void ServerLogic::processTimers( Server &server ) {
             this->next_time_broadcast = now + std::chrono::seconds( WORLD_TIME_SYNC_SECONDS );
         }
         this->broadcastWorldTime( server );
+    }
+}
+
+void ServerLogic::evictChunk( std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3>::iterator it ) {
+    const glm::ivec3 chunk_pos = it->first;
+    this->persistChunk( chunk_pos );
+    this->dirty_cells_ -= it->second.blocks.size( );
+    this->world_cache.erase( it );
+    // Container data survives eviction only while nobody is viewing it;
+    // subscribers keep the entry (and its file stays saved) so an open
+    // container remains editable.
+    this->containers.evict_unwatched( chunk_pos );
+}
+
+void ServerLogic::enforceDirtyCap( ) {
+    if ( this->dirty_cells_ <= this->dirty_cells_max_ ) {
+        return;
+    }
+    // Persist + evict the least-recently-edited chunks first. Timer-only
+    // entries (empty blocks — a container edit armed the idle save) hold
+    // no cells; evicting them wouldn't shrink the count, so they're
+    // skipped and keep their armed deadline.
+    std::vector<std::pair<std::chrono::steady_clock::time_point, glm::ivec3>> oldest_first;
+    oldest_first.reserve( this->world_cache.size( ) );
+    for ( const auto &[ chunk_pos, entry ] : this->world_cache ) {
+        if ( !entry.blocks.empty( ) ) {
+            oldest_first.emplace_back( entry.last_edit_time, chunk_pos );
+        }
+    }
+    std::sort( oldest_first.begin( ), oldest_first.end( ),
+               []( const auto &a, const auto &b ) {
+                   // Same-timestamp ties still order deterministically
+                   // (lowest chunk coords first) so the "oldest out" rule
+                   // is stable for tests and busy edits.
+                   return a.first != b.first ? a.first < b.first
+                                             : Compare_I_Vec3( )( a.second, b.second );
+               } );
+    for ( const auto &[ edit_time, chunk_pos ] : oldest_first ) {
+        if ( this->dirty_cells_ <= this->dirty_cells_max_ ) {
+            break;
+        }
+        (void)edit_time;
+        const auto it = this->world_cache.find( chunk_pos );
+        if ( it == this->world_cache.end( ) || it->second.blocks.empty( ) ) {
+            continue;
+        }
+        pr_debug( "Dirty-cap save: chunk %d %d %d (%zu cells over %zu)",
+                  chunk_pos.x, chunk_pos.y, chunk_pos.z,
+                  this->dirty_cells_, this->dirty_cells_max_ );
+        this->evictChunk( it );
     }
 }
 
@@ -321,8 +414,10 @@ ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
     // right after — so every cache entry is persisted and evicted by
     // processTimers once its edits go quiet.
     ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
+    const size_t cells_before = entry.blocks.size( );
     entry.blocks.clear( );
     this->loadDiffsFromDisk( chunk_offset, entry.blocks );
+    this->dirty_cells_ += entry.blocks.size( ) - cells_before;
     return &entry;
 }
 
@@ -394,17 +489,39 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
                            client_fd, req.min_x, req.min_y, req.min_z,
                            ( int )req.size_x, ( int )req.size_y, ( int )req.size_z );
         }
-        int frames_queued = 0;
-        size_t bytes_queued = 0;
+        // Serve nearest-first from the requester's player chunk (the box
+        // centre when no PLAYER_LOCATION has arrived yet) so the chunks
+        // around the player land ahead of the periphery.
+        std::vector<glm::ivec3> order;
+        order.reserve( static_cast<size_t>( req.size_x ) * req.size_y * req.size_z );
         for ( uint8_t dx = 0; dx < req.size_x; dx++ ) {
             for ( uint8_t dy = 0; dy < req.size_y; dy++ ) {
                 for ( uint8_t dz = 0; dz < req.size_z; dz++ ) {
-                    glm::ivec3 chunk_pos = glm::ivec3( req.min_x + dx, req.min_y + dy, req.min_z + dz );
-                    const size_t n = this->respondToChunkRequest( server, client_fd, chunk_pos );
-                    bytes_queued += n;
-                    frames_queued += n > 0 ? 1 : 0;
+                    order.emplace_back( req.min_x + dx, req.min_y + dy, req.min_z + dz );
                 }
             }
+        }
+        glm::dvec3 ref;
+        glm::ivec3 player_chunk;
+        if ( this->entities.player_chunk_of( client_fd, player_chunk ) ) {
+            ref = glm::dvec3( player_chunk );
+        } else {
+            ref = glm::dvec3( req.min_x + ( req.size_x - 1 ) * 0.5,
+                              req.min_y + ( req.size_y - 1 ) * 0.5,
+                              req.min_z + ( req.size_z - 1 ) * 0.5 );
+        }
+        std::stable_sort( order.begin( ), order.end( ),
+                          [ &ref ]( const glm::ivec3 &a, const glm::ivec3 &b ) {
+                              const glm::dvec3 da = glm::dvec3( a ) - ref;
+                              const glm::dvec3 db = glm::dvec3( b ) - ref;
+                              return glm::dot( da, da ) < glm::dot( db, db );
+                          } );
+        int frames_queued = 0;
+        size_t bytes_queued = 0;
+        for ( const glm::ivec3 &chunk_pos : order ) {
+            const size_t n = this->respondToChunkRequest( server, client_fd, chunk_pos );
+            bytes_queued += n;
+            frames_queued += n > 0 ? 1 : 0;
         }
         if ( trace ) {
             mpload_tracef( "srv_served fd=%d chunks=%d frames=%d bytes=%zu us=%lld",

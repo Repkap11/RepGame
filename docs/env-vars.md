@@ -74,6 +74,9 @@ the index, not the reference.
 | `REPGAME_SCREENSHOT_TICK` | 0 (off) | all | request a framebuffer screenshot on tick n (`./screenshots/`); only consulted under `REPGAME_WALKTEST` | capture skill |
 | `REPGAME_SCRIPT` | unset | all | path to a `.rds` scripted-scenario file: one debug command per line, run one per tick until a blocking command stalls (set by rep-dbg `script`) | docs/debug-tools.md |
 | `REPGAME_SCRIPT_KEEP` | 0 | all | `1` keeps the game running (camera released) after the script ends instead of exiting | docs/debug-tools.md |
+| `REPGAME_SERVER_DIFF_CACHE_MB` | 16 | server | byte budget (MB) for the LRU of encoded `CHUNK_DIFF_RESULT` payloads; `0` disables the cache | docs/multiplayer.md |
+| `REPGAME_SERVER_DIFF_CACHE_MAX` | 65536 | server | hard entry cap for the diff payload cache (bounds per-entry bookkeeping) | docs/multiplayer.md |
+| `REPGAME_SERVER_DIRTY_CELLS_MAX` | 200000 | server | max unsaved block-edit cells held in `world_cache`; beyond it the least-recently-edited chunks persist+evict early (`0` = persist every edit immediately) | docs/multiplayer.md |
 | `REPGAME_SFX_VOLUME` | 1.0 | all | linear SFX gain 0..1 | docs/audio.md |
 | `REPGAME_TELEPORT` | unset | all | `"x,y,z,angle,sprint,spin_deg_per_tick[,pitch[,walk]]"` — teleport on tick 1 then hold forward (`walk=0` pans in place); only consulted under `REPGAME_WALKTEST` | capture skill |
 | `REPGAME_TEX_MIPMAPS` | 1 | all | `0` restores NEAREST minification of the block atlas | docs/rendering.md |

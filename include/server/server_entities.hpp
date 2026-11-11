@@ -113,6 +113,17 @@ class ServerEntities {
     bool on_client_message( Server &server, int client_fd, NetMsgType type, const std::vector<uint8_t> &payload );
     // Notify that a client's player chunk may have changed (PLAYER_LOCATION).
     void on_player_position( Server &server, int client_fd, float x, float y, float z );
+    // The client's last reported player chunk (PLAYER_LOCATION); false
+    // when none has arrived yet. Used to order CHUNK_DIFF_REQUEST answers
+    // nearest-first.
+    bool player_chunk_of( int client_fd, glm::ivec3 &out ) const {
+        const auto it = this->clients.find( client_fd );
+        if ( it == this->clients.end( ) || !it->second.has_player_chunk ) {
+            return false;
+        }
+        out = it->second.player_chunk;
+        return true;
+    }
     // Persist every dirty chunk (flushAll / shutdown).
     void flush_all( );
 

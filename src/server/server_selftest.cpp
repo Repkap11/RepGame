@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include "server/server.hpp"
+#include "server/diff_cache.hpp"
 #include "common/container.hpp"
 #include "common/furnace.hpp"
 #include "common/net/packet.hpp"
@@ -1580,6 +1581,185 @@ int server_selftest( ) {
         char byte;
         check( recv( v.peer_fd, &byte, 1, 0 ) == 0, "mismatch: server closed its end of the socket" );
         close( v.peer_fd );
+    }
+
+    // === DiffCache: clean chunks replay stored CHUNK_DIFF_RESULT payloads
+    // out of a byte-budgeted LRU; record_block invalidates the chunk and
+    // its halo neighbours; dirty chunks never enter the cache. ===
+    const glm::ivec3 dc1( 20, 0, 20 );
+    const glm::ivec3 dc_edge( 21, 0, 20 );
+    const glm::ivec3 dc1_origin = dc1 * CHUNK_SIZE_I;
+    {
+        // Standalone LRU mechanics: byte accounting stays under the
+        // budget, eviction is LRU-first, oversized payloads never cache,
+        // and the entry cap evicts the same way.
+        DiffCache dc;
+        const std::vector<uint8_t> p100( 100, 7 );
+        const size_t budget3 = 3 * ( p100.size( ) + DiffCache::ENTRY_OVERHEAD );
+        dc.set_limits( budget3, 64 );
+        dc.insert( glm::ivec3( 0, 0, 0 ), p100 );
+        dc.insert( glm::ivec3( 1, 0, 0 ), p100 );
+        dc.insert( glm::ivec3( 2, 0, 0 ), p100 );
+        check( dc.entries( ) == 3 && dc.bytes( ) == budget3,
+               "diffcache: three payloads fill the budget exactly (bytes=%zu)", dc.bytes( ) );
+        check( dc.find( glm::ivec3( 0, 0, 0 ) ) != nullptr, "diffcache: hit promotes to MRU" );
+        dc.insert( glm::ivec3( 3, 0, 0 ), p100 ); // over budget: evicts LRU (1)
+        check( dc.entries( ) == 3 && dc.bytes( ) <= budget3 && dc.evictions( ) == 1,
+               "diffcache: insert over budget evicts once (bytes=%zu evictions=%zu)",
+               dc.bytes( ), dc.evictions( ) );
+        check( dc.find( glm::ivec3( 1, 0, 0 ) ) == nullptr &&
+                   dc.find( glm::ivec3( 0, 0, 0 ) ) != nullptr &&
+                   dc.find( glm::ivec3( 3, 0, 0 ) ) != nullptr,
+               "diffcache: LRU evicted the unpromoted entry" );
+        const size_t miss0 = dc.misses( ), hit0 = dc.hits( );
+        (void)dc.find( glm::ivec3( 99, 0, 0 ) );
+        check( dc.misses( ) == miss0 + 1 && dc.hits( ) == hit0,
+               "diffcache: absent lookup counts a miss" );
+        dc.insert( glm::ivec3( 9, 9, 9 ), std::vector<uint8_t>( budget3 + 1, 9 ) );
+        check( dc.find( glm::ivec3( 9, 9, 9 ) ) == nullptr,
+               "diffcache: oversized payload never cached" );
+        dc.set_limits( budget3, 2 );
+        check( dc.entries( ) == 2 && dc.bytes( ) <= budget3,
+               "diffcache: shrinking the entry cap evicts down" );
+        // Caching disabled entirely by a 0 budget.
+        dc.set_limits( 0, 64 );
+        check( dc.entries( ) == 0, "diffcache: zero budget empties the cache" );
+        dc.insert( glm::ivec3( 5, 5, 5 ), p100 );
+        check( dc.entries( ) == 0, "diffcache: zero budget never caches" );
+    }
+    {
+        DiffCache &cache = server.test_logic( ).test_diff_cache( );
+        SimClient c = connect_client( server );
+        drain_client( server, c );
+        const glm::ivec3 in_pos = dc1_origin + glm::ivec3( 10, 40, 10 );
+        const glm::ivec3 edge_pos = dc1_origin + glm::ivec3( 61, 40, 10 );
+        place( server, c, in_pos, stone );
+        place( server, c, edge_pos, dirt ); // edge: mirrors into dc_edge too
+        disconnect_client( server, c );     // flush: both chunks live only on disk
+
+        c = connect_client( server );
+        drain_client( server, c );
+        const size_t miss0 = cache.misses( );
+        const size_t hit0 = cache.hits( );
+        const size_t ent0 = cache.entries( );
+
+        // First requests miss and fill; repeats hit.
+        send_diff_request( server, c, dc1, 1, 1, 1 );
+        send_diff_request( server, c, dc_edge, 1, 1, 1 );
+        DiffView first_view;
+        collect_diffs( server, c, first_view );
+        check( cache.misses( ) == miss0 + 2 && cache.entries( ) >= ent0 + 2,
+               "diffcache: clean-chunk requests miss then fill (misses +%zu)",
+               cache.misses( ) - miss0 );
+        send_diff_request( server, c, dc1, 1, 1, 1 );
+        send_diff_request( server, c, dc_edge, 1, 1, 1 );
+        DiffView second_view;
+        collect_diffs( server, c, second_view );
+        check( cache.hits( ) == hit0 + 2,
+               "diffcache: repeat requests hit (hits +%zu)", cache.hits( ) - hit0 );
+        expect_diff( second_view, dc1, in_pos, stone );
+        expect_diff( second_view, dc_edge, edge_pos, dirt );
+
+        // An edge edit dirties dc1 and halo-neighbour dc_edge: both drop
+        // out of the cache, and the next request serves the merged state
+        // (old file diffs + new edit) from world_cache.
+        const size_t entries_before_edit = cache.entries( );
+        place( server, c, edge_pos, gold );
+        drain_client( server, c );
+        check( cache.entries( ) == entries_before_edit - 2,
+               "diffcache: record_block invalidates chunk + halo neighbour (entries %zu -> %zu)",
+               entries_before_edit, cache.entries( ) );
+        send_diff_request( server, c, dc1, 1, 1, 1 );
+        send_diff_request( server, c, dc_edge, 1, 1, 1 );
+        DiffView merged;
+        collect_diffs( server, c, merged );
+        expect_diff( merged, dc1, in_pos, stone );
+        expect_diff( merged, dc1, edge_pos, gold );
+        expect_diff( merged, dc_edge, edge_pos, gold );
+        check( cache.entries( ) == entries_before_edit - 2,
+               "diffcache: dirty chunks are never cached" );
+        disconnect_client( server, c );
+        check( cache.entries( ) == 0,
+               "diffcache: session flush clears cached payloads" );
+    }
+
+    // === Dirty-cell cap: a tiny cap forces the least-recently-edited
+    // chunks to persist + evict early; their files hold the edits and
+    // later requests still serve them (now via the DiffCache). ===
+    {
+        SimClient c = connect_client( server );
+        drain_client( server, c );
+        server.test_logic( ).test_set_dirty_cells_max( 3 );
+        const glm::ivec3 cap0( 40, 0, 40 );
+        const glm::ivec3 cap_pos = glm::ivec3( 10, 40, 10 );
+        for ( int i = 0; i < 4; i++ ) {
+            // One interior cell per chunk — 4 dirty cells over a cap of 3.
+            const glm::ivec3 chunk = cap0 + glm::ivec3( i * 2, 0, 0 );
+            place( server, c, chunk * CHUNK_SIZE_I + cap_pos, stone );
+            drain_client( server, c );
+        }
+        check( server.test_logic( ).worldCacheDirtyCells( ) <= 3 &&
+                   server.test_logic( ).cachedChunkCount( ) <= 3,
+               "dirtycap: early save evicts down to the cap (cells=%zu chunks=%zu)",
+               server.test_logic( ).worldCacheDirtyCells( ),
+               server.test_logic( ).cachedChunkCount( ) );
+        // The oldest edit (cap0) went out first — its file holds the edit.
+        expect_disk_block( storage, cap0, cap0 * CHUNK_SIZE_I + cap_pos, stone );
+        send_diff_request( server, c, cap0, 1, 1, 1 );
+        DiffView cap_view;
+        collect_diffs( server, c, cap_view );
+        expect_diff( cap_view, cap0, cap0 * CHUNK_SIZE_I + cap_pos, stone );
+        server.test_logic( ).test_set_dirty_cells_max( 200000 );
+        disconnect_client( server, c );
+    }
+
+    // === Nearest-first order: a 3x1x3 request box around the player's
+    // chunk answers the centre chunk's frame before the corner's (scan
+    // order would emit the corner — the box min — first). ===
+    {
+        const glm::ivec3 center( 50, 0, 50 );
+        const glm::ivec3 corner = center + glm::ivec3( -1, 0, -1 );
+        SimClient c = connect_client( server );
+        drain_client( server, c );
+        place( server, c, corner * CHUNK_SIZE_I + glm::ivec3( 10, 40, 10 ), sand );
+        place( server, c, center * CHUNK_SIZE_I + glm::ivec3( 10, 40, 10 ), gold );
+        disconnect_client( server, c ); // flush so both serve from the cache
+
+        c = connect_client( server );
+        drain_client( server, c );
+        // Player stands inside the centre chunk.
+        const glm::vec3 pp = glm::vec3( center * CHUNK_SIZE_I ) + glm::vec3( 10.0f, 50.0f, 10.0f );
+        send_player_location( server, c, pp.x, pp.y, pp.z );
+        drain_client( server, c );
+        send_diff_request( server, c, corner, 3, 1, 3 );
+        glm::ivec3 order[ 2 ]{ glm::ivec3( -999 ), glm::ivec3( -999 ) };
+        int diff_frames = 0;
+        for ( const ReceivedFrame &f : drain_client( server, c ) ) {
+            if ( f.type != NetMsgType::CHUNK_DIFF_RESULT ) {
+                continue;
+            }
+            PacketReader r( f.payload.data( ), f.payload.size( ) );
+            NetChunkDiffResultPayload diff;
+            if ( net_deserialize_chunk_diff_result( r, diff ) && diff_frames < 2 ) {
+                order[ diff_frames ] = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
+            }
+            diff_frames++;
+        }
+        check( diff_frames == 2 && order[ 0 ] == center && order[ 1 ] == corner,
+               "nearest: player-centred request serves centre first (frames=%d first=%d,%d,%d)",
+               diff_frames, order[ 0 ].x, order[ 0 ].y, order[ 0 ].z );
+        disconnect_client( server, c );
+    }
+
+    // === Env caps: parsed once at init; with the variables unset the
+    // documented defaults apply (16 MB, 65536 entries, 200K dirty cells).
+    {
+        const DiffCache &cache = server.test_logic( ).test_diff_cache( );
+        check( cache.byte_budget( ) == 16u * 1024 * 1024 &&
+                   cache.max_entries( ) == 65536 &&
+                   server.test_logic( ).dirtyCellsMax( ) == 200000,
+               "env: diff cache + dirty-cap defaults when vars unset (budget=%zu max=%zu cells=%zu)",
+               cache.byte_budget( ), cache.max_entries( ), server.test_logic( ).dirtyCellsMax( ) );
     }
 
     server.cleanup( );

@@ -5,6 +5,7 @@
 #include "common/constants.hpp"
 #include "common/net/framed_socket.hpp"
 #include "common/utils/map_storage.hpp"
+#include "server/diff_cache.hpp"
 #include "server/server_containers.hpp"
 #include "server/server_entities.hpp"
 
@@ -64,6 +65,21 @@ class ServerLogic {
     // longer matches the entry's wake_deadline.
     std::multimap<std::chrono::steady_clock::time_point, glm::ivec3> wake_schedule;
 
+    // Bounded LRU of encoded CHUNK_DIFF_RESULT payloads for CLEAN chunks
+    // (no pending world_cache entry). Sized by REPGAME_SERVER_DIFF_CACHE_MB
+    // / REPGAME_SERVER_DIFF_CACHE_MAX in init(); record_block invalidates
+    // every chunk it dirties (halo included) before touching world_cache,
+    // so the cache can never serve a stale diff.
+    DiffCache diff_cache;
+    // Running total of dirty cells across world_cache (sum of
+    // entry.blocks.size()) — maintained by record_block/loadIntoCache/
+    // eviction so worldCacheDirtyCells() stays O(1). Past
+    // dirty_cells_max_ (REPGAME_SERVER_DIRTY_CELLS_MAX) record_block
+    // persists and evicts the least-recently-edited chunks early instead
+    // of letting the idle timers grow memory without bound.
+    size_t dirty_cells_ = 0;
+    size_t dirty_cells_max_ = 200000;
+
     // Day/night clock (server-authoritative, world_time units are
     // RepGame::tick ticks — DAY_LENGTH_TICKS per day). While any client is
     // connected the clock runs lazily: worldTimeNow() = base + (now -
@@ -86,6 +102,13 @@ class ServerLogic {
     size_t respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
     void persistChunk( const glm::ivec3 &chunk_pos );
     void persistAll( );
+    // Persist + evict one world_cache entry (the shared tail of the idle
+    // timer and the dirty-cap early save); decrements dirty_cells_ and
+    // drops the chunk's unwatched container caches.
+    void evictChunk( std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3>::iterator it );
+    // While dirty_cells_ exceeds the cap, persist+evict the
+    // least-recently-edited chunks first.
+    void enforceDirtyCap( );
     ChunkCacheEntry *loadIntoCache( const glm::ivec3 &chunk_offset );
     bool loadDiffsFromDisk( const glm::ivec3 &chunk_offset, std::map<int, BlockState> &out );
     void scheduleChunkSave( const glm::ivec3 &chunk_pos );
@@ -95,21 +118,18 @@ class ServerLogic {
     void init( const char *world_name );
     // MPLOAD srv_mem counters (REPGAME_MPLOAD_TRACE).
     size_t worldCacheChunks( ) const { return this->world_cache.size( ); }
-    size_t worldCacheDirtyCells( ) const {
-        size_t n = 0;
-        for ( const auto &pair : this->world_cache ) {
-            n += pair.second.blocks.size( );
-        }
-        return n;
-    }
+    size_t worldCacheDirtyCells( ) const { return this->dirty_cells_; }
+    size_t dirtyCellsMax( ) const { return this->dirty_cells_max_; }
     // Per-kind save-file index sizes (see MapStorage::enable_file_index).
     void fileIndexCounts( size_t out[ MAP_FILE_KIND_COUNT ] ) const {
         this->map_storage.file_index_counts( out );
     }
-    // Phase-4 DiffCache counters — stubbed 0 until the cache lands so the
-    // srv_mem line already has somewhere to report them.
-    size_t diffCacheEntries( ) const { return 0; }
-    size_t diffCacheBytes( ) const { return 0; }
+    // DiffCache counters (see the diff_cache member above).
+    size_t diffCacheEntries( ) const { return this->diff_cache.entries( ); }
+    size_t diffCacheBytes( ) const { return this->diff_cache.bytes( ); }
+    size_t diffCacheHits( ) const { return this->diff_cache.hits( ); }
+    size_t diffCacheMisses( ) const { return this->diff_cache.misses( ); }
+    size_t diffCacheEvictions( ) const { return this->diff_cache.evictions( ); }
     void on_client_connected( Server &server, int client_fd );
     void on_client_message( Server &server, int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
     void on_client_disconnected( Server &server, int client_fd );
@@ -134,6 +154,13 @@ class ServerLogic {
     // Selftest hook: entity arbitration state.
     ServerEntities &test_entities( ) {
         return this->entities;
+    }
+    // Selftest hooks: the diff cache and the dirty-cell cap.
+    DiffCache &test_diff_cache( ) {
+        return this->diff_cache;
+    }
+    void test_set_dirty_cells_max( size_t n ) {
+        this->dirty_cells_max_ = n;
     }
     // Selftest hook: container arbitration state.
     ServerContainers &test_containers( ) {

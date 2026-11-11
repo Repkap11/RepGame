@@ -271,7 +271,32 @@ chunk-diff load-in path:
   bytes queued, loop µs), `srv_flush` (per write-ready flush: frames
   sent/left, µs), `srv_stats` (once a second: inbound frame counts by
   type, epoll iterations), `srv_mem` (every 10 s: RSS, `world_cache`
-  chunks, dirty cells, known-empty set).
+  chunks, dirty cells, per-kind save-file index sizes, diff-cache
+  entries/accounted bytes/hits/misses/evictions).
+
+### Server diff-request path
+
+Answering a `CHUNK_DIFF_REQUEST` box layers three structures so steady
+state costs no disk IO (`ServerLogic::respondToChunkRequest`):
+
+1. `world_cache` holds chunks with unsaved edits (authoritative, encoded
+   fresh per request);
+2. `DiffCache` (`src/server/diff_cache.cpp`) is an LRU of *encoded*
+   `CHUNK_DIFF_RESULT` payloads for clean chunks — hits replay the stored
+   bytes without decoding the file again. Bounded by
+   `REPGAME_SERVER_DIFF_CACHE_MB`/`REPGAME_SERVER_DIFF_CACHE_MAX`;
+   `record_block` invalidates every chunk it dirties (halo neighbours
+   included) so a cached payload can never go stale;
+3. the save-file index (`MapStorage::enable_file_index`, one `readdir` at
+   server start kept current by every persist/unlink) answers "no file"
+   from a hash set, so fileless box chunks cost a lookup, not a `stat`.
+
+Server init also rewrites any chunk files still in the pre-v1 legacy
+format once (`migrate_legacy_chunk_files`), and `record_block` early
+persists the least-recently-edited chunks when total dirty cells pass
+`REPGAME_SERVER_DIRTY_CELLS_MAX` — the 30 s idle-save timer is no longer
+the only bound on dirty memory. Requests in a box are served nearest-first
+from the requester's player chunk (box centre when unknown).
 
 `tools/mp_probe.py` measures the same path without a game client:
 
