@@ -115,6 +115,45 @@ int test_arrows( ) {
         world.set_loaded_block( anchor, stone );
     }
 
+    // --- grazing edge hit: the box rests on the rim of a hole while the tip
+    // cell (the anchor guess) hangs over air. Anchoring there made the arrow
+    // release and re-land every ~20 ticks forever — the anchor has to be the
+    // cell whose face actually stopped the box ------------------------------
+    {
+        // Floor at y=10 with a 1x1 hole at (11,10,10); the arrow drops
+        // straight down at x=11.02: box bottom overlaps the rim cell
+        // (10,10,10) by 0.03 while the center column is over the hole.
+        for ( int x = 8; x <= 14; x++ ) {
+            for ( int z = 8; z <= 12; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+            }
+        }
+        world.set_loaded_block( glm::ivec3( 11, 10, 10 ), BLOCK_STATE_AIR );
+        ArrowEntities arrows;
+        arrows.spawn( glm::dvec3( 11.02, 14.0, 10.5 ), glm::dvec3( 0.0, -0.2, 0.0 ), ArrowEntities::ARROW_DAMAGE, 1 );
+        ArrowEntities::ArrowTickOutput out;
+        int landings = 0;
+        bool was_stuck = false;
+        for ( int i = 0; i < 300; i++ ) {
+            gs.tick_number++;
+            arrows.tick( gs, &out );
+            const bool s = arrows.debug_arrows( )[ 0 ].stuck == 1;
+            if ( s && !was_stuck ) {
+                landings++;
+            }
+            was_stuck = s;
+        }
+        const ArrowEntities::Arrow a = arrows.debug_arrows( )[ 0 ];
+        check_bool( "edge: lands exactly once", landings == 1 );
+        check_bool( "edge: stays parked", a.stuck == 1 );
+        check_bool( "edge: anchored on the rim cell", a.stuck_cell == glm::ivec3( 10, 10, 10 ) );
+        for ( int x = 8; x <= 14; x++ ) {
+            for ( int z = 8; z <= 12; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 10, z ), BLOCK_STATE_AIR );
+            }
+        }
+    }
+
     // --- stuck pickup ---------------------------------------------------------
     {
         test_setup_inventories( gs );

@@ -91,8 +91,12 @@ settled as a block hit where it sits (`Collision::box_collides`) instead
 of tunnelling through. Lava/fire contact destroys the arrow with a `fizz`.
 
 A block hit parks the arrow: `stuck` freezes the sim with the tip ~0.1
-inside the hit cell (`stuck_cell` is rechecked each tick — breaking that
-block releases the arrow to fall again), the `arrow_hit` pool plays, and
+inside the hit face (`stuck_cell` is the cell whose collision face stopped
+the box — a grazing edge hit can leave the rendered tip over air, so it
+can't be derived from the tip position; it is rechecked each tick —
+breaking that block releases the arrow to fall again, while an unloaded
+anchor counts as still holding since collision treats it as solid), the
+`arrow_hit` pool plays, and
 the shooter-side stuck arrow can be walked over to collect one `ARROW`
 into the inventory once `ARROW_PICKUP_DELAY_TICKS` counts down (the same
 cooldown a player-thrown item spawns with; item-pickup box semantics,

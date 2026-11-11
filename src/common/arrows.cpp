@@ -39,6 +39,69 @@ static glm::dvec3 arrow_min( const ArrowEntities::Arrow &a ) {
     return a.pos - glm::dvec3( ARROW_HALF );
 }
 
+// True while the cell can anchor a stuck arrow: a solid block, or an
+// unloaded cell — unloaded counts as solid in the collision code, so an
+// anchor that reads LAST_BLOCK_ID can't have broken, and releasing on it
+// would just re-collide with the same unloaded face next tick.
+static bool arrow_cell_holds( World &world, const glm::ivec3 &cell ) {
+    const BlockState b = world.get_loaded_block( cell );
+    return b.id == LAST_BLOCK_ID || block_definition_get_definition( b.id )->collides_with_player;
+}
+
+// The cell whose collision face stopped the box on `axis` (the box was
+// moving `sgn` along it): it rests a SKIN off the face, so probe just past
+// the face plane across the box's footprint. Fence-height boxes reach a
+// cell above their own, so probe a second layer deeper. Returns the first
+// holding cell found.
+static bool arrow_face_anchor( World &world, const glm::dvec3 &bmin, const glm::dvec3 &bmax, const int axis, const int sgn, glm::ivec3 *out ) {
+    const double eps = 1e-4;
+    const int c0 = static_cast<int>( floor( sgn < 0 ? bmin[ axis ] - 0.01 : bmax[ axis ] + 0.01 ) );
+    const int a1 = ( axis + 1 ) % 3, a2 = ( axis + 2 ) % 3;
+    const int lo1 = static_cast<int>( floor( bmin[ a1 ] ) );
+    const int hi1 = static_cast<int>( floor( bmax[ a1 ] - eps ) );
+    const int lo2 = static_cast<int>( floor( bmin[ a2 ] ) );
+    const int hi2 = static_cast<int>( floor( bmax[ a2 ] - eps ) );
+    for ( int layer = 0; layer < 2; layer++ ) {
+        for ( int j = lo1; j <= hi1; j++ ) {
+            for ( int k = lo2; k <= hi2; k++ ) {
+                glm::ivec3 cell;
+                cell[ axis ] = c0 + layer * sgn;
+                cell[ a1 ] = j;
+                cell[ a2 ] = k;
+                if ( arrow_cell_holds( world, cell ) ) {
+                    *out = cell;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// Anchor for a spawn already overlapping solid (no hit face to derive
+// from): the tip cell when it holds, else the first holding cell the box
+// overlaps.
+static glm::ivec3 arrow_overlap_anchor( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax, const glm::ivec3 &tip_cell ) {
+    const double eps = 1e-4;
+    const int x0 = static_cast<int>( floor( amin.x ) );
+    const int x1 = static_cast<int>( floor( amax.x - eps ) );
+    // One extra layer below: fence-height boxes reach above their own cell.
+    const int y0 = static_cast<int>( floor( amin.y ) ) - 1;
+    const int y1 = static_cast<int>( floor( amax.y - eps ) );
+    const int z0 = static_cast<int>( floor( amin.z ) );
+    const int z1 = static_cast<int>( floor( amax.z - eps ) );
+    for ( int x = x0; x <= x1; x++ ) {
+        for ( int y = y0; y <= y1; y++ ) {
+            for ( int z = z0; z <= z1; z++ ) {
+                if ( arrow_cell_holds( world, glm::ivec3( x, y, z ) ) ) {
+                    return glm::ivec3( x, y, z );
+                }
+            }
+        }
+    }
+    return tip_cell;
+}
+
 // Flag application shared by the net paths. The anchor cell is never
 // streamed: a stuck arrow's vel carries the entry direction (kept for
 // mirror orientation), so the tip cell falls out of pos + dir and can be
@@ -152,10 +215,10 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
         a.age_ticks++;
 
         if ( a.stuck ) {
-            // The block holding the tip broke: drop free from rest, keeping
-            // the entry orientation until gravity bends it.
+            // The block holding the arrow broke: drop free from rest,
+            // keeping the entry orientation until gravity bends it.
             const BlockState anchor = world.get_loaded_block( a.stuck_cell );
-            if ( anchor.id == LAST_BLOCK_ID || !block_definition_get_definition( anchor.id )->collides_with_player ) {
+            if ( anchor.id != LAST_BLOCK_ID && !block_definition_get_definition( anchor.id )->collides_with_player ) {
                 a.stuck = 0;
                 a.vel = glm::dvec3( 0.0 );
             } else {
@@ -222,7 +285,8 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
         if ( Collision::box_collides( world, amin, amax ) ) {
             a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
             a.stuck = 1;
-            a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
+            const glm::ivec3 tip_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
+            a.stuck_cell = arrow_cell_holds( world, tip_cell ) ? tip_cell : arrow_overlap_anchor( world, amin, amax, tip_cell );
             a.pickup_delay = ARROW_PICKUP_DELAY_TICKS;
             arrow_hit_sfx( state, a.pos );
             continue;
@@ -262,7 +326,24 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             // direction — it streams to mirrors as the stuck orientation.
             a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
             a.stuck = 1;
-            a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
+            // Anchor on the cell whose face actually stopped the box (the
+            // dominant motion axis first). The tip cell alone is only a
+            // guess: a grazing hit on a face edge leaves the tip over air,
+            // and anchoring there made the arrow release and re-land
+            // forever.
+            int order[ 3 ] = { 0, 1, 2 };
+            std::sort( order, order + 3, [ &a ]( const int p, const int q ) { return fabs( a.vel[ p ] ) > fabs( a.vel[ q ] ); } );
+            bool anchored = false;
+            for ( const int axis : order ) {
+                if ( hit_axis[ axis ] && hit_extra_axis[ axis ] < 0 &&
+                     arrow_face_anchor( world, amin, amax, axis, a.vel[ axis ] < 0.0 ? -1 : 1, &a.stuck_cell ) ) {
+                    anchored = true;
+                    break;
+                }
+            }
+            if ( !anchored ) {
+                a.stuck_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
+            }
             a.pickup_delay = ARROW_PICKUP_DELAY_TICKS;
             arrow_hit_sfx( state, a.pos );
         }
