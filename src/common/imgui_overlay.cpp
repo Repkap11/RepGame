@@ -238,7 +238,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
                      debug_vars.debris_particles, debug_vars.primed_tnt, debug_vars.falling_blocks );
         ImGui::Text( "Mobs: %d (players %d)", static_cast<int>( state.world.mobs.count( ) - state.world.mobs.remote_count( ) ),
                      static_cast<int>( state.world.mobs.remote_count( ) ) );
-        ImGui::Text( "Items: %d", debug_vars.item_entities );
+        ImGui::Text( "Items: %d  Arrows: %d", debug_vars.item_entities, static_cast<int>( state.world.arrows.count( ) ) );
 
 #if IMGUI_OVERLAY_LIVE_TUNE
         ImGui::Separator( );
