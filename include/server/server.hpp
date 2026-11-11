@@ -30,6 +30,10 @@ struct PacketType_DataPlayer {
 
 struct ClientData {
     int connected;
+    // Whether this fd's epoll registration currently includes EPOLLOUT.
+    // update_epoll only calls epoll_ctl when this differs from
+    // socket.has_outbound() — per-frame queueing stays syscall-free.
+    int epoll_out_armed;
     PacketType_DataPlayer player_data;
     FramedSocket socket;
 };

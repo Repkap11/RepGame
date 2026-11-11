@@ -56,13 +56,6 @@ class ServerLogic {
     // world_cache, record_block/scheduleChunkSave for lit-swap edits).
     friend class ServerContainers;
     std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3> world_cache;
-    // Chunks known to have no edits (no save file, or a file with zero
-    // diffs): diff requests skip the disk entirely for these.
-    std::set<glm::ivec3, Compare_I_Vec3> known_empty_chunks;
-    // Bound on known_empty_chunks — ~262k entries is a few tens of MB worst
-    // case, sized for the 1GB server box. On overflow the whole set is
-    // dropped; it's only an optimization.
-    static constexpr size_t KNOWN_EMPTY_CHUNKS_MAX = 1 << 18;
 
     // Sorted wake-up schedule: time -> chunk position whose idle timer
     // expires then. This is the "sorted list of times to wake up" —
@@ -100,8 +93,7 @@ class ServerLogic {
 
   public:
     void init( const char *world_name );
-    // MPLOAD srv_mem counters (REPGAME_MPLOAD_TRACE); file-index/diff-cache
-    // fields land here in later phases.
+    // MPLOAD srv_mem counters (REPGAME_MPLOAD_TRACE).
     size_t worldCacheChunks( ) const { return this->world_cache.size( ); }
     size_t worldCacheDirtyCells( ) const {
         size_t n = 0;
@@ -110,7 +102,14 @@ class ServerLogic {
         }
         return n;
     }
-    size_t knownEmptyCount( ) const { return this->known_empty_chunks.size( ); }
+    // Per-kind save-file index sizes (see MapStorage::enable_file_index).
+    void fileIndexCounts( size_t out[ MAP_FILE_KIND_COUNT ] ) const {
+        this->map_storage.file_index_counts( out );
+    }
+    // Phase-4 DiffCache counters — stubbed 0 until the cache lands so the
+    // srv_mem line already has somewhere to report them.
+    size_t diffCacheEntries( ) const { return 0; }
+    size_t diffCacheBytes( ) const { return 0; }
     void on_client_connected( Server &server, int client_fd );
     void on_client_message( Server &server, int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload );
     void on_client_disconnected( Server &server, int client_fd );
@@ -128,9 +127,9 @@ class ServerLogic {
     size_t cachedChunkCount( ) const {
         return this->world_cache.size( );
     }
-    // Selftest hook: number of chunks known to have no edits.
-    size_t knownEmptyChunkCount( ) const {
-        return this->known_empty_chunks.size( );
+    // Selftest hook: the world's storage (file index, direct file writes).
+    MapStorage &test_storage( ) {
+        return this->map_storage;
     }
     // Selftest hook: entity arbitration state.
     ServerEntities &test_entities( ) {

@@ -13,6 +13,7 @@
 // frames.
 
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <vector>
 
@@ -86,9 +87,10 @@ class FramedSocket {
     bool open_ = false;
     bool had_error_ = false;
 
-    // Outbound: list of complete frames waiting to be sent, plus a byte
-    // offset into the front frame for partial-write resumption (fd transport).
-    std::vector<std::vector<uint8_t>> send_queue_;
+    // Outbound: complete frames waiting to be sent, plus a byte offset
+    // into the front frame for partial-write resumption (fd transport).
+    // A deque keeps front-removal O(1) — flush() pops per sent frame.
+    std::deque<std::vector<uint8_t>> send_queue_;
     size_t send_offset_ = 0;
 
     // Inbound: accumulator for partial reads. We parse frames out of this

@@ -1,3 +1,4 @@
+#include <dirent.h> /* opendir/readdir — save-file index */
 #include <limits.h> /* PATH_MAX */
 #include <stddef.h> /* offsetof */
 #include <stdio.h>
@@ -71,15 +72,138 @@ char *MapStorage::get_map_name( ) {
     return this->map_name;
 }
 
-typedef struct __attribute__( ( packed ) ) {
-    BlockState blockState;
-    unsigned int num;
-} STORAGE_TYPE;
-
 // Chunk edit file header (v1): 'RGCK' as a little-endian u32. It can't
 // collide with a legacy file's leading record_size (8..14).
 #define CHUNK_EDITS_MAGIC 0x4B434752u
 #define CHUNK_EDITS_VERSION 1u
+
+// ---- Save-file index ----------------------------------------------------
+// Chunk coords packed into one u64 index key: x/z get 22 bits (~±2M
+// chunks), y 20 bits (~±512K) — far past any real world. Two's-complement
+// low bits keep negative coords distinct.
+static inline uint64_t pack_chunk_coords( int x, int y, int z ) {
+    return ( ( uint64_t )( x & 0x3FFFFF ) << 42 ) |
+           ( ( uint64_t )( y & 0xFFFFF ) << 22 ) |
+           ( ( uint64_t )( z & 0x3FFFFF ) );
+}
+
+static inline glm::ivec3 unpack_chunk_coords( uint64_t p ) {
+    int x = ( int )( ( p >> 42 ) & 0x3FFFFF );
+    int y = ( int )( ( p >> 22 ) & 0xFFFFF );
+    int z = ( int )( p & 0x3FFFFF );
+    if ( x & 0x200000 ) x -= 0x400000; // sign-extend 22-bit fields
+    if ( z & 0x200000 ) z -= 0x400000;
+    if ( y & 0x80000 ) y -= 0x100000; // 20-bit y
+    return glm::ivec3( x, y, z );
+}
+
+void MapStorage::index_insert( int kind, const glm::ivec3 &pos ) {
+    if ( this->file_index_enabled ) {
+        this->file_index[ kind ].insert( pack_chunk_coords( pos.x, pos.y, pos.z ) );
+    }
+}
+
+void MapStorage::index_remove( int kind, const glm::ivec3 &pos ) {
+    if ( this->file_index_enabled ) {
+        this->file_index[ kind ].erase( pack_chunk_coords( pos.x, pos.y, pos.z ) );
+    }
+}
+
+bool MapStorage::index_miss( int kind, const glm::ivec3 &pos ) {
+    if ( !this->file_index_enabled ||
+         this->file_index[ kind ].count( pack_chunk_coords( pos.x, pos.y, pos.z ) ) ) {
+        return false;
+    }
+    this->file_index_short_circuits++;
+    return true;
+}
+
+void MapStorage::enable_file_index( ) {
+    if ( this->file_index_enabled || repgame_block_world( ) ) {
+        return;
+    }
+    this->file_index_enabled = true;
+    static const struct {
+        const char *prefix;
+        int prefix_len;
+        int kind;
+    } kinds[] = {
+        { "chunk_", 6, MAP_FILE_CHUNK },
+        { "mobs_", 5, MAP_FILE_MOBS },
+        { "items_", 6, MAP_FILE_ITEMS },
+        { "chest_", 6, MAP_FILE_CHEST },
+        { "furnace_", 8, MAP_FILE_FURNACE },
+    };
+    DIR *dir = opendir( this->map_name );
+    if ( dir == NULL ) {
+        pr_debug( "file index: opendir failed for %s", this->map_name );
+        return;
+    }
+    size_t indexed = 0;
+    struct dirent *entry;
+    while ( ( entry = readdir( dir ) ) != NULL ) {
+        const char *name = entry->d_name;
+        for ( const auto &k : kinds ) {
+            if ( strncmp( name, k.prefix, k.prefix_len ) != 0 ) {
+                continue;
+            }
+            int x = 0, y = 0, z = 0;
+            char tail = 0;
+            if ( sscanf( name + k.prefix_len, "%d_%d_%d%c", &x, &y, &z, &tail ) == 3 ) {
+                this->file_index[ k.kind ].insert( pack_chunk_coords( x, y, z ) );
+                indexed++;
+            }
+            break;
+        }
+    }
+    closedir( dir );
+    pr_debug( "file index: %zu files under %s", indexed, this->map_name );
+}
+
+void MapStorage::file_index_counts( size_t out[ MAP_FILE_KIND_COUNT ] ) const {
+    for ( int i = 0; i < MAP_FILE_KIND_COUNT; i++ ) {
+        out[ i ] = this->file_index[ i ].size( );
+    }
+}
+
+int MapStorage::migrate_legacy_chunk_files( ) {
+    if ( repgame_block_world( ) || !this->file_index_enabled ) {
+        return 0;
+    }
+    // Snapshot the keys first: persist_chunk_edits mutates the index as
+    // files are rewritten (or removed for empty run lists).
+    std::vector<uint64_t> keys( this->file_index[ MAP_FILE_CHUNK ].begin( ),
+                                this->file_index[ MAP_FILE_CHUNK ].end( ) );
+    int migrated = 0;
+    for ( const uint64_t key : keys ) {
+        const glm::ivec3 pos = unpack_chunk_coords( key );
+        char file_name[ CHUNK_NAME_MAX_LENGTH ];
+        snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, pos.x, pos.y, pos.z );
+        uint32_t head = 0;
+        int got_head = 0;
+        FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+        if ( read_ptr != NULL ) {
+            got_head = fread( &head, sizeof( uint32_t ), 1, read_ptr ) == 1;
+            fclose( read_ptr );
+        }
+        if ( !got_head || head == CHUNK_EDITS_MAGIC ) {
+            continue; // already v1 (or unreadable — left for the loader)
+        }
+        // Legacy format: decode through the normal path, re-encode as v1.
+        ChunkEdits edits;
+        if ( this->load_chunk_edits( pos, edits ) != 1 ) {
+            continue; // undecodable — leave it rather than clobber
+        }
+        this->persist_chunk_edits( pos, edits.runs );
+        migrated++;
+    }
+    return migrated;
+}
+
+typedef struct __attribute__( ( packed ) ) {
+    BlockState blockState;
+    unsigned int num;
+} STORAGE_TYPE;
 
 void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std::vector<ChunkEditRun> &runs ) {
     if ( repgame_block_world( ) ) {
@@ -92,6 +216,7 @@ void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std:
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( runs.empty( ) ) {
         remove( file_name );
+        this->index_remove( MAP_FILE_CHUNK, chunk_offset );
         return;
     }
     FILE *write_ptr = fopen( file_name, "wb" );
@@ -99,6 +224,7 @@ void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std:
         pr_debug( "fopen failed for chunk:%s", file_name );
         return;
     }
+    this->index_insert( MAP_FILE_CHUNK, chunk_offset );
     const uint32_t magic = CHUNK_EDITS_MAGIC;
     const uint32_t version = CHUNK_EDITS_VERSION;
     const uint32_t record_size = sizeof( BlockState );
@@ -151,6 +277,8 @@ void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const Blo
     persist_data.num = num_same_blocks;
     fwrite( &persist_data, sizeof( STORAGE_TYPE ), 1, write_ptr );
     fclose( write_ptr );
+    // Test-only writer, but the index must still learn about the file.
+    this->index_insert( MAP_FILE_CHUNK, chunk_offset );
 }
 
 namespace {
@@ -173,9 +301,24 @@ int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32
     }
 
     int storage_block_state_size = storage_type_size - sizeof( unsigned int );
-    char *persist_data = ( char * )calloc( CHUNK_BLOCK_SIZE, storage_type_size );
-    const unsigned int persist_data_length = fread( persist_data, storage_type_size, CHUNK_BLOCK_SIZE, read_ptr );
+    // Read the whole remaining file into an exact-size buffer (from
+    // fstat) rather than allocating CHUNK_BLOCK_SIZE * record_size worst
+    // case — legacy diff files are tiny. Fallback keeps the old worst-case
+    // read when the size can't be determined.
+    size_t want_bytes = ( size_t )CHUNK_BLOCK_SIZE * storage_type_size;
+    const off_t data_start = lseek( fileno( read_ptr ), 0, SEEK_CUR );
+    struct stat st;
+    if ( data_start >= 0 && fstat( fileno( read_ptr ), &st ) == 0 && st.st_size > data_start &&
+         ( uint64_t )( st.st_size - data_start ) < want_bytes ) {
+        want_bytes = ( size_t )( st.st_size - data_start );
+    }
+    char *persist_data = ( char * )malloc( want_bytes > 0 ? want_bytes : 1 );
+    const size_t got_bytes = fread( persist_data, 1, want_bytes, read_ptr );
     fclose( read_ptr );
+    unsigned int persist_data_length = ( unsigned int )( got_bytes / storage_type_size );
+    if ( persist_data_length > CHUNK_BLOCK_SIZE ) {
+        persist_data_length = CHUNK_BLOCK_SIZE;
+    }
 
     if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
         pr_debug( "Smaller" );
@@ -374,6 +517,12 @@ int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     if ( repgame_block_world( ) ) {
         return 0;
     }
+    if ( this->file_index_enabled ) {
+        // The index answers without a stat — this is the hot path for
+        // server CHUNK_DIFF_REQUEST boxes.
+        this->file_index_short_circuits++;
+        return this->file_index[ MAP_FILE_CHUNK ].count( pack_chunk_coords( chunk_offset.x, chunk_offset.y, chunk_offset.z ) ) ? 1 : 0;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     struct stat st;
@@ -404,6 +553,7 @@ void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestCont
         // No chests left in this chunk — remove the file so deleted chests
         // don't resurrect on the next load.
         remove( file_name );
+        this->index_remove( MAP_FILE_CHEST, chunk_offset );
         return;
     }
     FILE *write_ptr = fopen( file_name, "wb" );
@@ -411,6 +561,7 @@ void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestCont
         pr_debug( "fopen failed for chest file:%s", file_name );
         return;
     }
+    this->index_insert( MAP_FILE_CHEST, chunk_offset );
     uint32_t record_size = sizeof( ChestFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     uint32_t num_chests = static_cast<uint32_t>( chests.size( ) );
@@ -434,6 +585,9 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
         return 0;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
+        return 0;
+    }
+    if ( this->index_miss( MAP_FILE_CHEST, chunk_offset ) ) {
         return 0;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -527,6 +681,7 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
     }
     if ( num_furnaces == 0 ) {
         remove( file_name );
+        this->index_remove( MAP_FILE_FURNACE, chunk_offset );
         return;
     }
     FILE *write_ptr = fopen( file_name, "wb" );
@@ -534,6 +689,7 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
         pr_debug( "fopen failed for furnace file:%s", file_name );
         return;
     }
+    this->index_insert( MAP_FILE_FURNACE, chunk_offset );
     uint32_t record_size = sizeof( FurnaceFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     fwrite( &num_furnaces, sizeof( uint32_t ), 1, write_ptr );
@@ -561,6 +717,9 @@ int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMa
         return 0;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
+        return 0;
+    }
+    if ( this->index_miss( MAP_FILE_FURNACE, chunk_offset ) ) {
         return 0;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -630,6 +789,7 @@ void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( mobs.empty( ) && removed.empty( ) ) {
         remove( file_name );
+        this->index_remove( MAP_FILE_MOBS, chunk_offset );
         return;
     }
     FILE *write_ptr = fopen( file_name, "wb" );
@@ -637,6 +797,7 @@ void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector
         pr_debug( "fopen failed for mobs file:%s", file_name );
         return;
     }
+    this->index_insert( MAP_FILE_MOBS, chunk_offset );
     uint32_t record_size = sizeof( MobFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     uint32_t num_mobs = static_cast<uint32_t>( mobs.size( ) );
@@ -657,6 +818,9 @@ void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector
 
 int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out, std::vector<uint8_t> *removed ) {
     if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    if ( this->index_miss( MAP_FILE_MOBS, chunk_offset ) ) {
         return 0;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -726,6 +890,7 @@ void MapStorage::persist_items( const glm::ivec3 &chunk_offset, const std::vecto
         pr_debug( "fopen failed for items file:%s", file_name );
         return;
     }
+    this->index_insert( MAP_FILE_ITEMS, chunk_offset );
     uint32_t record_size = sizeof( ItemFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     uint32_t num_items = static_cast<uint32_t>( items.size( ) );
@@ -741,6 +906,9 @@ void MapStorage::persist_items( const glm::ivec3 &chunk_offset, const std::vecto
 
 int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out ) {
     if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    if ( this->index_miss( MAP_FILE_ITEMS, chunk_offset ) ) {
         return 0;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];

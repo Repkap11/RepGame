@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <fcntl.h>
 #include <poll.h>
 
@@ -36,6 +37,11 @@ void Multiplayer::init( const char *hostname, const int port ) {
         pr_debug( "Unable to allocate socket" );
         this->sockfd = -1;
         return;
+    }
+    // Diff/block updates are latency-sensitive — skip Nagle.
+    int opt = 1;
+    if ( setsockopt( this->sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof( opt ) ) < 0 ) {
+        pr_debug( "setsockopt TCP_NODELAY: %s", strerror( errno ) );
     }
 
     // Perform DNS + nonblocking connect + poll on a background thread so a

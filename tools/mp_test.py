@@ -711,19 +711,17 @@ def sc_ownership_flip_no_dup(run, A, B):
 
     # Drag both players across the hysteresis boundary repeatedly (the two
     # pads are 4 chunks apart — each hop is a decisive ownership flip).
+    # Natural mobs spawn/despawn inside the band between the two clients'
+    # dump instants, so compare via a wait instead of one-shot snapshots.
+    sa = None
     for step in range(3):
-        A.goto(10, gy + 1.7, 10)
-        B.goto(260, gy + 1.7, 10)
-        run.sleep_ticks(60)
-        sa, sb = snapshot(A), snapshot(B)
-        if sa != sb:
-            raise Fail("entity sets differ at hop %d: %s vs %s" % (step, sa, sb))
-        A.goto(260, gy + 1.7, 10)
-        B.goto(10, gy + 1.7, 10)
-        run.sleep_ticks(60)
-        sa, sb = snapshot(A), snapshot(B)
-        if sa != sb:
-            raise Fail("entity sets differ at hop %d: %s vs %s" % (step, sa, sb))
+        for ax, bx in ((10, 260), (260, 10)):
+            A.goto(ax, gy + 1.7, 10)
+            B.goto(bx, gy + 1.7, 10)
+            run.sleep_ticks(60)
+            run.wait("entity sets match at hop %d" % step,
+                     lambda: snapshot(A) == snapshot(B), timeout=60)
+            sa = snapshot(A)
     missing = want - (set(sa[0]) | set(sa[1]))
     if missing:
         raise Fail("test entities lost after flips: %s" % (missing,))
@@ -905,8 +903,14 @@ def sc_arrow_shoot(run, A, B):
         raise Fail("net_id mismatch %s vs %s" % (a["net_id"], b["net_id"]))
     if a["remote"] != 0 or b["remote"] != 1:
         raise Fail("role flags wrong: A.remote=%s B.remote=%s" % (a["remote"], b["remote"]))
-    if dist(a["pos"], b["pos"]) > 0.5:
-        raise Fail("stuck mirror diverged: %s vs %s" % (a["pos"], b["pos"]))
+    # The mirror eases toward the streamed pose (0.35/tick), so the first
+    # dump showing stuck=1 can still lag the final pos — wait out the ease
+    # rather than asserting on the first sighting.
+    def mirror_converged():
+        aa = find_arrow(A.dump.last_state())
+        bb = find_arrow(B.dump.last_state())
+        return aa is not None and bb is not None and dist(aa["pos"], bb["pos"]) <= 0.5
+    run.wait("stuck mirror converged", mirror_converged, timeout=60)
     nid = a["net_id"]
     # Breaking the anchor cell releases the arrow; it drops and re-sticks
     # on the runway top on both clients.

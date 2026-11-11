@@ -13,6 +13,15 @@
 
 void ServerLogic::init( const char *world_name ) {
     this->map_storage.init( world_name );
+    // The save-file index turns per-request existence checks into hash
+    // lookups — a CHUNK_DIFF_REQUEST box otherwise stats every file in it.
+    this->map_storage.enable_file_index( );
+    // One-time migration: rewrite any chunk files still in the pre-v1
+    // legacy format. Idempotent — a restarted server finds none.
+    const int migrated = this->map_storage.migrate_legacy_chunk_files( );
+    if ( migrated > 0 ) {
+        pr_debug( "Migrated %d legacy chunk files to v1", migrated );
+    }
     this->entities.init( &this->map_storage );
     this->containers.init( this );
     int64_t saved_world_time = 0;
@@ -166,17 +175,9 @@ size_t ServerLogic::respondToChunkRequest( Server &server, int client_fd, const 
     if ( it_world != this->world_cache.end( ) && !it_world->second.blocks.empty( ) ) {
         chunk_cache_prt = &it_world->second.blocks;
     } else {
-        if ( this->known_empty_chunks.count( chunk_offset ) ) {
-            // Known to have no diffs — skip the disk entirely.
-            return 0;
-        }
+        // The file index answers "no file" in-memory, so a box of
+        // fileless chunks costs hash lookups, not stats.
         this->loadDiffsFromDisk( chunk_offset, disk_diffs );
-        if ( disk_diffs.empty( ) ) {
-            if ( this->known_empty_chunks.size( ) >= KNOWN_EMPTY_CHUNKS_MAX ) {
-                this->known_empty_chunks.clear( );
-            }
-            this->known_empty_chunks.insert( chunk_offset );
-        }
         chunk_cache_prt = &disk_diffs;
     }
     const std::map<int, BlockState> &chunk_cache = *chunk_cache_prt;
@@ -321,8 +322,6 @@ ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
     // processTimers once its edits go quiet.
     ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
     entry.blocks.clear( );
-    // This chunk is about to gain an edit — it's no longer known-empty.
-    this->known_empty_chunks.erase( chunk_offset );
     this->loadDiffsFromDisk( chunk_offset, entry.blocks );
     return &entry;
 }

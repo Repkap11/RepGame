@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <unordered_set>
 #include <vector>
 
 class Chunk;
@@ -93,8 +94,38 @@ struct ChunkEdits {
     bool needs_rewrite = false;
 };
 
+// Per-chunk file kinds tracked by the save-file index
+// (MapStorage::enable_file_index). Values index file_index[].
+enum MapFileKind {
+    MAP_FILE_CHUNK = 0,
+    MAP_FILE_MOBS,
+    MAP_FILE_ITEMS,
+    MAP_FILE_CHEST,
+    MAP_FILE_FURNACE,
+    MAP_FILE_KIND_COUNT
+};
+
 class MapStorage {
     char map_name[ MAP_NAME_MAX_LENGTH ];
+
+    // Save-file index (opt-in, server only): one readdir at enable time
+    // fills a set per kind holding the packed chunk coords of every
+    // existing file; persists/unlinks keep it current. While enabled,
+    // check_if_chunk_exists and the load_* functions answer "no file"
+    // from the index instead of stat/fopen. Single-threaded only — the
+    // dedicated server calls these from its event loop; the client never
+    // enables it, so client behaviour is unchanged.
+    bool file_index_enabled = false;
+    std::unordered_set<uint64_t> file_index[ MAP_FILE_KIND_COUNT ];
+    // Test/debug counter: existence checks the index answered without a
+    // filesystem probe.
+    size_t file_index_short_circuits = 0;
+    // Index maintenance — all no-ops while the index is disabled.
+    void index_insert( int kind, const glm::ivec3 &pos );
+    void index_remove( int kind, const glm::ivec3 &pos );
+    // True only when the index is enabled AND says this kind's file can't
+    // exist at `pos` (also counts the short-circuit).
+    bool index_miss( int kind, const glm::ivec3 &pos );
 
   public:
     void init( const char *world_name );
@@ -159,5 +190,19 @@ class MapStorage {
     // parsed; 0 leaves `world_time` untouched.
     int read_world_time( int64_t &world_time );
     void write_world_time( int64_t world_time );
+    // Builds the save-file index (see the file_index comment above): one
+    // readdir of the world dir fills the per-kind sets. Called once from
+    // ServerLogic::init, after init().
+    void enable_file_index( );
+    // Rewrites every indexed chunk file that lacks the v1 magic by
+    // round-tripping it through load_chunk_edits + persist_chunk_edits.
+    // Returns the number rewritten; 0 while the index is off. Idempotent.
+    int migrate_legacy_chunk_files( );
+    // Per-kind index entry counts for the server stats line.
+    void file_index_counts( size_t out[ MAP_FILE_KIND_COUNT ] ) const;
+    // Test hook: fs probes the index answered since enable_file_index.
+    size_t index_short_circuits( ) const {
+        return this->file_index_short_circuits;
+    }
     char *get_map_name( );
 };

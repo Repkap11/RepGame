@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <errno.h>
@@ -65,7 +66,9 @@ void Server::make_socket_non_blocking( int sockfd ) {
 void Server::add_epoll( int client_fd ) {
     struct epoll_event accept_event;
     accept_event.data.fd = client_fd;
-    accept_event.events = EPOLLOUT | EPOLLET;
+    // Input is always interesting; EPOLLOUT gets armed by update_epoll
+    // only while the send queue holds frames.
+    accept_event.events = EPOLLIN | EPOLLET;
     if ( epoll_ctl( this->epoll_fd, EPOLL_CTL_ADD, client_fd, &accept_event ) < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_ADD" );
     }
@@ -79,19 +82,25 @@ void Server::del_epoll( int client_fd ) {
     return;
 }
 void Server::update_epoll( int client_fd ) {
+    ClientData &cd = this->client_data[ client_fd ];
+    const bool want_out = cd.socket.has_outbound( );
+    if ( want_out == ( cd.epoll_out_armed != 0 ) ) {
+        // Registration already matches — no epoll_ctl needed. This is the
+        // hot path: queue_message lands here for every frame.
+        return;
+    }
     struct epoll_event event = { 0, { 0 } };
     event.data.fd = client_fd;
-    event.events = EPOLLET;
-    bool has_outbound = this->client_data[ client_fd ].socket.has_outbound( );
-    if ( has_outbound ) {
+    event.events = EPOLLIN | EPOLLET;
+    if ( want_out ) {
         event.events |= EPOLLOUT;
-    } else {
-        event.events |= EPOLLIN;
     }
     int status = epoll_ctl( this->epoll_fd, EPOLL_CTL_MOD, client_fd, &event );
     if ( status < 0 ) {
         pr_debug( "epoll_ctl EPOLL_CTL_MOD status:%d:%s", status, strerror( status ) );
+        return;
     }
+    cd.epoll_out_armed = want_out ? 1 : 0;
 }
 
 void Server::handle_new_client_event( int inet_socket_fd ) {
@@ -110,13 +119,24 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
         close( client_fd );
         return;
     }
+    // Small frames (BLOCK_UPDATE, CHUNK_ROLE) shouldn't wait on Nagle.
+    int opt = 1;
+    if ( setsockopt( client_fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof( opt ) ) < 0 ) {
+        pr_debug( "setsockopt TCP_NODELAY" );
+    }
     Server::make_socket_non_blocking( client_fd );
     Server::add_epoll( client_fd );
     ClientData &clientData = client_data[ client_fd ];
     clientData.connected = 1;
+    clientData.epoll_out_armed = 0;
     clientData.player_data.eye_height = PLAYER_EYE_HEIGHT;
     clientData.socket.adopt( client_fd );
     this->server_logic.on_client_connected( *this, client_fd );
+    // WELCOME and friends are queued already — flush now rather than
+    // waiting an epoll round for EPOLLOUT.
+    if ( clientData.socket.has_outbound( ) ) {
+        this->handle_client_ready_for_write( client_fd );
+    }
 }
 
 // MPLOAD trace (REPGAME_MPLOAD_TRACE): inbound accounting drained once per
@@ -187,8 +207,13 @@ void Server::handle_client_ready_for_read( int client_fd ) {
     if ( disconnected ) {
         this->server_logic.on_client_disconnected( *this, client_fd );
         client_data[ client_fd ].connected = 0;
+        client_data[ client_fd ].epoll_out_armed = 0;
         Server::del_epoll( client_fd );
         close( client_fd );
+    } else if ( this->client_data[ client_fd ].socket.has_outbound( ) ) {
+        // Read handling queued responses (e.g. CHUNK_DIFF_RESULT frames) —
+        // flush them now instead of waiting for the next EPOLLOUT round.
+        this->handle_client_ready_for_write( client_fd );
     } else {
         Server::update_epoll( client_fd );
     }
@@ -261,6 +286,7 @@ void Server::handle_client_ready_for_write( int client_fd ) {
         this->client_data[ client_fd ].socket.clear_error( );
         this->server_logic.on_client_disconnected( *this, client_fd );
         client_data[ client_fd ].connected = 0;
+        client_data[ client_fd ].epoll_out_armed = 0;
         Server::del_epoll( client_fd );
         close( client_fd );
         return;
@@ -322,6 +348,7 @@ void Server::serve( ) {
                 pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
                 this->server_logic.on_client_disconnected( *this, client_fd );
                 client_data[ client_fd ].connected = 0;
+                client_data[ client_fd ].epoll_out_armed = 0;
                 Server::del_epoll( client_fd );
                 close( client_fd );
                 continue;
@@ -330,10 +357,13 @@ void Server::serve( ) {
             if ( client_fd == inet_socket_fd ) {
                 this->handle_new_client_event( inet_socket_fd );
             } else {
+                // A single wakeup can carry both directions — read first
+                // (it may disconnect), then write if still connected.
                 uint32_t epoll_events = events[ i ].events;
                 if ( epoll_events & EPOLLIN ) {
                     this->handle_client_ready_for_read( client_fd );
-                } else if ( epoll_events & EPOLLOUT ) {
+                }
+                if ( this->client_data[ client_fd ].connected && ( epoll_events & EPOLLOUT ) ) {
                     this->handle_client_ready_for_write( client_fd );
                 }
             }
@@ -342,6 +372,14 @@ void Server::serve( ) {
         // returned events or a timeout. This is cheap (O(k log n) where k
         // is the number of chunks whose timers just expired).
         this->server_logic.processTimers( *this );
+        // Timer handling (idle saves, container ticks, clock broadcasts)
+        // can queue outbound frames — flush them now rather than waiting
+        // an epoll round for EPOLLOUT.
+        for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+            if ( this->client_data[ fd ].connected && this->client_data[ fd ].socket.has_outbound( ) ) {
+                this->handle_client_ready_for_write( fd );
+            }
+        }
         if ( trace ) {
             const double now_ms = mpload_now_ms( );
             if ( now_ms - last_stats_ms >= 1000.0 ) {
@@ -381,10 +419,17 @@ void Server::serve( ) {
                     }
                     fclose( statm );
                 }
-                mpload_tracef( "srv_mem rss_kb=%ld world_cache=%zu dirty_cells=%zu known_empty=%zu",
+                size_t file_index[ MAP_FILE_KIND_COUNT ];
+                this->server_logic.fileIndexCounts( file_index );
+                mpload_tracef( "srv_mem rss_kb=%ld world_cache=%zu dirty_cells=%zu "
+                               "file_index=%zu/%zu/%zu/%zu/%zu diff_cache=%zu/%zuB",
                                rss_kb, this->server_logic.worldCacheChunks( ),
                                this->server_logic.worldCacheDirtyCells( ),
-                               this->server_logic.knownEmptyCount( ) );
+                               file_index[ MAP_FILE_CHUNK ], file_index[ MAP_FILE_MOBS ],
+                               file_index[ MAP_FILE_ITEMS ], file_index[ MAP_FILE_CHEST ],
+                               file_index[ MAP_FILE_FURNACE ],
+                               this->server_logic.diffCacheEntries( ),
+                               this->server_logic.diffCacheBytes( ) );
                 last_mem_ms = now_ms;
             }
         }

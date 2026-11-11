@@ -96,6 +96,7 @@ void disconnect_client( Server &server, SimClient &c ) {
     // Same order as the real teardown: logic first, then mark/close.
     server.test_logic( ).on_client_disconnected( server, c.fd );
     server.test_client( c.fd ).connected = 0;
+    server.test_client( c.fd ).epoll_out_armed = 0;
     server.test_del_epoll( c.fd );
     close( c.fd );
     close( c.peer_fd );
@@ -511,6 +512,7 @@ int server_selftest( ) {
     // requests diffs; every edit ever sent must come back. ---
     a = connect_client( server );
     drain_client( server, a );
+    const size_t probes_before = server.test_logic( ).test_storage( ).index_short_circuits( );
     send_diff_request( server, a, glm::ivec3( -1, -1, -1 ), 5, 3, 3 );
 
     DiffView view;
@@ -519,10 +521,12 @@ int server_selftest( ) {
     // already flushed, so the cache stays empty after serving them.
     check( server.test_logic( ).cachedChunkCount( ) == 0,
            "diff requests leave the chunk cache empty (got %zu)", server.test_logic( ).cachedChunkCount( ) );
-    // Most of the 5x3x3 box has no save file; those positions are now
-    // remembered as known-empty.
-    check( server.test_logic( ).knownEmptyChunkCount( ) > 0,
-           "diff requests record known-empty chunks (got %zu)", server.test_logic( ).knownEmptyChunkCount( ) );
+    // Most of the 5x3x3 box has no save file; the file index answered
+    // every chunk's existence check without touching the filesystem.
+    check( server.test_logic( ).test_storage( ).index_short_circuits( ) >= probes_before + 45,
+           "file index answered all %d box existence checks (got %zu, was %zu)",
+           5 * 3 * 3,
+           server.test_logic( ).test_storage( ).index_short_circuits( ), probes_before );
 
     const glm::ivec3 c0( 0, 0, 0 );
     const glm::ivec3 c1( 1, 0, 0 );
@@ -563,14 +567,15 @@ int server_selftest( ) {
         const int other_index = leg_index + 1;
 
         // Write a legacy-format chunk file directly (persist_chunk_legacy
-        // encodes raw states, no sanitizing).
+        // encodes raw states, no sanitizing) through the server's storage
+        // so the file index picks it up.
         BlockState *legacy = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
             legacy[ i ] = BlockState{ static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0, 0,
                                       static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0 };
         }
         legacy[ leg_index ] = stone;
-        storage.persist_chunk_legacy( leg, legacy );
+        server.test_logic( ).test_storage( ).persist_chunk_legacy( leg, legacy );
         free( legacy );
 
         SimClient c = connect_client( server );
@@ -602,42 +607,51 @@ int server_selftest( ) {
             check( false, "no chunk file for legacy chunk (%d,%d,%d)", leg.x, leg.y, leg.z );
         }
         (void)other_index;
+
+        // The startup migration path rewrites the legacy file to v1 with
+        // identical diffs; a second pass finds nothing left to do.
+        MapStorage &srv_storage = server.test_logic( ).test_storage( );
+        check( srv_storage.migrate_legacy_chunk_files( ) == 1,
+               "migration rewrote one legacy chunk file" );
+        ChunkEdits v1;
+        check( srv_storage.load_chunk_edits( leg, v1 ) == 1 && !v1.needs_rewrite && !v1.legacy_snapshot &&
+                   v1.runs.size( ) == 1 && v1.runs[ 0 ].start == (uint32_t)leg_index &&
+                   v1.runs[ 0 ].count == 1 && v1.runs[ 0 ].state.id == STONE,
+               "migrated file decodes v1 with identical diffs" );
+        check( srv_storage.migrate_legacy_chunk_files( ) == 0,
+               "second migration pass is a no-op" );
     }
 
-    // --- Known-empty chunks: a diff request for a chunk with no save file
-    // is remembered, a second request skips the disk, and an edit
-    // invalidates the mark. ---
+    // --- Save-file index: existence checks hit the index instead of the
+    // filesystem; persists keep it current. ---
     const glm::ivec3 ke( 7, 0, 7 );
     {
         const glm::ivec3 ke_pos = ke * CHUNK_SIZE_I + glm::ivec3( 10, 40, 10 );
+        MapStorage &srv_storage = server.test_logic( ).test_storage( );
         SimClient c = connect_client( server );
         drain_client( server, c );
 
-        const size_t before = server.test_logic( ).knownEmptyChunkCount( );
+        size_t probes = srv_storage.index_short_circuits( );
         send_diff_request( server, c, ke, 1, 1, 1 );
         DiffView ke_view;
         collect_diffs( server, c, ke_view );
         check( ke_view.find( ke ) == ke_view.end( ),
-               "unseen chunk (%d,%d,%d) emits no diff", ke.x, ke.y, ke.z );
-        check( server.test_logic( ).knownEmptyChunkCount( ) == before + 1,
-               "unseen chunk recorded known-empty (got %zu, want %zu)",
-               server.test_logic( ).knownEmptyChunkCount( ), before + 1 );
+               "index: unseen chunk (%d,%d,%d) emits no diff", ke.x, ke.y, ke.z );
+        check( srv_storage.index_short_circuits( ) > probes,
+               "index: absent chunk answered without fs probe (got %zu, was %zu)",
+               srv_storage.index_short_circuits( ), probes );
 
+        // A second request answers the same way from the index.
+        probes = srv_storage.index_short_circuits( );
         send_diff_request( server, c, ke, 1, 1, 1 );
         collect_diffs( server, c, ke_view );
         check( ke_view.find( ke ) == ke_view.end( ),
-               "second request for known-empty chunk emits no diff" );
-        check( server.test_logic( ).knownEmptyChunkCount( ) == before + 1,
-               "second request for known-empty chunk adds nothing (got %zu)",
-               server.test_logic( ).knownEmptyChunkCount( ) );
+               "index: repeat request for absent chunk emits no diff" );
+        check( srv_storage.index_short_circuits( ) > probes,
+               "index: repeat request still skips the filesystem" );
 
-        // An edit invalidates the known-empty mark.
+        // An edit persists through the index; a fresh client gets it back.
         place( server, c, ke_pos, stone );
-        check( server.test_logic( ).knownEmptyChunkCount( ) == before,
-               "edit invalidates known-empty mark (got %zu, want %zu)",
-               server.test_logic( ).knownEmptyChunkCount( ), before );
-
-        // Flush persists the edit; a fresh client gets it back by diff.
         disconnect_client( server, c );
         c = connect_client( server );
         drain_client( server, c );
@@ -646,6 +660,70 @@ int server_selftest( ) {
         collect_diffs( server, c, ke_view );
         expect_diff( ke_view, ke, ke_pos, stone );
         disconnect_client( server, c );
+    }
+
+    // --- File index build + upkeep: one readdir picks up every file kind,
+    // persists index new files, empty persists unindex them. Own world dir
+    // so the main test world's contents stay untouched. ---
+    {
+        const char *IDX_WORLD = "SelfTestIndexWorld";
+        {
+            char *dir = getRepGamePath( );
+            std::filesystem::remove_all( std::string( dir ) + "/" + IDX_WORLD );
+            free( dir );
+        }
+        MapStorage idx;
+        idx.init( IDX_WORLD );
+        const glm::ivec3 p( 1, 2, 3 );
+        const glm::ivec3 absent( -4, -5, -6 ); // negative coords pack too
+        ChestContentsMap chests;
+        chests[ glm::ivec3( 1, 2, 3 ) ] = ChestContents{ };
+        idx.persist_chests( p, chests );
+        FurnaceContentsMap furnaces;
+        FurnaceContents fc = { };
+        fc.slots[ FURNACE_SLOT_FUEL ].item_id = COAL;
+        fc.slots[ FURNACE_SLOT_FUEL ].quantity = 1;
+        furnaces[ glm::ivec3( 1, 2, 3 ) ] = fc;
+        idx.persist_furnaces( p, furnaces );
+        MobFileRecord mob = { };
+        mob.type = MOB_PIG;
+        idx.persist_mobs( p, { mob } );
+        ItemFileRecord item = { };
+        item.item = STONE;
+        item.count = 1;
+        idx.persist_items( p, { item } );
+        // Written before enable: the readdir must find all of them.
+        idx.persist_chunk_edits( p, { { 0u, 1u, stone } } );
+
+        idx.enable_file_index( );
+        size_t counts[ MAP_FILE_KIND_COUNT ];
+        idx.file_index_counts( counts );
+        check( counts[ MAP_FILE_CHUNK ] == 1 && counts[ MAP_FILE_MOBS ] == 1 &&
+                   counts[ MAP_FILE_ITEMS ] == 1 && counts[ MAP_FILE_CHEST ] == 1 &&
+                   counts[ MAP_FILE_FURNACE ] == 1,
+               "index: built from dir with every file kind (%zu/%zu/%zu/%zu/%zu)",
+               counts[ MAP_FILE_CHUNK ], counts[ MAP_FILE_MOBS ], counts[ MAP_FILE_ITEMS ],
+               counts[ MAP_FILE_CHEST ], counts[ MAP_FILE_FURNACE ] );
+
+        ChunkEdits e;
+        check( idx.load_chunk_edits( p, e ) == 1 && e.runs.size( ) == 1,
+               "index: indexed chunk still loads" );
+        size_t probes = idx.index_short_circuits( );
+        check( !idx.check_if_chunk_exists( absent ) && idx.load_chunk_edits( absent, e ) == 0,
+               "index: absent chunk short-circuits" );
+        check( idx.index_short_circuits( ) >= probes + 2,
+               "index: absent chunk needed zero fs probes (got %zu, was %zu)",
+               idx.index_short_circuits( ), probes );
+
+        // Persist indexes a new file; an empty persist unindexes it.
+        idx.persist_chunk_edits( absent, { { 0u, 1u, stone } } );
+        check( idx.check_if_chunk_exists( absent ), "index: persist indexes new file" );
+        idx.persist_chunk_edits( absent, { } );
+        check( !idx.check_if_chunk_exists( absent ), "index: empty persist unindexes" );
+
+        char *dir = getRepGamePath( );
+        std::filesystem::remove_all( std::string( dir ) + "/" + IDX_WORLD );
+        free( dir );
     }
 
     // === Entity sync (server arbitrates, owner client simulates) ==========
@@ -1406,6 +1484,73 @@ int server_selftest( ) {
                    "container: furnace contents persist across sessions (still burning)" );
         }
         disconnect_client( server, cc );
+    }
+
+    // === FramedSocket: pop_send_frame returns frames in send order, and
+    // the batched sendmsg flush preserves order across partial writes.
+    {
+        FramedSocket q;
+        q.adopt_manual( );
+        q.send_message( NetMsgType::WORLD_TIME, 0, { 1, 2, 3 } );
+        q.send_message( NetMsgType::BLOCK_UPDATE, 0, { 4 } );
+        q.send_message( NetMsgType::WORLD_TIME, 0, { 5, 6 } );
+        const NetMsgType want_types[ 3 ] = { NetMsgType::WORLD_TIME, NetMsgType::BLOCK_UPDATE, NetMsgType::WORLD_TIME };
+        const size_t want_sizes[ 3 ] = { 3, 1, 2 };
+        bool order_ok = true;
+        for ( int i = 0; i < 3; i++ ) {
+            std::optional<std::vector<uint8_t>> f = q.pop_send_frame( );
+            order_ok = order_ok && f && f->size( ) == 18 + want_sizes[ i ] &&
+                       static_cast<NetMsgType>( ( *f )[ 13 ] ) == want_types[ i ];
+        }
+        check( order_ok && !q.pop_send_frame( ),
+               "framed: pop_send_frame preserves send order" );
+    }
+    {
+        // A small send buffer forces flush() to return with frames still
+        // queued; draining the peer + reflushing must deliver every frame
+        // intact and in order (partial-write offset resume).
+        const int N = 150;
+        int sv[ 2 ] = { -1, -1 };
+        check( socketpair( AF_UNIX, SOCK_STREAM, 0, sv ) == 0, "framed: socketpair" );
+        int sndbuf = 2048;
+        setsockopt( sv[ 0 ], SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof( sndbuf ) );
+        fcntl( sv[ 0 ], F_SETFL, O_NONBLOCK );
+        fcntl( sv[ 1 ], F_SETFL, O_NONBLOCK );
+        FramedSocket fs;
+        fs.adopt( sv[ 0 ] );
+        for ( int i = 0; i < N; i++ ) {
+            std::vector<uint8_t> p( 200, 0 );
+            memcpy( p.data( ), &i, sizeof( i ) ); // sequence tag
+            fs.send_message( NetMsgType::CHUNK_DIFF_RESULT, 0, p );
+        }
+        FramedSocket reader;
+        reader.adopt_manual( );
+        std::vector<int> seen;
+        uint8_t buf[ 65536 ];
+        for ( int guard = 0; ( int )seen.size( ) < N && guard < 1000000; guard++ ) {
+            fs.flush( );
+            ssize_t n;
+            while ( ( n = read( sv[ 1 ], buf, sizeof( buf ) ) ) > 0 ) {
+                reader.push_recv_bytes( buf, ( size_t )n );
+                while ( std::optional<std::vector<uint8_t>> payload = reader.parse_next_frame( ) ) {
+                    int tag = -1;
+                    if ( payload->size( ) >= 10 ) {
+                        memcpy( &tag, payload->data( ) + 6, sizeof( tag ) );
+                    }
+                    seen.push_back( tag );
+                }
+            }
+        }
+        bool ok = ( int )seen.size( ) == N;
+        for ( int i = 0; ok && i < N; i++ ) {
+            ok = seen[ i ] == i;
+        }
+        check( ok, "framed: %d frames survive partial batched sends in order (got %zu)",
+               N, seen.size( ) );
+        check( !fs.had_error( ) && fs.outbound_frames( ) == 0,
+               "framed: send queue drains fully" );
+        close( sv[ 0 ] );
+        close( sv[ 1 ] );
     }
 
     // === Protocol version mismatch: a validly framed message (correct

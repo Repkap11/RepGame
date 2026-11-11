@@ -154,35 +154,71 @@ std::optional<std::vector<uint8_t>> FramedSocket::pop_send_frame( ) {
         return std::nullopt;
     }
     std::vector<uint8_t> frame = std::move( send_queue_.front( ) );
-    send_queue_.erase( send_queue_.begin( ) );
+    send_queue_.pop_front( );
     send_offset_ = 0;
     return frame;
 }
 
 #if !defined( REPGAME_WINDOWS )
 int FramedSocket::flush( ) {
+    // Batched writes: one sendmsg gathers up to 64 queued frames. On a
+    // short send, send_offset_ records how far into the front frame the
+    // kernel got so the next flush resumes mid-frame. Frame order on the
+    // wire is exactly queue order.
+    static constexpr int MAX_IOV = 64;
     while ( !send_queue_.empty( ) ) {
-        std::vector<uint8_t> &front = send_queue_.front( );
-        const size_t remaining = front.size( ) - send_offset_;
-        const char *send_start = reinterpret_cast<const char *>( front.data( ) ) + send_offset_;
-
-        ssize_t nsent = send( fd_, send_start, remaining, MSG_NOSIGNAL );
+        struct iovec iov[ MAX_IOV ];
+        int iov_cnt = 0;
+        bool first = true;
+        for ( const std::vector<uint8_t> &frame : send_queue_ ) {
+            if ( iov_cnt == MAX_IOV ) {
+                break;
+            }
+            iov[ iov_cnt ].iov_base = const_cast<uint8_t *>( frame.data( ) );
+            iov[ iov_cnt ].iov_len = frame.size( );
+            if ( first ) {
+                // The front frame may be part-sent already.
+                iov[ iov_cnt ].iov_base = const_cast<uint8_t *>( frame.data( ) ) + send_offset_;
+                iov[ iov_cnt ].iov_len = frame.size( ) - send_offset_;
+                first = false;
+            }
+            iov_cnt++;
+        }
+        struct msghdr msg;
+        memset( &msg, 0, sizeof( msg ) );
+        msg.msg_iov = iov;
+        msg.msg_iovlen = static_cast<size_t>( iov_cnt );
+        const ssize_t nsent = sendmsg( fd_, &msg, MSG_NOSIGNAL );
         if ( nsent < 0 ) {
             if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
                 // Socket buffer full; try again next flush.
                 return static_cast<int>( send_queue_.size( ) );
             }
-            fs_pr_debug( "send error: %s", strerror( errno ) );
+            fs_pr_debug( "sendmsg error: %s", strerror( errno ) );
             had_error_ = true;
             return -1;
         }
-        send_offset_ += static_cast<size_t>( nsent );
-        if ( send_offset_ < front.size( ) ) {
-            // Partial write; rest goes on the next flush.
+        // Drop the frames the kernel took whole; a short send leaves the
+        // front frame partially consumed (send_offset_ updated).
+        size_t left = static_cast<size_t>( nsent );
+        int fully_sent = 0;
+        while ( fully_sent < iov_cnt ) {
+            const size_t remaining = send_queue_.front( ).size( ) - send_offset_;
+            if ( left < remaining ) {
+                send_offset_ += left;
+                break;
+            }
+            left -= remaining;
+            send_queue_.pop_front( );
+            send_offset_ = 0;
+            fully_sent++;
+        }
+        if ( fully_sent < iov_cnt ) {
+            // The kernel took fewer bytes than offered — out of socket
+            // buffer; the rest goes on the next flush.
             return static_cast<int>( send_queue_.size( ) );
         }
-        send_queue_.erase( send_queue_.begin( ) );
-        send_offset_ = 0;
+        // Whole batch went out; loop if more than MAX_IOV frames queued.
     }
     return 0;
 }
