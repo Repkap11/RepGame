@@ -25,6 +25,20 @@ def fail(msg):
     sys.exit(1)
 
 
+# Only rewrites a generated file when its content actually changed, so a
+# manifest rerun doesn't bump the mtime of mob_models_gen.hpp's includers.
+def write_if_changed(path, content):
+    try:
+        with open(path) as f:
+            if f.read() == content:
+                return
+    except OSError:
+        pass
+    with open(path, "w") as f:
+        f.write(content)
+    print("mob_import: wrote %s" % os.path.relpath(path, ROOT))
+
+
 def strip_comments(text):
     # Bedrock geo files carry // comments. Remove them without touching
     # string literals.
@@ -395,8 +409,7 @@ def main():
         )
     out.append("};")
     out.append("")
-    with open(GEN_HPP, "w") as f:
-        f.write("\n".join(out))
+    write_if_changed(GEN_HPP, "\n".join(out))
 
     # --- self-check (pig model counts; player layout; sheep a:b inheritance,
     # print only).

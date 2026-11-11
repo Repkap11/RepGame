@@ -6,6 +6,7 @@
 #include "common/break_drops.hpp"
 #include "common/ui_overlay_buffers.hpp"
 #include "common/mesh_gen.hpp"
+#include "common/creative_order_gen.hpp"
 // Same CPU-side include as chunk.cpp: pulls mesh_face_seethrough et al. in
 // as static inline helpers for the slab coverage checks.
 #define MG_QUAL static inline

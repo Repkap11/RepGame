@@ -75,7 +75,10 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
 `BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored);
 `make blocks-import` runs `tools/blocks_import.py` with
 `BEDROCK_SAMPLES=bedrock-samples/resource_pack` and regenerates the committed
-outputs (idempotent/deterministic — a dirty diff after rerun is a bug):
+outputs (idempotent/deterministic — a dirty diff after rerun is a bug;
+outputs are only rewritten when their content changes, so a field-only JSON
+edit rebuilds just the `.inc` TU that consumes it, not the `*_ids_gen.hpp`
+includers):
 
 - `include/common/block_ids_gen.hpp` — `BlockID` enum, explicit values + aliases
 - `include/common/texture_ids_gen.hpp` — `#define`-only `TEX_<NAME>` layer ids

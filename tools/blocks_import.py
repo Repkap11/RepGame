@@ -463,6 +463,21 @@ def fail(msg):
     sys.exit(1)
 
 
+# Only rewrites a generated file when its content actually changed, so a
+# field-only JSON edit doesn't bump the mtime of the *_ids_gen.hpp headers
+# that most of the project rebuilds against.
+def write_if_changed(path, content):
+    try:
+        with open(path) as f:
+            if f.read() == content:
+                return
+    except OSError:
+        pass
+    with open(path, "w") as f:
+        f.write(content)
+    print("blocks_import: wrote %s" % os.path.relpath(path, ROOT))
+
+
 def fmt_float(v):
     s = repr(float(v))
     return s
@@ -924,8 +939,7 @@ def emit_smelt(smelt, blocks, items):
         out.append("    { %s, %d },\n" % (id_name(item_id), ticks))
     out.append("};\n")
     out.append("const int SMELT_TICKS = %d;\n" % smelt["smelt_ticks"])
-    with open(OUT_SMELT, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_SMELT, "".join(out))
 
 
 def emit_recipes(recipes, blocks, items):
@@ -962,8 +976,7 @@ def emit_recipes(recipes, blocks, items):
     out.append("\nconst CraftRecipe CRAFT_RECIPES[] = {\n")
     out.extend(entries)
     out.append("};\n")
-    with open(OUT_RECIPES, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_RECIPES, "".join(out))
 
 
 def resolve_faces(name, b):
@@ -1314,8 +1327,7 @@ def main():
     out.append("static inline int block_id_defined( unsigned int id ) {\n")
     out.append("    return id < (unsigned int)LAST_BLOCK_ID && ( BLOCK_DEFINED_BITS[ id >> 3 ] & ( 1u << ( id & 7 ) ) ) != 0;\n")
     out.append("}\n")
-    with open(OUT_IDS, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_IDS, "".join(out))
 
     # include/common/item_ids_gen.hpp — pure-item enum (block items keep the
     # BlockID value) + a bitset marking defined item ids.
@@ -1340,8 +1352,7 @@ def main():
     out.append("static inline int item_id_defined( unsigned int id ) {\n")
     out.append("    return id >= (unsigned int)ITEM_ID_BASE && id < (unsigned int)ITEM_ID_END && ( ITEM_DEFINED_BITS[ ( id - ITEM_ID_BASE ) >> 3 ] & ( 1u << ( ( id - ITEM_ID_BASE ) & 7 ) ) ) != 0;\n")
     out.append("}\n")
-    with open(OUT_ITEM_IDS, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_ITEM_IDS, "".join(out))
 
     # src/common/item_definitions_gen.inc — icon layer, max stack and tool
     # class/speed per item, indexed by id - ITEM_ID_BASE.
@@ -1357,16 +1368,14 @@ def main():
                    (it["icon"].upper(), it.get("max_stack", 64), cls_enum,
                     it.get("food", 0),
                     fmt_float(speed), it.get("plants", "LAST_BLOCK_ID")))
-    with open(OUT_ITEM_INC, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_ITEM_INC, "".join(out))
 
     # src/common/item_names_gen.inc — per-item name table.
     out = [HEADER]
     for iid in range(ITEM_ID_BASE, item_id_end):
         it = items.get(iid)
         out.append('    "%s",\n' % it["name"] if it else "    nullptr,\n")
-    with open(OUT_ITEM_NAMES, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_ITEM_NAMES, "".join(out))
 
     # src/common/block_drops_gen.inc — flat drop entries plus a sorted
     # (id, offset, count) lookup table. Blocks with no "drops" key are not in
@@ -1393,8 +1402,7 @@ def main():
         out.append("    { %s, %d, %d },\n" % (b["name"], off, len(b["drops"])))
         off += len(b["drops"])
     out.append("};\n")
-    with open(OUT_DROPS, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_DROPS, "".join(out))
 
     # include/common/texture_ids_gen.hpp — #define only, safe for the GLSL
     # preprocessor (gcc -E -I include).
@@ -1405,8 +1413,7 @@ def main():
     for bid in range(LAST_BLOCK_ID):
         b = blocks.get(bid)
         out.append('    "%s",\n' % b["name"] if b else "    nullptr,\n")
-    with open(out_names, "w") as f:
-        f.writelines(out)
+    write_if_changed(out_names, "".join(out))
 
     # src/common/texture_names_gen.inc — canonical name per layer.
     out_tnames = os.path.join(OUT_DIR, "texture_names_gen.inc") if OUT_DIR else \
@@ -1414,8 +1421,7 @@ def main():
     out = [HEADER]
     for canon in layer_order:
         out.append('    "%s",\n' % canon)
-    with open(out_tnames, "w") as f:
-        f.writelines(out)
+    write_if_changed(out_tnames, "".join(out))
 
     out = [HEADER, "#ifndef REPGAME_TEXTURE_IDS_GEN_HPP\n#define REPGAME_TEXTURE_IDS_GEN_HPP\n\n"]
     for name in sorted(layers):
@@ -1428,8 +1434,7 @@ def main():
     out.append("#define TEXTURE_ROTATABLE_COUNT %d\n" % len(rotatable_canon))
     out.append("#define BLOCK_TEXTURE_ATLAS_ROWS %d\n" % rows)
     out.append("\n#endif\n")
-    with open(OUT_TEX, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_TEX, "".join(out))
 
     # src/common/block_definitions_gen.inc — all 6 textures + icon for every
     # block, then non-default fields.
@@ -1474,8 +1479,7 @@ def main():
                     out.append("%smineable = MINEABLE_%s;\n" % (prefix, val.upper()))
             else:
                 out.append("%s%s = %s;\n" % (prefix, key, val))
-    with open(OUT_INC, "w") as f:
-        f.writelines(out)
+    write_if_changed(OUT_INC, "".join(out))
 
     # include/common/creative_order_gen.hpp + human-readable report.
     kept_ids = set()
@@ -1492,8 +1496,7 @@ def main():
     for iid, it in sorted(items.items()):
         out.append("    %s,\n" % it["name"])
     out.append("};\n")
-    with open(out_cre, "w") as f:
-        f.writelines(out)
+    write_if_changed(out_cre, "".join(out))
     rep_lines = []
     for bid in creative:
         dups = ", ".join(blocks[h]["name"] for h in hidden.get(bid, []))
@@ -1501,9 +1504,7 @@ def main():
         rep_lines.append("%s\t%s\t%d\thidden duplicates: %s\n" %
                          (mat, blocks[bid]["name"], bid, dups or "-"))
     os.makedirs(os.path.dirname(CREATIVE_REPORT), exist_ok=True)
-    with open(CREATIVE_REPORT, "w") as f:
-        f.write("material\tname\tid\thidden duplicates\n")
-        f.writelines(rep_lines)
+    write_if_changed(CREATIVE_REPORT, "material\tname\tid\thidden duplicates\n" + "".join(rep_lines))
 
     print("blocks_import: %d blocks, %d textures (%d rotatable), atlas %dx%d -> %s" %
           (len(blocks), count, len(rotatable_canon), atlas.width, atlas.height,

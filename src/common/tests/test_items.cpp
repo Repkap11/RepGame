@@ -1,6 +1,7 @@
 // Item/inventory/crafting tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
 #include "common/fluid.hpp"
+#include "common/creative_order_gen.hpp"
 // Item id space (Phase 1 non-block items): block items share the BlockID
 // value, pure items live at ITEM_ID_BASE+, LAST_BLOCK_ID stays the empty
 // sentinel. Covers item_id_valid/item_is_block/item_max_stack, the wire

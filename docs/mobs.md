@@ -231,7 +231,8 @@ Adding a mob:
    outer face off the body's side plane so they don't z-fight).
 2. `make mobs-import` runs `tools/mob_import.py` →
    `include/common/mob_models_gen.hpp` + `bitmaps/mobs.png`. Output is
-   deterministic (byte-identical reruns); the importer handles geo.json
+   deterministic (byte-identical reruns; the gen header is only rewritten
+   when its content changes); the importer handles geo.json
    1.8 and 1.12, box UVs only (per-face UVs are rejected), bone
    mirror/pivot/rotation, and pads each skin into one 64x64 layer of the
    atlas. `"geometry.a:geometry.b"` inheritance merges bones by name:
