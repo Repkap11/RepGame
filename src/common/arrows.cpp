@@ -636,13 +636,16 @@ void ArrowEntities::collect_net_state( std::vector<NetEntityStateEntry> &out, co
         if ( a.net.id == 0 || a.net.mirror ) {
             continue;
         }
-        const bool keyframe = !a.net.sent || netsync_keyframe_due( a.net, tick_number );
+        const bool keyframe = !a.net.sent || netsync_keyframe_due( a.net, a.pos, tick_number );
+        const bool crossing = a.net.sent && netsync_chunk_changed( a.net, a.pos );
         // Dead reckoning: emit only when the sim diverges from what the
-        // receiver predicts (or the keyframe is due). Stuck arrows predict
-        // vel 0 — the streamed vel is the entry direction (orientation),
-        // not motion.
+        // receiver predicts (or a chunk boundary was crossed / the
+        // move-gated keyframe backstop is due). Stuck arrows predict vel 0
+        // — the streamed vel is the entry direction (orientation), not
+        // motion.
         const glm::dvec3 eff_vel = a.stuck ? glm::dvec3( 0.0 ) : a.vel;
-        if ( !keyframe && !netsync_drifted( a.net, a.pos, eff_vel, tick_number ) ) {
+        if ( !keyframe && !crossing && !netsync_drifted( a.net, a.pos, eff_vel, tick_number ) &&
+             !netsync_stale( a.net, a.pos ) ) {
             continue;
         }
         NetEntityStateEntry e;

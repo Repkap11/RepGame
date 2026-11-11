@@ -992,11 +992,14 @@ void ItemEntities::collect_net_state( NetEntities &net, std::vector<NetEntitySta
         if ( !net.owns_chunk( it.net.chunk ) ) {
             continue;
         }
-        const bool keyframe = !it.net.sent || netsync_keyframe_due( it.net, tick_number );
+        const bool keyframe = !it.net.sent || netsync_keyframe_due( it.net, it.pos, tick_number );
+        const bool crossing = it.net.sent && netsync_chunk_changed( it.net, it.pos );
         const bool count_changed = it.count != it.net_sent_count;
         // Dead reckoning: emit only when the sim diverges from what the
-        // receiver predicts (or the count changed / keyframe is due).
-        if ( !keyframe && !netsync_drifted( it.net, it.pos, it.vel, tick_number ) && !count_changed ) {
+        // receiver predicts (or the count changed, a chunk boundary was
+        // crossed, or the move-gated keyframe backstop is due).
+        if ( !keyframe && !crossing && !netsync_drifted( it.net, it.pos, it.vel, tick_number ) &&
+             !netsync_stale( it.net, it.pos ) && !count_changed ) {
             continue;
         }
         NetEntityStateEntry e;

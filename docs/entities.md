@@ -166,14 +166,19 @@ sender's predicted copy on apply and never restore it); ENTITY_STATE
 streams state (batched
 every 12 ticks; since protocol 12 each entry is mask-coded — `NetEntityStateEntry::
 present` picks which fields follow: pos absolute f64 (POS_ABS — first
-send, ~1 s keyframes, out-of-range deltas) or a 1/256-block i16 delta
-(POS_DELTA) against the receiver's last-known pos, vel as 1/4096 i16s,
-yaw as a u8, and count/health/flags only when changed. Receivers
+send, move-gated keyframes, out-of-range deltas) or a 1/256-block i16
+delta (POS_DELTA) against the receiver's last-known pos, vel as 1/4096
+i16s, yaw as a u8, and count/health/flags only when changed. Receivers
 dead-reckon `net.pos += net.vel` per tick, so the owner only emits when
 the sim diverges from that prediction (`netsync_drifted`: >1/16 block of
-pos drift or >1e-3 vel change) or an aux field changed — a steady walker
-is silent between keyframes. Stuck arrows predict vel=0 (their streamed
-vel is the entry direction, not motion). The delta baseline is the
+pos drift or >1e-3 vel change), an aux field changed, the entity would
+cross a chunk boundary (`netsync_chunk_changed` — keeps the server's
+believed chunk fresh for silent movers), the record is >2 blocks stale
+(`netsync_stale` — CHUNK_ROLE grants hand newcomers the last-streamed
+pos), or the 10 s move-gated keyframe backstop is due
+(`netsync_keyframe_due` — stationary entities never keyframe at all: a
+still entity would only re-send its own record). Stuck arrows predict
+vel=0 (their streamed vel is the entry direction, not motion). The delta baseline is the
 entity's sent_pos for owners, the server's pre-update record for relays,
 and `net.recv_pos` for receivers; chunk crossings apply the
 shared `net_entity_next_chunk` margin — an entity only changes chunks once

@@ -824,10 +824,13 @@ void BlockBodies::collect_net_state( std::vector<NetEntityStateEntry> &out, cons
         if ( b.net.id == 0 || b.net.mirror ) {
             continue;
         }
-        const bool keyframe = !b.net.sent || netsync_keyframe_due( b.net, tick_number );
+        const bool keyframe = !b.net.sent || netsync_keyframe_due( b.net, b.min, tick_number );
+        const bool crossing = b.net.sent && netsync_chunk_changed( b.net, b.min );
         // Dead reckoning: emit only when the sim diverges from what the
-        // receiver predicts (or the keyframe is due).
-        if ( !keyframe && !netsync_drifted( b.net, b.min, b.vel, tick_number ) ) {
+        // receiver predicts (or a chunk boundary was crossed / the
+        // move-gated keyframe backstop is due).
+        if ( !keyframe && !crossing && !netsync_drifted( b.net, b.min, b.vel, tick_number ) &&
+             !netsync_stale( b.net, b.min ) ) {
             continue;
         }
         NetEntityStateEntry e;

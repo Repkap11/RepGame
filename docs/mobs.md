@@ -17,6 +17,22 @@ hops a blocked mob over a wall only when the wall's real collision top
 fences and closed gates occupy one cell but collide 1.5 high, so a mob
 pressing against one waits instead of hopping forever.
 
+Wandering is a pick-align-commit cycle: an idle mob (`ai_state == 0`,
+2–6 s) picks a ground column within ±8 blocks, steers toward it at up to
+4°/tick only until aligned (|Δyaw| ≤ 2°), then *locks* the heading
+(`leg_locked`) and walks it straight — it never re-aims mid-leg. A leg
+ends on arrival, overshoot (the mob has walked past the pick), or a
+distance-scaled timeout (~1.5× the walk plus 1 s, capped at 20 s), then
+the mob idles and re-picks. Constant-velocity legs are deliberate: they
+read less twitchy and, in multiplayer, dead-reckon perfectly — a locked
+walker emits no `ENTITY_STATE` at all. A leg pinned on collision
+(`blocked_ticks` > ~0.5 s of pushing with <30% progress) latches a
+stand-still for the rest of the leg — speed 0, frozen heading — instead
+of grinding the wall and streaming dead-reckon corrections for a mob
+going nowhere (the counter only clears when the leg ends; see
+`netsync_stale` in `docs/entities.md` for why silent walkers still
+check in every couple of blocks).
+
 Hostiles target the player only while targetable
 (`MobTickInput.player_targetable` = not peaceful + not no-clip; in-game
 that means `RepGame::player_targetable` — `state.peaceful` is the pause

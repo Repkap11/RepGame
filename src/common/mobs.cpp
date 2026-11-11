@@ -171,6 +171,8 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.ai_ticks = idle_ticks( this->rng );
     mob.panic_ticks = 0;
     mob.target = pos;
+    mob.leg_locked = 0;
+    mob.blocked_ticks = 0;
     mob.hurt_ticks = 0;
     mob.death_ticks = 0;
     mob.walk_dist = 0.0f;
@@ -702,23 +704,51 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                 if ( found && mob.pos.y - ground <= 3.0 ) {
                     mob.target = glm::dvec3( tx, ground, tz );
                     mob.ai_state = 1;
-                    mob.ai_ticks = 20 * UPS_RATE;
+                    mob.leg_locked = 0;
+                    mob.blocked_ticks = 0;
+                    // Bound the leg by its walk (+ slack for bumps), not a
+                    // flat 20 s: a locked heading can't re-aim, so a leg
+                    // shouldn't drift far past the pick once overshot.
+                    const long leg_ticks =
+                        def.walk_speed > 1e-6f
+                            ? static_cast<long>( glm::distance( mob.pos, mob.target ) / def.walk_speed * 1.5 ) + UPS_RATE
+                            : 20L * UPS_RATE;
+                    mob.ai_ticks = static_cast<int>( std::min( 20L * UPS_RATE, leg_ticks ) );
                 } else {
                     std::uniform_int_distribution<int> idle_ticks( 2 * UPS_RATE, 6 * UPS_RATE );
                     mob.ai_ticks = idle_ticks( this->rng );
                 }
             }
         } else {
-            // Wandering: turn toward the target, then walk. Give up on a
-            // timeout so unreachable targets don't pin the mob forever.
+            // Wandering: align to the pick briefly (<=4 deg/tick), then
+            // commit to the heading and walk it straight — a constant-
+            // velocity leg dead-reckons perfectly for multiplayer receivers
+            // and reads deliberate in person. Ends on arrival, overshoot
+            // (the mob has passed the target), or the timeout. A pinned leg
+            // (>~0.5 s blocked) stops pushing and stands it out instead of
+            // streaming dead-reckon corrections for a mob going nowhere.
             const glm::dvec2 to_target( mob.target.x - mob.pos.x, mob.target.z - mob.pos.z );
             const double dist = glm::length( to_target );
-            const float want_yaw = static_cast<float>( atan2( to_target.x, -to_target.y ) * ( 180.0 / M_PI ) );
-            const float dyaw = wrap_degrees_180( want_yaw - mob.yaw );
-            mob.yaw += glm::clamp( dyaw, -4.0f, 4.0f );
-            speed = def.walk_speed;
-            if ( dist < 0.6 || --mob.ai_ticks <= 0 ) {
+            if ( mob.blocked_ticks > UPS_RATE / 2 ) {
+                speed = 0.0f;
+            } else {
+                if ( !mob.leg_locked ) {
+                    const float want_yaw = static_cast<float>( atan2( to_target.x, -to_target.y ) * ( 180.0 / M_PI ) );
+                    const float dyaw = wrap_degrees_180( want_yaw - mob.yaw );
+                    mob.yaw += glm::clamp( dyaw, -4.0f, 4.0f ); // 4 deg/tick max turn
+                    if ( fabsf( dyaw ) <= 2.0f ) {
+                        mob.leg_locked = true;
+                    }
+                }
+                speed = def.walk_speed;
+            }
+            // Overshoot is only meaningful once vel is the committed leg
+            // heading — stale vel from before the pick can point anywhere.
+            const bool overshot = mob.leg_locked && ( to_target.x * mob.vel.x + to_target.y * mob.vel.z ) < 0.0;
+            if ( dist < 0.6 || overshot || --mob.ai_ticks <= 0 ) {
                 mob.ai_state = 0;
+                mob.leg_locked = 0;
+                mob.blocked_ticks = 0;
                 std::uniform_int_distribution<int> idle_ticks( 2 * UPS_RATE, 6 * UPS_RATE );
                 mob.ai_ticks = idle_ticks( this->rng );
             }
@@ -834,7 +864,15 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     // next tick.
     const double want_h = std::hypot( want_move.x, want_move.z );
     const double got_h = std::hypot( move.x, move.z );
-    if ( standing && want_h > 1e-4 && got_h < want_h * 0.3 ) {
+    const bool pinned = standing && want_h > 1e-4 && got_h < want_h * 0.3;
+    // blocked_ticks latches once a wander leg's pin-stand engages (>~0.5 s):
+    // suppressed mobs have want_h == 0, so only the leg's own end clears it.
+    if ( pinned && mob.ai_state == 1 ) {
+        mob.blocked_ticks++;
+    } else if ( mob.blocked_ticks <= UPS_RATE / 2 ) {
+        mob.blocked_ticks = 0;
+    }
+    if ( pinned ) {
         const glm::dvec3 dir( want_move.x / want_h, 0.0, want_move.z / want_h );
         const glm::dvec3 ahead = mob.pos + dir * ( def.hitbox_w / 2.0 + 0.4 );
         const glm::ivec3 cell( static_cast<int>( floor( ahead.x ) ), feet.y, static_cast<int>( floor( ahead.z ) ) );
@@ -2333,14 +2371,60 @@ void MobManager::collect_net_state( NetEntities &net, std::vector<NetEntityState
             continue;
         }
         const uint32_t flags = mob_net_flags( mob );
-        const bool keyframe = !mob.net.sent || netsync_keyframe_due( mob.net, tick_number );
+        const bool keyframe = !mob.net.sent || netsync_keyframe_due( mob.net, mob.pos, tick_number );
+        const bool crossing = mob.net.sent && netsync_chunk_changed( mob.net, mob.pos );
         const bool yaw_changed = fabsf( mob.yaw - mob.net_sent_yaw ) > 1e-4f;
         const bool health_changed = mob.health != mob.net_sent_health;
         const bool flags_changed = flags != mob.net_sent_flags;
+        const bool drifted = netsync_drifted( mob.net, mob.pos, mob.vel, tick_number );
+        const bool stale = netsync_stale( mob.net, mob.pos );
+        // Emit-reason tallies under REPGAME_NET_WHY (per ~5 s).
+        static const bool net_why = env_is_set( "REPGAME_NET_WHY" );
+        static long why_last = -1;
+        static long why_key = 0, why_drift = 0, why_vel = 0, why_yaw = 0, why_aux = 0, why_x = 0, why_stale = 0;
+        if ( net_why ) {
+            if ( why_last < 0 ) {
+                why_last = tick_number;
+            }
+            if ( keyframe ) {
+                why_key++;
+            } else {
+                if ( stale ) {
+                    why_stale++;
+                }
+                if ( drifted ) {
+                    const glm::dvec3 predicted =
+                        mob.net.sent_pos + mob.net.sent_vel * static_cast<double>( tick_number - mob.net.sent_tick );
+                    if ( glm::length( mob.pos - predicted ) > NET_STATE_DRIFT_EPS ) {
+                        why_drift++;
+                    }
+                    if ( glm::length( mob.vel - mob.net.sent_vel ) > NET_STATE_VEL_EPS ) {
+                        why_vel++;
+                    }
+                }
+                if ( yaw_changed ) {
+                    why_yaw++;
+                }
+                if ( health_changed || flags_changed ) {
+                    why_aux++;
+                }
+                if ( crossing ) {
+                    why_x++;
+                }
+            }
+            if ( tick_number - why_last >= 5 * UPS_RATE ) {
+                pr_debug( "net_why: key=%ld drift=%ld vel=%ld yaw=%ld aux=%ld cross=%ld stale=%ld", why_key, why_drift,
+                          why_vel, why_yaw, why_aux, why_x, why_stale );
+                why_key = why_drift = why_vel = why_yaw = why_aux = why_x = why_stale = 0;
+                why_last = tick_number;
+            }
+        }
         // Receivers dead-reckon the streamed pos/vel forward, so emit only
-        // when the sim diverges from that prediction (or aux fields changed
-        // or the once-a-second keyframe is due).
-        if ( !keyframe && !netsync_drifted( mob.net, mob.pos, mob.vel, tick_number ) && //
+        // when the sim diverges from that prediction, aux fields changed, a
+        // chunk-boundary crossing would stale the server's belief, the
+        // record pos fell >2 blocks behind (stale), or the move-gated
+        // keyframe backstop is due.
+        if ( !keyframe && !crossing && !drifted && !stale && //
              !yaw_changed && !health_changed && !flags_changed ) {
             continue;
         }

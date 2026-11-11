@@ -106,7 +106,9 @@ class MobManager {
         int ai_state;   // 0 = idle, 1 = wandering
         int ai_ticks;   // idle countdown or wander timeout
         int panic_ticks;
-        glm::dvec3 target; // wander destination
+        glm::dvec3 target;    // wander destination
+        int leg_locked = 0;   // wander leg: heading committed — no more steering
+        int blocked_ticks = 0; // pinned ticks; >~0.5 s latches a stand-still for the leg
         int hurt_ticks;
         int death_ticks; // >0 while the 0.5s tip-over plays; removed at the end
         float walk_dist; // horizontal distance walked, drives the gait phase

@@ -23,8 +23,7 @@ struct NetSync {
     glm::dvec3 vel = glm::dvec3( 0.0 );
 
     // Outbound owner-side throttle tracking: last-streamed pos/vel (the
-    // receiver's dead-reckoning baseline) and the last keyframe send (a
-    // forced update every UPS_RATE ticks).
+    // receiver's dead-reckoning baseline) and the last keyframe send.
     bool sent = false;
     glm::dvec3 sent_pos = glm::dvec3( 0.0 );
     glm::dvec3 sent_vel = glm::dvec3( 0.0 );
@@ -100,8 +99,33 @@ inline void netsync_send_remove( NetEntities *net, const NetSync &s, const uint8
 static constexpr double NET_STATE_DRIFT_EPS = 0.0625;
 static constexpr double NET_STATE_VEL_EPS = 1e-3;
 
-inline bool netsync_keyframe_due( const NetSync &s, const long tick ) {
-    return tick - s.keyframe_tick >= UPS_RATE;
+// Forced-update backstop: a full absolute-pos state re-anchors the delta
+// baseline and refreshes the server's believed chunk. Only entities that
+// actually moved since the last send can have gone stale — a still entity
+// re-sends nothing but its own record, so it never keyframes at all.
+static constexpr long NET_STATE_KEYFRAME_TICKS = 10 * UPS_RATE;
+static constexpr double NET_STATE_KEYFRAME_MOVE_EPS = 0.25;
+
+inline bool netsync_keyframe_due( const NetSync &s, const glm::dvec3 &pos, const long tick ) {
+    return tick - s.keyframe_tick >= NET_STATE_KEYFRAME_TICKS && //
+           glm::length( pos - s.sent_pos ) > NET_STATE_KEYFRAME_MOVE_EPS;
+}
+
+// Would the server's believed chunk flip if it saw this pos? Emitting on
+// the flip is what keeps the belief fresh for silent movers — it's the
+// targeted replacement for the old once-a-second keyframe, since a chunk
+// assignment can only go stale when a boundary is crossed.
+inline bool netsync_chunk_changed( const NetSync &s, const glm::dvec3 &pos ) {
+    return net_entity_next_chunk( s.chunk, pos ) != s.chunk;
+}
+
+// Record-freshness cap, independent of prediction accuracy: CHUNK_ROLE
+// grants and relays hand other clients the last-streamed pos, so a
+// perfectly dead-reckoned silent walker must still check in every couple
+// of blocks or newcomers anchor it a whole leg behind.
+static constexpr double NET_STATE_STALE_EPS = 2.0;
+inline bool netsync_stale( const NetSync &s, const glm::dvec3 &pos ) {
+    return s.sent && glm::length( pos - s.sent_pos ) > NET_STATE_STALE_EPS;
 }
 
 // Is the receiver's dead-reckoned pose (sent_pos + sent_vel * dt) far

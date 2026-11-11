@@ -200,6 +200,65 @@ int test_mobs( ) {
         }
     }
 
+    // --- 2d: a wander leg commits to a constant-velocity heading ----------
+    {
+        // Dead reckoning only pays off if a walking leg never re-steers:
+        // once leg_locked latches, vel.x/z must stay bit-identical for the
+        // whole leg so receivers can extrapolate without corrections.
+        MobManager mobs;
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        MobManager::Mob &mob = mobs.mobs[ 0 ];
+        mob.ai_state = 1;
+        mob.ai_ticks = 100000;
+        mob.target = glm::dvec3( 20.0, 11.0, 14.5 ); // off-axis: turns first
+        double last_vx = 0.0, last_vz = 0.0;
+        int locked_ticks = 0, vel_changes = 0;
+        for ( int i = 0; i < 600; i++ ) {
+            mobs.tick( world, player_pos );
+            if ( mob.leg_locked ) {
+                locked_ticks++;
+                if ( mob.vel.x != last_vx || mob.vel.z != last_vz ) {
+                    vel_changes++;
+                }
+            }
+            last_vx = mob.vel.x;
+            last_vz = mob.vel.z;
+        }
+        check_bool( "wander leg: heading locks", locked_ticks > 100 );
+        check_bool( "wander leg: locked vel stays constant", vel_changes <= 1 );
+        check_bool( "wander leg: moved toward target", mob.pos.x > 12.0 && mob.pos.z > 11.0 );
+    }
+
+    // --- 2e: a pinned leg stands it out instead of grinding the wall ------
+    {
+        // Pushing on a wall for a whole leg both looks dumb and streams a
+        // dead-reckon correction every batch (vel says move, pos says
+        // stopped). Past ~0.5 s pinned the leg must go quiet: speed 0,
+        // frozen vel, until the leg's own end.
+        MobManager mobs;
+        for ( int y = 11; y <= 13; y++ ) {
+            for ( int z = 9; z <= 11; z++ ) {
+                world.set_loaded_block( glm::ivec3( 14, y, z ), stone );
+            }
+        }
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 90.0f, 1 );
+        MobManager::Mob &mob = mobs.mobs[ 0 ];
+        mob.ai_state = 1;
+        mob.ai_ticks = 100000;
+        mob.target = glm::dvec3( 20.0, 11.0, 10.5 );
+        for ( int i = 0; i < 5 * UPS_RATE; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "pinned leg: stand latched", mob.blocked_ticks > UPS_RATE / 2 );
+        check_bool( "pinned leg: vel goes quiet", mob.vel.x == 0.0 && mob.vel.z == 0.0 );
+        check_bool( "pinned leg: still held behind", mob.pos.x < 14.0 );
+        for ( int y = 11; y <= 13; y++ ) {
+            for ( int z = 9; z <= 11; z++ ) {
+                world.set_loaded_block( glm::ivec3( 14, y, z ), BLOCK_STATE_AIR );
+            }
+        }
+    }
+
     // --- 3: half slab step-up ----------------------------------------------
     {
         MobManager mobs;
