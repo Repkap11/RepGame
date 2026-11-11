@@ -577,6 +577,10 @@ to verify `--gdb` and sanitizer report collection.
   shim exists only for old revs).
 - Don't use checked-in image baselines — diffs are always run-vs-run or
   rev-vs-rev (`rep-dbg diff`, `shot --revs`).
+- Don't drop ad-hoc debug scratch (screenshots, `.rds` scripts, patches,
+  logs, temp homes) loose in `/tmp` — use `/tmp/repgame/`; it's tmpfs
+  and clears on reboot. Persistent run output lives under
+  `~/.repgame/rep-dbg`.
 - Don't `sudo` anything — the only root knob is the perf sysctl, and the
   preflight tells you exactly what to ask the user to run.
 - Don't `rm` worlds under `~/.repgame` — rep-dbg runs are isolated

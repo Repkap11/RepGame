@@ -155,7 +155,9 @@ class Client:
 class Run:
     def __init__(self, name, keep=False):
         self.name = name
-        self.dir = tempfile.mkdtemp(prefix="mptest_%s_" % name)
+        scratch = os.path.join(tempfile.gettempdir(), "repgame")
+        os.makedirs(scratch, exist_ok=True)
+        self.dir = tempfile.mkdtemp(prefix="mptest_%s_" % name, dir=scratch)
         self.keep = keep
         self.port = free_port()
         self.server = None

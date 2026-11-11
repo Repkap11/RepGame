@@ -24,7 +24,7 @@ python3 tools/mp_test.py [-k substr] [--list] [--keep]
 - `--list` — print scenario names.
 - `--keep` — keep every artifact dir (failure keeps them regardless).
 
-Artifacts land in `/tmp/mptest_<scenario>_*` and contain `server.log` plus
+Artifacts land in `/tmp/repgame/mptest_<scenario>_*` and contain `server.log` plus
 `client_<X>/{stderr.log,dump.jsonl,ctl.txt}` per client.
 
 ## Architecture

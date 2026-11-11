@@ -1,7 +1,7 @@
 import json
 import os
+import shutil
 import tempfile
-import os
 import sys
 import unittest
 
@@ -10,8 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from rep_dbg import runner, results
 
 
-def _make_run_dir(records, exit_code=0):
+def _make_run_dir(tc, records, exit_code=0):
     run_dir = tempfile.mkdtemp()
+    tc.addCleanup(shutil.rmtree, run_dir, ignore_errors=True)
     os.makedirs(os.path.join(run_dir, "screenshots"), exist_ok=True)
     with open(os.path.join(run_dir, "stdout.log"), "w") as f:
         f.write("FLYMET t=20 ph=1 rd=6 p=(0.5,80.0,0.5) cl=0 j=0 p=0 c=0 d=0 x=0 bfs=0 pri=0 stv=0 s=0 stl=0 occ=0/10 | loop=1\n")
@@ -35,7 +36,7 @@ class TestAssemble(unittest.TestCase):
     def test_ok(self):
         metrics = [{"type": "metric", "tick": t, "loader": {"light_jobs": t}}
                    for t in (20, 40, 60)]
-        run_dir, result = _make_run_dir([HEADER] + metrics + [SUMMARY])
+        run_dir, result = _make_run_dir(self, [HEADER] + metrics + [SUMMARY])
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["game"]["exit_reason"], "fly_ticks")
         self.assertEqual(result["stats"]["metric.loader.light_jobs"]["max"], 60)
@@ -43,12 +44,12 @@ class TestAssemble(unittest.TestCase):
         self.assertEqual(result["artifacts"]["log"], "stdout.log")
 
     def test_crashed(self):
-        run_dir, result = _make_run_dir([HEADER], exit_code=-11)
+        run_dir, result = _make_run_dir(self, [HEADER], exit_code=-11)
         self.assertIsNone(result["game"])
         self.assertEqual(result["status"], "crashed")
 
     def test_timeout(self):
-        run_dir, result = _make_run_dir([HEADER], exit_code=-15)
+        run_dir, result = _make_run_dir(self, [HEADER], exit_code=-15)
         result["exit"]["code"] = -15
         runner.assemble_result(result, run_dir, timed_out=True)
         self.assertEqual(result["status"], "timeout")
@@ -56,14 +57,14 @@ class TestAssemble(unittest.TestCase):
     def test_asserts_failed(self):
         records = [HEADER, {"type": "assert", "tick": 5, "line": 3, "cmd": "assert_light 1 2 3 sky >= 12",
                             "ok": False, "expected": ">=12", "actual": "9"}, SUMMARY]
-        run_dir, result = _make_run_dir(records)
+        run_dir, result = _make_run_dir(self, records)
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["asserts"]["failed"], 1)
         self.assertEqual(result["asserts"]["failures"][0]["line"], 3)
 
     def test_log_shim(self):
         # No header record -> the shim rebuilds results.jsonl from the log.
-        run_dir, result = _make_run_dir([])
+        run_dir, result = _make_run_dir(self, [])
         self.assertEqual(result["source"], "log-shim")
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["game"]["exit_reason"], "unknown")
@@ -108,6 +109,7 @@ class TestWindow(unittest.TestCase):
     def _fake_binary(self, text):
         import stat
         td = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, td, ignore_errors=True)
         path = os.path.join(td, "fakegame")
         with open(path, "w") as f:
             f.write(text)
@@ -120,6 +122,7 @@ class TestWindow(unittest.TestCase):
         build_mod.ensure_built = lambda tree, build, log: self._fake_binary(script)
         try:
             root = tempfile.mkdtemp()
+            self.addCleanup(shutil.rmtree, root, ignore_errors=True)
             import io
             result, run_dir = runner.run(self._opts(root, None, window), io.StringIO())
             return result, run_dir
@@ -175,7 +178,7 @@ class TestResultsApi(unittest.TestCase):
                    {"type": "probe", "tick": 25, "pos": [1, 2, 3], "block": 5,
                     "name": "stone", "rotation": 0, "sky": 15, "blocklight": 0},
                    SUMMARY]
-        run_dir, result = _make_run_dir(records)
+        run_dir, result = _make_run_dir(self, records)
         with open(os.path.join(run_dir, "result.json"), "w") as f:
             json.dump(result, f)
         r = results.Run(run_dir)

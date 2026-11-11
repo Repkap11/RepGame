@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -23,6 +24,7 @@ def _make_run(root, name, world="World1"):
 class TestResolve(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp(prefix="repdbg_inspect_")
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
 
     def test_run_id_resolves_to_world_dir(self):
         run_dir, wdir = _make_run(self.root, "myrun")
@@ -37,6 +39,7 @@ class TestResolve(unittest.TestCase):
 
     def test_plain_dir_is_path(self):
         d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
         target, desc = inspect_mod.resolve_target(d, self.root)
         self.assertEqual((target, desc), (d, "path"))
 
@@ -59,6 +62,7 @@ CANNED_SLICE = {
 class TestSlicePng(unittest.TestCase):
     def test_png_written(self):
         out = os.path.join(tempfile.mkdtemp(), "slice.png")
+        self.addCleanup(shutil.rmtree, os.path.dirname(out), ignore_errors=True)
         inspect_mod.slice_png(CANNED_SLICE, out)
         from PIL import Image
         im = Image.open(out).convert("RGB")

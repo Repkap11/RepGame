@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -33,6 +34,7 @@ def _run_dir(root, name, days_old=0, result=True, size_bytes=0):
 class GcTest(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
         self.log = io.StringIO()
 
     def test_old_run_dir_removed(self):
@@ -82,6 +84,7 @@ class GcTest(unittest.TestCase):
 
     def test_symlink_not_followed(self):
         outside = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
         with open(os.path.join(outside, "keep.me"), "w") as f:
             f.write("precious")
         d = _run_dir(self.root, "a", days_old=30)
@@ -132,8 +135,10 @@ class _Repo:
 class WorktreeTest(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
         self.log = io.StringIO()
         self.repo = _Repo()
+        self.addCleanup(shutil.rmtree, self.repo.path, ignore_errors=True)
         self._old = build_mod.REPO
         build_mod.REPO = self.repo.path
 
@@ -164,7 +169,6 @@ class WorktreeTest(unittest.TestCase):
 
     def test_stale_registration_pruned(self):
         wt = worktree_mod.ensure(self.root, self.repo.sha, self.log)
-        import shutil
         shutil.rmtree(wt)  # dir vanished (as after a /tmp wipe)
         worktree_mod.prune(self.root, self.log, all=True)
         out = subprocess.check_output(

@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -32,6 +33,7 @@ STAT_CSV = """\
 class TestPreflight(unittest.TestCase):
     def _fake_sys(self, paranoid, kptr):
         td = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, td, ignore_errors=True)
         os.makedirs(os.path.join(td, "kernel"))
         with open(os.path.join(td, "kernel/perf_event_paranoid"), "w") as f:
             f.write(str(paranoid))
@@ -165,6 +167,7 @@ def _fake_perf_run(argv, **kw):
 class TestPostprocess(unittest.TestCase):
     def setUp(self):
         self.run_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.run_dir, ignore_errors=True)
         with open(os.path.join(self.run_dir, "perf.data"), "wb") as f:
             f.write(b"x" * 1024)
         self._old = perf.subprocess.run
