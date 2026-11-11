@@ -20,6 +20,7 @@
   ],
   "textures": {
     "bottom": "air",
+    "front": "oxidized_copper_chain_block_2",
     "side": "oxidized_copper_chain_block",
     "top": "air"
   },

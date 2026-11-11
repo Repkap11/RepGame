@@ -440,6 +440,24 @@
     },
     "source": "textures/blocks/chain1"
   },
+  "chain_block_2": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        3,
+        16
+      ],
+      "to": [
+        6,
+        0
+      ]
+    },
+    "source": "textures/blocks/chain2"
+  },
   "chain_command_block_back_mipmap": {
     "source": "textures/blocks/chain_command_block_back_mipmap"
   },
@@ -713,6 +731,24 @@
       ]
     },
     "source": "textures/blocks/copper_chain1"
+  },
+  "copper_chain_block_2": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        3,
+        16
+      ],
+      "to": [
+        6,
+        0
+      ]
+    },
+    "source": "textures/blocks/copper_chain2"
   },
   "copper_chest_inventory_front": {
     "source": "textures/blocks/copper_chest_inventory_front"
@@ -1134,6 +1170,24 @@
       ]
     },
     "source": "textures/blocks/exposed_copper_chain1"
+  },
+  "exposed_copper_chain_block_2": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        3,
+        16
+      ],
+      "to": [
+        6,
+        0
+      ]
+    },
+    "source": "textures/blocks/exposed_copper_chain2"
   },
   "exposed_copper_chest_inventory_front": {
     "source": "textures/blocks/exposed_copper_chest_inventory_front"
@@ -1938,6 +1992,24 @@
       ]
     },
     "source": "textures/blocks/oxidized_copper_chain1"
+  },
+  "oxidized_copper_chain_block_2": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        3,
+        16
+      ],
+      "to": [
+        6,
+        0
+      ]
+    },
+    "source": "textures/blocks/oxidized_copper_chain2"
   },
   "oxidized_copper_chest_inventory_front": {
     "source": "textures/blocks/oxidized_copper_chest_inventory_front"
@@ -3787,6 +3859,24 @@
       ]
     },
     "source": "textures/blocks/weathered_copper_chain1"
+  },
+  "weathered_copper_chain_block_2": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        3,
+        16
+      ],
+      "to": [
+        6,
+        0
+      ]
+    },
+    "source": "textures/blocks/weathered_copper_chain2"
   },
   "weathered_copper_chest_inventory_front": {
     "source": "textures/blocks/weathered_copper_chest_inventory_front"

@@ -84,7 +84,12 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   sampled shows it at `[to.x, to.x + size.x)` in authored order —
   `chain_block` uses it to park Bedrock's 3px chain strip on sampled
   cols 6-8, the window the `Flowers` cross quads cover for a
-  `scale [3,16,3]`/`offset [6,0,6]` box.
+  `scale [3,16,3]`/`offset [6,0,6]` box. The two cross quads sample
+  different face slots — the first diagonal reads `textures[FACE_BACK]`,
+  the second `textures[FACE_FRONT]` — so a def can give each plane its
+  own tile: chains override `"front"` with the `*_block_2` tiles
+  (Bedrock's `chain2`-family strip, offset so the two planes' links
+  interlock instead of overlapping).
 - `random_rotate` — tile participates in per-block random rotation. Used by
   dirt, grass top, snow and all leaf tiles.
 - `keep` — pack even when no block references it (e.g. `player_selection`).

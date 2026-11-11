@@ -169,15 +169,20 @@ static CubeFace vd_data_solid[] = {
     // under LINEAR mipmapping. Flower textures keep the stem/blade at the
     // texture centre, so texel 7 is opaque at the crossing rows for both
     // quads, and the two quads' stems stay aligned at the seam.
+    // Each quad carries a single face label so the whole plane samples one
+    // texture slot: the first diagonal (verts 24-27) reads textures[FACE_BACK],
+    // the second (verts 28-31) textures[FACE_FRONT]. Defs where the two
+    // planes need different art (chains — the second strip is offset so the
+    // links interlock) map them through the back/front face keys.
     { 0.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 0, FACE_BACK, CORNER_OFFSET_bbl },   // 24
-    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 0, FACE_RIGHT, CORNER_OFFSET_bfr },  // 25
-    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 1, FACE_RIGHT, CORNER_OFFSET_tfr },  // 26
+    { 1.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 0, FACE_BACK, CORNER_OFFSET_bfr },   // 25
+    { 1.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 1, FACE_BACK, CORNER_OFFSET_tfr },   // 26
     { 0.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 1, FACE_BACK, CORNER_OFFSET_tbl },   // 27
 
     { 0.0f, 1.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 1, FACE_FRONT, CORNER_OFFSET_tfl },  // 28
-    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 0, FACE_RIGHT, CORNER_OFFSET_bbr },  // 29
+    { 1.0f, 0.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 0, FACE_FRONT, CORNER_OFFSET_bbr },  // 29
     { 0.0f, 0.0f, 1.0f, /*Coords  Texture coords*/ 15.5f / 16.0f, 0, FACE_FRONT, CORNER_OFFSET_bfl },  // 30
-    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 1, FACE_RIGHT, CORNER_OFFSET_tbr },  // 31
+    { 1.0f, 1.0f, 0.0f, /*Coords  Texture coords*/ -0.5f / 16.0f, 1, FACE_FRONT, CORNER_OFFSET_tbr },  // 31
 };
 #define VB_DATA_SIZE_SOLID ( 4 * 6 + 8 )
 

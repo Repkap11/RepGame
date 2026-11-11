@@ -29,16 +29,19 @@
 // Two quads crossing through the block center, drawn both-sided. They index
 // the dedicated flower verts at the end of vd_data_solid (24-31), whose tex_x
 // window is shifted half a texel so the quads' shared crossing column lands
-// on a texel centre instead of a transparent column boundary.
+// on a texel centre instead of a transparent column boundary. The first
+// diagonal's verts are all FACE_BACK and the second's all FACE_FRONT, so
+// each plane samples one texture slot (chains use that for the
+// links-interlocked second strip).
 constexpr static unsigned int ib_data_flowers[] = {
-    26, 24, 25, // Right, Back, Right
+    26, 24, 25, // Back, Back, Back
     25, 24, 26, //
-    26, 24, 27, // Right, Back, Back
+    26, 24, 27, // Back, Back, Back
     27, 24, 26, //
 
-    28, 29, 30, // Front, Right, Front
+    28, 29, 30, // Front, Front, Front
     30, 29, 28, //
-    28, 29, 31, // Front, Right, Right
+    28, 29, 31, // Front, Front, Front
     31, 29, 28, //
 };
 

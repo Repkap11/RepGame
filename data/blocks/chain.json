@@ -20,6 +20,7 @@
   ],
   "textures": {
     "bottom": "air",
+    "front": "chain_block_2",
     "side": "chain_block",
     "top": "air"
   },
