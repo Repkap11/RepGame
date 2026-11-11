@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "common/RepGame.hpp"
@@ -404,4 +405,8 @@ void FontRenderer::cleanup( ) {
     glDeleteBuffers( 1, &vbo_id );
     glDeleteBuffers( 1, &ibo_id );
     shader.destroy( );
+    free( this->batch );
+    this->batch = nullptr;
+    this->batch_capacity = 0;
+    this->batch_quads = 0;
 }

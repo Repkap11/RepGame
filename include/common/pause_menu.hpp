@@ -2,10 +2,10 @@
 
 #include "common/RenderChain.hpp"
 #include "common/ui_overlay.hpp"
+#include "common/ui_layout.hpp" // UiRect, UI_LAYOUT_MAX_ROWS, UI_TEXT_BASE_SIZE
 #include "common/font_renderer.hpp"
 
 struct RepGameState;
-struct UiRect;
 
 // Escape / Android-menu pause screen: a dim backdrop, a centered panel, and
 // tappable buttons drawn with the flat (non-block) UIOverlay instancing
@@ -57,7 +57,7 @@ class PauseMenu {
         int kinds[ 3 ];
         int count;
     };
-    static constexpr int MAX_ROWS = 24;
+    static constexpr int MAX_ROWS = UI_LAYOUT_MAX_ROWS;
 
     // Content description consumed by the layout pass (all pure — no GL).
     static int build_lines( bool dead, Line *lines, int max_lines );

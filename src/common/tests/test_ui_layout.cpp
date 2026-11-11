@@ -23,6 +23,14 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     in.surv_slab_w = 9.1f * stride;
     in.surv_slab_h = 3.1f * stride;
     in.surv_stride = stride;
+    // Container slab dims mirror what the panels' measured items rects
+    // produce (stride*dim + a 0.1-stride border).
+    in.chest_slab_w = 9.1f * stride;
+    in.chest_slab_h = 3.1f * stride;
+    in.craft_grid2_slab = 2.1f * stride;
+    in.craft_grid3_slab = 3.1f * stride;
+    in.craft_out_slab = 1.1f * stride;
+    in.furnace_slab = 1.1f * stride;
     in.creative_slab_w = fminf( w * 0.7f, 720.0f );
     in.creative_panel_w = w * 0.75f;
     const float basis = fmaxf( h, w * ( 9.0f / 16.0f ) );
@@ -170,7 +178,7 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     snprintf( what, sizeof( what ), "%s: pause text scale sane", name );
     is_true( what, r.pause_k >= 1 );
     snprintf( what, sizeof( what ), "%s: pause rows laid out", name );
-    is_true( what, r.pause_row_count > 0 && r.pause_row_count <= UiLayoutRects::UI_LAYOUT_MAX_ROWS );
+    is_true( what, r.pause_row_count > 0 && r.pause_row_count <= UI_LAYOUT_MAX_ROWS );
     snprintf( what, sizeof( what ), "%s: title above first row", name );
     is_true( what, r.pause_title.bottom >= r.pause_rows[ 0 ].top( ) - eps );
     for ( int i = 0; i < r.pause_row_count; i++ ) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 // Screen-space UI layout: one Clay pass produces every rect the draw and
 // input code reads, replacing per-caller position re-derivation (the
 // source of panel/HUD overlap regressions). Pure geometry — no GL — so
@@ -12,6 +14,16 @@
 
 struct Clay_Context;
 class FontRenderer;
+
+// Selected-item label pixel size — the layout pass reserves a slot this
+// tall (label_h is its cap height) and game_render draws the label at it.
+constexpr float UI_ITEM_LABEL_SIZE = 22.0f;
+// The font's native 13px raster: pause-menu text draws at integer
+// multiples (button labels kx, the title (k+1)x) so it stays pixel-crisp.
+constexpr float UI_TEXT_BASE_SIZE = 13.0f;
+// Pause-menu row capacity — PauseMenu::MAX_ROWS aliases this (one value
+// owns the row array size in UiLayoutRects and the Line buffers).
+constexpr int UI_LAYOUT_MAX_ROWS = 24;
 
 // One axis-aligned rect in centered, y-up UI pixels.
 struct UiRect {
@@ -55,6 +67,17 @@ struct UiLayoutInput {
     // Survival cell stride — the shared grid the container screens draw
     // their cells at (fixed_cell_stride panels).
     float surv_stride = 0;
+    // Container-screen slab sizes measured off each panel's
+    // InventoryRenderer items rect (stride*dim + border) — read, never
+    // re-derived here, so the border math stays renderer-owned.
+    float chest_slab_w = 0;
+    float chest_slab_h = 0;
+    // Square slabs at the survival stride: the 2x2/3x3 crafting grids and
+    // output cell, and the furnace cells (input/output/fuel are all 1x1).
+    float craft_grid2_slab = 0;
+    float craft_grid3_slab = 0;
+    float craft_out_slab = 0;
+    float furnace_slab = 0;
     // Creative palette: items slab, the (undrawn) panel bounds the search
     // bar anchors to, and the cell stride that sizes the search bar.
     float creative_slab_w = 0;
@@ -124,7 +147,6 @@ struct UiLayoutRects {
     UiRect pause_panel;
     // Title band (one cap-height tall); its bottom edge is the baseline.
     UiRect pause_title;
-    static constexpr int UI_LAYOUT_MAX_ROWS = 24;
     UiRect pause_rows[ UI_LAYOUT_MAX_ROWS ];
     int pause_row_count = 0;
     // Inter-row/cell gap and the fit-solved integer text scale: button
@@ -175,7 +197,10 @@ class UiLayout {
   private:
     // Fills rects_.overflow and warns (once per newly-overflowing screen)
     // when emitted rects escape the viewport or overlap their siblings.
-    void validate( const UiLayoutInput &in );
+    // strip_h is the precomputed HUD-strip height the pin math assumed —
+    // validated against the measured strip since it duplicates the
+    // declared children's sum.
+    void validate( const UiLayoutInput &in, float strip_h );
     void *arena_mem = nullptr;
     Clay_Context *context = nullptr;
     // Kept for content measurement during layout (worst-case labels etc.).
@@ -184,7 +209,7 @@ class UiLayout {
     // Last pass's overflow mask — warnings log only on newly-set bits so
     // a window drag doesn't spam one line per resize event.
     unsigned last_overflow_ = 0;
-    unsigned last_overlap_ = 0;
+    uint64_t last_overlap_ = 0;
 };
 
 struct RepGameState;

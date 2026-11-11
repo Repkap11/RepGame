@@ -251,8 +251,8 @@ void PauseMenu::draw( const Renderer &renderer, Shader &shader, const Texture &b
     if ( rects.pause_row_count == 0 ) {
         return;
     }
-    const float text_size = 13.0f * rects.pause_k;
-    const float title_size = 13.0f * ( rects.pause_k + 1 );
+    const float text_size = UI_TEXT_BASE_SIZE * rects.pause_k;
+    const float title_size = UI_TEXT_BASE_SIZE * ( rects.pause_k + 1 );
     shader.set_uniform_mat4f( "u_MVP", mvp );
     shader.set_uniform1i_texture( "u_Texture", blocksTexture );
     shader.set_uniform1f( "u_HeldBlockLight", 1.0f );

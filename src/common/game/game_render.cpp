@@ -671,7 +671,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                 std::string label( name );
                 std::replace( label.begin( ), label.end( ), '_', ' ' );
                 const char *buf = label.c_str( );
-                const float text_size = 22.0f;
+                const float text_size = UI_ITEM_LABEL_SIZE;
                 const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
                 const float tx = -globalGameState.ui.font.getTextWidth( buf, text_size ) / 2.0f;
                 // Baseline comes from the layout pass: survival sits the

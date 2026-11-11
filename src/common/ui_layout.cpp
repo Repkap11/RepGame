@@ -16,8 +16,11 @@
 #include "common/pause_menu.hpp"
 #include "common/vendor/clay.h"
 
-// Selected-item label size (game_render draws at this size too).
-constexpr float UI_ITEM_LABEL_SIZE = 22.0f;
+// Inter-row/cell gap at pause text scale k — declared in the rows
+// container and re-read for rects_.pause_gap (split_row's cell gap).
+static float pause_gap_for( const int k ) {
+    return lroundf( UI_TEXT_BASE_SIZE * k * 0.4f );
+}
 
 static void clay_error( Clay_ErrorData data ) {
     pr_debug( "clay layout error %d: %.*s", data.errorType, ( int )data.errorText.length, data.errorText.chars );
@@ -62,13 +65,13 @@ static UiRect clay_to_ui( const Clay_BoundingBox &b, float screen_w, float scree
 // The pause menu: a floating centered panel — a cap-height title band
 // over one full-width row per button line. Clay owns the stacking and
 // fit; PauseMenu::split_row subdivides the returned row rects into equal
-// button cells. `k` is the integer text scale (labels 13k, title
-// 13(k+1)); the caller fit-solves it.
+// button cells. `k` is the integer text scale (labels k*base, title
+// (k+1)*base); the caller fit-solves it.
 static void declare_pause( const UiLayoutInput &in, const FontRenderer &font, const int k ) {
-    const float t = 13.0f * k;
-    const float title_size = 13.0f * ( k + 1 );
+    const float t = UI_TEXT_BASE_SIZE * k;
+    const float title_size = UI_TEXT_BASE_SIZE * ( k + 1 );
     const float bh = t + 2.0f * lroundf( t * 0.35f );
-    const float gap = lroundf( t * 0.4f );
+    const float gap = pause_gap_for( k );
     const float pad = t;  // outer padding on all four sides
     const float hpad = t; // text padding inside a button
 
@@ -184,12 +187,12 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                     // fresh (only the open one draws).
                     const float s2 = in.surv_stride;
                     if ( s2 > 0.0f ) {
-                        // A fixed-stride slab is stride*dim + one border.
-                        const auto slab = [ s2 ]( float dim ) { return s2 * ( dim + 0.1f ); };
+                        // Slab sizes are the panels' measured items dims —
+                        // the renderer owns the stride+border math.
                         // Chest: 9x3 slab, bottom edge a quarter stride
                         // above the survival slab.
                         CLAY( { .id = CLAY_ID( "chest_items" ),
-                                .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 9.0f ) ), CLAY_SIZING_FIXED( slab( 3.0f ) ) } },
+                                .layout = { .sizing = { CLAY_SIZING_FIXED( in.chest_slab_w ), CLAY_SIZING_FIXED( in.chest_slab_h ) } },
                                 .floating = { .offset = { 0, -0.25f * s2 },
                                               .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                                               .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
@@ -197,6 +200,7 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                         // output, the output cell vertically centered on
                         // the grid. Bottom edge pinned like the chest's.
                         for ( int dim = 2; dim <= 3; dim++ ) {
+                            const float grid_slab = dim == 2 ? in.craft_grid2_slab : in.craft_grid3_slab;
                             CLAY( { .id = CLAY_IDI( "crafting_row", dim ),
                                     .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
                                                 .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
@@ -205,11 +209,11 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                                   .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                                                   .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
                                 CLAY( { .id = CLAY_IDI( "crafting_grid", dim ),
-                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( ( float )dim ) ), CLAY_SIZING_FIXED( slab( ( float )dim ) ) } } } ) { }
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( grid_slab ), CLAY_SIZING_FIXED( grid_slab ) } } } ) { }
                                 CLAY( { .id = CLAY_IDI( "crafting_gap", dim ),
-                                        .layout = { .sizing = { CLAY_SIZING_FIXED( s2 ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( s2 ), CLAY_SIZING_FIXED( in.craft_out_slab ) } } } ) { }
                                 CLAY( { .id = CLAY_IDI( "crafting_out", dim ),
-                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.craft_out_slab ), CLAY_SIZING_FIXED( in.craft_out_slab ) } } } ) { }
                             }
                         }
                         // Furnace: input | mid gap | output on the top
@@ -226,15 +230,15 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                     .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
                                                 .layoutDirection = CLAY_LEFT_TO_RIGHT } } ) {
                                 CLAY( { .id = CLAY_ID( "furnace_input" ),
-                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.furnace_slab ), CLAY_SIZING_FIXED( in.furnace_slab ) } } } ) { }
                                 CLAY( { .id = CLAY_ID( "furnace_mid" ),
-                                        .layout = { .sizing = { CLAY_SIZING_FIXED( 1.8f * s2 ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( 1.8f * s2 ), CLAY_SIZING_FIXED( in.furnace_slab ) } } } ) { }
                                 CLAY( { .id = CLAY_ID( "furnace_output" ),
-                                        .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                        .layout = { .sizing = { CLAY_SIZING_FIXED( in.furnace_slab ), CLAY_SIZING_FIXED( in.furnace_slab ) } } } ) { }
                             }
                             CLAY( { .id = CLAY_ID( "furnace_vgap" ), .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( 0.2f * s2 ) } } } ) { }
                             CLAY( { .id = CLAY_ID( "furnace_fuel" ),
-                                    .layout = { .sizing = { CLAY_SIZING_FIXED( slab( 1.0f ) ), CLAY_SIZING_FIXED( slab( 1.0f ) ) } } } ) { }
+                                    .layout = { .sizing = { CLAY_SIZING_FIXED( in.furnace_slab ), CLAY_SIZING_FIXED( in.furnace_slab ) } } } ) { }
                         }
                     }
                 }
@@ -359,7 +363,7 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_.pause_panel = rect_of( CLAY_ID( "pause_panel" ) );
     this->rects_.pause_title = rect_of( CLAY_ID( "pause_title" ) );
     this->rects_.pause_k = pause_k;
-    this->rects_.pause_gap = lroundf( 13.0f * pause_k * 0.4f );
+    this->rects_.pause_gap = pause_gap_for( pause_k );
     PauseMenu::Line lines[ PauseMenu::MAX_ROWS ];
     const int nl = PauseMenu::build_lines( in.pause_dead, lines, PauseMenu::MAX_ROWS );
     this->rects_.pause_row_count = nl;
@@ -367,12 +371,19 @@ void UiLayout::compute( const UiLayoutInput &in ) {
         this->rects_.pause_rows[ i ] = rect_of( CLAY_IDI( "pause_row", i ) );
     }
 
-    this->validate( in );
+    this->validate( in, strip_h );
 }
 
-void UiLayout::validate( const UiLayoutInput &in ) {
+void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     UiLayoutRects &r = this->rects_;
     r.overflow = UI_OVERFLOW_NONE;
+
+    // hud_strip is all-FIXED children, so its measured height must equal
+    // the strip_h the pin math assumed — a drift between the declared
+    // children and the precomputed sum silently reintroduces overlap bugs.
+    if ( fabsf( r.hud_strip.height - strip_h ) > 0.5f ) {
+        pr_debug( "ui_layout: hud_strip height %.2f differs from the assumed %.2f", r.hud_strip.height, strip_h );
+    }
 
     const float eps = 0.5f;
     const auto finite = []( const UiRect &q ) {
@@ -410,8 +421,8 @@ void UiLayout::validate( const UiLayoutInput &in ) {
     // Sibling non-overlap invariants — a violation here is a real layout
     // bug (not a fit problem). Each pair gets a bit so warnings fire once
     // per newly-overlapping pair, not per resize event.
-    unsigned overlap_mask = 0;
-    const auto overlap = [ & ]( unsigned bit, const char *name, const UiRect &a, const UiRect &b ) {
+    uint64_t overlap_mask = 0;
+    const auto overlap = [ & ]( uint64_t bit, const char *name, const UiRect &a, const UiRect &b ) {
         if ( !( finite( a ) && finite( b ) &&
                 a.left < b.right( ) - eps && a.right( ) > b.left + eps &&
                 a.bottom < b.top( ) - eps && a.top( ) > b.bottom + eps ) ) {
@@ -424,25 +435,27 @@ void UiLayout::validate( const UiLayoutInput &in ) {
         }
     };
     // Container screens stack above the survival slab — never inside it.
-    overlap( 1u << 0, "chest_items/survival_items", r.chest_items, r.survival_items );
-    overlap( 1u << 1, "crafting_grid2/survival_items", r.crafting_grid2, r.survival_items );
-    overlap( 1u << 2, "crafting_grid3/survival_items", r.crafting_grid3, r.survival_items );
-    overlap( 1u << 3, "furnace_input/survival_items", r.furnace_input, r.survival_items );
-    overlap( 1u << 4, "furnace_fuel/survival_items", r.furnace_fuel, r.survival_items );
+    overlap( 1ull << 0, "chest_items/survival_items", r.chest_items, r.survival_items );
+    overlap( 1ull << 1, "crafting_grid2/survival_items", r.crafting_grid2, r.survival_items );
+    overlap( 1ull << 2, "crafting_grid3/survival_items", r.crafting_grid3, r.survival_items );
+    overlap( 1ull << 3, "furnace_input/survival_items", r.furnace_input, r.survival_items );
+    overlap( 1ull << 4, "furnace_fuel/survival_items", r.furnace_fuel, r.survival_items );
     // Crafting row: grid | gap | output are disjoint.
-    overlap( 1u << 5, "crafting_grid2/gap", r.crafting_grid2, r.crafting_gap2 );
-    overlap( 1u << 6, "crafting_gap2/out", r.crafting_gap2, r.crafting_out2 );
-    overlap( 1u << 7, "crafting_grid3/gap", r.crafting_grid3, r.crafting_gap3 );
-    overlap( 1u << 8, "crafting_gap3/out", r.crafting_gap3, r.crafting_out3 );
+    overlap( 1ull << 5, "crafting_grid2/gap", r.crafting_grid2, r.crafting_gap2 );
+    overlap( 1ull << 6, "crafting_gap2/out", r.crafting_gap2, r.crafting_out2 );
+    overlap( 1ull << 7, "crafting_grid3/gap", r.crafting_grid3, r.crafting_gap3 );
+    overlap( 1ull << 8, "crafting_gap3/out", r.crafting_gap3, r.crafting_out3 );
     // Furnace trio are disjoint.
-    overlap( 1u << 9, "furnace_input/fuel", r.furnace_input, r.furnace_fuel );
-    overlap( 1u << 10, "furnace_output/fuel", r.furnace_output, r.furnace_fuel );
-    overlap( 1u << 11, "furnace_input/output", r.furnace_input, r.furnace_output );
+    overlap( 1ull << 9, "furnace_input/fuel", r.furnace_input, r.furnace_fuel );
+    overlap( 1ull << 10, "furnace_output/fuel", r.furnace_output, r.furnace_fuel );
+    overlap( 1ull << 11, "furnace_input/output", r.furnace_input, r.furnace_output );
     // Search bar floats above the panel's items slab, never inside it.
-    overlap( 1u << 12, "search_box/creative_items", r.search_box, r.creative_items );
-    // Pause rows are disjoint.
+    overlap( 1ull << 12, "search_box/creative_items", r.search_box, r.creative_items );
+    // Pause rows are disjoint. Each adjacent pair takes a bit past the
+    // named pairs — max shift is 13 + (MAX_ROWS - 2) ≤ 63.
+    static_assert( UI_LAYOUT_MAX_ROWS <= 52, "pause-row overlap bits exceed the mask" );
     for ( int i = 0; i + 1 < r.pause_row_count; i++ ) {
-        overlap( 1u << ( 13 + i ), "pause_row/next", r.pause_rows[ i ], r.pause_rows[ i + 1 ] );
+        overlap( 1ull << ( 13 + i ), "pause_row/next", r.pause_rows[ i ], r.pause_rows[ i + 1 ] );
     }
     this->last_overlap_ = overlap_mask;
     this->last_overflow_ = r.overflow;
@@ -461,6 +474,19 @@ UiLayoutInput ui_layout_input( const RepGameState &state ) {
     in.surv_slab_w = static_cast<float>( surv.getItemsRight( ) - surv.getItemsLeft( ) );
     in.surv_slab_h = static_cast<float>( surv.getItemsTop( ) - surv.getItemsBottom( ) );
     in.surv_stride = surv.getCellStride( );
+    // Container slab sizes come off each panel's measured items rect — the
+    // renderer owns the stride+border math (the layout declares exactly
+    // what the panel will draw).
+    const auto slab_w = []( const InventoryRenderer &r ) {
+        return static_cast<float>( r.getItemsRight( ) - r.getItemsLeft( ) );
+    };
+    const InventoryRenderer &chest = state.ui.chest.inventory_renderer;
+    in.chest_slab_w = slab_w( chest );
+    in.chest_slab_h = static_cast<float>( chest.getItemsTop( ) - chest.getItemsBottom( ) );
+    in.craft_grid2_slab = slab_w( state.ui.crafting.grid2 );
+    in.craft_grid3_slab = slab_w( state.ui.crafting.grid3 );
+    in.craft_out_slab = slab_w( state.ui.crafting.output );
+    in.furnace_slab = slab_w( state.ui.furnace.input );
     const InventoryRenderer &creative = state.ui.creative.inventory_renderer;
     in.creative_slab_w = static_cast<float>( creative.getItemsRight( ) - creative.getItemsLeft( ) );
     in.creative_slab_h = static_cast<float>( creative.getItemsTop( ) - creative.getItemsBottom( ) );
