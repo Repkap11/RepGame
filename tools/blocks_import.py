@@ -1275,6 +1275,101 @@ def main():
                 resolved[bid]["icon"] = masked_tile(src, shape, model["icon_mask"])
                 b.setdefault("icon_is_isometric", False)
 
+    # Sampled-window sanity check. A face quad samples the tile window
+    # [-tex_offset, -tex_offset + scale] per axis — in *sampled space*: the
+    # tile as GL sees it, with X mirrored by loadTexture's per-tile flip and
+    # rows bottom-up. Warn when the window's art is a solid strip sized to
+    # fill it but shifted so it clips one edge while leaving empty margin on
+    # the other — the signature of an extract.to/tex_offset placed in the
+    # wrong space (the chain-strip bug). Centered strips, ragged plant
+    # sprites, and art deliberately offset within (or wider than) its window
+    # can't fire.
+    sampled_alpha = {}
+
+    def alpha_of(name):
+        if name not in sampled_alpha:
+            img = images[name].transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+            px = img.load()
+            sampled_alpha[name] = [[px[x, y][3] > 0 for x in range(TILE)] for y in range(TILE)]
+        return sampled_alpha[name]
+
+    window_warnings = {}
+
+    def check_window(bname, face, tex, u0, u1, v0, v1):
+        if images[tex].getextrema()[3][1] == 0:
+            return  # fully transparent face (e.g. air)
+        alpha = alpha_of(tex)
+        for axis, w0, w1, p0, p1 in (("u", u0, u1, v0, v1), ("v", v0, v1, u0, u1)):
+            if w1 - w0 >= TILE - 0.1 or w1 <= w0:
+                continue  # full-tile or empty window: "offset" is meaningless
+            if w0 < 0 or w1 > TILE:
+                continue  # wraps the tile edge — deliberate alignment
+            pl = max(0, int(math.floor(p0)))
+            ph = min(TILE, int(math.ceil(p1)))
+            cov = []
+            for i in range(TILE):
+                n = sum(alpha[y][i] for y in range(pl, ph)) if axis == "u" else \
+                    sum(alpha[i][x] for x in range(pl, ph))
+                cov.append(n / max(1, ph - pl))
+            opaque = [i for i, c in enumerate(cov) if c >= 0.05]
+            if not opaque:
+                continue
+            b0, b1 = opaque[0], opaque[-1] + 1
+            if not all(c >= 0.25 for c in cov[b0:b1]):
+                continue  # ragged/sparse art — placement is authored
+            if abs((b1 - b0) - (w1 - w0)) > 0.5:
+                continue  # not a strip meant to fill this window
+            ml = max(0.0, min(b0, w1) - w0)
+            mr = max(0.0, w1 - max(b1, w0))
+            cl = max(0.0, w0 - b0)
+            cr = max(0.0, b1 - w1)
+            if (cl >= 0.75 and mr >= 0.75) or (cr >= 0.75 and ml >= 0.75):
+                key = (tex, face, axis, round(w0, 3), round(w1, 3),
+                       round(b0, 2), round(b1, 2))
+                window_warnings.setdefault(key, []).append(bname)
+
+    # Blocks whose drawn quads aren't the scale/offset box (custom meshes or
+    # runtime-sliced shapes) — the window math doesn't describe them.
+    WINDOW_CHECK_SKIP = ("is_stairs", "is_fence", "is_fence_gate", "is_cake",
+                         "is_piston", "is_piston_head", "spine_shell")
+    for bid, b in sorted(blocks.items()):
+        if any(b.get(k) for k in WINDOW_CHECK_SKIP):
+            continue
+        name = b["name"].lower()
+        s = b.get("scale", [16, 16, 16])
+        o = b.get("tex_offset", [0, 0, 0])
+        faces = resolved[bid]["faces"]
+        if s == [16, 16, 16] and o == [0, 0, 0]:
+            continue  # all windows are the full tile
+        # Face windows replicate the rot-0 vertex shader math: the u axis is
+        # x for top/bottom/front/back, z for right/left; v is z for caps, y
+        # for sides.
+        wins = {
+            "top": (-o[0], -o[0] + s[0], -o[2], -o[2] + s[2]),
+            "right": (-o[0], -o[0] + s[2], -o[1], -o[1] + s[1]),
+            "front": (-o[2], -o[2] + s[0], -o[1], -o[1] + s[1]),
+        }
+        wins["bottom"] = wins["top"]
+        wins["left"] = wins["right"]
+        wins["back"] = wins["front"]
+        if b.get("render_order") == "Flowers":
+            # Only the two cross quads are emitted; flat shading pulls the
+            # RIGHT face's texture onto both. Their u window mixes the x and
+            # z components via the -0.5/15.5px texcoords (see the flower
+            # verts in block.hpp); v is the side v window.
+            # Quad A endpoints: BACK vert (tex -0.5px, x-scale, z-offset) and
+            # RIGHT vert (tex 15.5px, z-scale, x-offset). Quad B: FRONT vert
+            # (15.5px, x, z) and RIGHT vert (-0.5px, z, x).
+            qa = sorted((-0.5 * s[0] / 16 - o[2], 15.5 * s[2] / 16 - o[0]))
+            qb = sorted((15.5 * s[0] / 16 - o[2], -0.5 * s[2] / 16 - o[0]))
+            v0, v1 = wins["right"][2:]
+            tex = faces[FACE_KEYS.index("right")]
+            check_window(name, "flower-quad-a", tex, qa[0], qa[1], v0, v1)
+            check_window(name, "flower-quad-b", tex, qb[0], qb[1], v0, v1)
+        else:
+            for face, (u0, u1, v0, v1) in wins.items():
+                check_window(name, face, faces[FACE_KEYS.index(face)], u0, u1, v0, v1)
+
     canon_members = {}  # canonical name -> [member names]
     for name in sorted(images):
         key = images[name].tobytes()
@@ -1531,6 +1626,9 @@ def main():
     for canon, names in mixed_rotatable:
         print("blocks_import: WARNING rotatable layer %s merges non-rotatable %s" %
               (canon, [n for n in names if not tex_meta.get(n, {}).get("random_rotate")]))
+    for (tex, face, axis, w0, w1, b0, b1), bnames in sorted(window_warnings.items()):
+        print("blocks_import: WARNING %s: %s %s window [%.1f, %.1f] but art strip spans [%.1f, %.1f] — shifted past the window edge (check extract.to sampled space / tex_offset) [%s]" %
+              (tex, face, axis, w0, w1, b0, b1, ", ".join(sorted(set(bnames))[:8])))
 
 
 if __name__ == "__main__":

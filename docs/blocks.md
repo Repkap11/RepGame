@@ -40,6 +40,11 @@ texcoords and face-rotation remap are all authored for the flipped tile,
 so the flip is load-bearing — don't remove it). `extract` rect fields are
 PNG space by default; `"mirror": true` on a rect reinterprets `to` in
 sampled space for strips/bands that must land on an exact sampled column.
+The importer recomputes each face's sampled window and warns when a
+window-filling solid strip is shifted so it clips one edge while leaving
+empty margin on the other — the signature of `to`/`tex_offset` written in
+the wrong space. Narrow organic sprites and art deliberately offset
+inside (or wider than) its window are ignored.
 
 Texture layers are independent `TextureID`s. `data/textures/<name>.png` holds
 repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
