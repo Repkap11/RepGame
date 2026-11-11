@@ -33,6 +33,15 @@ list(APPEND REPGAME_SOURCES ${REPGAME_COMMON_SOURCES})
 repgame_asset_blobs(ANDROID_BLOBS ANDROID_SHADER_PROCESSED DEFINES -DREPGAME_ANDROID)
 set_source_files_properties(${ANDROID_SHADER_PROCESSED} PROPERTIES HEADER_FILE_ONLY TRUE)
 
+# Same Clay carve-outs as the top-level CMakeLists: the vendored
+# implementation trips warnings we don't patch out, and ui_layout.cpp's
+# CLAY() declarations leave fields unmentioned on purpose. NDK clang
+# reports the designated-init gaps as -Wmissing-field-initializers.
+set_source_files_properties(${REPGAME_ROOT}/src/common/vendor/clay.cpp
+	PROPERTIES COMPILE_OPTIONS -Wno-error)
+set_source_files_properties(${REPGAME_ROOT}/src/common/ui_layout.cpp
+	PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers)
+
 add_library( RepGameAndroid SHARED ${REPGAME_SOURCES} ${ANDROID_BLOBS} ${ANDROID_SHADER_PROCESSED} )
 
 #target_link_libraries(RepGameAndroid input ${PaulSource} ${log-lib} ${android-lib} GLESv3 )
