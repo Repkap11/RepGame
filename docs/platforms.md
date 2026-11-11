@@ -173,6 +173,8 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   and sets `loginctl enable-linger` so it starts on boot without a login.
   No sudo needed. `server-systemd-status`/`-logs`/`-uninstall` wrap the
   matching `systemctl --user`/`journalctl --user` calls over ssh.
+  `make server-logs` dumps the last `LOG_LINES` (200) journal lines —
+  the tmux capture-pane equivalent; `server-systemd-logs` follows live.
 - `make server-systemd-install` / `server-systemd-status` /
   `server-systemd-logs` / `server-systemd-uninstall` — install, inspect and
   remove the `RepGameServer.service` systemd unit.
