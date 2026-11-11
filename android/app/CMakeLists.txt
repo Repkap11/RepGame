@@ -38,7 +38,7 @@ set_source_files_properties(${ANDROID_SHADER_PROCESSED} PROPERTIES HEADER_FILE_O
 # CLAY() declarations leave fields unmentioned on purpose. NDK clang
 # reports the designated-init gaps as -Wmissing-field-initializers.
 set_source_files_properties(${REPGAME_ROOT}/src/common/vendor/clay.cpp
-	PROPERTIES COMPILE_OPTIONS -Wno-error)
+	PROPERTIES COMPILE_OPTIONS "-Wno-error;-Wno-missing-field-initializers")
 set_source_files_properties(${REPGAME_ROOT}/src/common/ui_layout.cpp
 	PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers)
 

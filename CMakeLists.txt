@@ -320,21 +320,16 @@ endif()
 if(REPGAME_BUILD_CLIENT)
 	# Same treatment as imgui: the vendored clay.h implementation trips
 	# -Wmissing-(designated-)field-initializers, which we don't want to
-	# patch out of the vendored file. Project files *declaring* Clay
-	# elements use partial designated initializers; those get
-	# -Wno-missing-(designated-)field-initializers via REPGAME_CLAY_SOURCES.
+	# patch out of the vendored file. -Wno-missing-field-initializers is
+	# the only flag gcc has and covers the designated sub-group on clang,
+	# so one flag works everywhere.
 	set_source_files_properties(${CMAKE_SOURCE_DIR}/src/common/vendor/clay.cpp
-		PROPERTIES COMPILE_OPTIONS -Wno-error)
+		PROPERTIES COMPILE_OPTIONS "-Wno-error;-Wno-missing-field-initializers")
 	# Project sources declaring Clay elements leave the rest of the
 	# declaration designated-initializers unmentioned on purpose.
 	set(REPGAME_CLAY_SOURCES ${CMAKE_SOURCE_DIR}/src/common/ui_layout.cpp)
-	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
-		set_source_files_properties(${REPGAME_CLAY_SOURCES}
-			PROPERTIES COMPILE_OPTIONS -Wno-missing-designated-field-initializers)
-	else()
-		set_source_files_properties(${REPGAME_CLAY_SOURCES}
-			PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers)
-	endif()
+	set_source_files_properties(${REPGAME_CLAY_SOURCES}
+		PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers)
 endif()
 
 # ---- client ---------------------------------------------------------------
