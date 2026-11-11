@@ -301,11 +301,35 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
         // colliding face (plants/torches don't collide), so the tip reads
         // as embedded once the pose is adjusted below.
         const glm::dvec3 want = a.vel;
+        const glm::dvec3 start_min = amin;
         bool hit_axis[ 3 ];
         int hit_extra_axis[ 3 ];
         bool standing = false;
         Collision::move_box( world, amin, amax, want, no_extra, hit_axis, hit_extra_axis, &standing );
-        const glm::dvec3 landed = amin + glm::dvec3( ARROW_HALF );
+        const bool box_hit = hit_axis[ 0 ] || hit_axis[ 1 ] || hit_axis[ 2 ];
+        glm::dvec3 landed = amin + glm::dvec3( ARROW_HALF );
+        if ( box_hit ) {
+            // move_box finishes the whole substep on every axis, so a face
+            // reached mid-substep still lets the lateral axes slide to the
+            // substep end — grazing shots then land on a lattice
+            // ~COLLISION_MAX_SUBSTEP apart along the wall instead of where
+            // the box touched. Re-march the segment for the first contact
+            // so the stick lands at the true hit point.
+            double lo = 0.0, hi = 1.0;
+            for ( int it = 0; it < 12; it++ ) {
+                const double mid = ( lo + hi ) * 0.5;
+                const glm::dvec3 tmin = start_min + want * mid;
+                if ( Collision::box_collides( world, tmin, tmin + glm::dvec3( ARROW_HALF * 2 ) ) ) {
+                    hi = mid;
+                } else {
+                    lo = mid;
+                }
+            }
+            landed = start_min + want * lo + glm::dvec3( ARROW_HALF );
+            // Anchor probing below reads the box at rest.
+            amin = start_min + want * lo;
+            amax = amin + glm::dvec3( ARROW_HALF * 2 );
+        }
         const double traveled = glm::length( landed - a.pos );
 
         if ( mob >= 0 && mob_t <= traveled + 1e-4 ) {
@@ -320,7 +344,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             continue;
         }
         a.pos = landed;
-        if ( hit_axis[ 0 ] || hit_axis[ 1 ] || hit_axis[ 2 ] ) {
+        if ( box_hit ) {
             // Stick: seat the center so the tip embeds ~0.1 into the face
             // (landed sits ARROW_HALF back from it). vel keeps the entry
             // direction — it streams to mirrors as the stuck orientation.

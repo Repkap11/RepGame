@@ -154,6 +154,28 @@ int test_arrows( ) {
         }
     }
 
+    // --- grazing lateral slide: move_box finishes the substep on every
+    // axis, so a face reached mid-substep lets the lateral axes slide to
+    // the substep end — arrows then land on a lattice ~0.27 apart along
+    // the wall (the "quantized landing" bug). The arrow has to stick
+    // where its box first touched the face --------------------------------
+    {
+        // Wall at x=15 (built above). The box's +x edge starts at 14.95,
+        // so at vx=0.25 the face is touched ~0.2 into the tick: contact
+        // z ~= 10.58, not the full-step 10.9.
+        ArrowEntities arrows;
+        arrows.spawn( glm::dvec3( 14.9, 20.0, 10.5 ), glm::dvec3( 0.25, 0.0, 0.4 ), ArrowEntities::ARROW_DAMAGE, 1 );
+        ArrowEntities::ArrowTickOutput out;
+        for ( int i = 0; i < 20 && ( arrows.count( ) == 0 || !arrows.debug_arrows( )[ 0 ].stuck ); i++ ) {
+            gs.tick_number++;
+            arrows.tick( gs, &out );
+        }
+        check_bool( "slide: parked in the wall", arrows.count( ) == 1 && arrows.debug_arrows( )[ 0 ].stuck == 1 );
+        const ArrowEntities::Arrow a = arrows.debug_arrows( )[ 0 ];
+        check_near( "slide: sticks at first contact, not substep end", a.pos.z, 10.41, 0.08 );
+        check_bool( "slide: anchored on the wall", a.stuck_cell.x == 15 );
+    }
+
     // --- stuck pickup ---------------------------------------------------------
     {
         test_setup_inventories( gs );

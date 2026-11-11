@@ -85,7 +85,12 @@ still sink underwater), then moves a point-sized collision box
 (`Collision::move_box`, so plants/torches don't collide) along the
 segment and cross-checks `MobManager::raycast` against the whole intended
 path — the nearer of block-vs-mob wins, so a fast arrow can't tunnel
-through either. move_box only clamps faces the leading edge crosses, so
+through either. move_box resolves each axis for the whole substep, so a
+face reached mid-substep still lets the lateral axes slide to the substep
+end — a grazing hit would land the arrow on a lattice ~COLLISION_MAX_SUBSTEP
+apart along the wall — so on a hit the tick segment is re-marched with
+`Collision::box_collides` for the first contact and the arrow sticks there
+instead. move_box only clamps faces the leading edge crosses, so
 a spawn already inside a solid (a point-blank release into a wall) is
 settled as a block hit where it sits (`Collision::box_collides`) instead
 of tunnelling through. Lava/fire contact destroys the arrow with a `fizz`.
