@@ -52,6 +52,11 @@ template <typename Element, typename Instance> class RenderChain {
     std::pair<entt::entity, Instance &> create_instance( ) {
         const entt::entity entity = registry.create( );
         Instance &instance = registry.emplace<Instance>( entity );
+        // Trip once well below the entity_mask ceiling (~1M) so a leak names
+        // its instance type here instead of asserting inside entity_at.
+        if ( const std::size_t n = registry.storage<Instance>( ).size( ); n == 65536 ) {
+            pr_debug( "RenderChain<%s> hit %zu live instances — likely a leak", typeid( Instance ).name( ), n );
+        }
         return std::pair<entt::entity, Instance &>( entity, instance );
     }
     Instance &get_instance( const entt::entity &entity ) {
@@ -109,7 +114,11 @@ template <typename Element, typename Instance> class RenderChain {
     }
 
     void clear( ) {
-        registry.clear<Instance>( );
+        // registry.clear<Instance>() would only strip components, leaving
+        // emptied entities live forever — clear() callers always rebuild,
+        // so destroy the entities instead or the pool leaks ~N/frame toward
+        // the entity_mask limit (entity_at assert at ~1M).
+        registry.clear( );
         this->instance_count_changed = true;
     }
 

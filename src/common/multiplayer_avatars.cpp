@@ -68,7 +68,11 @@ void MultiplayerAvatars::remove( const unsigned int player_id ) {
 }
 
 void MultiplayerAvatars::cleanup( ) {
-    memset( this->uid_map, 0, sizeof( this->uid_map ) );
+    // Zeroing uid_map without remove() would orphan the spawned remote mobs
+    // (and their held-item instances) in the MobManager forever.
+    for ( unsigned int player_id = 0; player_id < MAX_CLIENT_FDS; player_id++ ) {
+        this->remove( player_id );
+    }
     memset( this->flags_map, 0, sizeof( this->flags_map ) );
     for ( float &h : this->health_map ) {
         h = -1.0f;
