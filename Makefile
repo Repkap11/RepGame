@@ -61,6 +61,7 @@ clean:
 
 deploy:
 	@echo "${TARGET} deploy complete..."
+	@echo "Note: the live server keeps running its old binary until 'make server-restart'."
 
 nothing:
 
