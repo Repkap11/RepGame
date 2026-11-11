@@ -62,9 +62,9 @@ struct ImGuiDebugVars {
     glm::vec3 avatar_held_pos = glm::vec3( 6.0f, 15.0f, -5.5f );
     glm::vec3 avatar_held_rot = glm::vec3( 0.0f, -90.0f, 25.0f ); // pitch, yaw, roll
     float avatar_held_scale = 10.0f;
-    glm::vec3 avatar_held_block_pos = glm::vec3( 6.0f, 12.5f, -1.5f );
-    glm::vec3 avatar_held_block_rot = glm::vec3( 30.0f, 135.0f, 0.0f ); // pitch, yaw, roll
-    float avatar_held_block_scale = 9.5f;
+    glm::vec3 avatar_held_block_pos = glm::vec3( 6.0f, 12.5f, -5.0f );
+    glm::vec3 avatar_held_block_rot = glm::vec3( 15.0f, 135.0f, -15.0f ); // pitch, yaw, roll
+    float avatar_held_block_scale = 5.5f;
 };
 
 #if ( defined( REPGAME_WINDOWS ) || defined( REPGAME_LINUX ) || defined( REPGAME_WASM ) )
