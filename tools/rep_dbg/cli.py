@@ -35,7 +35,7 @@ def _add_run_args(p):
     p.add_argument("--name", help="run name (run dir <root>/<name>/<ts>-<n>)")
     p.add_argument("--window", action="store_true", help="run with a real window (not headless)")
     p.add_argument("--json", action="store_true", help="print result.json on stdout")
-    p.add_argument("--root", default=None, help="run root (default /tmp/rep-dbg or REP_DBG_ROOT)")
+    p.add_argument("--root", default=None, help="run root (default ~/.repgame/rep-dbg or REP_DBG_ROOT)")
     p.add_argument("--every", type=int, default=None, help="REPGAME_RESULTS_EVERY cadence")
     p.add_argument("--gdb", action="store_true",
                    help="wrap the game in batch gdb; signal + all-thread bt land in crash.txt")

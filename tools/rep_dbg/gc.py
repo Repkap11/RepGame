@@ -30,7 +30,7 @@ RUN_DIR_RE = re.compile(r"^\d{8}-\d{6}-\d+$")
 AUTO_ENV = {"keep_days": "REP_DBG_KEEP_DAYS", "max_gb": "REP_DBG_MAX_GB",
             "perf_data_hours": "REP_DBG_PERF_DATA_HOURS",
             "wt_days": "REP_DBG_WT_DAYS"}
-DEFAULTS = {"keep_days": 7.0, "max_gb": 20.0, "perf_data_hours": 24.0,
+DEFAULTS = {"keep_days": 7.0, "max_gb": 10.0, "perf_data_hours": 24.0,
             "wt_days": 3.0}
 
 

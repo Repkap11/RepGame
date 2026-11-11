@@ -7,7 +7,7 @@ description: Structured debug/profiling runs for RepGame via tools/rep-dbg — i
 
 `tools/rep-dbg` runs the game headless with an isolated `$HOME`, records a
 structured `results.jsonl` (`REPGAME_RESULTS`), and assembles a
-schema-versioned `result.json` per run under `/tmp/rep-dbg` (`--root` /
+schema-versioned `result.json` per run under `~/.repgame/rep-dbg` (`--root` /
 `REP_DBG_ROOT` override). Full reference: `docs/debug-tools.md`.
 
 **Rule: never regex logs.** Read `result.json` via `rep-dbg show --field`

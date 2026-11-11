@@ -101,7 +101,7 @@ changes.
 ### The index
 
 `<root>/index.jsonl` gets one line per finished run. Rebuild with
-`rep-dbg runs --reindex`. `<root>` defaults to `/tmp/rep-dbg`;
+`rep-dbg runs --reindex`. `<root>` defaults to `~/.repgame/rep-dbg`;
 `--root`/`REP_DBG_ROOT` override.
 
 ### Python API
@@ -164,7 +164,7 @@ one out — see *Sanitizers & crashes*.
   keeps *dirty* worktrees that live outside `<root>/wt/` (hand-made ones
   may hold uncommitted work — `rep-dbg: keeping dirty worktree …`);
   `--all` removes them.
-- `rep-dbg gc [--dry-run] [--keep-days 7] [--max-gb 20]
+- `rep-dbg gc [--dry-run] [--keep-days 7] [--max-gb 10]
   [--perf-data-hours 24] [--wt-days 3] [--json]` — housekeeping for the
   root: deletes kept `perf.data` older than `--perf-data-hours` (marks
   `perf.data_deleted` in result.json), run dirs older than `--keep-days`,

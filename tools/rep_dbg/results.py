@@ -14,7 +14,7 @@ import re
 
 from . import index as index_mod
 
-DEFAULT_ROOT = "/tmp/rep-dbg"
+DEFAULT_ROOT = os.path.expanduser("~/.repgame/rep-dbg")
 
 
 def default_root():
