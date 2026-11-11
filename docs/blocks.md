@@ -182,8 +182,12 @@ columns of the `sign*`/`*_sign` item icon (board + post). A `*_WALL_SIGN`
 is a 2px plate hugging the clicked block face (`scale [16,9,2]`,
 `offset [0,4,0]`, `rotate_on_placement` + `needs_place_on_any_solid.front`
 — the ladder/button wall-mount convention): its front/back quads sample a
-`sign_*_wall` tile, the `extract`-lifted 13x9 board rect out of the species'
-standing item icon, while edge quads stay plain planks. A
+`sign_*_wall` tile, the `extract`-lifted 16x12 board band out of the
+species' 64x32 `textures/entity/*sign*` texture (the band fills tile rows
+2-13 edge to edge, leaving the 9-row face window opaque margin on both
+sides; the item icon is unusable here — it's a small board+post sprite
+whose outline bleeds dark texels into the crop), while edge quads stay
+plain planks. A
 `*_HANGING_SIGN` is a 10-wide column suspended from the block above
 (`needs_place_on_any_solid.bottom` — the support sits at pos - dir, i.e.
 `bottom` means "colliding block overhead") whose sides sample the
@@ -191,9 +195,21 @@ standing item icon, while edge quads stay plain planks. A
 non-colliding, see-through, non-shadow-casting and carry
 `breaks_in_liquid` + `waterloggable` (the kelp pattern): flow treats the
 cell as a wall and never pops them, while a direct water write waterlogs
-the sign instead of breaking it. Signs share the one generic 4-yaw rotation, so
+the sign instead of breaking it. Signs share the one generic 4-yaw
+rotation, so
 a wall sign reads its support through `block_supports_present` like any
 ladder and pops when the block behind it breaks.
+
+Each species' standing and wall signs share one item (MC's single sign
+item): the standing block's `wall_variant` names its wall form and the
+wall block's `standing_variant` points back — a paired block-ref like
+`door_partner` that the importer requires to be symmetric. Placement
+(player.cpp) runs `block_wall_variant_rotation` against the clicked
+face: a side click writes the wall variant when it survives there, a
+floor/ceiling click keeps the standing block. `block_item_id` maps the
+wall block back to the standing block, so drops, pick-block and the
+survival inventory all yield the shared item; wall signs also carry
+`creative: false` so the creative list shows one sign entry per species.
 
 `"spine_shell": true` (cactus) replaces the block's mesh with Java's
 three-element cactus model: a full-cell box drawing only top/bottom, plus

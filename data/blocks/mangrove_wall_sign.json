@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "mangrove_sign",
  "id": 773,
  "name": "MANGROVE_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "MANGROVE_STANDING_SIGN",
  "textures": {
   "back": "sign_mangrove_wall",
   "bottom": "mangrove_planks",

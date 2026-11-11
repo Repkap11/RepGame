@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "sign_warped",
  "id": 1283,
  "name": "WARPED_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "WARPED_STANDING_SIGN",
  "textures": {
   "back": "sign_warped_wall",
   "bottom": "warped_planks",

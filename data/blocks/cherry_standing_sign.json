@@ -7,5 +7,6 @@
   "bottom": "cherry_planks",
   "side": "cherry_sign",
   "top": "cherry_planks"
- }
+ },
+ "wall_variant": "CHERRY_WALL_SIGN"
 }

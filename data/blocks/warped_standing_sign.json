@@ -7,5 +7,6 @@
   "bottom": "warped_planks",
   "side": "sign_warped",
   "top": "warped_planks"
- }
+ },
+ "wall_variant": "WARPED_WALL_SIGN"
 }

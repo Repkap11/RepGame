@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "poplar_sign",
  "id": 984,
  "name": "POPLAR_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "POPLAR_STANDING_SIGN",
  "textures": {
   "back": "sign_poplar_wall",
   "bottom": "poplar_planks",

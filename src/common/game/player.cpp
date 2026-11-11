@@ -811,7 +811,21 @@ void RepGame::process_mouse_events( ) {
             }
 
             if ( !did_toggle_dust ) {
-                const unsigned char rotation = getPlacedRotation( holdingBlock );
+                // A sign-style item covers a standing and a wall form: a
+                // side-face click mounts the wall variant on the clicked
+                // block, floor/ceiling clicks (or an unmountable side) keep
+                // the held block — the same MC one-sign-item behavior.
+                BlockID placed_id = holdingBlock;
+                const glm::ivec3 mount_dir = globalGameState.block_selection.pos_create - globalGameState.block_selection.pos_destroy;
+                const int wall_rotation = block_wall_variant_rotation( holdingBlockDef, mount_dir );
+                if ( wall_rotation >= 0 ) {
+                    const BlockID wall_id = holdingBlockDef->wall_variant;
+                    const BlockState wall_state = { wall_id, static_cast<unsigned char>( wall_rotation ), 0, wall_id, 0 };
+                    if ( player_placement_valid( globalGameState.world, globalGameState.block_selection.pos_create, wall_state ) ) {
+                        placed_id = wall_id;
+                    }
+                }
+                const unsigned char rotation = getPlacedRotation( placed_id );
                 if ( holdingBlockDef->is_torch ) {
                     pr_debug( "Placing torch face:%d rotation:%d", globalGameState.block_selection.face, rotation );
                 }
@@ -824,7 +838,7 @@ void RepGame::process_mouse_events( ) {
                     if ( holdingBlockDef->can_float_on_water && globalGameState.block_selection.floatSelectionInBounds ) {
                         globalGameState.block_selection.pos_create = globalGameState.block_selection.pos_create_water;
                     }
-                    BlockID placed_block = change_block( 1, { holdingBlock, rotation, 0, holdingBlock, 0 } );
+                    BlockID placed_block = change_block( 1, { placed_id, rotation, 0, placed_id, 0 } );
                     if ( placed_block != LAST_BLOCK_ID ) {
                         audio_play_sfx( audio_block_place_pool( holdingBlock ) );
                     }

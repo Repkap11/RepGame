@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "sign_crimson",
  "id": 416,
  "name": "CRIMSON_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "CRIMSON_STANDING_SIGN",
  "textures": {
   "back": "sign_crimson_wall",
   "bottom": "crimson_planks",

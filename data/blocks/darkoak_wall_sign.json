@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "sign_darkoak",
  "id": 468,
  "name": "DARKOAK_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "DARKOAK_STANDING_SIGN",
  "textures": {
   "back": "sign_darkoak_wall",
   "bottom": "planks_big_oak",

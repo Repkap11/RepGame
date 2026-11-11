@@ -7,5 +7,6 @@
   "bottom": "planks_big_oak",
   "side": "sign_darkoak",
   "top": "planks_big_oak"
- }
+ },
+ "wall_variant": "DARKOAK_WALL_SIGN"
 }

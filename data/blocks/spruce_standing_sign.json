@@ -7,5 +7,6 @@
   "bottom": "planks_spruce",
   "side": "sign_spruce",
   "top": "planks_spruce"
- }
+ },
+ "wall_variant": "SPRUCE_WALL_SIGN"
 }

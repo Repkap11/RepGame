@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "pale_oak_sign",
  "id": 897,
  "name": "PALE_OAK_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "PALE_OAK_STANDING_SIGN",
  "textures": {
   "back": "sign_pale_oak_wall",
   "bottom": "pale_oak_planks",

@@ -377,8 +377,10 @@ block_definitions[ 24 ].is_seethrough = true;
 block_definitions[ 24 ].mineable = MINEABLE_AXE;
 block_definitions[ 24 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 24 ].offset = { 4, 0, 4 };
+block_definitions[ 24 ].rotate_on_placement = true;
 block_definitions[ 24 ].scale = { 8, 16, 8 };
 block_definitions[ 24 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 24 ].wall_variant = ACACIA_WALL_SIGN;
 block_definitions[ 24 ].waterloggable = true;
 
 // COBBLESTONE (25)
@@ -622,6 +624,7 @@ block_definitions[ 40 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 40 ].offset = { 0, 4, 0 };
 block_definitions[ 40 ].rotate_on_placement = true;
 block_definitions[ 40 ].scale = { 16, 9, 2 };
+block_definitions[ 40 ].standing_variant = ACACIA_STANDING_SIGN;
 block_definitions[ 40 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 40 ].waterloggable = true;
 
@@ -1612,8 +1615,10 @@ block_definitions[ 104 ].is_seethrough = true;
 block_definitions[ 104 ].mineable = MINEABLE_AXE;
 block_definitions[ 104 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 104 ].offset = { 4, 0, 4 };
+block_definitions[ 104 ].rotate_on_placement = true;
 block_definitions[ 104 ].scale = { 8, 16, 8 };
 block_definitions[ 104 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 104 ].wall_variant = BAMBOO_WALL_SIGN;
 block_definitions[ 104 ].waterloggable = true;
 
 // BAMBOO_TRAPDOOR (105)
@@ -1675,6 +1680,7 @@ block_definitions[ 107 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 107 ].offset = { 0, 4, 0 };
 block_definitions[ 107 ].rotate_on_placement = true;
 block_definitions[ 107 ].scale = { 16, 9, 2 };
+block_definitions[ 107 ].standing_variant = BAMBOO_STANDING_SIGN;
 block_definitions[ 107 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 107 ].waterloggable = true;
 
@@ -2220,8 +2226,10 @@ block_definitions[ 138 ].is_seethrough = true;
 block_definitions[ 138 ].mineable = MINEABLE_AXE;
 block_definitions[ 138 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 138 ].offset = { 4, 0, 4 };
+block_definitions[ 138 ].rotate_on_placement = true;
 block_definitions[ 138 ].scale = { 8, 16, 8 };
 block_definitions[ 138 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 138 ].wall_variant = BIRCH_WALL_SIGN;
 block_definitions[ 138 ].waterloggable = true;
 
 // BIRCH_TRAPDOOR (139)
@@ -2415,6 +2423,7 @@ block_definitions[ 148 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 148 ].offset = { 0, 4, 0 };
 block_definitions[ 148 ].rotate_on_placement = true;
 block_definitions[ 148 ].scale = { 16, 9, 2 };
+block_definitions[ 148 ].standing_variant = BIRCH_STANDING_SIGN;
 block_definitions[ 148 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 148 ].waterloggable = true;
 
@@ -4175,8 +4184,10 @@ block_definitions[ 273 ].is_seethrough = true;
 block_definitions[ 273 ].mineable = MINEABLE_AXE;
 block_definitions[ 273 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 273 ].offset = { 4, 0, 4 };
+block_definitions[ 273 ].rotate_on_placement = true;
 block_definitions[ 273 ].scale = { 8, 16, 8 };
 block_definitions[ 273 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 273 ].wall_variant = CHERRY_WALL_SIGN;
 block_definitions[ 273 ].waterloggable = true;
 
 // FIRE_CORAL (274)
@@ -4260,6 +4271,7 @@ block_definitions[ 277 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 277 ].offset = { 0, 4, 0 };
 block_definitions[ 277 ].rotate_on_placement = true;
 block_definitions[ 277 ].scale = { 16, 9, 2 };
+block_definitions[ 277 ].standing_variant = CHERRY_STANDING_SIGN;
 block_definitions[ 277 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 277 ].waterloggable = true;
 
@@ -6304,8 +6316,10 @@ block_definitions[ 413 ].is_seethrough = true;
 block_definitions[ 413 ].mineable = MINEABLE_AXE;
 block_definitions[ 413 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 413 ].offset = { 4, 0, 4 };
+block_definitions[ 413 ].rotate_on_placement = true;
 block_definitions[ 413 ].scale = { 8, 16, 8 };
 block_definitions[ 413 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 413 ].wall_variant = CRIMSON_WALL_SIGN;
 block_definitions[ 413 ].waterloggable = true;
 
 // CRIMSON_STEM (414)
@@ -6358,6 +6372,7 @@ block_definitions[ 416 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 416 ].offset = { 0, 4, 0 };
 block_definitions[ 416 ].rotate_on_placement = true;
 block_definitions[ 416 ].scale = { 16, 9, 2 };
+block_definitions[ 416 ].standing_variant = CRIMSON_STANDING_SIGN;
 block_definitions[ 416 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 416 ].waterloggable = true;
 
@@ -7079,8 +7094,10 @@ block_definitions[ 466 ].is_seethrough = true;
 block_definitions[ 466 ].mineable = MINEABLE_AXE;
 block_definitions[ 466 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 466 ].offset = { 4, 0, 4 };
+block_definitions[ 466 ].rotate_on_placement = true;
 block_definitions[ 466 ].scale = { 8, 16, 8 };
 block_definitions[ 466 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 466 ].wall_variant = DARKOAK_WALL_SIGN;
 block_definitions[ 466 ].waterloggable = true;
 
 // BEETROOTS (467)
@@ -7123,6 +7140,7 @@ block_definitions[ 468 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 468 ].offset = { 0, 4, 0 };
 block_definitions[ 468 ].rotate_on_placement = true;
 block_definitions[ 468 ].scale = { 16, 9, 2 };
+block_definitions[ 468 ].standing_variant = DARKOAK_STANDING_SIGN;
 block_definitions[ 468 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 468 ].waterloggable = true;
 
@@ -9772,8 +9790,10 @@ block_definitions[ 663 ].is_seethrough = true;
 block_definitions[ 663 ].mineable = MINEABLE_AXE;
 block_definitions[ 663 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 663 ].offset = { 4, 0, 4 };
+block_definitions[ 663 ].rotate_on_placement = true;
 block_definitions[ 663 ].scale = { 8, 16, 8 };
 block_definitions[ 663 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 663 ].wall_variant = JUNGLE_WALL_SIGN;
 block_definitions[ 663 ].waterloggable = true;
 
 // JUNGLE_TRAPDOOR (664)
@@ -9815,6 +9835,7 @@ block_definitions[ 665 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 665 ].offset = { 0, 4, 0 };
 block_definitions[ 665 ].rotate_on_placement = true;
 block_definitions[ 665 ].scale = { 16, 9, 2 };
+block_definitions[ 665 ].standing_variant = JUNGLE_STANDING_SIGN;
 block_definitions[ 665 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 665 ].waterloggable = true;
 
@@ -11238,8 +11259,10 @@ block_definitions[ 771 ].is_seethrough = true;
 block_definitions[ 771 ].mineable = MINEABLE_AXE;
 block_definitions[ 771 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 771 ].offset = { 4, 0, 4 };
+block_definitions[ 771 ].rotate_on_placement = true;
 block_definitions[ 771 ].scale = { 8, 16, 8 };
 block_definitions[ 771 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 771 ].wall_variant = MANGROVE_WALL_SIGN;
 block_definitions[ 771 ].waterloggable = true;
 
 // MANGROVE_TRAPDOOR (772)
@@ -11281,6 +11304,7 @@ block_definitions[ 773 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 773 ].offset = { 0, 4, 0 };
 block_definitions[ 773 ].rotate_on_placement = true;
 block_definitions[ 773 ].scale = { 16, 9, 2 };
+block_definitions[ 773 ].standing_variant = MANGROVE_STANDING_SIGN;
 block_definitions[ 773 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 773 ].waterloggable = true;
 
@@ -13080,8 +13104,10 @@ block_definitions[ 895 ].is_seethrough = true;
 block_definitions[ 895 ].mineable = MINEABLE_AXE;
 block_definitions[ 895 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 895 ].offset = { 4, 0, 4 };
+block_definitions[ 895 ].rotate_on_placement = true;
 block_definitions[ 895 ].scale = { 8, 16, 8 };
 block_definitions[ 895 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 895 ].wall_variant = PALE_OAK_WALL_SIGN;
 block_definitions[ 895 ].waterloggable = true;
 
 // PALE_OAK_TRAPDOOR (896)
@@ -13122,6 +13148,7 @@ block_definitions[ 897 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 897 ].offset = { 0, 4, 0 };
 block_definitions[ 897 ].rotate_on_placement = true;
 block_definitions[ 897 ].scale = { 16, 9, 2 };
+block_definitions[ 897 ].standing_variant = PALE_OAK_STANDING_SIGN;
 block_definitions[ 897 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 897 ].waterloggable = true;
 
@@ -14318,8 +14345,10 @@ block_definitions[ 982 ].is_seethrough = true;
 block_definitions[ 982 ].mineable = MINEABLE_AXE;
 block_definitions[ 982 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 982 ].offset = { 4, 0, 4 };
+block_definitions[ 982 ].rotate_on_placement = true;
 block_definitions[ 982 ].scale = { 8, 16, 8 };
 block_definitions[ 982 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 982 ].wall_variant = POPLAR_WALL_SIGN;
 block_definitions[ 982 ].waterloggable = true;
 
 // POPLAR_TRAPDOOR (983)
@@ -14361,6 +14390,7 @@ block_definitions[ 984 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 984 ].offset = { 0, 4, 0 };
 block_definitions[ 984 ].rotate_on_placement = true;
 block_definitions[ 984 ].scale = { 16, 9, 2 };
+block_definitions[ 984 ].standing_variant = POPLAR_STANDING_SIGN;
 block_definitions[ 984 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 984 ].waterloggable = true;
 
@@ -16726,8 +16756,10 @@ block_definitions[ 1153 ].is_seethrough = true;
 block_definitions[ 1153 ].mineable = MINEABLE_AXE;
 block_definitions[ 1153 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1153 ].offset = { 4, 0, 4 };
+block_definitions[ 1153 ].rotate_on_placement = true;
 block_definitions[ 1153 ].scale = { 8, 16, 8 };
 block_definitions[ 1153 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 1153 ].wall_variant = SPRUCE_WALL_SIGN;
 block_definitions[ 1153 ].waterloggable = true;
 
 // SPRUCE_TRAPDOOR (1154)
@@ -16768,6 +16800,7 @@ block_definitions[ 1155 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 1155 ].offset = { 0, 4, 0 };
 block_definitions[ 1155 ].rotate_on_placement = true;
 block_definitions[ 1155 ].scale = { 16, 9, 2 };
+block_definitions[ 1155 ].standing_variant = SPRUCE_STANDING_SIGN;
 block_definitions[ 1155 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 1155 ].waterloggable = true;
 
@@ -16850,8 +16883,10 @@ block_definitions[ 1161 ].is_seethrough = true;
 block_definitions[ 1161 ].mineable = MINEABLE_AXE;
 block_definitions[ 1161 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1161 ].offset = { 4, 0, 4 };
+block_definitions[ 1161 ].rotate_on_placement = true;
 block_definitions[ 1161 ].scale = { 8, 16, 8 };
 block_definitions[ 1161 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 1161 ].wall_variant = WALL_SIGN;
 block_definitions[ 1161 ].waterloggable = true;
 
 // STONE_BRICK_DOUBLE_SLAB (1162)
@@ -18278,6 +18313,7 @@ block_definitions[ 1264 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 1264 ].offset = { 0, 4, 0 };
 block_definitions[ 1264 ].rotate_on_placement = true;
 block_definitions[ 1264 ].scale = { 16, 9, 2 };
+block_definitions[ 1264 ].standing_variant = STANDING_SIGN;
 block_definitions[ 1264 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 1264 ].waterloggable = true;
 
@@ -18554,8 +18590,10 @@ block_definitions[ 1280 ].is_seethrough = true;
 block_definitions[ 1280 ].mineable = MINEABLE_AXE;
 block_definitions[ 1280 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1280 ].offset = { 4, 0, 4 };
+block_definitions[ 1280 ].rotate_on_placement = true;
 block_definitions[ 1280 ].scale = { 8, 16, 8 };
 block_definitions[ 1280 ].tex_offset = { -4, 0, -4 };
+block_definitions[ 1280 ].wall_variant = WARPED_WALL_SIGN;
 block_definitions[ 1280 ].waterloggable = true;
 
 // WARPED_STEM (1281)
@@ -18608,6 +18646,7 @@ block_definitions[ 1283 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 1283 ].offset = { 0, 4, 0 };
 block_definitions[ 1283 ].rotate_on_placement = true;
 block_definitions[ 1283 ].scale = { 16, 9, 2 };
+block_definitions[ 1283 ].standing_variant = WARPED_STANDING_SIGN;
 block_definitions[ 1283 ].tex_offset = { 0, -4, 0 };
 block_definitions[ 1283 ].waterloggable = true;
 

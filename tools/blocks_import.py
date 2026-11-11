@@ -89,7 +89,8 @@ VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
 BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner",
-                    "persistent_variant", "natural_variant", "crop_next"}
+                    "persistent_variant", "natural_variant", "crop_next",
+                    "wall_variant", "standing_variant"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative", "drops",
                "mineable"}
@@ -629,6 +630,26 @@ def load_blocks():
             fail("%s: crop_next must not point at itself" % b["_file"])
         if nxt not in names:
             fail("%s: crop_next %s not found" % (b["_file"], nxt))
+    # wall_variant / standing_variant pair a sign's two placement forms:
+    # the standing block names its wall form, the wall form points back.
+    for bid, b in blocks.items():
+        partner = b.get("wall_variant")
+        if partner is None:
+            continue
+        pbid = names.get(partner)
+        if pbid is None:
+            fail("%s: wall_variant %s not found" % (b["_file"], partner))
+        if blocks[pbid].get("standing_variant") != b["name"]:
+            fail("%s: wall_variant %s does not point back" % (b["_file"], partner))
+    for bid, b in blocks.items():
+        partner = b.get("standing_variant")
+        if partner is None:
+            continue
+        pbid = names.get(partner)
+        if pbid is None:
+            fail("%s: standing_variant %s not found" % (b["_file"], partner))
+        if blocks[pbid].get("wall_variant") != b["name"]:
+            fail("%s: standing_variant %s does not point back" % (b["_file"], partner))
     return blocks
 
 

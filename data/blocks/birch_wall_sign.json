@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "sign_birch",
  "id": 148,
  "name": "BIRCH_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "BIRCH_STANDING_SIGN",
  "textures": {
   "back": "sign_birch_wall",
   "bottom": "planks_birch",

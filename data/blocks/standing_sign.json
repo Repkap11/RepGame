@@ -15,6 +15,7 @@
   0,
   4
  ],
+ "rotate_on_placement": true,
  "scale": [
   8,
   16,
@@ -30,5 +31,6 @@
   "side": "sign",
   "top": "planks_oak"
  },
+ "wall_variant": "WALL_SIGN",
  "waterloggable": true
 }

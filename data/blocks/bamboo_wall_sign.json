@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "bamboo_sign",
  "id": 107,
  "name": "BAMBOO_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "BAMBOO_STANDING_SIGN",
  "textures": {
   "back": "sign_bamboo_wall",
   "bottom": "bamboo_planks",

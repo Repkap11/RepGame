@@ -7,5 +7,6 @@
   "bottom": "pale_oak_planks",
   "side": "pale_oak_sign",
   "top": "pale_oak_planks"
- }
+ },
+ "wall_variant": "PALE_OAK_WALL_SIGN"
 }

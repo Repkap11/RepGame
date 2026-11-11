@@ -7,5 +7,6 @@
   "bottom": "planks_birch",
   "side": "sign_birch",
   "top": "planks_birch"
- }
+ },
+ "wall_variant": "BIRCH_WALL_SIGN"
 }

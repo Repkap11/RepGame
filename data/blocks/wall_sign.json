@@ -2,6 +2,7 @@
  "breaks_in_liquid": true,
  "casts_shadow": false,
  "collides_with_player": false,
+ "creative": false,
  "hardness": 1,
  "icon": "sign",
  "id": 1264,
@@ -21,6 +22,7 @@
   9,
   2
  ],
+ "standing_variant": "STANDING_SIGN",
  "tex_offset": [
   0,
   -4,

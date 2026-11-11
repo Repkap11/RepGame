@@ -221,6 +221,14 @@ typedef struct {
     // at the next stage; the mature stage leaves it LAST_BLOCK_ID. Random
     // ticks and bonemeal advance the chain.
     BlockID crop_next;
+    // Sign-style placement pairs: one item (the standing block's) covers a
+    // floor form and a wall form. The standing block's wall_variant names
+    // the block a side-face click mounts on the clicked block; the wall
+    // block's standing_variant points back and is also what block_item_id
+    // hands to drops, pick-block and the survival inventory. Both
+    // LAST_BLOCK_ID for unpaired blocks.
+    BlockID wall_variant;
+    BlockID standing_variant;
     // Derived (no JSON key): the block is a member of a crop_next chain —
     // it survives only on farmland and grows by stage.
     bool is_crop;

@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "sign_spruce",
  "id": 1155,
  "name": "SPRUCE_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "SPRUCE_STANDING_SIGN",
  "textures": {
   "back": "sign_spruce_wall",
   "bottom": "planks_spruce",

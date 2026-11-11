@@ -7,5 +7,6 @@
   "bottom": "mangrove_planks",
   "side": "mangrove_sign",
   "top": "mangrove_planks"
- }
+ },
+ "wall_variant": "MANGROVE_WALL_SIGN"
 }

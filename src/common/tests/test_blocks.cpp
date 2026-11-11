@@ -1574,14 +1574,29 @@ int test_support_drops( ) {
     check_bool( "sign def: signs waterlog instead of breaking",
                 standing_sign_def->waterloggable && wall_sign_def->waterloggable && hanging_sign_def->waterloggable &&
                     standing_sign_def->breaks_in_liquid && wall_sign_def->breaks_in_liquid && hanging_sign_def->breaks_in_liquid );
+    // The two forms share one item: standing names its wall variant, the
+    // wall block points back, and block_item_id hands drops/pick-block the
+    // standing item — wall signs stay out of the creative list.
+    check_bool( "sign def: standing/wall variants paired",
+                standing_sign_def->wall_variant == WALL_SIGN && wall_sign_def->standing_variant == STANDING_SIGN &&
+                    block_item_id( WALL_SIGN ) == STANDING_SIGN );
+    {
+        bool standing_listed = false, wall_listed = false;
+        for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+            standing_listed |= CREATIVE_BLOCKS[ i ] == STANDING_SIGN;
+            wall_listed |= CREATIVE_BLOCKS[ i ] == WALL_SIGN;
+        }
+        check_bool( "sign def: standing listed, wall hidden in creative", standing_listed && !wall_listed );
+    }
 
-    // Wall sign (rotation 0: plate hugs -z, support at z-1 like a ladder).
+    // Wall sign (rotation 0: plate hugs -z, support at z-1 like a ladder);
+    // the shared item means the drop is the standing sign's item.
     world.set_loaded_block( glm::ivec3( 34, 10, 30 ), stone );
     world.set_loaded_block( glm::ivec3( 34, 10, 31 ), { WALL_SIGN, 0, 0, WALL_SIGN, 0 } );
-    before = test_count_items( world, WALL_SIGN );
+    before = test_count_items( world, STANDING_SIGN );
     place( glm::ivec3( 34, 10, 30 ), BLOCK_STATE_AIR );
     run( 20 );
-    check_bool( "support: wall sign dropped once", test_count_items( world, WALL_SIGN ) - before == 1 );
+    check_bool( "support: wall sign dropped once", test_count_items( world, STANDING_SIGN ) - before == 1 );
     failures += check_id( world, "support: wall sign cell cleared", glm::ivec3( 34, 10, 31 ), AIR );
 
     // Standing sign sits on the floor cell below.

@@ -552,7 +552,8 @@ static inline BlockID block_placed_leaf_id( BlockID id ) {
 
 // The inventory block for a multi-cell block: breaking or picking a door's
 // or tall plant's upper half gives the lower's item; persistent leaves
-// give the natural leaf item.
+// give the natural leaf item; a wall-mounted sign variant gives the shared
+// standing-sign item.
 static inline BlockID block_item_id( BlockID id ) {
     const Block *b = block_definition_get_definition( id );
     if ( b->is_door_upper ) {
@@ -564,7 +565,22 @@ static inline BlockID block_item_id( BlockID id ) {
     if ( block_is_persistent_leaf( b ) ) {
         return b->natural_variant;
     }
+    if ( b->standing_variant != LAST_BLOCK_ID ) {
+        return b->standing_variant;
+    }
     return id;
+}
+
+// A sign-style item covers a floor block and a wall block: a side-face
+// click (mount_dir horizontal) mounts the wall variant on the clicked
+// block. Returns the yaw that attaches it, or -1 when the block has no
+// wall variant or the clicked face isn't a wall mount — the caller then
+// keeps the standing block.
+static inline int block_wall_variant_rotation( const Block *block, const glm::ivec3 &mount_dir ) {
+    if ( block->wall_variant == LAST_BLOCK_ID ) {
+        return -1;
+    }
+    return block_mount_rotation( block_definition_get_definition( block->wall_variant ), mount_dir );
 }
 
 // The yaw part of a rotation for single-box consumers (collision, raycast,

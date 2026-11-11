@@ -1,8 +1,10 @@
 {
+ "creative": false,
  "icon": "cherry_sign",
  "id": 277,
  "name": "CHERRY_WALL_SIGN",
  "shape": "wall_sign",
+ "standing_variant": "CHERRY_STANDING_SIGN",
  "textures": {
   "back": "sign_cherry_wall",
   "bottom": "cherry_planks",
