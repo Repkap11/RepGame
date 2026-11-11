@@ -499,7 +499,8 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
     }
 
     // All UI text this pass is batched: callers queue glyphs with
-    // text_append*; one flush draws them at the end.
+    // text_append*; flushes draw them in layer order (HUD/inventory text
+    // under the pause menu, menu text on top).
     globalGameState.ui.font.text_begin( );
 
     if ( !run_policy().capture.enabled ) {
@@ -662,8 +663,10 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         }
         {
             // Name the item in the selected hotbar slot (empty slot: nothing).
+            // Hidden while the pause menu is up — it can peek out from
+            // under the panel's bottom edge.
             const char *name = item_name( globalGameState.hotbar.getSelectedItem( ) );
-            if ( name ) {
+            if ( name && !globalGameState.input.menu_open ) {
                 std::string label( name );
                 std::replace( label.begin( ), label.end( ), '_', ' ' );
                 const char *buf = label.c_str( );
@@ -684,6 +687,11 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
         globalGameState.ui.overlay.draw_held_inventory_item( globalGameState.ui.held_slot, globalGameState.ui.holding_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
     }
+    // Flush the HUD/inventory text layer before the pause menu: glyphs in
+    // the batch rasterize at flush time, so anything still queued (item
+    // label, furnace readout, slot counts) would otherwise draw over the
+    // menu panel.
+    globalGameState.ui.font.text_flush( globalGameState.world.renderer, globalGameState.screen.ortho_center );
     // The pause menu draws last, on top of the hotbar/inventory/held item
     // and the ImGui overlay.
     if ( !run_policy().capture.enabled && globalGameState.input.menu_open ) {
