@@ -51,9 +51,11 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
 2. **Terrain work.** `TerrainLoadingThread`
    (`include/common/utils/terrain_loading_thread.hpp`) workers pop jobs,
    retarget stale requests at the current `set_focus` center, persist
-   departing dirty slots, and run `Chunk::load_terrain`: save-file load
-   (`docs/persistence.md`) or mapgen, with all-air chunks folded to null
-   `cells` (`is_empty_chunk`) instead of a 34³ array.
+   departing dirty slots, and run `Chunk::load_terrain`: mapgen +
+   structure gen always runs first, then the chunk file's saved edit
+   runs are overlaid on the generated cells (`docs/persistence.md`),
+   with all-air chunks folded to null `cells` (`is_empty_chunk`)
+   instead of a 34³ array.
 3. **Finalize** (`finalize_loaded_chunk`, render thread, budgeted by
    `CHUNK_FINALIZE_BUDGET_US`): publish `CHUNK_LIVE`, lazy GL init,
    `process_chunk_position` (the 6-bit face-visibility mask that decides
@@ -73,7 +75,9 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    while the chunk wasn't fully inside the frustum — a full-box probe is
    rotation-invariant from a fixed eye position.
 5. **Edits.** A block write (`World::set_loaded_block`) dirties the
-   chunk (`dirty`, `needs_repopulation`) and enqueues it on
+   chunk (`dirty`, `needs_repopulation`), marks the cell in
+   `chunk.edited` (the bitset `MapStorage::persist_chunk` writes as edit
+   runs — generation and structure writes never set it), and enqueues it on
    `repop_must` — the must-remesh queue that also pulls dirty
    face-neighbors in via `remesh_group`, so a boundary edit never leaves
    a see-through gap while its neighbour's mesh waits for the budget.

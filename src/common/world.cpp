@@ -37,6 +37,7 @@ bool hasError( ) {
 }
 
 void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorage &map_storage, int render_radius ) {
+    this->map_storage = &map_storage;
     // These are from CubeFace
     this->vbl_block.push_float( 3 );        // Coords
     this->vbl_block.push_float( 2 );        // Texture coords
@@ -245,6 +246,11 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
     this->bodies.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     // Arrows follow the same causer-simulated model.
     this->arrows.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
+    // Chunk + container files too: in multiplayer all of that state lives
+    // on the server, so local chunk_*/chest_*/furnace_* IO stays off.
+    if ( this->map_storage != nullptr ) {
+        this->map_storage->set_chunk_io_enabled( !multiplayer.multiplayer_mode( ) );
+    }
     this->chunkLoader.render_chunks( multiplayer, camera_pos, limit_render );
     // Hand each just-finalized chunk's pending mobs to the manager (loaded
     // records or the natural-spawn roll); skipped chunks stay owned next pass.

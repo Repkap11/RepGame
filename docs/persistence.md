@@ -18,7 +18,8 @@ chunk/entities/player — all through the real loaders, read-only; see
     world_type              optional; "flat" selects the flat generator
     player.dat              player position, inventories, settings
     world.dat               server-side world clock (int64)
-    chunk_<x>_<y>_<z>       RLE BlockState volume per chunk
+    chunk_<x>_<y>_<z>       player-edit runs per chunk (v1); legacy saves
+                            were a full RLE BlockState volume
     chest_<x>_<y>_<z>       chest contents for a chunk
     furnace_<x>_<y>_<z>     furnace contents+progress for a chunk
     mobs_<x>_<y>_<z>        mob records for a chunk
@@ -32,29 +33,52 @@ a sandstone floor and skip normal terrain (see `docs/mapgen.md`,
 
 ## Chunk files (`chunk_x_y_z`)
 
-One file per chunk, written only when `chunk.dirty`:
+One file per chunk, written only when `chunk.dirty` — and holding only
+the cells runtime edits touched, as sorted non-overlapping runs over
+generated terrain (v1):
 
 ```
-u32 record_size              // sizeof(STORAGE_TYPE) at write time
-record_size * N              // N RLE runs covering the whole volume
+u32 magic                    // 0x4B434752 ('RGCK')
+u32 version                  // 1
+u32 record_size              // sizeof(BlockState) at write time
+u32 run_count
+run: { u32 start, u32 count, BlockState state }   // record_size bytes each
 ```
 
-Each run is `{ BlockState blockState; u32 count }` packed, and the runs
-tile the full `CHUNK_BLOCK_SIZE` internal (halo-inclusive) index space.
-The `record_size` prefix is the forward/backward-compat mechanism:
-`load_blocks_decode` reads whatever size the file claims and copies only
-the shared prefix into a `BlockState`, so records written by a build
-with a different `BlockState` layout still parse. A file whose record
-size differs from the current build's marks `chunk.dirty` so it gets
-rewritten in the new format on the next save.
+Every cell not inside a run is natural terrain (MapGen + StructureGen)
+and is regenerated rather than read back: `Chunk::load_terrain` always
+generates the chunk first, then overlays the saved runs and marks the
+touched cells in `chunk.edited` (a bitset in the same
+`CHUNK_BLOCK_SIZE`, halo-inclusive index space). A missing file means
+"no edits", not "no chunk" — `check_if_chunk_exists`/`load_chunk_edits`
+return 0 and the chunk is pure generation.
 
-Two read paths share the decoder: `load_chunk` fills the live `Chunk`'s
-cells/extras (`store_state`), and `load_blocks` fills a raw
-`BlockState[]` for the server with `expect_empty_blocks` set (see
-"Migration"). Writes happen off the render thread inside
+`record_size` is the forward/backward-compat mechanism: readers copy
+only the shared prefix into a `BlockState`, and a file whose record
+size differs from this build's sets `ChunkEdits::needs_rewrite` so it is
+rewritten in v1 on the next persist. Persisting an empty run set
+removes the file.
+
+Writes happen off the render thread inside
 `TerrainLoadingThread::process_value` — a departing slot persists
 through the work queue before its memory is released — plus
-`Chunk::persist` on shutdown and `persist_dirty_blocks` on the server.
+`Chunk::persist` on shutdown, and `ServerLogic::persistChunk` on the
+server (its edit cache is the same `{start,count,state}` run shape).
+
+### Legacy format
+
+Files written before v1 have no magic: a `u32 record_size`
+(`sizeof(STORAGE_TYPE)`, 8–14 bytes historically — it can't collide
+with the magic) followed by RLE runs `{ BlockState; u32 count }` tiling
+the whole volume. `load_chunk_edits` decodes them into runs directly:
+cells holding `LAST_BLOCK_ID` or `LEGACY_EMPTY_BLOCK_ID` (the server
+diff format's hole sentinels) are skipped as natural. A file with no
+holes is an old *client snapshot* (`legacy_snapshot`): stored cells are
+compared against regenerated terrain at apply time, so only true
+differences become edits — a snapshot identical to natural produces no
+edits and is unlinked on persist. Every legacy file sets
+`needs_rewrite`, so migration is lazy: chunks rewrite in v1 (or are
+deleted) the next time they persist.
 
 Fluid flow levels ride the same rotation bits (`docs/fluids.md`) — no
 format change; pre-levels fluid cells (rotation 0) load as sources.
@@ -195,9 +219,9 @@ don't write it (their clock lives in `player.dat`'s `world_time`). See
 Block id `1249` (`LEGACY_EMPTY_BLOCK_ID`) was the empty-slot sentinel in
 pre-2047 saves and is permanently reserved — never reuse it. On load:
 
-- In **chunks**, `1249` becomes `AIR` (or `LAST_BLOCK_ID` under
-  `expect_empty_blocks`, so the server's diff map stays clean), and any
-  id `>= LAST_BLOCK_ID` sanitizes to `AIR` with a log line.
+- In **chunks**, `1249` is a hole cell (natural terrain) alongside
+  `LAST_BLOCK_ID` in legacy files, and any non-sentinel id
+  `>= LAST_BLOCK_ID` sanitizes to `AIR` with a log line.
 - In **inventory/chest slots**, `save_slot_id_is_empty` (id `1249` or
   anything failing `item_id_valid`) clears the slot to
   `{ LAST_BLOCK_ID, 0 }`.
@@ -213,7 +237,14 @@ pre-2047 saves and is permanently reserved — never reuse it. On load:
   connect fails outright leaves a purely local session that persists
   entities normally; a session that connected and then dropped stays in
   multiplayer mode so server entities can't mix into local files.
-  Chest/chunk state is server-side while connected too.
+  The same `multiplayer_mode()` drives `MapStorage::chunk_io_enabled`
+  (set in `game_init.cpp` before the first chunk enqueues, refreshed in
+  `World::render`): while off, `load_chunk_edits`/`persist_chunk_edits`
+  and the chest/furnace file paths do no local IO — chunk and container
+  state lives on the server, so no `chunk_*`/`chest_*`/`furnace_*` files
+  are read or written. Chunks already loaded when a connect fails
+  outright are *not* reloaded — their saved edits only appear after
+  they leave and re-enter the render window.
 - **Block world** (`REPGAME_BLOCK_WORLD`) touches no files at all —
   `MapStorage` methods early-out and no map dir is created.
 - **Flat worlds** keep chunk saves (the sandstone floor is regenerable,

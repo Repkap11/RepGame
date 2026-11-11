@@ -67,6 +67,10 @@ overlay, and `ever_connected` latches on the first success.
 `ever_connected`) — disables local entity-file persistence while the
 session participates in server entity state; a connect that fails
 outright leaves the session purely local (see `docs/persistence.md`).
+It also drives `MapStorage::chunk_io_enabled`: while in multiplayer a
+client keeps no local `chunk_*`/`chest_*`/`furnace_*` files at all —
+terrain is generated locally and edits live only in the server's diff
+files (below), so local saves never mix with server state.
 
 ## Session handshake
 

@@ -76,39 +76,72 @@ typedef struct __attribute__( ( packed ) ) {
     unsigned int num;
 } STORAGE_TYPE;
 
-namespace {
-// RLE-encode `get_state(i)` for i in [0, CHUNK_BLOCK_SIZE) into the chunk
-// file. Shared by persist_dirty_blocks (server's raw BlockState buffer) and
-// persist_chunk (reassembled from the chunk's split cells/extras).
-template <typename Getter>
-void persist_blocks_encode( MapStorage &storage, const glm::ivec3 &chunk_offset, Getter &&get_state ) {
+// Chunk edit file header (v1): 'RGCK' as a little-endian u32. It can't
+// collide with a legacy file's leading record_size (8..14).
+#define CHUNK_EDITS_MAGIC 0x4B434752u
+#define CHUNK_EDITS_VERSION 1u
+
+void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std::vector<ChunkEditRun> &runs ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
+        return;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, storage.get_map_name( ), chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    if ( runs.empty( ) ) {
+        remove( file_name );
+        return;
+    }
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( write_ptr == NULL ) {
         pr_debug( "fopen failed for chunk:%s", file_name );
         return;
     }
-    uint32_t storage_type_size = sizeof( STORAGE_TYPE );
-    // uint32_t storage_type_size = 8;
-    fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
-    fflush( write_ptr );
+    const uint32_t magic = CHUNK_EDITS_MAGIC;
+    const uint32_t version = CHUNK_EDITS_VERSION;
+    const uint32_t record_size = sizeof( BlockState );
+    const uint32_t run_count = static_cast<uint32_t>( runs.size( ) );
+    fwrite( &magic, sizeof( uint32_t ), 1, write_ptr );
+    fwrite( &version, sizeof( uint32_t ), 1, write_ptr );
+    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
+    fwrite( &run_count, sizeof( uint32_t ), 1, write_ptr );
+    for ( const ChunkEditRun &run : runs ) {
+        fwrite( &run.start, sizeof( uint32_t ), 1, write_ptr );
+        fwrite( &run.count, sizeof( uint32_t ), 1, write_ptr );
+        fwrite( &run.state, sizeof( BlockState ), 1, write_ptr );
+    }
+#if defined( REPGAME_WASM )
+    // File lives on the OPFS backend; fdatasync forces the
+    // FileSystemSyncAccessHandle flush so the write survives a tab crash.
+    fdatasync( fileno( write_ptr ) );
+#endif
+    fclose( write_ptr );
+}
 
-    STORAGE_TYPE &persist_data = *( STORAGE_TYPE * )calloc( 1, sizeof( STORAGE_TYPE ) );
+void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const BlockState *blocks ) {
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( write_ptr == NULL ) {
+        pr_debug( "fopen failed for chunk:%s", file_name );
+        return;
+    }
+    const uint32_t storage_type_size = sizeof( STORAGE_TYPE );
+    fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
+    STORAGE_TYPE persist_data;
     unsigned int num_same_blocks = 0;
-    int total_num_blocks = 0;
     BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
     for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-        BlockState blockState = get_state( i );
+        const BlockState blockState = blocks[ i ];
         if ( BlockStates_equal( blockState, previousBlockState ) ) {
             num_same_blocks++;
         } else {
             if ( num_same_blocks > 0 ) {
                 persist_data.blockState = previousBlockState;
                 persist_data.num = num_same_blocks;
-                total_num_blocks += num_same_blocks;
                 fwrite( &persist_data, sizeof( STORAGE_TYPE ), 1, write_ptr );
-                fflush( write_ptr );
             }
             previousBlockState = blockState;
             num_same_blocks = 1;
@@ -116,34 +149,197 @@ void persist_blocks_encode( MapStorage &storage, const glm::ivec3 &chunk_offset,
     }
     persist_data.blockState = previousBlockState;
     persist_data.num = num_same_blocks;
-    total_num_blocks += num_same_blocks;
-
-    // persist_data_index++;
-
-    int expected_num_saved_blocks = CHUNK_BLOCK_SIZE;
-    if ( total_num_blocks != expected_num_saved_blocks ) {
-        pr_debug( "Didn't get enough blocks save" );
-    }
     fwrite( &persist_data, sizeof( STORAGE_TYPE ), 1, write_ptr );
-    fflush( write_ptr );
-#if defined( REPGAME_WASM )
-    // File lives on the OPFS backend; fdatasync forces the
-    // FileSystemSyncAccessHandle flush so the write survives a tab crash.
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
-    free( &persist_data );
+}
+
+namespace {
+// Legacy (pre-v1) chunk files: a u32 record_size, then CHUNK_BLOCK_SIZE
+// cells' worth of RLE records { state record (record_size-4 bytes),
+// u32 num }. Decodes straight into edit runs: cells holding LAST_BLOCK_ID
+// or LEGACY_EMPTY_BLOCK_ID are holes (server diff files) and skipped; a
+// file with no holes is a client full snapshot. Kept self-contained so the
+// whole branch can be deleted once old saves are gone.
+int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32_t storage_type_size, ChunkEdits &out ) {
+    out.needs_rewrite = true;
+    out.legacy_snapshot = true;
+    if ( storage_type_size <= sizeof( unsigned int ) || storage_type_size > 64 ) {
+        fclose( read_ptr );
+        return -1;
+    }
+    const bool loading_old_format_chunk = storage_type_size != sizeof( STORAGE_TYPE );
+    if ( loading_old_format_chunk ) {
+        pr_debug( "Loaded old chunk:%s with state size:%u expected:%d", file_name, storage_type_size, ( int )sizeof( STORAGE_TYPE ) );
+    }
+
+    int storage_block_state_size = storage_type_size - sizeof( unsigned int );
+    char *persist_data = ( char * )calloc( CHUNK_BLOCK_SIZE, storage_type_size );
+    const unsigned int persist_data_length = fread( persist_data, storage_type_size, CHUNK_BLOCK_SIZE, read_ptr );
+    fclose( read_ptr );
+
+    if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
+        pr_debug( "Smaller" );
+        storage_block_state_size = ( int )sizeof( BlockState );
+    }
+
+    uint32_t block_index = 0;
+    int overflow = 0;
+    for ( unsigned int i = 0; i < persist_data_length && !overflow; i++ ) {
+        char *block_storage = &persist_data[ i * storage_type_size ];
+        unsigned int block_storage_num;
+        memcpy( &block_storage_num, &persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ], sizeof( block_storage_num ) );
+        if ( block_index >= CHUNK_BLOCK_SIZE ) {
+            overflow = 1;
+            break;
+        }
+        if ( block_storage_num > CHUNK_BLOCK_SIZE - block_index ) {
+            // A corrupt file's run lengths must not drive the overlay past
+            // the cells array: truncate the run and stop decoding.
+            pr_debug( "Chunk %s run lengths overflow %d cells; truncating", file_name, CHUNK_BLOCK_SIZE );
+            block_storage_num = CHUNK_BLOCK_SIZE - block_index;
+            overflow = 1;
+        }
+        if ( block_storage_num == 0 ) {
+            continue;
+        }
+
+        BlockState blockState = BLOCK_STATE_AIR;
+        memset( &blockState, 0, sizeof( BlockState ) );
+        int storage_offset_size = 0;
+        if ( storage_type_size == 8 ) {
+            storage_offset_size = 2;
+        }
+        memcpy( &blockState, block_storage, storage_block_state_size - storage_offset_size );
+        if ( loading_old_format_chunk ) {
+            // Per block state mitigations
+            if ( storage_block_state_size <= 16 ) {
+                blockState.display_id = blockState.id;
+            }
+        }
+        if ( blockState.display_id == LEGACY_EMPTY_BLOCK_ID ) {
+            blockState.display_id = blockState.id;
+        }
+        const bool hole = blockState.id == LAST_BLOCK_ID || blockState.id == LEGACY_EMPTY_BLOCK_ID;
+        if ( hole ) {
+            // Diff-style hole: the cell is natural, no edit emitted.
+            out.legacy_snapshot = false;
+        } else {
+            if ( blockState.id >= LAST_BLOCK_ID ) {
+                pr_debug( "Got strange block in %s :%d", file_name, blockState.id );
+                blockState = BLOCK_STATE_AIR;
+            }
+            if ( !out.runs.empty( ) ) {
+                ChunkEditRun &prev = out.runs.back( );
+                if ( prev.start + prev.count == block_index && BlockStates_equal( prev.state, blockState ) ) {
+                    prev.count += block_storage_num;
+                    block_index += block_storage_num;
+                    continue;
+                }
+            }
+            out.runs.push_back( { block_index, block_storage_num, blockState } );
+        }
+        block_index += block_storage_num;
+    }
+    if ( block_index != CHUNK_BLOCK_SIZE ) {
+        pr_debug( "Didn't get enough blocks load:%s", file_name );
+    }
+    free( persist_data );
+    return 1;
 }
 } // namespace
+
+int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &out ) {
+    out = ChunkEdits{ };
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
+        return 0;
+    }
+    if ( !this->check_if_chunk_exists( chunk_offset ) ) {
+        return 0;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( read_ptr == NULL ) {
+        pr_debug( "fopen failed for chunk:%s", file_name );
+        return -1;
+    }
+    uint32_t head = 0;
+    if ( fread( &head, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
+        fclose( read_ptr );
+        return -1;
+    }
+    if ( head != CHUNK_EDITS_MAGIC ) {
+        // `head` is the legacy file's record_size.
+        return load_chunk_edits_legacy( read_ptr, file_name, head, out );
+    }
+    uint32_t version = 0, record_size = 0, run_count = 0;
+    if ( fread( &version, sizeof( uint32_t ), 1, read_ptr ) != 1 || version != CHUNK_EDITS_VERSION ||
+         fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 || record_size > 4096 ||
+         fread( &run_count, sizeof( uint32_t ), 1, read_ptr ) != 1 || run_count > CHUNK_BLOCK_SIZE ) {
+        fclose( read_ptr );
+        return -1;
+    }
+    if ( record_size != sizeof( BlockState ) ) {
+        out.needs_rewrite = true;
+    }
+    char *raw = static_cast<char *>( malloc( record_size ) );
+    uint32_t prev_end = 0;
+    for ( uint32_t i = 0; i < run_count; i++ ) {
+        uint32_t start = 0, count = 0;
+        BlockState state = BLOCK_STATE_AIR;
+        memset( &state, 0, sizeof( BlockState ) );
+        if ( fread( &start, sizeof( uint32_t ), 1, read_ptr ) != 1 ||
+             fread( &count, sizeof( uint32_t ), 1, read_ptr ) != 1 ||
+             fread( raw, record_size, 1, read_ptr ) != 1 ||
+             count == 0 || start < prev_end || start + count > CHUNK_BLOCK_SIZE ) {
+            free( raw );
+            fclose( read_ptr );
+            out = ChunkEdits{ };
+            return -1;
+        }
+        memcpy( &state, raw, record_size <= sizeof( BlockState ) ? record_size : sizeof( BlockState ) );
+        if ( state.id >= LAST_BLOCK_ID ) {
+            pr_debug( "Got strange block in %s :%d", file_name, state.id );
+            state = BLOCK_STATE_AIR;
+        }
+        out.runs.push_back( { start, count, state } );
+        prev_end = start + count;
+    }
+    free( raw );
+    fclose( read_ptr );
+    return 1;
+}
 
 void MapStorage::persist_chunk( const Chunk &chunk ) {
     if ( repgame_block_world( ) ) {
         return;
     }
     if ( chunk.dirty ) {
-        if ( chunk.cells != nullptr ) {
-            persist_blocks_encode( *this, chunk.chunk_pos,
-                                   [&chunk]( int index ) { return chunk.state_at( index ); } );
+        if ( !chunk.edits_read_failed ) {
+            // Only the cells runtime edits touched get written; everything
+            // else regenerates. Adjacent edited cells sharing a state merge
+            // into one run.
+            std::vector<ChunkEditRun> runs;
+            if ( chunk.edited != nullptr ) {
+                for ( int i = 0; i < CHUNK_BLOCK_SIZE; ) {
+                    if ( !chunk.is_edited( i ) ) {
+                        i++;
+                        continue;
+                    }
+                    const int start = i;
+                    const BlockState state = chunk.cells != nullptr ? chunk.state_at( i ) : BLOCK_STATE_AIR;
+                    i++;
+                    while ( i < CHUNK_BLOCK_SIZE && chunk.is_edited( i ) &&
+                            BlockStates_equal( chunk.cells != nullptr ? chunk.state_at( i ) : BLOCK_STATE_AIR, state ) ) {
+                        i++;
+                    }
+                    runs.push_back( { static_cast<uint32_t>( start ), static_cast<uint32_t>( i - start ), state } );
+                }
+            }
+            this->persist_chunk_edits( chunk.chunk_pos, runs );
         }
         if ( chunk.containers.chests_loaded ) {
             // Chest sidecar file is keyed by world block position.
@@ -174,16 +370,6 @@ void MapStorage::persist_chunk( const Chunk &chunk ) {
     }
 }
 
-void MapStorage::persist_dirty_blocks( const glm::ivec3 &chunk_offset, const BlockState *blocks ) {
-    if ( repgame_block_world( ) ) {
-        return;
-    }
-    if ( blocks == NULL ) {
-        return;
-    }
-    persist_blocks_encode( *this, chunk_offset, [blocks]( int index ) { return blocks[ index ]; } );
-}
-
 int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
     if ( repgame_block_world( ) ) {
         return 0;
@@ -207,6 +393,9 @@ struct __attribute__( ( packed ) ) ChestFileRecord {
 
 void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestContentsMap &chests ) {
     if ( repgame_block_world( ) ) {
+        return;
+    }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -242,6 +431,9 @@ void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestCont
 
 int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out ) {
     if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return 0;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -322,6 +514,9 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
     if ( repgame_block_world( ) ) {
         return;
     }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
+        return;
+    }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_FURNACE, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     uint32_t num_furnaces = 0;
@@ -363,6 +558,9 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
 
 int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMap &out ) {
     if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return 0;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -579,124 +777,6 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
     return 1;
 }
 
-namespace {
-// Decode a saved RLE chunk stream, delivering each cell's BlockState to
-// `sink(index, state)`. Shared by load_chunk (splits states into the
-// chunk's cells/extras via store_state) and load_blocks (server's raw
-// BlockState buffer).
-template <typename Sink>
-int load_blocks_decode( MapStorage &storage, const glm::ivec3 &chunk_offset, Sink &&sink, int &dirty, bool expect_empty_blocks ) {
-
-    if ( !storage.check_if_chunk_exists( chunk_offset ) ) {
-        // This chunk isn't in a file, return 0 so the chunk gets loaded
-        return 0;
-    }
-
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, storage.get_map_name( ), chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr;
-    read_ptr = fopen( file_name, MAP_READ_MODE );
-    if ( read_ptr == NULL ) {
-        pr_debug( "fopen failed for chunk:%s", file_name );
-        return 0;
-    }
-    uint32_t storage_type_size = 0;
-    size_t result_size = fread( &storage_type_size, sizeof( uint32_t ), 1, read_ptr );
-    if ( result_size != 1 ) {
-        fclose( read_ptr );
-        return 0;
-    }
-    // pr_debug( "Got storage size:%d", storage_type_size );
-
-    int block_index = 0;
-
-    bool loading_old_format_chunk = storage_type_size != sizeof( STORAGE_TYPE );
-    if ( loading_old_format_chunk ) {
-        dirty = true;
-        pr_debug( "Loaded old chunk:%s with state size:%u expected:%d", file_name, storage_type_size, ( int )sizeof( STORAGE_TYPE ) );
-    }
-
-    int storage_block_state_size = storage_type_size - sizeof( unsigned int );
-
-    char *persist_data = ( char * )calloc( CHUNK_BLOCK_SIZE, storage_type_size );
-    unsigned int persist_data_length = fread( persist_data, storage_type_size, CHUNK_BLOCK_SIZE, read_ptr );
-    // pr_debug( "Got data length:%d", persist_data_length );
-    fclose( read_ptr );
-
-    if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
-        pr_debug( "Smaller" );
-        storage_block_state_size = ( int )sizeof( BlockState );
-    }
-
-    for ( unsigned int i = 0; i < persist_data_length; i++ ) {
-        char *block_storage = &persist_data[ i * storage_type_size ];
-        unsigned int block_storage_num;
-        memcpy( &block_storage_num, &persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ], sizeof( block_storage_num ) );
-
-        BlockState blockState = BLOCK_STATE_AIR;
-        memset( &blockState, 0, sizeof( BlockState ) );
-        // pr_debug( "Copy size:%d", storage_type_size - sizeof( unsigned int )-2 );
-        int storage_offset_size = 0;
-        if ( storage_type_size == 8 ) {
-            storage_offset_size = 2;
-        }
-        memcpy( &blockState, block_storage, storage_block_state_size - storage_offset_size );
-        if ( loading_old_format_chunk ) {
-            // Per block state mitigations
-            if ( storage_block_state_size <= 16 ) {
-                blockState.display_id = blockState.id;
-            }
-        }
-        if ( blockState.id == LEGACY_EMPTY_BLOCK_ID ) {
-            // Pre-2047 saves stored the empty sentinel as a real id. Server
-            // diff loads (expect_empty_blocks) need the current empty marker
-            // so untouched slots stay out of the diff map.
-            blockState = expect_empty_blocks ? BLOCK_STATE_LAST_BLOCK_ID : BLOCK_STATE_AIR;
-        }
-        if ( blockState.display_id == LEGACY_EMPTY_BLOCK_ID ) {
-            blockState.display_id = blockState.id;
-        }
-        if ( !expect_empty_blocks && blockState.id >= LAST_BLOCK_ID ) {
-            pr_debug( "Got strange block in %s :%d", file_name, blockState.id );
-            blockState = BLOCK_STATE_AIR;
-        }
-        for ( unsigned int j = 0; j < block_storage_num; j++ ) {
-            sink( block_index++, blockState );
-        }
-    }
-    int expected_num_blocks = CHUNK_BLOCK_SIZE;
-    if ( block_index != expected_num_blocks ) {
-        pr_debug( "Didn't get enough blocks load:%s", file_name );
-    }
-    free( persist_data );
-    return 1;
-}
-} // namespace
-
-int MapStorage::load_chunk( Chunk &chunk ) {
-    if ( repgame_block_world( ) ) {
-        return 0;
-    }
-    if ( chunk.cells == nullptr ) {
-        // cells stays null for chunks with no save file (all-air is implied);
-        // a saved chunk needs the array before the RLE stream can decode.
-        if ( !this->check_if_chunk_exists( chunk.chunk_pos ) ) {
-            return 0;
-        }
-        chunk.cells = chunk_alloc_cells( );
-    }
-    return load_blocks_decode( *this, chunk.chunk_pos,
-                               [&chunk]( int index, const BlockState &s ) { chunk.store_state( index, s ); },
-                               chunk.dirty, false );
-}
-int MapStorage::load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks, int &dirty, bool expect_empty_blocks ) {
-    if ( repgame_block_world( ) ) {
-        return 0;
-    }
-    return load_blocks_decode( *this, chunk_offset,
-                               [blocks]( int index, const BlockState &s ) { blocks[ index ] = s; },
-                               dirty, expect_empty_blocks );
-}
 
 static void sanitize_slots( InventorySlot *slots, int count ) {
     for ( int i = 0; i < count; i++ ) {

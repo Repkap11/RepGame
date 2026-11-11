@@ -470,13 +470,16 @@ creates no run and touches no index.
 Subcommands (default human text, `--json` for one JSON object):
 
 - `block x y z` — `{pos, chunk, local, id, name, rotation, redstone_power,
-  saved}`. `saved:false`/`id:null` means no chunk file: generated terrain
-  is not stored, so "no file" is not "air".
+  saved, edited}`. Values come from the real pipeline (natural generation
+  plus saved edits — `Chunk::inspect_load`), so `saved:false` means no
+  chunk file but `id`/`name` still show generated terrain; `edited` is
+  true when the cell is one of the chunk file's saved edit cells.
 - `slice y x1 z1 x2 z2 [--png out.png]` — an ASCII grid of one layer +
   char→name legend, max 256×256. With `--png`, rep-dbg renders it with
   PIL (one stable colour per block name, 8×, legend strip).
 - `column x z [--y0 a --y1 b]` — vertical run-length-encoded column.
-- `chunk cx cy cz` — file size, non-air count, top-20 block counts.
+- `chunk cx cy cz` — file size, non-air count, edited-cell count, top-20
+  block counts.
 - `entities [--near x y z --radius r]` — chests, mobs and dropped items
   from `chest_*`/`mobs_*`/`items_*` files via the real loaders.
 - `player` — `player.dat` (pos/angles/mode/inventories), `world.dat`,

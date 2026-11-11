@@ -68,6 +68,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( script ),          //
     MK_TEST( inspect ),          //
     MK_TEST( profile ),          //
+    MK_TEST( chunk_edits ),      //
     MK_TEST( chunk_sort ),       //
     MK_TEST( chunk_occlusion ),  //
     MK_TEST( light_stale ),      //

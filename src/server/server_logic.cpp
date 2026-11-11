@@ -206,16 +206,23 @@ void ServerLogic::respondToChunkRequest( Server &server, int client_fd, const gl
 void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
     auto it = this->world_cache.find( chunk_pos );
     if ( it != this->world_cache.end( ) && !it->second.blocks.empty( ) ) {
-        const std::map<int, BlockState> &chunk_cache = it->second.blocks;
-        BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
-        for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
-            blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
+        // The cache is a sorted index->state map: fold adjacent equal
+        // states into v1 edit runs.
+        std::vector<ChunkEditRun> runs;
+        for ( const auto &[ chunk_index, blockState ] : it->second.blocks ) {
+            if ( chunk_index < 0 || chunk_index >= CHUNK_BLOCK_SIZE ) {
+                continue;
+            }
+            if ( !runs.empty( ) ) {
+                ChunkEditRun &prev = runs.back( );
+                if ( prev.start + prev.count == static_cast<uint32_t>( chunk_index ) && BlockStates_equal( prev.state, blockState ) ) {
+                    prev.count++;
+                    continue;
+                }
+            }
+            runs.push_back( { static_cast<uint32_t>( chunk_index ), 1u, blockState } );
         }
-        for ( auto [ chunk_index, blockState ] : chunk_cache ) {
-            blocks[ chunk_index ] = blockState;
-        }
-        this->map_storage.persist_dirty_blocks( chunk_pos, blocks );
-        free( blocks );
+        this->map_storage.persist_chunk_edits( chunk_pos, runs );
     }
     // Container sidecars are independent of the block cache — a chunk can
     // have container edits without block edits (pure inventory changes).
@@ -318,31 +325,22 @@ ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
 
 bool ServerLogic::loadDiffsFromDisk( const glm::ivec3 &chunk_offset, std::map<int, BlockState> &out ) {
     out.clear( );
-    // Check file existence before allocating a 350KB buffer. For a fresh
-    // world where most chunks have no file, this avoids both a malloc/free
-    // and a wasted fread attempt per chunk.
+    // Check file existence before decoding — for a fresh world where most
+    // chunks have no file, this avoids a wasted fopen attempt per chunk.
     if ( !this->map_storage.check_if_chunk_exists( chunk_offset ) ) {
         return false;
     }
-    BlockState *blocks = ( BlockState * )malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) );
-    for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
-        blocks[ i ] = BLOCK_STATE_LAST_BLOCK_ID;
-    }
-    int dirty = 0;
-    int ret = this->map_storage.load_blocks( chunk_offset, blocks, dirty, true );
-    if ( ret == 0 ) {
-        free( blocks );
-        // File existed according to check_if_chunk_exists but load_blocks
-        // returned 0 (race or read error).
+    ChunkEdits edits;
+    if ( this->map_storage.load_chunk_edits( chunk_offset, edits ) != 1 ) {
+        // File existed according to check_if_chunk_exists but couldn't be
+        // decoded (race or corruption): keep it rather than clobber.
         return false;
     }
-    for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
-        BlockState &blockState = blocks[ i ];
-        if ( blockState.id != LAST_BLOCK_ID ) {
-            out[ i ] = blockState;
+    for ( const ChunkEditRun &run : edits.runs ) {
+        for ( uint32_t i = run.start; i < run.start + run.count; i++ ) {
+            out[ i ] = run.state;
         }
     }
-    free( blocks );
     return true;
 }
 

@@ -14,7 +14,10 @@ struct TerrainWorkItem {
 };
 
 class TerrainLoadingThread {
-    MapStorage map_storage;
+    // Points at the world's MapStorage (bound in start) rather than copying
+    // it: the chunk_io_enabled gate must be shared — a private copy would
+    // keep doing file IO after multiplayer flips the gate.
+    MapStorage *map_storage = nullptr;
     // Work queue: the render thread pushes and workers pop; work_cv lets
     // idle workers sleep until work arrives instead of polling. Result
     // queue: workers push, the render thread pops non-blocking. Both FIFO.

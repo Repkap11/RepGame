@@ -300,6 +300,9 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
 
     initializeGameState( world_name );
 
+    // Multiplayer clients never touch local chunk/chest/furnace files —
+    // set the gate before world.init enqueues the first chunk loads.
+    globalGameState.map_storage.set_chunk_io_enabled( !globalGameState.multiplayer.multiplayer_mode( ) );
     globalGameState.world.init( globalGameState.camera.pos, globalGameState.screen.width, globalGameState.screen.height, globalGameState.map_storage, globalGameState.input.render_distance );
     globalGameState.world.multiplayer = &globalGameState.multiplayer;
 

@@ -46,6 +46,10 @@ class World {
     // pending diff so it lands at the next load's finalize (the sender's own
     // BLOCK_UPDATE never loops back from the server).
     Multiplayer *multiplayer = nullptr;
+    // Back-pointer to the world's MapStorage (bound in init): render()
+    // flips its chunk_io_enabled gate with multiplayer_mode() so chunk and
+    // container files are only touched in local sessions.
+    MapStorage *map_storage = nullptr;
     Renderer renderer;
     SkyBox skyBox;
     MultiplayerAvatars multiplayer_avatars;

@@ -262,8 +262,8 @@ struct ChunkSidecars {
     // empty) instead of reviving stale records.
     std::vector<ItemFileRecord> items;
     int items_file_present;
-    // A player edit touched this chunk's blocks: set by MapStorage::load_chunk
-    // hits (saved diffs), ChunkLoader::apply_diff_block and
+    // A player edit touched this chunk's blocks: set by saved-edit file
+    // hits, ChunkLoader::apply_diff_block and
     // World::set_loaded_block — never by random ticks or structure gen.
     // MobManager uses it to "touch" natural mobs standing in a pen.
     // Mutable like the other load-time fields (worker fills it).
@@ -319,6 +319,7 @@ class Chunk {
     friend int test_chunk_sort( );
     friend int test_light_stale( );
     friend int test_grass_persist( );
+    friend int test_chunk_edits( );
     friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, bool full_prefix, std::vector<ChunkSortKey> &scratch );
 
     int load_state;
@@ -340,6 +341,22 @@ class Chunk {
     mutable BlockExtra *extras;
     glm::ivec3 chunk_pos;
     int dirty;
+    // Bitset marking the cells runtime edits have touched (same cells[]
+    // index space). Separate from `dirty`: mapgen, structure gen and
+    // container fills write cells without setting these bits, and
+    // MapStorage::persist_chunk saves only the marked cells as edit runs —
+    // the rest regenerates. nullptr until the first edit. Lifetime is
+    // separate from cells (free_block_storage leaves it alone — the
+    // all-air fold still needs the bits); freed by load_terrain,
+    // release_terrain, free_generated_buffers and inspect_load.
+    mutable uint8_t *edited;
+    // Set when a chunk file exists but fails to decode (or decodes to an
+    // inconsistent run list): persist_chunk refuses to write so a corrupt
+    // file isn't clobbered.
+    mutable int edits_read_failed;
+    // Set by load_terrain while it overlays saved edits — mark_edited no-ops
+    // so the overlay can't mark its own cells.
+    int applying_edits;
     // Chest/furnace contents keyed by in-chunk block index — see
     // ChunkContainers above.
     ChunkContainers containers;
@@ -427,10 +444,36 @@ class Chunk {
 
     void persist( MapStorage &map_storage ) const;
     void destroy( );
+    // Offline inspection (harness/inspect): runs the whole load_terrain
+    // pipeline for `pos` and copies the result out — `out` gets
+    // CHUNK_BLOCK_SIZE states and `edited_bits` (may be null)
+    // CHUNK_BLOCK_SIZE/8 bytes of edit bits. Returns 1 when a chunk file
+    // existed. No GL objects are created.
+    static int inspect_load( MapStorage &map_storage, const glm::ivec3 &pos, BlockState *out, uint8_t *edited_bits );
     void set_block( const glm::ivec3 &pos, const BlockState &blockState ) const;
     // Returns 1 if the cell actually changed, 0 for no-op writes (equal
     // state, AIR into an all-air chunk) and out-of-range indices.
     int set_block_by_index_if_different( int index, const BlockState *blockState );
+    // Mark `index` as a runtime edit. Lazily allocates the bitset; no-ops
+    // while `applying_edits` is set — load_terrain holds it for the whole
+    // generate-plus-overlay pass so mapgen, structure gen and the overlay
+    // itself never record their writes as edits. Index space is the
+    // usual cells[] space.
+    inline void mark_edited( const int index ) const {
+        if ( this->applying_edits ) {
+            return;
+        }
+        if ( this->edited == nullptr ) {
+            this->edited = static_cast<uint8_t *>( calloc( CHUNK_BLOCK_SIZE / 8, 1 ) );
+        }
+        this->edited[ index >> 3 ] |= static_cast<uint8_t>( 1u << ( index & 7 ) );
+    }
+    inline int is_edited( const int index ) const {
+        return this->edited != nullptr && ( ( this->edited[ index >> 3 ] >> ( index & 7 ) ) & 1 );
+    }
+    inline int has_edits( ) const {
+        return this->edited != nullptr;
+    }
     BlockState get_block( const glm::ivec3 &pos ) const;
     // Assemble the stored BlockState for `index`. Requires cells != nullptr;
     // index space is the usual get_index_from_coords (halo included).

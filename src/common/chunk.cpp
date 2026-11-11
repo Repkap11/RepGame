@@ -295,6 +295,8 @@ void Chunk::release_terrain( ) {
     this->gl_initialized = 0;
     if constexpr ( REMEMBER_BLOCKS ) {
         this->free_block_storage( );
+        free( this->edited );
+        this->edited = nullptr;
     }
     chunk_free_light( this->light.volume );
     this->light.volume = nullptr;
@@ -337,6 +339,8 @@ void Chunk::release_terrain( ) {
     this->is_empty_chunk = true;
     // Callers persist before releasing, so nothing here is unsaved.
     this->dirty = 0;
+    this->edits_read_failed = 0;
+    this->applying_edits = 0;
     this->containers.chests.clear( );
     this->containers.chests_loaded = 0;
     this->containers.furnaces.clear( );
@@ -406,6 +410,11 @@ BlockState Chunk::get_block( const glm::ivec3 &pos ) const {
     return this->state_at( get_index_from_coords( pos ) );
 }
 
+// Cells/extras only — `edited` is deliberately not freed here: the
+// all-air fold at the end of load_terrain calls this while the edit
+// bits must survive to the next persist. Owners of `edited` are
+// load_terrain (slot reuse), release_terrain, free_generated_buffers
+// and inspect_load's teardown.
 void Chunk::free_block_storage( ) {
     chunk_free_cells( this->cells );
     this->cells = nullptr;
@@ -418,6 +427,8 @@ void Chunk::free_generated_buffers( ) {
     this->cells = nullptr;
     chunk_free_extras( this->extras );
     this->extras = nullptr;
+    free( this->edited );
+    this->edited = nullptr;
     chunk_free_air_mask( this->light.air_mask );
     this->light.air_mask = nullptr;
     chunk_free_air_mask( this->light.shade_mask );
@@ -466,6 +477,7 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
     }
     this->store_state( index, block_state_normalize( old_state, blockState ) );
     light_air_mask_set( *this, index, this->id_at( index ) );
+    this->mark_edited( index );
 }
 
 int Chunk::set_block_by_index_if_different( int index, const BlockState *blockState ) {
@@ -506,6 +518,7 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
     }
     this->store_state( index, *blockState );
     light_air_mask_set( *this, index, blockState->id );
+    this->mark_edited( index );
     this->dirty = true;
     this->needs_repopulation = true;
     // Record the change for the light engine; converted to a world-space
@@ -528,6 +541,39 @@ void Chunk::persist( MapStorage &map_storage ) const {
     if constexpr ( REMEMBER_BLOCKS ) {
         map_storage.persist_chunk( *this );
     }
+}
+
+int Chunk::inspect_load( MapStorage &map_storage, const glm::ivec3 &pos, BlockState *out, uint8_t *edited_bits ) {
+    Chunk *c = new Chunk( ); // value-init: POD fields zero, no GL objects
+    c->chunk_pos = pos;
+    c->chunk_mod = pos;
+    const int existed = map_storage.check_if_chunk_exists( pos );
+    c->load_terrain( map_storage );
+    for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+        out[ i ] = c->cells != nullptr ? c->state_at( i ) : BLOCK_STATE_AIR;
+    }
+    if ( edited_bits != nullptr ) {
+        memset( edited_bits, 0, CHUNK_BLOCK_SIZE / 8 );
+        if ( c->edited != nullptr ) {
+            memcpy( edited_bits, c->edited, CHUNK_BLOCK_SIZE / 8 );
+        }
+    }
+    // CPU-side teardown only: nothing here made GL objects (release_terrain
+    // would call into the GL layer for the layer VertexBuffers).
+    c->free_block_storage( );
+    free( c->edited );
+    chunk_free_light( c->light.volume );
+    chunk_free_light_columns( c->light.columns );
+    chunk_free_air_mask( c->light.air_mask );
+    chunk_free_air_mask( c->light.shade_mask );
+    if ( c->layers != nullptr ) {
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            free( c->layers[ renderOrder ].populated_blocks );
+        }
+        free( c->layers );
+    }
+    delete c;
+    return existed;
 }
 
 int firstTime = 1;
@@ -668,6 +714,12 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     // it only if the saved data actually needs it).
     chunk_free_extras( this->extras );
     this->extras = nullptr;
+    // Edit bits belong to the previous position too — a recycled slot
+    // must not carry them into the new chunk's file (persist already ran
+    // in process_value). Kept out of free_block_storage: the all-air
+    // fold below calls that while edits must survive to the next persist.
+    free( this->edited );
+    this->edited = nullptr;
     // Under REMEMBER_BLOCKS, cells stays null while the chunk is all-air:
     // MapStorage::load_chunk allocates it only when a save file exists, and
     // Chunk::set_block allocates on the first real write (every existing cell
@@ -700,58 +752,33 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     long long t_load_disk = 0, t_map_gen = 0, t_struct = 0, t_pop = 0;
     long long t0 = now_us( );
 #endif
-    // pr_debug( "Loading chunk terrain x:%d y:%d z:%d", this->chunk_x, this->chunk_y, this->chunk_z );
-    const int loaded = map_storage.load_chunk( *this );
+    // Saved edits apply over generated terrain, so generation always runs.
+    // applying_edits keeps the structure-gen set_block calls (and the overlay
+    // itself) from being recorded as runtime edits.
+    this->applying_edits = 1;
+    this->edits_read_failed = 0;
+    ChunkEdits edits;
+    const int edits_status = map_storage.load_chunk_edits( this->chunk_pos, edits );
+    if ( edits_status < 0 ) {
+        this->edits_read_failed = 1;
+    }
     const bool flat_world = repgame_flat_world( );
 #if TERRAIN_GEN_PROFILING
     t_load_disk = now_us( ) - t0;
-    if ( loaded ) profiling_disk_load_count.fetch_add( 1, std::memory_order_relaxed );
+    if ( edits_status == 1 ) profiling_disk_load_count.fetch_add( 1, std::memory_order_relaxed );
 #endif
-    if constexpr ( REMEMBER_BLOCKS ) {
-        if ( loaded && this->cells != nullptr ) {
-            // A saved chunk can decode to all-air (e.g. mined flat). Fold it to
-            // the null representation so it skips meshing like a generated
-            // air chunk — the file stays valid as-is (nothing rewrites it).
-            bool all_air = true;
-            for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
-                if ( this->id_at( i ) != AIR ) {
-                    all_air = false;
-                    break;
-                }
-            }
-            if ( all_air ) {
-                this->free_block_storage( );
-                chunk_free_air_mask( this->light.air_mask );
-                this->light.air_mask = nullptr;
-                chunk_free_air_mask( this->light.shade_mask );
-                this->light.shade_mask = nullptr;
-                this->is_empty_chunk = true;
-                goto skip_to_mesh;
-            }
-        }
-    }
     static const bool block_world = repgame_block_world( );
-    if ( !loaded && ( block_world || flat_world ) ) {
+    if ( block_world || flat_world ) {
         // Block-world debug layout (REPGAME_BLOCK_WORLD): solid sandstone
         // ground up to y=0, every defined block on a grid at y=1, air above.
         // Flat worlds (world_type `flat`) are the same minus the grid.
         // Chunks entirely above the layout (border included) are all air;
         // chunks below fill solid the same way as any other cell range.
         const int bw_min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1;
-        if ( bw_min_y > ( flat_world ? 0 : 2 ) ) {
-            this->free_block_storage( );
-            chunk_free_air_mask( this->light.air_mask );
-            this->light.air_mask = nullptr;
-            chunk_free_air_mask( this->light.shade_mask );
-            this->light.shade_mask = nullptr;
-            this->is_empty_chunk = true;
-            this->dirty = 0;
-            goto skip_to_mesh;
-        }
-        if ( this->cells == nullptr ) {
-            this->cells = chunk_alloc_cells( );
-        }
-        {
+        if ( bw_min_y <= ( flat_world ? 0 : 2 ) ) {
+            if ( this->cells == nullptr ) {
+                this->cells = chunk_alloc_cells( );
+            }
             const glm::ivec3 chunk_offset = this->chunk_pos * glm::ivec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
             for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL_X - 1; x++ ) {
                 for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
@@ -761,12 +788,20 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                     }
                 }
             }
+        } else {
+            // Entirely above the layout: all air. A recycled slot can still
+            // hold the previous position's cells — drop them.
+            this->free_block_storage( );
+            chunk_free_air_mask( this->light.air_mask );
+            this->light.air_mask = nullptr;
+            chunk_free_air_mask( this->light.shade_mask );
+            this->light.shade_mask = nullptr;
+            this->is_empty_chunk = true;
         }
         this->dirty = 0;
-        goto skip_to_mesh;
+        goto apply_edits;
     }
-    if ( !loaded ) {
-        // We haven't loaded this chunk before, map gen it.
+    {
         // Cheap CPU-side check: if the entire chunk is above the terrain surface,
         // every block is air. Skip GPU map gen, structure gen, and meshing entirely.
         const int min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1; // include -1 border
@@ -777,7 +812,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             // formulas in map_gen.cpp — see MapGen::maxTerrainHeight().
             if ( (float)min_y >= MapGen::maxTerrainHeight( ) + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk is air — keep cells null instead of filling a
-                // 262K-cell array with AIR.
+                // 262K-cell array with AIR. A recycled slot can still hold
+                // the previous position's cells — drop them.
                 this->free_block_storage( );
                 chunk_free_air_mask( this->light.air_mask );
                 this->light.air_mask = nullptr;
@@ -789,7 +825,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 t_map_gen = now_us( ) - t0;
                 profiling_map_gen_count.fetch_add( 1, std::memory_order_relaxed );
 #endif
-                goto skip_to_mesh;
+                goto apply_edits;
             }
             // Below the theoretical max but still above water: compute actual terrain height
             // per column to catch chunks that are empty at lower altitudes.
@@ -818,7 +854,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 t_map_gen = now_us( ) - t0;
                 profiling_map_gen_count.fetch_add( 1, std::memory_order_relaxed );
 #endif
-                goto skip_to_mesh;
+                goto apply_edits;
             }
         }
 #if TERRAIN_GEN_PROFILING
@@ -879,7 +915,107 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
 #endif
         this->dirty = 0;
     }
-skip_to_mesh:
+apply_edits:
+    if constexpr ( REMEMBER_BLOCKS ) {
+        if ( edits_status == 1 && !edits.runs.empty( ) ) {
+            // Snapshot the generated cells before the overlay for the
+            // legacy_snapshot compare: stored cells that match natural
+            // terrain aren't real edits and are dropped (migrating the file
+            // down to its true sparse diff).
+            std::vector<BlockState> natural;
+            if ( edits.legacy_snapshot && this->cells != nullptr ) {
+                natural.resize( CHUNK_BLOCK_SIZE );
+                for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+                    natural[ i ] = this->state_at( i );
+                }
+            }
+            for ( const ChunkEditRun &run : edits.runs ) {
+                // Defensive bounds: a corrupt file must not write past the
+                // cells array (the decoders already clamp; double-check
+                // here because the overlay indexes cells[] directly).
+                if ( run.start >= CHUNK_BLOCK_SIZE ) {
+                    pr_debug( "edit run start %u past chunk cells; skipped", run.start );
+                    break;
+                }
+                const uint32_t run_end = run.start + run.count > CHUNK_BLOCK_SIZE
+                                             ? CHUNK_BLOCK_SIZE
+                                             : run.start + run.count;
+                for ( uint32_t i = run.start; i < run_end; i++ ) {
+                    if ( edits.legacy_snapshot ) {
+                        // Snapshot pruning only: stored cells that match
+                        // natural terrain aren't real edits (v1 runs keep
+                        // their mark even when they equal natural — there
+                        // is no "revert to natural" in that format).
+                        const BlockState natural_at = !natural.empty( )
+                                                          ? natural[ i ]
+                                                          : ( this->cells != nullptr ? this->state_at( i ) : BLOCK_STATE_AIR );
+                        if ( BlockStates_equal( run.state, natural_at ) ) {
+                            continue;
+                        }
+                    }
+                    if ( this->edited == nullptr ) {
+                        this->edited = static_cast<uint8_t *>( calloc( CHUNK_BLOCK_SIZE / 8, 1 ) );
+                    }
+                    this->edited[ i >> 3 ] |= static_cast<uint8_t>( 1u << ( i & 7 ) );
+                    const BlockState old_state = this->cells != nullptr ? this->state_at( i ) : BLOCK_STATE_AIR;
+                    if ( BlockStates_equal( old_state, run.state ) ) {
+                        continue;
+                    }
+                    if ( this->cells == nullptr ) {
+                        // An edit materialized an all-air chunk: same
+                        // cells/mask allocation as set_block (the fresh
+                        // cells[] is all non-opaque, then restamped below).
+                        this->cells = chunk_alloc_cells( );
+                        if ( light_mipmaps_enabled( ) ) {
+                            if ( this->light.air_mask == nullptr ) {
+                                this->light.air_mask = chunk_alloc_air_mask( );
+                            }
+                            memset( this->light.air_mask, 0xFF, CHUNK_BLOCK_SIZE / 8 );
+                            if ( this->light.shade_mask == nullptr ) {
+                                this->light.shade_mask = chunk_alloc_air_mask( );
+                            }
+                            memset( this->light.shade_mask, 0, CHUNK_BLOCK_SIZE / 8 );
+                        }
+                    }
+                    if ( block_is_chest( old_state.id ) && !block_is_chest( run.state.id ) ) {
+                        this->containers.chests.erase( i );
+                    }
+                    if ( block_is_furnace( old_state.id ) && !block_is_furnace( run.state.id ) ) {
+                        this->containers.furnaces.erase( i );
+                    }
+                    this->store_state( i, run.state );
+                    light_air_mask_set( *this, i, run.state.id );
+                }
+            }
+        }
+        if ( edits.needs_rewrite ) {
+            // A legacy file (or a v1 file with a foreign record size) is
+            // rewritten in v1 — or unlinked when nothing differs from
+            // natural — on the next persist.
+            this->dirty = 1;
+        }
+        if ( this->cells != nullptr ) {
+            // A chunk can decode or generate to all-air (e.g. mined flat).
+            // Fold it to the null representation so it skips meshing like a
+            // generated air chunk.
+            bool all_air = true;
+            for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+                if ( this->id_at( i ) != AIR ) {
+                    all_air = false;
+                    break;
+                }
+            }
+            if ( all_air ) {
+                this->free_block_storage( );
+                chunk_free_air_mask( this->light.air_mask );
+                this->light.air_mask = nullptr;
+                chunk_free_air_mask( this->light.shade_mask );
+                this->light.shade_mask = nullptr;
+            }
+        }
+        this->is_empty_chunk = this->cells == nullptr;
+    }
+    this->applying_edits = 0;
     // Chest contents live in a per-chunk sidecar file (world-pos keyed);
     // convert to the block-index keying used by chests[].
     this->containers.chests.clear( );
@@ -919,7 +1055,7 @@ skip_to_mesh:
     this->sidecars.mobs_removed.clear( );
     this->sidecars.items.clear( );
     this->sidecars.items_file_present = 0;
-    this->sidecars.player_edited = loaded ? 1 : 0;
+    this->sidecars.player_edited = this->edited != nullptr ? 1 : 0;
     if ( !no_mobs ) {
         this->sidecars.mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->sidecars.mobs, &this->sidecars.mobs_removed ) ? 1 : 0;
         std::set<uint8_t> roll_skip( this->sidecars.mobs_removed.begin( ), this->sidecars.mobs_removed.end( ) );
@@ -1177,6 +1313,8 @@ void Chunk::calculate_populated_blocks( ) {
     if ( this->is_empty_chunk ) {
         if constexpr ( !REMEMBER_BLOCKS ) {
             this->free_block_storage( );
+            free( this->edited );
+            this->edited = nullptr;
             chunk_free_air_mask( this->light.air_mask );
             this->light.air_mask = nullptr;
             chunk_free_air_mask( this->light.shade_mask );
@@ -1960,6 +2098,8 @@ void Chunk::calculate_populated_blocks( ) {
 
     if constexpr ( !REMEMBER_BLOCKS ) {
         this->free_block_storage( );
+        free( this->edited );
+        this->edited = nullptr;
         chunk_free_air_mask( this->light.air_mask );
         this->light.air_mask = nullptr;
         chunk_free_air_mask( this->light.shade_mask );

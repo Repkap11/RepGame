@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <vector>
 
@@ -66,6 +67,32 @@ struct __attribute__( ( packed ) ) ItemFileRecord {
 
 struct PlayerData;
 
+// ---- Chunk edit files (format v1) ----------------------------------------
+// A chunk_<x>_<y>_<z> file holds only the cells that differ from generated
+// terrain (MapGen + StructureGen), as sorted, non-overlapping runs:
+//   u32 magic (0x4B434752), u32 version (1), u32 record_size
+//   (sizeof(BlockState) at write time — readers copy the shared prefix),
+//   u32 run_count, then run_count records of
+//   { u32 start, u32 count, record_size bytes of BlockState }.
+// Every cell not inside a run is natural. Files without the magic decode
+// through the legacy full-chunk RLE branch (see map_storage.cpp).
+struct ChunkEditRun {
+    uint32_t start;
+    uint32_t count;
+    BlockState state;
+};
+struct ChunkEdits {
+    std::vector<ChunkEditRun> runs;
+    // The file was a legacy client full snapshot (no hole cells): stored
+    // states that match natural terrain aren't real edits and are skipped
+    // at apply time.
+    bool legacy_snapshot = false;
+    // Every legacy file, plus a v1 file whose record_size differs from this
+    // build's: the chunk rewrites in v1 on the next persist (or unlinks
+    // when nothing differs from natural).
+    bool needs_rewrite = false;
+};
+
 class MapStorage {
     char map_name[ MAP_NAME_MAX_LENGTH ];
 
@@ -79,14 +106,29 @@ class MapStorage {
     // MapGen::flat_world_id). Must run before init()/any chunk generation.
     static bool detect_flat_world( const char *world_name );
     void persist_chunk( const Chunk &chunk );
-    void persist_dirty_blocks( const glm::ivec3 &chunk_offset, const BlockState *blocks );
+    // Reads a chunk's edit runs: 1 when the file decoded (runs may be
+    // empty), 0 when no file exists (or chunk IO is disabled), -1 when the
+    // file exists but couldn't be decoded.
+    int load_chunk_edits( const glm::ivec3 &pos, ChunkEdits &out );
+    // Writes the runs in v1 format; an empty run list removes the file.
+    void persist_chunk_edits( const glm::ivec3 &pos, const std::vector<ChunkEditRun> &runs );
+    // Tests/selftest only: writes the pre-v1 legacy RLE format (a raw
+    // CHUNK_BLOCK_SIZE BlockState array, hole sentinels included) so the
+    // migration paths can be exercised. Production code never calls this.
+    void persist_chunk_legacy( const glm::ivec3 &chunk_offset, const BlockState *blocks );
+    // Multiplayer gate: while false, load_chunk_edits/persist_chunk_edits
+    // and the client chest/furnace file paths do no disk IO — that world
+    // state lives on the server. Set from Multiplayer::multiplayer_mode()
+    // each frame (World::render) and once during init before the first
+    // chunk enqueues. The server never touches it.
+    std::atomic<bool> chunk_io_enabled{ true };
+    void set_chunk_io_enabled( const bool enabled ) {
+        this->chunk_io_enabled.store( enabled, std::memory_order_relaxed );
+    }
     // Writes (or, when `chests` is empty, removes) the chest contents file for
     // a chunk. Keys are world block positions.
     void persist_chests( const glm::ivec3 &chunk_offset, const ChestContentsMap &chests );
     int check_if_chunk_exists( const glm::ivec3 &chunk_offset );
-
-    int load_chunk( Chunk &chunk );
-    int load_blocks( const glm::ivec3 &chunk_offset, BlockState *blocks, int &dirty, bool expect_empty_blocks );
     // Loads all chest contents stored for a chunk into `out` (keyed by world
     // block position). Returns 1 when a chest file existed, 0 otherwise.
     int load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out );

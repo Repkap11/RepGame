@@ -52,7 +52,7 @@ void TerrainLoadingThread::process_value( TerrainWorkItem &item ) {
     // edits are written off the render thread) have their data released at
     // dequeue, making this their last chance to save. persist_chunk no-ops
     // on clean chunks.
-    chunk.persist( this->map_storage );
+    chunk.persist( *this->map_storage );
 #if TERRAIN_GEN_PROFILING
     long long t_persist = now_us_terrain( ) - t_persist_start;
     terrain_persist_us.fetch_add( t_persist, std::memory_order_relaxed );
@@ -73,7 +73,7 @@ void TerrainLoadingThread::process_value( TerrainWorkItem &item ) {
         }
     }
     chunk.chunk_pos = target;
-    chunk.load_terrain( this->map_storage );
+    chunk.load_terrain( *this->map_storage );
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_queue.size(), result_queue.size() );
 }
 
@@ -95,7 +95,7 @@ Chunk *TerrainLoadingThread::dequeue( ) {
 }
 
 int TerrainLoadingThread::start( MapStorage &map_storage ) {
-    this->map_storage = map_storage;
+    this->map_storage = &map_storage;
     return 0;
 }
 
@@ -149,7 +149,7 @@ void *TerrainLoadingThread::process_background_tasks( void *arg ) {
 }
 
 int TerrainLoadingThread::start( MapStorage &map_storage ) {
-    this->map_storage = map_storage;
+    this->map_storage = &map_storage;
     // Try to spawn up to NUM_RENDER_THREADS workers, but gracefully degrade if
     // the pthread pool is smaller (e.g. low-core WASM browser). Blocking here
     // would deadlock, so on failure we stop trying and use what we got.

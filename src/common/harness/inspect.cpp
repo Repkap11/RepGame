@@ -50,11 +50,16 @@ std::string jf( const char *fmt, ... ) {
     return buf;
 }
 
-// Load a saved chunk's cell array. loaded=false when no chunk file exists —
-// cells are left as the caller made them (callers pre-fill with AIR).
-bool load_cells( MapStorage &ms, const glm::ivec3 &off, BlockState *cells ) {
-    int dirty = 0;
-    return ms.load_blocks( off, cells, dirty, false ) != 0;
+// Fill `cells` with the chunk as a client sees it: generated terrain plus
+// saved edits (Chunk::inspect_load runs the real pipeline). Returns false
+// when no chunk file exists — cells still hold generated terrain.
+// `edited_bits` (may be null) gets CHUNK_BLOCK_SIZE/8 bytes of edit bits.
+bool load_cells( MapStorage &ms, const glm::ivec3 &off, BlockState *cells, uint8_t *edited_bits ) {
+    return Chunk::inspect_load( ms, off, cells, edited_bits ) != 0;
+}
+
+inline bool bit_at( const uint8_t *bits, const int index ) {
+    return bits != nullptr && ( ( bits[ index >> 3 ] >> ( index & 7 ) ) & 1 );
 }
 
 const BlockState &cell_at( const BlockState *cells, const glm::ivec3 &local ) {
@@ -107,29 +112,30 @@ inspect::Result inspect::block( const char *dir, const int x, const int y, const
     const glm::ivec3 cpos{ chunk_coord( x, CHUNK_SIZE_X ), chunk_coord( y, CHUNK_SIZE_Y ), chunk_coord( z, CHUNK_SIZE_Z ) };
     const glm::ivec3 local = glm::ivec3( x, y, z ) - cpos * CHUNK_DIM;
     Result r;
-    if ( !ms.check_if_chunk_exists( cpos ) ) {
-        r.json = jf( "{\"pos\":[%d,%d,%d],\"chunk\":[%d,%d,%d],\"local\":[%d,%d,%d],\"id\":null,\"name\":null,\"saved\":false}",
-                     x, y, z, cpos.x, cpos.y, cpos.z, local.x, local.y, local.z );
-        r.human = jf( "block (%d,%d,%d): no saved chunk_%d_%d_%d — generated terrain, not stored",
-                      x, y, z, cpos.x, cpos.y, cpos.z );
-        return r;
-    }
     std::vector<BlockState> cells( CHUNK_BLOCK_SIZE, BLOCK_STATE_AIR );
-    if ( !load_cells( ms, cpos, cells.data( ) ) ) {
-        r.ok = false;
-        r.json = jf( "{\"error\":\"chunk file unreadable\",\"chunk\":[%d,%d,%d]}", cpos.x, cpos.y, cpos.z );
-        r.human = "chunk file unreadable";
+    std::vector<uint8_t> edited( CHUNK_BLOCK_SIZE / 8, 0 );
+    const bool saved = load_cells( ms, cpos, cells.data( ), edited.data( ) );
+    const BlockState &s = cell_at( cells.data( ), local );
+    const bool is_edited = bit_at( edited.data( ), Chunk::get_index_from_coords( local ) );
+    if ( !saved ) {
+        // No chunk file: the block is whatever the generator produces.
+        r.json = jf( "{\"pos\":[%d,%d,%d],\"chunk\":[%d,%d,%d],\"local\":[%d,%d,%d],\"id\":%d,\"name\":\"%s\","
+                     "\"rotation\":%d,\"redstone_power\":%d,\"waterlogged\":%s,\"saved\":false,\"edited\":false}",
+                     x, y, z, cpos.x, cpos.y, cpos.z, local.x, local.y, local.z, static_cast<int>( s.id ), block_name_of( s.id ),
+                     static_cast<int>( s.rotation ), s.current_redstone_power, s.waterlogged ? "true" : "false" );
+        r.human = jf( "block (%d,%d,%d) chunk (%d,%d,%d) local (%d,%d,%d): %s id=%d (generated, no saved edits)",
+                      x, y, z, cpos.x, cpos.y, cpos.z, local.x, local.y, local.z, block_name_of( s.id ), static_cast<int>( s.id ) );
         return r;
     }
-    const BlockState &s = cell_at( cells.data( ), local );
     r.json = jf( "{\"pos\":[%d,%d,%d],\"chunk\":[%d,%d,%d],\"local\":[%d,%d,%d],\"id\":%d,\"name\":\"%s\","
-                 "\"rotation\":%d,\"redstone_power\":%d,\"waterlogged\":%s,\"saved\":true}",
+                 "\"rotation\":%d,\"redstone_power\":%d,\"waterlogged\":%s,\"saved\":true,\"edited\":%s}",
                  x, y, z, cpos.x, cpos.y, cpos.z, local.x, local.y, local.z, static_cast<int>( s.id ), block_name_of( s.id ),
-                 static_cast<int>( s.rotation ), s.current_redstone_power, s.waterlogged ? "true" : "false" );
-    r.human = jf( "block (%d,%d,%d) chunk (%d,%d,%d) local (%d,%d,%d): %s id=%d rot=%d power=%d%s",
+                 static_cast<int>( s.rotation ), s.current_redstone_power, s.waterlogged ? "true" : "false",
+                 is_edited ? "true" : "false" );
+    r.human = jf( "block (%d,%d,%d) chunk (%d,%d,%d) local (%d,%d,%d): %s id=%d rot=%d power=%d%s%s",
                   x, y, z, cpos.x, cpos.y, cpos.z, local.x, local.y, local.z, block_name_of( s.id ),
                   static_cast<int>( s.id ), static_cast<int>( s.rotation ), s.current_redstone_power,
-                  s.waterlogged ? " waterlogged" : "" );
+                  s.waterlogged ? " waterlogged" : "", is_edited ? " edited" : "" );
     return r;
 }
 
@@ -155,7 +161,7 @@ inspect::Result inspect::slice( const char *dir, const int y, const int x1, cons
         auto it = cache.find( key );
         if ( it == cache.end( ) ) {
             std::vector<BlockState> cells( CHUNK_BLOCK_SIZE, BLOCK_STATE_AIR );
-            load_cells( ms, glm::ivec3( cx, cy, cz ), cells.data( ) );
+            load_cells( ms, glm::ivec3( cx, cy, cz ), cells.data( ), nullptr );
             it = cache.emplace( key, std::move( cells ) ).first;
         }
         return it->second.data( );
@@ -242,7 +248,7 @@ inspect::Result inspect::column( const char *dir, const int x, const int z, cons
         auto it = cache.find( cy );
         if ( it == cache.end( ) ) {
             std::vector<BlockState> cells( CHUNK_BLOCK_SIZE, BLOCK_STATE_AIR );
-            load_cells( ms, glm::ivec3( cx, cy, cz ), cells.data( ) );
+            load_cells( ms, glm::ivec3( cx, cy, cz ), cells.data( ), nullptr );
             it = cache.emplace( cy, std::move( cells ) ).first;
         }
         const glm::ivec3 local{ x - cx * CHUNK_SIZE_X, y - cy * CHUNK_SIZE_Y, z - cz * CHUNK_SIZE_Z };
@@ -274,9 +280,11 @@ inspect::Result inspect::chunk( const char *dir, const int cx, const int cy, con
         return r;
     }
     std::vector<BlockState> cells( CHUNK_BLOCK_SIZE, BLOCK_STATE_AIR );
+    std::vector<uint8_t> edited( CHUNK_BLOCK_SIZE / 8, 0 );
     std::map<std::string, long> counts;
     long non_air = 0;
-    if ( load_cells( ms, off, cells.data( ) ) ) {
+    long edited_cells = 0;
+    if ( load_cells( ms, off, cells.data( ), edited.data( ) ) ) {
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             const BlockID id = cells[ i ].id;
             if ( id == AIR ) {
@@ -284,6 +292,9 @@ inspect::Result inspect::chunk( const char *dir, const int cx, const int cy, con
             }
             non_air++;
             counts[ block_name_of( id ) ]++;
+        }
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
+            edited_cells += bit_at( edited.data( ), i ) ? 1 : 0;
         }
     }
     std::vector<std::pair<std::string, long>> top( counts.begin( ), counts.end( ) );
@@ -294,10 +305,10 @@ inspect::Result inspect::chunk( const char *dir, const int cx, const int cy, con
         counts_json += jf( "\"%s\":%ld", top[ i ].first.c_str( ), top[ i ].second );
         counts_text += jf( "    %6ld %s\n", top[ i ].second, top[ i ].first.c_str( ) );
     }
-    r.json = jf( "{\"chunk\":[%d,%d,%d],\"saved\":true,\"size\":%ld,\"non_air\":%ld,\"counts\":{%s}}",
-                 cx, cy, cz, static_cast<long>( st.st_size ), non_air, counts_json.c_str( ) );
-    r.human = jf( "chunk (%d,%d,%d): %ld bytes, %ld non-air cells\ncounts:\n%s",
-                  cx, cy, cz, static_cast<long>( st.st_size ), non_air, counts_text.c_str( ) );
+    r.json = jf( "{\"chunk\":[%d,%d,%d],\"saved\":true,\"size\":%ld,\"non_air\":%ld,\"edited\":%ld,\"counts\":{%s}}",
+                 cx, cy, cz, static_cast<long>( st.st_size ), non_air, edited_cells, counts_json.c_str( ) );
+    r.human = jf( "chunk (%d,%d,%d): %ld bytes, %ld non-air cells, %ld edited\ncounts:\n%s",
+                  cx, cy, cz, static_cast<long>( st.st_size ), non_air, edited_cells, counts_text.c_str( ) );
     return r;
 }
 

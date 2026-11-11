@@ -436,19 +436,24 @@ void send_chunk_populated( Server &server, SimClient &c, const glm::ivec3 &chunk
 
 // Cross-check the raw chunk files on disk (what survives a server restart).
 void expect_disk_block( MapStorage &storage, const glm::ivec3 &chunk_pos, const glm::ivec3 &pos, const BlockState &want ) {
-    BlockState *blocks = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
-    int dirty = 0;
     const int index = index_in_chunk( chunk_pos, pos );
-    if ( storage.load_blocks( chunk_pos, blocks, dirty, true ) ) {
-        check( BlockStates_equal( blocks[ index ], want ),
-               "file chunk (%d,%d,%d) pos (%d,%d,%d) id=%d want=%d",
-               chunk_pos.x, chunk_pos.y, chunk_pos.z, pos.x, pos.y, pos.z,
-               blocks[ index ].id, want.id );
-    } else {
+    ChunkEdits edits;
+    if ( storage.load_chunk_edits( chunk_pos, edits ) != 1 ) {
         check( false, "no chunk file for (%d,%d,%d) holding pos (%d,%d,%d)",
                chunk_pos.x, chunk_pos.y, chunk_pos.z, pos.x, pos.y, pos.z );
+        return;
     }
-    free( blocks );
+    for ( const ChunkEditRun &run : edits.runs ) {
+        if ( index >= (int)run.start && index < (int)( run.start + run.count ) ) {
+            check( BlockStates_equal( run.state, want ),
+                   "file chunk (%d,%d,%d) pos (%d,%d,%d) id=%d want=%d",
+                   chunk_pos.x, chunk_pos.y, chunk_pos.z, pos.x, pos.y, pos.z,
+                   run.state.id, want.id );
+            return;
+        }
+    }
+    check( false, "file chunk (%d,%d,%d) has no edit for pos (%d,%d,%d) want=%d",
+           chunk_pos.x, chunk_pos.y, chunk_pos.z, pos.x, pos.y, pos.z, want.id );
 }
 
 } // namespace
@@ -557,7 +562,7 @@ int server_selftest( ) {
         const int leg_index = index_in_chunk( leg, leg_pos );
         const int other_index = leg_index + 1;
 
-        // Write a legacy-format chunk file directly (persist_dirty_blocks
+        // Write a legacy-format chunk file directly (persist_chunk_legacy
         // encodes raw states, no sanitizing).
         BlockState *legacy = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
@@ -565,7 +570,7 @@ int server_selftest( ) {
                                       static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0 };
         }
         legacy[ leg_index ] = stone;
-        storage.persist_dirty_blocks( leg, legacy );
+        storage.persist_chunk_legacy( leg, legacy );
         free( legacy );
 
         SimClient c = connect_client( server );
@@ -583,19 +588,20 @@ int server_selftest( ) {
                server.test_logic( ).cachedChunkCount( ) );
         disconnect_client( server, c );
 
-        // The disconnect flush rewrote the file; the slots that were the
-        // legacy sentinel must now load as the empty marker, not AIR.
-        BlockState *blocks = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
-        int dirty = 0;
-        if ( storage.load_blocks( leg, blocks, dirty, true ) ) {
-            check( blocks[ leg_index ].id == STONE,
-                   "rewritten legacy chunk keeps stone at index %d (id=%d)", leg_index, blocks[ leg_index ].id );
-            check( blocks[ other_index ].id == LAST_BLOCK_ID,
-                   "rewritten legacy chunk index %d loads empty marker (id=%d)", other_index, blocks[ other_index ].id );
+        // No client edit touched the chunk, so the file is still the legacy
+        // one: it decodes to just the stone edit — the sentinel slots are
+        // holes, never real diffs — and is flagged for lazy rewrite.
+        ChunkEdits reloaded;
+        if ( storage.load_chunk_edits( leg, reloaded ) == 1 ) {
+            check( reloaded.runs.size() == 1 && reloaded.runs[ 0 ].start == (uint32_t)leg_index &&
+                       reloaded.runs[ 0 ].count == 1 && reloaded.runs[ 0 ].state.id == STONE,
+                   "legacy chunk keeps stone at index %d (runs=%zu)", leg_index, reloaded.runs.size() );
+            check( !reloaded.legacy_snapshot && reloaded.needs_rewrite,
+                   "legacy diff file flags a lazy rewrite" );
         } else {
             check( false, "no chunk file for legacy chunk (%d,%d,%d)", leg.x, leg.y, leg.z );
         }
-        free( blocks );
+        (void)other_index;
     }
 
     // --- Known-empty chunks: a diff request for a chunk with no save file
