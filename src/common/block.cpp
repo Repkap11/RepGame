@@ -479,6 +479,29 @@ int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] ) {
     return n;
 }
 
+int standing_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] ) {
+    // Board plate: same 16x9x2 slab the wall sign mounts, parked at the top
+    // of the cell (y 7..15).
+    out[ 0 ].scale[ 0 ] = 16;
+    out[ 0 ].scale[ 1 ] = 9;
+    out[ 0 ].scale[ 2 ] = 2;
+    out[ 0 ].offset[ 0 ] = 0;
+    out[ 0 ].offset[ 1 ] = 7;
+    out[ 0 ].offset[ 2 ] = 7;
+    out[ 0 ].skip_faces = 0;
+    // Post: 2-wide column under the board's middle (x/z 7..8). Top and
+    // bottom caps are coplanar with the board's bottom quad and the
+    // supporting block's top face respectively — both skipped.
+    out[ 1 ].scale[ 0 ] = 2;
+    out[ 1 ].scale[ 1 ] = 7;
+    out[ 1 ].scale[ 2 ] = 2;
+    out[ 1 ].offset[ 0 ] = 7;
+    out[ 1 ].offset[ 1 ] = 0;
+    out[ 1 ].offset[ 2 ] = 7;
+    out[ 1 ].skip_faces = ( 1u << FACE_TOP ) | ( 1u << FACE_BOTTOM );
+    return 2;
+}
+
 int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     if ( block->is_stairs ) {
         return stairs_icon_boxes( out );

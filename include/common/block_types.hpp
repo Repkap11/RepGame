@@ -191,6 +191,11 @@ typedef struct {
     // The block's own scale/offset then describes only the pick/collision
     // box (chunk.cpp phase 2 emits the mesh).
     bool spine_shell;
+    // Standing signs draw as two boxes (standing_sign_boxes in block.cpp):
+    // a 16x9x2 board plate at the top of the cell plus a 2-wide post under
+    // it. The block's own scale/offset stays the pick box — MC's selection
+    // column — so the board's outer edges aren't clickable, matching MC.
+    bool is_standing_sign;
     // Doors are two-cell blocks: a lower half and an upper half (linked by
     // door_partner) whose 3px slab hitbox swings to an adjacent facing when
     // opened. Both halves store the current slab yaw in rotation bits 0-1 so

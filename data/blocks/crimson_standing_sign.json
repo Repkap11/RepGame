@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "crimson_planks",
-  "side": "sign_crimson",
+  "side": "sign_crimson_standing",
   "top": "crimson_planks"
  },
  "wall_variant": "CRIMSON_WALL_SIGN"

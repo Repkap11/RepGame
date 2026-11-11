@@ -78,7 +78,7 @@ BOOL_FIELDS = {
     "is_pressure_plate", "is_redstone_mechanism", "is_piston", "is_sticky_piston",
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "falls_with_gravity", "spine_shell",
-    "is_stairs", "climbable", "is_cake",
+    "is_stairs", "is_standing_sign", "climbable", "is_cake",
     "is_door", "is_door_upper", "door_redstone_only",
     "is_tall_plant_upper",
     "forms_sources",
@@ -1083,23 +1083,45 @@ def resolve_image(name, meta):
     extract = meta.get("extract")
     if extract is not None:
         # {from: [x, y], size: [w, h], to: [x, y]} — blit a rect of the
-        # resolved tile onto a fresh transparent tile. Torch top/bottom
+        # resolved tile onto a fresh transparent tile; a list of such dicts
+        # blits them in order (later rects overwrite). Torch top/bottom
         # faces sample the window that tracks the cuboid's x/z position
         # (cols/rows 7-8 for the 2-wide stick), not the spot where the
-        # sprite paints the cap or base; extract copies it there.
-        if not isinstance(extract, dict) or set(extract) != {"from", "size", "to"}:
-            fail("texture %r: extract must be {from, size, to}" % name)
-        fr, sz, to = extract["from"], extract["size"], extract["to"]
-        if any(not isinstance(v, list) or len(v) != 2 or
-               not all(isinstance(i, int) for i in v) for v in (fr, sz, to)):
-            fail("texture %r: extract from/size/to must be [x, y] int pairs" % name)
-        if not (0 <= fr[0] and 0 <= fr[1] and sz[0] > 0 and sz[1] > 0 and
-                fr[0] + sz[0] <= TILE and fr[1] + sz[1] <= TILE and
-                0 <= to[0] and 0 <= to[1] and
-                to[0] + sz[0] <= TILE and to[1] + sz[1] <= TILE):
-            fail("texture %r: extract rect out of bounds" % name)
+        # sprite paints the cap or base; extract copies it there. A rect
+        # may carry "source"/"frame" to blit from a different image or
+        # frame than the tile's own — the standing-sign tile composes the
+        # entity texture's board band (frame 0) with its post strip
+        # (frame 1) that way.
+        if isinstance(extract, dict):
+            extract = [extract]
+        if not isinstance(extract, list):
+            fail("texture %r: extract must be {from, size, to} or a list of them" % name)
         out = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
-        out.paste(img.crop((fr[0], fr[1], fr[0] + sz[0], fr[1] + sz[1])), tuple(to))
+        for rect in extract:
+            if not isinstance(rect, dict) or not {"from", "size", "to"} <= set(rect) or set(rect) - {"from", "size", "to", "source", "frame"}:
+                fail("texture %r: extract rect must be {from, size, to, source?, frame?}" % name)
+            fr, sz, to = rect["from"], rect["size"], rect["to"]
+            if any(not isinstance(v, list) or len(v) != 2 or
+                   not all(isinstance(i, int) for i in v) for v in (fr, sz, to)):
+                fail("texture %r: extract from/size/to must be [x, y] int pairs" % name)
+            if not (0 <= fr[0] and 0 <= fr[1] and sz[0] > 0 and sz[1] > 0 and
+                    fr[0] + sz[0] <= TILE and fr[1] + sz[1] <= TILE and
+                    0 <= to[0] and 0 <= to[1] and
+                    to[0] + sz[0] <= TILE and to[1] + sz[1] <= TILE):
+                fail("texture %r: extract rect out of bounds" % name)
+            rimg = img
+            if "source" in rect or "frame" in rect:
+                rpath = find_image_path(rect.get("source", src), name, "extract")
+                rframe = rect.get("frame", 0)
+                if not isinstance(rframe, int) or rframe < 0:
+                    fail("texture %r extract: bad frame %r" % (name, rframe))
+                rimg = Image.open(rpath).convert("RGBA")
+                if rimg.width != TILE and rimg.width % TILE == 0 and rimg.height % rimg.width == 0:
+                    rimg = rimg.resize((TILE, rimg.height * TILE // rimg.width), Image.Resampling.LANCZOS)
+                rimg = rimg.crop((0, rframe * TILE, TILE, (rframe + 1) * TILE))
+                if rimg.size != (TILE, TILE):
+                    fail("texture %r extract (%s): not %dx%d after frame crop" % (name, os.path.relpath(rpath, ROOT), TILE, TILE))
+            out.paste(rimg.crop((fr[0], fr[1], fr[0] + sz[0], fr[1] + sz[1])), tuple(to))
         img = out
     return img
 

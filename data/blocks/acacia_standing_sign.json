@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "planks_acacia",
-  "side": "sign_acacia",
+  "side": "sign_acacia_standing",
   "top": "planks_acacia"
  },
  "wall_variant": "ACACIA_WALL_SIGN"

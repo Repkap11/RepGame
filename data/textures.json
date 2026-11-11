@@ -2549,6 +2549,40 @@
   "shulker_top_yellow": {
     "source": "textures/blocks/shulker_top_yellow"
   },
+  "sign_acacia_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign_acacia"
+  },
   "sign_acacia_wall": {
     "extract": {
       "from": [
@@ -2565,6 +2599,40 @@
       ]
     },
     "source": "textures/entity/sign_acacia"
+  },
+  "sign_bamboo_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/bamboo_sign"
   },
   "sign_bamboo_wall": {
     "extract": {
@@ -2583,6 +2651,40 @@
     },
     "source": "textures/entity/bamboo_sign"
   },
+  "sign_birch_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign_birch"
+  },
   "sign_birch_wall": {
     "extract": {
       "from": [
@@ -2599,6 +2701,40 @@
       ]
     },
     "source": "textures/entity/sign_birch"
+  },
+  "sign_cherry_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/cherry_sign"
   },
   "sign_cherry_wall": {
     "extract": {
@@ -2617,6 +2753,40 @@
     },
     "source": "textures/entity/cherry_sign"
   },
+  "sign_crimson_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign_crimson"
+  },
   "sign_crimson_wall": {
     "extract": {
       "from": [
@@ -2633,6 +2803,40 @@
       ]
     },
     "source": "textures/entity/sign_crimson"
+  },
+  "sign_darkoak_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign_darkoak"
   },
   "sign_darkoak_wall": {
     "extract": {
@@ -2651,6 +2855,40 @@
     },
     "source": "textures/entity/sign_darkoak"
   },
+  "sign_jungle_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign_jungle"
+  },
   "sign_jungle_wall": {
     "extract": {
       "from": [
@@ -2667,6 +2905,40 @@
       ]
     },
     "source": "textures/entity/sign_jungle"
+  },
+  "sign_mangrove_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/mangrove_sign"
   },
   "sign_mangrove_wall": {
     "extract": {
@@ -2685,6 +2957,40 @@
     },
     "source": "textures/entity/mangrove_sign"
   },
+  "sign_oak_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign"
+  },
   "sign_oak_wall": {
     "extract": {
       "from": [
@@ -2701,6 +3007,40 @@
       ]
     },
     "source": "textures/entity/sign"
+  },
+  "sign_pale_oak_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/pale_oak_sign"
   },
   "sign_pale_oak_wall": {
     "extract": {
@@ -2719,6 +3059,40 @@
     },
     "source": "textures/entity/pale_oak_sign"
   },
+  "sign_poplar_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/poplar_sign"
+  },
   "sign_poplar_wall": {
     "extract": {
       "from": [
@@ -2736,6 +3110,40 @@
     },
     "source": "textures/entity/poplar_sign"
   },
+  "sign_spruce_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign_spruce"
+  },
   "sign_spruce_wall": {
     "extract": {
       "from": [
@@ -2752,6 +3160,40 @@
       ]
     },
     "source": "textures/entity/sign_spruce"
+  },
+  "sign_warped_standing": {
+    "extract": [
+      {
+        "from": [
+          0,
+          3
+        ],
+        "size": [
+          16,
+          10
+        ],
+        "to": [
+          0,
+          0
+        ]
+      },
+      {
+        "frame": 1,
+        "from": [
+          1,
+          0
+        ],
+        "size": [
+          4,
+          8
+        ],
+        "to": [
+          6,
+          8
+        ]
+      }
+    ],
+    "source": "textures/entity/sign_warped"
   },
   "sign_warped_wall": {
     "extract": {

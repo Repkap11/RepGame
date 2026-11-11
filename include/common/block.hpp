@@ -468,6 +468,18 @@ int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], B
 // (2: slab + step).
 int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] );
 
+// ---- Standing signs ---------------------------------------------------------
+// The two definition-space boxes of a standing sign: box 0 is the 16x9x2
+// board plate at the top of the cell (offset y 7, matching the wall sign's
+// plate), box 1 the 2x7x2 post under its middle. The post's top is coplanar
+// with the board's bottom quad — skip_faces drops it — and its bottom sits
+// coplanar on the supporting block's top face, so that cap is skipped too.
+// Every lateral quad samples its side tile at the model-space rows/cols it
+// covers (tex_offset = -offset), so the tile lays the board band over the
+// post column; the shader yaws the pair with face_shift like fences/stairs.
+#define SIGN_MAX_BOXES 2
+int standing_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] );
+
 // ---- Item icons -------------------------------------------------------------
 // The model-space boxes a block's item icon draws: stairs their
 // stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),

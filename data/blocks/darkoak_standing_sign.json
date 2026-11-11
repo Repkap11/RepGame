@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "planks_big_oak",
-  "side": "sign_darkoak",
+  "side": "sign_darkoak_standing",
   "top": "planks_big_oak"
  },
  "wall_variant": "DARKOAK_WALL_SIGN"

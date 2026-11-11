@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "planks_spruce",
-  "side": "sign_spruce",
+  "side": "sign_spruce_standing",
   "top": "planks_spruce"
  },
  "wall_variant": "SPRUCE_WALL_SIGN"

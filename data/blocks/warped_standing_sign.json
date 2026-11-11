@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "warped_planks",
-  "side": "sign_warped",
+  "side": "sign_warped_standing",
   "top": "warped_planks"
  },
  "wall_variant": "WARPED_WALL_SIGN"

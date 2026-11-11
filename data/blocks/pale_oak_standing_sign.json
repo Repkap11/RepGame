@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "pale_oak_planks",
-  "side": "pale_oak_sign",
+  "side": "sign_pale_oak_standing",
   "top": "pale_oak_planks"
  },
  "wall_variant": "PALE_OAK_WALL_SIGN"

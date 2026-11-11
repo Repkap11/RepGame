@@ -1617,6 +1617,10 @@ void Chunk::calculate_populated_blocks( ) {
                             }
                             num_boxes = stairs_boxes( stairs_shape_derive( blockState.rotation, stair_rots ),
                                                       ( blockState.rotation & BLOCK_ROTATE_STAIRS_TOP ) != 0, boxes );
+                        } else if ( block->is_standing_sign ) {
+                            // Board plate + post — def space, yawed by the
+                            // shader like the fence/stair boxes.
+                            num_boxes = standing_sign_boxes( boxes );
                         }
                         // A lit redstone torch emits a second instance: the
                         // 4-wide orb head around the stick's top.
@@ -2011,6 +2015,16 @@ void Chunk::calculate_populated_blocks( ) {
                                 boxCoord->tex_offset_x = -boxes[ i ].offset[ 0 ];
                                 boxCoord->tex_offset_y = -boxes[ i ].offset[ 1 ];
                                 boxCoord->tex_offset_z = -boxes[ i ].offset[ 2 ];
+                                // The sign board sits at z 7-8 but its
+                                // front/back faces span the full cell width —
+                                // the depth-anchored window [7,23) would run
+                                // off the tile, so pull it back to the
+                                // full-width band at cols 0-15. The plate's
+                                // top/bottom quads then sample rows 0-1 of
+                                // the cap tile (planks cover them).
+                                if ( block->is_standing_sign && i == 0 ) {
+                                    boxCoord->tex_offset_z = 0;
+                                }
                                 boxCoord->face_shift = yaw;
                                 // skip_faces is definition-space while
                                 // packed_lighting indexes the world-space quad

@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "cherry_planks",
-  "side": "cherry_sign",
+  "side": "sign_cherry_standing",
   "top": "cherry_planks"
  },
  "wall_variant": "CHERRY_WALL_SIGN"

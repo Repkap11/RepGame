@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "bamboo_planks",
-  "side": "bamboo_sign",
+  "side": "sign_bamboo_standing",
   "top": "bamboo_planks"
  },
  "wall_variant": "BAMBOO_WALL_SIGN"

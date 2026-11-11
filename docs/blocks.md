@@ -173,12 +173,24 @@ kept block via `"template"`; `"drop"` removes copied keys and other entry
 keys override the template but not the block's own JSON. Textures always
 stay the block's own.
 
-Signs are single thin boxes whose faces sample the Bedrock item sprites
-(the same alpha-cutout trick the mask tiles faked, but with real sign art).
-A `*_STANDING_SIGN` is an 8-wide full-height post (`scale [8,16,8]`,
-`offset [4,0,4]` — MC's AABB) standing on the cell floor
-(`needs_place_on_any_solid.top`); its side quads sample the middle 8
-columns of the `sign*`/`*_sign` item icon (board + post). A `*_WALL_SIGN`
+Signs are thin boxes whose faces sample the Bedrock entity/item sprites.
+A `*_STANDING_SIGN` (`is_standing_sign`) renders as two boxes
+(`standing_sign_boxes` in block.cpp, emitted through the same multi-box
+path as fences/stairs): a 16x9x2 board plate at the top of the cell plus a
+2x7x2 post under its middle — the post's top/bottom caps are skipped
+(coplanar with the board bottom and the supporting face). The def's own
+`scale [8,16,8]`/`offset [4,0,4]` then describe only the pick box — MC's
+selection column, so the board's outer edges aren't clickable. All four
+lateral quads share one composed `sign_*_standing` tile: the entity
+texture's 16-wide board band pasted into the rows the plate covers plus a
+frame-1 `extract` of the 2-wide post strip into the column the post
+covers (extract accepts a list of rects, each with optional
+`source`/`frame`; the post lives on entity rows 16-31, outside frame 0).
+The board's front/back window is depth-anchored like every lateral face
+([offset.z, +width) = [7,23) — off-tile), so the mesher zeroes the
+board box's `tex_offset.z`, anchoring it at the full-width band instead;
+its top/bottom caps then sample rows 0-1 of the plain planks tiles. A
+`*_WALL_SIGN`
 is a 2px plate hugging the clicked block face (`scale [16,9,2]`,
 `offset [0,4,0]`, `rotate_on_placement` + `needs_place_on_any_solid.front`
 — the ladder/button wall-mount convention): its front/back quads sample a

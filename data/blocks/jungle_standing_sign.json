@@ -5,7 +5,7 @@
  "shape": "standing_sign",
  "textures": {
   "bottom": "planks_jungle",
-  "side": "sign_jungle",
+  "side": "sign_jungle_standing",
   "top": "planks_jungle"
  },
  "wall_variant": "JUNGLE_WALL_SIGN"

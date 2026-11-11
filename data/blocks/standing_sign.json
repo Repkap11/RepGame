@@ -6,6 +6,7 @@
  "icon": "sign",
  "id": 1161,
  "is_seethrough": true,
+ "is_standing_sign": true,
  "name": "STANDING_SIGN",
  "needs_place_on_any_solid": {
   "top": true
@@ -28,7 +29,7 @@
  ],
  "textures": {
   "bottom": "planks_oak",
-  "side": "sign",
+  "side": "sign_oak_standing",
   "top": "planks_oak"
  },
  "wall_variant": "WALL_SIGN",
