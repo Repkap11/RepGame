@@ -11,12 +11,14 @@
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 
 // Survival item swap: consume one of the held stack, then put `result` back
-// on the hotbar preferring the selected slot (the just-emptied slot takes
-// it, matching MC's in-hand swap). Whatever doesn't fit is thrown ahead of
-// the player like a manual drop so it isn't lost.
+// preferring the selected hotbar slot (the just-emptied slot takes it,
+// matching MC's in-hand swap), then the rest of the hotbar, then the
+// survival inventory. Whatever still doesn't fit is thrown ahead of the
+// player like a manual drop so it isn't lost.
 static void bucket_swap_item( RepGameState &state, const ItemID result ) {
     state.hotbar.consumeSelected( 1 );
-    if ( !state.hotbar.addItemWithQuantity( result, 1, true ) ) {
+    const int leftover = state.hotbar.addItemWithQuantity( result, 1, true ) ? 0 : state.survival_inventory.addItem( result, 1 );
+    if ( leftover > 0 ) {
         const glm::dvec3 look = glm::dvec3( state.camera.look );
         state.world.items.spawn( result, 1, state.camera.pos + look * 0.3, look * 0.045 + glm::dvec3( 0.0, 0.01, 0.0 ), 2 * UPS_RATE );
     }

@@ -123,7 +123,9 @@ can't be drained); a filled `WATER_BUCKET`/`LAVA_BUCKET` pours
 or `pos_create` like a placed block — water poured onto a
 waterloggable block waterlogs it via `block_state_normalize`. Survival
 swaps the held item empty↔full (`bucket_swap_item`, in-hand swap like
-MC with overflow thrown ahead); creative doesn't consume. All world
+MC, then the rest of the hotbar, then the survival inventory — only a
+completely full inventory throws the result ahead); creative doesn't
+consume. All world
 changes go through the queue, so scoop-removal recedes the flow
 naturally and poured sources sim normally.
 

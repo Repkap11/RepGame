@@ -430,8 +430,9 @@ int test_fluids( ) {
         check_bool( "bucket: pour-on-source pending drained", gs.pending_fluid_updates.empty( ) );
     }
     {
-        // Full hotbar: the filled bucket can't stack (max_stack 1) and every
-        // slot is taken, so it drops as an item entity instead of vanishing.
+        // Full hotbar: the filled bucket can't go in-hand (the bucket stack
+        // still occupies the slot), so it lands in the survival inventory
+        // instead of dropping.
         RepGameState &gs = new_fluid_state( );
         gs.game_mode = GameMode_Survival;
         test_setup_inventories( gs );
@@ -441,6 +442,35 @@ int test_fluids( ) {
         for ( int i = 0; i < HOTBAR_WIDTH * HOTBAR_HEIGHT; i++ ) {
             gs.hotbar.setSlotContents( i, { STONE, MAX_STACK_SIZE } );
         }
+        gs.hotbar.setSlotContents( 0, { BUCKET, 16 } );
+        gs.hotbar.setSelectedSlot( 0 );
+        const size_t items_before = gs.world.items.count( );
+        gs.block_selection.fluidSelectionInBounds = 1;
+        gs.block_selection.pos_fluid = glm::ivec3( 38, 11, 38 );
+        check_bool( "bucket: full-hotbar scoop returns true", repgame_use_bucket( gs ) );
+        settle( gs, 1 );
+        failures += check_id( world, "bucket: full-hotbar scoop drains", glm::ivec3( 38, 11, 38 ), AIR );
+        const InventorySlot slot = gs.hotbar.getSlotContents( 0 );
+        check_bool( "bucket: consumed one of the stack", slot.item_id == BUCKET && slot.quantity == 15 );
+        const InventorySlot inv_slot = gs.survival_inventory.getSlots( )[ 0 ];
+        check_bool( "bucket: filled bucket lands in the inventory", inv_slot.item_id == WATER_BUCKET && inv_slot.quantity == 1 );
+        check_bool( "bucket: nothing dropped", gs.world.items.count( ) == items_before );
+        check_drained( "bucket: full-hotbar pending drained", gs );
+    }
+    {
+        // Full hotbar AND full inventory: the filled bucket can't stack
+        // (max_stack 1) and every slot is taken, so it drops as an item
+        // entity instead of vanishing.
+        RepGameState &gs = new_fluid_state( );
+        gs.game_mode = GameMode_Survival;
+        test_setup_inventories( gs );
+        World &world = gs.world;
+        fill_floor( world, 10, 28, 48, 28, 48, fluid_stone );
+        world.set_loaded_block( glm::ivec3( 38, 11, 38 ), { WATER, 0, 0, WATER, 0 } );
+        for ( int i = 0; i < HOTBAR_WIDTH * HOTBAR_HEIGHT; i++ ) {
+            gs.hotbar.setSlotContents( i, { STONE, MAX_STACK_SIZE } );
+        }
+        gs.survival_inventory.addItem( STONE, SURVIVAL_INVENTORY_WIDTH * SURVIVAL_INVENTORY_HEIGHT * MAX_STACK_SIZE );
         gs.hotbar.setSlotContents( 0, { BUCKET, 16 } );
         gs.hotbar.setSelectedSlot( 0 );
         const size_t items_before = gs.world.items.count( );
