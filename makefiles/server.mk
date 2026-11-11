@@ -59,7 +59,7 @@ server-systemd-install:
 	ssh $(SERVER_SSH) 'systemctl --user daemon-reload && systemctl --user enable $(REPSERVER).service'
 	ssh $(SERVER_SSH) 'loginctl enable-linger $(USER) 2>/dev/null || echo "NOTE: run sudo loginctl enable-linger $(USER) on the VPS for boot persistence"'
 
-server-systemd-status:
+server-status:
 	ssh $(SERVER_SSH) 'systemctl --user status $(REPSERVER).service'
 
 # Non-following dump of recent log lines — the tmux capture-pane
@@ -79,4 +79,4 @@ clean: clean-server
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run server-test mp-test server-deploy server-restart server-install server-systemd-install server-systemd-status server-logs server-logs-live server-systemd-uninstall
+.PHONY: server clean-server server-run server-test mp-test server-deploy server-restart server-install server-systemd-install server-status server-logs server-logs-live server-systemd-uninstall
