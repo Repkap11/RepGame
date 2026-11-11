@@ -165,13 +165,14 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   targets. The VPS is too small to compile optimized builds, so nothing
   builds or pushes on the remote; both ends run the same toolchain. rsync's
   temp-file+rename is safe against the running binary.
-- `make server-restart` — `tools/server_restart.sh`: Ctrl-C the server in
-  tmux session `repgame` (pane found via the `@repgame_server` pane option,
-  since automatic-rename clobbers window names; graceful flush), start the
-  deployed binary there, then attach. Aborts if `RepGameServer.service` is
-  active or another RepGameServer is running outside that session.
-  Overrides: `SERVER_HOST`, `SERVER_BIN_DIR`, `SERVER_TMUX_SESSION`,
-  `SERVER_ATTACH=0`.
+- `make server-restart` — `tools/server_restart.sh`: `systemctl --user
+  restart RepGameServer` on repkap11.com; SIGTERM triggers the server's
+  graceful flush. Overrides: `SERVER_HOST`, `SERVER_SERVICE`.
+- `make server-systemd-install` — installs `RepGameServer.service` as a
+  user-level unit (`~/.config/systemd/user`) on repkap11.com, enables it,
+  and sets `loginctl enable-linger` so it starts on boot without a login.
+  No sudo needed. `server-systemd-status`/`-logs`/`-uninstall` wrap the
+  matching `systemctl --user`/`journalctl --user` calls over ssh.
 - `make server-systemd-install` / `server-systemd-status` /
   `server-systemd-logs` / `server-systemd-uninstall` — install, inspect and
   remove the `RepGameServer.service` systemd unit.

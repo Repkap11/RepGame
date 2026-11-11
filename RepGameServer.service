@@ -1,14 +1,17 @@
+# User-level systemd unit (systemctl --user) for the dedicated server.
+# Installed on repkap11.com by `make server-systemd-install`; needs
+# `loginctl enable-linger` (done there) to run without a login session
+# and to start on boot.
 [Unit]
 Description=RepGame Server
-After=network.target
+After=network-online.target
 
 [Service]
 Type=simple
-User=paul
-WorkingDirectory=/home/paul/website/repgame
-ExecStart=/home/paul/website/repgame/RepGameServer
+WorkingDirectory=%h/website/repgame
+ExecStart=%h/website/repgame/RepGameServer
 Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

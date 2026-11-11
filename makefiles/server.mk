@@ -37,8 +37,8 @@ server-deploy: server
 	rsync out/server/$(REPSERVER) $(SERVER_DEPLOY_REMOTE)/
 	@echo "Deployed. Run 'make server-restart' to restart the live server."
 
-# (Re)start the deployed binary in tmux session 'repgame' on repkap11.com
-# (see tools/server_restart.sh for overrides).
+# Restart the deployed binary on repkap11.com via its user-level systemd
+# unit (see tools/server_restart.sh for overrides).
 server-restart:
 	./tools/server_restart.sh
 
@@ -50,26 +50,27 @@ server-test: server
 mp-test: linux server
 	python3 tools/mp_test.py
 
-server-systemd-install: server
-	sudo cp $(REPSERVER).service /etc/systemd/system/$(REPSERVER).service
-	sudo systemctl daemon-reload
-	sudo systemctl enable $(REPSERVER).service
-	sudo systemctl restart $(REPSERVER).service
+# User-level systemd service on repkap11.com (systemctl --user) — no sudo
+# needed. Linger makes it start on boot without a login session.
+SERVER_SSH := paul@repkap11.com
+server-systemd-install:
+	ssh $(SERVER_SSH) 'mkdir -p ~/.config/systemd/user'
+	scp $(REPSERVER).service $(SERVER_SSH):~/.config/systemd/user/
+	ssh $(SERVER_SSH) 'systemctl --user daemon-reload && systemctl --user enable $(REPSERVER).service'
+	ssh $(SERVER_SSH) 'loginctl enable-linger $(USER) 2>/dev/null || echo "NOTE: run sudo loginctl enable-linger $(USER) on the VPS for boot persistence"'
 
 server-systemd-status:
-	sudo systemctl status $(REPSERVER).service
+	ssh $(SERVER_SSH) 'systemctl --user status $(REPSERVER).service'
 
 server-systemd-logs:
-	journalctl -u $(REPSERVER).service -f
+	ssh -t $(SERVER_SSH) 'journalctl --user -u $(REPSERVER).service -f'
 
 server-systemd-uninstall:
-	sudo systemctl disable --now $(REPSERVER).service
-	sudo rm /etc/systemd/system/$(REPSERVER).service
-	sudo systemctl daemon-reload
+	ssh $(SERVER_SSH) 'systemctl --user disable --now $(REPSERVER).service || true; rm -f ~/.config/systemd/user/$(REPSERVER).service; systemctl --user daemon-reload'
 
 clean: clean-server
 
 clean-server:
 	rm -rf out/server
 
-.PHONY: server clean-server server-run server-test mp-test server-deploy server-restart server-install
+.PHONY: server clean-server server-run server-test mp-test server-deploy server-restart server-install server-systemd-install server-systemd-status server-systemd-logs server-systemd-uninstall
