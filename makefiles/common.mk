@@ -18,6 +18,9 @@ CMAKE_MAKEFLAGS := $(filter-out --warn-undefined-variables,$(MAKEFLAGS))
 
 ifeq ($(USE_CCACHE),1)
 CMAKE_CCACHE := -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+# TUs using -include-pch are uncacheable to ccache without this: pch_defines
+# and time_macros let it hash the .pch contents and cache pch consumers.
+export CCACHE_SLOPPINESS := pch_defines,time_macros
 else
 CMAKE_CCACHE :=
 endif
