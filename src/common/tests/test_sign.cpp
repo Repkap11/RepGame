@@ -86,8 +86,7 @@ int test_signs( ) {
 
     // --- sign_edit_apply_input ----------------------------------------------
     {
-        Input in;
-        memset( &in, 0, sizeof( in ) );
+        Input in{ };
         SignEditUi edit;
         // Chars land on the focused line; Enter advances.
         strcpy( in.text_chars, "HI" );

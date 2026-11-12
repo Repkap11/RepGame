@@ -86,7 +86,9 @@ void repgame_close_sign_editor( RepGameState &state, bool commit ) {
         return;
     }
     edit.open = false;
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     state.input.text_input_end( );
+#endif
     if ( commit ) {
         repgame_commit_sign_edit( state );
     }
