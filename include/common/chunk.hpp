@@ -194,8 +194,9 @@ struct ChunkLight {
         }
     }
     // Set while the chunk sits in the pending-light drain list (see
-    // light_pending_enqueue) so producers don't enqueue it twice.
-    int pending_listed;
+    // light_pending_enqueue) so producers don't enqueue it twice. Atomic
+    // because light_process_pending_chunk clears it outside the work mutex.
+    std::atomic<int> pending_listed;
     // Same, for the dirty-light-volume upload list. Atomic because
     // light_mark_dirty checks it lock-free on the hot path.
     std::atomic<int> upload_listed;

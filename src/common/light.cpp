@@ -4729,15 +4729,20 @@ void ChunkLoader::light_thread_loop( ) {
                 }
             }
             if ( !have_job ) {
-                // Same nearest-first policy for pending-diff chunks.
-                auto best = light_pending_list.end( );
+                // Same nearest-first policy for pending-diff chunks. Index
+                // scan: stale entries drop via O(1) swap-with-back instead of
+                // vector::erase (O(N) memmove per stale entry, O(N²) per pass
+                // on a long list — list order is irrelevant since best is
+                // picked across the whole scan).
+                size_t best_idx = std::numeric_limits<size_t>::max( );
                 int best_d2 = std::numeric_limits<int>::max( );
-                for ( auto it = light_pending_list.begin( ); it != light_pending_list.end( ); ) {
-                    Chunk *pc = *it;
+                for ( size_t i = 0; i < light_pending_list.size( ); ) {
+                    Chunk *pc = light_pending_list[ i ];
                     if ( pc->load_state ) {
                         // Loading chunks drain pending in light_finalize_chunk.
                         pc->light.pending_listed = 0;
-                        it = light_pending_list.erase( it );
+                        light_pending_list[ i ] = light_pending_list.back( );
+                        light_pending_list.pop_back( );
                         continue;
                     }
                     if ( light_claim_free( pc->chunk_pos.x, pc->chunk_pos.z, true ) ) {
@@ -4745,16 +4750,17 @@ void ChunkLoader::light_thread_loop( ) {
                         const int d2 = d.x * d.x + d.z * d.z;
                         if ( d2 < best_d2 ) {
                             best_d2 = d2;
-                            best = it;
+                            best_idx = i;
                         }
                     }
-                    ++it;
+                    i++;
                 }
-                if ( best != light_pending_list.end( ) ) {
-                    Chunk *pc = *best;
+                if ( best_idx != std::numeric_limits<size_t>::max( ) ) {
+                    Chunk *pc = light_pending_list[ best_idx ];
                     const glm::ivec3 col = pc->chunk_pos;
                     if ( light_try_claim( col.x, col.z, true ) ) {
-                        light_pending_list.erase( best );
+                        light_pending_list[ best_idx ] = light_pending_list.back( );
+                        light_pending_list.pop_back( );
                         // Clear listed under the lock so a producer writing
                         // pending fields now re-enqueues a fresh entry.
                         pc->light.pending_listed = 0;

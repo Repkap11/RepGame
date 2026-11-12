@@ -746,8 +746,10 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     this->light.pending_count = 0;
     this->light.reseed = 0;
     this->light.stale_clear( );
-    this->light.pending_listed = 0;
-    this->light.upload_listed = 0;
+    // pending_listed / upload_listed stay whatever they were — see
+    // release_terrain. Clearing them here while the slot's entry still sits
+    // in light_pending_list / a dirty list lets the next enqueue push a
+    // duplicate; the drain loops own those flags.
     this->light.write_tick.store( 0, std::memory_order_relaxed );
     this->light.upload_defers = 0;
     this->light.uploaded_once = 0;
