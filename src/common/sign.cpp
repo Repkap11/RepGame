@@ -17,6 +17,19 @@ bool block_is_sign( BlockID id ) {
         case POPLAR_STANDING_SIGN:
         case SPRUCE_STANDING_SIGN:
         case WARPED_STANDING_SIGN:
+        case OAK_HANGING_SIGN:
+        case ACACIA_HANGING_SIGN:
+        case BAMBOO_HANGING_SIGN:
+        case BIRCH_HANGING_SIGN:
+        case CHERRY_HANGING_SIGN:
+        case CRIMSON_HANGING_SIGN:
+        case DARK_OAK_HANGING_SIGN:
+        case JUNGLE_HANGING_SIGN:
+        case MANGROVE_HANGING_SIGN:
+        case PALE_OAK_HANGING_SIGN:
+        case POPLAR_HANGING_SIGN:
+        case SPRUCE_HANGING_SIGN:
+        case WARPED_HANGING_SIGN:
         case WALL_SIGN:
         case ACACIA_WALL_SIGN:
         case BAMBOO_WALL_SIGN:
@@ -51,6 +64,27 @@ bool block_is_wall_sign( BlockID id ) {
         case POPLAR_WALL_SIGN:
         case SPRUCE_WALL_SIGN:
         case WARPED_WALL_SIGN:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool block_is_hanging_sign( BlockID id ) {
+    switch ( id ) {
+        case OAK_HANGING_SIGN:
+        case ACACIA_HANGING_SIGN:
+        case BAMBOO_HANGING_SIGN:
+        case BIRCH_HANGING_SIGN:
+        case CHERRY_HANGING_SIGN:
+        case CRIMSON_HANGING_SIGN:
+        case DARK_OAK_HANGING_SIGN:
+        case JUNGLE_HANGING_SIGN:
+        case MANGROVE_HANGING_SIGN:
+        case PALE_OAK_HANGING_SIGN:
+        case POPLAR_HANGING_SIGN:
+        case SPRUCE_HANGING_SIGN:
+        case WARPED_HANGING_SIGN:
             return true;
         default:
             return false;

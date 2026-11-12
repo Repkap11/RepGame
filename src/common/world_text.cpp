@@ -18,13 +18,16 @@ struct WorldTextVertex {
 };
 
 // Board front plane in def pixels (pre-yaw, 16px/block): the shared
-// 16x9x2 board slab (standing_sign_boxes / the wall-sign def box).
+// 16x9x2 board slab (standing_sign_boxes / hanging_sign_boxes / the
+// wall-sign def box).
 //   standing: board y 7..15, front plane z = 9
+//   hanging:  board y 0..9,  front plane z = 9
 //   wall:     board y 4..12, front plane z = 2
 // Text runs +x, up is +y, and the face points +z before the cell yaw.
 static constexpr float kBoardYCenterStanding = 11.5f;
+static constexpr float kBoardYCenterHanging = 4.5f;
 static constexpr float kBoardYCenterWall = 8.5f;
-static constexpr float kBoardZStanding = 9.0f;
+static constexpr float kBoardZPlate = 9.0f;
 static constexpr float kBoardZWall = 2.0f;
 // How far the ink floats off the board face — enough to avoid z-fighting
 // at the draw radius, small enough to look attached at grazing angles.
@@ -102,8 +105,8 @@ void WorldTextRenderer::append_sign( const glm::vec3 &sign_pos, const BlockState
     }
     const bool wall = block_is_wall_sign( state.id );
     const int yaw = state.rotation & 3;
-    const float z_front = ( wall ? kBoardZWall : kBoardZStanding ) + kTextLiftPx;
-    const float y_center = wall ? kBoardYCenterWall : kBoardYCenterStanding;
+    const float z_front = ( wall ? kBoardZWall : kBoardZPlate ) + kTextLiftPx;
+    const float y_center = wall ? kBoardYCenterWall : block_is_hanging_sign( state.id ) ? kBoardYCenterHanging : kBoardYCenterStanding;
 
     const float raster = this->font->raster_size( );
     // Each line reserves one "normal" band — cap-height ascender above

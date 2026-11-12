@@ -252,17 +252,17 @@ within `SIGN_TEXT_DRAW_RADIUS` (24 blocks) of the camera; per sign,
 `append_sign` lays out the four lines centred on the board's front face
 using `FontRenderer` glyph metrics (`glyph_quads` — the same ProggyClean
 atlas the 2D UI draws). Geometry is emitted in sign def space and yawed
-with the block's `rotation`: the standing sign draws just off the board
-plate's +z face (def z≈9), the wall sign just off its plate front
-(def z≈2) — `block_is_wall_sign` picks the plate geometry. Only the
-front face gets text. Vertices are quad-wound so they face the readable
-side (front-face culling is on).
+with the block's `rotation`: the standing and hanging signs draw just
+off their board plate's +z face (def z≈9, differing only in the board's
+y band), the wall sign just off its plate front (def z≈2) —
+`block_is_wall_sign`/`block_is_hanging_sign` pick the plate geometry.
+Only the front face gets text. Vertices are quad-wound so they face the
+readable side (front-face culling is on).
 
-The fragment shader samples the font atlas and multiplies by a per-sign
-tint — near-black ink scaled by `light_sample` at the sign cell (the
-same `min_ambient`-lifted light the board gets) so text darkens at
-night/in caves — and applies the standard distance/water fog uniforms,
-so the pass matches the terrain around it. Depth test on, depth write
+The fragment shader samples the font atlas and multiplies by the
+per-sign tint — pure-black ink, like Minecraft signs — and applies the
+standard distance/water fog uniforms, so the pass matches the terrain
+around it. Depth test on, depth write
 on: the quads sit ~0.01 off the board face so they can't z-fight the
 plate but still hide behind walls.
 

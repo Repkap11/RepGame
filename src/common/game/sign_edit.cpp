@@ -1,5 +1,5 @@
 // The sign editor: a modal four-line text box opened by right-clicking a
-// standing/wall sign. The queued Input text counters are
+// standing, wall or hanging sign. The queued Input text counters are
 // drained here each tick; committing writes through World::set_sign_text
 // (and, in multiplayer, sends a SIGN_TEXT message — the server's echo is
 // the authoritative copy).

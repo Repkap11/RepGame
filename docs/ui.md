@@ -152,7 +152,7 @@ Breaking a furnace loots all three slots (`repgame_loot_container`, or
 
 ## Signs
 
-Standing and wall signs carry four lines of front text (`SignText`,
+Standing, wall and hanging signs carry four lines of front text (`SignText`,
 `include/common/sign.hpp`, `SIGN_LINE_MAX` = 15 printable ASCII chars per
 line) stored per position in `ChunkContainers.signs`. The editor
 (`ui.sign_edit`, `src/common/game/sign_edit.cpp`) opens on

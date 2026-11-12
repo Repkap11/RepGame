@@ -247,8 +247,8 @@ rotation, so
 a wall sign reads its support through `block_supports_present` like any
 ladder and pops when the block behind it breaks.
 
-Standing and wall signs carry editable front text (hanging signs don't
-take text yet): `block_is_sign`/`block_is_wall_sign` in
+All three sign forms — standing, wall and hanging — carry editable
+front text: `block_is_sign`/`block_is_wall_sign`/`block_is_hanging_sign` in
 `include/common/sign.hpp` classify the ids without the definition table
 so the dedicated server can use them too. Text lives in
 `ChunkContainers.signs`, persists in `sign_*` sidecar files

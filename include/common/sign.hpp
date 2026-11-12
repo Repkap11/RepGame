@@ -1,7 +1,8 @@
 #pragma once
 
-// Sign text: a placed standing or wall sign block owns four short lines of
-// front-side text, stored per-chunk on the client and authoritatively on
+// Sign text: a placed standing, wall or hanging sign block owns four
+// short lines of front-side text, stored per-chunk on the client and
+// authoritatively on
 // the server. This header is intentionally low-level (no renderer/GL
 // types, no block_definitions table) so it can be shared by the client,
 // the server, and the wire protocol.
@@ -39,15 +40,17 @@ struct SignText {
 // Signs are identified by block id, not a Block-definition flag, so the
 // server (which never initializes the GL-backed block_definitions table)
 // can answer the same question. Covers every *_STANDING_SIGN and
-// *_WALL_SIGN pair (the base pair is oak). Hanging signs are WIP and get
-// their ids here when they ship. test_blocks cross-checks this switch
-// against is_standing_sign/standing_variant in the definition table so a
-// new sign wood fails the test instead of being silently skipped.
+// *_WALL_SIGN pair (the base pair is oak) plus every *_HANGING_SIGN.
+// test_signs cross-checks this switch against the sign flags in the
+// definition table so a new sign wood fails the test instead of being
+// silently skipped.
 bool block_is_sign( BlockID id );
 
-// Wall-mounted subset of block_is_sign — the renderer needs to know which
-// board placement (wall plate vs standing board+post) to draw text on.
+// Wall-mounted and hanging subsets of block_is_sign — the renderer needs
+// to know which board placement (wall plate, hanging plate, standing
+// board+post) to draw text on.
 bool block_is_wall_sign( BlockID id );
+bool block_is_hanging_sign( BlockID id );
 
 // Strip characters outside printable ASCII (32-126, incl. UTF-8 multibyte
 // bytes) and truncate to SIGN_LINE_MAX. Idempotent.

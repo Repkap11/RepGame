@@ -15,10 +15,10 @@ int test_signs( ) {
         }
     };
 
-    // --- block_is_sign / block_is_wall_sign --------------------------------
+    // --- block_is_sign / block_is_wall_sign / block_is_hanging_sign --------
     // The switch is keyed by id (the server has no def table); cross-check it
     // against the definition flags so a new sign wood fails here instead of
-    // silently missing text support. Hanging signs are WIP and excluded.
+    // silently missing text support.
     {
         bool mismatch = false;
         int sign_count = 0;
@@ -28,26 +28,31 @@ int test_signs( ) {
             if ( def == nullptr ) {
                 continue;
             }
-            const bool want_sign = def->is_standing_sign || def->standing_variant != LAST_BLOCK_ID;
+            const bool want_sign = def->is_standing_sign || def->is_hanging_sign || def->standing_variant != LAST_BLOCK_ID;
             if ( block_is_sign( id ) != want_sign ) {
                 pr_test( "    block_is_sign mismatch id=%d", i );
                 mismatch = true;
             }
             if ( block_is_sign( id ) ) {
                 sign_count++;
-                const bool want_wall = !def->is_standing_sign;
+                const bool want_wall = !def->is_standing_sign && !def->is_hanging_sign;
                 if ( block_is_wall_sign( id ) != want_wall ) {
                     pr_test( "    block_is_wall_sign mismatch id=%d", i );
+                    mismatch = true;
+                }
+                if ( block_is_hanging_sign( id ) != def->is_hanging_sign ) {
+                    pr_test( "    block_is_hanging_sign mismatch id=%d", i );
                     mismatch = true;
                 }
             }
         }
         check_bool( "sign: block_is_sign matches the def table", !mismatch );
-        check_bool( "sign: all wood variants covered", sign_count >= 24 && sign_count % 2 == 0 );
+        check_bool( "sign: all wood variants covered", sign_count >= 39 );
         check_bool( "sign: base ids classified",
                     block_is_sign( STANDING_SIGN ) && !block_is_wall_sign( STANDING_SIGN ) && block_is_sign( WALL_SIGN ) &&
                         block_is_wall_sign( WALL_SIGN ) );
-        check_bool( "sign: hanging signs excluded (WIP)", !block_is_sign( OAK_HANGING_SIGN ) );
+        check_bool( "sign: hanging ids classified",
+                    block_is_sign( OAK_HANGING_SIGN ) && block_is_hanging_sign( OAK_HANGING_SIGN ) && !block_is_wall_sign( OAK_HANGING_SIGN ) );
         check_bool( "sign: non-signs rejected", !block_is_sign( STONE ) && !block_is_sign( AIR ) );
     }
 

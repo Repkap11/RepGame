@@ -10,15 +10,21 @@ setblock 8 1 8 STANDING_SIGN 2
 setblock 12 1 8 STONE 0
 setblock 12 2 8 STONE 0
 setblock 12 1 9 WALL_SIGN 0
+# Hanging sign: support goes above (16,3,9), sign hangs at (16,2,9).
+setblock 16 3 9 STONE 0
+setblock 16 2 9 OAK_HANGING_SIGN 0
 wait 30
 assert_block 4 1 8 STANDING_SIGN
 assert_block 12 1 9 WALL_SIGN
+assert_block 16 2 9 OAK_HANGING_SIGN
 setsign 4 1 8 HELLO WORLD|LINE TWO|line three|LAST LINE
 setsign 8 1 8 ROTATED
 setsign 12 1 9 WALL SIDE|MOUNTED
+setsign 16 2 9 HANGING|SIGN TEXT
 assert_sign 4 1 8 HELLO WORLD|LINE TWO|line three|LAST LINE
 assert_sign 8 1 8 ROTATED
 assert_sign 12 1 9 WALL SIDE|MOUNTED
+assert_sign 16 2 9 HANGING|SIGN TEXT
 wait 30
 # Front view from +z looking -z (yaw 0): sign at x=4 faces the camera,
 # x=8 is rotated 180 so its front is hidden, the wall sign reads on the
@@ -34,6 +40,11 @@ screenshot sign_close
 camera 12.5 1.7 12.5 20 -2
 wait 20
 screenshot wall_close
+# Close-up of the hanging sign below its support: board y 0..9 of the
+# cell, front still +z.
+camera 16.5 1.9 12.5 15 -2
+wait 20
+screenshot hanging_close
 # The editor path headlessly: signopen -> type/signkey -> signclose
 # commits through the same code the real keyboard drives. The camera is
 # pinned close enough that the reach check doesn't cancel the edit.
