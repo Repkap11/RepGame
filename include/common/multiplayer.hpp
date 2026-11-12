@@ -8,6 +8,7 @@
 #include "common/net_containers.hpp"
 #include "common/net_entities.hpp"
 #include <atomic>
+#include <chrono>
 #include <map>
 #include <string>
 #include <thread>
@@ -52,6 +53,14 @@ class Multiplayer {
     // the connection ended (or is running) without a mismatch. Read by the
     // ImGui overlay via protocol_mismatch_version().
     int mismatched_server_version = -1;
+
+    // Liveness stamps: send_payload marks every outbound frame, handle_frame
+    // marks every inbound one. NetEntities::tick reads them to emit
+    // HEARTBEATs on outbound silence and to drop the connection on inbound
+    // silence (epoch = no frame yet — armed to "now" on the first tick while
+    // connected).
+    std::chrono::steady_clock::time_point last_send;
+    std::chrono::steady_clock::time_point last_recv;
 
     // Diffs that arrived from the server before the client's terrain gen
     // finished for that chunk. Keyed by chunk_pos; applied when the chunk

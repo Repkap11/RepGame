@@ -287,6 +287,31 @@ advancing locally between syncs. The server persists the clock to
 `world.dat` (`ServerLogic::init` reads it back; a fresh world starts at
 `DAY_LENGTH_TICKS / 4`, noon).
 
+## Liveness (HEARTBEAT)
+
+TCP cannot tell "peer idle" from "peer hung" — a deadlocked process still
+ACKs at the kernel level, which is how a dead client can keep entity
+ownership (and every record in its chunks) indefinitely. So liveness is
+application-level: each side stamps `last_send`/`last_recv` at its
+transport funnels (client `send_payload`/`handle_frame`, server
+`queue_*`/`handle_client_ready_for_read`), emits an empty `HEARTBEAT`
+frame whenever outbound has been quiet for
+`NET_HEARTBEAT_INTERVAL_SECONDS` (any real traffic suppresses it — the
+frame is only a gap-filler), and treats `NET_HEARTBEAT_TIMEOUT_SECONDS`
+of inbound silence as a dead peer.
+
+Consequences, not just detection: the server-side reap runs the normal
+disconnect path, so a dead client's chunks re-elect a living owner and
+its entity records resume streaming instead of dead-reckoning forever.
+Client-side, `NetEntities::tick` drops the connection on the same
+silence — the player sees the normal "connection lost" path rather than
+a world frozen mid-dead-reckon. WASM needs nothing extra: its frames
+ride the same logic through the websockify bridge.
+
+`REPGAME_NET_TIMEOUT_SECONDS` (default 20) sets the timeout on both
+ends; `0` disables heartbeats and the watchdog (e.g. long debugger
+pauses — a paused process is indistinguishable from a hung one).
+
 ## Testing
 
 - The `net_*` tests (`src/common/tests/test_net.cpp`, `make tests

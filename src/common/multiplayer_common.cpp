@@ -16,6 +16,8 @@
 
 void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> &payload ) {
     World &world = state.world;
+    // Any delivered frame proves the server's event loop is alive.
+    this->last_recv = std::chrono::steady_clock::now( );
     // Parse the fixed payload header: version(1) type(1) player_id(4)
     if ( payload.size( ) < 6 ) {
         pr_debug( "Received too-short frame payload: %zu", payload.size( ) );
@@ -153,6 +155,10 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             world.multiplayer_avatars.remove( player_id );
             break;
         }
+        case NetMsgType::HEARTBEAT:
+            // Server liveness probe — the frame's arrival already stamped
+            // last_recv; nothing else to do.
+            break;
         case NetMsgType::WORLD_TIME: {
             NetWorldTimePayload p;
             if ( !net_deserialize_world_time( r, p ) ) {
@@ -226,6 +232,7 @@ void Multiplayer::send_payload( NetMsgType type, int32_t player_id, const std::v
     if ( !this->active ) {
         return;
     }
+    this->last_send = std::chrono::steady_clock::now( );
     if ( net_trace_enabled( ) ) {
         pr_debug( "net_out %s id=%d n=%zu", net_msg_type_name( type ), player_id, payload.size( ) );
     }

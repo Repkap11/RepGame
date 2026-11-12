@@ -58,6 +58,7 @@ the index, not the reference.
 | `REPGAME_MUSIC` | on | all | `0` mutes music only (SFX still play) | docs/audio.md |
 | `REPGAME_MUSIC_GAP` | 240 | all | max seconds between tracks; gap uniform in `[gap/4, gap]`, `0` = continuous | docs/audio.md |
 | `REPGAME_MUSIC_VOLUME` | 0.5 | all | linear music gain 0..1 | docs/audio.md |
+| `REPGAME_NET_TIMEOUT_SECONDS` | 20 | client + server | app-level liveness: a HEARTBEAT fills any 5s outbound-quiet gap, and this much inbound silence declares the peer dead (server reaps the fd, client drops the connection); `0` disables both — e.g. for long debugger pauses | docs/multiplayer.md |
 | `REPGAME_NET_TRACE` | off | client + server | `1` logs `net_in`/`net_out` at the transport funnels with wire names from the codec table | docs/multiplayer.md |
 | `REPGAME_NET_WHY` | off | client | set → `net_why:` tallies of mob `ENTITY_STATE` emit reasons (keyframe/drift/vel/yaw/aux/crossing) every ~5 s | docs/entities.md |
 | `REPGAME_NIGHT_AMBIENT` | 0.20 | all | moonlight floor on the daylight factor 0..1 | docs/rendering.md |

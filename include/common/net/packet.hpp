@@ -27,13 +27,20 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 13;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 14;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
 // Cap on each dimension of a CHUNK_DIFF_REQUEST box. 64^3 = 262k chunks is
 // far beyond any realistic load, but bounds server memory per request.
 static constexpr uint8_t NET_MAX_BOX_DIM = 64;
+
+// Liveness: each side emits a HEARTBEAT whenever the connection has been
+// outbound-silent this long (any real traffic suppresses it), and declares
+// the peer dead after this much inbound silence. REPGAME_NET_TIMEOUT_SECONDS
+// overrides the timeout on both ends (0 disables heartbeats + the watchdog).
+static constexpr int NET_HEARTBEAT_INTERVAL_SECONDS = 5;
+static constexpr int NET_HEARTBEAT_TIMEOUT_SECONDS = 20;
 
 // Message types. Values are stable on the wire; do not renumber. Ids 7-10
 // (CHEST_*) and 25-28 (FURNACE_*) were retired by the CONTAINER_* family in
@@ -68,10 +75,11 @@ enum class NetMsgType : uint8_t {
     CONTAINER_CONTENTS = 31,
     CONTAINER_SET_SLOT = 32,
     SIGN_TEXT = 33,
+    HEARTBEAT = 34,
 };
 // One past the highest NetMsgType value; the codec table (below) has exactly
 // this many rows, one per wire id.
-static constexpr int NET_MSG_TYPE_COUNT = 34;
+static constexpr int NET_MSG_TYPE_COUNT = 35;
 
 // NetCodec<P>: compile-time map from a payload struct to its wire codec.
 // Specializations are declared next to the registry at the bottom of this

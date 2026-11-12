@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <chrono>
 #include <queue>
 #include <set>
 #include <common/constants.hpp>
@@ -36,6 +37,12 @@ struct ClientData {
     int epoll_out_armed;
     PacketType_DataPlayer player_data;
     FramedSocket socket;
+    // Liveness: stamped on accept + every inbound frame / queued outbound
+    // frame. heartbeat_sweep reaps fds whose last_recv is too old (a hung
+    // peer keeps its socket alive but never produces bytes) and sends a
+    // HEARTBEAT to fds quiet for NET_HEARTBEAT_INTERVAL_SECONDS.
+    std::chrono::steady_clock::time_point last_recv;
+    std::chrono::steady_clock::time_point last_send;
 };
 
 class Server {
@@ -53,6 +60,14 @@ class Server {
     void handle_new_client_event( int inet_socket_fd );
     void handle_client_ready_for_read( int client_fd );
     void handle_client_ready_for_write( int client_fd );
+    // Shared teardown for every close path (read/write error, EPOLLERR,
+    // heartbeat reap): logic disconnect, then fd bookkeeping + close.
+    void drop_client( int client_fd );
+    // Reap fds silent past heartbeat_timeout_s; send HEARTBEAT to fds quiet
+    // for the interval. Runs on the next_heartbeat cadence inside serve().
+    void heartbeat_sweep( );
+    std::chrono::steady_clock::time_point next_heartbeat;
+    int heartbeat_timeout_s = NET_HEARTBEAT_TIMEOUT_SECONDS;
 
   public:
     void init( int portnum, const char *world_name = "Server1" );

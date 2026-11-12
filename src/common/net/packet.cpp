@@ -1109,6 +1109,7 @@ const NetCodecEntry kCodecTable[] = {
     NET_ROW( NetMsgType::CONTAINER_CONTENTS, NetContainerContentsPayload ),
     NET_ROW( NetMsgType::CONTAINER_SET_SLOT, NetContainerSetSlotPayload ),
     NET_ROW( NetMsgType::SIGN_TEXT, NetSignTextPayload ),
+    NET_EMPTY_ROW( NetMsgType::HEARTBEAT ),
 };
 } // namespace
 

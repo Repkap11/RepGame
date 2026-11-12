@@ -10,9 +10,11 @@
 #include "common/item_entities.hpp"
 #include "common/mp_test.hpp"
 #include "common/multiplayer.hpp"
+#include "common/utils/env_config.hpp"
 #include "common/world.hpp"
 
 #include <algorithm>
+#include <chrono>
 
 static glm::ivec3 chunk_of_dpos( const glm::dvec3 &pos ) {
     return glm::ivec3( glm::floor( pos / glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z ) ) );
@@ -442,6 +444,34 @@ void NetEntities::tick( RepGameState &state ) {
             state.world.arrows.net_disconnect( );
         }
         return;
+    }
+
+    // Liveness: a peer that never produces bytes is indistinguishable from
+    // a hung one, so emit a HEARTBEAT whenever the wire has been
+    // outbound-quiet (any real traffic suppresses it). Prolonged inbound
+    // silence means a dead/hung server — drop the connection rather than
+    // dead-reckoning frozen entities forever. REPGAME_NET_TIMEOUT_SECONDS=0
+    // disables both (e.g. long debugger pauses).
+    static const int net_timeout_s = env_int( "REPGAME_NET_TIMEOUT_SECONDS", NET_HEARTBEAT_TIMEOUT_SECONDS );
+    if ( net_timeout_s > 0 ) {
+        const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now( );
+        if ( this->mp->last_send.time_since_epoch( ) == std::chrono::steady_clock::duration::zero( ) ) {
+            this->mp->last_send = now;
+        }
+        if ( this->mp->last_recv.time_since_epoch( ) == std::chrono::steady_clock::duration::zero( ) ) {
+            this->mp->last_recv = now;
+        }
+        const auto silence = now - this->mp->last_recv;
+        if ( silence > std::chrono::seconds( net_timeout_s ) ) {
+            const long long silence_s = std::chrono::duration_cast<std::chrono::seconds>( silence ).count( );
+            pr_debug( "No server traffic for %llds — treating connection as dead", silence_s );
+            mp_test::event( &state, "heartbeat_timeout", "\"silence_s\":%lld", silence_s );
+            this->mp->disconnect( );
+            return;
+        }
+        if ( now - this->mp->last_send >= std::chrono::seconds( NET_HEARTBEAT_INTERVAL_SECONDS ) ) {
+            this->mp->send_payload( NetMsgType::HEARTBEAT, 0, { } );
+        }
     }
 
     // Apply queued role grants whose chunks have become live.

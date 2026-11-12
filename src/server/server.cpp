@@ -20,6 +20,7 @@
 #include "server/server_logic.hpp"
 #include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
+#include "common/utils/env_config.hpp"
 
 #define pr_debug( fmt, ... ) fprintf( stdout, "%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ );
 
@@ -130,6 +131,8 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
     clientData.connected = 1;
     clientData.epoll_out_armed = 0;
     clientData.player_data.eye_height = PLAYER_EYE_HEIGHT;
+    clientData.last_recv = std::chrono::steady_clock::now( );
+    clientData.last_send = clientData.last_recv;
     clientData.socket.adopt( client_fd );
     this->server_logic.on_client_connected( *this, client_fd );
     // WELCOME and friends are queued already — flush now rather than
@@ -145,7 +148,18 @@ void Server::handle_new_client_event( int inet_socket_fd ) {
 static int mpload_in_frames = 0;
 static std::map<NetMsgType, int> mpload_in_by_type;
 
+void Server::drop_client( int client_fd ) {
+    this->server_logic.on_client_disconnected( *this, client_fd );
+    client_data[ client_fd ].connected = 0;
+    client_data[ client_fd ].epoll_out_armed = 0;
+    Server::del_epoll( client_fd );
+    close( client_fd );
+}
+
 void Server::handle_client_ready_for_read( int client_fd ) {
+    // Any inbound activity (even a partial frame) counts as liveness — the
+    // kernel only generates EPOLLIN when the peer's bytes actually arrive.
+    this->client_data[ client_fd ].last_recv = std::chrono::steady_clock::now( );
     int disconnected = 0;
     while ( true ) {
         auto payload = this->client_data[ client_fd ].socket.recv_message( );
@@ -205,11 +219,7 @@ void Server::handle_client_ready_for_read( int client_fd ) {
         this->server_logic.on_client_message( *this, client_fd, type, player_id, type_payload );
     }
     if ( disconnected ) {
-        this->server_logic.on_client_disconnected( *this, client_fd );
-        client_data[ client_fd ].connected = 0;
-        client_data[ client_fd ].epoll_out_armed = 0;
-        Server::del_epoll( client_fd );
-        close( client_fd );
+        this->drop_client( client_fd );
     } else if ( this->client_data[ client_fd ].socket.has_outbound( ) ) {
         // Read handling queued responses (e.g. CHUNK_DIFF_RESULT frames) —
         // flush them now instead of waiting for the next EPOLLOUT round.
@@ -223,6 +233,7 @@ void Server::queue_message( int client_fd, NetMsgType type, int32_t player_id, c
     if ( net_trace_enabled( ) ) {
         pr_debug( "net_out %s fd=%d n=%zu", net_msg_type_name( type ), client_fd, payload.size( ) );
     }
+    this->client_data[ client_fd ].last_send = std::chrono::steady_clock::now( );
     this->client_data[ client_fd ].socket.send_message( type, player_id, payload );
     this->update_epoll( client_fd );
 }
@@ -231,6 +242,7 @@ void Server::queue_empty( int client_fd, NetMsgType type, int32_t player_id ) {
     if ( net_trace_enabled( ) ) {
         pr_debug( "net_out %s fd=%d (empty)", net_msg_type_name( type ), client_fd );
     }
+    this->client_data[ client_fd ].last_send = std::chrono::steady_clock::now( );
     this->client_data[ client_fd ].socket.send_empty( type, player_id );
     this->update_epoll( client_fd );
 }
@@ -284,17 +296,39 @@ void Server::handle_client_ready_for_write( int client_fd ) {
     }
     if ( this->client_data[ client_fd ].socket.had_error( ) ) {
         this->client_data[ client_fd ].socket.clear_error( );
-        this->server_logic.on_client_disconnected( *this, client_fd );
-        client_data[ client_fd ].connected = 0;
-        client_data[ client_fd ].epoll_out_armed = 0;
-        Server::del_epoll( client_fd );
-        close( client_fd );
+        this->drop_client( client_fd );
         return;
     }
     this->update_epoll( client_fd );
 }
 
+void Server::heartbeat_sweep( ) {
+    const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now( );
+    const auto timeout = std::chrono::seconds( this->heartbeat_timeout_s );
+    for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+        ClientData &cd = this->client_data[ fd ];
+        if ( !cd.connected ) {
+            continue;
+        }
+        const auto silence = now - cd.last_recv;
+        if ( silence > timeout ) {
+            // A live kernel answers TCP keepalives even when the process is
+            // dead — only application bytes prove the peer is running.
+            pr_debug( "Heartbeat timeout: fd %d silent for %llds, dropping",
+                      fd, static_cast<long long>( std::chrono::duration_cast<std::chrono::seconds>( silence ).count( ) ) );
+            this->drop_client( fd );
+            continue;
+        }
+        if ( now - cd.last_send >= std::chrono::seconds( NET_HEARTBEAT_INTERVAL_SECONDS ) ) {
+            this->queue_empty( fd, NetMsgType::HEARTBEAT, 0 );
+        }
+    }
+}
+
 void Server::init( int portnum, const char *world_name ) {
+    // 0 disables the heartbeat + reap (e.g. long debugger pauses on a peer).
+    this->heartbeat_timeout_s = env_int( "REPGAME_NET_TIMEOUT_SECONDS", NET_HEARTBEAT_TIMEOUT_SECONDS );
+    this->next_heartbeat = std::chrono::steady_clock::now( ) + std::chrono::seconds( NET_HEARTBEAT_INTERVAL_SECONDS );
     this->server_logic.init( world_name );
     this->inet_socket_fd = Server::setup_inet_socket( portnum );
     Server::make_socket_non_blocking( inet_socket_fd );
@@ -341,16 +375,20 @@ void Server::serve( ) {
     while ( this->epoll_fd >= 0 ) {
         loop_iters++;
         int timeout_ms = this->server_logic.nextWakeTimeoutMs( );
+        if ( this->heartbeat_timeout_s > 0 ) {
+            // The heartbeat sweep deadline must cap the epoll wait.
+            const long hb_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                this->next_heartbeat - std::chrono::steady_clock::now( ) ).count( );
+            if ( timeout_ms < 0 || hb_ms < timeout_ms ) {
+                timeout_ms = static_cast<int>( hb_ms < 0 ? 0 : hb_ms );
+            }
+        }
         int num_ready = epoll_wait( this->epoll_fd, this->events, MAX_CLIENT_FDS, timeout_ms );
         for ( int i = 0; i < num_ready; i++ ) {
             int client_fd = this->events[ i ].data.fd;
             if ( this->events[ i ].events & EPOLLERR ) {
                 pr_debug( "epoll_wait returned EPOLLERR:%d", client_fd );
-                this->server_logic.on_client_disconnected( *this, client_fd );
-                client_data[ client_fd ].connected = 0;
-                client_data[ client_fd ].epoll_out_armed = 0;
-                Server::del_epoll( client_fd );
-                close( client_fd );
+                this->drop_client( client_fd );
                 continue;
             }
 
@@ -378,6 +416,16 @@ void Server::serve( ) {
         for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
             if ( this->client_data[ fd ].connected && this->client_data[ fd ].socket.has_outbound( ) ) {
                 this->handle_client_ready_for_write( fd );
+            }
+        }
+        if ( this->heartbeat_timeout_s > 0 && std::chrono::steady_clock::now( ) >= this->next_heartbeat ) {
+            this->heartbeat_sweep( );
+            this->next_heartbeat = std::chrono::steady_clock::now( ) + std::chrono::seconds( NET_HEARTBEAT_INTERVAL_SECONDS );
+            // Reaps and heartbeats queue outbound frames — flush now.
+            for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+                if ( this->client_data[ fd ].connected && this->client_data[ fd ].socket.has_outbound( ) ) {
+                    this->handle_client_ready_for_write( fd );
+                }
             }
         }
         if ( trace ) {
