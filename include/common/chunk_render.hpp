@@ -17,6 +17,8 @@ class RenderLayer {
     // ChunkLoader::rebuild_drawable_list reads num_instances to build the
     // blended subset list (Translucent/Water layers with geometry).
     friend class ChunkLoader;
+    // test_async_remesh compares CPU mesh contents without a GL context.
+    friend int test_async_remesh( );
 
     VertexArray va;
     int num_instances;

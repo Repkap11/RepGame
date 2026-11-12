@@ -35,6 +35,7 @@ class World {
     friend void test_setup_world( World &world );
 
     friend int test_lighting( );
+    friend int test_async_remesh( );
     friend int test_falling_blocks( );
     friend int test_arrows( );
 

@@ -153,7 +153,10 @@ travels is the per-chunk edit set:
   `(blocks_index, BlockState)` pairs covering the chunk's *internal*
   (halo-inclusive) index space. `apply_diff_block` writes each cell and
   mirrors boundary cells into loaded neighbours so seams remesh
-  together.
+  together. The remesh itself runs asynchronously on the terrain
+  workers with all-or-nothing per-component publish — see "Async
+  server-diff remesh" in docs/chunks.md (`REPGAME_ASYNC_REMESH=0`
+  restores the synchronous path).
 
 Diffs routinely beat terrain gen to the client, so a result for a
 non-live chunk goes into `Multiplayer::pending_diffs` and lands during

@@ -218,6 +218,12 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         ImGui::Text( "Chunks: loading %4d (queued %4d, results %4d), drawable %4d",
                      debug_vars.loader.chunks_loading, debug_vars.loader.terrain_queued,
                      debug_vars.loader.terrain_results, debug_vars.loader.chunks_drawable );
+        // Async server-diff remesh: s=jobs submitted p=published d=discarded
+        // r=promoted to sync, f=currently in flight.
+        ImGui::Text( "Remesh async: s:%lld p:%lld d:%lld r:%lld f:%d",
+                     debug_vars.loader.async_submitted, debug_vars.loader.async_published,
+                     debug_vars.loader.async_discarded, debug_vars.loader.async_promoted,
+                     debug_vars.loader.async_in_flight );
         // j=queued jobs p=pending drains s=flood seeds c=in-flight claims
         // d=dirty (awaiting GPU upload) x=dropped seeds
         // lag=oldest job age this interval (all jobs / near-player jobs, ms)

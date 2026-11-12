@@ -5058,4 +5058,9 @@ void ChunkLoader::debug_loader_stats( LoaderDebugStats *out ) const {
     // owns the reset, so these are reads only.
     out->light_jlag_us = light_dbg_max_lag_us.load( );
     out->light_njlag_us = light_dbg_max_lag_near_us.load( );
+    out->async_submitted = this->async_jobs_submitted;
+    out->async_published = this->async_jobs_published;
+    out->async_discarded = this->async_jobs_discarded;
+    out->async_promoted = this->async_jobs_promoted;
+    out->async_in_flight = static_cast<int>( this->async_in_flight_seqs.size( ) );
 }

@@ -16,6 +16,7 @@ the index, not the reference.
 
 | Variable | Default | Platforms | Effect | Details |
 |---|---|---|---|---|
+| `REPGAME_ASYNC_REMESH` | 1 | client | server chunk-diff remeshing on terrain workers (all-or-nothing per component); `0` = synchronous render-thread remesh. Forced off with no worker threads (WASM without pthreads) | docs/chunks.md |
 | `REPGAME_AUDIO` | on (when built with audio) | all | `0` disables all audio; also a build-time switch (`REPGAME_AUDIO=0` compiles the stub; default 0 when `sounds/` is absent) | docs/audio.md |
 | `REPGAME_BLOCK_WORLD` | off | all | `1` runs the block world debug mode (no terrain/mobs/persistence/network) | docs/blocks.md |
 | `REPGAME_CAPTURE` | unset | all | `"x,y,z,yaw,pitch[,flags];..."` — presence enables capture mode | capture skill |

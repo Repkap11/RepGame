@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <set>
 #include <vector>
 
 #include "chunk.hpp"
@@ -60,6 +61,13 @@ struct LoaderDebugStats {
     int light_stale_count;  // chunks flagged light_stale awaiting heal
     long long light_jlag_us;  // max submit->execute age of a job this probe interval
     long long light_njlag_us; // same, for jobs near the player at execution
+    // Async server-diff remesh counters (cumulative since init) + jobs
+    // currently in flight — see docs/chunks.md "Async server-diff remesh".
+    long long async_submitted;
+    long long async_published;
+    long long async_discarded;
+    long long async_promoted;
+    int async_in_flight;
 };
 
 class ChunkLoader {
@@ -70,6 +78,7 @@ class ChunkLoader {
     friend int test_falling_blocks( );
     friend int test_grass_persist( );
     friend void light_fill_chunk( Chunk &chunk );
+    friend int test_async_remesh( );
 
     TerrainLoadingThread terrain_loading_thread;
     glm::ivec3 chunk_center;
@@ -155,6 +164,52 @@ class ChunkLoader {
     Chunk **repop_must;
     int num_repop_must;
     int num_remeshed_this_frame;
+    // ---- Async server-diff remesh (docs/chunks.md "Async server-diff
+    // remesh") — all fields render-thread only unless noted. ----
+    // Chunks marked by apply_diff_block since the last submission.
+    std::vector<Chunk *> async_wanted_list;
+    // seqs of submitted jobs whose results haven't arrived yet — a marked
+    // chunk joining a newer job just gets a new seq; publish compares
+    // member.async_job_seq against the arriving job's seq.
+    std::set<uint32_t> async_in_flight_seqs;
+    uint32_t async_next_seq = 0;
+    // Visit-stamp generation for the component floods (Chunk::async_visit).
+    uint32_t async_visit_gen = 0;
+    // Cumulative stats for LoaderDebugStats (ImGui overlay + results.jsonl).
+    long long async_jobs_submitted = 0;
+    long long async_jobs_published = 0;
+    long long async_jobs_discarded = 0;
+    long long async_jobs_promoted = 0;
+    // -1 = auto (REPGAME_ASYNC_REMESH env && terrain workers exist), else a
+    // forced on/off — tests force 1 and run the job inline (no GL, no
+    // workers); the env killswitch reads 0.
+    int async_remesh_override = -1;
+    bool async_remesh_enabled( ) const;
+    void async_remesh_mark( Chunk &chunk );
+    bool async_member_in_flight( const Chunk &chunk ) const;
+    // BFS over async_links edges to LIVE&&needs_repopulation neighbours
+    // (seed pushed unconditionally): async_only restricts to async_wanted or
+    // in-flight members — the submission flood must fold in-flight
+    // members into the newer job so a superseded job can't split a seam.
+    // `gen` is this flood's visit stamp (dedup + later link clearing).
+    void async_dirty_component( Chunk *seed, bool async_only, uint32_t gen, std::vector<Chunk *> &out );
+    // Clears link bits on `c` whose partner is in the just-remeshed group
+    // (visit stamp `gen`) or no longer dirty — both directions.
+    void async_clear_satisfied_links( Chunk &c, uint32_t gen );
+    int async_submit_jobs( );
+    void async_publish_results( );
+    // Applies/discards one finished job — all-or-nothing: either every
+    // still-valid member swaps mesh this frame or none does (the seam
+    // invariant). gl_upload=false is the unit-test path (no GL context).
+    void async_publish_job( MeshJob &job, bool gl_upload );
+    void async_apply_member( Chunk &chunk, MeshJobMember &m );
+    void async_upload_member( Chunk &chunk, bool gl_upload );
+    // Path-1 deferral: a freshly finalized chunk whose pending diffs dirtied
+    // it gets no synchronous upload — the stale worker mesh is dropped and
+    // the chunk is marked for an async rebuild instead.
+    void finalize_defer_mesh( Chunk &chunk );
+    void remesh_now_body( Chunk &chunk, bool gl_upload );
+    void remesh_now_impl( Chunk &chunk, bool gl_upload );
     // Set in init; cleared after the first render_chunks fires a box request
     // for the initial visible area. Lets us batch the initial chunk-diff
     // request into one frame instead of per-chunk as terrain gen finishes.
@@ -398,6 +453,16 @@ static inline int chunk_slot_from_mod( const glm::ivec3 &chunk_mod ) {
     const int sx = 2 * CHUNK_RADIUS_XZ + 1;
     const int sz = 2 * CHUNK_RADIUS_XZ + 1;
     return chunk_mod.x + sx * ( chunk_mod.z + sz * chunk_mod.y );
+}
+
+// Chunk::async_links bit indexing over the 26 neighbour directions:
+// (dx+1)+3*(dy+1)+9*(dz+1); the self direction (0,0,0) = index 13 is never
+// a valid link.
+static inline int async_dir_index( const glm::ivec3 &d ) {
+    return ( d.x + 1 ) + 3 * ( ( d.y + 1 ) + 3 * ( d.z + 1 ) );
+}
+static inline glm::ivec3 async_dir_from_index( const int i ) {
+    return glm::ivec3( ( i % 3 ) - 1, ( ( i / 3 ) % 3 ) - 1, ( i / 9 ) - 1 );
 }
 
 static inline int chunk_slot_from_pos( const glm::ivec3 &chunk_pos ) {

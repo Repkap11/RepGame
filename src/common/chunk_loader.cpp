@@ -266,6 +266,12 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     // is_loading first): light jobs and seeds popped mid-finalize see the
     // chunk as loaded rather than missing.
     chunk.set_load_state( CHUNK_LIVE );
+    // Slot reuse: drop any async-remesh state the previous position left
+    // behind (a stale in-flight seq would wrongly gate the new mesh).
+    chunk.async_wanted = 0;
+    chunk.async_discards = 0;
+    chunk.async_job_seq = 0;
+    chunk.async_links = 0;
     // Lazily create this chunk's GL objects on first load so the startup
     // loop doesn't block the first frame.
     chunk.ensure_gl_init( );
@@ -296,16 +302,24 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     const long long t_lfin = now_us( );
     this->light_submit_finalize( chunk );
     light_dbg_us_light_fin += now_us( ) - t_lfin;
-    chunk.program_terrain( );
-    // Create the light texture now rather than on first draw: the lazy path
-    // (Chunk::draw -> light_ensure_texture) bunches a full-volume upload +
-    // mipgen (~hundreds of us each) into whichever frame first reveals the
-    // chunk, so the first camera pan after load-in pays it for the whole
-    // never-visible half of the torus at once. Doing it here spreads that
-    // cost across load-in under CHUNK_FINALIZE_BUDGET_US. Faceless chunks
-    // still skip — only drawable chunks ever need the volume.
-    if ( chunk.should_render ) {
-        chunk.light_ensure_texture( this );
+    if ( this->async_remesh_enabled( ) && chunk.needs_repopulation ) {
+        // Pending diffs rewrote cells after the worker meshed — don't upload
+        // the stale mesh. The chunk stays LIVE but undrawn until its async
+        // remesh job publishes (publish does the equivalent of the skipped
+        // program_terrain + light_ensure_texture).
+        this->finalize_defer_mesh( chunk );
+    } else {
+        chunk.program_terrain( );
+        // Create the light texture now rather than on first draw: the lazy path
+        // (Chunk::draw -> light_ensure_texture) bunches a full-volume upload +
+        // mipgen (~hundreds of us each) into whichever frame first reveals the
+        // chunk, so the first camera pan after load-in pays it for the whole
+        // never-visible half of the torus at once. Doing it here spreads that
+        // cost across load-in under CHUNK_FINALIZE_BUDGET_US. Faceless chunks
+        // still skip — only drawable chunks ever need the volume.
+        if ( chunk.should_render ) {
+            chunk.light_ensure_texture( this );
+        }
     }
     // Mob ownership handoff: World::render drains this list into
     // MobManager::adopt_chunk so pending_mobs (loaded records or the
@@ -617,6 +631,14 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     }
     this->rebuild_drawable_list( );
     const long long t_remesh_start = now_us( );
+    // Async server-diff remesh: submit newly marked chunks (snapshot copies
+    // happen here on the render thread) and publish finished worker jobs
+    // all-or-nothing per job. Both phases' render-thread cost counts toward
+    // light_dbg_us_remesh with the sync remesh loops below.
+    if ( this->async_remesh_enabled( ) ) {
+        this->async_submit_jobs( );
+        this->async_publish_results( );
+    }
     // Drain the must-remesh queue first: edits enqueue every chunk they
     // dirty so a boundary edit's meshes update together in this pass. Past
     // REPOP_MUST_BUDGET_US leftovers are just popped — needs_repopulation
@@ -638,6 +660,11 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     for ( int i = 0; i < this->num_drawable; i++ ) {
         Chunk &chunk = *this->drawable_chunks[ i ];
         if ( chunk.needs_repopulation && !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) ) {
+            // Async-marked or in-flight chunks are owned by the async path —
+            // the scan must not remesh them ahead of their job.
+            if ( chunk.async_wanted || this->async_member_in_flight( chunk ) ) {
+                continue;
+            }
             this->remesh_group( chunk );
             // Stop once the remesh budget is spent; remaining chunks keep
             // needs_repopulation set and render their old mesh until a later
@@ -702,7 +729,11 @@ void ChunkLoader::repop_must_enqueue( Chunk &chunk ) {
     this->repop_must[ this->num_repop_must++ ] = &chunk;
 }
 
-void ChunkLoader::remesh_now( Chunk &chunk ) {
+// The remesh_now work shared by the sync path and (steps identical, mesh
+// pre-built) async_apply_member's GL-free twin. Render thread only.
+// gl_upload=false is the unit-test path (no GL context): the CPU remesh and
+// flags still run, the GPU upload is skipped.
+void ChunkLoader::remesh_now_body( Chunk &chunk, bool gl_upload ) {
     if ( chunk.mpload_diff_ms != 0 ) {
         // Diff-to-remesh latency for the live-apply path (MPLOAD trace).
         mpload_tracef( "diff_remesh chunk=%d,%d,%d wait_ms=%lld",
@@ -712,9 +743,45 @@ void ChunkLoader::remesh_now( Chunk &chunk ) {
     }
     chunk.unprogram_terrain( );
     chunk.calculate_populated_blocks( );
-    chunk.program_terrain( );
+    if ( gl_upload ) {
+        chunk.program_terrain( );
+    }
     chunk.needs_repopulation = false;
     this->num_remeshed_this_frame++;
+}
+
+void ChunkLoader::remesh_now( Chunk &chunk ) {
+    this->remesh_now_impl( chunk, true );
+}
+
+void ChunkLoader::remesh_now_impl( Chunk &chunk, bool gl_upload ) {
+    // Seam safety vs the async path: a synchronous remesh (own edits,
+    // BLOCK_UPDATE, promoted jobs) landing on a chunk that is async-marked
+    // or part of an in-flight job must take the whole dirty async component
+    // along — otherwise a chunk sharing an edited border could swap meshes
+    // in a different frame and show a gap. Flood over link edges (a mirror
+    // write is the only thing that couples two chunks' meshes), then remesh
+    // them all in this same pass.
+    if ( ( chunk.async_wanted || this->async_member_in_flight( chunk ) ) ) {
+        const uint32_t gen = ++this->async_visit_gen;
+        std::vector<Chunk *> group;
+        this->async_dirty_component( &chunk, true, gen, group );
+        for ( Chunk *c : group ) {
+            // Clearing async_wanted keeps the submission pass from folding
+            // the chunk into a new job; its in-flight job result then no-ops
+            // at publish because needs_repopulation is already false.
+            c->async_wanted = 0;
+            if ( c->needs_repopulation ) {
+                this->remesh_now_body( *c, gl_upload );
+            }
+        }
+        for ( Chunk *c : group ) {
+            this->async_clear_satisfied_links( *c, gen );
+        }
+        this->async_jobs_promoted++;
+        return;
+    }
+    this->remesh_now_body( chunk, gl_upload );
 }
 
 // A chunk's mesh is only consistent with the chunk on the other side of
@@ -738,9 +805,351 @@ void ChunkLoader::remesh_group( Chunk &chunk ) {
     }
 }
 
+// ---- Async server-diff remesh ---------------------------------------------
+// Server chunk diffs (CHUNK_DIFF_RESULT, pending diffs at finalize) mark
+// their touched chunks via async_remesh_mark instead of repop_must, and
+// each frame render_chunks (a) groups the marked chunks into link-connected
+// components, snapshots cells/extras + cell_version and enqueues one MeshJob
+// per component on the terrain workers (async_submit_jobs), then (b) applies
+// finished jobs whose snapshots still match (async_publish_results). A job
+// publishes all-or-nothing so two chunks sharing an edited border always
+// swap meshes in the same frame — no seam gaps.
+
+bool ChunkLoader::async_remesh_enabled( ) const {
+    // Hot path: apply_diff_block calls this once per diff cell — read the
+    // env killswitch once. Tests use async_remesh_override instead.
+    static const bool env_enabled = env_bool( "REPGAME_ASYNC_REMESH", true );
+    return env_enabled &&
+           ( this->async_remesh_override >= 0 ? this->async_remesh_override != 0
+                                             : this->terrain_loading_thread.has_workers( ) );
+}
+
+void ChunkLoader::async_remesh_mark( Chunk &chunk ) {
+    if ( chunk.load_state != CHUNK_LIVE || chunk.async_wanted ) {
+        return;
+    }
+    chunk.async_wanted = 1;
+    this->async_wanted_list.push_back( &chunk );
+}
+
+bool ChunkLoader::async_member_in_flight( const Chunk &chunk ) const {
+    return chunk.async_job_seq != 0 && this->async_in_flight_seqs.count( chunk.async_job_seq ) != 0;
+}
+
+// BFS over Chunk::async_links edges (mirror-write couplings only — plain
+// adjacency must never group: interior-only diffs in neighbouring chunks
+// share no seam). Neighbours need LIVE && needs_repopulation; async_only
+// additionally requires async_wanted || async_member_in_flight — the
+// submission flood must pull in-flight members too: folding them into the
+// newer job (new seq) is what keeps a superseded job's discard from leaving
+// a half-published seam. `gen` is the visit stamp (dedup; the callers also
+// use it to recognize group members when clearing links).
+void ChunkLoader::async_dirty_component( Chunk *seed, bool async_only, uint32_t gen, std::vector<Chunk *> &out ) {
+    seed->async_visit = gen;
+    out.push_back( seed );
+    for ( size_t i = 0; i < out.size( ); i++ ) {
+        uint32_t links = out[ i ]->async_links;
+        while ( links ) {
+            const int d = __builtin_ctz( links );
+            links &= links - 1;
+            if ( d == 13 ) {
+                continue; // self index — never a link
+            }
+            Chunk *n = this->get_chunk( out[ i ]->chunk_pos + async_dir_from_index( d ) );
+            if ( n == nullptr || n->async_visit == gen || n->load_state != CHUNK_LIVE || !n->needs_repopulation ) {
+                continue;
+            }
+            if ( async_only && !( n->async_wanted || this->async_member_in_flight( *n ) ) ) {
+                continue;
+            }
+            n->async_visit = gen;
+            out.push_back( n );
+        }
+    }
+}
+
+// A publish/promotion satisfied the seam coupling: drop link bits on `c`
+// (and the symmetric bits on partners) whose partner is in the same group
+// (visit stamp `gen`) or no longer dirty. Links toward a partner that still
+// needs_repopulation outside this group survive.
+void ChunkLoader::async_clear_satisfied_links( Chunk &c, uint32_t gen ) {
+    uint32_t links = c.async_links;
+    while ( links ) {
+        const int d = __builtin_ctz( links );
+        links &= links - 1;
+        if ( d == 13 ) {
+            continue;
+        }
+        const glm::ivec3 dir = async_dir_from_index( d );
+        Chunk *p = this->get_chunk( c.chunk_pos + dir );
+        if ( p != nullptr && ( p->async_visit == gen || !p->needs_repopulation ) ) {
+            c.async_links &= ~( 1u << d );
+            p->async_links &= ~( 1u << async_dir_index( -dir ) );
+        }
+    }
+}
+
+// Group the marked chunks into link-connected components and enqueue one
+// MeshJob per component. Render thread only — all snapshots (and their
+// later frees) stay on this thread.
+int ChunkLoader::async_submit_jobs( ) {
+    if ( this->async_wanted_list.empty( ) ) {
+        return 0;
+    }
+    std::vector<Chunk *> wanted;
+    wanted.swap( this->async_wanted_list );
+    // Drop entries that are no longer live (parked/reloaded since the mark).
+    for ( Chunk *c : wanted ) {
+        if ( c->load_state != CHUNK_LIVE ) {
+            c->async_wanted = 0;
+        }
+    }
+    // Nearest first: the worker FIFO then meshes the player's surroundings
+    // ahead of far chunks during load-in.
+    const glm::ivec3 center = this->chunk_center;
+    std::sort( wanted.begin( ), wanted.end( ), [ center ]( const Chunk *a, const Chunk *b ) {
+        const glm::ivec3 da = a->chunk_pos - center;
+        const glm::ivec3 db = b->chunk_pos - center;
+        return da.x * da.x + da.y * da.y + da.z * da.z < db.x * db.x + db.y * db.y + db.z * db.z;
+    } );
+    int submitted = 0;
+    const long long t_submit = now_us( );
+    for ( Chunk *seed : wanted ) {
+        if ( !seed->async_wanted || !seed->needs_repopulation ) {
+            seed->async_wanted = 0;
+            continue; // parked above, claimed by an earlier component, or no
+            // longer dirty (a sync remesh beat the submission)
+        }
+        // A component is never split — the budget only stops STARTING new
+        // ones; leftover seeds keep async_wanted and are re-listed below.
+        if ( submitted >= 1 && now_us( ) - t_submit >= CHUNK_REMESH_BUDGET_US ) {
+            break;
+        }
+        std::vector<Chunk *> component;
+        this->async_dirty_component( seed, true, ++this->async_visit_gen, component );
+        MeshJob job;
+        job.seq = ++this->async_next_seq;
+        for ( Chunk *c : component ) {
+            MeshJobMember m = {};
+            m.chunk = c;
+            m.chunk_pos = c->chunk_pos;
+            m.cell_version = c->cell_version.load( std::memory_order_relaxed );
+            if ( c->cells != nullptr ) {
+                m.cells = chunk_alloc_cells( );
+                memcpy( m.cells, c->cells, CHUNK_BLOCK_SIZE * sizeof( BlockCell ) );
+            }
+            if ( c->extras != nullptr ) {
+                m.extras = chunk_alloc_extras( );
+                memcpy( m.extras, c->extras, CHUNK_BLOCK_SIZE * sizeof( BlockExtra ) );
+            }
+            c->async_job_seq = job.seq;
+            c->async_wanted = 0;
+            job.members.push_back( m );
+        }
+        this->async_in_flight_seqs.insert( job.seq );
+        this->async_jobs_submitted++;
+        this->terrain_loading_thread.mesh_enqueue( std::move( job ) );
+        submitted++;
+    }
+    // Seeds not reached before the budget stop (or claimed by nothing) keep
+    // their flags — re-list them for next frame.
+    for ( Chunk *c : wanted ) {
+        if ( c->async_wanted ) {
+            this->async_wanted_list.push_back( c );
+        }
+    }
+    return submitted;
+}
+
+void ChunkLoader::async_publish_results( ) {
+    const long long t_start = now_us( );
+    MeshJob job;
+    while ( this->terrain_loading_thread.mesh_pop_result( &job ) ) {
+        this->async_in_flight_seqs.erase( job.seq );
+        this->async_publish_job( job, true );
+        // Never split a job, but stop STARTING new publishes once the remesh
+        // budget is spent — leftovers drain next frame.
+        if ( now_us( ) - t_start >= CHUNK_REMESH_BUDGET_US ) {
+            break;
+        }
+    }
+}
+
+// Publish phase 1: unprogram the old mesh and move the member's prebuilt
+// result into its layers. Phase 2 (async_upload_member) then uploads — the
+// split keeps the two phases batchable so a job swaps every member's mesh
+// with no intermediate state visible (all-or-nothing in one frame).
+void ChunkLoader::async_apply_member( Chunk &chunk, MeshJobMember &m ) {
+    if ( chunk.mpload_diff_ms != 0 ) {
+        mpload_tracef( "diff_remesh chunk=%d,%d,%d wait_ms=%lld",
+                       chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z,
+                       mpload_now_ms_i( ) - chunk.mpload_diff_ms );
+        chunk.mpload_diff_ms = 0;
+    }
+    chunk.unprogram_terrain( );
+    chunk.ensure_layers( );
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        chunk.layers[ renderOrder ].populated_blocks = m.result.blocks[ renderOrder ];
+        chunk.layers[ renderOrder ].num_instances = m.result.num[ renderOrder ];
+        m.result.blocks[ renderOrder ] = nullptr;
+    }
+    chunk.needs_repopulation = false;
+    this->num_remeshed_this_frame++;
+}
+
+// Publish phase 2 — the same steps remesh_now_body performs around
+// calculate_populated_blocks.
+void ChunkLoader::async_upload_member( Chunk &chunk, bool gl_upload ) {
+    if ( gl_upload ) {
+        chunk.program_terrain( );
+        // Finalize-deferred chunks (path 1) never got a light texture —
+        // create it now that they are about to draw.
+        if ( chunk.should_render && chunk.light.texture == 0 ) {
+            chunk.light_ensure_texture( this );
+        }
+    } else {
+        // GL-free publish (unit tests): program_terrain would also set
+        // should_render for non-empty layers and free populated_blocks —
+        // mirror the flag so callers can observe the outcome, keep the
+        // arrays for the test to inspect/free.
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            if ( chunk.layers[ renderOrder ].num_instances != 0 ) {
+                chunk.set_should_render( 1 );
+            }
+        }
+    }
+}
+
+void ChunkLoader::async_publish_job( MeshJob &job, bool gl_upload ) {
+    // Valid only if EVERY member still matches its snapshot — a write to any
+    // of them (bumped cell_version), a park, or a slot reuse discards the
+    // whole job so no seam neighbour can desync.
+    bool valid = true;
+    for ( MeshJobMember &m : job.members ) {
+        Chunk &c = *m.chunk;
+        if ( c.load_state != CHUNK_LIVE || c.chunk_pos != m.chunk_pos ||
+             c.cell_version.load( std::memory_order_relaxed ) != m.cell_version ) {
+            valid = false;
+            break;
+        }
+    }
+    if ( valid ) {
+        this->async_jobs_published++;
+        // Phase 1: unprogram every member + move the built meshes into their
+        // layers — nothing uploads yet, so no member is ever visible in a
+        // state mid-swap.
+        std::vector<Chunk *> applied;
+        for ( MeshJobMember &m : job.members ) {
+            Chunk &c = *m.chunk;
+            if ( c.async_job_seq == job.seq && c.needs_repopulation ) {
+                this->async_apply_member( c, m );
+                c.async_discards = 0;
+                applied.push_back( &c );
+            }
+        }
+        // Phase 2: upload all members (GL) — same frame as phase 1, so every
+        // seam pair flips together.
+        for ( Chunk *c : applied ) {
+            this->async_upload_member( *c, gl_upload );
+        }
+        // The publish satisfied the seam couplings: stamp the applied group
+        // and drop link bits toward group members / non-dirty partners.
+        const uint32_t gen = ++this->async_visit_gen;
+        for ( Chunk *c : applied ) {
+            c->async_visit = gen;
+        }
+        for ( Chunk *c : applied ) {
+            this->async_clear_satisfied_links( *c, gen );
+        }
+        for ( MeshJobMember &m : job.members ) {
+            // Skipped members (already current, or folded into a newer job)
+            // free their unused result arrays here.
+            for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+                free( m.result.blocks[ renderOrder ] );
+                m.result.blocks[ renderOrder ] = nullptr;
+            }
+            chunk_free_cells( m.cells );
+            chunk_free_extras( m.extras );
+            m.cells = nullptr;
+            m.extras = nullptr;
+        }
+        job.members.clear( );
+        return;
+    }
+    this->async_jobs_discarded++;
+    bool promote = false;
+    for ( MeshJobMember &m : job.members ) {
+        Chunk &c = *m.chunk;
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            free( m.result.blocks[ renderOrder ] );
+            m.result.blocks[ renderOrder ] = nullptr;
+        }
+        chunk_free_cells( m.cells );
+        chunk_free_extras( m.extras );
+        m.cells = nullptr;
+        m.extras = nullptr;
+        if ( c.async_job_seq == job.seq && c.load_state == CHUNK_LIVE && c.needs_repopulation ) {
+            if ( ++c.async_discards >= 3 ) {
+                // Kept losing snapshots — stop retrying async and remesh the
+                // dirty component synchronously (all members swap in this
+                // same pass below, seam-safe).
+                promote = true;
+            } else {
+                this->async_remesh_mark( c );
+            }
+        }
+    }
+    if ( promote ) {
+        // Remesh each promoted component synchronously right here — queueing
+        // through repop_must would let the REPOP_MUST_BUDGET_US cap split a
+        // component across frames (leftovers drain via the backlog scan),
+        // which is exactly the seam gap the async path exists to prevent.
+        // Members remeshed by an earlier component have needs_repopulation
+        // clear and are skipped.
+        for ( MeshJobMember &m : job.members ) {
+            Chunk &c = *m.chunk;
+            if ( c.load_state == CHUNK_LIVE && c.needs_repopulation && c.async_discards >= 3 ) {
+                const uint32_t gen = ++this->async_visit_gen;
+                std::vector<Chunk *> component;
+                this->async_dirty_component( &c, false, gen, component );
+                for ( Chunk *p : component ) {
+                    p->async_discards = 0;
+                    p->async_wanted = 0;
+                    if ( p->needs_repopulation ) {
+                        this->remesh_now_body( *p, gl_upload );
+                    }
+                }
+                for ( Chunk *p : component ) {
+                    this->async_clear_satisfied_links( *p, gen );
+                }
+                this->async_jobs_promoted++;
+            }
+        }
+    }
+}
+
+// Path 1 (finalize): pending diffs dirtied a chunk whose worker just meshed
+// it — that mesh is now stale. Discard it and hold the chunk out of the
+// drawable list until its async job publishes (publish also creates the
+// light texture the skipped ensure below would have made).
+void ChunkLoader::finalize_defer_mesh( Chunk &chunk ) {
+    chunk.unprogram_terrain( );
+    // set_block_by_index_if_different flipped should_render on for the new
+    // content; the chunk must stay undrawn until publish.
+    chunk.set_should_render( 0 );
+    this->async_remesh_mark( chunk );
+}
+
 void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *blockState ) {
+    const bool async = this->async_remesh_enabled( );
     if ( !chunk.set_block_by_index_if_different( index, blockState ) ) {
         return;
+    }
+    // Async server-diff remesh: the write set needs_repopulation even for a
+    // fully interior diff, so mark the chunk itself here — the sync path
+    // only ever queues it when a border mirror dirtied a neighbour.
+    if ( async ) {
+        this->async_remesh_mark( chunk );
     }
     // A server diff (or queued local diff) is a player edit: mark the chunk
     // so natural mobs standing in it count as penned (MobManager::tick).
@@ -786,10 +1195,22 @@ void ChunkLoader::apply_diff_block( Chunk &chunk, int index, const BlockState *b
                     continue;
                 }
                 const glm::ivec3 mirror = pos - glm::ivec3( i, j, k ) * sizes;
-                neighbor->set_block_by_index_if_different( Chunk::get_index_from_coords( mirror ), blockState );
+                if ( neighbor->set_block_by_index_if_different( Chunk::get_index_from_coords( mirror ), blockState ) ) {
+                    // The diff write actually crossed this shared border —
+                    // record the seam-coupling edge in both directions. Only
+                    // mirror writes create links: interior-only diffs in
+                    // adjacent chunks must NOT remesh as one component.
+                    const glm::ivec3 dir( i, j, k );
+                    chunk.async_links |= 1u << async_dir_index( dir );
+                    neighbor->async_links |= 1u << async_dir_index( -dir );
+                }
                 if ( neighbor->needs_repopulation ) {
-                    this->repop_must_enqueue( *neighbor );
-                    enqueued_neighbor = 1;
+                    if ( async ) {
+                        this->async_remesh_mark( *neighbor );
+                    } else {
+                        this->repop_must_enqueue( *neighbor );
+                        enqueued_neighbor = 1;
+                    }
                 }
             }
         }

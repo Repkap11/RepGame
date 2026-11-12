@@ -77,6 +77,50 @@ void TerrainLoadingThread::process_value( TerrainWorkItem &item ) {
     // pr_debug( "Paul Loading terrain x:%d y%d: z:%d work:%d results:%d", chunk->chunk_x, chunk->chunk_y, chunk->chunk_z, work_queue.size(), result_queue.size() );
 }
 
+// ---- Async remesh jobs (shared by both threading branches) ----------------
+// Buffer ownership never crosses threads in either direction: the render
+// thread allocates AND frees the snapshots and result arrays — workers only
+// read `cells`/`extras` and write `result` fields of the moved job.
+
+void TerrainLoadingThread::mesh_enqueue( MeshJob &&job ) {
+    {
+        std::lock_guard<std::mutex> lock( this->work_mutex );
+        this->mesh_work_queue.push_back( std::move( job ) );
+    }
+    this->work_cv.notify_one( );
+}
+
+bool TerrainLoadingThread::mesh_pop_work( MeshJob *out ) {
+    std::lock_guard<std::mutex> lock( this->work_mutex );
+    if ( this->mesh_work_queue.empty( ) ) {
+        return false;
+    }
+    *out = std::move( this->mesh_work_queue.front( ) );
+    this->mesh_work_queue.pop_front( );
+    return true;
+}
+
+bool TerrainLoadingThread::mesh_pop_result( MeshJob *out ) {
+    std::lock_guard<std::mutex> lock( this->result_mutex );
+    if ( this->mesh_result_queue.empty( ) ) {
+        return false;
+    }
+    *out = std::move( this->mesh_result_queue.front( ) );
+    this->mesh_result_queue.pop_front( );
+    return true;
+}
+
+void TerrainLoadingThread::mesh_queue_sizes( int *work, int *results ) const {
+    {
+        std::lock_guard<std::mutex> lock( this->work_mutex );
+        *work = static_cast<int>( this->mesh_work_queue.size( ) );
+    }
+    {
+        std::lock_guard<std::mutex> lock( this->result_mutex );
+        *results = static_cast<int>( this->mesh_result_queue.size( ) );
+    }
+}
+
 #if defined( REPGAME_WASM ) && !defined( __EMSCRIPTEN_PTHREADS__ )
 void TerrainLoadingThread::enqueue( Chunk *chunk, const glm::ivec3 &new_chunk_pos, int persist ) {
     if ( chunk ) {
@@ -107,6 +151,10 @@ void TerrainLoadingThread::queue_sizes( int *work, int *results ) const {
 void TerrainLoadingThread::stop( ) {
 }
 
+bool TerrainLoadingThread::has_workers( ) const {
+    return false;
+}
+
 #else // not REPGAME_WASM
 
 #include <pthread.h>
@@ -130,14 +178,30 @@ void *TerrainLoadingThread::process_background_tasks( void *arg ) {
         }
 #endif
         TerrainWorkItem item;
+        MeshJob mesh_job;
+        bool have_mesh_job = false;
         {
             std::unique_lock<std::mutex> lock( self.work_mutex );
-            self.work_cv.wait( lock, [ &self ] { return self.stopping || !self.work_queue.empty( ); } );
+            self.work_cv.wait( lock, [ &self ] { return self.stopping || !self.work_queue.empty( ) || !self.mesh_work_queue.empty( ); } );
             if ( self.stopping ) {
                 break;
             }
-            item = self.work_queue.front( );
-            self.work_queue.pop_front( );
+            if ( !self.mesh_work_queue.empty( ) ) {
+                // Remesh jobs are small and latency-critical — they run ahead
+                // of any queued terrain work.
+                mesh_job = std::move( self.mesh_work_queue.front( ) );
+                self.mesh_work_queue.pop_front( );
+                have_mesh_job = true;
+            } else {
+                item = self.work_queue.front( );
+                self.work_queue.pop_front( );
+            }
+        }
+        if ( have_mesh_job ) {
+            mesh_job_run( mesh_job );
+            std::lock_guard<std::mutex> lock( self.result_mutex );
+            self.mesh_result_queue.push_back( std::move( mesh_job ) );
+            continue;
         }
         self.process_value( item );
         if ( item.chunk ) {
@@ -188,10 +252,20 @@ void TerrainLoadingThread::stop( ) {
         std::lock_guard<std::mutex> lock( this->work_mutex );
         this->work_queue.clear( );
         this->stopping = false;
+        while ( !this->mesh_work_queue.empty( ) ) {
+            MeshJob job = std::move( this->mesh_work_queue.front( ) );
+            this->mesh_work_queue.pop_front( );
+            mesh_job_free_buffers( job );
+        }
     }
     {
         std::lock_guard<std::mutex> lock( this->result_mutex );
         this->result_queue.clear( );
+        while ( !this->mesh_result_queue.empty( ) ) {
+            MeshJob job = std::move( this->mesh_result_queue.front( ) );
+            this->mesh_result_queue.pop_front( );
+            mesh_job_free_buffers( job );
+        }
     }
 }
 
@@ -203,6 +277,10 @@ Chunk *TerrainLoadingThread::dequeue( ) {
     Chunk *chunk = this->result_queue.front( ).chunk;
     this->result_queue.pop_front( );
     return chunk;
+}
+
+bool TerrainLoadingThread::has_workers( ) const {
+    return num_background_threads > 0;
 }
 
 void TerrainLoadingThread::queue_sizes( int *work, int *results ) const {

@@ -55,17 +55,21 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    structure gen always runs first, then the chunk file's saved edit
    runs are overlaid on the generated cells (`docs/persistence.md`),
    with all-air chunks folded to null `cells` (`is_empty_chunk`)
-   instead of a 34³ array.
+   instead of a 34³ array. `load_terrain` also runs the CPU mesh here on
+   the worker (`calculate_populated_blocks` → `build_mesh`).
 3. **Finalize** (`finalize_loaded_chunk`, render thread, budgeted by
    `CHUNK_FINALIZE_BUDGET_US`): publish `CHUNK_LIVE`, lazy GL init,
    `process_chunk_position` (the 6-bit face-visibility mask that decides
    which chunk faces can be seen from the current center →
    `calculate_sides`), apply queued network diffs
    (`apply_pending_diffs`), `light_submit_finalize`
-   (`docs/lighting.md`), CPU mesh (`calculate_populated_blocks`) +
-   upload (`program_terrain`), eager `light_ensure_texture`, then push
+   (`docs/lighting.md`), upload the worker-built mesh
+   (`program_terrain`), eager `light_ensure_texture`, then push
    to `just_finalized` for `MobManager`/`ItemManager` adoption
-   (`World::render`).
+   (`World::render`). When pending diffs changed cells after the worker
+   meshed (`needs_repopulation` set), the stale mesh is discarded
+   instead and the chunk defers to an async remesh job — see "Async
+   server-diff remesh" below.
 4. **Draw.** `rebuild_drawable_list` collects live `should_render`
    chunks; `calculate_cull` does frustum culling plus hardware occlusion
    probes (`REPGAME_OCCLUSION` kill switch, cached in
@@ -113,6 +117,79 @@ lighting sees final blocks); `apply_diff_block` mirrors boundary cells
 into loaded neighbours so both sides of a seam remesh together. A local
 write to a non-live slot queues a synthetic diff the same way. Details:
 `docs/multiplayer.md`.
+
+## Async server-diff remesh
+
+Server bulk diffs (`CHUNK_DIFF_RESULT` on live chunks, and
+`apply_pending_diffs` at finalize) remesh on the terrain workers rather
+than the render thread — walking back and forth over a chunk border
+otherwise pays a full CPU remesh per edit re-application
+(`REPGAME_ASYNC_REMESH` killswitch; force-off without worker threads,
+e.g. WASM without pthreads). Own edits and `BLOCK_UPDATE` still remesh
+synchronously via `repop_must`/`remesh_group`.
+
+`Chunk::build_mesh` is the pure half of `calculate_populated_blocks`:
+it reads a cells/extras/chunk_pos snapshot into thread-local scratch and
+returns right-sized arrays in `ChunkMeshResult`, so several workers can
+mesh concurrently.
+
+Flow (`ChunkLoader::async_*`):
+
+- **Mark.** `apply_diff_block` sets `async_wanted` on the diffed chunk
+  and every live neighbour it mirrors into (replaces `repop_must`
+  enqueueing on this path). A border diff's mirrors therefore share one
+  mark set.
+- **Links.** A mirror write that actually changes a live neighbour
+  sets a symmetric link bit (`async_links`, one bit per 26-direction)
+  on both chunks. Links — not adjacency — define which chunks must
+  swap meshes together: two chunks only share a mesh edge if a diff
+  write crossed their border, so interior-only edits in neighbouring
+  chunks stay independent jobs.
+- **Group + submit.** Each frame `render_chunks` floods the marked
+  chunks into components over link edges only (a chunk with no links is
+  a single-member job), snapshots cells/extras + `cell_version` per
+  member (allocated on the render thread) and enqueues one `MeshJob`
+  per component on the terrain workers, which pop mesh jobs ahead of
+  terrain jobs. Seeds are processed nearest-first by squared chunk
+  distance from `chunk_center`, and submission stops once it exceeds
+  `CHUNK_REMESH_BUDGET_US` (always at least one component; unprocessed
+  seeds are re-listed for the next frame — a component is never
+  split). When a job publishes or a promotion group syncs, link bits
+  between members — and toward partners that no longer need a remesh —
+  are cleared in both directions.
+- **Publish.** Finished jobs are drained non-blocking. A job is valid
+  only if every member is still `CHUNK_LIVE`, at the same `chunk_pos`
+  and at the snapshotted `cell_version`; it then publishes
+  all-or-nothing — unprogram + move meshes into `layers[]` for every
+  member first, then `program_terrain` + `light_ensure_texture` for all
+  of them, so two chunks sharing an edited border always swap meshes in
+  the same frame (no seam gaps). On a version mismatch the whole job is
+  discarded and every member is re-marked; after 3 consecutive discards
+  a member's dirty component promotes to a synchronous remesh right in
+  the publish pass (never through the budgeted `repop_must` drain, which
+  could split the component across frames).
+- **Sync promotion.** The backlog scan skips async-marked/in-flight
+  chunks, but if a synchronous remesh lands on one anyway (an own edit
+  on a chunk with a pending server remesh), `remesh_now` first floods
+  its whole link-connected async component and remeshes it in the same
+  pass — the in-flight job's result then no-ops at publish since
+  `needs_repopulation` is already clear.
+- **Path 1 (finalize).** A finalize whose pending diffs changed cells
+  unprograms the worker's now-stale mesh, holds `should_render` at 0 and
+  async-marks the chunk — it stays `CHUNK_LIVE` but undrawn until its
+  job publishes (which also creates the light texture that finalize
+  skipped).
+
+`cell_version` (`std::atomic<uint32_t>`, bumped relaxed in every
+cell-writing path) is the staleness key; it is never reset, so slot
+reuse can't alias an old job — `chunk_pos` in the job guards the
+identity side anyway.
+
+Job counters (`async_jobs_submitted`/`published`/`discarded`/
+`promoted`, `async_in_flight_seqs`) feed `LoaderDebugStats` — ImGui
+overlay `Remesh async:` line and the `loader` block of
+`results.jsonl`. Snapshot and publish render-thread time counts into
+`light_dbg_us_remesh`.
 
 ## Diagnostics
 

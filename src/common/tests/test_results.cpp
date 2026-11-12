@@ -36,6 +36,11 @@ int test_results( ) {
     s.light_stale_count = 15;
     s.light_jlag_us = 16;
     s.light_njlag_us = 17;
+    s.async_submitted = 18;
+    s.async_published = 19;
+    s.async_discarded = 20;
+    s.async_promoted = 21;
+    s.async_in_flight = 22;
     const std::string metric =
         results::format_metric( 100, 1, 6, glm::dvec3( 1.5, 80.25, -2.0 ), s, "{\"loop\":9}" );
     fails += check_str( "metric", metric,
@@ -43,7 +48,9 @@ int test_results( ) {
                         "\"loader\":{\"terrain_queued\":1,\"terrain_results\":2,\"chunks_loading\":3,\"chunks_drawable\":40,"
                         "\"chunks_occluded\":5,\"light_jobs\":6,\"light_pending\":7,\"light_claims\":8,\"light_dirty\":9,"
                         "\"light_bfs_active\":10,\"light_bfs_priority\":11,\"light_bfs_starve\":12,\"light_seeds\":13,"
-                        "\"light_dropped\":14,\"light_stale_count\":15,\"light_jlag_us\":16,\"light_njlag_us\":17},"
+                        "\"light_dropped\":14,\"light_stale_count\":15,\"light_jlag_us\":16,\"light_njlag_us\":17,"
+                        "\"async_submitted\":18,\"async_published\":19,\"async_discarded\":20,"
+                        "\"async_promoted\":21,\"async_in_flight\":22},"
                         "\"light\":{\"loop\":9}}" );
 
     fails += check_str( "event bare", results::format_event( 42, "fly_settled", "" ),

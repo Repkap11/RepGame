@@ -149,12 +149,15 @@ std::string results::format_metric( long tick, int fly_phase, int rd, const glm:
               "\"loader\":{\"terrain_queued\":%d,\"terrain_results\":%d,\"chunks_loading\":%d,\"chunks_drawable\":%d,"
               "\"chunks_occluded\":%d,\"light_jobs\":%d,\"light_pending\":%d,\"light_claims\":%d,\"light_dirty\":%d,"
               "\"light_bfs_active\":%d,\"light_bfs_priority\":%d,\"light_bfs_starve\":%d,\"light_seeds\":%lld,"
-              "\"light_dropped\":%lld,\"light_stale_count\":%d,\"light_jlag_us\":%lld,\"light_njlag_us\":%lld},"
+              "\"light_dropped\":%lld,\"light_stale_count\":%d,\"light_jlag_us\":%lld,\"light_njlag_us\":%lld,"
+              "\"async_submitted\":%lld,\"async_published\":%lld,\"async_discarded\":%lld,"
+              "\"async_promoted\":%lld,\"async_in_flight\":%d},"
               "\"light\":",
               tick, fly_phase, rd, pos.x, pos.y, pos.z, s.terrain_queued, s.terrain_results, s.chunks_loading, s.chunks_drawable,
               s.chunks_occluded, s.light_jobs, s.light_pending, s.light_claims, s.light_dirty, s.light_bfs_active,
               s.light_bfs_priority, s.light_bfs_starve, s.light_seeds, s.light_dropped, s.light_stale_count,
-              s.light_jlag_us, s.light_njlag_us );
+              s.light_jlag_us, s.light_njlag_us,
+              s.async_submitted, s.async_published, s.async_discarded, s.async_promoted, s.async_in_flight );
     std::string out = std::string( buf ) + light_json;
     if ( !prof_json.empty( ) ) {
         out += ",\"prof\":";

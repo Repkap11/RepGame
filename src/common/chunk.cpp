@@ -14,6 +14,7 @@
 #include "common/utils/profile.hpp"
 #include "common/mesh_gen.hpp"
 #include "common/utils/map_storage.hpp"
+#include "common/utils/terrain_loading_thread.hpp"
 #include "common/structure_gen.hpp"
 #if defined( REPGAME_BUILD_WITH_HIP )
 #include "linux/hip/mesh_gen.hpp"
@@ -358,6 +359,9 @@ void Chunk::release_terrain( ) {
     this->sidecars.player_edited = 0;
     this->sidecars.items.clear( );
     this->sidecars.items_file_present = 0;
+    // Every owned buffer was dropped — invalidate any async mesh snapshot
+    // taken before this release.
+    this->cell_version.fetch_add( 1u, std::memory_order_relaxed );
 }
 
 void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc ) {
@@ -1146,6 +1150,10 @@ apply_edits:
         pr_debug( "INSTANCES total=%lld", profiling_instance_count.load( std::memory_order_relaxed ) );
     }
 #endif
+    // The mesh above was built from the final cells — bump the content
+    // generation last so an async remesh job snapshotted just before this
+    // load still lands (its version matches unless a later write intervened).
+    this->cell_version.fetch_add( 1u, std::memory_order_relaxed );
 }
 
 // ---- Fluid corner heights -------------------------------------------------
@@ -1249,7 +1257,7 @@ static unsigned int fluid_face_vis_mask( const BlockCell *cells, const GPUBlockD
     return vis;
 }
 
-int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) const {
+int Chunk::can_extend_rect( const BlockCell *cells, const BlockExtra *extras, const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir ) {
     if constexpr ( DISABLE_GROUPING_BLOCKS ) {
         return 0;
     }
@@ -1282,7 +1290,7 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
                 if ( !workingSpace[ index ].can_be_seen ) {
                     return 0;
                 }
-                const BlockState new_blockState = this->state_at( index );
+                const BlockState new_blockState = block_state_unpack( cells[ index ], extras ? &extras[ index ] : nullptr );
                 if ( !BlockStates_equal( new_blockState, blockState ) ) {
                     return 0;
                 }
@@ -1308,43 +1316,6 @@ int Chunk::can_extend_rect( const BlockState &blockState, const unsigned int *pa
 void Chunk::calculate_populated_blocks( ) {
     PROFILE_SCOPE( "chunk_mesh" );
     this->ensure_layers( );
-    // Meshing writes instances into a per-render-order thread-local scratch
-    // buffer (same lifetime model as tls_workingSpace below): lazily malloc'd
-    // at CHUNK_BLOCK_SIZE on first use and never freed, so chunks don't pay
-    // a multi-megabyte malloc + page faults per mesh. The used instances are
-    // memcpy'd into a right-sized malloc at the end.
-    static thread_local BlockCoords *tls_mesh_scratch[ LAST_RENDER_ORDER ] = { nullptr };
-    static thread_local int tls_mesh_scratch_cap[ LAST_RENDER_ORDER ] = { 0 };
-    int num_instances[ LAST_RENDER_ORDER ] = { 0 };
-    // Each populated_blocks layer starts at CHUNK_BLOCK_SIZE slots, but a
-    // fence cell emits up to FENCE_MAX_BOXES instances (a gate
-    // FENCE_GATE_MAX_BOXES), so a fence-heavy chunk can overflow it. Grow by
-    // doubling before an emit that wouldn't fit. Never keep a BlockCoords*
-    // across a grow — realloc can move the buffer.
-    int capacity[ LAST_RENDER_ORDER ];
-    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        capacity[ renderOrder ] = CHUNK_BLOCK_SIZE;
-    }
-    auto ensure_capacity = [ & ]( int renderOrder, int extra ) {
-        const int needed = num_instances[ renderOrder ] + extra;
-        if ( needed <= capacity[ renderOrder ] ) {
-            return;
-        }
-        int new_capacity = capacity[ renderOrder ];
-        while ( new_capacity < needed ) {
-            new_capacity *= 2;
-        }
-        BlockCoords *grown = static_cast<BlockCoords *>( realloc( this->layers[ renderOrder ].populated_blocks, new_capacity * sizeof( BlockCoords ) ) );
-        if ( grown == nullptr ) {
-            pr_debug( "Error, out of memory growing populated_blocks" );
-            return;
-        }
-        this->layers[ renderOrder ].populated_blocks = grown;
-        capacity[ renderOrder ] = new_capacity;
-        tls_mesh_scratch[ renderOrder ] = grown;
-        tls_mesh_scratch_cap[ renderOrder ] = new_capacity;
-    };
-
     // Empty chunks (all air): skip meshing entirely — and skip the
     // populated_blocks mallocs + workingSpace memset, which are only needed
     // when real blocks exist.
@@ -1366,19 +1337,94 @@ void Chunk::calculate_populated_blocks( ) {
         // render thread.
         return;
     }
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        if ( this->layers[ renderOrder ].populated_blocks ) {
+            pr_debug( "Error, populated blocks already populated" );
+        }
+    }
+    ChunkMeshResult result;
+    Chunk::build_mesh( this->cells, this->extras, this->chunk_pos, result );
+    if constexpr ( !REMEMBER_BLOCKS ) {
+        this->free_block_storage( );
+        free( this->edited );
+        this->edited = nullptr;
+        chunk_free_air_mask( this->light.air_mask );
+        this->light.air_mask = nullptr;
+        chunk_free_air_mask( this->light.shade_mask );
+        this->light.shade_mask = nullptr;
+    }
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        this->layers[ renderOrder ].num_instances = result.num[ renderOrder ];
+        this->layers[ renderOrder ].populated_blocks = result.blocks[ renderOrder ];
+    }
+}
+
+// The pure half of meshing: identical output to what
+// calculate_populated_blocks used to write into layers[], but reading a
+// caller-provided cells/extras snapshot and returning malloc'd arrays in
+// `out` so async server-diff remesh jobs can run on the terrain workers.
+void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const glm::ivec3 &chunk_pos, ChunkMeshResult &out ) {
+    PROFILE_SCOPE( "chunk_mesh" );
+    // Cell access matching Chunk::state_at against the snapshot arrays.
+    const auto state_of = [ cells, extras ]( int index ) {
+        return block_state_unpack( cells[ index ], extras ? &extras[ index ] : nullptr );
+    };
+    // cells == nullptr meshes an all-air chunk: every order empty.
+    if ( cells == nullptr ) {
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            out.num[ renderOrder ] = 0;
+            out.blocks[ renderOrder ] = nullptr;
+        }
+        return;
+    }
+    // Meshing writes instances into a per-render-order thread-local scratch
+    // buffer (same lifetime model as tls_workingSpace below): lazily malloc'd
+    // at CHUNK_BLOCK_SIZE on first use and never freed, so chunks don't pay
+    // a multi-megabyte malloc + page faults per mesh. The used instances are
+    // memcpy'd into a right-sized malloc at the end.
+    static thread_local BlockCoords *tls_mesh_scratch[ LAST_RENDER_ORDER ] = { nullptr };
+    static thread_local int tls_mesh_scratch_cap[ LAST_RENDER_ORDER ] = { 0 };
+    int num_instances[ LAST_RENDER_ORDER ] = { 0 };
+    // The scratch pointer currently emitting into each order (== the
+    // populated_blocks role the old in-place code used).
+    BlockCoords *emit_buf[ LAST_RENDER_ORDER ];
+    // Each populated_blocks layer starts at CHUNK_BLOCK_SIZE slots, but a
+    // fence cell emits up to FENCE_MAX_BOXES instances (a gate
+    // FENCE_GATE_MAX_BOXES), so a fence-heavy chunk can overflow it. Grow by
+    // doubling before an emit that wouldn't fit. Never keep a BlockCoords*
+    // across a grow — realloc can move the buffer.
+    int capacity[ LAST_RENDER_ORDER ];
+    for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+        capacity[ renderOrder ] = CHUNK_BLOCK_SIZE;
+    }
+    auto ensure_capacity = [ & ]( int renderOrder, int extra ) {
+        const int needed = num_instances[ renderOrder ] + extra;
+        if ( needed <= capacity[ renderOrder ] ) {
+            return;
+        }
+        int new_capacity = capacity[ renderOrder ];
+        while ( new_capacity < needed ) {
+            new_capacity *= 2;
+        }
+        BlockCoords *grown = static_cast<BlockCoords *>( realloc( emit_buf[ renderOrder ], new_capacity * sizeof( BlockCoords ) ) );
+        if ( grown == nullptr ) {
+            pr_debug( "Error, out of memory growing populated_blocks" );
+            return;
+        }
+        emit_buf[ renderOrder ] = grown;
+        capacity[ renderOrder ] = new_capacity;
+        tls_mesh_scratch[ renderOrder ] = grown;
+        tls_mesh_scratch_cap[ renderOrder ] = new_capacity;
+    };
 
     // populated_blocks are filled sequentially (only num_instances entries are read
     // later) into the scratch buffer — no need to zero ~18.8MB per chunk.
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        RenderLayer &layer = this->layers[ renderOrder ];
-        if ( layer.populated_blocks ) {
-            pr_debug( "Error, populated blocks already populated" );
-        }
         if ( !tls_mesh_scratch[ renderOrder ] ) {
             tls_mesh_scratch[ renderOrder ] = static_cast<BlockCoords *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockCoords ) ) );
             tls_mesh_scratch_cap[ renderOrder ] = CHUNK_BLOCK_SIZE;
         }
-        layer.populated_blocks = tls_mesh_scratch[ renderOrder ];
+        emit_buf[ renderOrder ] = tls_mesh_scratch[ renderOrder ];
         capacity[ renderOrder ] = tls_mesh_scratch_cap[ renderOrder ];
     }
     // workingSpace needs has_been_drawn=false initially; reuse a thread-local buffer
@@ -1400,13 +1446,13 @@ void Chunk::calculate_populated_blocks( ) {
 #if defined( REPGAME_BUILD_WITH_HIP )
     static const bool no_hip_mesh = env_is_set( "REPGAME_NO_HIP_MESH" );
     if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && !no_hip_mesh ) {
-        used_gpu_mesh = mesh_gen_calculate_hip( this->cells, workingSpace );
+        used_gpu_mesh = mesh_gen_calculate_hip( cells, workingSpace );
     }
 #endif
 #if defined( REPGAME_WASM )
     static const bool no_webgpu_mesh = env_is_set( "REPGAME_NO_WEBGPU_MESH" );
     if ( !used_gpu_mesh && LOAD_CHUNKS_SUPPORTS_WEBGPU && !no_webgpu_mesh && MapGen::supports_webgpu( ) ) {
-        used_gpu_mesh = mesh_gen_calculate_webgpu( this->cells, workingSpace );
+        used_gpu_mesh = mesh_gen_calculate_webgpu( cells, workingSpace );
     }
 #endif
 
@@ -1426,7 +1472,7 @@ void Chunk::calculate_populated_blocks( ) {
 
     if ( !used_gpu_mesh ) {
         const GPUBlockDef *block_defs = mesh_def_table( );
-#define MESH_CELL_AT( i ) ( (unsigned)( this->cells[ i ] ) )
+#define MESH_CELL_AT( i ) ( (unsigned)( cells[ i ] ) )
 #define MESH_OUT_FLAGS( idx, seen, vis )                 \
     workingSpace[ idx ].can_be_seen = ( seen );          \
     workingSpace[ idx ].visible = ( vis );
@@ -1495,14 +1541,14 @@ void Chunk::calculate_populated_blocks( ) {
             for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
                 for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
                     const int index = get_index_from_coords( x, y, z );
-                    const BlockCell cell = this->cells[ index ];
+                    const BlockCell cell = cells[ index ];
                     s_fluid_corners[ index ] = FLUID_CORNERS_NOT_FLUID;
                     const BlockID id = block_cell_id( cell );
                     if ( id >= LAST_BLOCK_ID || fluid_defs[ id ].renderOrder != RenderOrder_Water ) {
                         continue;
                     }
-                    s_fluid_corners[ index ] = fluid_pack_corners( this->cells, x, y, z );
-                    const unsigned int vis = fluid_face_vis_mask( this->cells, fluid_defs, x, y, z, id );
+                    s_fluid_corners[ index ] = fluid_pack_corners( cells, x, y, z );
+                    const unsigned int vis = fluid_face_vis_mask( cells, fluid_defs, x, y, z, id );
                     for ( int f = FACE_TOP; f < NUM_FACES_IN_CUBE; f++ ) {
                         workingSpace[ index ].packed_lighting[ f ] = ( vis >> f ) & 1u ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
                     }
@@ -1516,7 +1562,7 @@ void Chunk::calculate_populated_blocks( ) {
                 int index = get_index_from_coords( x, y, z );
                 if ( !workingSpace[ index ].has_been_drawn ) {
 
-                    const BlockState blockState = this->state_at( index );
+                    const BlockState blockState = state_of( index );
                     Block *block = block_definition_get_definition( blockState.display_id );
                     // if ( blockState.display_id == REDSTONE_WIRE_CROSS ) {
                     //     pr_debug( "Got cross" );
@@ -1579,7 +1625,7 @@ void Chunk::calculate_populated_blocks( ) {
                                 glm::ivec3 starting = glm::ivec3( x + size_x - 1, y, z );
                                 glm::ivec3 size = glm::ivec3( 1, size_y, size_z );
                                 glm::ivec3 dir = glm::ivec3( 1, 0, 0 );
-                                can_extend_x = this->can_extend_rect( blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_x = can_extend_rect( cells, extras, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_x ) {
                                     size_x++;
                                 }
@@ -1588,7 +1634,7 @@ void Chunk::calculate_populated_blocks( ) {
                                 glm::ivec3 starting = glm::ivec3( x, y, z + size_z - 1 );
                                 glm::ivec3 size = glm::ivec3( size_x, size_y, 1 );
                                 glm::ivec3 dir = glm::ivec3( 0, 0, 1 );
-                                can_extend_z = this->can_extend_rect( blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_z = can_extend_rect( cells, extras, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_z ) {
                                     size_z++;
                                 }
@@ -1597,7 +1643,7 @@ void Chunk::calculate_populated_blocks( ) {
                                 glm::ivec3 starting = glm::ivec3( x, y + size_y - 1, z );
                                 glm::ivec3 size = glm::ivec3( size_x, 1, size_z );
                                 glm::ivec3 dir = glm::ivec3( 0, 1, 0 );
-                                can_extend_y = this->can_extend_rect( blockState, packed_lighting, workingSpace, starting, size, dir );
+                                can_extend_y = can_extend_rect( cells, extras, blockState, packed_lighting, workingSpace, starting, size, dir );
                                 if ( can_extend_y ) {
                                     size_y++;
                                 }
@@ -1632,7 +1678,7 @@ void Chunk::calculate_populated_blocks( ) {
                                 { 0, -1, FENCE_CONNECT_NEG_Z, 0 },
                             };
                             for ( int d = 0; d < 4; d++ ) {
-                                const BlockCell ncell = this->cells[ get_index_from_coords( x + conn_dir[ d ][ 0 ], y, z + conn_dir[ d ][ 1 ] ) ];
+                                const BlockCell ncell = cells[ get_index_from_coords( x + conn_dir[ d ][ 0 ], y, z + conn_dir[ d ][ 1 ] ) ];
                                 if ( fence_connects_to( block, block_cell_id( ncell ), block_cell_rotation( ncell ), conn_dir[ d ][ 3 ] ) ) {
                                     connections |= conn_dir[ d ][ 2 ];
                                 }
@@ -1648,7 +1694,7 @@ void Chunk::calculate_populated_blocks( ) {
                             static const int stair_dir[ 4 ][ 2 ] = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
                             int stair_rots[ 4 ];
                             for ( int d = 0; d < 4; d++ ) {
-                                const BlockCell ncell = this->cells[ get_index_from_coords( x + stair_dir[ d ][ 0 ], y, z + stair_dir[ d ][ 1 ] ) ];
+                                const BlockCell ncell = cells[ get_index_from_coords( x + stair_dir[ d ][ 0 ], y, z + stair_dir[ d ][ 1 ] ) ];
                                 stair_rots[ d ] = block_definition_get_definition( block_cell_id( ncell ) )->is_stairs ? block_cell_rotation( ncell ) : -1;
                             }
                             num_boxes = stairs_boxes( stairs_shape_derive( blockState.rotation, stair_rots ),
@@ -1675,12 +1721,12 @@ void Chunk::calculate_populated_blocks( ) {
 
                         BlockCoords *blockCoord;
 
-                        blockCoord = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                        blockCoord = &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
                         num_instances[ block->renderOrder ] += 1;
 
-                        blockCoord->x = this->chunk_pos.x * CHUNK_SIZE_X + x;
-                        blockCoord->y = this->chunk_pos.y * CHUNK_SIZE_Y + y;
-                        blockCoord->z = this->chunk_pos.z * CHUNK_SIZE_Z + z;
+                        blockCoord->x = chunk_pos.x * CHUNK_SIZE_X + x;
+                        blockCoord->y = chunk_pos.y * CHUNK_SIZE_Y + y;
+                        blockCoord->z = chunk_pos.z * CHUNK_SIZE_Z + z;
 
                         blockCoord->mesh_x = size_x;
                         blockCoord->mesh_y = size_y;
@@ -1736,11 +1782,11 @@ void Chunk::calculate_populated_blocks( ) {
                             for ( int d = 0; d < 4; d++ ) {
                                 int nx = x + horiz_dx[ d ];
                                 int nz = z + horiz_dz[ d ];
-                                const BlockState neighbor = this->state_at( get_index_from_coords( nx, y, nz ) );
+                                const BlockState neighbor = state_of( get_index_from_coords( nx, y, nz ) );
                                 const Block *neighbor_block = block_definition_get_definition( neighbor.display_id );
                                 // Only render side face when neighbor is non-solid and not dust (air)
                                 if ( !neighbor_block->collides_with_player && !neighbor_block->is_redstone_dust ) {
-                                    const BlockState below = this->state_at( get_index_from_coords( nx, y - 1, nz ) );
+                                    const BlockState below = state_of( get_index_from_coords( nx, y - 1, nz ) );
                                     const Block *below_block = block_definition_get_definition( below.display_id );
                                     if ( below_block->is_redstone_dust ) {
                                         blockCoord->face[ horiz_face[ d ] ] = side_texture;
@@ -1799,7 +1845,7 @@ void Chunk::calculate_populated_blocks( ) {
                         // stick. BLOCK_COORDS_HALF_PIXEL gives the half-pixel
                         // placement Java uses (6.5 -> 13 in 1/32 units).
                         if ( redstone_orb ) {
-                            BlockCoords *orb = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                            BlockCoords *orb = &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
                             num_instances[ block->renderOrder ] += 1;
                             *orb = *blockCoord;
                             orb->face_shift = ( blockCoord->face_shift & BLOCK_COORDS_ROTATION_MASK ) | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL;
@@ -1837,7 +1883,7 @@ void Chunk::calculate_populated_blocks( ) {
                                 for ( int ay = 0; ay < size_y; ay++ ) {
                                     for ( int az = 0; az < size_z; az++ ) {
                                         BlockCoords *arm =
-                                            &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                                            &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
                                         num_instances[ block->renderOrder ] += 1;
                                         *arm = *blockCoord;
                                         arm->x = blockCoord->x + ax;
@@ -1914,7 +1960,7 @@ void Chunk::calculate_populated_blocks( ) {
                                 for ( int ay = 0; ay < size_y; ay++ ) {
                                     for ( int az = 0; az < size_z; az++ ) {
                                         BlockCoords *arm =
-                                            &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                                            &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
                                         num_instances[ block->renderOrder ] += 1;
                                         *arm = *blockCoord;
                                         arm->x = blockCoord->x + ax;
@@ -1973,7 +2019,7 @@ void Chunk::calculate_populated_blocks( ) {
                         // the JSON describes the pick/collision box only.
                         if ( block->spine_shell ) {
                             const GPUBlockDef *mesh_defs = mesh_def_table( );
-                            BlockCoords *qx = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                            BlockCoords *qx = &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
                             num_instances[ block->renderOrder ] += 1;
                             *qx = *blockCoord;
                             qx->scale_x = 14;
@@ -1990,7 +2036,7 @@ void Chunk::calculate_populated_blocks( ) {
                             qx->packed_lighting[ FACE_FRONT ] = NO_LIGHT_NO_DRAW;
                             qx->packed_lighting[ FACE_BACK ] = NO_LIGHT_NO_DRAW;
 
-                            BlockCoords *qz = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                            BlockCoords *qz = &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
                             num_instances[ block->renderOrder ] += 1;
                             *qz = *blockCoord;
                             qz->scale_x = 16;
@@ -2021,7 +2067,7 @@ void Chunk::calculate_populated_blocks( ) {
                             blockCoord->packed_lighting[ FACE_LEFT ] = NO_LIGHT_NO_DRAW;
                             blockCoord->packed_lighting[ FACE_BACK ] = NO_LIGHT_NO_DRAW;
                             for ( int f = FACE_TOP; f <= FACE_BOTTOM; f++ ) {
-                                const BlockCell ncell = this->cells[ get_index_from_coords( x, y + FACE_DIR_Y_OFFSETS[ f ], z ) ];
+                                const BlockCell ncell = cells[ get_index_from_coords( x, y + FACE_DIR_Y_OFFSETS[ f ], z ) ];
                                 const int nrot = block_cell_rotation( ncell );
                                 const int opposing_face = OPPOSITE_FACE[ mesh_rotated_face( f, nrot ) ];
                                 if ( !mesh_face_seethrough( mesh_defs[ block_cell_id( ncell ) ], block_cell_powered( ncell ), nrot, opposing_face ) ) {
@@ -2042,7 +2088,7 @@ void Chunk::calculate_populated_blocks( ) {
                             for ( int i = 0; i < num_boxes; i++ ) {
                                 BlockCoords *boxCoord = blockCoord;
                                 if ( i > 0 ) {
-                                    boxCoord = &this->layers[ block->renderOrder ].populated_blocks[ num_instances[ block->renderOrder ] ];
+                                    boxCoord = &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
                                     num_instances[ block->renderOrder ] += 1;
                                     *boxCoord = *blockCoord;
                                 }
@@ -2089,19 +2135,19 @@ void Chunk::calculate_populated_blocks( ) {
                     // CPU for both meshers: the HIP kernel only fills
                     // workingSpace.
                     if ( block->waterloggable && blockState.waterlogged ) {
-                        const BlockCell above_cell = this->cells[ get_index_from_coords( x, y + 1, z ) ];
+                        const BlockCell above_cell = cells[ get_index_from_coords( x, y + 1, z ) ];
                         if ( block_cell_id( above_cell ) != WATER && !block_cell_waterlogged( above_cell ) ) {
                             Block *water = block_definition_get_definition( WATER );
                             ensure_capacity( RenderOrder_Water, 1 );
                             if ( num_instances[ RenderOrder_Water ] + 1 > capacity[ RenderOrder_Water ] ) {
                                 continue; // OOM
                             }
-                            BlockCoords *waterCoord = &this->layers[ RenderOrder_Water ].populated_blocks[ num_instances[ RenderOrder_Water ] ];
+                            BlockCoords *waterCoord = &emit_buf[ RenderOrder_Water ][ num_instances[ RenderOrder_Water ] ];
                             num_instances[ RenderOrder_Water ] += 1;
 
-                            waterCoord->x = this->chunk_pos.x * CHUNK_SIZE_X + x;
-                            waterCoord->y = this->chunk_pos.y * CHUNK_SIZE_Y + y;
-                            waterCoord->z = this->chunk_pos.z * CHUNK_SIZE_Z + z;
+                            waterCoord->x = chunk_pos.x * CHUNK_SIZE_X + x;
+                            waterCoord->y = chunk_pos.y * CHUNK_SIZE_Y + y;
+                            waterCoord->z = chunk_pos.z * CHUNK_SIZE_Z + z;
 
                             waterCoord->mesh_x = 1;
                             waterCoord->mesh_y = 1;
@@ -2120,13 +2166,13 @@ void Chunk::calculate_populated_blocks( ) {
                             // surface: corners + per-face visibility come
                             // from the same helpers the fluid cells use
                             // (the block's own instance is untouched).
-                            const unsigned int corners = fluid_pack_corners( this->cells, x, y, z );
+                            const unsigned int corners = fluid_pack_corners( cells, x, y, z );
                             const bool fluid_flat = corners == FLUID_CORNERS_FLAT;
                             waterCoord->fluid_h0 = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( corners & 0xffu );
                             waterCoord->fluid_h[ 0 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 8 ) & 0xffu );
                             waterCoord->fluid_h[ 1 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 16 ) & 0xffu );
                             waterCoord->fluid_h[ 2 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 24 ) & 0xffu );
-                            const unsigned int vis = fluid_face_vis_mask( this->cells, mesh_def_table( ), x, y, z, WATER );
+                            const unsigned int vis = fluid_face_vis_mask( cells, mesh_def_table( ), x, y, z, WATER );
                             for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                                 waterCoord->face[ i ] = water->textures[ i ];
                                 waterCoord->packed_lighting[ i ] = ( vis >> i ) & 1u ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
@@ -2152,34 +2198,52 @@ void Chunk::calculate_populated_blocks( ) {
     profiling_instance_count.fetch_add( total_instances, std::memory_order_relaxed );
 #endif
 
-    if constexpr ( !REMEMBER_BLOCKS ) {
-        this->free_block_storage( );
-        free( this->edited );
-        this->edited = nullptr;
-        chunk_free_air_mask( this->light.air_mask );
-        this->light.air_mask = nullptr;
-        chunk_free_air_mask( this->light.shade_mask );
-        this->light.shade_mask = nullptr;
-    }
     for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
-        this->layers[ renderOrder ].num_instances = num_instances[ renderOrder ];
+        out.num[ renderOrder ] = num_instances[ renderOrder ];
         // Copy the used instances out of the scratch buffer into a right-sized
-        // allocation — populated_blocks must never point into the scratch past
-        // this function, since program_terrain/unprogram_terrain free() it.
+        // allocation — the returned arrays must never point into the scratch
+        // past this function, since program_terrain/unprogram_terrain free()
+        // them after publish.
         if ( num_instances[ renderOrder ] == 0 ) {
-            this->layers[ renderOrder ].populated_blocks = nullptr;
+            out.blocks[ renderOrder ] = nullptr;
         } else {
             const int n = num_instances[ renderOrder ];
-            BlockCoords *out = static_cast<BlockCoords *>( malloc( n * sizeof( BlockCoords ) ) );
-            if ( out ) {
-                memcpy( out, this->layers[ renderOrder ].populated_blocks, n * sizeof( BlockCoords ) );
+            BlockCoords *copy = static_cast<BlockCoords *>( malloc( n * sizeof( BlockCoords ) ) );
+            if ( copy ) {
+                memcpy( copy, emit_buf[ renderOrder ], n * sizeof( BlockCoords ) );
             } else {
                 pr_debug( "Error, out of memory copying populated_blocks" );
-                this->layers[ renderOrder ].num_instances = 0;
+                out.num[ renderOrder ] = 0;
             }
-            this->layers[ renderOrder ].populated_blocks = out;
+            out.blocks[ renderOrder ] = copy;
         }
     }
+}
+
+// Worker-side entry for async server-diff remesh jobs: runs build_mesh on
+// each member's cells/extras snapshot (TerrainLoadingThread pops these ahead
+// of terrain work). Free function so tests can run a job inline.
+void mesh_job_run( MeshJob &job ) {
+    for ( MeshJobMember &m : job.members ) {
+        Chunk::build_mesh( m.cells, m.extras, m.chunk_pos, m.result );
+    }
+}
+
+// Frees every buffer a job still owns: the pooled cells/extras snapshots and
+// any result arrays not yet moved into a layer. Render thread only (buffers
+// are always allocated AND freed there).
+void mesh_job_free_buffers( MeshJob &job ) {
+    for ( MeshJobMember &m : job.members ) {
+        for ( int renderOrder = 0; renderOrder < LAST_RENDER_ORDER; renderOrder++ ) {
+            free( m.result.blocks[ renderOrder ] );
+            m.result.blocks[ renderOrder ] = nullptr;
+        }
+        chunk_free_cells( m.cells );
+        chunk_free_extras( m.extras );
+        m.cells = nullptr;
+        m.extras = nullptr;
+    }
+    job.members.clear( );
 }
 
 void Chunk::program_terrain( ) {
