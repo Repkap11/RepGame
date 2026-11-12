@@ -7,6 +7,7 @@
 #include "common/RepGame.hpp"
 #include "common/harness/results.hpp"
 #include "common/utils/env_config.hpp"
+#include "common/utils/frame_stats.hpp"
 #include "common/rep_tests.hpp"
 #ifdef REPGAME_LINUX
 #include "linux/wayland_cursor_warp.hpp"
@@ -429,6 +430,8 @@ struct MainLoopStats {
     long long acc_total_draw;
     long long acc_swap;
     long long acc_tick;
+    long long fps_last_frame_us = 0;
+    FrameTimeStats frame_stats;
 };
 
 // Run all due fixed-step ticks (SDL events + pointer state are pumped before
@@ -469,6 +472,13 @@ static float main_loop_ticks( RepGame &repgame, MainLoopStats &stats ) {
 // blit measured, 0 when mirroring is off).
 static void main_loop_fps_log( RepGame &repgame, MainLoopStats &stats ) {
     stats.fps_frame_count++;
+    // Wall-clock delta between rendered frames feeds the rolling
+    // avg/1%-low/0.1%-low stats (first call has no previous frame).
+    const long long frame_us = now_us( );
+    if ( stats.fps_last_frame_us != 0 ) {
+        stats.frame_stats.add_frame( static_cast<float>( frame_us - stats.fps_last_frame_us ) / 1e6f );
+    }
+    stats.fps_last_frame_us = frame_us;
     // Accumulate phase times so the report prints per-frame averages.
     stats.acc_render += repgame.profiling.us_render;
     stats.acc_world_draw += repgame.profiling.us_world_draw;
@@ -481,8 +491,9 @@ static void main_loop_fps_log( RepGame &repgame, MainLoopStats &stats ) {
     if ( fps_elapsed >= 1000 ) {
         const float fps = static_cast<float>( stats.fps_frame_count * 1000 ) / static_cast<float>( fps_elapsed );
         const double n = stats.fps_frame_count;
-        pr_debug( "FPS: %.1f | us/frame: tick=%.0f render=%.0f world_draw=%.0f ui=%.0f total_draw=%.0f swap=%.0f",
-                  fps,
+        const FrameTimeStats::Summary &fs = stats.frame_stats.summary( );
+        pr_debug( "FPS:%5.1f  1%%: %5.1f  0.1%%: %5.1f | us/frame: tick=%.0f render=%.0f world_draw=%.0f ui=%.0f total_draw=%.0f swap=%.0f",
+                  fps, fs.low1_fps, fs.low01_fps,
                   stats.acc_tick / n, stats.acc_render / n, stats.acc_world_draw / n,
                   stats.acc_ui_draw / n, stats.acc_total_draw / n, stats.acc_swap / n );
         stats.fps_frame_count = 0;
@@ -495,7 +506,7 @@ void main_loop_full( RepGame &repgame ) {
 
     MainLoopStats stats = { static_cast<long>( SDL_GetTicks( ) ), // initial value
                             static_cast<long>( SDL_GetTicks( ) ),
-                            0, 0, 0, 0, 0, 0, 0 };
+                            0, 0, 0, 0, 0, 0, 0, 0, { } };
 
     while ( !repgame.shouldExit( ) && !exit_signal_received ) {
         const long now = static_cast<long>( SDL_GetTicks( ) );
@@ -532,7 +543,7 @@ static bool vr_mirror_enabled( ) {
 void main_loop_vr( RepGame &repgame, OpenXRSession &xr ) {
     MainLoopStats stats = { static_cast<long>( SDL_GetTicks( ) ),
                             static_cast<long>( SDL_GetTicks( ) ),
-                            0, 0, 0, 0, 0, 0, 0 };
+                            0, 0, 0, 0, 0, 0, 0, 0, { } };
     RenderView views[ 2 ] = {};
     bool exit_requested = false;
     long exit_deadline = 0;

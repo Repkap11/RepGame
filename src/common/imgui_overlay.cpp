@@ -6,6 +6,7 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
 #include "common/map_gen.hpp"
+#include "common/utils/frame_stats.hpp"
 
 // Set to 1 to make the overlay interactive while the cursor is free
 // (inventory/menu open) and show the held-pose tuning controls.
@@ -129,6 +130,11 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
     ImGui_ImplSDL_NewFrame( );
     ImGui::NewFrame( );
 
+    // Fed every frame (even while hidden) so the window is warm when the
+    // overlay is toggled on.
+    static FrameTimeStats frame_stats;
+    frame_stats.add_frame( ImGui::GetIO( ).DeltaTime );
+
     if ( input.toggle_imgui ) {
         input.toggle_imgui = false;
         imgui_overlay->shown = !imgui_overlay->shown;
@@ -170,7 +176,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         ImGui::SetNextWindowPos( ImVec2( 10.0f, 10.0f ) );
         ImGui::SetNextWindowSize( ImVec2( overlay_width, 0 ) );
         ImGui::Begin( "RepGame", nullptr, windowFlags );
-        ImGui::Text( "Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate );
+        const FrameTimeStats::Summary &fps = frame_stats.summary( );
+        ImGui::Text( "FPS avg:%5.1f  1%%:%5.1f  0.1%%:%5.1f  (%6.2f ms)", fps.avg_fps, fps.low1_fps, fps.low01_fps, fps.avg_ms );
         ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
         if ( state.block_selection.selectionInBounds ) {
             const BlockState target = state.world.get_loaded_block( state.block_selection.pos_destroy );

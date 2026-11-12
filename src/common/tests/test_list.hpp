@@ -64,6 +64,7 @@ int test_results( );
 int test_script( );
 int test_inspect( );
 int test_profile( );
+int test_frame_stats( );
 int test_chunk_edits( );
 int test_chunk_sort( );
 int test_chunk_occlusion( );

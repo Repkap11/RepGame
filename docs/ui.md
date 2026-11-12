@@ -256,7 +256,12 @@ matching and the output slot are documented with the item/recipe data in
   refreshed per frame from `RepGame::draw`. `draw_ui_pass` draws it
   first — the bottom UI layer — so the hotbar, inventory panels (the
   creative search box included), held item and pause menu all composite
-  on top of it.
+  on top of it. Its FPS line shows avg / 1% low / 0.1% low from
+  `FrameTimeStats` (`include/common/utils/frame_stats.hpp`) — each over
+  its own trailing window (1s avg, 2s 1% low, 5s 0.1% low, refreshed
+  every 0.25s) where "X% low" is the average FPS of the slowest X% of
+  frames in that window; the same stats extend the once-a-second `FPS:`
+  pr_debug line in the SDL3 main loop (`main_loop_fps_log`).
 - `FontRenderer` draws bitmap text at integer `pixelScale` sizes —
   stack counts, pause labels, overlay text.
 
