@@ -7,6 +7,7 @@
 #include "common/chunk.hpp"
 #include "common/chunk_render.hpp"
 #include "common/fluid.hpp"
+#include "common/light.hpp"
 #include "common/map_gen.hpp"
 #include "common/mob_types.hpp"
 #include "common/net/packet.hpp"
@@ -390,6 +391,11 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shad
             // glGetUniformLocation every call, which costs ~us per chunk per
             // render pass (~6000 lookups/frame).
             glUniform3f( light_base_loc, light_base.x, light_base.y, light_base.z );
+        } else {
+            // Texture create deferred by the per-frame budget — draw the
+            // shared full-sky stand-in instead of whatever volume the
+            // previous chunk left bound.
+            glBindTexture( GL_TEXTURE_3D, light_fallback_texture( ) );
         }
         light_dbg_us_bind += std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( ) - t_bind;

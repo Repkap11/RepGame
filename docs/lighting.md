@@ -183,9 +183,15 @@ sub-box (`light.dirty_box`, CAS'd so workers can mark concurrently) and
 `light_upload_dirty` uploads at most `LIGHT_MAX_UPLOADS_PER_FRAME`
 volumes per frame, debounced per chunk (`light.write_tick`,
 `light.upload_defers`) so a busy region coalesces into fewer
-`glTexSubImage3D` calls. `light_ensure_texture` allocates + full-uploads
-on first draw — eager at finalize for drawable chunks so the cost isn't
-bunched into the first camera pan.
+`glTexSubImage3D` calls, and the whole pass is time-boxed by
+`LIGHT_UPLOAD_BUDGET_US` — entries the budget skips re-queue (staged
+buffers stay READY, inline boxes merge back into `dirty_box`).
+`light_ensure_texture` allocates + full-uploads on first draw — eager at
+finalize for drawable chunks so the cost isn't bunched into the first
+camera pan. Creation is capped per frame (`LIGHT_ENSURE_MAX_PER_FRAME`,
+reset by `light_frame_begin`); chunks waiting on the cap draw the shared
+full-sky stand-in (`light_fallback_texture`) instead of a neighbor's
+volume.
 
 The smoothed presentation fill is ~25x the raw expand per texel, so under
 "Smooth" it runs on the light workers instead of synchronously in the
@@ -202,8 +208,10 @@ is already cheap — and everything stays inline when no light workers run
 smoothed chunk's first staged full-volume fill lands a few frames later
 (the delta is a few LSB, invisible in the interim).
 
-Upload-pass budget: READY uploads go first and never count against the
-per-frame cap (they're only the GL call and they free a pool buffer). A
+Upload-pass budget: READY uploads skip the per-frame *count* (they're
+only the GL call and they free a pool buffer) but still share the pass's
+`LIGHT_UPLOAD_BUDGET_US` wall-clock budget — a staged-publish burst used
+to drain unbounded in one frame. A
 stage claim is only issued when a pool buffer is free (`light_stage_live`
 plus claims still queued); a chunk that wants staging but can't get one
 stays listed without spending a slot. Before this, claims that bounced

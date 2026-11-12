@@ -120,3 +120,15 @@ void light_air_mask_set( const Chunk &chunk, int index, BlockID id );
 // Chunk::release_terrain (render thread) and load_terrain (terrain worker)
 // — thread-safe; the buffer pool is internally locked.
 void light_reset_staging( Chunk *chunk );
+
+// Once per render pass (top of ChunkLoader::render_chunks): resets the
+// per-frame budget for Chunk::light_ensure_texture creates — a full-volume
+// fill + glTexImage3D runs on the render thread and bursts of new chunks
+// would otherwise all create in one frame.
+void light_frame_begin( );
+
+// Shared full-sky stand-in volume Chunk::draw binds while a chunk's real
+// light texture waits on the create budget. Created lazily on the render
+// thread; matches the active light format (mipmapped RGBA8 or RG8) because
+// the shader samples level 1 and the .b/.a gates.
+unsigned light_fallback_texture( );

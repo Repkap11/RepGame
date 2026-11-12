@@ -476,6 +476,14 @@ static std::atomic<long> light_tick_counter{ 0 };
 // bounds the wait if a column somehow stays busy forever.
 #define LIGHT_UPLOAD_MAX_DEFERS 45
 #define LIGHT_UPLOAD_MAX_DEFERS_BUSY 480
+// Wall-clock budget for the whole per-frame upload pass. Staged READY
+// buffers bypass the max_uploads count (claim ordering needs them to
+// drain), so a worker burst could publish a dozen fills between passes
+// and one frame would run every glTexSubImage3D + glGenerateMipmap back
+// to back. Time-boxing the pass spreads that drain; entries the budget
+// skips re-queue — staged buffers stay READY on the chunk and inline
+// boxes merge back into dirty_box, so nothing is lost.
+#define LIGHT_UPLOAD_BUDGET_US 1200
 // Tick at which light_bfs_pending last rose above LIGHT_BFS_STARVE_MIN.
 // Stamped only by the crossing push, so a backlog that never drains under
 // the line keeps accruing age no matter how often drains run.
@@ -3669,6 +3677,66 @@ void ChunkLoader::light_fill_upload_box( Chunk &chunk, const glm::ivec3 &uplo, c
     }
 }
 
+// Creating a light texture costs a full-volume fill + glTexImage3D
+// (+ mipgen) on the render thread — ~0.5 ms with mipmaps on. Streaming
+// bursts (finalize + first draws) can demand dozens in a single frame, so
+// cap the creates per pass; over-budget chunks draw the shared fallback
+// volume (light_fallback_texture) and retry next frame. Reset once per
+// render pass by light_frame_begin.
+#define LIGHT_ENSURE_MAX_PER_FRAME 2
+static int s_light_ensure_left = LIGHT_ENSURE_MAX_PER_FRAME;
+
+void light_frame_begin( ) {
+    s_light_ensure_left = LIGHT_ENSURE_MAX_PER_FRAME;
+}
+
+// One shared 2^3 full-sky stand-in for chunks whose texture create ran out
+// of the frame's budget (Chunk::draw binds it while light.texture is 0).
+// It mirrors a real light texture's format and mip chain because the
+// shader samples level 1 and the .b (air) / .a (shade) gates; the texel is
+// sky-15 / block-0 / air / unshaded — the same content a fresh chunk's
+// create fill produces — so the deferred chunk looks right until its real
+// volume lands.
+unsigned light_fallback_texture( ) {
+    static GLuint tex = 0;
+    if ( tex == 0 ) {
+        const bool mipmaps = light_mipmaps_enabled( );
+        glGenTextures( 1, &tex );
+        glActiveTexture( GL_TEXTURE0 + light_texture_unit( ) );
+        glBindTexture( GL_TEXTURE_3D, tex );
+        glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
+        glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
+        glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+        unsigned char px[ 4 * 8 ] = {};
+        if ( mipmaps ) {
+            for ( int i = 0; i < 8; i++ ) {
+                px[ 4 * i ] = 255;
+                px[ 4 * i + 2 ] = 255;
+                px[ 4 * i + 3 ] = 255;
+            }
+        } else {
+            for ( int i = 0; i < 8; i++ ) {
+                px[ 2 * i ] = 255;
+            }
+        }
+        glTexImage3D( GL_TEXTURE_3D, 0, mipmaps ? GL_RGBA8 : GL_RG8, 2, 2, 2, 0,
+                      mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, px );
+        glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+        if ( mipmaps ) {
+            glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, LIGHT_TEX_MAX_MIP );
+            glGenerateMipmap( GL_TEXTURE_3D );
+            glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+        } else {
+            glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        }
+        glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
+    }
+    return tex;
+}
+
 void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     // Presentation mode for this texture: smooth only inside the camera
     // radius (and only when the feature is on).
@@ -3689,6 +3757,14 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
         }
         return;
     }
+    // Create-budget miss: skip the fill/upload — Chunk::draw binds the
+    // shared fallback volume while texture stays 0, and the next drawn
+    // frame retries the create. Don't touch tex_flip or the dirty marks;
+    // nothing was created for them to apply to.
+    if ( s_light_ensure_left <= 0 ) {
+        return;
+    }
+    s_light_ensure_left--;
     // A raw chunk with an in-radius neighbour still owes one staged fill so
     // its halo texels take the owner's smoothed byte — see
     // light_fill_upload_box's delegation.
@@ -3967,9 +4043,11 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 const bool wants_stage = !ready && chunk->light.volume != nullptr && light_async_active( ) && light_smooth_enabled( ) &&
                     ( light_smooth_in_radius( this->chunk_center, chunk->chunk_pos ) ||
                       light_any_nb_in_radius( this->chunk_center, chunk->chunk_pos ) );
-                // READY uploads are just the GL call and they return a pool
-                // buffer, so they never wait on the budget — parking them
-                // behind nearer IDLE work starved the pool. A stage claim
+                // READY uploads return a pool buffer, so they skip the
+                // count budget — parking them behind nearer IDLE work
+                // starved the pool. They still wait on the pass's
+                // wall-clock budget below: leftovers re-queue and drain
+                // over the next frames. A stage claim
                 // only goes out when a buffer is actually free (claims
                 // queued but not yet started count as taken): a claim that
                 // can't get one would bounce straight back and burn the
@@ -4034,7 +4112,14 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
     }
     int uploads = 0;
     const bool mipmaps = light_mipmaps_enabled( );
-    for ( const LightUploadEntry &e : entries ) {
+    size_t eidx = 0;
+    for ( ; eidx < entries.size( ); eidx++ ) {
+        const LightUploadEntry &e = entries[ eidx ];
+        // Time-box the pass (LIGHT_UPLOAD_BUDGET_US): always land the first
+        // upload so a pathological frame can't starve the queue entirely.
+        if ( uploads > 0 && light_now_us( ) - t0 > LIGHT_UPLOAD_BUDGET_US ) {
+            break;
+        }
         Chunk &chunk = *e.chunk;
         if ( e.staged ) {
             // Worker-produced fill: validate and upload. load_state means
@@ -4129,6 +4214,32 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
                 chunk.light.tex_flip = 0;
             }
         }
+    }
+    // Re-queue whatever the budget left behind: staged buffers stay READY on
+    // their chunk (next pass picks them up again), inline entries already
+    // exchanged their box out so merge it back or those texels are lost. A
+    // load_state slot was recycled mid-pass — light_reset_staging already
+    // reclaimed its staged buffer — so don't re-list it.
+    for ( ; eidx < entries.size( ); eidx++ ) {
+        LightUploadEntry &e = entries[ eidx ];
+        Chunk &chunk = *e.chunk;
+        if ( chunk.load_state ) {
+            continue;
+        }
+        if ( !e.staged ) {
+            if ( e.box == LIGHT_BOX_EMPTY ) {
+                continue; // nothing was exchanged out — nothing to restore
+            }
+            uint64_t box = chunk.light.dirty_box.load( std::memory_order_relaxed );
+            for ( ;; ) {
+                const uint64_t merged = light_box_union( box, e.box );
+                if ( chunk.light.dirty_box.compare_exchange_weak( box, merged,
+                                                                  std::memory_order_acq_rel, std::memory_order_relaxed ) ) {
+                    break;
+                }
+            }
+        }
+        this->light_upload_enqueue( chunk );
     }
     light_dbg_n_upload += uploads;
     light_dbg_us_upload += light_now_us( ) - t0;

@@ -475,6 +475,7 @@ inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &
 
 void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render ) {
     this->num_remeshed_this_frame = 0;
+    light_frame_begin( );
     glm::dvec3 chunk_size = glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 
     glm::ivec3 chunk_pos = glm::floor( camera_pos / chunk_size );
