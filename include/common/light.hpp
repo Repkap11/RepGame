@@ -85,15 +85,6 @@ int light_texture_unit( );
 // overrides on every platform.
 bool light_mipmaps_enabled( );
 
-// Box-downsample a tightly packed RGBA8 light texel box one level:
-// dst[m] = per-channel rounded average of the 2x2x2 src block at 2m.
-// src_sz must be even on every axis (upload boxes are even-aligned when
-// mipmaps are on — ChunkLoader::light_upload_box). Computed on CPU wherever
-// the level-0 fill just ran — light workers for staged uploads, the render
-// thread for inline fills and light_ensure_texture — so the GPU never pays
-// a glGenerateMipmap pass per light upload.
-void light_mip_downsample( const uint32_t *src, const glm::ivec3 &src_sz, uint32_t *dst );
-
 // The "Shadows" pause-menu setting: whether the uploaded light volume gets
 // the air-gated 3x3x3 smoothing blur (SMOOTH) or ships the raw chamfer field
 // (FAST). Runtime-toggleable — toggling re-uploads every live texture via
