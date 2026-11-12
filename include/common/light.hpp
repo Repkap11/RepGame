@@ -127,6 +127,11 @@ void light_reset_staging( Chunk *chunk );
 // would otherwise all create in one frame.
 void light_frame_begin( );
 
+// Queued light-upload work for the shared frame-work budget: dirty-list
+// entries plus staged fills claimed or waiting for a worker. Render
+// thread only; locks light_work_mutex briefly.
+int light_upload_backlog( );
+
 // Shared full-sky stand-in volume Chunk::draw binds while a chunk's real
 // light texture waits on the create budget. Created lazily on the render
 // thread; matches the active light format (mipmapped RGBA8 or RG8) because

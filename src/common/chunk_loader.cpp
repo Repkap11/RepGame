@@ -148,6 +148,24 @@ static constexpr long long LIGHT_PROPAGATE_BUDGET_US = 1000; // 1 ms
 // 78KB expansion + glTexSubImage3D each, so keep the cap tight.
 static constexpr int LIGHT_MAX_UPLOADS_PER_FRAME = 8;
 
+// Shared per-frame allowance for the streaming phases in render_chunks:
+// finalize dequeue, remesh submit/publish, repop_must, the dirty scan,
+// and the light upload pass all draw from one wall-clock pool instead of
+// each spending its own cap — the independent caps could all fire in one
+// frame and stack past 15 ms. Each phase keeps its own cap as a maximum
+// and gets min(cap, pool remaining); pool-empty phases only run their
+// one-unit minimums.
+//
+// The allowance FLOATS with queue depth: quiet play holds FRAME_WORK_MIN
+// (~half a 240 Hz frame) so crossing a chunk border stays invisible; a
+// deep backlog (sprint flight, or a machine too slow to drain at MIN)
+// grows it toward FRAME_WORK_MAX — throughput wins over smoothness only
+// while the queues say the machine is actually behind. Each queued item
+// adds 40us; ~120 queued items saturate the ceiling.
+static constexpr long long FRAME_WORK_MIN_US = 2200;
+static constexpr long long FRAME_WORK_MAX_US = 7000;
+static constexpr int FRAME_WORK_BACKLOG_US = 40;
+
 static inline long long now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
@@ -157,7 +175,8 @@ static inline long long now_us( ) {
 // by light_dbg_stats every ~2s from the LIGHT probe).
 extern long long light_dbg_us_finalize, light_dbg_us_remesh, light_dbg_us_drain,
     light_dbg_us_bfs, light_dbg_us_upload, light_dbg_us_bind, light_dbg_us_ensure,
-    light_dbg_n_upload, light_dbg_n_ensure, light_dbg_us_light_fin;
+    light_dbg_n_upload, light_dbg_n_ensure, light_dbg_us_light_fin,
+    light_dbg_us_framepool, light_dbg_n_framepool;
 
 int mod( const int x, const int N ) {
     const int result = ( x % N + N ) % N;
@@ -476,6 +495,27 @@ inline int ChunkLoader::process_chunk_position( Chunk &chunk, const glm::ivec3 &
 void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, int limit_render ) {
     this->num_remeshed_this_frame = 0;
     light_frame_begin( );
+    // One wall-clock pool for the frame's streaming work — the budgeted
+    // phases below each take min(their own cap, what remains). Sized by
+    // queue depth (FRAME_WORK_*): idle frames stay tight for smoothness,
+    // a backed-up machine widens the pool so deferred work keeps draining.
+    int terrain_work_q = 0, terrain_results_q = 0, mesh_work_q = 0, mesh_results_q = 0;
+    this->terrain_loading_thread.queue_sizes( &terrain_work_q, &terrain_results_q );
+    this->terrain_loading_thread.mesh_queue_sizes( &mesh_work_q, &mesh_results_q );
+    // Work-side queue depths count too: a deep work queue means results are
+    // on the way, and the pool is only a ceiling — widening it costs
+    // nothing when there is no work to spend it on.
+    const int work_backlog = terrain_work_q + terrain_results_q + mesh_work_q + mesh_results_q +
+                             this->num_repop_must + static_cast<int>( this->async_wanted_list.size( ) ) +
+                             this->remesh_flag_backlog + light_upload_backlog( );
+    const long long t_frame_work = now_us( );
+    const long long frame_budget = std::min(
+        FRAME_WORK_MAX_US, FRAME_WORK_MIN_US + FRAME_WORK_BACKLOG_US * static_cast<long long>( work_backlog ) );
+    const auto frame_left = [ & ]( ) {
+        return std::max<long long>( 0, frame_budget - ( now_us( ) - t_frame_work ) );
+    };
+    light_dbg_us_framepool += frame_budget;
+    light_dbg_n_framepool++;
     glm::dvec3 chunk_size = glm::dvec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
 
     glm::ivec3 chunk_pos = glm::floor( camera_pos / chunk_size );
@@ -505,6 +545,8 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     {
         Chunk *chunk_ptr;
         const long long t_budget_start = now_us( );
+        const long long fin_limit = std::min<long long>(
+            limit_render ? WASM_LOAD_BUDGET_US : CHUNK_FINALIZE_BUDGET_US, frame_left( ) );
         do {
             chunk_ptr = this->terrain_loading_thread.dequeue( );
             if ( chunk_ptr ) {
@@ -530,7 +572,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             // generated inline in dequeue() on the main thread, so cap the work
             // per frame to a time budget. On native the budget bounds the
             // per-chunk GL finalize work so load-in bursts don't hitch frames.
-        } while ( chunk_ptr && ( now_us( ) - t_budget_start < ( limit_render ? WASM_LOAD_BUDGET_US : CHUNK_FINALIZE_BUDGET_US ) ) );
+        } while ( chunk_ptr && ( now_us( ) - t_budget_start < fin_limit ) );
         light_dbg_us_finalize += now_us( ) - t_budget_start;
     }
     // Drain deferred park releases whose defer window elapsed (PARK_RELEASE_
@@ -637,27 +679,33 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // all-or-nothing per job. Both phases' render-thread cost counts toward
     // light_dbg_us_remesh with the sync remesh loops below.
     if ( this->async_remesh_enabled( ) ) {
-        this->async_submit_jobs( );
-        this->async_publish_results( );
+        this->async_submit_jobs( std::min<long long>( CHUNK_REMESH_BUDGET_US, frame_left( ) ) );
+        this->async_publish_results( std::min<long long>( CHUNK_REMESH_BUDGET_US, frame_left( ) ) );
     }
     // Drain the must-remesh queue first: edits enqueue every chunk they
     // dirty so a boundary edit's meshes update together in this pass. Past
-    // REPOP_MUST_BUDGET_US leftovers are just popped — needs_repopulation
-    // stays set and the budgeted scan below picks them up like any backlog.
+    // its share of the frame pool leftovers are just popped —
+    // needs_repopulation stays set and the budgeted scan below picks them
+    // up like any backlog.
+    const long long t_must_start = now_us( );
+    const long long must_limit = std::min<long long>( REPOP_MUST_BUDGET_US, frame_left( ) );
     for ( int i = 0; i < this->num_repop_must; i++ ) {
         Chunk &chunk = *this->repop_must[ i ];
         chunk.repop_must_queued = 0;
         if ( chunk.needs_repopulation && !chunk.load_state && //
              !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) && //
-             now_us( ) - t_remesh_start < REPOP_MUST_BUDGET_US ) {
+             now_us( ) - t_must_start < must_limit ) {
             this->remesh_group( chunk );
         }
     }
     this->num_repop_must = 0;
-    // The backlog scan gets its own budget: while the must-queue drains at
-    // up to REPOP_MUST_BUDGET_US, flag-only chunks (interior diff cells)
-    // would otherwise starve until the queue empties.
+    // The backlog scan gets its own share: while the must-queue drains,
+    // flag-only chunks (interior diff cells) would otherwise starve until
+    // the queue empties.
     const long long t_scan_start = now_us( );
+    const long long scan_limit = std::min<long long>( CHUNK_REMESH_BUDGET_US, frame_left( ) );
+    int scan_stopped = 0;
+    int flag_left = 0;
     for ( int i = 0; i < this->num_drawable; i++ ) {
         Chunk &chunk = *this->drawable_chunks[ i ];
         if ( chunk.needs_repopulation && !( chunk.cached_cull_normal && chunk.cached_cull_reflect ) ) {
@@ -666,15 +714,22 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             if ( chunk.async_wanted || this->async_member_in_flight( chunk ) ) {
                 continue;
             }
+            // Past the remesh share the flagged remainder is only COUNTED
+            // (cheap flag test, no remesh): remesh_flag_backlog feeds next
+            // frame's pool size so a backed-up scan widens the allowance.
+            if ( scan_stopped ) {
+                flag_left++;
+                continue;
+            }
             this->remesh_group( chunk );
-            // Stop once the remesh budget is spent; remaining chunks keep
-            // needs_repopulation set and render their old mesh until a later
-            // frame re-meshes them.
-            if ( now_us( ) - t_scan_start >= CHUNK_REMESH_BUDGET_US ) {
-                break;
+            // Remaining chunks keep needs_repopulation set and render their
+            // old mesh until a later frame re-meshes them.
+            if ( now_us( ) - t_scan_start >= scan_limit ) {
+                scan_stopped = 1;
             }
         }
     }
+    this->remesh_flag_backlog = flag_left;
     light_dbg_us_remesh += now_us( ) - t_remesh_start;
     // Light mutation lives on the lighting thread when one runs; the inline
     // path below is the no-thread fallback (tests, WASM without pthreads).
@@ -682,17 +737,23 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         const long long t_drain = now_us( );
         this->light_drain_pending( );
         light_dbg_us_drain += now_us( ) - t_drain;
-        // Scale the propagation budget with backlog: under-overhang/cave floods
+        // Scale the propagation cap with backlog: under-overhang/cave floods
         // legitimately cover every underground air cell within ~15 of lit
-        // space, which is millions of steps during mass load-in.
+        // space, which is millions of steps during mass load-in. The cap is
+        // per column slot, so each slot gets min(cap, pool remaining) —
+        // passing the whole remainder to the all-columns variant would let
+        // the phase spend it once per slot.
         const size_t light_backlog = this->light_queue_sizes( );
-        const long long light_budget = light_backlog > 200000 ? 8000 : light_backlog > 20000 ? 3000 : LIGHT_PROPAGATE_BUDGET_US;
+        const long long light_slot_cap =
+            light_backlog > 200000 ? 8000 : light_backlog > 20000 ? 3000 : LIGHT_PROPAGATE_BUDGET_US;
         const long long t_bfs = now_us( );
-        this->light_process_queue( light_budget );
+        for ( int s = 0; s < LIGHT_COL_QUEUE_COUNT; s++ ) {
+            this->light_process_queue( std::min<long long>( light_slot_cap, frame_left( ) ), s );
+        }
         light_dbg_us_bfs += now_us( ) - t_bfs;
     }
     // GL uploads stay render-thread-owned regardless of who marked dirty.
-    this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME );
+    this->light_upload_dirty( LIGHT_MAX_UPLOADS_PER_FRAME, frame_left( ) );
     // Idle heal for far-cap stale flags; no-ops while the queue is busy.
     this->light_heal_idle( );
     this->rebuild_drawable_list( );
@@ -893,7 +954,7 @@ void ChunkLoader::async_clear_satisfied_links( Chunk &c, uint32_t gen ) {
 // Group the marked chunks into link-connected components and enqueue one
 // MeshJob per component. Render thread only — all snapshots (and their
 // later frees) stay on this thread.
-int ChunkLoader::async_submit_jobs( ) {
+int ChunkLoader::async_submit_jobs( const long long budget_us ) {
     if ( this->async_wanted_list.empty( ) ) {
         return 0;
     }
@@ -923,7 +984,7 @@ int ChunkLoader::async_submit_jobs( ) {
         }
         // A component is never split — the budget only stops STARTING new
         // ones; leftover seeds keep async_wanted and are re-listed below.
-        if ( submitted >= 1 && now_us( ) - t_submit >= CHUNK_REMESH_BUDGET_US ) {
+        if ( submitted >= 1 && now_us( ) - t_submit >= budget_us ) {
             break;
         }
         std::vector<Chunk *> component;
@@ -962,15 +1023,15 @@ int ChunkLoader::async_submit_jobs( ) {
     return submitted;
 }
 
-void ChunkLoader::async_publish_results( ) {
+void ChunkLoader::async_publish_results( const long long budget_us ) {
     const long long t_start = now_us( );
     MeshJob job;
     while ( this->terrain_loading_thread.mesh_pop_result( &job ) ) {
         this->async_in_flight_seqs.erase( job.seq );
         this->async_publish_job( job, true );
         // Never split a job, but stop STARTING new publishes once the remesh
-        // budget is spent — leftovers drain next frame.
-        if ( now_us( ) - t_start >= CHUNK_REMESH_BUDGET_US ) {
+        // share is spent — leftovers drain next frame.
+        if ( now_us( ) - t_start >= budget_us ) {
             break;
         }
     }

@@ -367,7 +367,8 @@ long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_us_drain
           light_dbg_us_ensure = 0, light_dbg_n_upload = 0, light_dbg_n_ensure = 0,
           light_dbg_us_light_fin = 0, light_dbg_us_fin_fill = 0, light_dbg_us_fin_casc = 0,
           light_dbg_us_fin_bscan = 0, light_dbg_us_fin_border = 0,
-          light_dbg_us_fill = 0, light_dbg_n_fill = 0;
+          light_dbg_us_fill = 0, light_dbg_n_fill = 0,
+          light_dbg_us_framepool = 0, light_dbg_n_framepool = 0;
 static size_t light_jobs_depth( );
 
 void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
@@ -375,7 +376,7 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
     int terrain_work = 0, terrain_results = 0;
     this->terrain_loading_thread.queue_sizes( &terrain_work, &terrain_results );
     snprintf( buf, n, "loop=%lld aj=%lld jn=%lld pq=%lld/%lld push=%lld pop=%lld fin=%lld casc=%lld bord=%lld rech=%lld step=%lld rem=%lld rq=%lld drop=%lld pd=%lld cap=%lld def=%lld jobs=%zu jlag=%lld jlate=%lld njlag=%lld syn=%lld rej=%lld tw=%d tr=%d"
-                      " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld) fill=%lld(n=%lld)",
+                      " | us: fin=%lld(lfin=%lld[fill=%lld casc=%lld bscan=%lld border=%lld]) remesh=%lld drain=%lld bfs=%lld upl=%lld(n=%lld) bind=%lld ensure=%lld(n=%lld) fill=%lld(n=%lld) pool=%lld(n=%lld)",
               light_dbg_loop_top, light_dbg_after_jobs, light_dbg_jobs_n,
               light_dbg_pq_calls, light_dbg_pq_nonempty,
               light_dbg_pushes.load( ), light_dbg_pops.load( ), light_dbg_finalize, light_dbg_cascade_seed,
@@ -391,7 +392,8 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
               light_dbg_us_remesh, light_dbg_us_drain,
               light_dbg_us_bfs, light_dbg_us_upload, light_dbg_n_upload, light_dbg_us_bind,
               light_dbg_us_ensure, light_dbg_n_ensure,
-              light_dbg_us_fill, light_dbg_n_fill );
+              light_dbg_us_fill, light_dbg_n_fill,
+              light_dbg_us_framepool, light_dbg_n_framepool );
     light_dbg_max_lag_us = 0;
     light_dbg_late_jobs = 0;
     light_dbg_max_lag_near_us = 0;
@@ -407,7 +409,8 @@ void ChunkLoader::light_dbg_stats( char *buf, size_t n ) {
         light_dbg_us_upload = light_dbg_us_bind = light_dbg_us_ensure = light_dbg_n_upload =
             light_dbg_n_ensure = light_dbg_us_light_fin = light_dbg_us_fin_fill =
                 light_dbg_us_fin_casc = light_dbg_us_fin_bscan = light_dbg_us_fin_border =
-                    light_dbg_us_fill = light_dbg_n_fill = 0;
+                    light_dbg_us_fill = light_dbg_n_fill =
+                        light_dbg_us_framepool = light_dbg_n_framepool = 0;
 }
 
 size_t ChunkLoader::light_add_queue_size( ) const {
@@ -483,7 +486,12 @@ static std::atomic<long> light_tick_counter{ 0 };
 // to back. Time-boxing the pass spreads that drain; entries the budget
 // skips re-queue — staged buffers stay READY on the chunk and inline
 // boxes merge back into dirty_box, so nothing is lost.
+// LIGHT_UPLOAD_BUDGET_US caps the pass; LIGHT_UPLOAD_FLOOR_US is the slice
+// it still gets when the shared frame-work budget is already spent —
+// without it a saturated frame could leave dirty texels unrefreshed
+// indefinitely (visibly stale light) during sustained sprint streaming.
 #define LIGHT_UPLOAD_BUDGET_US 1200
+#define LIGHT_UPLOAD_FLOOR_US 400
 // Tick at which light_bfs_pending last rose above LIGHT_BFS_STARVE_MIN.
 // Stamped only by the crossing push, so a backlog that never drains under
 // the line keeps accruing age no matter how often drains run.
@@ -916,6 +924,12 @@ void light_reset_staging( Chunk *chunk ) {
     chunk->light.stage_buf = nullptr;
     chunk->light.stage_box = 0;
     chunk->light.stage_mode = 0;
+}
+
+int light_upload_backlog( ) {
+    std::lock_guard<std::mutex> lock( light_work_mutex );
+    return static_cast<int>( light_dirty_list_near.size( ) + light_dirty_list_far.size( ) +
+                             light_stage_list.size( ) + static_cast<size_t>( light_stage_live ) );
 }
 
 // Parallel workers (docs/lighting-thread-plan.md). A claimed job records
@@ -3948,7 +3962,12 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     light_dbg_us_ensure += light_now_us( ) - t0;
 }
 
-void ChunkLoader::light_upload_dirty( const int max_uploads ) {
+void ChunkLoader::light_upload_dirty( const int max_uploads, const long long budget_us ) {
+    // The shared frame-work budget can leave this pass nothing — clamp to
+    // the floor so uploads keep trickling anyway, and cap it so a deep
+    // backlog can't reclaim the whole frame.
+    const long long budget = std::min<long long>( LIGHT_UPLOAD_BUDGET_US,
+                                                  std::max<long long>( LIGHT_UPLOAD_FLOOR_US, budget_us ) );
     const long long t0 = light_now_us( );
     if ( light_dirty_list_near.empty( ) && light_dirty_list_far.empty( ) ) {
         light_dbg_us_upload += light_now_us( ) - t0;
@@ -4115,9 +4134,9 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
     size_t eidx = 0;
     for ( ; eidx < entries.size( ); eidx++ ) {
         const LightUploadEntry &e = entries[ eidx ];
-        // Time-box the pass (LIGHT_UPLOAD_BUDGET_US): always land the first
-        // upload so a pathological frame can't starve the queue entirely.
-        if ( uploads > 0 && light_now_us( ) - t0 > LIGHT_UPLOAD_BUDGET_US ) {
+        // Time-box the pass (budget): always land the first upload so a
+        // pathological frame can't starve the queue entirely.
+        if ( uploads > 0 && light_now_us( ) - t0 > budget ) {
             break;
         }
         Chunk &chunk = *e.chunk;

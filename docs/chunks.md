@@ -57,8 +57,9 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    with all-air chunks folded to null `cells` (`is_empty_chunk`)
    instead of a 34³ array. `load_terrain` also runs the CPU mesh here on
    the worker (`calculate_populated_blocks` → `build_mesh`).
-3. **Finalize** (`finalize_loaded_chunk`, render thread, budgeted by
-   `CHUNK_FINALIZE_BUDGET_US`): publish `CHUNK_LIVE`, lazy GL init,
+3. **Finalize** (`finalize_loaded_chunk`, render thread, capped by
+   `CHUNK_FINALIZE_BUDGET_US` within the shared frame-work pool below):
+   publish `CHUNK_LIVE`, lazy GL init,
    `process_chunk_position` (the 6-bit face-visibility mask that decides
    which chunk faces can be seen from the current center →
    `calculate_sides`), apply queued network diffs
@@ -86,10 +87,35 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    face-neighbors in via `remesh_group`, so a boundary edit never leaves
    a see-through gap while its neighbour's mesh waits for the budget.
    Must-queue drains under `REPOP_MUST_BUDGET_US`; flag-only backlog
-   under `CHUNK_REMESH_BUDGET_US`.
+   under `CHUNK_REMESH_BUDGET_US` — both clipped by the shared pool.
+
+## Shared frame-work pool
+
+The streaming phases at the top of `render_chunks` — finalize dequeue,
+async remesh submit/publish, `repop_must` drain, the flagged remesh scan,
+the inline light-BFS fallback, and `light_upload_dirty` — used to each
+hold an independent wall-clock cap (3/2/2/8/2/1.2 ms), so a chunk-border
+crossing could stack ~18 ms of update work into one frame. They now draw
+from one pool measured from the top of `render_chunks`: each phase gets
+`min(its own cap, pool remaining)`, and pool-empty phases still run their
+one-unit minimums (at least one finalize/component/publish/remesh/upload
+slice — `LIGHT_UPLOAD_FLOOR_US` — so nothing starves outright).
+
+The pool FLOATS with queue depth (`FRAME_WORK_MIN_US`,
+`FRAME_WORK_MAX_US`, `FRAME_WORK_BACKLOG_US` in `chunk_loader.cpp`):
+`min + backlog*per_item`, clamped to the ceiling. Backlog counts terrain
+and mesh work+result queue depths, `repop_must`/`async_wanted` pending,
+the previous frame's leftover flagged-remesh count
+(`remesh_flag_backlog`, tallied during the scan itself), and the light
+upload backlog (`light_upload_backlog`). Quiet play holds the pool near
+the floor (~half a 240 Hz frame) so a border crossing stays invisible;
+sprint flight or a CPU too slow to drain the queues widens it toward the
+ceiling — throughput over smoothness only while the queues say the
+machine is actually behind. Since the pool is a ceiling not a target, an
+idle machine never spends what it doesn't need.
 
 WASM without pthreads runs terrain inline inside `dequeue()` under
-`WASM_LOAD_BUDGET_US` (`limit_render`).
+`WASM_LOAD_BUDGET_US` (`limit_render`), clipped by the same pool.
 
 ## Parking
 

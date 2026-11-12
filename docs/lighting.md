@@ -183,8 +183,9 @@ sub-box (`light.dirty_box`, CAS'd so workers can mark concurrently) and
 `light_upload_dirty` uploads at most `LIGHT_MAX_UPLOADS_PER_FRAME`
 volumes per frame, debounced per chunk (`light.write_tick`,
 `light.upload_defers`) so a busy region coalesces into fewer
-`glTexSubImage3D` calls, and the whole pass is time-boxed by
-`LIGHT_UPLOAD_BUDGET_US` — entries the budget skips re-queue (staged
+`glTexSubImage3D` calls, and the whole pass is time-boxed —
+`LIGHT_UPLOAD_BUDGET_US` clipped further by the shared frame-work pool
+(`docs/chunks.md`) — entries the budget skips re-queue (staged
 buffers stay READY, inline boxes merge back into `dirty_box`).
 `light_ensure_texture` allocates + full-uploads on first draw — eager at
 finalize for drawable chunks so the cost isn't bunched into the first
@@ -210,8 +211,11 @@ smoothed chunk's first staged full-volume fill lands a few frames later
 
 Upload-pass budget: READY uploads skip the per-frame *count* (they're
 only the GL call and they free a pool buffer) but still share the pass's
-`LIGHT_UPLOAD_BUDGET_US` wall-clock budget — a staged-publish burst used
-to drain unbounded in one frame. A
+wall-clock budget — `min(LIGHT_UPLOAD_BUDGET_US, shared frame-work pool
+remaining)`, floored at `LIGHT_UPLOAD_FLOOR_US` so a saturated frame
+can't starve uploads entirely (see "Shared frame-work pool" in
+`docs/chunks.md`). A staged-publish burst used to drain unbounded in one
+frame. A
 stage claim is only issued when a pool buffer is free (`light_stage_live`
 plus claims still queued); a chunk that wants staging but can't get one
 stays listed without spending a slot. Before this, claims that bounced

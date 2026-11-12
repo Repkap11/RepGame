@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include <deque>
 #include <set>
 #include <vector>
@@ -164,6 +165,10 @@ class ChunkLoader {
     Chunk **repop_must;
     int num_repop_must;
     int num_remeshed_this_frame;
+    // Flagged drawable chunks the budgeted scan left for later frames —
+    // counted during the scan itself and read by next frame's shared
+    // frame-work budget so a backed-up remesh queue widens the pool.
+    int remesh_flag_backlog = 0;
     // ---- Async server-diff remesh (docs/chunks.md "Async server-diff
     // remesh") — all fields render-thread only unless noted. ----
     // Chunks marked by apply_diff_block since the last submission.
@@ -196,8 +201,10 @@ class ChunkLoader {
     // Clears link bits on `c` whose partner is in the just-remeshed group
     // (visit stamp `gen`) or no longer dirty — both directions.
     void async_clear_satisfied_links( Chunk &c, uint32_t gen );
-    int async_submit_jobs( );
-    void async_publish_results( );
+    // budget_us limits render-thread time spent STARTING new components /
+    // publishes (LLONG_MAX = unbounded — the test path).
+    int async_submit_jobs( long long budget_us = LLONG_MAX );
+    void async_publish_results( long long budget_us = LLONG_MAX );
     // Applies/discards one finished job — all-or-nothing: either every
     // still-valid member swaps mesh this frame or none does (the seam
     // invariant). gl_upload=false is the unit-test path (no GL context).
@@ -346,7 +353,9 @@ class ChunkLoader {
     void light_border_sync( Chunk &chunk );
     void light_process_pending_chunk( Chunk &chunk );
     void light_drain_pending( );
-    void light_upload_dirty( int max_uploads );
+    // budget_us is the shared frame-work remainder; the pass still clamps
+    // to its own cap and gets a small floor so uploads can't starve.
+    void light_upload_dirty( int max_uploads, long long budget_us );
     // Worker-side upload staging: fills a pooled buffer with the chunk's
     // dirty texels (the expensive smoothed presentation fill) so
     // light_upload_dirty only pays the GL call. Runs on light workers.
