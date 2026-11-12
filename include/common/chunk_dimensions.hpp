@@ -61,9 +61,11 @@
 
 // Deepest mip level of the per-chunk light volume that is ever sampled:
 // chunk_fragment.glsl caps light_lod at LIGHT_LOD_MAX (currently 1.0), so
-// the C++ side sets GL_TEXTURE_MAX_LEVEL to this and glGenerateMipmap only
-// builds the levels that can actually be read. If LIGHT_LOD_MAX is raised
-// above 1.0 this must be raised to match.
+// the C++ side sets GL_TEXTURE_MAX_LEVEL to this and uploads only the
+// levels that can actually be read (level 1 is box-filtered on CPU by
+// light_mip_downsample — no glGenerateMipmap). If LIGHT_LOD_MAX is raised
+// above 1.0 this must be raised to match AND the downsample must iterate
+// deeper levels.
 #define LIGHT_TEX_MAX_MIP 1
 
 // Distance from the camera to the farthest renderable point: the outer corner

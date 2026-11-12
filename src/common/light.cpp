@@ -847,8 +847,12 @@ static std::vector<Chunk *> light_dirty_list_far;
 // chunk (light_stage_state IDLE -> BUSY) and queues it; a worker exchanges
 // the dirty box, fills a pooled buffer and publishes (BUSY -> READY); the
 // next upload pass just does the GL call and returns the buffer (READY ->
-// IDLE). Fast/raw-mode chunks keep the inline fill — their expand is
-// already cheap, so a round trip would only add latency.
+// IDLE). When light mipmaps are on the worker also appends the level-1 mip
+// (light_mip_downsample of the level-0 box it just filled) behind the
+// level-0 data, so the render thread's second glTexSubImage3D replaces what
+// used to be a glGenerateMipmap call. Fast/raw-mode chunks keep the inline
+// fill — their expand is already cheap, so a round trip would only add
+// latency.
 //
 // light_stage_state packs a generation counter above a 2-bit status. The
 // publish CAS carries the generation the worker claimed under, so a slot
@@ -861,8 +865,10 @@ static std::vector<Chunk *> light_dirty_list_far;
 #define LIGHT_STAGE_BUSY 1u
 #define LIGHT_STAGE_READY 2u
 #define LIGHT_STAGE_STATUS( s ) ( ( s ) & 3u )
-// Upload texel buffer: RGBA8 worst case, full internal volume.
-#define LIGHT_STAGE_BUF_SIZE ( CHUNK_BLOCK_SIZE * 4 )
+// Upload texel buffer: RGBA8 worst case, full internal volume — plus room
+// for the CPU-built level-1 mip appended behind it (one texel per 2x2x2
+// level-0 block, so CHUNK_BLOCK_SIZE/8 RGBA8 texels).
+#define LIGHT_STAGE_BUF_SIZE ( CHUNK_BLOCK_SIZE * 4 + CHUNK_BLOCK_SIZE / 2 )
 // Live staging buffers: one per worker plus a few published-but-not-yet-
 // uploaded (LIGHT_MAX_WORKERS is 8, defined below). Empty pool = worker
 // aborts the stage and re-queues the chunk.
@@ -3127,6 +3133,50 @@ bool light_mipmaps_enabled( ) {
 // Scratch is 4 bytes/texel: mip mode writes a uint32_t texel per cell, the
 // RG8 mode writes 2 bytes per cell through the unsigned char* view.
 static uint32_t s_light_upload_scratch[ CHUNK_BLOCK_SIZE ];
+// Destination for light_mip_downsample on the render thread (inline uploads
+// and light_ensure_texture): the 32^3 level-1 texels. Staged fills append
+// their mip into the stage buffer itself instead.
+static uint32_t s_light_upload_mip_scratch[ CHUNK_BLOCK_SIZE / 8 ];
+
+// The CPU mip path assumes every 2x2x2 block is complete: level-0 boxes are
+// even-aligned (light_upload_box) and the volume dims are even. An odd
+// internal size would need clipped source reads and a mip box edge policy.
+static_assert( CHUNK_SIZE_INTERNAL_X % 2 == 0 && CHUNK_SIZE_INTERNAL_Y % 2 == 0 && CHUNK_SIZE_INTERNAL_Z % 2 == 0,
+               "light_mip_downsample assumes even CHUNK_SIZE_INTERNAL_*" );
+
+// light_mip_downsample (declared in light.hpp): average each 2x2x2 src block
+// per channel with SWAR lanes — R/B and G/A accumulate into separate 16-bit
+// fields of one u32 (8*255 = 2040 < 2^16, no cross-lane bleed). The channel
+// ordering inside each lane doesn't matter: every texel is averaged and
+// repacked at the same bit positions, so this is endian-safe. src_sz must
+// be even on every axis.
+void light_mip_downsample( const uint32_t *src, const glm::ivec3 &src_sz, uint32_t *dst ) {
+    const glm::ivec3 dsz = src_sz / 2;
+    for ( int z = 0; z < dsz.z; z++ ) {
+        const uint32_t *sz_plane = src + ( 2 * z ) * src_sz.y * src_sz.x;
+        for ( int y = 0; y < dsz.y; y++ ) {
+            const uint32_t *srow = sz_plane + ( 2 * y ) * src_sz.x;
+            for ( int x = 0; x < dsz.x; x++, srow += 2, dst++ ) {
+                uint32_t rb = 0, ga = 0;
+                for ( int dz = 0; dz < 2; dz++ ) {
+                    const uint32_t *syz = srow + dz * src_sz.y * src_sz.x;
+                    for ( int dy = 0; dy < 2; dy++ ) {
+                        const uint32_t *sxyz = syz + dy * src_sz.x;
+                        rb += sxyz[ 0 ] & 0x00FF00FFu;
+                        ga += ( sxyz[ 0 ] >> 8 ) & 0x00FF00FFu;
+                        rb += sxyz[ 1 ] & 0x00FF00FFu;
+                        ga += ( sxyz[ 1 ] >> 8 ) & 0x00FF00FFu;
+                    }
+                }
+                // Round-half-up per lane ((sum + 4) >> 3) — the same result a
+                // driver's box filter produces within +-1 LSB.
+                rb = ( rb + 0x00040004u ) >> 3;
+                ga = ( ga + 0x00040004u ) >> 3;
+                *dst = ( rb & 0x00FF00FFu ) | ( ( ga & 0x00FF00FFu ) << 8 );
+            }
+        }
+    }
+}
 
 // BlockID -> air mask (255 = can hold light, 0 = opaque) using the same
 // light_opaque_id predicate the propagation BFS uses, so the mask agrees
@@ -3567,6 +3617,19 @@ int ChunkLoader::light_upload_box( Chunk &chunk, const uint64_t raw_box, glm::iv
         *uplo = lo;
         *sz = hi - lo + glm::ivec3( 1 );
     }
+    if ( light_mipmaps_enabled( ) ) {
+        // Even-align the box so the CPU-built mip level uploaded beside it
+        // only ever reads texels inside the filled region: every 2x2x2
+        // source block then sits wholly in- or outside the box. (Internal
+        // dims are even, so an odd hi stays odd after clamping.)
+        const glm::ivec3 uhi = *uplo + *sz - glm::ivec3( 1 );
+        uplo->x &= ~1;
+        uplo->y &= ~1;
+        uplo->z &= ~1;
+        sz->x = std::min( uhi.x | 1, CHUNK_SIZE_INTERNAL_X - 1 ) - uplo->x + 1;
+        sz->y = std::min( uhi.y | 1, CHUNK_SIZE_INTERNAL_Y - 1 ) - uplo->y + 1;
+        sz->z = std::min( uhi.z | 1, CHUNK_SIZE_INTERNAL_Z - 1 ) - uplo->z + 1;
+    }
     return want_mode;
 }
 
@@ -3839,17 +3902,21 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
     glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
     glTexImage3D( GL_TEXTURE_3D, 0, mipmaps ? GL_RGBA8 : GL_RG8, CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z, 0, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
-    glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
     if ( mipmaps ) {
         // LIGHT_TEX_MAX_MIP mirrors the shader's LIGHT_LOD_MAX cap: levels
-        // deeper than 1 are never sampled, so cap the chain and let
-        // glGenerateMipmap build only level 1 (32^3) instead of all six.
+        // deeper than 1 are never sampled, so the chain is exactly two
+        // levels and level 1 (32^3) is computed on CPU from the level-0
+        // bytes above — no glGenerateMipmap pass per texture.
         glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, LIGHT_TEX_MAX_MIP );
-        glGenerateMipmap( GL_TEXTURE_3D );
+        const glm::ivec3 full( CHUNK_SIZE_INTERNAL_X, CHUNK_SIZE_INTERNAL_Y, CHUNK_SIZE_INTERNAL_Z );
+        light_mip_downsample( s_light_upload_scratch, full, s_light_upload_mip_scratch );
+        glTexImage3D( GL_TEXTURE_3D, 1, GL_RGBA8, CHUNK_SIZE_INTERNAL_X / 2, CHUNK_SIZE_INTERNAL_Y / 2, CHUNK_SIZE_INTERNAL_Z / 2, 0, GL_RGBA,
+                      GL_UNSIGNED_BYTE, s_light_upload_mip_scratch );
         glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
     } else {
         glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     }
+    glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -4071,10 +4138,12 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
             glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
             glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
             glTexSubImage3D( GL_TEXTURE_3D, 0, ulo.x, ulo.y, ulo.z, usz.x, usz.y, usz.z, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, buf );
-            glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
             if ( mipmaps ) {
-                glGenerateMipmap( GL_TEXTURE_3D );
+                // Worker-built level 1 sits right behind the level-0 box.
+                glTexSubImage3D( GL_TEXTURE_3D, 1, ulo.x / 2, ulo.y / 2, ulo.z / 2, usz.x / 2, usz.y / 2, usz.z / 2, GL_RGBA, GL_UNSIGNED_BYTE,
+                                 buf + 4 * usz.x * usz.y * usz.z );
             }
+            glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
             // A full-volume fill settles the texture's presentation mode;
             // partial fills keep whatever the last full fill used.
             if ( usz.x == CHUNK_SIZE_INTERNAL_X && usz.y == CHUNK_SIZE_INTERNAL_Y && usz.z == CHUNK_SIZE_INTERNAL_Z ) {
@@ -4117,10 +4186,14 @@ void ChunkLoader::light_upload_dirty( const int max_uploads ) {
         glPixelStorei( GL_UNPACK_IMAGE_HEIGHT, 0 );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
         glTexSubImage3D( GL_TEXTURE_3D, 0, uplo.x, uplo.y, uplo.z, sz.x, sz.y, sz.z, mipmaps ? GL_RGBA : GL_RG, GL_UNSIGNED_BYTE, s_light_upload_scratch );
-        glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
         if ( mipmaps ) {
-            glGenerateMipmap( GL_TEXTURE_3D );
+            // CPU level-1 mip of the same bytes — replaces glGenerateMipmap,
+            // which ran a driver downsample pass per upload on this thread.
+            light_mip_downsample( s_light_upload_scratch, sz, s_light_upload_mip_scratch );
+            glTexSubImage3D( GL_TEXTURE_3D, 1, uplo.x / 2, uplo.y / 2, uplo.z / 2, sz.x / 2, sz.y / 2, sz.z / 2, GL_RGBA, GL_UNSIGNED_BYTE,
+                             s_light_upload_mip_scratch );
         }
+        glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
         // A full-volume fill settles the texture's presentation mode;
         // partial fills keep whatever mode the last full fill used.
         if ( sz.x == CHUNK_SIZE_INTERNAL_X && sz.y == CHUNK_SIZE_INTERNAL_Y && sz.z == CHUNK_SIZE_INTERNAL_Z ) {
@@ -4190,7 +4263,15 @@ void ChunkLoader::light_stage_chunk( Chunk &chunk ) {
         return;
     }
     const long long t0 = light_now_us( );
-    this->light_fill_upload_box( chunk, uplo, sz, light_mipmaps_enabled( ), self_smooth, buf );
+    const bool mipmaps = light_mipmaps_enabled( );
+    this->light_fill_upload_box( chunk, uplo, sz, mipmaps, self_smooth, buf );
+    if ( mipmaps ) {
+        // Level-1 mip appended right after the level-0 box: the render
+        // thread uploads both from this one buffer (offset recomputed from
+        // stage_box — the fill box is even-aligned by light_upload_box).
+        light_mip_downsample( reinterpret_cast<const uint32_t *>( buf ), sz,
+                              reinterpret_cast<uint32_t *>( buf + 4 * sz.x * sz.y * sz.z ) );
+    }
     light_dbg_us_fill += light_now_us( ) - t0;
     light_dbg_n_fill++;
     // Publish: plain field stores, then the release CAS makes them visible

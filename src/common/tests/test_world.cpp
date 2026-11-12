@@ -356,6 +356,39 @@ int test_lighting( ) {
     check_bool( "STONE is not a light floor", !block_definition_get_definition( STONE )->blocks_light_down );
     check_bool( "OAK_LEAVES is not a light floor", !block_definition_get_definition( OAK_LEAVES )->blocks_light_down );
     check_bool( "pressure plate is not a light floor", !block_definition_get_definition( STONE_PRESSURE_PLATE )->blocks_light_down );
+
+    // --- light_mip_downsample: the CPU box filter uploaded as level 1 in
+    // place of glGenerateMipmap. Per-channel rounded average of each 2x2x2
+    // block; src boxes are even-aligned by light_upload_box.
+    {
+        const glm::ivec3 sz( 4, 4, 4 );
+        std::vector<uint32_t> src( 64 ), dst( 8 );
+        // Uniform texel -> same texel.
+        std::fill( src.begin( ), src.end( ), 0x78563C1Eu );
+        light_mip_downsample( src.data( ), sz, dst.data( ) );
+        check_bool( "mip downsample uniform", dst[ 0 ] == 0x78563C1Eu && dst[ 7 ] == 0x78563C1Eu );
+        // A ramp 0..7 in R must average to (0+..+7)/8 = 3.5 -> 4 while the
+        // other channels keep their own averages (G: 16..23 -> 19.5 -> 20
+        // half-up; B const; A sums to 2012 -> 251.5 -> 252).
+        std::fill( src.begin( ), src.end( ), 0u );
+        auto set = [ & ]( int x, int y, int z, int r, int g, int b, int a ) {
+            src[ ( z * 4 + y ) * 4 + x ] = static_cast<uint32_t>( r ) | ( static_cast<uint32_t>( g ) << 8 ) |
+                                           ( static_cast<uint32_t>( b ) << 16 ) | ( static_cast<uint32_t>( a ) << 24 );
+        };
+        for ( int i = 0; i < 8; i++ ) {
+            set( i & 1, ( i >> 1 ) & 1, ( i >> 2 ) & 1, i, 16 + i, 200, 255 - i );
+        }
+        light_mip_downsample( src.data( ), sz, dst.data( ) );
+        check_bool( "mip downsample averages + rounds", dst[ 0 ] == ( 4u | ( 20u << 8 ) | ( 200u << 16 ) | ( 252u << 24 ) ) );
+        // All-zero source (deep dark air) -> all-zero mip, and the max
+        // 8*255 sums don't bleed across byte lanes.
+        std::fill( src.begin( ), src.end( ), 0u );
+        light_mip_downsample( src.data( ), sz, dst.data( ) );
+        check_bool( "mip downsample zero", dst[ 0 ] == 0u );
+        std::fill( src.begin( ), src.end( ), 0xFFFFFFFFu );
+        light_mip_downsample( src.data( ), sz, dst.data( ) );
+        check_bool( "mip downsample saturate no lane bleed", dst[ 0 ] == 0xFFFFFFFFu && dst[ 7 ] == 0xFFFFFFFFu );
+    }
     return failures;
 }
 

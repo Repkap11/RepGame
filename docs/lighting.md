@@ -202,6 +202,17 @@ is already cheap — and everything stays inline when no light workers run
 smoothed chunk's first staged full-volume fill lands a few frames later
 (the delta is a few LSB, invisible in the interim).
 
+The level-1 mip (the only mip level sampled — `LIGHT_TEX_MAX_MIP`) is
+computed on CPU wherever the level-0 fill just ran:
+`light_mip_downsample` box-averages each 2x2x2 block of the filled bytes,
+which is what `glGenerateMipmap` produced and also keeps the mip of a
+smoothed fill smoothed. Staged fills append it to the stage buffer; the
+upload pass then emits a second `glTexSubImage3D` at level 1 (or
+`glTexImage3D` at creation in `light_ensure_texture`) instead of a
+per-upload driver mip pass. Upload boxes are even-aligned in
+`light_upload_box` so every mip texel's source block sits wholly inside
+the uploaded region.
+
 Upload-pass budget: READY uploads go first and never count against the
 per-frame cap (they're only the GL call and they free a pool buffer). A
 stage claim is only issued when a pool buffer is free (`light_stage_live`
