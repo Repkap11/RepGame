@@ -1,0 +1,60 @@
+# Sign text: setsign writes through World::set_sign_text, assert_sign
+# reads the per-chunk record back. Standing sign at (4,1,8) faces +z at
+# rotation 0 — camera on the +z side looks back at its front. The wall
+# sign hangs on the +z face of a stone column, same viewing side.
+wait_idle 20 6000
+debug 0
+imgui 0
+setblock 4 1 8 STANDING_SIGN 0
+setblock 8 1 8 STANDING_SIGN 2
+setblock 12 1 8 STONE 0
+setblock 12 2 8 STONE 0
+setblock 12 1 9 WALL_SIGN 0
+wait 30
+assert_block 4 1 8 STANDING_SIGN
+assert_block 12 1 9 WALL_SIGN
+setsign 4 1 8 HELLO WORLD|LINE TWO|line three|LAST LINE
+setsign 8 1 8 ROTATED
+setsign 12 1 9 WALL SIDE|MOUNTED
+assert_sign 4 1 8 HELLO WORLD|LINE TWO|line three|LAST LINE
+assert_sign 8 1 8 ROTATED
+assert_sign 12 1 9 WALL SIDE|MOUNTED
+wait 30
+# Front view from +z looking -z (yaw 0): sign at x=4 faces the camera,
+# x=8 is rotated 180 so its front is hidden, the wall sign reads on the
+# column's +z face.
+camera 8 2.2 13.5 0 -2
+wait 20
+screenshot signs_front
+# Close-up of the standing sign's front: lines are centered on the board.
+camera 4.5 1.9 11.5 8 -2
+wait 20
+screenshot sign_close
+# Close-up of the wall sign on the column's +z face.
+camera 12.5 1.7 12.5 20 -2
+wait 20
+screenshot wall_close
+# The editor path headlessly: signopen -> type/signkey -> signclose
+# commits through the same code the real keyboard drives. The camera is
+# pinned close enough that the reach check doesn't cancel the edit.
+setblock 14 1 9 STANDING_SIGN 0
+wait 10
+signopen 14 1 9
+type FIRST
+wait 1
+signkey enter
+wait 1
+type SECOND LINE
+wait 5
+screenshot sign_editor
+signclose
+assert_sign 14 1 9 FIRST|SECOND LINE
+# Erase path: all-empty text removes the record.
+setsign 8 1 8
+assert_sign 8 1 8
+# Breaking the sign clears its stored text.
+setblock 4 1 8 AIR 0
+wait 30
+assert_block 4 1 8 AIR
+assert_sign 4 1 8
+echo sign_text done

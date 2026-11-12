@@ -69,19 +69,19 @@ void Input::mouseInput( const int button, const int state ) {
         case SDL_BUTTON_LEFT:
             this->mouse.buttons.left = !state;
             this->mouse.buttons.left_click_handled = state;
-            this->mouse.buttons.left_pressed_in_ui = !state && ( this->inventory_open || this->menu_open );
+            this->mouse.buttons.left_pressed_in_ui = !state && ( this->inventory_open || this->menu_open || this->text_input_active );
             // pr_debug( "Left Click %d", !state );
             break;
         case SDL_BUTTON_RIGHT:
             this->mouse.buttons.right = !state;
             this->mouse.buttons.right_click_handled = state;
-            this->mouse.buttons.right_pressed_in_ui = !state && ( this->inventory_open || this->menu_open );
+            this->mouse.buttons.right_pressed_in_ui = !state && ( this->inventory_open || this->menu_open || this->text_input_active );
             // pr_debug( "Right Click %d", !state );
             break;
         case SDL_BUTTON_MIDDLE:
             this->mouse.buttons.middle = !state;
             this->mouse.buttons.middle_click_handled = state;
-            this->mouse.buttons.middle_pressed_in_ui = !state && ( this->inventory_open || this->menu_open );
+            this->mouse.buttons.middle_pressed_in_ui = !state && ( this->inventory_open || this->menu_open || this->text_input_active );
             // pr_debug( "Middle Click %d", !state );
             break;
 
@@ -118,6 +118,28 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             this->screenshot_requested = true;
         } else if ( key == 'c' && this->ctrl_held ) {
             this->exitGame = true;
+        }
+        return;
+    }
+
+    // While the sign editor owns text capture every press is consumed:
+    // printable characters arrive through SDL text events (textInput), and
+    // the keys below queue counters for the sign-edit tick. Unlike
+    // search_focused this also swallows Escape (commit+close) and the
+    // arrows (line navigation) instead of letting them open the menu or
+    // move the player. Releases fall through so held-key flags stay
+    // consistent.
+    if ( pressed && this->text_input_active ) {
+        if ( key == SDLK_BACKSPACE ) {
+            this->text_backspaces++;
+        } else if ( key == SDLK_RETURN || key == SDLK_KP_ENTER ) {
+            this->text_enters++;
+        } else if ( key == SDLK_UP ) {
+            this->text_ups++;
+        } else if ( key == SDLK_DOWN ) {
+            this->text_downs++;
+        } else if ( key == SDLK_ESCAPE ) {
+            this->text_escape = true;
         }
         return;
     }
@@ -319,6 +341,38 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
     }
     processMovement( );
+}
+
+void Input::textInput( const char *utf8 ) {
+    if ( !this->text_input_active || utf8 == nullptr ) {
+        return;
+    }
+    for ( const unsigned char *p = reinterpret_cast<const unsigned char *>( utf8 ); *p != 0 && this->text_chars_len < ( int )sizeof( this->text_chars ); p++ ) {
+        // Printable ASCII only — UTF-8 multibyte bytes (>= 0x80) drop here.
+        if ( *p >= 32 && *p <= 126 ) {
+            this->text_chars[ this->text_chars_len++ ] = static_cast<char>( *p );
+        }
+    }
+}
+
+void Input::text_input_begin( ) {
+    this->text_input_active = true;
+    this->text_chars_len = 0;
+    this->text_backspaces = 0;
+    this->text_enters = 0;
+    this->text_ups = 0;
+    this->text_downs = 0;
+    this->text_escape = false;
+    // Drop held keys so a key held across the open doesn't keep the player
+    // moving while the editor is up.
+    front = back = left = right = up = down = false;
+    this->drop_item_held = false;
+    this->player_sprinting = false;
+    this->processMovement( );
+}
+
+void Input::text_input_end( ) {
+    this->text_input_active = false;
 }
 
 void Input::onMenuClicked( ) {

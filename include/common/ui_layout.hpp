@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "common/sign.hpp" // SIGN_LINES
+
 // Screen-space UI layout: one Clay pass produces every rect the draw and
 // input code reads, replacing per-caller position re-derivation (the
 // source of panel/HUD overlap regressions). Pure geometry — no GL — so
@@ -154,6 +156,16 @@ struct UiLayoutRects {
     float pause_gap = 0;
     int pause_k = 0;
 
+    // Sign editor (modal text capture, centered; always laid out, drawn
+    // only while ui.sign_edit.open). sign_lines[i] is the field band of
+    // line i; sign_hint the "Enter/Esc" footer band. sign_k shares the
+    // pause menu's fit-solved text scale.
+    UiRect sign_panel;
+    UiRect sign_title;
+    UiRect sign_lines[ SIGN_LINES ];
+    UiRect sign_hint;
+    int sign_k = 0;
+
     // Bitmask of UiOverflow — which screens exceeded the viewport this
     // pass. Overflow is possible (a window can be smaller than a screen
     // needs) but inspectable: the draw code still runs, and tests/debug
@@ -172,6 +184,7 @@ enum UiOverflow : unsigned {
     UI_OVERFLOW_CRAFTING3 = 1u << 5,
     UI_OVERFLOW_FURNACE = 1u << 6,
     UI_OVERFLOW_PAUSE = 1u << 7,
+    UI_OVERFLOW_SIGN = 1u << 8,
 };
 
 // 16:9-normalized height basis shared by UI sizing: the UI stays a

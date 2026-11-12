@@ -359,6 +359,41 @@ def wait_cslot(run, c, kind, pos, slot, name=None, count=None, timeout=40, desc=
                % (desc or "container", kind, slot, name, count, detail))
 
 
+def signprobe(c, x, y, z, timeout=8):
+    """Issue one signprobe and poll for the matching event; returns the
+    newest detail for this pos, or None on timeout."""
+    base = len(c.dump.events)
+    c.cmd("signprobe %d %d %d" % (x, y, z))
+    end = time.time() + timeout
+    while time.time() < end:
+        c.dump.poll()
+        hits = [e for e in c.dump.events[base:]
+                if e.get("name") == "signprobe"
+                and e.get("detail", {}).get("pos") == [x, y, z]]
+        if hits:
+            return hits[-1]["detail"]
+        time.sleep(0.05)
+    return None
+
+
+def wait_sign(run, c, pos, lines, timeout=40, desc=None):
+    """Re-probe until the sign's stored lines equal `lines` ('|'-joined;
+    "" means no record or an all-empty one). Returns the detail."""
+    # signprobe always joins all four lines, so pad expected with empties.
+    want = "|".join((lines.split("|") + ["", "", "", ""])[:4]) if lines else ""
+    deadline = time.time() + timeout
+    detail = None
+    while time.time() < deadline:
+        detail = signprobe(c, *pos, timeout=8)
+        if detail is not None:
+            got = detail.get("lines", "") if detail.get("has", 0) else ""
+            if got.rstrip("|") == want.rstrip("|"):
+                return detail
+        time.sleep(0.4)
+    raise Fail("timeout waiting for sign %s lines = %r (last=%s)"
+               % (desc or "", lines, detail))
+
+
 def wait_block(run, c, x, y, z, name, timeout=60):
     """Re-probe until the block at pos reports `name`."""
     deadline = time.time() + timeout
@@ -1155,6 +1190,43 @@ def sc_containers(run, A, B):
         raise Fail("persisted furnace lost its burn: aux=%s" % dd.get("aux"))
 
 
+def sc_sign_text(run, A, B):
+    """Sign front text: an editor commit on one client relays through the
+    server to nearby viewers and to late joiners via the chunk-request
+    sync; breaking the sign clears the record everywhere."""
+    gy = settle(run, A, B)
+    sx, sy, sz = 135, gy, 10  # chunk 2 — inside both clients' view radii
+
+    A.cmd("setblock %d %d %d STONE" % (sx, sy - 1, sz))
+    A.cmd("setblock %d %d %d STANDING_SIGN" % (sx, sy, sz))
+    wait_block(run, A, sx, sy, sz, "STANDING_SIGN")
+    wait_block(run, B, sx, sy, sz, "STANDING_SIGN")
+
+    # A edits through the real open/type/commit path; the server accepts,
+    # stores, and broadcasts — B applies the echo (no record until then).
+    A.cmd("signedit %d %d %d HELLO WORLD|FROM CLIENT A" % (sx, sy, sz))
+    wait_sign(run, A, (sx, sy, sz), "HELLO WORLD|FROM CLIENT A",
+              desc="A committed text")
+    wait_sign(run, B, (sx, sy, sz), "HELLO WORLD|FROM CLIENT A",
+              desc="B sees the broadcast")
+
+    # A late joiner gets the stored text with its chunk-request sync.
+    C = run.client("C", (140.0, 90.0, 10.0))
+    run.wait_ready(C)
+    wait_block(run, C, sx, sy, sz, "STANDING_SIGN")
+    wait_sign(run, C, (sx, sy, sz), "HELLO WORLD|FROM CLIENT A",
+              desc="late joiner gets stored text")
+
+    # Editing again overwrites on every client.
+    B.cmd("signedit %d %d %d SECOND|EDIT|BY B" % (sx, sy, sz))
+    wait_sign(run, A, (sx, sy, sz), "SECOND|EDIT|BY B", desc="A sees B's edit")
+
+    # Breaking the sign clears the record on other clients too.
+    A.cmd("setblock %d %d %d AIR" % (sx, sy, sz))
+    wait_block(run, B, sx, sy, sz, "AIR")
+    wait_sign(run, B, (sx, sy, sz), "", desc="break clears text")
+
+
 def sc_disconnect_cleanup(run, A, B):
     gy = settle(run, A, B)
     A.cmd("drop DIRT 1 10.5 %d 10.5" % gy)
@@ -1288,6 +1360,7 @@ SCENARIOS = [
     ("first_view_correct", sc_first_view_correct),
     ("avatar_at_mob_cap", sc_avatar_at_mob_cap),
     ("containers", sc_containers),
+    ("sign_text", sc_sign_text),
 ]
 
 

@@ -310,6 +310,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.ui.pause.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.ui.imgui );
     globalGameState.ui.font.init( );
+    globalGameState.world.init_sign_text( globalGameState.ui.font );
     globalGameState.ui.layout.init( globalGameState.ui.font );
 
     ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );

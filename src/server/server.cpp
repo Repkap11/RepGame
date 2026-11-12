@@ -420,13 +420,13 @@ void Server::serve( ) {
                 size_t file_index[ MAP_FILE_KIND_COUNT ];
                 this->server_logic.fileIndexCounts( file_index );
                 mpload_tracef( "srv_mem rss_kb=%ld world_cache=%zu dirty_cells=%zu "
-                               "file_index=%zu/%zu/%zu/%zu/%zu diff_cache=%zu/%zuB "
+                               "file_index=%zu/%zu/%zu/%zu/%zu/%zu diff_cache=%zu/%zuB "
                                "diff_cache_hits=%zu diff_cache_misses=%zu diff_cache_evict=%zu",
                                rss_kb, this->server_logic.worldCacheChunks( ),
                                this->server_logic.worldCacheDirtyCells( ),
                                file_index[ MAP_FILE_CHUNK ], file_index[ MAP_FILE_MOBS ],
                                file_index[ MAP_FILE_ITEMS ], file_index[ MAP_FILE_CHEST ],
-                               file_index[ MAP_FILE_FURNACE ],
+                               file_index[ MAP_FILE_FURNACE ], file_index[ MAP_FILE_SIGN ],
                                this->server_logic.diffCacheEntries( ),
                                this->server_logic.diffCacheBytes( ),
                                this->server_logic.diffCacheHits( ),

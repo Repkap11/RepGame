@@ -107,6 +107,9 @@ class UIOverlay {
     // the layout pass's backdrop rect; call before draw() so the panels
     // and the inventory slab composite inside it.
     void draw_panel_backdrop( const UiRect &rect, const Renderer &renderer, const glm::mat4 &mvp_ui );
+    // Same flat quad with explicit tint and z-order — for overlays that
+    // aren't the container backdrops (sign editor fields).
+    void draw_ui_quad( const UiRect &rect, const float tint[ 4 ], float z, const Renderer &renderer, const glm::mat4 &mvp_ui );
     void draw_held_inventory_item( const InventorySlot &held, bool is_holding, int mouse_x, int mouse_y, int block_size, int cell_size, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui );
     // Heart containers + full/half hearts left-aligned, air bubbles
     // right-aligned while air is below max (underwater). `row` is the

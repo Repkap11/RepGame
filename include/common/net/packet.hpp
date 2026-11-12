@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "common/container.hpp"
+#include "common/sign.hpp"
 
 // CHUNK_BLOCK_SIZE is defined in chunk.hpp as (CHUNK_SIZE_INTERNAL_X *
 // CHUNK_SIZE_INTERNAL_Y * CHUNK_SIZE_INTERNAL_Z) = 34*34*34 = 39304. We avoid
@@ -26,7 +27,7 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
-static constexpr uint8_t NET_PROTOCOL_VERSION = 12;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 13;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB
@@ -66,10 +67,11 @@ enum class NetMsgType : uint8_t {
     CONTAINER_CLOSE = 30,
     CONTAINER_CONTENTS = 31,
     CONTAINER_SET_SLOT = 32,
+    SIGN_TEXT = 33,
 };
 // One past the highest NetMsgType value; the codec table (below) has exactly
 // this many rows, one per wire id.
-static constexpr int NET_MSG_TYPE_COUNT = 33;
+static constexpr int NET_MSG_TYPE_COUNT = 34;
 
 // NetCodec<P>: compile-time map from a payload struct to its wire codec.
 // Specializations are declared next to the registry at the bottom of this
@@ -579,6 +581,23 @@ struct NetChunkPopulatedPayload {
 void net_serialize_chunk_populated( PacketWriter &w, const NetChunkPopulatedPayload &p );
 bool net_deserialize_chunk_populated( PacketReader &r, NetChunkPopulatedPayload &p );
 
+// SIGN_TEXT (both directions): the front text of one sign block.
+// client->server is an edit request: the server checks the recorded block
+// is a sign, sanitizes, stores, and broadcasts the stored text to every
+// client (the sender included) so all end up with the server's copy.
+// server->client carries stored text — on a broadcast after an edit, and
+// once per sign in each CHUNK_DIFF_REQUEST response for later joiners.
+// All-empty lines mean "no text" and clear the record.
+// Wire: i32 x,y,z then SIGN_LINES x (u8 len, len bytes). A len over
+// SIGN_LINE_MAX fails the decode; non-printable bytes are sanitized by the
+// applier (client) / rejected by the server, not by the codec.
+struct NetSignTextPayload {
+    int32_t x, y, z;
+    SignText text;
+};
+void net_serialize_sign_text( PacketWriter &w, const NetSignTextPayload &p );
+bool net_deserialize_sign_text( PacketReader &r, NetSignTextPayload &p );
+
 // ---------------------------------------------------------------------------
 // Codec registry.
 //
@@ -701,6 +720,11 @@ template <> struct NetCodec<NetChunkPopulatedPayload> {
     static void ser( PacketWriter &w, const NetChunkPopulatedPayload &p ) { net_serialize_chunk_populated( w, p ); }
     static bool de( PacketReader &r, NetChunkPopulatedPayload &p ) { return net_deserialize_chunk_populated( r, p ); }
     static void fill( NetChunkPopulatedPayload &p );
+};
+template <> struct NetCodec<NetSignTextPayload> {
+    static void ser( PacketWriter &w, const NetSignTextPayload &p ) { net_serialize_sign_text( w, p ); }
+    static bool de( PacketReader &r, NetSignTextPayload &p ) { return net_deserialize_sign_text( r, p ); }
+    static void fill( NetSignTextPayload &p );
 };
 
 // One codec-table row. make/destroy/ser/de are null for payloadless and

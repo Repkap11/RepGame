@@ -193,6 +193,37 @@ bool last_container_contents( const std::vector<ReceivedFrame> &frames, const gl
     return found;
 }
 
+// ---- sign-text helpers ------------------------------------------------------
+
+void send_sign_text( Server &server, SimClient &c, const glm::ivec3 &pos, const SignText &text ) {
+    NetSignTextPayload p;
+    p.x = pos.x;
+    p.y = pos.y;
+    p.z = pos.z;
+    p.text = text;
+    PacketWriter w;
+    net_serialize_sign_text( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::SIGN_TEXT, 0, w.buf( ) );
+}
+
+// The last SIGN_TEXT the client received for `pos` (deserialized); false
+// when none.
+bool last_sign_text( const std::vector<ReceivedFrame> &frames, const glm::ivec3 &pos, NetSignTextPayload &out ) {
+    bool found = false;
+    for ( const ReceivedFrame &f : frames ) {
+        if ( f.type != NetMsgType::SIGN_TEXT ) {
+            continue;
+        }
+        PacketReader r( f.payload.data( ), f.payload.size( ) );
+        NetSignTextPayload p;
+        if ( net_deserialize_sign_text( r, p ) && glm::ivec3( p.x, p.y, p.z ) == pos ) {
+            out = std::move( p );
+            found = true;
+        }
+    }
+    return found;
+}
+
 // Checks that `peer` received a forwarded BLOCK_UPDATE for (pos, state).
 void expect_forwarded( Server &server, SimClient &peer, int from_fd, const glm::ivec3 &pos, const BlockState &want ) {
     int found = 0;
@@ -1487,6 +1518,96 @@ int server_selftest( ) {
                    "container: furnace contents persist across sessions (still burning)" );
         }
         disconnect_client( server, cc );
+    }
+
+    // === Sign text: SIGN_TEXT both directions. Edits validate against the
+    // recorded block, sanitize, store, and broadcast to every client;
+    // chunk-diff requests re-sync the stored text; a break clears and
+    // re-broadcasts; the sidecar persists across cache eviction.
+    {
+        SimClient sa = connect_client( server );
+        SimClient sb = connect_client( server );
+        drain_client( server, sa );
+        drain_client( server, sb );
+        ServerSigns &ss = server.test_logic( ).test_signs( );
+        const glm::ivec3 sign_pos( 30, 40, 20 );
+        const glm::ivec3 sign_chunk = glm::floor( glm::vec3( sign_pos ) / CHUNK_SIZE_F );
+
+        // Text for a cell with no recorded sign is rejected silently.
+        SignText early;
+        early.lines[ 0 ] = "TOO EARLY";
+        send_sign_text( server, sa, sign_pos, early );
+        check( ss.find( sign_pos ) == nullptr, "sign: non-sign cell rejects text" );
+
+        // The server learns the sign block via BLOCK_UPDATE.
+        send_block_update( server, sa, sign_pos, BlockState{ STANDING_SIGN, 0, 0, STANDING_SIGN, 0 } );
+        drain_client( server, sa );
+        drain_client( server, sb );
+
+        // An edit stores the sanitized text and broadcasts to both
+        // clients — the sender gets the same authoritative echo.
+        SignText text;
+        text.lines[ 0 ] = "HI\xff THERE"; // \xff must not survive
+        text.lines[ 1 ] = "SECOND LINE";
+        send_sign_text( server, sa, sign_pos, text );
+        const SignText *stored = ss.find( sign_pos );
+        check( stored != nullptr && stored->lines[ 0 ] == "HI THERE" && stored->lines[ 1 ] == "SECOND LINE",
+               "sign: edit stored sanitized" );
+        {
+            NetSignTextPayload p;
+            check( last_sign_text( drain_client( server, sa ), sign_pos, p ) && p.text.lines[ 0 ] == "HI THERE",
+                   "sign: writer gets authoritative echo" );
+            check( last_sign_text( drain_client( server, sb ), sign_pos, p ) && p.text.lines[ 0 ] == "HI THERE" &&
+                       p.text.lines[ 1 ] == "SECOND LINE",
+                   "sign: broadcast reaches other client" );
+        }
+
+        // The chunk-diff path re-sends stored text — what a late joiner
+        // sees when it requests the chunk.
+        send_diff_request( server, sb, sign_chunk, 1, 1, 1 );
+        {
+            NetSignTextPayload p;
+            check( last_sign_text( drain_client( server, sb ), sign_pos, p ) && p.text.lines[ 1 ] == "SECOND LINE",
+                   "sign: diff request re-syncs stored text" );
+        }
+
+        // All-empty text erases the record and broadcasts the clear.
+        send_sign_text( server, sb, sign_pos, SignText{ } );
+        check( ss.find( sign_pos ) == nullptr, "sign: empty edit erases record" );
+        {
+            NetSignTextPayload p;
+            check( last_sign_text( drain_client( server, sa ), sign_pos, p ) && p.text.empty( ),
+                   "sign: erase broadcast as empty lines" );
+        }
+        drain_client( server, sb );
+
+        // Re-edit, then breaking the block clears and re-broadcasts.
+        send_sign_text( server, sa, sign_pos, text );
+        drain_client( server, sa );
+        send_block_update( server, sa, sign_pos, BLOCK_STATE_AIR );
+        check( ss.find( sign_pos ) == nullptr, "sign: break clears server record" );
+        {
+            NetSignTextPayload p;
+            check( last_sign_text( drain_client( server, sb ), sign_pos, p ) && p.text.empty( ),
+                   "sign: break broadcasts the clear" );
+        }
+
+        // Persistence: a fresh sign + text, then flush + evict drops the
+        // cache; the next chunk request reloads from the side file.
+        send_block_update( server, sa, sign_pos, BlockState{ STANDING_SIGN, 0, 0, STANDING_SIGN, 0 } );
+        send_sign_text( server, sa, sign_pos, text );
+        server.test_logic( ).flushAll( );
+        ss.evict_chunk( sign_chunk );
+        check( ss.find( sign_pos ) == nullptr, "sign: cache evicted after persist" );
+        send_diff_request( server, sb, sign_chunk, 1, 1, 1 );
+        {
+            NetSignTextPayload p;
+            check( last_sign_text( drain_client( server, sb ), sign_pos, p ) && p.text.lines[ 0 ] == "HI THERE",
+                   "sign: text survives persist + reload" );
+        }
+
+        disconnect_client( server, sa );
+        disconnect_client( server, sb );
     }
 
     // === FramedSocket: pop_send_frame returns frames in send order, and

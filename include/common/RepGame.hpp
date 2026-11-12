@@ -217,3 +217,21 @@ void repgame_tick_vitals( RepGameState &state );
 // Death-screen Respawn (the body of RepGame::respawn): full vitals, menu
 // closed, player back on the world-spawn column — inventory kept.
 void repgame_respawn( RepGameState &state );
+
+// Sign editor (src/common/game/sign_edit.cpp): modal four-line text box
+// opened by placing or right-clicking a standing/wall sign. Free functions
+// so rep_tests and the harness can drive them.
+void repgame_open_sign_editor( RepGameState &state, const glm::ivec3 &pos );
+// commit=false discards the edit (broken sign, unloaded chunk, out of
+// reach); commit=true writes it through World::set_sign_text (+ a
+// SIGN_TEXT message when connected).
+void repgame_close_sign_editor( RepGameState &state, bool commit );
+void repgame_commit_sign_edit( RepGameState &state );
+// tick() phase: drains the Input text counters and applies the close
+// checks (Escape/Enter handled inside sign_edit_apply_input).
+void repgame_tick_sign_editor( RepGameState &state );
+// Pure editor key handling — returns true when the edit should commit and
+// close (Enter on the last line or Escape). rep_tests drive it directly.
+bool sign_edit_apply_input( SignEditUi &edit, const Input &in );
+// The editor panel draw — called from draw_ui_pass in the menu layer.
+void repgame_draw_sign_editor( RepGameState &state, const Renderer &renderer, Shader &shader, FontRenderer &font, const glm::mat4 &mvp_ui );

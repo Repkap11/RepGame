@@ -5,6 +5,17 @@
 #include "binary_blobs.hpp"
 #include "common/vendor/stb_truetype.hpp"
 
+// One glyph quad in pen space for callers that place text themselves
+// (world-space sign text): x advances left-to-right in raster texels, y is
+// up with the pen baseline at 0. UVs carry the same flipped-v convention
+// as text_append_slice.
+struct FontGlyphQuad {
+    float x0, x1;       // pen-space x extents
+    float y_top, y_bot; // glyph top/bottom above and below the baseline
+    float s0, s1;       // atlas u at the left/right edges
+    float t_bot, t_top; // atlas v at the glyph bottom/top edges
+};
+
 // Per-glyph metrics stored after rasterizing the font atlas.
 struct GlyphInfo {
     float x0, y0; // top-left UV in atlas
@@ -81,6 +92,16 @@ class FontRenderer {
     float getTextWidthSlice( const char *text, int len, float size ) const;
     // Width + line-box height of a slice — the Clay MeasureText shape.
     void measureSlice( const char *text, int len, float size, float &out_w, float &out_h ) const;
+    // Layout `text` like text_append_slice but into pen-space glyph quads:
+    // no pixel snap, no GL state, no batch. Sizes at raster_size() are
+    // native atlas texels; the caller scales them into its own space.
+    // Writes at most `max` quads, returns the count.
+    int glyph_quads( const char *text, int len, FontGlyphQuad *out, int max ) const;
+    // Native raster size (the texel unit glyph_quads/getTextWidth emit).
+    float raster_size( ) const;
+    // The font atlas GL texture (alpha channel is the glyph mask), for
+    // passes that draw the glyphs through their own shader.
+    unsigned int atlas_texture( ) const;
     float getAscent( float size ) const;
     float getDescent( float size ) const;
     // Capital-letter height (top of 'H' above baseline) at the snapped scale;

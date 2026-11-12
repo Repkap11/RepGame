@@ -247,6 +247,46 @@ float FontRenderer::getTextWidth( const char *text, float size ) const {
     return this->getTextWidthSlice( text, static_cast<int>( strlen( text ) ), size );
 }
 
+int FontRenderer::glyph_quads( const char *text, int len, FontGlyphQuad *out, int max ) const {
+    float pen_x = 0;
+    float pen_y = 0;
+    int n = 0;
+    // Same pen walk as text_append_slice: proportional advances with the
+    // ink-shifted quad, but corners stay in unscaled raster texels.
+    for ( const char *p = text, *end = text + len; p < end && *p && n < max; p++ ) {
+        const int codepoint = static_cast<unsigned char>( *p );
+        if ( codepoint < first_char || codepoint >= first_char + num_chars ) {
+            continue;
+        }
+        const int cur_idx = codepoint - first_char;
+        stbtt_aligned_quad q;
+        const float pen_start = pen_x;
+        stbtt_GetPackedQuad( glyphs, atlas_width, atlas_height, cur_idx, &pen_x, &pen_y, &q, 1 );
+        q.x0 += this->glyph_shift[ cur_idx ];
+        q.x1 += this->glyph_shift[ cur_idx ];
+        pen_x = pen_start + this->glyph_advance[ cur_idx ];
+        FontGlyphQuad &g = out[ n++ ];
+        g.x0 = q.x0;
+        g.x1 = q.x1;
+        // stbtt is y-down (y0 = top, above the pen); pen space here is y-up.
+        g.y_top = -q.y0;
+        g.y_bot = -q.y1;
+        g.s0 = q.s0;
+        g.s1 = q.s1;
+        g.t_top = q.t0;
+        g.t_bot = q.t1;
+    }
+    return n;
+}
+
+float FontRenderer::raster_size( ) const {
+    return this->font_size;
+}
+
+unsigned int FontRenderer::atlas_texture( ) const {
+    return this->atlas_texture_id;
+}
+
 void FontRenderer::measureSlice( const char *text, int len, float size, float &out_w, float &out_h ) const {
     out_w = this->getTextWidthSlice( text, len, size );
     out_h = this->getAscent( size ) - this->getDescent( size );

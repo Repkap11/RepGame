@@ -31,7 +31,7 @@ bool RepGame::shouldExit( ) const {
 }
 
 bool RepGame::should_lock_pointer( ) const {
-    return !run_policy().capture.enabled && !globalGameState.input.inventory_open && !globalGameState.input.menu_open;
+    return !run_policy().capture.enabled && !globalGameState.input.inventory_open && !globalGameState.input.menu_open && !globalGameState.input.text_input_active;
 }
 
 void RepGame::changeSize( const int w, const int h ) {

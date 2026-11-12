@@ -57,6 +57,10 @@ class Multiplayer {
     // finished for that chunk. Keyed by chunk_pos; applied when the chunk
     // finishes loading in ChunkLoader::render_chunks.
     std::map<glm::ivec3, NetChunkDiffResultPayload, Compare_I_Vec3> pending_diffs;
+    // Same staging for SIGN_TEXT: the server's per-chunk sign frames can
+    // arrive while the chunk is still generating. Entries that name a
+    // non-sign cell (stale race with a break) are dropped at apply time.
+    std::map<glm::ivec3, std::vector<NetSignTextPayload>, Compare_I_Vec3> pending_signs;
 
     void connect_async( const std::string &hostname );
 
@@ -84,6 +88,10 @@ class Multiplayer {
     // Send a world-time set request to the server (PageUp/PgDn skips). The
     // server adopts the value and broadcasts it back to all clients.
     void send_world_time( long world_time );
+    // Send a sign-text edit request. The server validates/sanitizes/stores
+    // and broadcasts the stored text back (the sender included), so the
+    // commit path also applies locally for immediate feedback.
+    void send_sign_text( const glm::ivec3 &pos, const SignText &text );
     // Entity sync hub (server arbitrates, owner client simulates). Bound to
     // this Multiplayer at construction; NetEntities::handle is called from
     // handle_frame for the entity-protocol message types.
@@ -140,4 +148,8 @@ class Multiplayer {
     // finishes loading; boundary cells are mirrored into loaded neighbors
     // via chunkLoader.apply_diff_block. Returns true when an entry existed.
     bool apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk );
+    // Same drain for queued SIGN_TEXT frames: writes straight into the
+    // chunk's sign map (text whose cell isn't a sign block is dropped —
+    // a break/edit race resolved in the server's favour).
+    bool apply_pending_signs( Chunk &chunk );
 };

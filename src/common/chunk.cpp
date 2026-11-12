@@ -349,6 +349,8 @@ void Chunk::release_terrain( ) {
     this->containers.chests_loaded = 0;
     this->containers.furnaces.clear( );
     this->containers.furnaces_loaded = 0;
+    this->containers.signs.clear( );
+    this->containers.signs_loaded = 0;
     this->sidecars.mobs.clear( );
     this->sidecars.mobs_file_present = 0;
     this->sidecars.mobs_spawned = 0;
@@ -479,6 +481,9 @@ void Chunk::set_block( const glm::ivec3 &pos, const BlockState &blockState ) con
     if ( block_is_furnace( old_state.id ) && !block_is_furnace( blockState.id ) ) {
         this->containers.furnaces.erase( index );
     }
+    if ( block_is_sign( old_state.id ) && !block_is_sign( blockState.id ) ) {
+        this->containers.signs.erase( index );
+    }
     this->store_state( index, block_state_normalize( old_state, blockState ) );
     light_air_mask_set( *this, index, this->id_at( index ) );
     this->mark_edited( index );
@@ -519,6 +524,9 @@ int Chunk::set_block_by_index_if_different( int index, const BlockState *blockSt
     }
     if ( block_is_furnace( oldBlockState.id ) && !block_is_furnace( blockState->id ) ) {
         this->containers.furnaces.erase( index );
+    }
+    if ( block_is_sign( oldBlockState.id ) && !block_is_sign( blockState->id ) ) {
+        this->containers.signs.erase( index );
     }
     this->store_state( index, *blockState );
     light_air_mask_set( *this, index, blockState->id );
@@ -988,6 +996,9 @@ apply_edits:
                     if ( block_is_furnace( old_state.id ) && !block_is_furnace( run.state.id ) ) {
                         this->containers.furnaces.erase( i );
                     }
+                    if ( block_is_sign( old_state.id ) && !block_is_sign( run.state.id ) ) {
+                        this->containers.signs.erase( i );
+                    }
                     this->store_state( i, run.state );
                     light_air_mask_set( *this, i, run.state.id );
                 }
@@ -1045,6 +1056,26 @@ apply_edits:
             continue;
         }
         this->containers.furnaces[ Chunk::get_index_from_coords( diff ) ] = pair.second;
+    }
+    // Sign text: same sidecar pattern, loaded after the block edits above
+    // so records over cells that are no longer signs drop here.
+    this->containers.signs.clear( );
+    SignTextMap sign_world_map;
+    this->containers.signs_loaded = map_storage.load_signs( this->chunk_pos, sign_world_map ) ? 1 : 0;
+    for ( const auto &pair : sign_world_map ) {
+        const glm::ivec3 diff = pair.first - this->chunk_pos * CHUNK_SIZE_I;
+        // Entries must fall inside this chunk (file corruption guard).
+        if ( diff.x < 0 || diff.x >= CHUNK_SIZE_X || diff.y < 0 || diff.y >= CHUNK_SIZE_Y || diff.z < 0 || diff.z >= CHUNK_SIZE_Z ) {
+            continue;
+        }
+        const int index = Chunk::get_index_from_coords( diff );
+        if ( this->cells == nullptr || !block_is_sign( this->id_at( index ) ) ) {
+            continue;
+        }
+        if ( pair.second.empty( ) ) {
+            continue;
+        }
+        this->containers.signs[ index ] = pair.second;
     }
     // Mob sidecar (same pattern as chests): file records load first, then the
     // deterministic natural roll always runs — pristine naturals are never

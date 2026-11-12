@@ -63,6 +63,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( net_bodies ),         //
     MK_TEST( arrows ),             //
     MK_TEST( net_multiplayer_mode ), //
+    MK_TEST( signs ),             //
     MK_TEST( crafting ),         //
     MK_TEST( results ),          //
     MK_TEST( script ),          //

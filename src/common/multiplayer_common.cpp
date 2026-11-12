@@ -164,6 +164,23 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             state.world_time = static_cast<long>( p.world_time );
             break;
         }
+        case NetMsgType::SIGN_TEXT: {
+            NetSignTextPayload p;
+            if ( !net_deserialize_sign_text( r, p ) ) {
+                pr_debug( "Malformed SIGN_TEXT, skipping" );
+                return;
+            }
+            const glm::ivec3 pos( p.x, p.y, p.z );
+            const glm::ivec3 chunk_pos = glm::floor( glm::vec3( pos ) / CHUNK_SIZE_F );
+            Chunk *chunk_prt = world.chunkLoader.get_chunk( chunk_pos );
+            if ( chunk_prt == nullptr || chunk_prt->load_state ) {
+                // Terrain still generating — stage for the chunk's finalize.
+                this->pending_signs[ chunk_pos ].push_back( p );
+                return;
+            }
+            world.set_sign_text_from_net( pos, p.text );
+            break;
+        }
         default: {
             pr_debug( "Saw unexpected packet type:%d from:%d", static_cast<int>( type ), player_id );
             break;
@@ -250,6 +267,15 @@ void Multiplayer::send_world_time( long world_time ) {
     this->send( NetMsgType::WORLD_TIME, p );
 }
 
+void Multiplayer::send_sign_text( const glm::ivec3 &pos, const SignText &text ) {
+    NetSignTextPayload p;
+    p.x = pos.x;
+    p.y = pos.y;
+    p.z = pos.z;
+    p.text = text;
+    this->send( NetMsgType::SIGN_TEXT, p );
+}
+
 void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {
     glm::ivec3 chunk_pos = glm::ivec3( diff.chunk_x, diff.chunk_y, diff.chunk_z );
     // If a diff for this chunk is already pending (e.g. server sent two
@@ -285,5 +311,33 @@ bool Multiplayer::apply_pending_diffs( ChunkLoader &chunkLoader, Chunk &chunk ) 
         chunkLoader.apply_diff_block( chunk, static_cast<int>( entry.blocks_index ), &entry.blockState );
     }
     this->pending_diffs.erase( it );
+    return true;
+}
+
+bool Multiplayer::apply_pending_signs( Chunk &chunk ) {
+    auto it = this->pending_signs.find( chunk.chunk_pos );
+    if ( it == this->pending_signs.end( ) ) {
+        return false;
+    }
+    chunk.containers.signs_loaded = 1;
+    const glm::ivec3 base = chunk.chunk_pos * CHUNK_SIZE_I;
+    for ( const NetSignTextPayload &p : it->second ) {
+        const glm::ivec3 diff = glm::ivec3( p.x, p.y, p.z ) - base;
+        if ( diff.x < 0 || diff.x >= CHUNK_SIZE_X || diff.y < 0 || diff.y >= CHUNK_SIZE_Y || diff.z < 0 || diff.z >= CHUNK_SIZE_Z ) {
+            continue;
+        }
+        const int index = Chunk::get_index_from_coords( diff );
+        // A text for a cell that isn't a sign (edit vs break race) is
+        // stale — the server's record has already moved on, so drop it.
+        if ( !block_is_sign( chunk.state_at( index ).id ) ) {
+            continue;
+        }
+        if ( p.text.empty( ) ) {
+            chunk.containers.signs.erase( index );
+        } else {
+            chunk.containers.signs[ index ] = p.text;
+        }
+    }
+    this->pending_signs.erase( it );
     return true;
 }

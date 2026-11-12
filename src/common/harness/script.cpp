@@ -16,6 +16,7 @@
 #include "common/harness/results.hpp"
 #include "common/harness/run_policy.hpp"
 #include "common/item.hpp"
+#include "common/sign.hpp"
 #include "common/Logging.hpp"
 #include "common/mobs.hpp"
 
@@ -350,6 +351,14 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         state.input.inventory_open = atoi( argv[ 1 ].c_str( ) ) != 0;
         return false;
     }
+    if ( strcmp( cmd, "debug" ) == 0 && argc == 2 ) {
+        state.input.debug_mode = atoi( argv[ 1 ].c_str( ) ) != 0;
+        return false;
+    }
+    if ( strcmp( cmd, "imgui" ) == 0 && argc == 2 ) {
+        state.ui.imgui.shown = atoi( argv[ 1 ].c_str( ) ) != 0;
+        return false;
+    }
     if ( strcmp( cmd, "menu" ) == 0 && argc == 2 ) {
         state.input.menu_open = atoi( argv[ 1 ].c_str( ) ) != 0;
         return false;
@@ -473,6 +482,107 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         snprintf( want, sizeof( want ), "%s %s", argv[ 5 ].c_str( ), argv[ 6 ].c_str( ) );
         const bool ok = bs.id != LAST_BLOCK_ID && script::eval_cmp( argv[ 5 ].c_str( ), level, expected );
         results::assert_( state, line, argv[ 0 ].c_str( ), ok, want, actual );
+        return false;
+    }
+    // setsign x y z line1|line2|... — write a sign's stored text directly,
+    // bypassing the editor. Args after z join with spaces so a line can
+    // contain them; '|' splits lines (max SIGN_LINES).
+    if ( strcmp( cmd, "setsign" ) == 0 && argc >= 4 ) {
+        const glm::ivec3 pos( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) );
+        std::string joined;
+        for ( size_t i = 4; i < argc; i++ ) {
+            joined += i == 4 ? "" : " ";
+            joined += argv[ i ];
+        }
+        SignText text;
+        size_t start = 0;
+        for ( int li = 0; li < SIGN_LINES && start <= joined.size( ); li++ ) {
+            const size_t bar = joined.find( '|', start );
+            text.lines[ li ] = joined.substr( start, bar == std::string::npos ? std::string::npos : bar - start );
+            if ( bar == std::string::npos ) {
+                break;
+            }
+            start = bar + 1;
+        }
+        if ( !state.world.set_sign_text( pos, text ) ) {
+            cmd_error( state, line, "setsign: not a sign or chunk unloaded" );
+        }
+        return false;
+    }
+    // assert_sign x y z [line1|line2|...] — the stored text matches; a
+    // missing text arg expects no record at all.
+    if ( strcmp( cmd, "assert_sign" ) == 0 && argc >= 4 ) {
+        const glm::ivec3 pos( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) );
+        std::string joined;
+        for ( size_t i = 4; i < argc; i++ ) {
+            joined += i == 4 ? "" : " ";
+            joined += argv[ i ];
+        }
+        SignText want;
+        size_t start = 0;
+        for ( int li = 0; li < SIGN_LINES && start <= joined.size( ); li++ ) {
+            const size_t bar = joined.find( '|', start );
+            want.lines[ li ] = joined.substr( start, bar == std::string::npos ? std::string::npos : bar - start );
+            if ( bar == std::string::npos ) {
+                break;
+            }
+            start = bar + 1;
+        }
+        const SignText *got = state.world.get_sign_text( pos );
+        const bool ok = want.empty( ) ? ( got == nullptr || got->empty( ) )
+                                     : ( got != nullptr && got->lines == want.lines );
+        char actual[ 128 ];
+        if ( got == nullptr ) {
+            snprintf( actual, sizeof( actual ), "no record" );
+        } else {
+            std::string a;
+            for ( int li = 0; li < SIGN_LINES; li++ ) {
+                a += li ? "|" : "";
+                a += got->lines[ li ];
+            }
+            snprintf( actual, sizeof( actual ), "%s", a.c_str( ) );
+        }
+        results::assert_( state, line, argv[ 0 ].c_str( ), ok, joined.c_str( ), actual );
+        return false;
+    }
+    // signopen x y z / signclose — the editor's real open and commit paths.
+    if ( strcmp( cmd, "signopen" ) == 0 && argc == 4 ) {
+        repgame_open_sign_editor( state, glm::ivec3( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) ) );
+        return false;
+    }
+    if ( strcmp( cmd, "signclose" ) == 0 && argc == 1 ) {
+        repgame_close_sign_editor( state, true );
+        return false;
+    }
+    // type text... — queue printable chars on the editor's active line
+    // like SDL text input events (joins args with spaces).
+    if ( strcmp( cmd, "type" ) == 0 && argc >= 2 ) {
+        for ( size_t i = 1; i < argc; i++ ) {
+            if ( i > 1 && state.input.text_chars_len < ( int )sizeof( state.input.text_chars ) ) {
+                state.input.text_chars[ state.input.text_chars_len++ ] = ' ';
+            }
+            for ( const char *p = argv[ i ].c_str( ); *p && state.input.text_chars_len < ( int )sizeof( state.input.text_chars ); p++ ) {
+                state.input.text_chars[ state.input.text_chars_len++ ] = *p;
+            }
+        }
+        return false;
+    }
+    // signkey enter|backspace|up|down|escape — one editor key press.
+    if ( strcmp( cmd, "signkey" ) == 0 && argc == 2 ) {
+        const char *k = argv[ 1 ].c_str( );
+        if ( strcmp( k, "enter" ) == 0 ) {
+            state.input.text_enters++;
+        } else if ( strcmp( k, "backspace" ) == 0 ) {
+            state.input.text_backspaces++;
+        } else if ( strcmp( k, "up" ) == 0 ) {
+            state.input.text_ups++;
+        } else if ( strcmp( k, "down" ) == 0 ) {
+            state.input.text_downs++;
+        } else if ( strcmp( k, "escape" ) == 0 ) {
+            state.input.text_escape = true;
+        } else {
+            cmd_error( state, line, "signkey: want enter|backspace|up|down|escape" );
+        }
         return false;
     }
     // cset kind x y z slot item count — optimistic container write (works

@@ -264,7 +264,10 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     process_chunk_position( chunk, center_next, 1 );
     // Apply any chunk diffs that arrived from the server before this chunk's
     // terrain gen finished (Phase 2 eager requests).
-    const bool had_pending = multiplayer.apply_pending_diffs( *this, chunk );
+    const bool had_diffs = multiplayer.apply_pending_diffs( *this, chunk );
+    // Staged SIGN_TEXT frames drain after the diffs so text only attaches
+    // once the sign blocks exist.
+    const bool had_pending = multiplayer.apply_pending_signs( chunk ) || had_diffs;
     if ( mpload_trace_enabled( ) ) {
         mpload_tracef( "finalize chunk=%d,%d,%d pending=%d",
                        chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, had_pending ? 1 : 0 );

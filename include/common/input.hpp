@@ -115,6 +115,18 @@ class Input {
     int search_chars_len;
     int search_backspaces;
     bool search_close;
+    // Sign editor text capture: while text_input_active the platform loop
+    // runs SDL text input and every printable key goes to text_chars for
+    // the sign-edit tick to drain — raw key presses don't reach movement
+    // keys or the world. The modal sign editor is the only user for now.
+    bool text_input_active = false;
+    char text_chars[ 128 ];
+    int text_chars_len = 0;
+    int text_backspaces = 0;
+    int text_enters = 0;
+    int text_ups = 0;   // Up arrow: move to the previous line
+    int text_downs = 0; // Down arrow: move to the next line
+    bool text_escape = false;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );
@@ -122,12 +134,19 @@ class Input {
     void keysInput( const SDL_Keycode key, const bool pressed );
     void mouseWheel( const int x_delta, const int y_delta );
     void mousePosition( int x, int y );
+    // SDL text event payload (UTF-8); queues the printable-ASCII bytes.
+    void textInput( const char *utf8 );
 #else
     void positionHMove( float sizeH, float angleH );
     void setJumpPressed( int jumpPressed );
     void setButtonState( int left, int middle, int right );
     void onInventoryClicked( );
 #endif
+    // Enter/leave modal text capture. begin clears held movement keys so a
+    // key held across the open doesn't keep the player moving. No text
+    // editing exists on Android/VR, so those builds never call these.
+    void text_input_begin( );
+    void text_input_end( );
     // Escape (desktop) / Menu button (Android): closes the inventory if it's
     // open, otherwise toggles the pause menu.
     void onMenuClicked( );

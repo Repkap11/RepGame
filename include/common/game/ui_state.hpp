@@ -16,6 +16,7 @@
 #include "common/block_definitions.hpp" // InventorySlot
 #include "common/chest.hpp"             // CHEST_SLOTS
 #include "common/furnace.hpp"
+#include "common/sign.hpp"
 
 // Chest container the player currently has open (at most one). Contents
 // live in the owning chunk (World::get_chest_contents); this renderer
@@ -69,6 +70,22 @@ struct FurnaceUi {
     InventorySlot drawn[ FURNACE_INVENTORY_SLOTS ];
 };
 
+// The modal sign editor: four editable lines shown over the world while
+// input.text_input_active captures the keyboard. `text` is the live edit
+// buffer — nothing is committed until close, when the chunk's stored text
+// is written (World::set_sign_text) and, in multiplayer, sent as SIGN_TEXT.
+struct SignEditUi {
+    bool open = false;
+    // World position of the sign being edited.
+    glm::ivec3 pos = glm::ivec3( 0 );
+    SignText text;
+    // The line the cursor is on (0..SIGN_LINES-1).
+    int line = 0;
+    // Tick the editor opened; the "still a sign?" close check waits a few
+    // ticks because placement queues the block write for the next tick.
+    long opened_tick = 0;
+};
+
 // The panel/window layer drawn into the UI pass: inventory grids,
 // overlays, menus, and the mouse-dragged stack. Distinct from the player
 // inventories in RepGameState, which are game data these panels render.
@@ -89,4 +106,5 @@ struct UiState {
     ChestUi chest;
     CraftingUi crafting;
     FurnaceUi furnace;
+    SignEditUi sign_edit;
 };

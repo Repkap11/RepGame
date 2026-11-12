@@ -813,6 +813,37 @@ bool net_deserialize_chunk_populated( PacketReader &r, NetChunkPopulatedPayload 
     return true;
 }
 
+void net_serialize_sign_text( PacketWriter &w, const NetSignTextPayload &p ) {
+    w.write_i32( p.x );
+    w.write_i32( p.y );
+    w.write_i32( p.z );
+    for ( int i = 0; i < SIGN_LINES; i++ ) {
+        const std::string &line = p.text.lines[ i ];
+        const size_t n = std::min( line.size( ), static_cast<size_t>( SIGN_LINE_MAX ) );
+        w.write_u8( static_cast<uint8_t>( n ) );
+        w.write_bytes( line.data( ), n );
+    }
+}
+
+bool net_deserialize_sign_text( PacketReader &r, NetSignTextPayload &p ) {
+    if ( !r.read_i32( p.x ) ) return false;
+    if ( !r.read_i32( p.y ) ) return false;
+    if ( !r.read_i32( p.z ) ) return false;
+    for ( int i = 0; i < SIGN_LINES; i++ ) {
+        uint8_t n;
+        if ( !r.read_u8( n ) ) return false;
+        // The bound check runs before the read/reserve so a corrupt length
+        // can't force a big allocation or eat the rest of the frame.
+        if ( n > SIGN_LINE_MAX ) {
+            net_pr_debug( "SIGN_TEXT line:%d len:%u > %u", i, n, SIGN_LINE_MAX );
+            return false;
+        }
+        p.text.lines[ i ].resize( n );
+        if ( !r.read_bytes( p.text.lines[ i ].data( ), n ) ) return false;
+    }
+    return true;
+}
+
 // ---------------------------------------------------------------------------
 // Codec registry: deterministic fill samples + the per-type table
 // (see the registry comment in packet.hpp for the rules).
@@ -1005,6 +1036,15 @@ void NetCodec<NetChunkPopulatedPayload>::fill( NetChunkPopulatedPayload &p ) {
     p.cy = 0;
     p.cz = -9;
 }
+void NetCodec<NetSignTextPayload>::fill( NetSignTextPayload &p ) {
+    p.x = -7;
+    p.y = 70;
+    p.z = 42;
+    p.text.lines[ 0 ] = "Hello";
+    p.text.lines[ 1 ] = "sign text!";
+    p.text.lines[ 2 ] = "15 chars max ok!";
+    p.text.lines[ 3 ] = "";
+}
 
 namespace {
 template <typename P>
@@ -1068,6 +1108,7 @@ const NetCodecEntry kCodecTable[] = {
     NET_ROW( NetMsgType::CONTAINER_CLOSE, NetContainerPosPayload ),
     NET_ROW( NetMsgType::CONTAINER_CONTENTS, NetContainerContentsPayload ),
     NET_ROW( NetMsgType::CONTAINER_SET_SLOT, NetContainerSetSlotPayload ),
+    NET_ROW( NetMsgType::SIGN_TEXT, NetSignTextPayload ),
 };
 } // namespace
 

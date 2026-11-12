@@ -507,6 +507,7 @@ if(REPGAME_BUILD_SERVER)
 		src/common/furnace.cpp
 		src/common/net/packet.cpp
 		src/common/net/framed_socket.cpp
+		src/common/sign.cpp
 		src/common/smelting.cpp
 		src/common/item.cpp
 		src/common/block_definitions.cpp)

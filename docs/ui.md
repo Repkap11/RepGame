@@ -18,6 +18,7 @@ UiState
 ├── held_slot / holding_slot  stack currently dragged by the mouse
 ├── chest      ChestUi       open chest panel (at most one)
 ├── furnace    FurnaceUi     open furnace panel: input/fuel/output 1x1s
+├── sign_edit  SignEditUi    modal sign editor: 4 text lines + cursor
 └── crafting   CraftingUi    2x2/3x3 grid + output + drag-split state
 ```
 
@@ -148,6 +149,43 @@ multiplayer the server ticks them instead (`docs/multiplayer.md`).
 Smelt/fuel tables are data-driven — `docs/items-crafting.md` "Smelting".
 Breaking a furnace loots all three slots (`repgame_loot_container`, or
 `pending_container_loot` + a server snapshot in MP).
+
+## Signs
+
+Standing and wall signs carry four lines of front text (`SignText`,
+`include/common/sign.hpp`, `SIGN_LINE_MAX` = 15 printable ASCII chars per
+line) stored per position in `ChunkContainers.signs`. The editor
+(`ui.sign_edit`, `src/common/game/sign_edit.cpp`) opens after placing a
+sign and on right-clicking one (sneak-click still places instead, like
+containers) — `repgame_open_sign_editor` snapshots the stored text into
+the edit buffer, closes every other screen, and raises
+`input.text_input_active`, which releases the pointer and switches the
+SDL event loops to `SDL_StartTextInput`/`SDL_EVENT_TEXT_INPUT` so real
+text (capitals, shifted symbols) arrives through `input.text_*` counters
+rather than the raw `key_down` path the search box uses.
+
+`repgame_tick_sign_editor` drains those counters each tick through
+`sign_edit_apply_input` (pure — test-driven): printable chars append to
+the active line, Backspace deletes (or climbs a line when empty),
+Up/Down and Enter navigate lines, Enter on the last line or Escape
+commits. The tick also closes *without* committing when the chunk
+unloads, the cell stops being a sign (after a few post-placement grace
+ticks), or the player walks out of reach — the same `+2` slack the
+container screens use. Commit (`repgame_commit_sign_edit`) writes
+`World::set_sign_text` and, in multiplayer, sends `SIGN_TEXT`; the
+server's broadcast is the authoritative copy
+(`docs/multiplayer.md`).
+
+The panel is a Clay-declared screen (`sign_panel` + `sign_lines[4]` +
+`sign_title`/`sign_hint`, scale `sign_k` fit-solved like the pause
+menu). `repgame_draw_sign_editor` draws a full-screen backdrop quad plus
+per-line field quads through the shared ui_overlay shader at menu layer
+z (depth cleared first, `ORDER_Z_SIGN_*`), with the active line
+brightened and a `_` cursor; text is the normal `FontRenderer` batch.
+It draws late in `draw_ui_pass`, after the pause menu, and is skipped
+under `capture` so screenshots stay world-only. Text in the world
+itself is the `WorldTextRenderer` pass — `docs/rendering.md`. Android
+and VR have no text-input path yet, so the editor is compiled out there.
 
 ## Crafting
 

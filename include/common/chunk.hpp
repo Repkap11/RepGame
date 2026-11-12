@@ -9,6 +9,7 @@
 #include "block.hpp"
 #include "common/chest.hpp"
 #include "common/furnace.hpp"
+#include "common/sign.hpp"
 #include "common/chunk_occlusion.hpp"
 #include "common/render_order.hpp"
 #include "common/utils/map_storage.hpp"
@@ -289,6 +290,10 @@ struct ChunkContainers {
     // entry; the lit swap never erases it.
     mutable std::map<int, FurnaceContents> furnaces;
     mutable int furnaces_loaded;
+    // Sign front text — same sidecar pattern as chests, keyed by in-chunk
+    // block index. Entries with empty() text are never stored.
+    mutable std::map<int, SignText> signs;
+    mutable int signs_loaded;
 };
 
 class Chunk {

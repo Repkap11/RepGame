@@ -132,6 +132,40 @@ static void declare_pause( const UiLayoutInput &in, const FontRenderer &font, co
     }
 }
 
+// The sign editor: a floating centered panel — a cap-height title band,
+// four fixed-height line fields, then a hint band. Always laid out like
+// the pause panel; only drawn while the editor is open. `k` shares the
+// pause menu's fit-solved text scale.
+static void declare_sign( const UiLayoutInput &in, const FontRenderer &font, const int k ) {
+    const float t = UI_TEXT_BASE_SIZE * k;
+    const float pad = t;
+    const float row_h = 1.6f * t;
+    const float gap = 0.5f * t;
+    const float hint_t = UI_TEXT_BASE_SIZE;
+    // Inner width fits a full SIGN_LINE_MAX line plus a cursor's width.
+    const float inner_w = font.getTextWidth( "WWWWWWWWWWWWWWWW", t );
+    const uint16_t pad_u = static_cast<uint16_t>( lroundf( pad ) );
+    const uint16_t gap_u = static_cast<uint16_t>( lroundf( gap ) );
+    CLAY( { .id = CLAY_ID( "sign_panel" ),
+            .layout = { .sizing = { CLAY_SIZING_FIXED( inner_w + 2.0f * pad ), CLAY_SIZING_FIT( ) },
+                        .padding = CLAY_PADDING_ALL( pad_u ),
+                        .childGap = gap_u,
+                        .childAlignment = { .x = CLAY_ALIGN_X_CENTER },
+                        .layoutDirection = CLAY_TOP_TO_BOTTOM },
+            // Floating: the modal panel never displaces the HUD strip.
+            .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_CENTER, .parent = CLAY_ATTACH_POINT_CENTER_CENTER },
+                          .attachTo = CLAY_ATTACH_TO_ROOT } } ) {
+        CLAY( { .id = CLAY_ID( "sign_title" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( font.getCapHeight( t ) ) } } } ) { }
+        for ( int i = 0; i < SIGN_LINES; i++ ) {
+            CLAY( { .id = CLAY_IDI( "sign_line", i ),
+                    .layout = { .sizing = { CLAY_SIZING_GROW( ), CLAY_SIZING_FIXED( row_h ) } } } ) { }
+        }
+        CLAY( { .id = CLAY_ID( "sign_hint" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( 0 ), CLAY_SIZING_FIXED( font.getCapHeight( hint_t ) ) } } } ) { }
+    }
+}
+
 void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_ = { };
     if ( this->context == nullptr || in.screen_w <= 0.0f || in.screen_h <= 0.0f || in.cell_stride <= 0.0f ) {
@@ -296,13 +330,18 @@ void UiLayout::compute( const UiLayoutInput &in ) {
             }
         }
         // The pause panel floats (attachTo ROOT): it never displaces the
-        // HUD strip, and is laid out whether or not the menu is open.
+        // HUD strip, and is laid out whether or not the menu is open. The
+        // sign editor shares its fit-solved text scale and sits in the
+        // same fit check so small windows shrink both.
         declare_pause( in, *this->font_, pause_k );
+        declare_sign( in, *this->font_, pause_k );
         }
         Clay_EndLayout( );
 
         const Clay_ElementData panel = Clay_GetElementData( CLAY_ID( "pause_panel" ) );
-        const bool fits = !panel.found || ( panel.boundingBox.width <= in.screen_w * 0.95f && panel.boundingBox.height <= in.screen_h * 0.9f );
+        const Clay_ElementData sign_panel = Clay_GetElementData( CLAY_ID( "sign_panel" ) );
+        const bool fits = ( !panel.found || ( panel.boundingBox.width <= in.screen_w * 0.95f && panel.boundingBox.height <= in.screen_h * 0.9f ) ) &&
+                          ( !sign_panel.found || ( sign_panel.boundingBox.width <= in.screen_w * 0.95f && sign_panel.boundingBox.height <= in.screen_h * 0.9f ) );
         if ( fits || pause_k <= 1 ) {
             break;
         }
@@ -359,6 +398,14 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_.crafting_backdrop2 = inflate( uni( uni( this->rects_.crafting_grid2, this->rects_.crafting_out2 ), this->rects_.survival_items ) );
     this->rects_.crafting_backdrop3 = inflate( uni( uni( this->rects_.crafting_grid3, this->rects_.crafting_out3 ), this->rects_.survival_items ) );
     this->rects_.furnace_backdrop = inflate( uni( uni( uni( this->rects_.furnace_input, this->rects_.furnace_output ), this->rects_.furnace_fuel ), this->rects_.survival_items ) );
+
+    this->rects_.sign_panel = rect_of( CLAY_ID( "sign_panel" ) );
+    this->rects_.sign_title = rect_of( CLAY_ID( "sign_title" ) );
+    this->rects_.sign_hint = rect_of( CLAY_ID( "sign_hint" ) );
+    this->rects_.sign_k = pause_k;
+    for ( int i = 0; i < SIGN_LINES; i++ ) {
+        this->rects_.sign_lines[ i ] = rect_of( CLAY_IDI( "sign_line", i ) );
+    }
 
     this->rects_.pause_panel = rect_of( CLAY_ID( "pause_panel" ) );
     this->rects_.pause_title = rect_of( CLAY_ID( "pause_title" ) );
@@ -417,6 +464,7 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     screen( UI_OVERFLOW_CRAFTING3, "crafting3", r.crafting_backdrop3 );
     screen( UI_OVERFLOW_FURNACE, "furnace", r.furnace_backdrop );
     screen( UI_OVERFLOW_PAUSE, "pause_panel", r.pause_panel );
+    screen( UI_OVERFLOW_SIGN, "sign_panel", r.sign_panel );
 
     // Sibling non-overlap invariants — a violation here is a real layout
     // bug (not a fit problem). Each pair gets a bit so warnings fire once
@@ -456,6 +504,11 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     static_assert( UI_LAYOUT_MAX_ROWS <= 52, "pause-row overlap bits exceed the mask" );
     for ( int i = 0; i + 1 < r.pause_row_count; i++ ) {
         overlap( 1ull << ( 13 + i ), "pause_row/next", r.pause_rows[ i ], r.pause_rows[ i + 1 ] );
+    }
+    // Sign editor line fields are disjoint rows — bits 45+ sit above the
+    // pause-row range (13 + MAX_ROWS-2 = 35 max).
+    for ( int i = 0; i + 1 < SIGN_LINES; i++ ) {
+        overlap( 1ull << ( 45 + i ), "sign_line/next", r.sign_lines[ i ], r.sign_lines[ i + 1 ] );
     }
     this->last_overlap_ = overlap_mask;
     this->last_overflow_ = r.overflow;

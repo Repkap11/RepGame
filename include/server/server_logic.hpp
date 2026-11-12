@@ -8,6 +8,7 @@
 #include "server/diff_cache.hpp"
 #include "server/server_containers.hpp"
 #include "server/server_entities.hpp"
+#include "server/server_signs.hpp"
 
 #include <chrono>
 #include <map>
@@ -56,6 +57,11 @@ class ServerLogic {
     // ServerContainers reaches these internals directly (map_storage,
     // world_cache, record_block/scheduleChunkSave for lit-swap edits).
     friend class ServerContainers;
+    // Sign-text arbitration: per-chunk cache of sign_* sidecars, edit
+    // validation against recorded block state, chunk-request + broadcast
+    // sync. Feature-owned like `containers` — see server_signs.hpp.
+    ServerSigns signs;
+    friend class ServerSigns;
     std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3> world_cache;
 
     // Sorted wake-up schedule: time -> chunk position whose idle timer
@@ -97,6 +103,11 @@ class ServerLogic {
     void broadcastWorldTime( Server &server );
 
     void record_block( const glm::ivec3 &block_pos, BlockState &block_state );
+    // The latest recorded state of one cell — world_cache edits first,
+    // then the chunk's on-disk edit file. False when the cell was never
+    // edited (the server has no terrain view; unedited natural cells are
+    // implicitly "not a sign" for ServerSigns validation).
+    bool recorded_block_at( const glm::ivec3 &pos, BlockState &out );
     // Queues a CHUNK_DIFF_RESULT frame for chunks with diffs. Returns the
     // payload bytes queued (0 when the chunk has no diffs).
     size_t respondToChunkRequest( Server &server, int client_fd, const glm::ivec3 &chunk_offset );
@@ -165,5 +176,9 @@ class ServerLogic {
     // Selftest hook: container arbitration state.
     ServerContainers &test_containers( ) {
         return this->containers;
+    }
+    // Selftest hook: sign arbitration state.
+    ServerSigns &test_signs( ) {
+        return this->signs;
     }
 };

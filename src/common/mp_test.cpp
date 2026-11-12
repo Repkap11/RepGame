@@ -347,6 +347,45 @@ static void run_cmd( RepGameState &state, char *line ) {
                         slots.c_str( ), aux.c_str( ) );
         return;
     }
+    // signedit x y z [line1|line2|...] — open the editor on the sign,
+    // inject the joined lines, and commit through the real close path so
+    // the commit sends SIGN_TEXT like an Enter-to-save would.
+    if ( strcmp( cmd, "signedit" ) == 0 && argc >= 4 ) {
+        const glm::ivec3 pos( atoi( argv[ 1 ] ), atoi( argv[ 2 ] ), atoi( argv[ 3 ] ) );
+        std::string joined;
+        for ( int i = 4; i < argc; i++ ) {
+            joined += i == 4 ? "" : " ";
+            joined += argv[ i ];
+        }
+        repgame_open_sign_editor( state, pos );
+        SignEditUi &edit = state.ui.sign_edit;
+        size_t start = 0;
+        for ( int li = 0; li < SIGN_LINES && start <= joined.size( ); li++ ) {
+            const size_t bar = joined.find( '|', start );
+            edit.text.lines[ li ] = joined.substr( start, bar == std::string::npos ? std::string::npos : bar - start );
+            if ( bar == std::string::npos ) {
+                break;
+            }
+            start = bar + 1;
+        }
+        repgame_close_sign_editor( state, true );
+        return;
+    }
+    // signprobe x y z — dump the client's stored text for that sign.
+    if ( strcmp( cmd, "signprobe" ) == 0 && argc == 4 ) {
+        const glm::ivec3 pos( atoi( argv[ 1 ] ), atoi( argv[ 2 ] ), atoi( argv[ 3 ] ) );
+        const SignText *text = state.world.get_sign_text( pos );
+        std::string lines;
+        if ( text != nullptr ) {
+            for ( int li = 0; li < SIGN_LINES; li++ ) {
+                lines += li ? "|" : "";
+                lines += text->lines[ li ];
+            }
+        }
+        mp_test::event( &state, "signprobe", "\"pos\":[%d,%d,%d],\"has\":%d,\"lines\":\"%s\"", pos.x, pos.y, pos.z,
+                        text != nullptr ? 1 : 0, lines.c_str( ) );
+        return;
+    }
     if ( strcmp( cmd, "give" ) == 0 && ( argc == 2 || argc == 3 ) ) {
         if ( !dbgcmd::give( state, argv[ 1 ], argc == 3 ? atoi( argv[ 2 ] ) : 1, &err ) ) {
             cmd_error( state, line );

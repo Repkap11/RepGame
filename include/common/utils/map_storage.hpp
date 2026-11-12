@@ -14,6 +14,7 @@ struct BlockState;
 #define FILE_ROOT_CHUNK "%s/chunk_%d_%d_%d"
 #define FILE_ROOT_CHEST "%s/chest_%d_%d_%d"
 #define FILE_ROOT_FURNACE "%s/furnace_%d_%d_%d"
+#define FILE_ROOT_SIGN "%s/sign_%d_%d_%d"
 #define FILE_ROOT_MOBS "%s/mobs_%d_%d_%d"
 #define FILE_ROOT_ITEMS "%s/items_%d_%d_%d"
 #define FILE_ROOT_PLAYER_DATA "%s/player.dat"
@@ -23,6 +24,7 @@ struct BlockState;
 #include "common/chest.hpp"
 #include "common/furnace.hpp"
 #include "common/item.hpp"
+#include "common/sign.hpp"
 
 // Save migration (pre-2047 format): LEGACY_EMPTY_BLOCK_ID was the empty-slot
 // marker, and ids now past LAST_BLOCK_ID or undefined (in either the block
@@ -102,6 +104,7 @@ enum MapFileKind {
     MAP_FILE_ITEMS,
     MAP_FILE_CHEST,
     MAP_FILE_FURNACE,
+    MAP_FILE_SIGN,
     MAP_FILE_KIND_COUNT
 };
 
@@ -167,6 +170,11 @@ class MapStorage {
     // block positions.
     void persist_furnaces( const glm::ivec3 &chunk_offset, const FurnaceContentsMap &furnaces );
     int load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMap &out );
+    // Same for sign front text (4 printable-ASCII lines). Keys are world
+    // block positions; empty-text entries are dropped, and an all-empty
+    // map removes the file.
+    void persist_signs( const glm::ivec3 &chunk_offset, const SignTextMap &signs );
+    int load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out );
     // Writes the chunk's mob records plus the tombstoned natural-roll
     // indices (`removed`). A file's existence no longer marks the chunk
     // populated — the deterministic roll always runs on load — so when

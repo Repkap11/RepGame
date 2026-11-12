@@ -22,6 +22,7 @@ chunk/entities/player — all through the real loaders, read-only; see
                             were a full RLE BlockState volume
     chest_<x>_<y>_<z>       chest contents for a chunk
     furnace_<x>_<y>_<z>     furnace contents+progress for a chunk
+    sign_<x>_<y>_<z>        sign text for a chunk
     mobs_<x>_<y>_<z>        mob records for a chunk
     items_<x>_<y>_<z>       dropped-item records for a chunk
 ```
@@ -124,6 +125,29 @@ records from either side of the progress-fields addition still parse.
 `FURNACE` and `LIT_FURNACE` blocks share one entry (keyed by position);
 the lit state itself lives in the chunk's block data, while
 `burn_ticks > 0` is what makes a loaded furnace resume burning.
+
+## Sign files (`sign_x_y_z`)
+
+Same envelope as the chest file (`load_signs`/`persist_signs`):
+
+```
+u32 record_size              // sizeof(SignFileRecord)
+u32 num_signs
+record: { i32 x, y, z        // world block position
+          u8 line_len[SIGN_LINES]            // 4
+          char text[SIGN_LINES][SIGN_LINE_MAX] }
+```
+
+Each record holds one sign's front text — four lines of at most
+`SIGN_LINE_MAX` (15) printable-ASCII characters each (`SignText`,
+`include/common/sign.hpp`). The shared-prefix read convention applies:
+readers copy the `x/y/z` prefix, then whatever of the `line_len`/`text`
+tail fits the saved record size, and `sign_sanitize` re-validates every
+line on load. `persist_signs` *removes* the file when no non-empty text
+remains in the chunk, so erased signs can't resurrect. In-world storage
+is `ChunkContainers.signs` keyed by in-chunk block index; the map is
+converted to/from world positions at the file boundary. Server-side the
+same files are driven by `ServerSigns` (`docs/multiplayer.md` "Signs").
 
 ## Mob / item sidecars (`mobs_*`, `items_*`)
 
@@ -240,9 +264,9 @@ pre-2047 saves and is permanently reserved — never reuse it. On load:
   The same `multiplayer_mode()` drives `MapStorage::chunk_io_enabled`
   (set in `game_init.cpp` before the first chunk enqueues, refreshed in
   `World::render`): while off, `load_chunk_edits`/`persist_chunk_edits`
-  and the chest/furnace file paths do no local IO — chunk and container
-  state lives on the server, so no `chunk_*`/`chest_*`/`furnace_*` files
-  are read or written. Chunks already loaded when a connect fails
+  and the chest/furnace/sign file paths do no local IO — chunk, container
+  and sign state lives on the server, so no `chunk_*`/`chest_*`/
+  `furnace_*`/`sign_*` files are read or written. Chunks already loaded when a connect fails
   outright are *not* reloaded — their saved edits only appear after
   they leave and re-enter the render window.
 - **Block world** (`REPGAME_BLOCK_WORLD`) touches no files at all —

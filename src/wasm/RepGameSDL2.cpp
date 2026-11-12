@@ -77,6 +77,9 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 }
                 input.keysInput( event.key.keysym.sym, event.type == SDL_KEYDOWN );
                 break;
+            case SDL_TEXTINPUT:
+                input.textInput( event.text.text );
+                break;
             case SDL_WINDOWEVENT:
                 if ( event.window.event == SDL_WINDOWEVENT_RESIZED ) {
                     repgame.changeSize( event.window.data1, event.window.data2 );
@@ -406,6 +409,18 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
         SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
 #endif
         is_locking_pointer = should_lock_pointer;
+    }
+    // SDL2: text events only fire while SDL text input is active; sync it
+    // to the sign editor's capture flag (no window arg on SDL2).
+    static bool text_input_started = false;
+    const bool text_active = repgame.getInputState( ).text_input_active;
+    if ( text_active != text_input_started ) {
+        if ( text_active ) {
+            SDL_StartTextInput( );
+        } else {
+            SDL_StopTextInput( );
+        }
+        text_input_started = text_active;
     }
 }
 

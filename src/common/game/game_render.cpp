@@ -694,9 +694,13 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
     // menu panel.
     globalGameState.ui.font.text_flush( globalGameState.world.renderer, globalGameState.screen.ortho_center );
     // The pause menu draws last, on top of the hotbar/inventory/held item
-    // and the ImGui overlay.
+    // and the ImGui overlay. The sign editor shares the menu layer and
+    // wins over it — while it owns text capture the menu can't open.
     if ( !run_policy().capture.enabled && globalGameState.input.menu_open ) {
         globalGameState.ui.pause.draw( globalGameState.world.renderer, globalGameState.ui.overlay.get_shader( ), globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center, globalGameState );
+    }
+    if ( !run_policy().capture.enabled && globalGameState.ui.sign_edit.open ) {
+        repgame_draw_sign_editor( globalGameState, globalGameState.world.renderer, globalGameState.ui.overlay.get_shader( ), globalGameState.ui.font, globalGameState.screen.ortho_center );
     }
     // Laser-pointer marker where the aim ray hits the world-locked UI quad.
     if ( globalGameState.vr.active && globalGameState.input.inventory_open && globalGameState.vr.pointer_on_ui ) {

@@ -44,7 +44,8 @@ trailing field — old peers that omit it decode as `LAST_BLOCK_ID` =
 holding nothing. Protocol 12 reworked `ENTITY_STATE` into a mask-coded
 delta stream (`docs/entities.md`): pos deltas vs the receiver's
 last-known pos, quantized vel/yaw, gated aux fields, dead-reckoned
-send-throttling, and a 12-tick batch cadence.
+send-throttling, and a 12-tick batch cadence. Protocol 13 added
+`SIGN_TEXT` (sign front text — see "Signs").
 
 ## Transports
 
@@ -206,6 +207,45 @@ rotation preserved from the last-seen block state) recorded as a chunk
 edit. Clients never tick furnaces while connected — the server is
 authoritative.
 
+## Signs
+
+Sign text can't use the container's open-to-subscribe model — every
+client that can *see* a sign needs its text without opening anything —
+so it gets its own message and sync model (`SIGN_TEXT`,
+`NetSignTextPayload`: block position plus `SIGN_LINES` length-prefixed
+lines):
+
+- **Client → server** is an edit request sent when the sign editor
+  commits (`Multiplayer::send_sign_text`, called from
+  `repgame_close_sign_editor`). The server validates that the block at
+  the position is a sign in its recorded edits
+  (`ServerLogic::recorded_block_at` — the server has no full terrain
+  view), sanitizes the text (printable ASCII, `SIGN_LINE_MAX` per
+  line), stores it, and **broadcasts the stored text to every client,
+  sender included** — there is no optimistic local copy to diverge.
+  An all-empty payload erases the record.
+- **Server → client** travels two ways: the broadcast after each
+  accepted edit, and once per stored sign alongside each
+  `CHUNK_DIFF_REQUEST` response (`ServerSigns::respondToChunkRequest`),
+  so late joiners see existing text.
+- **Pending queue**: sign text routinely arrives before its chunk is
+  live, so `Multiplayer::pending_signs` holds it per chunk and
+  `apply_pending_signs` drains it in `finalize_loaded_chunk` next to
+  `apply_pending_diffs`.
+- **Clear-on-break**: when `record_block` sees a sign position
+  overwritten by a non-sign block, `ServerSigns` drops the record and
+  broadcasts an all-empty `SIGN_TEXT` so every client erases it.
+  Replacing a sign with another sign keeps the text.
+- **Server storage**: `ServerSigns` (`include/server/server_signs.hpp`,
+  `src/server/server_signs.cpp`) is a per-chunk `SignTextMap` cache that
+  lazy-loads `sign_*` sidecars (`docs/persistence.md`), schedules chunk
+  saves on edit, and flushes on idle eviction and shutdown — the same
+  lifecycle as the diff cache and `ServerContainers`.
+
+Client side, `World::set_sign_text_from_net` applies inbound text
+(replacing or erasing the record in `ChunkContainers.signs`); rendering
+is covered in `docs/rendering.md`.
+
 ## Sender / codec layer
 
 The hand-written `net_serialize_*`/`net_deserialize_*` pairs stay the
@@ -251,10 +291,14 @@ advancing locally between syncs. The server persists the clock to
   WELCOME sessions, VIEW/CHUNK_ROLE coverage, transfers, and the
   container conversation (subscribe, relayed writes with revisions,
   rejected-write correction, loot-on-break, furnace ticking +
-  lit-swap, sidecar persistence).
+  lit-swap, sidecar persistence) plus the sign conversation (edit →
+  broadcast, rejection on non-sign cells, sanitization, diff-request
+  re-sync, clear-on-break, sidecar persist/reload).
 - `make mp-test` drives real server + headless clients through JSONL
   assertions — see the `mp-test` skill and `docs/entities.md`; the
-  `containers` scenario drives `copen`/`cset`/`cprobe` end to end.
+  `containers` scenario drives `copen`/`cset`/`cprobe` end to end and
+  `sign_text` drives `signedit`/`signprobe` (edit broadcast, late-join
+  sync, clear-on-break).
 
 ## Load-in tracing (`REPGAME_MPLOAD_TRACE`)
 

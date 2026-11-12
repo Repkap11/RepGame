@@ -89,6 +89,9 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 }
                 input.keysInput( event.key.key, event.type == SDL_EVENT_KEY_DOWN );
                 break;
+            case SDL_EVENT_TEXT_INPUT:
+                input.textInput( event.text.text );
+                break;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
                 // Drawable pixel size changed (resize, fullscreen mode set,
                 // moved between HiDPI displays): data1/data2 are already the
@@ -393,6 +396,18 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
         // the inventory's absolute click position manually.
         repgame.getInputState( ).mousePosition( center_x, center_y );
         is_locking_pointer = should_lock_pointer;
+    }
+    // SDL text events only fire while text input is active; sync it to the
+    // sign editor's capture flag here so open/close needs no SDL access.
+    static bool text_input_started = false;
+    const bool text_active = repgame.getInputState( ).text_input_active;
+    if ( text_active != text_input_started ) {
+        if ( text_active ) {
+            SDL_StartTextInput( sdl_window );
+        } else {
+            SDL_StopTextInput( sdl_window );
+        }
+        text_input_started = text_active;
     }
 }
 

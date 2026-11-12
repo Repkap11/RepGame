@@ -133,6 +133,7 @@ void MapStorage::enable_file_index( ) {
         { "items_", 6, MAP_FILE_ITEMS },
         { "chest_", 6, MAP_FILE_CHEST },
         { "furnace_", 8, MAP_FILE_FURNACE },
+        { "sign_", 5, MAP_FILE_SIGN },
     };
     DIR *dir = opendir( this->map_name );
     if ( dir == NULL ) {
@@ -510,6 +511,19 @@ void MapStorage::persist_chunk( const Chunk &chunk ) {
             }
             this->persist_furnaces( chunk.chunk_pos, furnace_world_map );
         }
+        if ( chunk.containers.signs_loaded ) {
+            // Sign sidecar file, same world-pos keying as chests.
+            SignTextMap sign_world_map;
+            const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
+            for ( const auto &pair : chunk.containers.signs ) {
+                const int index = pair.first;
+                const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
+                                               ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
+                                               ( index % CHUNK_SIZE_INTERNAL_Z ) - 1 );
+                sign_world_map[ chunk_origin + internal_pos ] = pair.second;
+            }
+            this->persist_signs( chunk.chunk_pos, sign_world_map );
+        }
     }
 }
 
@@ -770,6 +784,137 @@ int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMa
             }
         }
         out[ pos ] = contents;
+    }
+    free( raw );
+    return 1;
+}
+
+// Sign file layout: same envelope as the chest file — u32 record_size,
+// u32 num_signs, then per sign a fixed SignFileRecord:
+//   { i32 x, i32 y, i32 (world block pos), u8 line_len[4],
+//     char text[4][SIGN_LINE_MAX] }.
+// Lines hold printable ASCII only (sanitized on write and again on read).
+struct __attribute__( ( packed ) ) SignFileRecord {
+    int x;
+    int y;
+    int z;
+    unsigned char line_len[ SIGN_LINES ];
+    char text[ SIGN_LINES ][ SIGN_LINE_MAX ];
+};
+
+void MapStorage::persist_signs( const glm::ivec3 &chunk_offset, const SignTextMap &signs ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
+        return;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_SIGN, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    uint32_t num_signs = 0;
+    for ( const auto &pair : signs ) {
+        if ( !pair.second.empty( ) ) {
+            num_signs++;
+        }
+    }
+    if ( num_signs == 0 ) {
+        // No text left in this chunk — remove the file so erased signs
+        // don't resurrect on the next load.
+        remove( file_name );
+        this->index_remove( MAP_FILE_SIGN, chunk_offset );
+        return;
+    }
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( write_ptr == NULL ) {
+        pr_debug( "fopen failed for sign file:%s", file_name );
+        return;
+    }
+    this->index_insert( MAP_FILE_SIGN, chunk_offset );
+    uint32_t record_size = sizeof( SignFileRecord );
+    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
+    fwrite( &num_signs, sizeof( uint32_t ), 1, write_ptr );
+    for ( const auto &pair : signs ) {
+        if ( pair.second.empty( ) ) {
+            continue;
+        }
+        SignFileRecord record;
+        memset( &record, 0, sizeof( record ) );
+        record.x = pair.first.x;
+        record.y = pair.first.y;
+        record.z = pair.first.z;
+        for ( int l = 0; l < SIGN_LINES; l++ ) {
+            const size_t len = pair.second.lines[ l ].size( ) < SIGN_LINE_MAX ? pair.second.lines[ l ].size( ) : SIGN_LINE_MAX;
+            record.line_len[ l ] = static_cast<unsigned char>( len );
+            memcpy( record.text[ l ], pair.second.lines[ l ].data( ), len );
+        }
+        fwrite( &record, sizeof( SignFileRecord ), 1, write_ptr );
+    }
+#if defined( REPGAME_WASM )
+    fdatasync( fileno( write_ptr ) );
+#endif
+    fclose( write_ptr );
+}
+
+int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
+        return 0;
+    }
+    if ( this->index_miss( MAP_FILE_SIGN, chunk_offset ) ) {
+        return 0;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_SIGN, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( read_ptr == NULL ) {
+        return 0;
+    }
+    uint32_t record_size = 0;
+    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
+        fclose( read_ptr );
+        return 0;
+    }
+    uint32_t num_signs = 0;
+    if ( fread( &num_signs, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_signs > CHUNK_BLOCK_SIZE ) {
+        fclose( read_ptr );
+        return 0;
+    }
+    // Read whatever the file's record holds; older/newer builds may have a
+    // different record size, so copy only the shared prefix per record and
+    // never index past it.
+    const int text_prefix = offsetof( SignFileRecord, line_len );
+    char *raw = static_cast<char *>( calloc( num_signs, record_size ) );
+    size_t num_read = fread( raw, record_size, num_signs, read_ptr );
+    fclose( read_ptr );
+    for ( size_t i = 0; i < num_read; i++ ) {
+        const char *record = &raw[ i * record_size ];
+        SignText text; // default: all lines empty
+        glm::ivec3 pos( 0 );
+        memcpy( &pos, record, sizeof( glm::ivec3 ) <= (size_t)record_size ? sizeof( glm::ivec3 ) : (size_t)record_size );
+        if ( record_size > (uint32_t)text_prefix + SIGN_LINES ) {
+            const unsigned char *lens = reinterpret_cast<const unsigned char *>( record + text_prefix );
+            const char *chars = record + text_prefix + SIGN_LINES;
+            for ( int l = 0; l < SIGN_LINES; l++ ) {
+                const int line_off = text_prefix + SIGN_LINES + l * SIGN_LINE_MAX;
+                const int avail = static_cast<int>( record_size ) - line_off;
+                if ( avail <= 0 ) {
+                    break;
+                }
+                int len = lens[ l ];
+                if ( len > SIGN_LINE_MAX || len > avail ) {
+                    len = avail < SIGN_LINE_MAX ? avail : SIGN_LINE_MAX;
+                }
+                if ( len > 0 ) {
+                    text.lines[ l ].assign( chars + l * SIGN_LINE_MAX, len );
+                }
+            }
+        }
+        sign_sanitize( text );
+        if ( !text.empty( ) ) {
+            out[ pos ] = text;
+        }
     }
     free( raw );
     return 1;

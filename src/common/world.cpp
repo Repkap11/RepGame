@@ -650,6 +650,27 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     }
 
+    // Sign front text: batched glyph quads on the board faces. After the
+    // opaque/glass block pass so depth culls text behind terrain; before
+    // the selection outline and the water passes.
+    {
+        const glm::ivec3 camera_block = glm::ivec3( glm::floor( camera_pos ) );
+        std::vector<WorldSign> signs;
+        signs.reserve( 32 );
+        this->collect_signs_near( camera_block, SIGN_TEXT_DRAW_RADIUS, signs );
+        this->worldText.begin( );
+        for ( const WorldSign &sign : signs ) {
+            // Ink is near-black; the cell's light dims it like the board.
+            const glm::vec2 light = this->chunkLoader.light_sample( glm::vec3( sign.pos ) + 0.5f );
+            const float lum = glm::mix( min_ambient, 1.0f, glm::max( light.x * daylight, light.y ) );
+            const float tint[ 4 ] = { lum * 0.15f, lum * 0.15f, lum * 0.15f, 1.0f };
+            const glm::vec3 pos_rebased = glm::vec3( sign.pos - renderOrigin );
+            this->worldText.append_sign( pos_rebased, sign.state, *sign.text, tint );
+        }
+        this->worldText.flush( this->renderer, mvp, camera_pos_rebased, renderOriginF, fog_near, fog_far, water_fog_near, water_fog_far,
+                               fog_blend_color, underwater_wash, useFogBlend ? 1 : 0, block_water_tint_type );
+    }
+
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
         this->mouseSelection.draw( this->renderer, mvp, renderOriginF );
@@ -922,6 +943,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // chunk_loader_draw_chunks( &this->loadedChunks, mvp, &this->renderer, true, false ); // Water
     glDisable( GL_STENCIL_TEST );
 }
+void World::init_sign_text( const FontRenderer &font ) {
+    this->worldText.init( font );
+}
+
 void World::cleanup( MapStorage &map_storage ) {
 
     // Persist every owned chunk's mobs and dropped items before the loader
@@ -938,6 +963,7 @@ void World::cleanup( MapStorage &map_storage ) {
     this->mobs.cleanup( );
     this->heartParticles.cleanup( );
     this->mouseSelection.destroy( );
+    this->worldText.cleanup( );
     this->debris_shader.destroy( );
     this->heart_shader.destroy( );
     this->primed_tnt_shader.destroy( );
@@ -1151,6 +1177,85 @@ void World::set_furnace_contents( const glm::ivec3 &block_pos, const FurnaceCont
     *dst = contents;
     if ( Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
         chunk_prt->dirty = 1;
+    }
+}
+
+const SignText *World::get_sign_text( const glm::ivec3 &block_pos ) const {
+    if ( const Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
+        const Chunk &chunk = *chunk_prt;
+        if ( chunk.load_state ) {
+            return nullptr;
+        }
+        const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
+        const auto it = chunk.containers.signs.find( Chunk::get_index_from_coords( diff ) );
+        return it == chunk.containers.signs.end( ) ? nullptr : &it->second;
+    }
+    return nullptr;
+}
+
+bool World::set_sign_text_impl( const glm::ivec3 &block_pos, const SignText &text, bool mark_dirty ) {
+    Chunk *chunk_prt = this->get_loaded_chunk( block_pos );
+    if ( chunk_prt == nullptr ) {
+        return false;
+    }
+    Chunk &chunk = *chunk_prt;
+    if ( chunk.load_state ) {
+        return false;
+    }
+    if ( !block_is_sign( get_block_from_chunk( chunk, block_pos ).id ) ) {
+        return false;
+    }
+    SignText clean = text;
+    sign_sanitize( clean );
+    const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
+    const int index = Chunk::get_index_from_coords( diff );
+    chunk.containers.signs_loaded = 1;
+    if ( clean.empty( ) ) {
+        chunk.containers.signs.erase( index );
+    } else {
+        chunk.containers.signs[ index ] = clean;
+    }
+    if ( mark_dirty ) {
+        chunk.dirty = 1;
+    }
+    return true;
+}
+
+bool World::set_sign_text( const glm::ivec3 &block_pos, const SignText &text ) {
+    return this->set_sign_text_impl( block_pos, text, true );
+}
+
+bool World::set_sign_text_from_net( const glm::ivec3 &block_pos, const SignText &text ) {
+    return this->set_sign_text_impl( block_pos, text, false );
+}
+
+void World::collect_signs_near( const glm::ivec3 &center, const int radius, std::vector<WorldSign> &out ) const {
+    // Scan every chunk slot like tick_furnaces: signs are rare, so the
+    // per-slot check is a map-empty test.
+    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+        Chunk &chunk = this->chunkLoader.chunkArray[ i ];
+        if ( chunk.load_state || chunk.containers.signs.empty( ) ) {
+            continue;
+        }
+        const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
+        for ( const auto &pair : chunk.containers.signs ) {
+            const int index = pair.first;
+            const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
+                                           ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
+                                           ( index % CHUNK_SIZE_INTERNAL_Z ) - 1 );
+            const glm::ivec3 block_pos = chunk_origin + internal_pos;
+            const glm::ivec3 d = block_pos - center;
+            if ( abs( d.x ) > radius || abs( d.y ) > radius || abs( d.z ) > radius ) {
+                continue;
+            }
+            // Drop stale entries whose cell lost its sign without going
+            // through Chunk::set_block.
+            const BlockState state = chunk.state_at( index );
+            if ( !block_is_sign( state.id ) ) {
+                continue;
+            }
+            out.push_back( { block_pos, state, &pair.second } );
+        }
     }
 }
 

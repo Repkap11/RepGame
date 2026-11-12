@@ -247,6 +247,16 @@ rotation, so
 a wall sign reads its support through `block_supports_present` like any
 ladder and pops when the block behind it breaks.
 
+Standing and wall signs carry editable front text (hanging signs don't
+take text yet): `block_is_sign`/`block_is_wall_sign` in
+`include/common/sign.hpp` classify the ids without the definition table
+so the dedicated server can use them too. Text lives in
+`ChunkContainers.signs`, persists in `sign_*` sidecar files
+(`docs/persistence.md`), syncs over `SIGN_TEXT`
+(`docs/multiplayer.md`), edits through the sign panel (`docs/ui.md`),
+and renders in world space via `WorldTextRenderer`
+(`docs/rendering.md`).
+
 Each species' standing and wall signs share one item (MC's single sign
 item): the standing block's `wall_variant` names its wall form and the
 wall block's `standing_variant` points back — a paired block-ref like

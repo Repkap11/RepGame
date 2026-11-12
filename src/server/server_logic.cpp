@@ -42,6 +42,7 @@ void ServerLogic::init( const char *world_name ) {
     }
     this->entities.init( &this->map_storage );
     this->containers.init( this );
+    this->signs.init( this );
     int64_t saved_world_time = 0;
     if ( this->map_storage.read_world_time( saved_world_time ) ) {
         this->world_time_base = saved_world_time;
@@ -276,6 +277,9 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
     // Container sidecars are independent of the block cache — a chunk can
     // have container edits without block edits (pure inventory changes).
     this->containers.persist_chunk( chunk_pos );
+    // Sign texts persist the same way — a pure text edit arms the same
+    // idle timer on a timer-only entry.
+    this->signs.persist_chunk( chunk_pos );
 }
 
 void ServerLogic::persistAll( ) {
@@ -291,6 +295,7 @@ void ServerLogic::persistAll( ) {
     }
     // Container chunks may exist without a block-cache entry.
     this->containers.persist_all( );
+    this->signs.persist_all( );
     pr_debug( "World saved (%zu chunks)", saved );
     this->world_cache.clear( );
     this->wake_schedule.clear( );
@@ -344,6 +349,9 @@ void ServerLogic::evictChunk( std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Ve
     // subscribers keep the entry (and its file stays saved) so an open
     // container remains editable.
     this->containers.evict_unwatched( chunk_pos );
+    // Sign caches pin nothing — the file was just persisted by
+    // persistChunk above, so the entry goes with the chunk.
+    this->signs.evict_chunk( chunk_pos );
 }
 
 void ServerLogic::enforceDirtyCap( ) {
@@ -442,6 +450,31 @@ bool ServerLogic::loadDiffsFromDisk( const glm::ivec3 &chunk_offset, std::map<in
     return true;
 }
 
+bool ServerLogic::recorded_block_at( const glm::ivec3 &pos, BlockState &out ) {
+    const glm::ivec3 chunk_pos = glm::floor( glm::vec3( pos ) / CHUNK_SIZE_F );
+    const glm::ivec3 diff = pos - chunk_pos * CHUNK_SIZE_I;
+    const int index = Chunk::get_index_from_coords( diff );
+    const auto it = this->world_cache.find( chunk_pos );
+    if ( it != this->world_cache.end( ) && !it->second.blocks.empty( ) ) {
+        // A cached entry already holds the merged disk diff — a miss here
+        // is authoritative (the cell was never edited), no disk fallback.
+        const auto bit = it->second.blocks.find( index );
+        if ( bit == it->second.blocks.end( ) ) {
+            return false;
+        }
+        out = bit->second;
+        return true;
+    }
+    std::map<int, BlockState> diffs;
+    this->loadDiffsFromDisk( chunk_pos, diffs );
+    const auto bit = diffs.find( index );
+    if ( bit == diffs.end( ) ) {
+        return false;
+    }
+    out = bit->second;
+    return true;
+}
+
 void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType type, int32_t player_id, const std::vector<uint8_t> &payload ) {
 
     PacketReader r( payload.data( ), payload.size( ) );
@@ -451,6 +484,10 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
     }
 
     if ( this->containers.on_client_message( server, client_fd, type, r ) ) {
+        return;
+    }
+
+    if ( this->signs.on_client_message( server, client_fd, type, r ) ) {
         return;
     }
 
@@ -464,6 +501,9 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
         // Learns/forgets container block states per kind and hands the
         // contents to the breaker when a container gets overwritten.
         this->containers.on_block_update( server, client_fd, block_pos, bu.blockState );
+        // Same for sign text: an overwritten sign drops its stored text
+        // (broadcast to every client).
+        this->signs.on_block_update( server, block_pos, bu.blockState );
         this->record_block( block_pos, bu.blockState );
 
         // Forward to all other clients.
@@ -522,6 +562,10 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
             const size_t n = this->respondToChunkRequest( server, client_fd, chunk_pos );
             bytes_queued += n;
             frames_queued += n > 0 ? 1 : 0;
+            // Sign text rides the same request — one SIGN_TEXT per stored
+            // sign, for chunks with and without block diffs alike (viewers
+            // need sign text without ever opening anything).
+            this->signs.respondToChunkRequest( server, client_fd, chunk_pos );
         }
         if ( trace ) {
             mpload_tracef( "srv_served fd=%d chunks=%d frames=%d bytes=%zu us=%lld",

@@ -40,6 +40,13 @@
 //   cprobe kind x y z              emit a "cprobe" event with the world-owned
 //                                  contents (kind, is-block flag, rev, slots,
 //                                  aux) — the sync result the server left
+//   signedit x y z [l1|l2|...]     open the sign editor, inject the joined
+//                                  lines ('|' splits, args join on spaces),
+//                                  and commit — the real close path sends
+//                                  SIGN_TEXT like an Enter-to-save
+//   signprobe x y z                emit a "signprobe" event with the stored
+//                                  text {pos,has,lines} — the sync result
+//                                  the server left on this client
 //   mode survival|creative         pin the game mode each tick (survival
 //                                  also pins walking state so the
 //                                  REPGAME_FLY pin can't undo it)
@@ -52,8 +59,8 @@
 // Events on the dump stream: welcome, ready (connected + WELCOME + the
 // camera's chunk is CHUNK_LIVE + at least one CHUNK_ROLE grant applied),
 // cmd_error, explosion_received, pickup_result, player_hit_received,
-// entity_transfer, probe, role, cprobe, damage_result, eat_result,
-// respawn_result, quit.
+// entity_transfer, probe, role, cprobe, signprobe, damage_result,
+// eat_result, respawn_result, quit.
 //
 // State lines additionally carry: health (half-hearts), dead, air_ticks.
 //

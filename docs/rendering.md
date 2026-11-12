@@ -238,6 +238,34 @@ as the order flips (multiply fixes exactly this); and without
 after-water mode, water draws after glass so water seen through glass
 composites on top of the glass tint rather than behind it.
 
+## Sign text (world space)
+
+Sign front text renders as real 3D geometry, not screen overlays.
+`WorldTextRenderer` (`include/common/world_text.hpp`,
+`src/common/world_text.cpp`, shaders `world_text_vertex/fragment.glsl`)
+batches glyph quads into its own VBO/IBO and draws them in the world
+pass — after the opaque/translucent block draw and before the selection
+outline and water passes, so terrain depth culls text correctly.
+
+Each frame `World::collect_signs_near` gathers stored `SignText` records
+within `SIGN_TEXT_DRAW_RADIUS` (24 blocks) of the camera; per sign,
+`append_sign` lays out the four lines centred on the board's front face
+using `FontRenderer` glyph metrics (`glyph_quads` — the same ProggyClean
+atlas the 2D UI draws). Geometry is emitted in sign def space and yawed
+with the block's `rotation`: the standing sign draws just off the board
+plate's +z face (def z≈9), the wall sign just off its plate front
+(def z≈2) — `block_is_wall_sign` picks the plate geometry. Only the
+front face gets text. Vertices are quad-wound so they face the readable
+side (front-face culling is on).
+
+The fragment shader samples the font atlas and multiplies by a per-sign
+tint — near-black ink scaled by `light_sample` at the sign cell (the
+same `min_ambient`-lifted light the board gets) so text darkens at
+night/in caves — and applies the standard distance/water fog uniforms,
+so the pass matches the terrain around it. Depth test on, depth write
+on: the quads sit ~0.01 off the board face so they can't z-fight the
+plate but still hide behind walls.
+
 ## Fly mode (load-in / lighting stress runs)
 
 - `REPGAME_FLY="x,y,z,yaw,pitch[,speed]"` — scripted no-clip flight for

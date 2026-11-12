@@ -129,25 +129,30 @@ void UIOverlay::draw( CreativeInventory &creative_inventory, SurvivalInventory &
     showErrors( );
 }
 
-void UIOverlay::draw_panel_backdrop( const UiRect &rect, const Renderer &renderer, const glm::mat4 &mvp_ui ) {
+void UIOverlay::draw_ui_quad( const UiRect &rect, const float tint[ 4 ], const float z, const Renderer &renderer, const glm::mat4 &mvp_ui ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp_ui );
     this->render_chain_panel_backdrop.clear( );
     auto pair = this->render_chain_panel_backdrop.create_instance( );
     UIOverlayInstance &ui_vertex = pair.second;
     ui_vertex.screen_x = rect.left;
     ui_vertex.screen_y = rect.bottom;
-    ui_vertex.screen_z = ORDER_Z_PANEL_BACKDROP;
+    ui_vertex.screen_z = z;
     ui_vertex.width = rect.width;
     ui_vertex.height = rect.height;
     ui_vertex.is_block = 0;
     ui_vertex.is_isometric = 0;
+    ui_vertex.tint[ 0 ] = tint[ 0 ];
+    ui_vertex.tint[ 1 ] = tint[ 1 ];
+    ui_vertex.tint[ 2 ] = tint[ 2 ];
+    ui_vertex.tint[ 3 ] = tint[ 3 ];
+    this->render_chain_panel_backdrop.draw( renderer, this->shader );
+}
+
+void UIOverlay::draw_panel_backdrop( const UiRect &rect, const Renderer &renderer, const glm::mat4 &mvp_ui ) {
     // Same gray as the per-cell squares inside the panels (0.5) so the
     // group reads as one continuous window behind the slots.
-    ui_vertex.tint[ 0 ] = 0.5f;
-    ui_vertex.tint[ 1 ] = 0.5f;
-    ui_vertex.tint[ 2 ] = 0.5f;
-    ui_vertex.tint[ 3 ] = 1.0f;
-    this->render_chain_panel_backdrop.draw( renderer, this->shader );
+    const float tint[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
+    this->draw_ui_quad( rect, tint, ORDER_Z_PANEL_BACKDROP, renderer, mvp_ui );
 }
 
 void UIOverlay::draw_slot_panel( InventoryRenderer &panel, const InventorySlot *slots, int n, const Renderer &renderer, const Texture &blocksTexture, FontRenderer &font, const glm::mat4 &mvp_ui ) {

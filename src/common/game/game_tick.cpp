@@ -48,6 +48,7 @@ void RepGame::tick( ) {
     // the destroy queued last tick is applied here, before the ray cast below.
     RepGame::process_block_updates( );
     close_out_of_reach_containers( );
+    repgame_tick_sign_editor( globalGameState );
     if ( RepGame::should_lock_pointer( ) || run_policy().capture.enabled ) {
         if ( !run_policy().capture.enabled ) {
             RepGame::process_mouse_events( );

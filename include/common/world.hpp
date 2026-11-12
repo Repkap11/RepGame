@@ -13,6 +13,7 @@ struct RepGameState;
 #include "common/item_entities.hpp"
 #include "common/mobs.hpp"
 #include "common/renderer/full_screen_quad.hpp"
+#include "common/world_text.hpp"
 
 enum WorldDrawQuality { LOW, MEDIUM, HIGH, X_HIGH, LAST };
 // Every quality above LOW needs the frame buffer; platforms without one
@@ -83,6 +84,7 @@ class World {
     int fboHeight = 0;
     FullScreenQuad fullScreenQuad;
     MouseSelection mouseSelection;
+    WorldTextRenderer worldText;
     Shader object_shader;
     Shader debris_shader;
     Shader primed_tnt_shader;
@@ -133,6 +135,30 @@ class World {
     // authoritative and pushes state via CONTAINER_CONTENTS. Swaps
     // FURNACE<->LIT_FURNACE blocks as furnaces light/extinguish.
     void tick_furnaces( );
+
+    // Sign front text — same storage pattern as the chest API above.
+    // Text for the sign at block_pos, or nullptr when the block isn't a
+    // sign, its chunk isn't loaded, or no text is stored.
+    const SignText *get_sign_text( const glm::ivec3 &block_pos ) const;
+    // Sanitized write; false when the block isn't a sign or its chunk isn't
+    // loaded. Empty text erases the record. Marks the chunk dirty.
+    bool set_sign_text( const glm::ivec3 &block_pos, const SignText &text );
+    // Same write but skips the dirty mark — inbound SIGN_TEXT on a
+    // multiplayer client, which never writes side files.
+    bool set_sign_text_from_net( const glm::ivec3 &block_pos, const SignText &text );
+
+  private:
+    // Shared body of the two writers above (friend-scoped Chunk access).
+    bool set_sign_text_impl( const glm::ivec3 &block_pos, const SignText &text, bool mark_dirty );
+
+  public:
+    // Append every stored sign in loaded chunks whose cell falls within
+    // `radius` blocks of `center` (chebyshev). The world-text renderer
+    // uses this once per frame.
+    void collect_signs_near( const glm::ivec3 &center, int radius, std::vector<WorldSign> &out ) const;
+    // GL init for the sign-text pass — needs the font atlas, so it runs
+    // after ui.font.init() rather than inside init().
+    void init_sign_text( const FontRenderer &font );
 
     // Kind-keyed container access — the CONTAINER_* wire family and code
     // that doesn't know the concrete container type use these; they route

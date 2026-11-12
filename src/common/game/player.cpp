@@ -604,6 +604,13 @@ void RepGame::process_mouse_events( ) {
             RepGame::open_furnace( globalGameState, globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
+        // Right-clicking a sign opens the text editor instead of placing
+        // against it. Sneaking skips the interaction so a block can be
+        // placed.
+        if ( block_is_sign( target_state.id ) && !globalGameState.input.movement.sneakPressed ) {
+            repgame_open_sign_editor( globalGameState, globalGameState.block_selection.pos_destroy );
+            globalGameState.input.click_delay_right = 30;
+        }
     }
     if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
         // Right-clicking a fence gate toggles it open/closed instead of
@@ -841,6 +848,11 @@ void RepGame::process_mouse_events( ) {
                     BlockID placed_block = change_block( 1, { placed_id, rotation, 0, placed_id, 0 } );
                     if ( placed_block != LAST_BLOCK_ID ) {
                         audio_play_sfx( audio_block_place_pool( holdingBlock ) );
+                        if ( block_is_sign( placed_id ) ) {
+                            // The queued write lands next tick; the editor's
+                            // "still a sign" check gives it a grace window.
+                            repgame_open_sign_editor( globalGameState, globalGameState.block_selection.pos_create );
+                        }
                     }
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
