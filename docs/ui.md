@@ -155,8 +155,8 @@ Breaking a furnace loots all three slots (`repgame_loot_container`, or
 Standing and wall signs carry four lines of front text (`SignText`,
 `include/common/sign.hpp`, `SIGN_LINE_MAX` = 15 printable ASCII chars per
 line) stored per position in `ChunkContainers.signs`. The editor
-(`ui.sign_edit`, `src/common/game/sign_edit.cpp`) opens after placing a
-sign and on right-clicking one (sneak-click still places instead, like
+(`ui.sign_edit`, `src/common/game/sign_edit.cpp`) opens on
+right-clicking one (sneak-click still places instead, like
 containers) — `repgame_open_sign_editor` snapshots the stored text into
 the edit buffer, closes every other screen, and raises
 `input.text_input_active`, which releases the pointer and switches the
@@ -169,7 +169,7 @@ rather than the raw `key_down` path the search box uses.
 the active line, Backspace deletes (or climbs a line when empty),
 Up/Down and Enter navigate lines, Enter on the last line or Escape
 commits. The tick also closes *without* committing when the chunk
-unloads, the cell stops being a sign (after a few post-placement grace
+unloads, the cell stops being a sign (after a few open-time grace
 ticks), or the player walks out of reach — the same `+2` slack the
 container screens use. Commit (`repgame_commit_sign_edit`) writes
 `World::set_sign_text` and, in multiplayer, sends `SIGN_TEXT`; the

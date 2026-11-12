@@ -848,11 +848,6 @@ void RepGame::process_mouse_events( ) {
                     BlockID placed_block = change_block( 1, { placed_id, rotation, 0, placed_id, 0 } );
                     if ( placed_block != LAST_BLOCK_ID ) {
                         audio_play_sfx( audio_block_place_pool( holdingBlock ) );
-                        if ( block_is_sign( placed_id ) ) {
-                            // The queued write lands next tick; the editor's
-                            // "still a sign" check gives it a grace window.
-                            repgame_open_sign_editor( globalGameState, globalGameState.block_selection.pos_create );
-                        }
                     }
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );

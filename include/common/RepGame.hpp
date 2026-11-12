@@ -219,7 +219,7 @@ void repgame_tick_vitals( RepGameState &state );
 void repgame_respawn( RepGameState &state );
 
 // Sign editor (src/common/game/sign_edit.cpp): modal four-line text box
-// opened by placing or right-clicking a standing/wall sign. Free functions
+// opened by right-clicking a standing/wall sign. Free functions
 // so rep_tests and the harness can drive them.
 void repgame_open_sign_editor( RepGameState &state, const glm::ivec3 &pos );
 // commit=false discards the edit (broken sign, unloaded chunk, out of

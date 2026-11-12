@@ -29,10 +29,12 @@ static constexpr float kBoardZWall = 2.0f;
 // How far the ink floats off the board face — enough to avoid z-fighting
 // at the draw radius, small enough to look attached at grazing angles.
 static constexpr float kTextLiftPx = 0.15f;
-// Layout budget on the 16px-wide board: the four lines span 7px
-// vertically (1.75px pitch) and the widest legal line fills 14px.
-static constexpr float kTextBlockH = 7.0f;
+// Layout budget on the 16x8px board: the widest line on a sign fills
+// 14px, and the stacked text bands keep this much clear of the board's
+// top/bottom edges.
+static constexpr float kBoardHalfH = 4.0f;
 static constexpr float kTextWidthPx = 14.0f;
+static constexpr float kTextVMargin = 0.3f;
 
 void WorldTextRenderer::init( const FontRenderer &font ) {
     this->font = &font;
@@ -102,19 +104,43 @@ void WorldTextRenderer::append_sign( const glm::vec3 &sign_pos, const BlockState
     const int yaw = state.rotation & 3;
     const float z_front = ( wall ? kBoardZWall : kBoardZStanding ) + kTextLiftPx;
     const float y_center = wall ? kBoardYCenterWall : kBoardYCenterStanding;
-    const float pitch = kTextBlockH / SIGN_LINES;
 
     const float raster = this->font->raster_size( );
-    // texel -> def-px scale: the widest legal line fills kTextWidthPx,
-    // and the line box stays under the pitch so lines can't overlap.
-    static float s_scale = -1.0f;
-    if ( s_scale < 0.0f ) {
-        const char *widest = "WWWWWWWWWWWWWWW"; // SIGN_LINE_MAX W's
-        const float worst_w = this->font->getTextWidthSlice( widest, SIGN_LINE_MAX, raster );
-        const float line_h = this->font->getAscent( raster ) - this->font->getDescent( raster );
-        s_scale = fminf( kTextWidthPx / worst_w, pitch / line_h );
+    // Each line reserves one "normal" band — cap-height ascender above
+    // the baseline, descender below — regardless of what the line
+    // actually contains, so baseline layout is uniform across signs.
+    // Extreme glyphs (diacritics, braces) may poke out of their band;
+    // no space is kept for them. Line pitch is one band, so the scale
+    // is the largest that stacks four bands inside the board's 8px
+    // height minus margins — short text renders big, and the sign's own
+    // widest line still caps it horizontally.
+    static float s_height = -1.0f;
+    static float band_cap = 0.0f;
+    static float band_desc = 0.0f;
+    if ( s_height < 0.0f ) {
+        band_cap = this->font->getCapHeight( raster );
+        band_desc = -this->font->getDescent( raster );
+        s_height = ( kBoardHalfH * 2.0f - 2.0f * kTextVMargin ) / ( SIGN_LINES * ( band_cap + band_desc ) );
     }
-    const float s = s_scale;
+    FontGlyphQuad quads[ SIGN_LINES ][ SIGN_LINE_MAX ];
+    int quad_count[ SIGN_LINES ] = {};
+    float line_w[ SIGN_LINES ] = {};
+    float s = s_height;
+    for ( int i = 0; i < SIGN_LINES; i++ ) {
+        const std::string &line = text.lines[ i ];
+        if ( line.empty( ) ) {
+            continue;
+        }
+        quad_count[ i ] = this->font->glyph_quads( line.c_str( ), static_cast<int>( line.size( ) ), quads[ i ], SIGN_LINE_MAX );
+        line_w[ i ] = this->font->getTextWidthSlice( line.c_str( ), static_cast<int>( line.size( ) ), raster );
+        if ( line_w[ i ] > 0.0f ) {
+            s = fminf( s, kTextWidthPx / line_w[ i ] );
+        }
+    }
+    // Pitch tracks the scale — bands just touch — and the band block is
+    // centered on the board, which sits the baselines (cap-desc)/2 low.
+    const float pitch = ( band_cap + band_desc ) * s;
+    const float y_text_center = y_center - ( band_cap - band_desc ) * s * 0.5f;
 
     // Grow the staging buffer for the whole sign at once (4 lines *
     // SIGN_LINE_MAX glyphs worst case).
@@ -138,20 +164,16 @@ void WorldTextRenderer::append_sign( const glm::vec3 &sign_pos, const BlockState
         return sign_pos + glm::vec3( 0.5f ) + p;
     };
 
-    FontGlyphQuad quads[ SIGN_LINE_MAX ];
     for ( int i = 0; i < SIGN_LINES; i++ ) {
-        const std::string &line = text.lines[ i ];
-        if ( line.empty( ) ) {
+        if ( quad_count[ i ] == 0 ) {
             continue;
         }
-        const int n = this->font->glyph_quads( line.c_str( ), static_cast<int>( line.size( ) ), quads, SIGN_LINE_MAX );
-        // Center each line; baselines spread by pitch about the board's
-        // vertical center (line 0 = top).
-        const float line_w = this->font->getTextWidthSlice( line.c_str( ), static_cast<int>( line.size( ) ), raster ) * s;
-        const float base_x = 8.0f - line_w * 0.5f;
-        const float base_y = y_center + ( 1.5f - i ) * pitch;
-        for ( int g = 0; g < n; g++ ) {
-            const FontGlyphQuad &q = quads[ g ];
+        // Center each line; baselines spread by pitch about the ink
+        // center (line 0 = top).
+        const float base_x = 8.0f - line_w[ i ] * s * 0.5f;
+        const float base_y = y_text_center + ( 1.5f - i ) * pitch;
+        for ( int g = 0; g < quad_count[ i ]; g++ ) {
+            const FontGlyphQuad &q = quads[ i ][ g ];
             const float dx0 = base_x + q.x0 * s;
             const float dx1 = base_x + q.x1 * s;
             const float dy_top = base_y + q.y_top * s;

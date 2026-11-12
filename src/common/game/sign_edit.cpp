@@ -1,5 +1,5 @@
-// The sign editor: a modal four-line text box opened by placing or
-// right-clicking a standing/wall sign. The queued Input text counters are
+// The sign editor: a modal four-line text box opened by right-clicking a
+// standing/wall sign. The queued Input text counters are
 // drained here each tick; committing writes through World::set_sign_text
 // (and, in multiplayer, sends a SIGN_TEXT message — the server's echo is
 // the authoritative copy).
@@ -119,8 +119,8 @@ void repgame_tick_sign_editor( RepGameState &state ) {
     }
     // Close without committing when the sign can't be edited any more:
     // chunk unloaded (LAST_BLOCK_ID), the cell no longer holds a sign
-    // (past the post-placement grace ticks), or the player left reach —
-    // the same +2 slack the container screens use.
+    // (past the open-time grace ticks), or the player left reach — the
+    // same +2 slack the container screens use.
     const BlockState state_at = state.world.get_loaded_block( edit.pos );
     if ( state_at.id == LAST_BLOCK_ID ) {
         repgame_close_sign_editor( state, false );

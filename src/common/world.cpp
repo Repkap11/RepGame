@@ -660,10 +660,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->collect_signs_near( camera_block, SIGN_TEXT_DRAW_RADIUS, signs );
         this->worldText.begin( );
         for ( const WorldSign &sign : signs ) {
-            // Ink is near-black; the cell's light dims it like the board.
-            const glm::vec2 light = this->chunkLoader.light_sample( glm::vec3( sign.pos ) + 0.5f );
-            const float lum = glm::mix( min_ambient, 1.0f, glm::max( light.x * daylight, light.y ) );
-            const float tint[ 4 ] = { lum * 0.15f, lum * 0.15f, lum * 0.15f, 1.0f };
+            // Ink is pure black, like Minecraft signs — it stays readable
+            // wherever the board behind it is lit.
+            const float tint[ 4 ] = { 0.0f, 0.0f, 0.0f, 1.0f };
             const glm::vec3 pos_rebased = glm::vec3( sign.pos - renderOrigin );
             this->worldText.append_sign( pos_rebased, sign.state, *sign.text, tint );
         }
