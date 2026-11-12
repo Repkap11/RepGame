@@ -220,12 +220,15 @@ void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std:
         this->index_remove( MAP_FILE_CHUNK, chunk_offset );
         return;
     }
-    FILE *write_ptr = fopen( file_name, "wb" );
+    // Write to a sibling temp then rename: a mid-write crash/kill must not
+    // leave a truncated chunk file that later decodes as a shorter edit list.
+    char tmp_name[ CHUNK_NAME_MAX_LENGTH + 8 ];
+    snprintf( tmp_name, sizeof( tmp_name ), "%s.tmp", file_name );
+    FILE *write_ptr = fopen( tmp_name, "wb" );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for chunk:%s", file_name );
+        pr_debug( "fopen failed for chunk:%s", tmp_name );
         return;
     }
-    this->index_insert( MAP_FILE_CHUNK, chunk_offset );
     const uint32_t magic = CHUNK_EDITS_MAGIC;
     const uint32_t version = CHUNK_EDITS_VERSION;
     const uint32_t record_size = sizeof( BlockState );
@@ -245,6 +248,13 @@ void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std:
     fdatasync( fileno( write_ptr ) );
 #endif
     fclose( write_ptr );
+    if ( rename( tmp_name, file_name ) != 0 ) {
+        pr_debug( "rename failed for chunk:%s", file_name );
+        remove( tmp_name );
+        return;
+    }
+    // Index only once the file is durable: the temp write must not count.
+    this->index_insert( MAP_FILE_CHUNK, chunk_offset );
 }
 
 void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const BlockState *blocks ) {
@@ -337,11 +347,14 @@ int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32
             break;
         }
         if ( block_storage_num > CHUNK_BLOCK_SIZE - block_index ) {
-            // A corrupt file's run lengths must not drive the overlay past
-            // the cells array: truncate the run and stop decoding.
-            pr_debug( "Chunk %s run lengths overflow %d cells; truncating", file_name, CHUNK_BLOCK_SIZE );
-            block_storage_num = CHUNK_BLOCK_SIZE - block_index;
-            overflow = 1;
+            // A corrupt run length would silently truncate the decode: callers
+            // re-encode edits.runs on the next persist, so returning a partial
+            // cell map would rewrite the file with only this prefix and lose
+            // the tail. Refuse it instead — the file stays on disk.
+            pr_debug( "Chunk %s run length %u overflows at cell %u; refusing partial decode",
+                      file_name, block_storage_num, block_index );
+            free( persist_data );
+            return -1;
         }
         if ( block_storage_num == 0 ) {
             continue;

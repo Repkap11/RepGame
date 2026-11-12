@@ -172,9 +172,16 @@ void ServerLogic::record_block( const glm::ivec3 &block_pos, BlockState &block_s
                 // persist and lose every earlier edit. A timer-only entry
                 // (empty blocks, armed by a container edit) hasn't merged
                 // either — route it through loadIntoCache too.
-                ChunkCacheEntry &entry = *( it_cache != this->world_cache.end( ) && !it_cache->second.blocks.empty( )
+                ChunkCacheEntry *entry_p = ( it_cache != this->world_cache.end( ) && !it_cache->second.blocks.empty( )
                                                 ? &it_cache->second
                                                 : this->loadIntoCache( new_chunk_pos ) );
+                if ( entry_p == nullptr ) {
+                    // The file exists but won't decode: skip this write so the
+                    // next persist can't rewrite it with only this session's
+                    // edits and lose everything already on disk.
+                    continue;
+                }
+                ChunkCacheEntry &entry = *entry_p;
                 const size_t cells_before = entry.blocks.size( );
                 entry.blocks[ new_block_index ] = block_state;
                 this->dirty_cells_ += entry.blocks.size( ) - cells_before;
@@ -424,7 +431,16 @@ ChunkCacheEntry *ServerLogic::loadIntoCache( const glm::ivec3 &chunk_offset ) {
     ChunkCacheEntry &entry = this->world_cache[ chunk_offset ];
     const size_t cells_before = entry.blocks.size( );
     entry.blocks.clear( );
-    this->loadDiffsFromDisk( chunk_offset, entry.blocks );
+    if ( !this->loadDiffsFromDisk( chunk_offset, entry.blocks ) &&
+         this->map_storage.check_if_chunk_exists( chunk_offset ) ) {
+        // The file exists but wouldn't decode: merging nothing here would let
+        // the next persist rewrite it with only this session's edits and lose
+        // everything already on disk. Leave the entry empty and signal the
+        // caller to skip this chunk instead.
+        pr_debug( "ServerLogic: chunk file at %d %d %d won't decode — refusing to merge (on-disk edits preserved)",
+                  chunk_offset.x, chunk_offset.y, chunk_offset.z );
+        return nullptr;
+    }
     this->dirty_cells_ += entry.blocks.size( ) - cells_before;
     return &entry;
 }

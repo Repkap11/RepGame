@@ -656,6 +656,65 @@ int server_selftest( ) {
                "second migration pass is a no-op" );
     }
 
+    // --- Corrupt legacy file: a mid-file run length that overshoots the
+    // volume is refused (never returned as a partial decode), so migration
+    // and later edits leave the file on disk instead of clobbering it with
+    // only the decoded prefix. ---
+    const glm::ivec3 bad( 9, 0, 9 );
+    {
+        MapStorage &srv_storage = server.test_logic( ).test_storage( );
+        char bad_name[ CHUNK_NAME_MAX_LENGTH ];
+        snprintf( bad_name, sizeof( bad_name ), FILE_ROOT_CHUNK, world_dir( ).c_str( ), bad.x, bad.y, bad.z );
+
+        // Seed a valid legacy file so the save-file index knows the chunk.
+        BlockState *seed = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
+        for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
+            seed[ i ] = BlockState{ static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0, 0,
+                                    static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0 };
+        }
+        srv_storage.persist_chunk_legacy( bad, seed );
+        free( seed );
+
+        // Overwrite it in place with a corrupt stream: two good records then
+        // a hole run that overshoots the volume.
+        const uint32_t rec_size = sizeof( BlockState ) + sizeof( uint32_t );
+        FILE *f = fopen( bad_name, "wb" );
+        check( f != NULL, "wrote corrupt legacy chunk file" );
+        if ( f != NULL ) {
+            const BlockState hole{ static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0, 0,
+                                   static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0 };
+            fwrite( &rec_size, sizeof( rec_size ), 1, f );
+            const uint32_t n5 = 5, n3 = 3, nbig = CHUNK_BLOCK_SIZE;
+            fwrite( &stone, sizeof( stone ), 1, f );
+            fwrite( &n5, sizeof( n5 ), 1, f );
+            fwrite( &stone, sizeof( stone ), 1, f );
+            fwrite( &n3, sizeof( n3 ), 1, f );
+            fwrite( &hole, sizeof( hole ), 1, f );
+            fwrite( &nbig, sizeof( nbig ), 1, f );
+            fclose( f );
+        }
+        const long bad_size = std::filesystem::file_size( bad_name );
+
+        ChunkEdits corrupt;
+        check( srv_storage.load_chunk_edits( bad, corrupt ) == -1,
+               "corrupt legacy run length refuses decode" );
+        check( srv_storage.migrate_legacy_chunk_files( ) == 0 &&
+                   std::filesystem::file_size( bad_name ) == (size_t)bad_size,
+               "migration leaves an undecodable file untouched" );
+
+        // An edit into the corrupt chunk must not clobber the file: the merge
+        // refuses, so the next persist writes nothing.
+        SimClient c = connect_client( server );
+        drain_client( server, c );
+        send_block_update( server, c, bad * CHUNK_SIZE_I + glm::ivec3( 1, 40, 1 ), stone );
+        drain_client( server, c );
+        server.test_logic( ).flushAll( );
+        check( std::filesystem::file_size( bad_name ) == (size_t)bad_size,
+               "edit + persist preserves the undecodable chunk file" );
+        disconnect_client( server, c );
+        remove( bad_name );
+    }
+
     // --- Save-file index: existence checks hit the index instead of the
     // filesystem; persists keep it current. ---
     const glm::ivec3 ke( 7, 0, 7 );

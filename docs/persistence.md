@@ -60,6 +60,15 @@ size differs from this build's sets `ChunkEdits::needs_rewrite` so it is
 rewritten in v1 on the next persist. Persisting an empty run set
 removes the file.
 
+Writes are atomic: `persist_chunk_edits` writes a sibling `*.tmp` then
+renames, so a crash or kill mid-write leaves the previous file intact
+rather than a truncated stream that would decode as a shorter edit list.
+A file that exists but fails to decode is never rewritten from a partial
+or empty read — `load_chunk_edits` fails closed, `ServerLogic` refuses to
+merge such a chunk into its edit cache (the new edit is dropped for that
+chunk, the on-disk data survives), and `migrate_legacy_chunk_files`
+skips it.
+
 Writes happen off the render thread inside
 `TerrainLoadingThread::process_value` — a departing slot persists
 through the work queue before its memory is released — plus
