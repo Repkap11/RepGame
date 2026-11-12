@@ -198,9 +198,9 @@ void Multiplayer::set_block( const glm::ivec3 &block_pos, BlockState blockState,
     this->send( NetMsgType::BLOCK_UPDATE, p );
 }
 
-void Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
+bool Multiplayer::request_chunk( const glm::ivec3 &chunk_pos ) {
     // Phase 1: send a 1x1x1 box. Phase 2 will batch via request_chunks_box.
-    request_chunks_box( chunk_pos, 1, 1, 1 );
+    return request_chunks_box( chunk_pos, 1, 1, 1 );
 }
 
 bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz, bool initial ) {

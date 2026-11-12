@@ -132,10 +132,10 @@ class Multiplayer {
     const std::string &server_hostname( ) const { return this->hostname; }
     int server_port( ) const { return this->portno; }
     void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item );
-    void request_chunk( const glm::ivec3 &chunk_pos );
     // Returns false (and queues nothing) when not connected, so callers
-    // retrying one-shot requests (initial_chunk_request_pending) can keep
-    // their retry flag set.
+    // retrying one-shot requests (initial_chunk_request_pending) or
+    // coverage bookkeeping (slot_diff_req) can retry / stay unstamped.
+    bool request_chunk( const glm::ivec3 &chunk_pos );
     bool request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t sy, uint8_t sz, bool initial = false );
 
     // Queue a chunk diff for a chunk that isn't loaded yet. Called from

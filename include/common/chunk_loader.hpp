@@ -159,6 +159,19 @@ class ChunkLoader {
     // for the initial visible area. Lets us batch the initial chunk-diff
     // request into one frame instead of per-chunk as terrain gen finishes.
     bool initial_chunk_request_pending = false;
+    // Per-slot record of the chunk-grid position the last sent
+    // CHUNK_DIFF_REQUEST covered. Diffs are requested by position, but a
+    // slot's *landing* position isn't always the position it was enqueued
+    // for: TerrainLoadingThread retargets in-flight jobs at pick-up, and the
+    // shift scan can't run loading slots through reload_if_out_of_bounds.
+    // render_chunks prefetches targets that were never covered and
+    // finalize_loaded_chunk re-requests any position still uncovered, so a
+    // chunk can never go live as pure generated terrain while its
+    // neighbours' halo mirrors hold the real border edits.
+    glm::ivec3 slot_diff_req[ MAX_LOADED_CHUNKS ];
+    // After a request box is sent, stamp slot_diff_req for every slot whose
+    // current target position lies inside the box.
+    void stamp_diff_request_box( const glm::ivec3 &center, const glm::ivec3 &box_min, const glm::ivec3 &box_size );
     // Near-heal promotions left this grid shift (light_heal_chunk): each
     // near chunk with queued incident seed work may take one near-lane
     // re-finalize so flying up to a half-lit region converges it promptly.

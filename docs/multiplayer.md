@@ -141,7 +141,14 @@ travels is the per-chunk edit set:
   (`request_chunks_box`). `ChunkLoader::render_chunks` fires one box for
   the whole visible window on connect
   (`initial_chunk_request_pending`, retried until it sends) and one box
-  covering all newly-entered positions after every window shift.
+  covering all newly-entered positions after every window shift —
+  including the current targets of slots still `CHUNK_LOADING`, since a
+  worker retargets an in-flight load at pick-up and can land it on a
+  position that entered the window while the slot was busy.
+  `slot_diff_req` records the last requested target per slot;
+  `finalize_loaded_chunk` re-requests any landed position still
+  uncovered, so a chunk can never go live as pure generated terrain
+  while neighbours' halo mirrors hold the real border edits.
 - `CHUNK_DIFF_RESULT` is one frame per chunk: a list of
   `(blocks_index, BlockState)` pairs covering the chunk's *internal*
   (halo-inclusive) index space. `apply_diff_block` writes each cell and
