@@ -380,7 +380,12 @@ void Minecarts::tick( RepGameState &state, const CartTickInput &in ) {
                 const double y1 = y0 + 180.0;
                 c.yaw = static_cast<float>( y0 + ( fabs( wrap_180( y1 - c.yaw ) ) < fabs( wrap_180( y0 - c.yaw ) ) ? 180.0 : 0.0 ) );
                 c.yaw = static_cast<float>( c.yaw - 360.0 * floor( ( c.yaw + 180.0 ) / 360.0 ) );
-                c.pitch = static_cast<float>( glm::degrees( asin( glm::clamp( path.u.y * ( s >= 0 ? 1.0 : -1.0 ), -1.0, 1.0 ) ) ) );
+                // The body lies flat against the rail: pitch the slope's
+                // rise along the cart's *facing* (not its travel), so a
+                // parked or backwards-facing cart tilts the same way.
+                const double ry = glm::radians( static_cast<double>( c.yaw ) );
+                const double along = sin( ry ) * path.u.x - cos( ry ) * path.u.z;
+                c.pitch = static_cast<float>( glm::degrees( asin( glm::clamp( path.u.y * ( along >= 0 ? 1.0 : -1.0 ), -1.0, 1.0 ) ) ) );
             }
         } else {
             // Off-rail: ballistic with ground/air drag and box collision.
@@ -643,7 +648,7 @@ void Minecarts::update_render( float alpha, const ChunkLoader &loader ) {
         // nose onto -Z.
         glm::mat4 base = glm::translate( glm::mat4( 1.0f ), glm::vec3( rpos ) );
         base = glm::rotate( base, glm::radians( -ryaw ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-        base = glm::rotate( base, glm::radians( -rpitch ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+        base = glm::rotate( base, glm::radians( rpitch ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
         // Hurt wobble: MC's hurtTime — a roll about the forward axis over
         // half a second, phase 1 rad per MC tick (20 tps), amplitude
         // decaying linearly from a 10° peak. The phase is interpolated by

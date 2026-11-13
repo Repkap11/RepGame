@@ -163,11 +163,48 @@ int test_minecarts( ) {
     }
     run( 10 );
     check_bool( "cart: rail below step ascends E", rail_shape_of( world.get_loaded_block( glm::ivec3( 16, 11, 20 ) ) ) == RAIL_ASC_E );
-    carts.spawn( glm::dvec3( 14.5, 11.0 + 1.0 / 16.0, 20.5 ), 0.0f );
+    // Spawn on the flat cell (15,20): (14,20) is a curve — the corner run
+    // above left rails z=17..20 there, so a cart spawned on it would sweep
+    // around the bend and reach the slope facing backwards.
+    carts.spawn( glm::dvec3( 15.5, 11.0 + 1.0 / 16.0, 20.5 ), 0.0f );
     carts.test_carts( )[ 0 ].vel = glm::dvec3( 0.05, 0.0, 0.0 );
-    tick( 80 );
-    check_bool( "cart: climbs onto the raised rail",
-                only_cart( ).on_rail && only_cart( ).pos.x > 16.5 && only_cart( ).pos.y > 11.5 );
+    {
+        float max_pitch = 0.0f;
+        for ( int i = 0; i < 80; i++ ) {
+            tick( 1 );
+            if ( only_cart( ).pos.x > 16.0 && only_cart( ).pos.x < 17.0 && only_cart( ).pitch > max_pitch ) {
+                max_pitch = only_cart( ).pitch;
+            }
+        }
+        check_bool( "cart: climbs onto the raised rail",
+                    only_cart( ).on_rail && only_cart( ).pos.x > 16.5 && only_cart( ).pos.y > 11.5 );
+        check_bool( "cart: nose up while ascending", max_pitch > 10.0f );
+    }
+    // Back down the same slope: yaw continuity keeps the cart facing +x
+    // (uphill) while it rolls down backwards, so pitch stays positive —
+    // the body lies parallel to the rail in either facing.
+    carts.test_carts( )[ 0 ].vel = glm::dvec3( -0.1, 0.0, 0.0 );
+    {
+        float min_pitch = 90.0f;
+        for ( int i = 0; i < 120; i++ ) {
+            tick( 1 );
+            if ( only_cart( ).pos.x > 16.0 && only_cart( ).pos.x < 17.0 && only_cart( ).pitch < min_pitch ) {
+                min_pitch = only_cart( ).pitch;
+            }
+        }
+        check_bool( "cart: backwards descent hugs the slope", min_pitch > 10.0f );
+    }
+    carts.test_carts( ).clear( );
+    // A parked cart still lies flat against the rail: facing uphill (+x)
+    // its pitch is positive, facing downhill (-x) negative — the sign
+    // follows the cart's facing, not a travel direction it doesn't have.
+    carts.spawn( glm::dvec3( 16.5, 11.5, 20.5 ), 90.0f );
+    tick( 3 );
+    check_bool( "cart: parked on slope facing uphill", only_cart( ).pitch > 10.0f );
+    carts.test_carts( ).clear( );
+    carts.spawn( glm::dvec3( 16.5, 11.5, 20.5 ), -90.0f );
+    tick( 3 );
+    check_bool( "cart: parked on slope facing downhill", only_cart( ).pitch < -10.0f );
     carts.test_carts( ).clear( );
 
     // --- end of track: derail and fall to the ground -----------------------------
