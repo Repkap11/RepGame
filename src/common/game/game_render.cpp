@@ -132,27 +132,6 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
         profiling.num_chunks_remeshed = globalGameState.world.get_num_remeshed_chunks( );
     }
 
-    { // TEMP light diagnostic
-        static int light_dbg = 0;
-        // Skipped in fly mode: FLYMET owns the light_dbg_stats interval there
-        // (a second caller would split the counters across two streams).
-        // Likewise the REPGAME_RESULTS metric record when it's enabled.
-        if ( ++light_dbg % 120 == 0 && !RepGame::fly_mode( ) && !results::active( ) ) {
-            const glm::ivec3 p = glm::ivec3( glm::floor( render_pos ) );
-            const glm::ivec3 up = p + glm::ivec3( 0, 5, 0 );
-            char dbg[ 1024 ];
-            globalGameState.world.chunkLoader.light_dbg_stats( dbg, sizeof( dbg ) );
-            pr_debug( "LIGHT probe p=(%d,%d,%d) id=%d sky=%d blk=%d | up id=%d sky=%d | q=%zu | %s",
-                      p.x, p.y, p.z,
-                      globalGameState.world.chunkLoader.light_probe_id( p ),
-                      globalGameState.world.chunkLoader.light_probe( p, LIGHT_CHANNEL_SKY ),
-                      globalGameState.world.chunkLoader.light_probe( p, LIGHT_CHANNEL_BLOCK ),
-                      globalGameState.world.chunkLoader.light_probe_id( up ),
-                      globalGameState.world.chunkLoader.light_probe( up, LIGHT_CHANNEL_SKY ),
-                      globalGameState.world.chunkLoader.light_queue_sizes( ), dbg );
-        }
-    }
-
     showErrors( );
 
     // glm::mat4 mvp_mirror = glm::translate( mvp, glm::vec3( 0, -10, 0 ) );
