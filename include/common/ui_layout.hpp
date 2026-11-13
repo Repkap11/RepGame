@@ -166,6 +166,15 @@ struct UiLayoutRects {
     UiRect sign_hint;
     int sign_k = 0;
 
+    // Chat console: the scrollback region (chat_lines rows tall) stacked
+    // directly over the input bar, left-anchored above the HUD strip.
+    // Always laid out; drawn only where the draw pass allows it. chat_k
+    // is the integer text scale (rows draw at 13*chat_k px).
+    UiRect chat_log;
+    UiRect chat_input;
+    int chat_lines = 0;
+    int chat_k = 0;
+
     // Bitmask of UiOverflow — which screens exceeded the viewport this
     // pass. Overflow is possible (a window can be smaller than a screen
     // needs) but inspectable: the draw code still runs, and tests/debug
@@ -185,6 +194,7 @@ enum UiOverflow : unsigned {
     UI_OVERFLOW_FURNACE = 1u << 6,
     UI_OVERFLOW_PAUSE = 1u << 7,
     UI_OVERFLOW_SIGN = 1u << 8,
+    UI_OVERFLOW_CHAT = 1u << 9,
 };
 
 // 16:9-normalized height basis shared by UI sizing: the UI stays a

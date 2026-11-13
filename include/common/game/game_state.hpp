@@ -14,6 +14,8 @@
 // typedef played.
 #include "common/player_data.hpp"
 
+#include "common/chat.hpp"
+
 #include <entt/entity/registry.hpp>
 #include "common/RenderChain.hpp"
 #include "common/RenderLink.hpp"
@@ -53,6 +55,13 @@ struct RepGameState {
     // hostile = they do. Game mode no longer factors in (see
     // RepGame::player_targetable). Persisted in player.dat.
     bool peaceful;
+    // Requested display name, sent as PLAYER_NAME once WELCOME lands and
+    // re-sent on /name; the server-accepted spelling lives in
+    // multiplayer.player_names. Persisted in player.dat.
+    std::string player_name;
+    // Session chat log (net frames + local lines feed it; the chat UI
+    // only reads it). Session-only — never persisted.
+    ChatLog chat;
     long tick_number;
     // Day/night clock in ticks (see DAY_LENGTH_TICKS in light.hpp).
     // Persisted in player.dat via PlayerData::world_time.

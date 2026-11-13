@@ -101,6 +101,24 @@ class Multiplayer {
     // and broadcasts the stored text back (the sender included), so the
     // commit path also applies locally for immediate feedback.
     void send_sign_text( const glm::ivec3 &pos, const SignText &text );
+    // Send one chat line (PLAYER/EMOTE/WHISPER; `target` only matters for
+    // WHISPER). The server stamps `from` from its own name table.
+    void send_chat( uint8_t kind, const std::string &target, const std::string &text );
+    // Publish a display-name change. The server sanitizes + dedupes and
+    // broadcasts the effective name back; player_names[self_player_id]
+    // then holds the server-accepted spelling.
+    void send_player_name( const std::string &name );
+    // Effective display names keyed by fd, fed by PLAYER_NAME frames
+    // (initial replay + join/rename broadcasts). Entries vanish on
+    // PLAYER_DISCONNECTED; an fd without an entry shows "Player<fd>".
+    std::map<int32_t, std::string> player_names;
+    // This client's own fd, learned from the WELCOME frame's player_id.
+    int32_t self_player_id = -1;
+    // The name table entry for `player_id`, or nullptr when unnamed.
+    const std::string *name_of( int32_t player_id ) const;
+    // Case-insensitive name -> fd lookup over player_names (whisper
+    // completion); false when no player matches.
+    bool find_player( const std::string &name_ci, int32_t &player_id ) const;
     // Entity sync hub (server arbitrates, owner client simulates). Bound to
     // this Multiplayer at construction; NetEntities::handle is called from
     // handle_frame for the entity-protocol message types.

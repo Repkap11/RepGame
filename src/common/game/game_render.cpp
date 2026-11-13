@@ -661,6 +661,12 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
                 globalGameState.ui.font.text_append_outlined( buf, tx, ty, text_size, white );
             }
         }
+        // The chat console: scrollback + input bar in the HUD layer —
+        // hidden while a modal screen (pause menu, inventory, sign
+        // editor) is up.
+        if ( !globalGameState.input.menu_open && !globalGameState.input.inventory_open && !globalGameState.ui.sign_edit.open ) {
+            repgame_draw_chat( globalGameState, globalGameState.world.renderer, globalGameState.ui.font, globalGameState.screen.ortho_center );
+        }
     }
     if ( !run_policy().capture.enabled && globalGameState.ui.holding_slot ) {
         int block_size, cell_size;

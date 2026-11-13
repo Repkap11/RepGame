@@ -9,6 +9,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
+#include "common/chat.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/game/game_state.hpp"
 #include "common/game/game_internal.hpp"
@@ -373,6 +374,35 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         state.input.search_focused = atoi( argv[ 1 ].c_str( ) ) != 0;
         return false;
     }
+    // chatopen [/] / chatclose — the chat box's real open/close paths;
+    // `type` and `signkey` inject characters and keys while it's open.
+    if ( strcmp( cmd, "chatopen" ) == 0 && ( argc == 1 || ( argc == 2 && strcmp( argv[ 1 ].c_str( ), "/" ) == 0 ) ) ) {
+        repgame_open_chat( state, argc == 2 ? "/" : "" );
+        return false;
+    }
+    if ( strcmp( cmd, "chatclose" ) == 0 && argc == 1 ) {
+        repgame_close_chat( state );
+        return false;
+    }
+    // assert_chat substr... — a chat log line contains the joined text
+    // (compares against the formatted display line).
+    if ( strcmp( cmd, "assert_chat" ) == 0 && argc >= 2 ) {
+        std::string want;
+        for ( size_t i = 1; i < argc; i++ ) {
+            want += i == 1 ? "" : " ";
+            want += argv[ i ];
+        }
+        std::string found;
+        for ( const ChatMessage &m : state.chat.entries( ) ) {
+            const std::string line_text = chat_format( m );
+            if ( line_text.find( want ) != std::string::npos ) {
+                found = line_text;
+                break;
+            }
+        }
+        results::assert_( state, line, argv[ 0 ].c_str( ), !found.empty( ), want.c_str( ), found.c_str( ) );
+        return false;
+    }
     // container chest|furnace|table x y z — opens that container UI as a
     // right-click on the block would (single-player offline path);
     // container none closes any open container screen.
@@ -423,14 +453,16 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
                         "\"chest\":{\"rect\":\"%s\",\"slab\":\"%s\"},"
                         "\"furnace\":{\"in\":\"%s\",\"fuel\":\"%s\",\"out\":\"%s\",\"in_slab\":\"%s\",\"fuel_slab\":\"%s\",\"out_slab\":\"%s\"},"
                         "\"craft3\":{\"grid\":\"%s\",\"grid_slab\":\"%s\"},"
-                        "\"surv\":{\"rect\":\"%s\",\"slab\":\"%s\"}",
+                        "\"surv\":{\"rect\":\"%s\",\"slab\":\"%s\"},"
+                        "\"chat\":{\"log\":\"%s\",\"input\":\"%s\",\"lines\":%d}",
                         r.overflow,
                         state.ui.chest.open ? 1 : 0, state.ui.furnace.open ? 1 : 0, state.ui.crafting.table_open ? 1 : 0,
                         urect( r.chest_items ).c_str( ), slab( state.ui.chest.inventory_renderer ).c_str( ),
                         urect( r.furnace_input ).c_str( ), urect( r.furnace_fuel ).c_str( ), urect( r.furnace_output ).c_str( ),
                         slab( state.ui.furnace.input ).c_str( ), slab( state.ui.furnace.fuel ).c_str( ), slab( state.ui.furnace.output ).c_str( ),
                         urect( r.crafting_grid3 ).c_str( ), slab( state.ui.crafting.grid3 ).c_str( ),
-                        urect( r.survival_items ).c_str( ), slab( state.survival_inventory.inventory_renderer ).c_str( ) );
+                        urect( r.survival_items ).c_str( ), slab( state.survival_inventory.inventory_renderer ).c_str( ),
+                        urect( r.chat_log ).c_str( ), urect( r.chat_input ).c_str( ), r.chat_lines );
         return false;
     }
     if ( strcmp( cmd, "assert_health" ) == 0 && argc == 3 ) {

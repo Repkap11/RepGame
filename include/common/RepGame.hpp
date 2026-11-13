@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <string>
 
 #include "common/Platforms.hpp"
 #include "common/Logging.hpp"
@@ -249,3 +250,29 @@ void repgame_tick_sign_editor( RepGameState &state );
 bool sign_edit_apply_input( SignEditUi &edit, const Input &in );
 // The editor panel draw — called from draw_ui_pass in the menu layer.
 void repgame_draw_sign_editor( RepGameState &state, const Renderer &renderer, Shader &shader, FontRenderer &font, const glm::mat4 &mvp_ui );
+
+// Chat console (src/common/game/chat_ui.cpp): a non-modal input bar +
+// scrollback above the hotbar. 't'/Tab opens it, '/' opens it prefilled;
+// refused while the sign editor, pause menu, or inventory is up. Free
+// functions so rep_tests and the harness can drive them.
+void repgame_open_chat( RepGameState &state, const std::string &prefix );
+void repgame_close_chat( RepGameState &state );
+// tick() phase: consumes input.chat_open_request, drains the Input text
+// counters, and submits on Enter. Runs right after
+// repgame_tick_sign_editor (they're mutually exclusive).
+void repgame_tick_chat( RepGameState &state );
+// Pure input handling — `submitted` receives the line on Enter; the
+// return value says the box should close (Enter or Escape). rep_tests
+// drive it directly.
+bool chat_edit_apply_input( ChatUi &chat, const Input &in, std::string *submitted );
+// One submitted line: a leading '/' runs a slash command; anything else
+// goes out as PLAYER chat in multiplayer, or straight into the local log
+// in single player.
+void chat_submit( RepGameState &state, const std::string &line );
+// The chat log + input bar draw — called from draw_ui_pass in the HUD
+// layer before the first text flush.
+void repgame_draw_chat( RepGameState &state, const Renderer &renderer, FontRenderer &font, const glm::mat4 &mvp_ui );
+// Slash-command dispatcher (src/common/game/chat_commands.cpp): runs
+// `cmdline` (no leading slash) against the command table; command output
+// lands in state.chat as INFO/ERROR lines.
+void chat_run_command( RepGameState &state, const std::string &cmdline );

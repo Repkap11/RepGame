@@ -192,6 +192,31 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     const float search_h = 0.55f * in.creative_stride;
     const float search_gap = 0.15f * in.creative_stride;
 
+    // Chat console metrics: an integer text scale off the height basis
+    // (clamped 1..4), left-anchored above the HUD strip. The scrollback is
+    // a stack of fixed-height rows capped at 20 and a third of the screen
+    // (kept short of the top-left debug overlay); the input bar is a
+    // padded text row pinned under it. Portrait takes
+    // the full width; landscape the wider of 40% or 40 glyphs.
+    int chat_k = static_cast<int>( lroundf( ui_layout_height_basis( in.screen_w, in.screen_h ) / 720.0f ) );
+    if ( chat_k < 1 ) {
+        chat_k = 1;
+    } else if ( chat_k > 4 ) {
+        chat_k = 4;
+    }
+    const float chat_t = UI_TEXT_BASE_SIZE * chat_k;
+    const float chat_line_h = chat_t * 1.25f;
+    const float chat_pad = 8.0f;
+    const float chat_input_h = chat_line_h * 1.4f;
+    int chat_lines = static_cast<int>( fminf( 20.0f, floorf( 0.33f * in.screen_h / chat_line_h ) ) );
+    if ( chat_lines < 1 ) {
+        chat_lines = 1;
+    }
+    const float chat_w = fminf( in.screen_w - 2.0f * chat_pad,
+                                in.screen_w < in.screen_h ? in.screen_w - 2.0f * chat_pad
+                                                          : fmaxf( 0.4f * in.screen_w,
+                                                                   this->font_->getTextWidth( "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW", chat_t ) ) );
+
     // Fit-solve the pause menu's integer text scale k: shrink it until the
     // panel fits the viewport caps (same rule the old k-- loop applied).
     int pause_k = static_cast<int>( lroundf( ui_layout_height_basis( in.screen_w, in.screen_h ) / 400.0f ) );
@@ -329,6 +354,20 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                 }
             }
         }
+        // The chat console floats off the screen's bottom-left corner
+        // (attachTo ROOT): left-anchored, the input bar a small pad above
+        // the HUD strip's top edge, the scrollback stacked over it. Laid
+        // out unconditionally — only the draw pass decides visibility.
+        CLAY( { .id = CLAY_ID( "chat_input" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( chat_w ), CLAY_SIZING_FIXED( chat_input_h ) } },
+                .floating = { .offset = { chat_pad, -( strip_h + chat_pad ) },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "chat_log" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( chat_w ), CLAY_SIZING_FIXED( chat_lines * chat_line_h ) } },
+                .floating = { .offset = { chat_pad, -( strip_h + 2.0f * chat_pad + chat_input_h ) },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         // The pause panel floats (attachTo ROOT): it never displaces the
         // HUD strip, and is laid out whether or not the menu is open. The
         // sign editor shares its fit-solved text scale and sits in the
@@ -407,6 +446,11 @@ void UiLayout::compute( const UiLayoutInput &in ) {
         this->rects_.sign_lines[ i ] = rect_of( CLAY_IDI( "sign_line", i ) );
     }
 
+    this->rects_.chat_input = rect_of( CLAY_ID( "chat_input" ) );
+    this->rects_.chat_log = rect_of( CLAY_ID( "chat_log" ) );
+    this->rects_.chat_k = chat_k;
+    this->rects_.chat_lines = chat_lines;
+
     this->rects_.pause_panel = rect_of( CLAY_ID( "pause_panel" ) );
     this->rects_.pause_title = rect_of( CLAY_ID( "pause_title" ) );
     this->rects_.pause_k = pause_k;
@@ -465,6 +509,8 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     screen( UI_OVERFLOW_FURNACE, "furnace", r.furnace_backdrop );
     screen( UI_OVERFLOW_PAUSE, "pause_panel", r.pause_panel );
     screen( UI_OVERFLOW_SIGN, "sign_panel", r.sign_panel );
+    screen( UI_OVERFLOW_CHAT, "chat_input", r.chat_input );
+    screen( UI_OVERFLOW_CHAT, "chat_log", r.chat_log );
 
     // Sibling non-overlap invariants — a violation here is a real layout
     // bug (not a fit problem). Each pair gets a bit so warnings fire once
@@ -510,6 +556,10 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     for ( int i = 0; i + 1 < SIGN_LINES; i++ ) {
         overlap( 1ull << ( 45 + i ), "sign_line/next", r.sign_lines[ i ], r.sign_lines[ i + 1 ] );
     }
+    // The chat column sits above the HUD strip and the log above the
+    // input bar — never inside either.
+    overlap( 1ull << 48, "chat_input/hud_strip", r.chat_input, r.hud_strip );
+    overlap( 1ull << 49, "chat_log/chat_input", r.chat_log, r.chat_input );
     this->last_overlap_ = overlap_mask;
     this->last_overflow_ = r.overflow;
 }

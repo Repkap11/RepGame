@@ -76,6 +76,26 @@ void mp_test::event( RepGameState *state, const char *name, const char *fmt, ...
     jflush( );
 }
 
+// JSON string escaping for event details that carry free text (chat lines
+// can contain " and \). Escapes the two required chars; control bytes are
+// already impossible (chat_sanitize_text strips them at both ends).
+static std::string jescape( const std::string &s ) {
+    std::string out;
+    out.reserve( s.size( ) );
+    for ( const char c : s ) {
+        if ( c == '"' || c == '\\' ) {
+            out += '\\';
+        }
+        out += c;
+    }
+    return out;
+}
+
+void mp_test::chat_received( RepGameState *state, const NetChatPayload &p ) {
+    event( state, "chat_received", "\"kind\":%u,\"from\":\"%s\",\"target\":\"%s\",\"text\":\"%s\"",
+           p.kind, jescape( p.from ).c_str( ), jescape( p.target ).c_str( ), jescape( p.text ).c_str( ) );
+}
+
 // The name lookups and world-action commands live in
 // common/harness/debug_commands.cpp so the REPGAME_SCRIPT runner can reuse
 // them — mp_test keeps its own parsing and REPGAME_MP_DUMP event stream.
@@ -94,6 +114,18 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
     }
     jput( ",\"pos\":[%.4f,%.4f,%.4f]", state.camera.pos.x, state.camera.pos.y, state.camera.pos.z );
     jput( ",\"health\":%.3f,\"dead\":%d,\"air_ticks\":%d", state.vitals.health, state.vitals.dead ? 1 : 0, state.vitals.air_ticks );
+    // The requested display name (server-deduped spelling lives in
+    // player_names[self_player_id]) plus the whole name table.
+    jput( ",\"name\":\"%s\"", jescape( state.player_name ).c_str( ) );
+    jput( ",\"players\":[" );
+    {
+        bool first_name = true;
+        for ( const auto &pair : state.multiplayer.player_names ) {
+            jput( "%s\"%s\"", first_name ? "" : ",", jescape( pair.second ).c_str( ) );
+            first_name = false;
+        }
+    }
+    jput( "]" );
 
     // Inventory totals (hotbar + survival) keyed by item name.
     std::map<ItemID, int> inv;
@@ -202,6 +234,16 @@ static void cmd_error( RepGameState &state, const char *line ) {
 }
 
 static void run_cmd( RepGameState &state, char *line ) {
+    // `chat <rest>` goes to the chat box's real submit path with the raw
+    // remainder (spaces preserved) — it can't ride the tokenizing below.
+    if ( strncmp( line, "chat", 4 ) == 0 && ( line[ 4 ] == '\0' || line[ 4 ] == ' ' || line[ 4 ] == '\t' ) ) {
+        const char *rest = line + 4;
+        while ( *rest == ' ' || *rest == '\t' ) {
+            rest++;
+        }
+        chat_submit( state, rest );
+        return;
+    }
     // Tokenize on whitespace.
     char *argv[ 16 ];
     int argc = 0;

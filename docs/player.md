@@ -23,7 +23,9 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 | `F` | Toggle flying; with the creative inventory open, opens its item-name search box instead (typing filters the palette, `Enter`/`Esc` closes it) |
 | `C` | Toggle no-clip (`Ctrl+C` exits) |
 | `I`/`E` | Toggle inventory |
-| `Esc` | Close inventory, else pause menu |
+| `T`/`Tab` | Open the chat box (`docs/chat.md`) |
+| `/` | Open the chat box pre-filled with a command slash |
+| `Esc` | Close chat/inventory, else pause menu |
 | `` ` `` (grave) | Toggle creative/survival |
 | `R` / `Shift+R` | Cycle `worldDrawQuality` up/down |
 | `=`/`-` (numpad ±), `0` | Render distance +/-/reset to `RENDER_RADIUS_DEFAULT` |

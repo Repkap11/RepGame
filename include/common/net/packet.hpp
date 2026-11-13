@@ -16,6 +16,7 @@
 #include <cstring>
 #include <vector>
 
+#include "common/chat.hpp"
 #include "common/container.hpp"
 #include "common/map_gen_consts.hpp"
 #include "common/sign.hpp"
@@ -40,9 +41,9 @@ static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-end
 // Bump the low bits (14) on layout changes as usual; 0x80 stays
 // reserved for the generator bit.
 #if REPGAME_MAP_GEN_LEGACY
-static constexpr uint8_t NET_PROTOCOL_VERSION = 14;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 15;
 #else
-static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 14;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 15;
 #endif
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
@@ -92,10 +93,12 @@ enum class NetMsgType : uint8_t {
     CONTAINER_SET_SLOT = 32,
     SIGN_TEXT = 33,
     HEARTBEAT = 34,
+    CHAT = 35,
+    PLAYER_NAME = 36,
 };
 // One past the highest NetMsgType value; the codec table (below) has exactly
 // this many rows, one per wire id.
-static constexpr int NET_MSG_TYPE_COUNT = 35;
+static constexpr int NET_MSG_TYPE_COUNT = 37;
 
 // NetCodec<P>: compile-time map from a payload struct to its wire codec.
 // Specializations are declared next to the registry at the bottom of this
@@ -622,6 +625,34 @@ struct NetSignTextPayload {
 void net_serialize_sign_text( PacketWriter &w, const NetSignTextPayload &p );
 bool net_deserialize_sign_text( PacketReader &r, NetSignTextPayload &p );
 
+// CHAT (both directions): one chat line. client->server: the server
+// ignores `from` and stamps it from its own name table (senders can't
+// spoof); `target` matters only for WHISPER. server->client: `from` is
+// the sender name (empty for SYSTEM); for WHISPER, `target` is the
+// recipient. Wire: u8 kind, u8 len+from (<= CHAT_NAME_MAX),
+// u8 len+target (<= CHAT_NAME_MAX), u16 len+text (<= CHAT_TEXT_MAX).
+// An oversize length fails the decode before any allocation, as
+// SIGN_TEXT does.
+struct NetChatPayload {
+    uint8_t kind; // ChatKind
+    std::string from;
+    std::string target;
+    std::string text;
+};
+void net_serialize_chat( PacketWriter &w, const NetChatPayload &p );
+bool net_deserialize_chat( PacketReader &r, NetChatPayload &p );
+
+// PLAYER_NAME (both directions): the display name of the client whose fd
+// is the frame header's player_id. client->server sets (or changes) the
+// sender's name; the server sanitizes + dedupes and broadcasts the
+// effective name back to everyone, and replays existing names to a newly
+// connected client. Wire: u8 len (<= CHAT_NAME_MAX) + bytes.
+struct NetPlayerNamePayload {
+    std::string name;
+};
+void net_serialize_player_name( PacketWriter &w, const NetPlayerNamePayload &p );
+bool net_deserialize_player_name( PacketReader &r, NetPlayerNamePayload &p );
+
 // ---------------------------------------------------------------------------
 // Codec registry.
 //
@@ -749,6 +780,16 @@ template <> struct NetCodec<NetSignTextPayload> {
     static void ser( PacketWriter &w, const NetSignTextPayload &p ) { net_serialize_sign_text( w, p ); }
     static bool de( PacketReader &r, NetSignTextPayload &p ) { return net_deserialize_sign_text( r, p ); }
     static void fill( NetSignTextPayload &p );
+};
+template <> struct NetCodec<NetChatPayload> {
+    static void ser( PacketWriter &w, const NetChatPayload &p ) { net_serialize_chat( w, p ); }
+    static bool de( PacketReader &r, NetChatPayload &p ) { return net_deserialize_chat( r, p ); }
+    static void fill( NetChatPayload &p );
+};
+template <> struct NetCodec<NetPlayerNamePayload> {
+    static void ser( PacketWriter &w, const NetPlayerNamePayload &p ) { net_serialize_player_name( w, p ); }
+    static bool de( PacketReader &r, NetPlayerNamePayload &p ) { return net_deserialize_player_name( r, p ); }
+    static void fill( NetPlayerNamePayload &p );
 };
 
 // One codec-table row. make/destroy/ser/de are null for payloadless and

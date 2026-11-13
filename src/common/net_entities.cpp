@@ -223,6 +223,12 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             this->session_id = p.session_id;
             this->welcomed = true;
             this->view_sent = false; // next tick advertises the view
+            // The server stamps WELCOME's frame player_id with our fd
+            // (ServerEntities::on_client_connected) — that's our id in
+            // the player_names table. Publish our display name now that
+            // the session is live.
+            this->mp->self_player_id = player_id;
+            this->mp->send_player_name( state.player_name );
             mp_test::event( &state, "welcome", "\"session\":\"%u\"", p.session_id );
             return true;
         }

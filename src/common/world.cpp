@@ -1699,3 +1699,7 @@ void World::process_random_ticks( RepGameState &state ) {
         }
     }
 }
+
+bool World::avatar_position_of( const int player_id, glm::dvec3 &feet ) const {
+    return this->multiplayer_avatars.position_of( player_id, feet );
+}

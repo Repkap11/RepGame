@@ -52,7 +52,9 @@ holding nothing. Protocol 12 reworked `ENTITY_STATE` into a mask-coded
 delta stream (`docs/entities.md`): pos deltas vs the receiver's
 last-known pos, quantized vel/yaw, gated aux fields, dead-reckoned
 send-throttling, and a 12-tick batch cadence. Protocol 13 added
-`SIGN_TEXT` (sign front text — see "Signs").
+`SIGN_TEXT` (sign front text — see "Signs"); protocol 14 added
+`HEARTBEAT` (app-level liveness — see "Liveness"); protocol 15 added
+`CHAT` + `PLAYER_NAME` (see "Chat").
 
 ## Transports
 
@@ -262,6 +264,38 @@ lines):
 Client side, `World::set_sign_text_from_net` applies inbound text
 (replacing or erasing the record in `ChunkContainers.signs`); rendering
 is covered in `docs/rendering.md`.
+
+## Chat
+
+Player chat and display names ride two small string messages
+(`NetChatPayload`, `NetPlayerNamePayload` — `kind`/`from`/`target`/`text`
+and `name`, all length-prefixed with bounds checked before allocation).
+The shared vocabulary (`ChatKind`, `CHAT_NAME_MAX`/`CHAT_TEXT_MAX`,
+sanitizers) is `include/common/chat.hpp`; the client-side box and slash
+commands are `docs/chat.md`.
+
+- **Names (`PLAYER_NAME`)**: the client sends its configured
+  `state.player_name` right after WELCOME and again whenever `/name`
+  changes it. `ServerChat` (`include/server/server_chat.hpp`) sanitizes
+  it and dedupes case-insensitively against every connected name —
+  `alice` while `Alice` is online becomes `alice_2` (fits inside
+  `CHAT_NAME_MAX`), with `Player<fd>` when nothing survives. The
+  accepted name is broadcast back as `PLAYER_NAME` (the client updates
+  its `player_names` map; the requested name, not the deduped one, is
+  what persists locally). A new joiner gets one `PLAYER_NAME` per
+  already-connected client, and joins/renames/leaves go out as SYSTEM
+  chat lines so the log tells the story.
+- **Chat (`CHAT`)**: client → server carries `kind` and `text`
+  (`PLAYER`, `WHISPER` with a `target` name, `EMOTE`); the server
+  sanitizes, drops empties, stamps the authoritative `from` from its own
+  table — a spoofed `from` field is ignored — and broadcasts. Whispers
+  go only to the named target plus an echo to the sender (a self-whisper
+  lands once); an unknown target earns the sender a private
+  `No player named X` error instead. Every line is logged on the
+  server's stdout.
+- **No history**: `ServerChat` keeps only the fd→name table. There is
+  no replay of past messages — a late joiner sees chat from the moment
+  their name lands.
 
 ## Sender / codec layer
 

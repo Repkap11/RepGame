@@ -44,6 +44,16 @@ void MultiplayerAvatars::update_position( const int player_id, const float x, co
     this->mobs->set_remote_held_item( uid, held_item );
 }
 
+bool MultiplayerAvatars::position_of( const int player_id, glm::dvec3 &feet ) const {
+    if ( player_id < 0 || player_id >= MAX_CLIENT_FDS || this->uid_map[ player_id ] == 0 ||
+         this->eye_height_map[ player_id ] <= 0.0f ) {
+        return false;
+    }
+    feet = this->eye_pos_map[ player_id ];
+    feet.y -= this->eye_height_map[ player_id ];
+    return true;
+}
+
 bool MultiplayerAvatars::targetable( const int player_id ) const {
     return ( this->flags_map[ player_id ] & NET_PLAYER_FLAG_TARGETABLE ) != 0;
 }

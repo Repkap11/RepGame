@@ -216,6 +216,7 @@ world_time <int64>
 render_distance <int>
 min_ambient <float>
 health <float>
+name <str>
 spawn <x> <y> <z>
 hotbar_selected <int>
 hotbar <slot> <item_id> <quantity>
@@ -233,6 +234,12 @@ or negative in old saves means full; a saved 0 means the player quit on
 the death screen and loads as a fresh spawn (health restored to max,
 `spawn_pending` re-pins the spawn column). The transient fields —
 breath, hurt cooldown, dead, fall distance — are not saved.
+
+`name` is the requested multiplayer display name (`docs/chat.md`):
+written only when non-empty, absent means the init fallback chain
+(`REPGAME_PLAYER_NAME` > saved > `$USER`/`$USERNAME` > `Player`) keeps
+going. The saved value is the name the player asked for — the server's
+deduped form is never persisted.
 
 `spawn` is the bed respawn point set by `repgame_try_sleep`
 (`docs/player.md`): the line is written only while a point is set, so old

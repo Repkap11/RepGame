@@ -40,6 +40,10 @@
 //   cprobe kind x y z              emit a "cprobe" event with the world-owned
 //                                  contents (kind, is-block flag, rev, slots,
 //                                  aux) — the sync result the server left
+//   chat <rest of line>            submit the raw remainder through the
+//                                  chat box's real path — plain text sends
+//                                  CHAT (PLAYER), "/cmd ..." runs the local
+//                                  slash-command dispatcher
 //   signedit x y z [l1|l2|...]     open the sign editor, inject the joined
 //                                  lines ('|' splits, args join on spaces),
 //                                  and commit — the real close path sends
@@ -60,9 +64,11 @@
 // camera's chunk is CHUNK_LIVE + at least one CHUNK_ROLE grant applied),
 // cmd_error, explosion_received, pickup_result, player_hit_received,
 // entity_transfer, probe, role, cprobe, signprobe, damage_result,
-// eat_result, respawn_result, quit.
+// eat_result, respawn_result, chat_received {kind,from,target,text}, quit.
 //
-// State lines additionally carry: health (half-hearts), dead, air_ticks.
+// State lines additionally carry: health (half-hearts), dead, air_ticks,
+// name (the requested display name), players (the PLAYER_NAME table —
+// the server's effective, deduped spellings).
 //
 // The world-action implementations (setblock/drop/mob/hit/fall/tnt/mode/
 // time/goto/probe + name lookups) live in common/harness/debug_commands
@@ -70,6 +76,7 @@
 // own line parsing, event stream and dump cadence.
 
 struct RepGameState;
+struct NetChatPayload;
 
 namespace mp_test {
 bool active( );
@@ -81,6 +88,9 @@ void tick( RepGameState &state );
 // Emit an immediate {"type":"event","name":...} line; `fmt` is a printf
 // fragment appended as the "detail" JSON object's contents (may be empty).
 void event( RepGameState *state, const char *name, const char *fmt = nullptr, ... );
+// The chat_received event for one inbound CHAT frame; the strings are
+// JSON-escaped inside (don't pre-escape).
+void chat_received( RepGameState *state, const NetChatPayload &p );
 // Force one state line (also used by the `dump` command).
 void dump_state( RepGameState &state, const char *tag = nullptr );
 } // namespace mp_test

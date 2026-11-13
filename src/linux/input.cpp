@@ -275,6 +275,19 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
                 this->spawn_mob = true;
             }
             break;
+        case 't':
+        case SDLK_TAB:
+            // Down edge only, and never from inside the inventory — the
+            // chat tick turns the request into an open (or refuses it).
+            if ( pressed && !this->inventory_open ) {
+                this->chat_open_request = 1;
+            }
+            break;
+        case SDLK_SLASH:
+            if ( pressed && !this->inventory_open ) {
+                this->chat_open_request = 2;
+            }
+            break;
         case 'i':
         case 'e':
             if ( pressed ) {

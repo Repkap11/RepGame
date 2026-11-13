@@ -10,6 +10,7 @@
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
 #include "common/constants.hpp"
+#include "common/mp_test.hpp"
 #include "common/multiplayer.hpp"
 #include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
@@ -153,6 +154,26 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
         case NetMsgType::PLAYER_DISCONNECTED: {
             pr_debug( "Updating player disconected:%d", player_id );
             world.multiplayer_avatars.remove( player_id );
+            this->player_names.erase( player_id );
+            break;
+        }
+        case NetMsgType::CHAT: {
+            NetChatPayload p;
+            if ( !net_deserialize_chat( r, p ) ) {
+                pr_debug( "Malformed CHAT, skipping" );
+                return;
+            }
+            state.chat.push( static_cast<ChatKind>( p.kind ), p.from, p.target, p.text, state.tick_number );
+            mp_test::chat_received( &state, p );
+            break;
+        }
+        case NetMsgType::PLAYER_NAME: {
+            NetPlayerNamePayload p;
+            if ( !net_deserialize_player_name( r, p ) ) {
+                pr_debug( "Malformed PLAYER_NAME, skipping" );
+                return;
+            }
+            this->player_names[ player_id ] = p.name;
             break;
         }
         case NetMsgType::HEARTBEAT:
@@ -281,6 +302,31 @@ void Multiplayer::send_sign_text( const glm::ivec3 &pos, const SignText &text ) 
     p.z = pos.z;
     p.text = text;
     this->send( NetMsgType::SIGN_TEXT, p );
+}
+
+void Multiplayer::send_chat( uint8_t kind, const std::string &target, const std::string &text ) {
+    NetChatPayload p{ kind, "", target, text };
+    this->send( NetMsgType::CHAT, p );
+}
+
+void Multiplayer::send_player_name( const std::string &name ) {
+    NetPlayerNamePayload p{ name };
+    this->send( NetMsgType::PLAYER_NAME, p );
+}
+
+const std::string *Multiplayer::name_of( int32_t player_id ) const {
+    const auto it = this->player_names.find( player_id );
+    return it == this->player_names.end( ) ? nullptr : &it->second;
+}
+
+bool Multiplayer::find_player( const std::string &name_ci, int32_t &player_id ) const {
+    for ( const auto &pair : this->player_names ) {
+        if ( chat_name_equal( pair.second, name_ci ) ) {
+            player_id = pair.first;
+            return true;
+        }
+    }
+    return false;
 }
 
 void Multiplayer::queue_pending_diff( const NetChunkDiffResultPayload &diff ) {

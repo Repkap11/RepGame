@@ -844,6 +844,55 @@ bool net_deserialize_sign_text( PacketReader &r, NetSignTextPayload &p ) {
     return true;
 }
 
+// Length-checked string read: rejects a corrupt length before the
+// resize/allocation, like the SIGN_TEXT line bound above.
+static bool net_read_bounded_string( PacketReader &r, std::string &out, uint32_t max_len, const char *what ) {
+    uint32_t n = 0;
+    if ( max_len <= 0xFF ) {
+        uint8_t n8;
+        if ( !r.read_u8( n8 ) ) return false;
+        n = n8;
+    } else {
+        uint16_t n16;
+        if ( !r.read_u16( n16 ) ) return false;
+        n = n16;
+    }
+    if ( n > max_len ) {
+        net_pr_debug( "%s len:%u > %u", what, n, max_len );
+        return false;
+    }
+    out.resize( n );
+    return r.read_bytes( out.data( ), n );
+}
+
+void net_serialize_chat( PacketWriter &w, const NetChatPayload &p ) {
+    w.write_u8( p.kind );
+    w.write_u8( static_cast<uint8_t>( std::min( p.from.size( ), static_cast<size_t>( CHAT_NAME_MAX ) ) ) );
+    w.write_bytes( p.from.data( ), std::min( p.from.size( ), static_cast<size_t>( CHAT_NAME_MAX ) ) );
+    w.write_u8( static_cast<uint8_t>( std::min( p.target.size( ), static_cast<size_t>( CHAT_NAME_MAX ) ) ) );
+    w.write_bytes( p.target.data( ), std::min( p.target.size( ), static_cast<size_t>( CHAT_NAME_MAX ) ) );
+    w.write_u16( static_cast<uint16_t>( std::min( p.text.size( ), static_cast<size_t>( CHAT_TEXT_MAX ) ) ) );
+    w.write_bytes( p.text.data( ), std::min( p.text.size( ), static_cast<size_t>( CHAT_TEXT_MAX ) ) );
+}
+
+bool net_deserialize_chat( PacketReader &r, NetChatPayload &p ) {
+    if ( !r.read_u8( p.kind ) ) return false;
+    if ( !net_read_bounded_string( r, p.from, CHAT_NAME_MAX, "CHAT from" ) ) return false;
+    if ( !net_read_bounded_string( r, p.target, CHAT_NAME_MAX, "CHAT target" ) ) return false;
+    if ( !net_read_bounded_string( r, p.text, CHAT_TEXT_MAX, "CHAT text" ) ) return false;
+    return true;
+}
+
+void net_serialize_player_name( PacketWriter &w, const NetPlayerNamePayload &p ) {
+    const size_t n = std::min( p.name.size( ), static_cast<size_t>( CHAT_NAME_MAX ) );
+    w.write_u8( static_cast<uint8_t>( n ) );
+    w.write_bytes( p.name.data( ), n );
+}
+
+bool net_deserialize_player_name( PacketReader &r, NetPlayerNamePayload &p ) {
+    return net_read_bounded_string( r, p.name, CHAT_NAME_MAX, "PLAYER_NAME name" );
+}
+
 // ---------------------------------------------------------------------------
 // Codec registry: deterministic fill samples + the per-type table
 // (see the registry comment in packet.hpp for the rules).
@@ -1045,6 +1094,15 @@ void NetCodec<NetSignTextPayload>::fill( NetSignTextPayload &p ) {
     p.text.lines[ 2 ] = "15 chars max ok!";
     p.text.lines[ 3 ] = "";
 }
+void NetCodec<NetChatPayload>::fill( NetChatPayload &p ) {
+    p.kind = CHAT_KIND_WHISPER;
+    p.from = "Alice";
+    p.target = "Bob";
+    p.text = "meet me at spawn!";
+}
+void NetCodec<NetPlayerNamePayload>::fill( NetPlayerNamePayload &p ) {
+    p.name = "Player_One";
+}
 
 namespace {
 template <typename P>
@@ -1110,6 +1168,8 @@ const NetCodecEntry kCodecTable[] = {
     NET_ROW( NetMsgType::CONTAINER_SET_SLOT, NetContainerSetSlotPayload ),
     NET_ROW( NetMsgType::SIGN_TEXT, NetSignTextPayload ),
     NET_EMPTY_ROW( NetMsgType::HEARTBEAT ),
+    NET_ROW( NetMsgType::CHAT, NetChatPayload ),
+    NET_ROW( NetMsgType::PLAYER_NAME, NetPlayerNamePayload ),
 };
 } // namespace
 

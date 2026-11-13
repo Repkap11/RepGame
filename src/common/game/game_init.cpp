@@ -16,6 +16,7 @@
 #include "common/harness/run_policy.hpp"
 #include "common/harness/results.hpp"
 #include "common/utils/env_config.hpp"
+#include "common/chat.hpp"
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
 #include "common/game/game_internal.hpp"
@@ -215,6 +216,36 @@ void RepGame::initializeGameState( const char *world_name ) {
             }
         }
     }
+    // Display name precedence: REPGAME_PLAYER_NAME > saved name > the OS
+    // user > "Player". Candidates are sanitized (chat name charset); an
+    // env/save value that sanitizes to empty falls through. The persisted
+    // value stays the *requested* name — a server-deduped spelling is
+    // never written back.
+    {
+        std::string name;
+        if ( const char *env = env_get( "REPGAME_PLAYER_NAME" ) ) {
+            name = env;
+            chat_sanitize_name( name );
+        }
+        if ( name.empty( ) ) {
+            name = saved_data.name;
+            chat_sanitize_name( name );
+        }
+        if ( name.empty( ) ) {
+            const char *user = env_get( "USER" );
+            if ( user == nullptr ) {
+                user = env_get( "USERNAME" );
+            }
+            if ( user != nullptr ) {
+                name = user;
+                chat_sanitize_name( name );
+            }
+        }
+        if ( name.empty( ) ) {
+            name = "Player";
+        }
+        globalGameState.player_name = name;
+    }
     // Fly mode pins the camera every tick, but the pin runs after the network
     // tick: start at the pin so the first VIEW/location is already correct.
     if ( RepGame::fly_mode( ) ) {
@@ -351,6 +382,7 @@ void RepGame::save_player_data( ) {
     saved_data.render_distance = globalGameState.input.render_distance;
     saved_data.min_ambient = imgui_overlay_get_imgui_debug_vars( ).min_ambient;
     saved_data.health = globalGameState.vitals.health;
+    saved_data.name = globalGameState.player_name;
     saved_data.has_spawn = globalGameState.spawn_point_set;
     saved_data.spawn_x = globalGameState.spawn_point.x;
     saved_data.spawn_y = globalGameState.spawn_point.y;

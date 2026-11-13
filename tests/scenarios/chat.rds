@@ -1,0 +1,45 @@
+# Chat box: chatopen + type/signkey drive the real input path —
+# submitted lines land in the log (SP shows "<name> text"), slash lines
+# run commands locally. assert_chat matches against the formatted lines.
+wait_idle 20 6000
+debug 0
+imgui 0
+chatopen
+type hello world
+wait 2
+signkey enter
+wait 2
+assert_chat hello world
+# Slash-open prefills '/', so typing the bare command runs it.
+chatopen /
+type help
+wait 2
+signkey enter
+wait 2
+assert_chat Commands:
+assert_chat /give
+# Unknown commands land an error line in the log.
+chatopen /
+type bogus
+wait 2
+signkey enter
+wait 2
+assert_chat Unknown command
+# A plain line last, so the bottom log row is white text.
+chatopen
+type white last line
+wait 2
+signkey enter
+wait 2
+# Reopen for the screenshot: scrollback over the input bar.
+chatopen
+type a longer note for the screenshot
+wait 2
+screenshot chat
+signkey escape
+wait 1
+chatclose
+# Closed state: lines <10s old draw outlined over the world, no backdrop.
+wait 30
+screenshot chat_closed
+echo chat done

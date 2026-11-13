@@ -61,6 +61,7 @@ int test_net_bodies( );
 int test_arrows( );
 int test_net_multiplayer_mode( );
 int test_signs( );
+int test_chat( );
 int test_crafting( );
 int test_results( );
 int test_script( );

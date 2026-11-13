@@ -29,6 +29,10 @@ class MultiplayerAvatars {
     // draws it in its right hand.
     void update_position( int player_id, float x, float y, float z, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item, const glm::dvec3 &listener_pos );
     bool targetable( int player_id ) const;
+    // The remote player's feet position (eye_pos_map - its eye height) in
+    // `feet` — false when no update for player_id has arrived yet. Used by
+    // /tp <player>.
+    bool position_of( int player_id, glm::dvec3 &feet ) const;
     // Fill `out` with every connected remote player's targeting info.
     void fill_remote_targets( std::vector<MobRemoteTarget> &out ) const;
     void remove( unsigned int player_id );

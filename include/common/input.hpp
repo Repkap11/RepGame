@@ -127,6 +127,10 @@ class Input {
     int text_ups = 0;   // Up arrow: move to the previous line
     int text_downs = 0; // Down arrow: move to the next line
     bool text_escape = false;
+    // Armed on the chat-open key down edge ('t'/Tab = 1, '/' = 2 for a
+    // slash-prefilled box); the chat tick consumes it. Down edge only so
+    // key-repeat can't reopen the box after Escape.
+    int chat_open_request = 0;
 
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
     void mouseInput( int button, int state );

@@ -19,6 +19,7 @@ UiState
 ├── chest      ChestUi       open chest panel (at most one)
 ├── furnace    FurnaceUi     open furnace panel: input/fuel/output 1x1s
 ├── sign_edit  SignEditUi    modal sign editor: 4 text lines + cursor
+├── chat       ChatUi        chat box: one-line editor + scrollback
 └── crafting   CraftingUi    2x2/3x3 grid + output + drag-split state
 ```
 
@@ -186,6 +187,29 @@ It draws late in `draw_ui_pass`, after the pause menu, and is skipped
 under `capture` so screenshots stay world-only. Text in the world
 itself is the `WorldTextRenderer` pass — `docs/rendering.md`. Android
 and VR have no text-input path yet, so the editor is compiled out there.
+
+## Chat
+
+`ui.chat` (`ChatUi`, `src/common/game/chat_ui.cpp`) is the `t`/`Tab`-opened
+chat box (`/` opens it pre-filled with a command slash) — a one-line
+editor over the message scrollback. It borrows the sign editor's whole
+text-capture path: the key handler only arms `input.chat_open_request`
+on a down edge (and only when no other screen is up), the tick
+(`repgame_tick_chat`) performs the open — `text_input_begin` clears the
+buffers so the opening key never leaks into the line — and drains the
+shared `input.text_*` counters through `chat_edit_apply_input` (pure —
+test-driven). Enter submits via `chat_submit` (plain text to the wire,
+`/` lines to the local command dispatcher), Escape closes, Up/Down
+recalls `ChatUi::sent` history. Messages themselves live in
+`state.chat` (`ChatLog`) — see `docs/chat.md`.
+
+Like the sign panel, the chat panel is Clay-declared
+(`chat_panel`/`chat_input`/`chat_lines` rects, `UI_OVERFLOW_CHAT`):
+a left-anchored scrollback region over a one-line input bar, bottom edge
+above the hotbar strip. `repgame_draw_chat` draws backdrop quads through
+the shared ui_overlay shader before the first HUD text flush in
+`draw_ui_pass`, wraps each visible message to the panel width, and is
+skipped under `capture` and while menu/inventory/sign screens are up.
 
 ## Crafting
 

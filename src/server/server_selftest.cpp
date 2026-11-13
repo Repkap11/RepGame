@@ -224,6 +224,49 @@ bool last_sign_text( const std::vector<ReceivedFrame> &frames, const glm::ivec3 
     return found;
 }
 
+// ---- chat / player-name helpers --------------------------------------------
+
+void send_player_name( Server &server, SimClient &c, const std::string &name ) {
+    NetPlayerNamePayload p{ name };
+    PacketWriter w;
+    net_serialize_player_name( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::PLAYER_NAME, 0, w.buf( ) );
+}
+
+void send_chat( Server &server, SimClient &c, uint8_t kind, const std::string &from, const std::string &target, const std::string &text ) {
+    NetChatPayload p{ kind, from, target, text };
+    PacketWriter w;
+    net_serialize_chat( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::CHAT, 0, w.buf( ) );
+}
+
+// A client's queued frames split by type: CHAT payloads deserialized, and
+// PLAYER_NAME frames as (player_id, name). Drain once — a second drain
+// would have already consumed the frames.
+struct ChatFrames {
+    std::vector<NetChatPayload> chats;
+    std::vector<std::pair<int32_t, std::string>> names;
+};
+
+ChatFrames drain_chat_frames( Server &server, SimClient &c ) {
+    ChatFrames out;
+    for ( const ReceivedFrame &f : drain_client( server, c ) ) {
+        PacketReader r( f.payload.data( ), f.payload.size( ) );
+        if ( f.type == NetMsgType::CHAT ) {
+            NetChatPayload p;
+            if ( net_deserialize_chat( r, p ) ) {
+                out.chats.push_back( std::move( p ) );
+            }
+        } else if ( f.type == NetMsgType::PLAYER_NAME ) {
+            NetPlayerNamePayload p;
+            if ( net_deserialize_player_name( r, p ) ) {
+                out.names.emplace_back( f.player_id, p.name );
+            }
+        }
+    }
+    return out;
+}
+
 // Checks that `peer` received a forwarded BLOCK_UPDATE for (pos, state).
 void expect_forwarded( Server &server, SimClient &peer, int from_fd, const glm::ivec3 &pos, const BlockState &want ) {
     int found = 0;
@@ -1667,6 +1710,156 @@ int server_selftest( ) {
 
         disconnect_client( server, sa );
         disconnect_client( server, sb );
+    }
+
+    // === Chat + player names: PLAYER_NAME sets/dedupes/renames names with a
+    // broadcast + a SYSTEM line; CHAT broadcasts stamped with the server's
+    // name (spoofed `from` ignored); whispers route target + sender echo;
+    // disconnect announces the leave; late joiners get the name replay. ===
+    {
+        SimClient ca = connect_client( server );
+        SimClient cb = connect_client( server );
+        drain_client( server, ca );
+        drain_client( server, cb );
+        ServerChat &chat = server.test_logic( ).test_chat( );
+
+        // Name set: stored, broadcast to both (player_id = sender fd), and
+        // announced with a "joined" SYSTEM line.
+        send_player_name( server, ca, "Alice" );
+        check( chat.name_table( ).count( ca.fd ) && chat.name_table( ).at( ca.fd ) == "Alice",
+               "chat: name set stored" );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            const ChatFrames fb = drain_chat_frames( server, cb );
+            check( fa.names.size( ) == 1 && fa.names[ 0 ].first == ca.fd && fa.names[ 0 ].second == "Alice",
+                   "chat: name broadcast reaches sender" );
+            check( fb.names.size( ) == 1 && fb.names[ 0 ].first == ca.fd && fb.names[ 0 ].second == "Alice",
+                   "chat: name broadcast reaches peer" );
+            check( fb.chats.size( ) == 1 && fb.chats[ 0 ].kind == CHAT_KIND_SYSTEM && fb.chats[ 0 ].text == "Alice joined the game",
+                   "chat: join announces SYSTEM line" );
+        }
+
+        // Case-insensitive dedupe: "alice" on a different fd becomes alice_2.
+        send_player_name( server, cb, "alice" );
+        check( chat.name_table( ).at( cb.fd ) == "alice_2", "chat: dedupe appends _2" );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            check( fa.names.size( ) == 1 && fa.names[ 0 ].first == cb.fd && fa.names[ 0 ].second == "alice_2",
+                   "chat: deduped name broadcast" );
+        }
+        drain_chat_frames( server, cb );
+
+        // Rename announces old -> new.
+        send_player_name( server, ca, "Alicia" );
+        {
+            const ChatFrames fb = drain_chat_frames( server, cb );
+            check( fb.chats.size( ) == 1 && fb.chats[ 0 ].text == "Alice is now known as Alicia",
+                   "chat: rename announces old -> new" );
+        }
+        drain_chat_frames( server, ca );
+
+        // Chat broadcast: the server stamps `from` — a spoofed field is
+        // ignored — and everyone including the sender gets the line.
+        send_chat( server, ca, CHAT_KIND_PLAYER, "EvilSpoof", "", "hello there" );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            const ChatFrames fb = drain_chat_frames( server, cb );
+            check( fa.chats.size( ) == 1 && fa.chats[ 0 ].kind == CHAT_KIND_PLAYER &&
+                       fa.chats[ 0 ].from == "Alicia" && fa.chats[ 0 ].text == "hello there",
+                   "chat: broadcast stamped with server name, echoes to sender" );
+            check( fb.chats.size( ) == 1 && fb.chats[ 0 ].from == "Alicia" && fb.chats[ 0 ].text == "hello there",
+                   "chat: broadcast reaches peer stamped" );
+        }
+
+        // Whisper: only the target gets it plus an echo to the sender.
+        SimClient cc = connect_client( server );
+        drain_client( server, cc );
+        send_chat( server, ca, CHAT_KIND_WHISPER, "", "ALICE_2", "psst" );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            const ChatFrames fb = drain_chat_frames( server, cb );
+            const ChatFrames fc = drain_chat_frames( server, cc );
+            check( fa.chats.size( ) == 1 && fa.chats[ 0 ].kind == CHAT_KIND_WHISPER &&
+                       fa.chats[ 0 ].from == "Alicia" && fa.chats[ 0 ].target == "alice_2" && fa.chats[ 0 ].text == "psst",
+                   "chat: whisper echoes to sender" );
+            check( fb.chats.size( ) == 1 && fb.chats[ 0 ].kind == CHAT_KIND_WHISPER && fb.chats[ 0 ].target == "alice_2",
+                   "chat: whisper reaches target (case-insensitive)" );
+            check( fc.chats.empty( ), "chat: whisper hidden from bystanders" );
+        }
+
+        // Self-whisper: the target send and the sender echo are the same
+        // delivery — exactly one line, not two.
+        send_chat( server, ca, CHAT_KIND_WHISPER, "", "alicia", "note to self" );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            check( fa.chats.size( ) == 1 && fa.chats[ 0 ].kind == CHAT_KIND_WHISPER &&
+                       fa.chats[ 0 ].from == "Alicia" && fa.chats[ 0 ].target == "Alicia",
+                   "chat: self-whisper delivers once" );
+        }
+
+        // Unknown target errors to the sender only.
+        send_chat( server, ca, CHAT_KIND_WHISPER, "", "Nobody", "hi" );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            const ChatFrames fb = drain_chat_frames( server, cb );
+            check( fa.chats.size( ) == 1 && fa.chats[ 0 ].kind == CHAT_KIND_SYSTEM &&
+                       fa.chats[ 0 ].text == "No player named Nobody",
+                   "chat: unknown whisper target errors to sender" );
+            check( fb.chats.empty( ), "chat: whisper error stays private" );
+        }
+
+        // Sanitization: control bytes stripped; a line that sanitizes to
+        // empty is dropped entirely.
+        send_chat( server, ca, CHAT_KIND_PLAYER, "", "", "a\tb\x01""c" );
+        {
+            const ChatFrames fb = drain_chat_frames( server, cb );
+            check( fb.chats.size( ) == 1 && fb.chats[ 0 ].text == "abc",
+                   "chat: non-printables stripped" );
+        }
+        drain_chat_frames( server, ca );
+        send_chat( server, ca, CHAT_KIND_PLAYER, "", "", "\x01\x02\x03" );
+        check( drain_chat_frames( server, cb ).chats.empty( ) && drain_chat_frames( server, ca ).chats.empty( ),
+               "chat: sanitizes-to-empty dropped" );
+
+        // Unnamed fd still chats as Player<fd>.
+        send_chat( server, cc, CHAT_KIND_PLAYER, "", "", "anon here" );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            const std::string want = "Player" + std::to_string( cc.fd );
+            check( fa.chats.size( ) == 1 && fa.chats[ 0 ].from == want,
+                   "chat: unnamed fd falls back to Player<fd>" );
+        }
+
+        // Late joiner gets the name replay on connect.
+        drain_chat_frames( server, cb );
+        send_player_name( server, cc, "Carol" );
+        drain_chat_frames( server, ca );
+        drain_chat_frames( server, cb );
+        drain_chat_frames( server, cc );
+        SimClient cd = connect_client( server );
+        {
+            const ChatFrames fd = drain_chat_frames( server, cd );
+            bool saw_alicia = false, saw_alice2 = false, saw_carol = false;
+            for ( const auto &pair : fd.names ) {
+                saw_alicia = saw_alicia || ( pair.first == ca.fd && pair.second == "Alicia" );
+                saw_alice2 = saw_alice2 || ( pair.first == cb.fd && pair.second == "alice_2" );
+                saw_carol = saw_carol || ( pair.first == cc.fd && pair.second == "Carol" );
+            }
+            check( saw_alicia && saw_alice2 && saw_carol,
+                   "chat: late joiner receives existing names" );
+        }
+
+        // Disconnect announces the leave.
+        disconnect_client( server, cb );
+        {
+            const ChatFrames fa = drain_chat_frames( server, ca );
+            check( fa.chats.size( ) == 1 && fa.chats[ 0 ].kind == CHAT_KIND_SYSTEM &&
+                       fa.chats[ 0 ].text == "alice_2 left the game",
+                   "chat: disconnect announces left the game" );
+        }
+        disconnect_client( server, ca );
+        disconnect_client( server, cc );
+        disconnect_client( server, cd );
     }
 
     // === FramedSocket: pop_send_frame returns frames in send order, and

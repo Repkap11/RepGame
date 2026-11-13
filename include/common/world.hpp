@@ -206,4 +206,7 @@ class World {
     void cleanup( MapStorage &map_storage );
     int get_num_drawable_chunks( ) const { return chunkLoader.num_drawable; }
     int get_num_remeshed_chunks( ) const { return chunkLoader.num_remeshed_this_frame; }
+    // A remote player's feet position (last entity-sync location), false
+    // when no update has arrived for player_id — /tp <player> uses this.
+    bool avatar_position_of( int player_id, glm::dvec3 &feet ) const;
 };

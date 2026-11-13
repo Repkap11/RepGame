@@ -18,6 +18,9 @@
 #include "common/furnace.hpp"
 #include "common/sign.hpp"
 
+#include <deque>
+#include <string>
+
 // Chest container the player currently has open (at most one). Contents
 // live in the owning chunk (World::get_chest_contents); this renderer
 // draws them as a top-aligned panel.
@@ -86,6 +89,22 @@ struct SignEditUi {
     long opened_tick = 0;
 };
 
+// The chat input box: a one-line editor over the scrollback, opened by
+// 't' (or '/', which pre-fills a command slash). While open it owns text
+// capture like the sign editor. `sent` is the Up/Down history of lines
+// this client submitted (deduped, capped at CHAT_HISTORY_MAX);
+// `history_pos` indexes it (-1 = editing `draft` below it).
+struct ChatUi {
+    bool open = false;
+    // The live edit buffer (capped at CHAT_TEXT_MAX).
+    std::string line;
+    std::deque<std::string> sent;
+    int history_pos = -1;
+    // The draft `line` stashed when history recall begins.
+    std::string draft;
+    long opened_tick = 0;
+};
+
 // The panel/window layer drawn into the UI pass: inventory grids,
 // overlays, menus, and the mouse-dragged stack. Distinct from the player
 // inventories in RepGameState, which are game data these panels render.
@@ -107,4 +126,5 @@ struct UiState {
     CraftingUi crafting;
     FurnaceUi furnace;
     SignEditUi sign_edit;
+    ChatUi chat;
 };

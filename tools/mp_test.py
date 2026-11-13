@@ -1227,6 +1227,76 @@ def sc_sign_text(run, A, B):
     wait_sign(run, B, (sx, sy, sz), "", desc="break clears text")
 
 
+def chat_evs(c, **want):
+    """chat_received details on c whose fields exactly match."""
+    out = []
+    for e in c.dump.events:
+        if e.get("name") != "chat_received":
+            continue
+        d = e.get("detail", {})
+        if all(d.get(k) == v for k, v in want.items()):
+            out.append(d)
+    return out
+
+
+def sc_chat(run, A, B):
+    """Chat: /name sets + dedupes display names, player lines broadcast
+    with the server-stamped sender, /msg whispers to the target with a
+    sender echo, unknown targets error to the sender only, and joins,
+    renames and quits land as system lines."""
+    # Both initial PLAYER_NAME broadcasts (default names) land before we
+    # rename — the join system lines are in the early events.
+    run.wait("initial name table on A",
+             lambda: len((A.dump.last_state() or {}).get("players", [])) >= 2, timeout=60)
+    run.wait("A saw a join line", lambda: any(
+        "joined the game" in (e.get("detail", {}).get("text") or "")
+        for e in A.dump.events if e.get("name") == "chat_received"), timeout=30)
+
+    A.cmd("chat /name Alice")
+    B.cmd("chat /name Bob")
+    run.wait("A sees rename to Alice", lambda: any(
+        "Alice" in (e.get("detail", {}).get("text") or "")
+        for e in A.dump.events if e.get("name") == "chat_received"), timeout=30)
+    run.wait("B effective name is Bob",
+             lambda: "Bob" in (B.dump.last_state() or {}).get("players", []), timeout=30)
+
+    # A public line broadcasts to the peer and echoes back to the sender.
+    A.cmd("chat hi bob")
+    run.wait("B sees Alice's line",
+             lambda: chat_evs(B, kind=0, **{"from": "Alice", "text": "hi bob"}), timeout=30)
+    run.wait("A sees its own line",
+             lambda: chat_evs(A, kind=0, **{"from": "Alice", "text": "hi bob"}), timeout=30)
+
+    # A whisper reaches the target and echoes to the sender.
+    A.cmd("chat /msg Bob psst")
+    run.wait("B got the whisper",
+             lambda: chat_evs(B, kind=2, **{"from": "Alice", "text": "psst"}), timeout=30)
+    run.wait("A got the echo",
+             lambda: chat_evs(A, kind=2, **{"from": "Alice", "text": "psst"}), timeout=30)
+
+    # Unknown target: the private error goes to the sender only.
+    n_b = len(B.dump.events)
+    A.cmd("chat /msg Nobody x")
+    run.wait("A got the no-player error", lambda: any(
+        "No player named Nobody" in (e.get("detail", {}).get("text") or "")
+        for e in A.dump.events if e.get("name") == "chat_received"), timeout=30)
+    if any(e.get("name") == "chat_received" for e in B.dump.events[n_b:]):
+        raise Fail("whisper to unknown target leaked to B")
+
+    # A late joiner asking for a taken name (different case) is deduped.
+    C = run.client("C", POS_C)
+    run.wait_ready(C)
+    C.cmd("chat /name alice")
+    run.wait("C deduped to alice_2",
+             lambda: "alice_2" in (C.dump.last_state() or {}).get("players", []), timeout=30)
+
+    # Disconnecting broadcasts a "left the game" line to everyone else.
+    C.quit()
+    run.wait("A sees alice_2 leave", lambda: any(
+        "left the game" in (e.get("detail", {}).get("text") or "")
+        for e in A.dump.events if e.get("name") == "chat_received"), timeout=30)
+
+
 def sc_disconnect_cleanup(run, A, B):
     gy = settle(run, A, B)
     A.cmd("drop DIRT 1 10.5 %d 10.5" % gy)
@@ -1361,6 +1431,7 @@ SCENARIOS = [
     ("avatar_at_mob_cap", sc_avatar_at_mob_cap),
     ("containers", sc_containers),
     ("sign_text", sc_sign_text),
+    ("chat", sc_chat),
 ]
 
 

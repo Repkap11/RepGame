@@ -43,6 +43,7 @@ void ServerLogic::init( const char *world_name ) {
     this->entities.init( &this->map_storage );
     this->containers.init( this );
     this->signs.init( this );
+    this->chat.init( this );
     int64_t saved_world_time = 0;
     if ( this->map_storage.read_world_time( saved_world_time ) ) {
         this->world_time_base = saved_world_time;
@@ -79,6 +80,7 @@ void ServerLogic::broadcastWorldTime( Server &server ) {
 void ServerLogic::on_client_connected( Server &server, int client_fd ) {
     pr_debug( "%d", client_fd );
     this->entities.on_client_connected( server, client_fd );
+    this->chat.on_client_connected( server, client_fd );
 
     // First client of a session starts the clock (it freezes again when the
     // last one leaves); everyone gets told the current time right away.
@@ -507,6 +509,10 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
         return;
     }
 
+    if ( this->chat.on_client_message( server, client_fd, type, r ) ) {
+        return;
+    }
+
     if ( type == NetMsgType::BLOCK_UPDATE ) {
         NetBlockUpdatePayload bu;
         if ( !net_deserialize_block_update( r, bu ) ) {
@@ -620,6 +626,7 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
 void ServerLogic::on_client_disconnected( Server &server, int client_fd ) {
     this->containers.on_client_disconnected( client_fd );
     this->entities.on_client_disconnected( server, client_fd );
+    this->chat.on_client_disconnected( server, client_fd );
     server.broadcast_empty( NetMsgType::PLAYER_DISCONNECTED, client_fd, client_fd );
     // If this was the last client, save everything to disk and free memory.
     // Otherwise, let the per-chunk idle timers handle persistence.

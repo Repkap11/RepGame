@@ -92,6 +92,24 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     snprintf( what, sizeof( what ), "%s: strip inside viewport", name );
     is_true( what, r.hud_strip.bottom >= -h * 0.5f - eps && r.hud_strip.left >= -w * 0.5f - eps && r.hud_strip.right( ) <= w * 0.5f + eps );
 
+    // Chat console: left-anchored above the HUD strip, the scrollback
+    // stacked over the input bar, at least three visible rows.
+    snprintf( what, sizeof( what ), "%s: chat input left-anchored", name );
+    near_to( what, r.chat_input.left, -w * 0.5f + 8.0f );
+    snprintf( what, sizeof( what ), "%s: chat input above HUD strip", name );
+    near_to( what, r.chat_input.bottom, r.hud_strip.top( ) + 8.0f );
+    snprintf( what, sizeof( what ), "%s: chat log above input bar", name );
+    near_to( what, r.chat_log.bottom, r.chat_input.top( ) + 8.0f );
+    snprintf( what, sizeof( what ), "%s: chat log matches input width", name );
+    near_to( what, r.chat_log.left, r.chat_input.left );
+    near_to( what, r.chat_log.width, r.chat_input.width );
+    snprintf( what, sizeof( what ), "%s: chat shows 3+ lines", name );
+    is_true( what, r.chat_lines >= 3 );
+    snprintf( what, sizeof( what ), "%s: chat log height = lines*row", name );
+    is_true( what, r.chat_log.height >= 3.0f * UI_TEXT_BASE_SIZE && r.chat_log.top( ) <= h * 0.5f + eps );
+    snprintf( what, sizeof( what ), "%s: no chat overflow", name );
+    is_true( what, ( r.overflow & UI_OVERFLOW_CHAT ) == 0 );
+
     // Inventory panels: the survival slab pins to the higher of the
     // creative panel's bottom or the HUD strip's top; the palette is
     // centered + floor-lifted with the search bar above it.
@@ -210,11 +228,13 @@ int test_ui_layout( ) {
     failures += check_strip( layout, "tiny", 480.0f, 320.0f, 360.0f, 40.0f,
                            UI_OVERFLOW_CHEST | UI_OVERFLOW_CRAFTING2 | UI_OVERFLOW_CRAFTING3 | UI_OVERFLOW_FURNACE );
     // 240x160 fits nothing but the creative screen (its screen-fraction
-    // sizing shrinks with the window); Clay repositions rather than
-    // centers at degenerate sizes, so only the mask is asserted.
+    // sizing shrinks with the window); the chat scrollback tops out of
+    // the viewport too. Clay repositions rather than centers at
+    // degenerate sizes, so only the mask is asserted.
     failures += check_strip( layout, "extreme", 240.0f, 160.0f, 360.0f, 40.0f,
                            UI_OVERFLOW_HUD | UI_OVERFLOW_SURVIVAL | UI_OVERFLOW_CHEST |
-                               UI_OVERFLOW_CRAFTING2 | UI_OVERFLOW_CRAFTING3 | UI_OVERFLOW_FURNACE | UI_OVERFLOW_PAUSE,
+                               UI_OVERFLOW_CRAFTING2 | UI_OVERFLOW_CRAFTING3 | UI_OVERFLOW_FURNACE | UI_OVERFLOW_PAUSE |
+                               UI_OVERFLOW_CHAT,
                            false );
 
     // Death screen: the menu collapses to Respawn + Exit.

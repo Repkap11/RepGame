@@ -6,6 +6,7 @@
 #include "common/net/framed_socket.hpp"
 #include "common/utils/map_storage.hpp"
 #include "server/diff_cache.hpp"
+#include "server/server_chat.hpp"
 #include "server/server_containers.hpp"
 #include "server/server_entities.hpp"
 #include "server/server_signs.hpp"
@@ -62,6 +63,10 @@ class ServerLogic {
     // sync. Feature-owned like `containers` — see server_signs.hpp.
     ServerSigns signs;
     friend class ServerSigns;
+    // Chat + player-name arbitration: the fd -> name table, CHAT/PLAYER_NAME
+    // dispatch. Feature-owned like `signs` — see server_chat.hpp.
+    ServerChat chat;
+    friend class ServerChat;
     std::map<glm::ivec3, ChunkCacheEntry, Compare_I_Vec3> world_cache;
 
     // Sorted wake-up schedule: time -> chunk position whose idle timer
@@ -180,5 +185,9 @@ class ServerLogic {
     // Selftest hook: sign arbitration state.
     ServerSigns &test_signs( ) {
         return this->signs;
+    }
+    // Selftest hook: chat/name arbitration state.
+    ServerChat &test_chat( ) {
+        return this->chat;
     }
 };

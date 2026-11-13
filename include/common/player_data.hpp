@@ -48,6 +48,10 @@ struct PlayerData {
     // Negative = absent (old saves) -> full health. A saved 0 means the
     // player exited on the death screen -> respawned fresh at spawn.
     float health = -1.0f;
+    // Requested multiplayer display name (the server-accepted spelling is
+    // never persisted). Absent in old saves -> empty, init falls back to
+    // $USER/"Player".
+    std::string name;
     // Bed respawn point (docs/player.md). Absent in old saves -> spawn at
     // the world-spawn column.
     bool has_spawn = false;

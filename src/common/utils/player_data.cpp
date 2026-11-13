@@ -13,6 +13,7 @@
 //   render_distance <int>
 //   min_ambient <float>
 //   health <float>                        (absent -> full)
+//   name <str>                            (absent -> empty; requested player name)
 //   hotbar_selected <int>
 //   hotbar <slot> <item_id> <quantity>     (one line per non-empty slot)
 //   survival <slot> <item_id> <quantity>
@@ -203,6 +204,9 @@ std::string player_data_serialize( const PlayerData &data ) {
     out += line;
     snprintf( line, sizeof( line ), "health %.9g\n", data.health );
     out += line;
+    if ( !data.name.empty( ) ) {
+        out += "name " + data.name + "\n";
+    }
     if ( data.has_spawn ) {
         snprintf( line, sizeof( line ), "spawn %d %d %d\n", data.spawn_x, data.spawn_y, data.spawn_z );
         out += line;
@@ -367,6 +371,14 @@ static bool player_data_parse_text( const char *buf, size_t len, PlayerData &out
             if ( parse_double( v, &v, hp ) ) {
                 out.health = static_cast<float>( hp );
             }
+        } else if ( key_len == 4 && memcmp( s, "name", 4 ) == 0 ) {
+            // Text is the rest of the line (names are [A-Za-z0-9_] anyway,
+            // so it can't carry structure). Blank reads as absent.
+            std::string name( v );
+            while ( !name.empty( ) && ( name.back( ) == ' ' || name.back( ) == '\t' || name.back( ) == '\r' ) ) {
+                name.pop_back( );
+            }
+            out.name = name;
         } else if ( key_len == 5 && memcmp( s, "spawn", 5 ) == 0 ) {
             long long sx = 0, sy = 0, sz = 0;
             if ( parse_int( v, &v, sx ) && parse_int( v, &v, sy ) && parse_int( v, &v, sz ) ) {
