@@ -682,8 +682,10 @@ neighbours freeze the shape), and `golden_rail_chain_powered` for
 powered-rail chaining (`docs/redstone.md`). State encoding borrows
 dust's trick: shapes 0-5 live in `rotation` with `display_id == id`;
 the four curves keep `id == RAIL` but display `RAIL_CORNER` (the turned
-tile — its rotation-0 arc is SW, so SE/SW/NW/NE store rotations
-3,0,1,2).
+tile; SE/SW/NW/NE store rotations 3,0,1,2). The stored curve rotation
+is not the render yaw: `rail_render_yaw` maps the curves through a
+measured table (the turned tile draws an N+W arc at yaw 0 and turns
+clockwise per yaw step), so SE/SW/NW/NE render at yaw 2/3/0/1.
 
 Placement pre-resolves the shape from `camera.angle_H`
 (`src/common/game/player.cpp`) so there's no wrong-shape flash, and

@@ -42,7 +42,7 @@ static constexpr double RAIL_TOP = 1.0 / 16.0;
 // three hits inside ~2 ticks of each other break (decay 1 per ~0.7 s).
 static constexpr float CART_DAMAGE_PER_HIT = 1.0f;
 static constexpr float CART_DAMAGE_DECAY = 2.0f / static_cast<float>( UPS_RATE );
-static constexpr int CART_HURT_WOBBLE_TICKS = UPS_RATE / 4;
+static constexpr int CART_HURT_WOBBLE_TICKS = UPS_RATE / 2;
 
 namespace {
 
@@ -649,11 +649,14 @@ void Minecarts::update_render( float alpha, const ChunkLoader &loader ) {
         glm::mat4 base = glm::translate( glm::mat4( 1.0f ), glm::vec3( rpos ) );
         base = glm::rotate( base, glm::radians( -ryaw ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
         base = glm::rotate( base, glm::radians( -rpitch ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
-        // Hurt wobble: a decaying roll about the forward axis, amplitude
-        // set by the hurt_ticks countdown.
+        // Hurt wobble: MC's hurtTime — a roll about the forward axis over
+        // half a second, phase 1 rad per MC tick (20 tps), amplitude
+        // decaying linearly from a 10° peak. The phase is interpolated by
+        // render alpha so it doesn't step at the tick rate.
         if ( c.hurt_ticks > 0 ) {
-            const float amp = 0.35f * static_cast<float>( c.hurt_ticks );
-            const float roll = amp * sinf( static_cast<float>( CART_HURT_WOBBLE_TICKS - c.hurt_ticks ) * 0.9f );
+            const float elapsed = static_cast<float>( CART_HURT_WOBBLE_TICKS - c.hurt_ticks ) + alpha;
+            const float amp = 10.0f * static_cast<float>( c.hurt_ticks ) / CART_HURT_WOBBLE_TICKS;
+            const float roll = amp * sinf( elapsed * ( 20.0f / UPS_RATE ) );
             base = glm::rotate( base, glm::radians( roll ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
         }
         base = glm::rotate( base, glm::radians( -90.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) );

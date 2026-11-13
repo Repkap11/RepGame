@@ -14,8 +14,9 @@
 // borrow display_id the way redstone dust does. Shapes 0-5 (straight +
 // ascending) store rotation = shape and display_id = id; curves 6-9 (plain
 // RAIL only — golden rails never curve) keep id = RAIL and store
-// display_id = RAIL_CORNER with a curve rotation (the turned tile's
-// rotation-0 arc is SW, so RAIL_SE..RAIL_NE map to rotations 3,0,1,2).
+// display_id = RAIL_CORNER with a curve rotation (RAIL_SE..RAIL_NE store
+// rotations 3,0,1,2 — a frozen save/wire encoding; the mesher's curve yaw
+// comes from rail_render_yaw, not from this rotation).
 // RAIL_CORNER is a hidden render-only block whose only difference is the
 // turned top tile.
 
@@ -55,8 +56,8 @@ BlockState rail_state_with_shape( BlockState state, RailShape shape );
 // and the minecart physics, which steps cell-to-cell along these.
 void rail_endpoints( RailShape shape, glm::ivec3 dirs[ 2 ], int dy[ 2 ] );
 
-// face_shift yaw for the mesher. For the four curves it equals the stored
-// rotation (shape - 6); for straights it turns the straight tile onto the
+// face_shift yaw for the mesher. For the four curves it is a measured
+// table (the turned tile draws N+W at yaw 0, NE/SE/SW at 1/2/3); for straights it turns the straight tile onto the
 // track axis; for ascending shapes it encodes the uphill direction
 // (0=-z, 1=+x, 2=+z, 3=-x), which is also what BLOCK_COORDS_SLOPE reads.
 unsigned char rail_render_yaw( RailShape shape );

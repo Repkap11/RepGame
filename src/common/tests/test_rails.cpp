@@ -58,6 +58,14 @@ int test_rails( ) {
         rail_endpoints( RAIL_SE, dirs, dy );
         check_bool( failures, "rail: SE exits +z and +x",
                     dirs[ 0 ] == glm::ivec3( 0, 0, 1 ) && dirs[ 1 ] == glm::ivec3( 1, 0, 0 ) && dy[ 0 ] == 0 && dy[ 1 ] == 0 );
+        // Curve render yaw was measured from top-down captures: the turned
+        // tile at yaw 0 draws an N+W arc, so SE/SW/NW/NE need 2/3/0/1 —
+        // independent of the stored rotation (SE still stores rotation 3).
+        check_bool( failures, "rail: curve render yaws measured",
+                    rail_render_yaw( RAIL_SE ) == 2 && rail_render_yaw( RAIL_SW ) == 3 && rail_render_yaw( RAIL_NW ) == 0 &&
+                        rail_render_yaw( RAIL_NE ) == 1 );
+        const BlockState se = rail_state_with_shape( BlockState{ RAIL, 0, 0, RAIL, 0 }, RAIL_SE );
+        check_bool( failures, "rail: SE stored rotation unchanged", se.display_id == RAIL_CORNER && se.rotation == 3 );
         check_bool( failures, "rail: render yaw encodes uphill dirs",
                     rail_render_yaw( RAIL_ASC_N ) == 0 && rail_render_yaw( RAIL_ASC_E ) == 1 &&
                         rail_render_yaw( RAIL_ASC_S ) == 2 && rail_render_yaw( RAIL_ASC_W ) == 3 );

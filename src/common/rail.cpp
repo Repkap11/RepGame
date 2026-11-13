@@ -72,11 +72,13 @@ static int rail_end_rise( RailShape shape, int d ) {
     return -1;
 }
 
-// Curve rotation on the wire/in cells. The turned tile at rotation 0
-// connects west + south (an SW arc): rotating it 90° a step walks
-// SW -> NW -> NE -> SE, so the RAIL_SE..RAIL_NE order maps to {3,0,1,2}.
+// Curve rotation stored in cells (save/wire format — never change it).
 static const unsigned char RAIL_CURVE_ROT[ 4 ] = { 3, 0, 1, 2 };           // shape - RAIL_SE -> rotation
 static const unsigned char RAIL_CURVE_SHAPE[ 4 ] = { 1, 2, 3, 0 };         // rotation -> shape - RAIL_SE
+// Mesher yaw per curve, independent of the stored rotation. Measured from
+// top-down captures: the turned tile at yaw 0 draws an N+W arc, and each
+// yaw step turns it 90° clockwise seen from above (NW -> NE -> SE -> SW).
+static const unsigned char RAIL_CURVE_RENDER_YAW[ 4 ] = { 2, 3, 0, 1 };    // shape - RAIL_SE -> face_shift yaw
 
 RailShape rail_shape_of( const BlockState &state ) {
     if ( state.display_id == RAIL_CORNER ) {
@@ -105,10 +107,10 @@ BlockState rail_state_with_shape( BlockState state, RailShape shape ) {
 }
 
 unsigned char rail_render_yaw( RailShape shape ) {
-    // The turned tile's arc lands on a different corner per yaw (0 = SW —
-    // see RAIL_CURVE_ROT above); the render yaw is the stored rotation.
+    // The turned tile's arc lands on a different corner per yaw — see
+    // RAIL_CURVE_RENDER_YAW above.
     if ( shape >= RAIL_SE ) {
-        return RAIL_CURVE_ROT[ shape - RAIL_SE ];
+        return RAIL_CURVE_RENDER_YAW[ shape - RAIL_SE ];
     }
     // Straights and ascends share the straight tile: yaw 0/2 lays it N-S,
     // yaw 1/3 E-W. For ascends the nibble is also the uphill direction
