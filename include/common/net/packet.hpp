@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "common/container.hpp"
+#include "common/map_gen_consts.hpp"
 #include "common/sign.hpp"
 
 // CHUNK_BLOCK_SIZE is defined in chunk.hpp as (CHUNK_SIZE_INTERNAL_X *
@@ -27,7 +28,22 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
+// The server never sends terrain — clients generate the base world
+// locally and apply the server's edit diffs over it — so builds with
+// different terrain generators must never share a session: the same
+// diffs would land on a different "unmodified" base. The
+// REPGAME_MAP_GEN_LEGACY selection (map_gen_consts.hpp) is therefore
+// part of the wire contract: non-legacy builds set the version's 0x80
+// bit, and mismatched builds fail the per-frame version check on both
+// ends — a new-terrain client is dropped by a legacy server on the
+// first frame (and vice versa), while matched builds still peer.
+// Bump the low bits (14) on layout changes as usual; 0x80 stays
+// reserved for the generator bit.
+#if REPGAME_MAP_GEN_LEGACY
 static constexpr uint8_t NET_PROTOCOL_VERSION = 14;
+#else
+static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 14;
+#endif
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB

@@ -28,8 +28,15 @@ sized for a worst-case chunk diff) and request box dimensions by
 both directions; receivers validate magic/length/CRC before dispatch.
 `NET_PROTOCOL_VERSION` is checked on every frame's payload header — a
 mismatch disconnects (`Multiplayer::mismatched_server_version`, surfaced
-by the ImGui overlay). Bump it whenever a message layout changes; the
-`NetMsgType` values are stable on the wire and must never be renumbered.
+by the ImGui overlay). Bump the low bits whenever a message layout
+changes; the `NetMsgType` values are stable on the wire and must never
+be renumbered. The 0x80 bit folds in `REPGAME_MAP_GEN_LEGACY`: the
+server never sends terrain (clients generate the base world locally
+and apply the server's diffs over it), so a build on the other
+generator would layer the same diffs onto a different base and must be
+rejected — a non-legacy client is dropped by a legacy server on the
+first frame, and vice versa. `tools/mp_probe.py` parses the legacy
+value; `--version` overrides it.
 Protocol 6 added `removed_natural` (tombstoned natural-roll indices) to
 `CHUNK_ROLE`; protocol 7 added the `FURNACE_*` messages (since folded
 into `CONTAINER_*`); protocol 8 added `item` to

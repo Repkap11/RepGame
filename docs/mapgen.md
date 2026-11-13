@@ -63,6 +63,12 @@ comparisons need two builds. `MAP_SEED` (currently `0`) is the global seed;
 each noise field adds a fixed offset to it (seed maps are commented in
 `map_gen_fields.hpp` — pick an unused offset for new fields).
 
+The selection is also folded into `NET_PROTOCOL_VERSION`'s 0x80 bit
+(`include/common/net/packet.hpp`): the server only ships diffs over
+client-generated terrain, so mismatched builds are rejected on the first
+frame — a `=0` client can't join the legacy live server (and vice
+versa). Matched builds still peer normally.
+
 ## One source, four backends
 
 The field math is written once in the C++/WGSL dual dialect
