@@ -349,7 +349,7 @@ static bool activator_attached_to( const glm::ivec3 &activator_pos, const BlockS
 // feeds mechanisms whether its power is weak or strong, but powered
 // mechanisms never count — they would latch each other on forever). Never
 // reads the cell's own stored power. Extracted from perform_checks so
-// golden_rail_chain_powered can re-run the same scan off the event path.
+// powered_rail_chain_powered can re-run the same scan off the event path.
 static int block_neighbor_power( World &world, const glm::ivec3 &pos, bool soft_ok, bool is_mechanism ) {
     // Solid block: hard power (>1) from redstone blocks, a torch below,
     // or an attached pressed button/plate; soft power (1) from dust
@@ -644,11 +644,11 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // they never emit power themselves.
             new_power = block_neighbor_power( world, affecting_block_pos, //
                                               affecting_block->affected_by_redstone_power, affecting_block->is_redstone_mechanism );
-            // A golden rail with no direct activation still powers when a
-            // directly-activated golden rail sits within 8 connected hops
+            // A powered rail with no direct activation still powers when a
+            // directly-activated powered rail sits within 8 connected hops
             // along the track (the BFS reads only direct activation, so a
             // powered loop can't hold itself on).
-            if ( new_power == 0 && affecting_block_state.id == GOLDEN_RAIL && golden_rail_chain_powered( world, affecting_block_pos ) ) {
+            if ( new_power == 0 && affecting_block_state.id == POWERED_RAIL && powered_rail_chain_powered( world, affecting_block_pos ) ) {
                 new_power = 1;
             }
             // A powered mechanism doesn't emit power of its own, so cap the

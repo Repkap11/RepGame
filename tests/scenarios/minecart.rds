@@ -1,4 +1,4 @@
-# Minecart staging: a closed loop with powered golden rails on every
+# Minecart staging: a closed loop with powered rails on every
 # straight leg (empty carts stall on long unpowered runs), a flat curve,
 # an ascending slope and a descent back down. Flat floor is SANDSTONE at
 # y=0; AIR starts at y=1. Supports go in first because same-tick
@@ -9,55 +9,55 @@ fill 10 1 5 10 1 11 STONE
 fill 0 1 11 9 1 11 STONE
 setblock 0 1 10 STONE
 wait 10
-# Upper track, y=2: the slope lands at (10,2,5), a powered golden run
+# Upper track, y=2: the slope lands at (10,2,5), a powered rail run
 # goes south to the NW corner at (10,2,11), west along z=11, then the NE
 # corner at (0,2,11) turns north into (0,2,10).
-setblock 10 2 5 GOLDEN_RAIL
-setblock 10 2 6 GOLDEN_RAIL
-setblock 10 2 7 GOLDEN_RAIL
-setblock 10 2 8 GOLDEN_RAIL
-setblock 10 2 9 GOLDEN_RAIL
-setblock 10 2 10 GOLDEN_RAIL
+setblock 10 2 5 POWERED_RAIL
+setblock 10 2 6 POWERED_RAIL
+setblock 10 2 7 POWERED_RAIL
+setblock 10 2 8 POWERED_RAIL
+setblock 10 2 9 POWERED_RAIL
+setblock 10 2 10 POWERED_RAIL
 setblock 10 2 11 RAIL
-setblock 9 2 11 GOLDEN_RAIL
-setblock 8 2 11 GOLDEN_RAIL
-setblock 7 2 11 GOLDEN_RAIL
-setblock 6 2 11 GOLDEN_RAIL
-setblock 5 2 11 GOLDEN_RAIL
-setblock 4 2 11 GOLDEN_RAIL
-setblock 3 2 11 GOLDEN_RAIL
-setblock 2 2 11 GOLDEN_RAIL
-setblock 1 2 11 GOLDEN_RAIL
+setblock 9 2 11 POWERED_RAIL
+setblock 8 2 11 POWERED_RAIL
+setblock 7 2 11 POWERED_RAIL
+setblock 6 2 11 POWERED_RAIL
+setblock 5 2 11 POWERED_RAIL
+setblock 4 2 11 POWERED_RAIL
+setblock 3 2 11 POWERED_RAIL
+setblock 2 2 11 POWERED_RAIL
+setblock 1 2 11 POWERED_RAIL
 setblock 0 2 11 RAIL
 setblock 0 2 10 RAIL
 # Descent and lower return leg: (0,1,9) ascends S up to (0,2,10), then
-# the cart drops down it heading north along powered golden rail to the
+# the cart drops down it heading north along powered rail to the
 # NE corner at (0,1,0).
 setblock 0 1 9 RAIL
-setblock 0 1 8 GOLDEN_RAIL
-setblock 0 1 7 GOLDEN_RAIL
-setblock 0 1 6 GOLDEN_RAIL
-setblock 0 1 5 GOLDEN_RAIL
-setblock 0 1 4 GOLDEN_RAIL
-setblock 0 1 3 GOLDEN_RAIL
-setblock 0 1 2 GOLDEN_RAIL
-setblock 0 1 1 GOLDEN_RAIL
+setblock 0 1 8 POWERED_RAIL
+setblock 0 1 7 POWERED_RAIL
+setblock 0 1 6 POWERED_RAIL
+setblock 0 1 5 POWERED_RAIL
+setblock 0 1 4 POWERED_RAIL
+setblock 0 1 3 POWERED_RAIL
+setblock 0 1 2 POWERED_RAIL
+setblock 0 1 1 POWERED_RAIL
 setblock 0 1 0 RAIL
-# Powered golden launch straight along z=0 (eastbound), then the SW
+# Powered rail launch straight along z=0 (eastbound), then the SW
 # corner at (10,1,0) and the powered run south up to the slope.
-setblock 1 1 0 GOLDEN_RAIL
-setblock 2 1 0 GOLDEN_RAIL
-setblock 3 1 0 GOLDEN_RAIL
-setblock 4 1 0 GOLDEN_RAIL
-setblock 5 1 0 GOLDEN_RAIL
-setblock 6 1 0 GOLDEN_RAIL
-setblock 7 1 0 GOLDEN_RAIL
-setblock 8 1 0 GOLDEN_RAIL
-setblock 9 1 0 GOLDEN_RAIL
+setblock 1 1 0 POWERED_RAIL
+setblock 2 1 0 POWERED_RAIL
+setblock 3 1 0 POWERED_RAIL
+setblock 4 1 0 POWERED_RAIL
+setblock 5 1 0 POWERED_RAIL
+setblock 6 1 0 POWERED_RAIL
+setblock 7 1 0 POWERED_RAIL
+setblock 8 1 0 POWERED_RAIL
+setblock 9 1 0 POWERED_RAIL
 setblock 10 1 0 RAIL
-setblock 10 1 1 GOLDEN_RAIL
-setblock 10 1 2 GOLDEN_RAIL
-setblock 10 1 3 GOLDEN_RAIL
+setblock 10 1 1 POWERED_RAIL
+setblock 10 1 2 POWERED_RAIL
+setblock 10 1 3 POWERED_RAIL
 setblock 10 1 4 RAIL
 # Redstone sources: every powered leg gets a directly powered rail within
 # 8 chain hops of each end (chain power doesn't hop through plain-rail
@@ -72,7 +72,7 @@ setblock 2 2 12 REDSTONE_BLOCK
 setblock 1 1 4 REDSTONE_BLOCK
 setblock 1 1 8 REDSTONE_BLOCK
 wait 40
-assert_block 5 1 0 GOLDEN_RAIL
+assert_block 5 1 0 POWERED_RAIL
 assert_block 10 1 0 RAIL
 assert_block 0 1 9 RAIL
 assert_block 10 2 11 RAIL

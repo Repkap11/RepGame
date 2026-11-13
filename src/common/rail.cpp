@@ -100,7 +100,7 @@ BlockState rail_state_with_shape( BlockState state, RailShape shape ) {
         state.rotation = RAIL_CURVE_ROT[ shape - RAIL_SE ];
     } else {
         if ( shape >= RAIL_SE ) {
-            shape = RAIL_NS; // golden rails never curve
+            shape = RAIL_NS; // powered rails never curve
         }
         state.display_id = state.id;
         state.rotation = static_cast<unsigned char>( shape );
@@ -252,7 +252,7 @@ BlockState rail_resolve_shape( World &world, const glm::ivec3 &pos, const BlockS
     } else if ( rise[ 1 ] >= 0 && rise[ 3 ] >= 0 ) {
         shape = RAIL_EW;
     } else {
-        // A curve needs two level links; golden rails never curve.
+        // A curve needs two level links; powered rails never curve.
         if ( state.id == RAIL ) {
             if ( rise[ 2 ] == 0 && rise[ 1 ] == 0 ) {
                 shape = RAIL_SE;
@@ -303,7 +303,7 @@ BlockState rail_resolve_shape( World &world, const glm::ivec3 &pos, const BlockS
     return rail_state_with_shape( state, static_cast<RailShape>( shape ) );
 }
 
-bool golden_rail_chain_powered( World &world, const glm::ivec3 &pos ) {
+bool powered_rail_chain_powered( World &world, const glm::ivec3 &pos ) {
     std::unordered_map<glm::ivec3, int> distances;
     std::queue<glm::ivec3> pending;
     distances.emplace( pos, 0 );
@@ -319,7 +319,7 @@ bool golden_rail_chain_powered( World &world, const glm::ivec3 &pos ) {
             continue;
         }
         const BlockState st = world.get_loaded_block( cur );
-        if ( st.id != GOLDEN_RAIL ) {
+        if ( st.id != POWERED_RAIL ) {
             continue;
         }
         glm::ivec3 dirs[ 2 ];
@@ -332,7 +332,7 @@ bool golden_rail_chain_powered( World &world, const glm::ivec3 &pos ) {
                 // Our high end: the rail it climbs toward must face back.
                 const glm::ivec3 npos = cur + dirs[ i ] + glm::ivec3( 0, 1, 0 );
                 const BlockState nst = world.get_loaded_block( npos );
-                if ( nst.id == GOLDEN_RAIL && rail_end_rise( rail_shape_of( nst ), back ) == 0 && distances.emplace( npos, dist + 1 ).second ) {
+                if ( nst.id == POWERED_RAIL && rail_end_rise( rail_shape_of( nst ), back ) == 0 && distances.emplace( npos, dist + 1 ).second ) {
                     pending.push( npos );
                 }
             } else {
@@ -340,12 +340,12 @@ bool golden_rail_chain_powered( World &world, const glm::ivec3 &pos ) {
                 // down that climbs toward us (its high end faces back).
                 const glm::ivec3 npos = cur + dirs[ i ];
                 const BlockState nst = world.get_loaded_block( npos );
-                if ( nst.id == GOLDEN_RAIL && rail_end_rise( rail_shape_of( nst ), back ) == 0 && distances.emplace( npos, dist + 1 ).second ) {
+                if ( nst.id == POWERED_RAIL && rail_end_rise( rail_shape_of( nst ), back ) == 0 && distances.emplace( npos, dist + 1 ).second ) {
                     pending.push( npos );
                 }
                 const glm::ivec3 lpos = cur + dirs[ i ] - glm::ivec3( 0, 1, 0 );
                 const BlockState lst = world.get_loaded_block( lpos );
-                if ( lst.id == GOLDEN_RAIL && rail_end_rise( rail_shape_of( lst ), back ) == 1 && distances.emplace( lpos, dist + 1 ).second ) {
+                if ( lst.id == POWERED_RAIL && rail_end_rise( rail_shape_of( lst ), back ) == 1 && distances.emplace( lpos, dist + 1 ).second ) {
                     pending.push( lpos );
                 }
             }

@@ -8944,7 +8944,7 @@ block_definitions[ 594 ].renderOrder = RenderOrder_Flowers;
 block_definitions[ 594 ].scale = { 6, 11, 6 };
 block_definitions[ 594 ].tex_offset = { -5, 0, -5 };
 
-// GOLDEN_RAIL (595)
+// POWERED_RAIL (595)
 block_definitions[ 595 ].textures[ FACE_TOP ] = TEX_RAIL_GOLDEN;
 block_definitions[ 595 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 595 ].textures[ FACE_RIGHT ] = TEX_AIR;

@@ -1,5 +1,5 @@
 // Minecart tests: rail following (flat, slopes, curves), powered/unpowered
-// golden rails, friction, derailment, blocked track, cart-cart and player
+// rails, friction, derailment, blocked track, cart-cart and player
 // collisions, damage/drop rules, persistence and the MP/capture gates.
 
 #include "test_util.hpp"
@@ -29,7 +29,7 @@ int test_minecarts( ) {
 
     const BlockState stone = { STONE, 0, 0, STONE, 0 };
     const BlockState rail = { RAIL, 0, 0, RAIL, 0 };
-    const BlockState golden = { GOLDEN_RAIL, 0, 0, GOLDEN_RAIL, 0 };
+    const BlockState powered_rail = { POWERED_RAIL, 0, 0, POWERED_RAIL, 0 };
     // Floor at y=10 across the test area; rails sit at y=11.
     for ( int x = 0; x <= 61; x++ ) {
         for ( int z = 0; z <= 61; z++ ) {
@@ -88,11 +88,11 @@ int test_minecarts( ) {
                 carts.test_carts( )[ 0 ].pos.x > carts.test_carts( )[ 1 ].pos.x + 0.5 );
     carts.test_carts( ).clear( );
 
-    // --- powered golden rail boosts toward max speed ---------------------------
+    // --- powered rail boosts toward max speed ---------------------------
     // Two redstone sources: chain power reaches 8 hops from each directly
     // powered rail, so the whole x=4..20 run stays lit.
     for ( int x = 4; x <= 20; x++ ) {
-        place( glm::ivec3( x, 11, 9 ), golden );
+        place( glm::ivec3( x, 11, 9 ), powered_rail );
     }
     place( glm::ivec3( 4, 11, 10 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
     place( glm::ivec3( 13, 11, 10 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
@@ -102,27 +102,27 @@ int test_minecarts( ) {
     tick( 80 );
     {
         const double bs = glm::length( only_cart( ).vel ) * UPS_RATE;
-        check_bool( "cart: powered golden boosts toward max", bs > 7.0 && bs <= 8.0 + 1e-9 );
+        check_bool( "cart: powered rail boosts toward max", bs > 7.0 && bs <= 8.0 + 1e-9 );
         check_bool( "cart: boosted cart stays on rail", only_cart( ).on_rail );
     }
     carts.test_carts( ).clear( );
 
-    // --- unpowered golden rail brakes to a stop --------------------------------
+    // --- unpowered rail brakes to a stop --------------------------------
     for ( int x = 24; x <= 40; x++ ) {
-        place( glm::ivec3( x, 11, 9 ), golden );
+        place( glm::ivec3( x, 11, 9 ), powered_rail );
     }
     run( 20 );
     carts.spawn( glm::dvec3( 26.5, 11.0 + 1.0 / 16.0, 9.5 ), 0.0f );
     carts.test_carts( )[ 0 ].vel = glm::dvec3( 0.04, 0.0, 0.0 );
     tick( 200 );
-    check_bool( "cart: unpowered golden brakes to stop", glm::length( only_cart( ).vel ) == 0.0 );
+    check_bool( "cart: unpowered rail brakes to stop", glm::length( only_cart( ).vel ) == 0.0 );
     check_bool( "cart: braked cart stays on rail", only_cart( ).on_rail && only_cart( ).pos.x <= 40.5 );
     carts.test_carts( ).clear( );
 
-    // --- powered golden launch kick off a blocked end ---------------------------
+    // --- powered rail launch kick off a blocked end ---------------------------
     // A rest cart on a powered rail whose +x end is walled gets kicked away.
     for ( int x = 24; x <= 27; x++ ) {
-        place( glm::ivec3( x, 11, 12 ), golden );
+        place( glm::ivec3( x, 11, 12 ), powered_rail );
     }
     place( glm::ivec3( 24, 11, 13 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
     place( glm::ivec3( 28, 11, 12 ), stone );

@@ -24,7 +24,7 @@ class Shader;
 // headless CPU simulation (rep_tests run it without GL) with a render chain
 // only wired up after init() (the render_inited pattern). A cart is a box
 // that follows rail cells (see rail.hpp) — flat track, ascending shapes
-// and curves — with MC-style physics: powered golden rails boost, dead
+// and curves — with MC-style physics: powered rails boost, dead
 // ones brake, slopes accelerate downhill, empty carts lose more speed than
 // ridden ones. Derailed carts fall through the world with move_box
 // collision until they re-snap onto a rail or rest on the ground.

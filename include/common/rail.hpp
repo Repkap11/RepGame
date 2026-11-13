@@ -1,9 +1,9 @@
 #pragma once
 
-// Rail shapes, state encoding and connection logic for RAIL/GOLDEN_RAIL.
+// Rail shapes, state encoding and connection logic for RAIL/POWERED_RAIL.
 // Pure functions over World::get_loaded_block so the unit tests can drive
 // them without GL. Used by the block-update path (perform_checks merging,
-// golden-rail power), the mesher (rail_render_yaw + BLOCK_COORDS_SLOPE) and
+// powered-rail power), the mesher (rail_render_yaw + BLOCK_COORDS_SLOPE) and
 // the minecart physics (endpoint/direction helpers).
 //
 // Direction convention everywhere below: the four horizontal directions
@@ -13,7 +13,7 @@
 // Encoding: rotation is 3 bits but there are 10 shapes, so the four curves
 // borrow display_id the way redstone dust does. Shapes 0-5 (straight +
 // ascending) store rotation = shape and display_id = id; curves 6-9 (plain
-// RAIL only — golden rails never curve) keep id = RAIL and store
+// RAIL only — powered rails never curve) keep id = RAIL and store
 // display_id = RAIL_CORNER with a curve rotation (RAIL_SE..RAIL_NE store
 // rotations 3,0,1,2 — a frozen save/wire encoding; the mesher's curve yaw
 // comes from rail_render_yaw, not from this rotation).
@@ -83,8 +83,8 @@ int rail_pick_height_px( const BlockState &state );
 // would guess wrong and then stick.
 BlockState rail_resolve_shape( World &world, const glm::ivec3 &pos, const BlockState &state, int placer_yaw );
 
-// Whether any directly-activated golden rail is reachable from `pos`
+// Whether any directly-activated powered rail is reachable from `pos`
 // through at most 8 connected hops (BFS along shape endpoints, slope rises
 // included). Reads only direct activation (mechanism_direct_power), never
 // stored rail power — a loop of powered rails must not hold itself on.
-bool golden_rail_chain_powered( World &world, const glm::ivec3 &pos );
+bool powered_rail_chain_powered( World &world, const glm::ivec3 &pos );

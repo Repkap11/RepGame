@@ -9,7 +9,7 @@
   "is_rail": true,
   "is_redstone_mechanism": true,
   "is_seethrough": true,
-  "name": "GOLDEN_RAIL",
+  "name": "POWERED_RAIL",
   "needs_place_on_any_solid": {
     "top": true
   },

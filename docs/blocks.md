@@ -665,7 +665,7 @@ rendering is `docs/rendering.md`.
 
 ## Rails
 
-`is_rail` blocks (`RAIL`, `GOLDEN_RAIL`, and the hidden render-only
+`is_rail` blocks (`RAIL`, `POWERED_RAIL`, and the hidden render-only
 `RAIL_CORNER` tile) are 1px plates: scale
 [16,1,16], air on every face but the top tile, non-colliding, and they
 survive only over a colliding block — checked directly in
@@ -680,8 +680,8 @@ All track logic is pure and unit-tested in `include/common/rail.hpp` /
 SE/SW/NW/NE curves), `rail_endpoints`/`rail_render_yaw` for the mesher
 and future cart physics, `rail_resolve_shape` for connection resolution
 (straights beat curves, sticky endpoints keep T-junctions stable, a lone
-uphill link makes an ascending shape, golden rails never curve, unloaded
-neighbours freeze the shape), and `golden_rail_chain_powered` for
+uphill link makes an ascending shape, powered rails never curve, unloaded
+neighbours freeze the shape), and `powered_rail_chain_powered` for
 powered-rail chaining (`docs/redstone.md`). State encoding borrows
 dust's trick: shapes 0-5 live in `rotation` with `display_id == id`;
 the four curves keep `id == RAIL` but display `RAIL_CORNER` (the turned

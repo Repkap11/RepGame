@@ -551,10 +551,10 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         change_all_textures_to( blockCoord->face, TEX_REDSTONE_LAMP_ON );
     }
 
-    // Powered golden rails swap their top tile for the lit variant — same
+    // Powered rails swap their top tile for the lit variant — same
     // mechanism swap as REDSTONE_LAMP, display-id based so it works from
     // every emitter (chunk, debris, items).
-    if ( blockState->display_id == GOLDEN_RAIL && blockState->current_redstone_power > 0 ) {
+    if ( blockState->display_id == POWERED_RAIL && blockState->current_redstone_power > 0 ) {
         blockCoord->face[ FACE_TOP ] = TEX_RAIL_GOLDEN_POWERED;
     }
 

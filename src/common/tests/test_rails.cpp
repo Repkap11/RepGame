@@ -1,5 +1,5 @@
 // Rail tests: shape encoding, connection resolution (straights, curves,
-// sticky junctions, slopes), golden-rail chain power, and support loss —
+// sticky junctions, slopes), powered-rail chain power, and support loss —
 // split out of rep_tests.cpp.
 #include "test_util.hpp"
 #include "common/rail.hpp"
@@ -31,7 +31,7 @@ int test_rails( ) {
 
     // --- encoding round-trip -------------------------------------------------
     // Shapes 0-5 store rotation=shape/display=id; curves store
-    // display=RAIL_CORNER/rotation=shape-6. Golden rails can't curve —
+    // display=RAIL_CORNER/rotation=shape-6. Powered rails can't curve —
     // asking for a curve lands on NS instead.
     for ( int s = 0; s < RAIL_SHAPE_COUNT; s++ ) {
         const RailShape shape = static_cast<RailShape>( s );
@@ -44,8 +44,8 @@ int test_rails( ) {
                     corner.id == RAIL && corner.display_id == RAIL_CORNER && corner.rotation == 2 );
         const BlockState asc = rail_state_with_shape( BlockState{ RAIL, 0, 0, RAIL, 0 }, RAIL_ASC_W );
         check_bool( failures, "rail: ascend stores rotation=shape", asc.display_id == RAIL && asc.rotation == RAIL_ASC_W );
-        const BlockState golden = rail_state_with_shape( BlockState{ GOLDEN_RAIL, 0, 0, GOLDEN_RAIL, 0 }, RAIL_SE );
-        check_bool( failures, "rail: golden never encodes a curve", golden.display_id == GOLDEN_RAIL && rail_shape_of( golden ) == RAIL_NS );
+        const BlockState powered_rail = rail_state_with_shape( BlockState{ POWERED_RAIL, 0, 0, POWERED_RAIL, 0 }, RAIL_SE );
+        check_bool( failures, "rail: powered rail never encodes a curve", powered_rail.display_id == POWERED_RAIL && rail_shape_of( powered_rail ) == RAIL_NS );
     }
     {
         // Endpoint table sanity: ASC_E climbs toward +x, a SE curve exits
@@ -99,7 +99,7 @@ int test_rails( ) {
         }
     };
     const BlockState rail = { RAIL, 0, 0, RAIL, 0 };
-    const BlockState golden = { GOLDEN_RAIL, 0, 0, GOLDEN_RAIL, 0 };
+    const BlockState powered_rail = { POWERED_RAIL, 0, 0, POWERED_RAIL, 0 };
 
     // Straight line along x: the middle rail reads east-west.
     place( glm::ivec3( 4, 11, 4 ), rail );
@@ -123,10 +123,10 @@ int test_rails( ) {
     place( glm::ivec3( 21, 12, 8 ), rail );
     place( glm::ivec3( 20, 11, 8 ), rail );
 
-    // Golden rails never curve: S + E links resolve to a straight.
-    place( glm::ivec3( 24, 11, 4 ), golden );
-    place( glm::ivec3( 24, 11, 5 ), golden );
-    place( glm::ivec3( 25, 11, 4 ), golden );
+    // Powered rails never curve: S + E links resolve to a straight.
+    place( glm::ivec3( 24, 11, 4 ), powered_rail );
+    place( glm::ivec3( 24, 11, 5 ), powered_rail );
+    place( glm::ivec3( 25, 11, 4 ), powered_rail );
 
     // Awkward build order: both arms of an L before the corner cell — the
     // corner still converges to RAIL_SE once placed.
@@ -159,8 +159,8 @@ int test_rails( ) {
     failures += check_shape( world, "slope: rail on step runs E-W", glm::ivec3( 21, 12, 8 ), RAIL_EW );
     {
         const BlockState g = world.get_loaded_block( glm::ivec3( 24, 11, 4 ) );
-        check_bool( failures, "golden: no curve at a corner",
-                    g.display_id == GOLDEN_RAIL && ( rail_shape_of( g ) == RAIL_NS || rail_shape_of( g ) == RAIL_EW ) );
+        check_bool( failures, "powered: no curve at a corner",
+                    g.display_id == POWERED_RAIL && ( rail_shape_of( g ) == RAIL_NS || rail_shape_of( g ) == RAIL_EW ) );
     }
     failures += check_shape( world, "L placed arms-first converges", glm::ivec3( 10, 11, 10 ), RAIL_SE );
 
@@ -186,34 +186,34 @@ int test_rails( ) {
         check_bool( failures, "placer yaw 0 lays N-S", rail_shape_of( ns ) == RAIL_NS );
     }
 
-    // --- golden rail chain power ---------------------------------------------
-    // Ten golden rails along x at z=16; a redstone block beside the first
+    // --- powered rail chain power ---------------------------------------------
+    // Ten powered rails along x at z=16; a redstone block beside the first
     // activates it directly. Rails within 8 connected hops power; the rail
     // 9 hops out stays dark (and must not feed anything back).
     for ( int x = 4; x <= 13; x++ ) {
-        place( glm::ivec3( x, 11, 16 ), golden );
+        place( glm::ivec3( x, 11, 16 ), powered_rail );
     }
     place( glm::ivec3( 4, 11, 17 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
     run( 20 );
-    failures += check_power( world, "golden chain: rail next to source", glm::ivec3( 4, 11, 16 ), 1 );
-    failures += check_power( world, "golden chain: rail 8 hops out", glm::ivec3( 12, 11, 16 ), 1 );
-    failures += check_power( world, "golden chain: rail 9 hops out unpowered", glm::ivec3( 13, 11, 16 ), 0 );
+    failures += check_power( world, "powered chain: rail next to source", glm::ivec3( 4, 11, 16 ), 1 );
+    failures += check_power( world, "powered chain: rail 8 hops out", glm::ivec3( 12, 11, 16 ), 1 );
+    failures += check_power( world, "powered chain: rail 9 hops out unpowered", glm::ivec3( 13, 11, 16 ), 0 );
 
     // Removing the source must unpower the whole chain — powered rails are
     // activated, not emitting, so nothing can latch itself on.
     place( glm::ivec3( 4, 11, 17 ), BLOCK_STATE_AIR );
     run( 20 );
-    failures += check_power( world, "golden chain: head unpowered after source gone", glm::ivec3( 4, 11, 16 ), 0 );
-    failures += check_power( world, "golden chain: tail unpowered after source gone", glm::ivec3( 12, 11, 16 ), 0 );
+    failures += check_power( world, "powered chain: head unpowered after source gone", glm::ivec3( 4, 11, 16 ), 0 );
+    failures += check_power( world, "powered chain: tail unpowered after source gone", glm::ivec3( 12, 11, 16 ), 0 );
 
-    // A self-referencing knot: two golden rails whose only power path is
+    // A self-referencing knot: two powered rails whose only power path is
     // through each other never turn on — the BFS only counts direct
     // activation, never stored rail power.
-    place( glm::ivec3( 20, 11, 20 ), golden );
-    place( glm::ivec3( 21, 11, 20 ), golden );
+    place( glm::ivec3( 20, 11, 20 ), powered_rail );
+    place( glm::ivec3( 21, 11, 20 ), powered_rail );
     run( 20 );
-    failures += check_power( world, "golden knot: no source, no latch", glm::ivec3( 20, 11, 20 ), 0 );
-    failures += check_power( world, "golden knot: neighbour no latch", glm::ivec3( 21, 11, 20 ), 0 );
+    failures += check_power( world, "powered knot: no source, no latch", glm::ivec3( 20, 11, 20 ), 0 );
+    failures += check_power( world, "powered knot: neighbour no latch", glm::ivec3( 21, 11, 20 ), 0 );
 
     // --- support loss ----------------------------------------------------------
     // A rail needs a colliding block below: mining the floor pops it.

@@ -19,7 +19,7 @@ glm::ivec3 piston_head_base( World &world, const glm::ivec3 &block_pos, const Bl
 // attached pressed button/plate), soft sources (powered dust pointing in,
 // a torch's side) and adjacent emitting blocks — the same scans
 // perform_checks runs for is_redstone_mechanism cells. Never reads the
-// cell's own stored power; golden_rail_chain_powered uses it so a powered
+// cell's own stored power; powered_rail_chain_powered uses it so a powered
 // rail loop can't hold itself on.
 int mechanism_direct_power( World &world, const glm::ivec3 &pos );
 

@@ -25,10 +25,10 @@
 static constexpr double UPS = UPS_RATE;
 static constexpr double CART_MAX_SPEED = 8.0 / UPS;                           // blocks/tick
 static constexpr double CART_SLOPE_ACCEL = 5.0 / ( UPS * UPS );               // downhill gravity along the path
-static constexpr double CART_GOLDEN_BOOST = 24.0 / ( UPS * UPS );             // powered golden rail accel
+static constexpr double CART_POWERED_BOOST = 24.0 / ( UPS * UPS );             // powered rail accel
 static constexpr double CART_LAUNCH_KICK = 0.4 / UPS;                         // kick off a blocked powered rail end
-static const double CART_GOLDEN_BRAKE = pow( 0.5, 20.0 / UPS );               // unpowered golden per-tick
-static constexpr double CART_GOLDEN_SNAP = 0.6 / UPS;                         // brake dead-zone
+static const double CART_POWERED_BRAKE = pow( 0.5, 20.0 / UPS );               // unpowered rail per-tick
+static constexpr double CART_POWERED_SNAP = 0.6 / UPS;                         // brake dead-zone
 static const double CART_FRICTION_RIDDEN = pow( 0.997, 20.0 / UPS );          // ridden drag
 static const double CART_FRICTION_EMPTY = pow( 0.96, 20.0 / UPS );            // empty drag
 static constexpr double CART_PUSH_ACCEL = 2.0 / ( UPS * UPS );                // rider push
@@ -241,7 +241,7 @@ static glm::dvec3 cart_max( const glm::dvec3 &pos ) {
 }
 
 // Advance the cart along its rail: compute the signed speed along the
-// path, apply slope/gravity/golden/friction/push effects, move, and step
+// path, apply slope/gravity/powered-rail/friction/push effects, move, and step
 // into the next cell across endpoints. `in` carries rider/push state.
 void Minecarts::tick( RepGameState &state, const CartTickInput &in ) {
     World &world = state.world;
@@ -281,8 +281,8 @@ void Minecarts::tick( RepGameState &state, const CartTickInput &in ) {
             // Downhill gravity: descending carts gain speed along -u.y.
             s += -path.u.y * CART_SLOPE_ACCEL;
 
-            const bool golden = rail_state.id == GOLDEN_RAIL;
-            if ( golden ) {
+            const bool powered_rail = rail_state.id == POWERED_RAIL;
+            if ( powered_rail ) {
                 const bool powered = rail_state.current_redstone_power > 0;
                 if ( powered ) {
                     // Launch kick: a rest cart on a powered rail with a
@@ -298,11 +298,11 @@ void Minecarts::tick( RepGameState &state, const CartTickInput &in ) {
                         }
                     }
                     if ( fabs( s ) >= 1e-6 ) {
-                        s += CART_GOLDEN_BOOST * ( s > 0 ? 1.0 : -1.0 );
+                        s += CART_POWERED_BOOST * ( s > 0 ? 1.0 : -1.0 );
                     }
                 } else {
-                    s *= CART_GOLDEN_BRAKE;
-                    if ( fabs( s ) < CART_GOLDEN_SNAP ) {
+                    s *= CART_POWERED_BRAKE;
+                    if ( fabs( s ) < CART_POWERED_SNAP ) {
                         s = 0.0;
                     }
                 }

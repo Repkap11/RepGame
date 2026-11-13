@@ -57,7 +57,7 @@ see `docs/mobs.md`. `MINECART` (`minecart_normal` icon, `max_stack` 1,
 recipe five iron ingots `"# #"/"###"`) places a minecart on a rail on
 right-click (`docs/entities.md`). Rails themselves are block items:
 `RAIL` crafts 16 from six iron + a stick (`"# #"/"#S#"/"# #"`) and
-`GOLDEN_RAIL` crafts 6 from six gold + stick + redstone dust
+`POWERED_RAIL` crafts 6 from six gold + stick + redstone dust
 (`"# #"/"#S#"/"#R#"`, `REDSTONE_WIRE_CROSS` — see `docs/blocks.md`).
 `BUCKET` (3 iron ingots in a V, `max_stack` 16) and
 the `max_stack` 1 `WATER_BUCKET`/`LAVA_BUCKET` scoop plain fluid
