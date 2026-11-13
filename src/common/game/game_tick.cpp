@@ -254,6 +254,10 @@ void RepGame::update_block_selection( ) {
     // reads the y fraction. t is along the normalized look direction.
     const glm::dvec3 hit_pos = ray_origin + sel.ray_dir * hit_t;
     sel.hit_y_in_cell = sel.selectionInBounds ? hit_pos.y - sel.pos_destroy.y : 0.0;
+    // The mob/cart resolve compares hitbox entries against the pick-shape
+    // hit distance, not the cell boundary — a cart inside its rail's cell
+    // would otherwise always lose to the rail under it.
+    sel.block_hit_dist = sel.selectionInBounds ? hit_t : REACH_DISTANCE;
 
     if ( pick_water ) {
         int whichFace_water = 0;

@@ -83,10 +83,11 @@ class Minecarts {
     // Nearest cart the ray hits within max_dist, or -1; *out_dist takes
     // the hit distance (like MobManager::raycast).
     int raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist, double *out_dist ) const;
-    // Nearest cart nearer than the selected block, or -1 — the cart
-    // version of MobManager::resolve_target.
-    int resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist,
-                        int selectionInBounds, const glm::ivec3 &pos_destroy, double *out_dist ) const;
+    // Nearest cart nearer than the block hit at `block_dist`, or -1 — the
+    // cart version of MobManager::resolve_target. `block_dist` must be the
+    // pick ray's hit distance on the block's real pick shape: a cart sits
+    // inside its rail's cell, so the whole-cell entry would always beat it.
+    int resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist, double block_dist, double *out_dist ) const;
 
     // Hit: creative removes outright; survival adds decaying damage so
     // three quick hits break. Returns true when the cart was removed;

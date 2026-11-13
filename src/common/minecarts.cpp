@@ -475,15 +475,10 @@ int Minecarts::raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double 
 }
 
 int Minecarts::resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist,
-                               int selectionInBounds, const glm::ivec3 &pos_destroy, double *out_dist ) const {
+                               double block_dist, double *out_dist ) const {
     double cart_dist = 0.0;
     const int cart = this->raycast( origin, dir, max_dist, &cart_dist );
-    if ( cart < 0 ) {
-        return -1;
-    }
-    double block_dist = 0.0;
-    const bool block_hit = selectionInBounds && RayTraversal::ray_aabb_entry( origin, dir, glm::dvec3( pos_destroy ), glm::dvec3( pos_destroy ) + glm::dvec3( 1.0 ), max_dist, &block_dist );
-    if ( block_hit && block_dist <= cart_dist ) {
+    if ( cart < 0 || cart_dist >= block_dist ) {
         return -1;
     }
     if ( out_dist != nullptr ) {

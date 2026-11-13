@@ -77,7 +77,7 @@ struct PlayerVitals {
 };
 
 // The block/mob under the crosshair this tick: block cell selection plus
-// the mob raycast winner when it is nearer than the block cell.
+// the mob raycast winner when it is nearer than the block's pick hit.
 struct BlockSelection {
     int selectionInBounds;
     int face;
@@ -86,6 +86,12 @@ struct BlockSelection {
     // Y of the exact ray hit inside pos_destroy (0-1): drives stair
     // upside-down placement (upper half of a side face -> top-half stair).
     double hit_y_in_cell;
+    // Distance along ray_dir where the pick ray entered the selected
+    // block's pick shape (the find_block_from_to hit_t). The mob/cart
+    // resolves compare hitbox entries against this — not the cell
+    // boundary, so an entity sitting inside the selected cell (a cart on
+    // its rail) still wins. REACH_DISTANCE when nothing is selected.
+    double block_hit_dist;
     // Second raycast that can hit water — only run while holding a
     // can_float_on_water block, and only used to place it.
     int floatSelectionInBounds;
@@ -101,7 +107,7 @@ struct BlockSelection {
     glm::dvec3 ray_origin;
     glm::dvec3 ray_dir;
     // The mob under the crosshair: the mob raycast winner when its hitbox
-    // entry is nearer than the selected block cell's, else -1. When set,
+    // entry is nearer than block_hit_dist, else -1. When set,
     // selectionInBounds/floatSelectionInBounds are cleared so no block
     // outline (or place/pick) happens through the mob.
     int target_mob;

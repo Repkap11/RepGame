@@ -165,7 +165,10 @@ the next rail cell (same level, one up when the exit end climbs, or one
 down onto a rail ascending back); a solid next cell stops the cart at
 the endpoint and no rail at all derails it — derailed carts run gravity/
 drag through `Collision::move_box` and re-snap onto any rail their
-bottom-centre enters. `raycast` picks carts for clicks; overlapping
+bottom-centre enters. `raycast` picks carts for clicks — the
+block-vs-entity compare in `resolve_target` uses the pick ray's shape
+hit distance (`block_selection.block_hit_dist`), so a cart wins over the
+rail under it even though it sits inside the rail's cell; overlapping
 carts separate and swap along-rail speeds (equal mass).
 
 Left-click a cart: creative removes it (no drop); survival accumulates

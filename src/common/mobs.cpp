@@ -951,21 +951,17 @@ int MobManager::raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double
 }
 
 // Crosshair target resolution: a mob hitbox on the ray wins over the
-// selected block only when its entry distance is nearer than the block
-// cell's own slab entry (or no block is selected).
+// selected block only when its entry distance is nearer than the pick
+// ray's hit on the block's real pick shape (block_dist — not the cell
+// boundary; thin shapes would otherwise shadow an entity in their cell).
 int MobManager::resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist,
-                                int selectionInBounds, const glm::ivec3 &pos_destroy, double *out_dist ) const {
+                                double block_dist, double *out_dist ) const {
     if ( !this->enabled ) {
         return -1;
     }
     double mob_dist = 0.0;
     const int mob = this->raycast( origin, dir, max_dist, &mob_dist );
-    if ( mob < 0 ) {
-        return -1;
-    }
-    double block_dist = 0.0;
-    const bool block_hit = selectionInBounds && RayTraversal::ray_aabb_entry( origin, dir, glm::dvec3( pos_destroy ), glm::dvec3( pos_destroy ) + glm::dvec3( 1.0 ), max_dist, &block_dist );
-    if ( block_hit && block_dist <= mob_dist ) {
+    if ( mob < 0 || mob_dist >= block_dist ) {
         return -1;
     }
     if ( out_dist != nullptr ) {

@@ -292,10 +292,10 @@ class MobManager {
     // mob index or -1; *out_dist gets the entry distance when hit.
     int raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist, double *out_dist ) const;
     // The crosshair's mob target: the ray's mob hit when its entry distance
-    // is nearer than the selected block cell's (or no block is selected),
-    // else -1. -1 as well when mobs are disabled.
-    int resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist,
-                        int selectionInBounds, const glm::ivec3 &pos_destroy, double *out_dist ) const;
+    // is nearer than `block_dist` — the pick ray's hit distance on the
+    // selected block (block_selection.block_hit_dist; pass >= max_dist when
+    // nothing is selected), else -1. -1 as well when mobs are disabled.
+    int resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, double max_dist, double block_dist, double *out_dist ) const;
     // Apply damage + knockback away from attacker_pos; returns true if this
     // hit started the death animation. The hurt/death sfx gain falls off
     // against listener_pos (the local camera — an arrow's impact point is

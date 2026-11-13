@@ -499,7 +499,7 @@ void RepGame::process_mouse_events( ) {
     int hit_mob = -1;
     if ( globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_left == 0 ) {
         hit_mob = globalGameState.world.mobs.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
-                                                           globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
+                                                           globalGameState.block_selection.block_hit_dist, nullptr );
     }
     if ( hit_mob >= 0 ) {
         globalGameState.input.click_delay_left = 30;
@@ -537,7 +537,7 @@ void RepGame::process_mouse_events( ) {
     int hit_cart = -1;
     if ( hit_mob < 0 && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_left == 0 ) {
         hit_cart = globalGameState.world.carts.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
-                                                             globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
+                                                             globalGameState.block_selection.block_hit_dist, nullptr );
         // The cart being ridden can't be hit — it fills the view.
         if ( hit_cart >= 0 && globalGameState.camera.riding_cart != 0 &&
              globalGameState.world.carts.id_at( hit_cart ) == globalGameState.camera.riding_cart ) {
@@ -575,7 +575,7 @@ void RepGame::process_mouse_events( ) {
          !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
         const ItemID held = globalGameState.hotbar.getSelectedItem( );
         const int target = globalGameState.world.mobs.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
-                                                                      globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
+                                                                      globalGameState.block_selection.block_hit_dist, nullptr );
         if ( target >= 0 && globalGameState.world.mobs.shearable( target, held ) ) {
             interact_mob = target;
             interact_action = NET_ACTION_SHEAR;

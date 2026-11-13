@@ -6,6 +6,7 @@
 
 #include "common/harness/run_policy.hpp"
 #include "common/rail.hpp"
+#include "common/utils/ray_traversal.hpp"
 
 int test_minecarts( ) {
     if ( block_definitions == nullptr ) {
@@ -352,9 +353,48 @@ int test_minecarts( ) {
     gs.block_selection.ray_origin = gs.camera.pos;
     gs.block_selection.ray_dir = glm::dvec3( 0.0, -1.0, 0.0 );
     gs.block_selection.selectionInBounds = 0;
+    gs.block_selection.block_hit_dist = REACH_DISTANCE;
     RepGame::resolve_target_mob( gs, gs.camera.pos );
     check_bool( "ride: ridden cart not targetable", gs.block_selection.target_cart < 0 );
     repgame_cart_dismount( gs );
+    carts.test_carts( ).clear( );
+
+    // --- targeting: a cart wins over the rail it sits on --------------------
+    // Regression: the block-vs-entity compare used the selected cell's whole
+    // AABB, and the rail's cell contains the cart — so the rail always won
+    // and right-click placed a second cart instead of mounting. The compare
+    // now uses the pick-shape hit distance (block_hit_dist).
+    carts.spawn( glm::dvec3( 45.5, 11.0 + 1.0 / 16.0, 30.5 ), 0.0f );
+    {
+        // Straight down onto the cart: the pick ray passes through the cart
+        // and hits the rail plate at the bottom of its cell — hit_t is
+        // behind the cart's own hitbox entry, so the cart must win.
+        const glm::dvec3 origin( 45.5, 13.0, 30.5 );
+        const glm::dvec3 dir( 0.0, -1.0, 0.0 );
+        glm::ivec3 hit_cell;
+        int face = -1;
+        double hit_t = 0.0;
+        check_bool( "target: ray through cart reaches its rail",
+                    RayTraversal::find_block_from_to( world, origin, origin + dir * static_cast<double>( REACH_DISTANCE ), hit_cell, &face, 0, &hit_t ) &&
+                        hit_cell == glm::ivec3( 45, 11, 30 ) && hit_t > 1.8 );
+        gs.block_selection.ray_origin = origin;
+        gs.block_selection.ray_dir = dir;
+        gs.block_selection.selectionInBounds = 1;
+        gs.block_selection.pos_destroy = hit_cell;
+        gs.block_selection.block_hit_dist = hit_t;
+        RepGame::resolve_target_mob( gs, origin );
+        check_bool( "target: cart beats the rail under it", gs.block_selection.target_cart == 0 );
+        // A nearer block still wins: a stone above the cart shadows it.
+        world.set_loaded_block( glm::ivec3( 45, 12, 30 ), stone );
+        gs.block_selection.selectionInBounds = 1;
+        gs.block_selection.pos_destroy = glm::ivec3( 45, 12, 30 );
+        gs.block_selection.block_hit_dist = 0.0;
+        RepGame::resolve_target_mob( gs, origin );
+        check_bool( "target: occluding block beats the cart", gs.block_selection.target_cart < 0 );
+        world.set_loaded_block( glm::ivec3( 45, 12, 30 ), BLOCK_STATE_AIR );
+        gs.block_selection.selectionInBounds = 0;
+        gs.block_selection.block_hit_dist = REACH_DISTANCE;
+    }
     carts.test_carts( ).clear( );
 
     // --- capture mode freezes the sim --------------------------------------------------

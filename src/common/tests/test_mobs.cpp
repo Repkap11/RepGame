@@ -294,10 +294,10 @@ int test_mobs( ) {
         // hitbox_w 0.9 -> front face at 10.5 - 0.45 = 10.05 -> dist 1.55
         check_bool( "raycast: hit mob", hit == 0 );
         check_near( "raycast: entry distance", dist, 10.05 - 8.5, 0.01 );
-        // A block cell nearer than the mob takes the click (the slab-entry
-        // comparison process_mouse_events makes): cell x=9 enters at 0.5.
+        // A block hit nearer than the mob takes the click: the stone cell
+        // x=9 is entered at t=0.5, ahead of the mob's 1.55.
         world.set_loaded_block( glm::ivec3( 9, 11, 10 ), stone );
-        check_bool( "nearer block beats the mob", mobs.resolve_target( origin, dir, 6.0, 1, glm::ivec3( 9, 11, 10 ), &dist ) < 0 );
+        check_bool( "nearer block beats the mob", mobs.resolve_target( origin, dir, 6.0, 0.5, &dist ) < 0 );
         world.set_loaded_block( glm::ivec3( 9, 11, 10 ), BLOCK_STATE_AIR );
         // Outside reach the ray misses entirely.
         check_bool( "raycast: miss beyond reach", mobs.raycast( origin, dir, 1.0, &dist ) < 0 );
@@ -318,10 +318,12 @@ int test_mobs( ) {
         gs.block_selection.ray_dir = glm::dvec3( 1.0, 0.0, 0.0 );
 
         // (a) Pig between the camera and a wall: mob wins, selection clears.
+        // The wall's face is entered at 14 - 8.5 = 5.5, behind the pig's 1.55.
         world.set_loaded_block( glm::ivec3( 14, 11, 10 ), stone );
         gs.block_selection.selectionInBounds = 1;
         gs.block_selection.floatSelectionInBounds = 1;
         gs.block_selection.pos_destroy = glm::ivec3( 14, 11, 10 );
+        gs.block_selection.block_hit_dist = 5.5;
         RepGame::resolve_target_mob( gs, origin );
         check_bool( "target mob: pig before wall wins", gs.block_selection.target_mob == 0 );
         check_bool( "target mob: selection cleared", gs.block_selection.selectionInBounds == 0 && gs.block_selection.floatSelectionInBounds == 0 );
@@ -330,6 +332,7 @@ int test_mobs( ) {
         world.set_loaded_block( glm::ivec3( 9, 11, 10 ), stone );
         gs.block_selection.selectionInBounds = 1;
         gs.block_selection.pos_destroy = glm::ivec3( 9, 11, 10 );
+        gs.block_selection.block_hit_dist = 0.5;
         RepGame::resolve_target_mob( gs, origin );
         check_bool( "target mob: nearer block wins", gs.block_selection.target_mob < 0 );
         check_bool( "target mob: selection kept", gs.block_selection.selectionInBounds == 1 );
@@ -344,6 +347,7 @@ int test_mobs( ) {
         gs.block_selection.ray_dir = glm::dvec3( 0.0, -1.0, 0.0 );
         gs.block_selection.selectionInBounds = 1;
         gs.block_selection.pos_destroy = glm::ivec3( 10, 10, 10 );
+        gs.block_selection.block_hit_dist = 2.0;
         RepGame::resolve_target_mob( gs, above );
         check_bool( "target mob: pig on selected block wins", gs.block_selection.target_mob == 0 );
         check_bool( "target mob: ground selection cleared", gs.block_selection.selectionInBounds == 0 );
@@ -352,6 +356,7 @@ int test_mobs( ) {
         mobs.mobs.clear( );
         gs.block_selection.selectionInBounds = 1;
         gs.block_selection.pos_destroy = glm::ivec3( 10, 10, 10 );
+        gs.block_selection.block_hit_dist = 2.0;
         RepGame::resolve_target_mob( gs, above );
         check_bool( "target mob: none without pig", gs.block_selection.target_mob < 0 );
         check_bool( "target mob: selection unchanged", gs.block_selection.selectionInBounds == 1 );
