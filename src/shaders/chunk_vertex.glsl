@@ -350,6 +350,13 @@ void main() {
     } else { // FACE_BACK
         face_normal = vec3(0.0, 0.0, -1.0);
     }
+    // An ascending rail's bottom face is the back of the tilted plate —
+    // light it like the top face it mirrors: full brightness, and sample
+    // the open air above the ramp instead of the support cell beneath it.
+    if((rotation_packed & BLOCK_COORDS_SLOPE) != 0u && faceType == FACE_BOTTOM) {
+        face_light = 1.0f;
+        face_normal = vec3(0.0, 1.0, 0.0);
+    }
     // The flower cross-quads reuse cube face labels that don't match their
     // diagonal planes, and the flat provoking normal can then differ between
     // a quad's two triangles — a visible diagonal lighting seam. Zero the

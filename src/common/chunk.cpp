@@ -1745,14 +1745,16 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
                         blockCoord->face_shift = block_yaw( block, blockState.rotation );
+                        bool rail_ascending = false;
                         if ( block->is_rail ) {
                             // The rail's rotation is its shape, not a yaw:
                             // rail_render_yaw turns the straight/turned
                             // tile onto the track, and ascending cells flag
                             // the vertex shader to raise the uphill end.
                             const RailShape rail_shape = rail_shape_of( blockState );
+                            rail_ascending = rail_is_ascending( rail_shape );
                             blockCoord->face_shift = rail_render_yaw( rail_shape ) |
-                                                     ( rail_is_ascending( rail_shape ) ? BLOCK_COORDS_SLOPE : 0u );
+                                                     ( rail_ascending ? BLOCK_COORDS_SLOPE : 0u );
                         }
                         blockCoord->scale_x = block->scale.x;
                         blockCoord->scale_y = block->scale.y;
@@ -1771,6 +1773,29 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                             blockCoord->face[ i ] = block->textures[ i ];
                         }
                         block_adjust_coord_based_on_state( block, &blockState, blockCoord );
+
+                        // A rail's underside shows wherever the support
+                        // doesn't fully cover the cell floor — through
+                        // glass/slab/stair supports, and a slope's tilted
+                        // back (top-lit in the shader, like MC's two-sided
+                        // slope quad). Give every rail's bottom face the
+                        // (possibly powered) top tile, but cull a flat
+                        // rail's underside over an opaque support: it sits
+                        // coplanar with the support's top face and would
+                        // z-fight — the same cullface test phase 1 uses.
+                        if ( block->is_rail ) {
+                            blockCoord->face[ FACE_BOTTOM ] = blockCoord->face[ FACE_TOP ];
+                            if ( !rail_ascending ) {
+                                const GPUBlockDef *mesh_defs = mesh_def_table( );
+                                const BlockCell below_cell = cells[ get_index_from_coords( x, y - 1, z ) ];
+                                const int below_rot = block_cell_rotation( below_cell );
+                                const int below_face = OPPOSITE_FACE[ mesh_rotated_face( FACE_BOTTOM, below_rot ) ];
+                                if ( !mesh_face_seethrough( mesh_defs[ block_cell_id( below_cell ) ], block_cell_powered( below_cell ),
+                                                            below_rot, below_face ) ) {
+                                    blockCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                                }
+                            }
+                        }
 
                         if ( block_is_fluid( block ) ) {
                             // Sloped-fluid metadata: yaw 0 with the fluid

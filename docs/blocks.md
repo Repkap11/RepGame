@@ -697,4 +697,11 @@ Placement pre-resolves the shape from `camera.angle_H`
 `face_shift = rail_render_yaw(shape)` — plus `BLOCK_COORDS_SLOPE` for
 ascending shapes, which makes `chunk_vertex.glsl` raise the uphill end
 of the plate (the rotation nibble doubles as the uphill direction:
-0=-z, 1=+x, 2=+z, 3=-x).
+0=-z, 1=+x, 2=+z, 3=-x). Every rail copies its top tile onto the
+bottom face so the plate's underside isn't air: a flat rail over an
+opaque support keeps the underside culled (it would z-fight the
+support's coplanar top face), but over glass or another non-full
+support it shows like any block's bottom face. An ascending rail's
+underside is the tilted plate's back — always drawn, and lit like the
+top face in `chunk_vertex.glsl` (`BLOCK_COORDS_SLOPE` + FACE_BOTTOM),
+matching MC's two-sided slope quad.
