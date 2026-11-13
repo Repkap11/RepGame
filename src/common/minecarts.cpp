@@ -24,7 +24,7 @@
 // UPS_RATE*UPS_RATE.
 static constexpr double UPS = UPS_RATE;
 static constexpr double CART_MAX_SPEED = 8.0 / UPS;                           // blocks/tick
-static constexpr double CART_SLOPE_ACCEL = 3.125 / ( UPS * UPS );             // downhill gravity along the path
+static constexpr double CART_SLOPE_ACCEL = 5.0 / ( UPS * UPS );               // downhill gravity along the path
 static constexpr double CART_GOLDEN_BOOST = 24.0 / ( UPS * UPS );             // powered golden rail accel
 static constexpr double CART_LAUNCH_KICK = 0.4 / UPS;                         // kick off a blocked powered rail end
 static const double CART_GOLDEN_BRAKE = pow( 0.5, 20.0 / UPS );               // unpowered golden per-tick
