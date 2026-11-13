@@ -1,6 +1,8 @@
 #pragma once
 
 
+#include <string>
+#include <unordered_map>
 #include <glm/glm.hpp>
 #include "binary_blobs.hpp"
 #include "common/renderer/texture.hpp"
@@ -19,6 +21,10 @@ typedef struct {
 class Shader {
 
     unsigned int m_RendererId;
+    // name -> glGetUniformLocation result, -1 included so each missing
+    // uniform warns once per program; cleared whenever the program changes.
+    std::unordered_map<std::string, int> m_UniformLocations;
+    std::string m_LookupKey; // reused lookup buffer: no per-call allocation
 
   public:
     int get_uniform_location( const char *name );

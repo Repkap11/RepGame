@@ -154,6 +154,7 @@ unsigned int shaders_compile( const ShaderSourceData *vertex_path, const ShaderS
 
 void Shader::init( const ShaderSourceData *vertex, const ShaderSourceData *fragment ) {
     this->m_RendererId = shaders_compile( vertex, fragment );
+    this->m_UniformLocations.clear( );
 }
 
 void Shader::bind( ) const {
@@ -167,19 +168,20 @@ void Shader::unbind( ) const {
 void Shader::destroy( ) {
     glDeleteProgram( this->m_RendererId );
     this->m_RendererId = 0;
+    this->m_UniformLocations.clear( );
 }
 
-int printedUniform = 0;
 int Shader::get_uniform_location( const char *name ) {
-    // TODO use cache
-    int result = glGetUniformLocation( this->m_RendererId, name );
-    if ( result == -1 ) {
-        if ( !printedUniform ) {
-            printedUniform = 1;
-            pr_debug( "Shader uniform not found. Name:%s", name );
-            // exit(1);
-        }
+    this->m_LookupKey.assign( name );
+    const auto it = this->m_UniformLocations.find( this->m_LookupKey );
+    if ( it != this->m_UniformLocations.end( ) ) {
+        return it->second;
     }
+    const int result = glGetUniformLocation( this->m_RendererId, name );
+    if ( result == -1 ) {
+        pr_debug( "Shader uniform not found (program %u, unused uniforms are optimized out). Name:%s", this->m_RendererId, name );
+    }
+    this->m_UniformLocations.emplace( this->m_LookupKey, result );
     return result;
 }
 

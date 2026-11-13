@@ -2,7 +2,6 @@
 uniform mat4 u_MVP;
 uniform float u_ReflectionHeight;
 uniform vec3 u_Origin;
-uniform float u_Time;
 
 #define FACE_TOP 0u
 #define FACE_BOTTOM 1u

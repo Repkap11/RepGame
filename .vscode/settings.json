@@ -109,5 +109,5 @@
         "__string": "cpp"
     },
     "git.ignoreLimitWarning": true,
-    "cmake.sourceDirectory": "/home/paul/Software/Rep/RepGame/entt_build"
+    "cmake.sourceDirectory": "/home/prepka/Software/Rep/RepGame"
 }

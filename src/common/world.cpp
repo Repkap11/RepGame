@@ -423,7 +423,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->heart_shader.set_uniform3f( "u_CamRight", cam_right.x, cam_right.y, cam_right.z );
     this->heart_shader.set_uniform3f( "u_CamUp", cam_up.x, cam_up.y, cam_up.z );
 
-    // Primed TNT also shares object_fragment.glsl — same fog/water set.
+    // Primed TNT also shares object_fragment.glsl — same fog/water set, no
+    // u_Time (the fuse blink is a per-instance CPU attribute).
     this->primed_tnt_shader.set_uniform1f( "u_FogNear", fog_near );
     this->primed_tnt_shader.set_uniform1f( "u_FogFar", fog_far );
     this->primed_tnt_shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
@@ -434,7 +435,6 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->primed_tnt_shader.set_uniform1f( "u_Daylight", daylight );
     this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", min_ambient );
-    this->primed_tnt_shader.set_uniform1f( "u_Time", time_s );
 
     // Block objects (non-full-cube items + falling blocks) share
     // object_fragment.glsl too — same fog/water set, no u_Time.
