@@ -81,7 +81,7 @@ linux-deploy: $(LINUX_OUT)/release/$(TARGET)
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}
 
 linux-run: linux
-	./$(LINUX_OUT)/release/$(TARGET) $(WORLD)
+	./$(LINUX_OUT)/release/$(TARGET) $(WORLD) www.repkap11.com
 
 linux-run2: linux
 	./$(LINUX_OUT)/release/$(TARGET) $(WORLD_DEBUG) www.repkap11.com

@@ -887,11 +887,18 @@ const Minecarts::Cart *Minecarts::find_by_net_id( const NetEntityId net_id ) con
 static constexpr double CART_SEAT_HIP_HEIGHT = 0.4;
 // The player model's leg bones pivot at the hip, 12px above the feet.
 static constexpr double PLAYER_LEG_PIVOT_HEIGHT = 12.0 / 16.0;
+// The folded thighs reach ~12px ahead of the hip, past the front wall's
+// inner face — pin the avatar this far behind the cart's centre so the
+// feet stay inside the body.
+static constexpr double CART_SEAT_BACK = 0.25;
 
 // mob.target is the avatar's FEET, so the seat pins them a leg-length
-// below the hip height.
+// below the hip height and CART_SEAT_BACK behind centre (the cart's
+// forward is (sin yaw, 0, -cos yaw)).
 glm::dvec3 Minecarts::seat_pos( const Cart &c ) {
-    return c.pos + glm::dvec3( 0.0, CART_SEAT_HIP_HEIGHT - PLAYER_LEG_PIVOT_HEIGHT, 0.0 );
+    const double ry = glm::radians( static_cast<double>( c.yaw ) );
+    const glm::dvec3 fwd( sin( ry ), 0.0, -cos( ry ) );
+    return c.pos - fwd * CART_SEAT_BACK + glm::dvec3( 0.0, CART_SEAT_HIP_HEIGHT - PLAYER_LEG_PIVOT_HEIGHT, 0.0 );
 }
 
 // The rider session (record `count`) overrides chunk ownership: the rider
