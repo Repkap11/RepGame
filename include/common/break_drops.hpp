@@ -16,9 +16,11 @@ struct RepGameState;
 // stack as an item entity at `pos` with a small random hop. Callers gate on
 // game mode — support-loss breaks drop in survival and nothing in creative.
 //
-// Paired halves (doors, tall plants) drop only while the partner cell still
-// holds the partner: whichever kill lands first produces the one item —
-// block_item_id maps either half to the lower — and the second sees an
-// empty partner and drops nothing. force_item skips the roll and drops that
-// single item (shears harvesting leaves); LAST_BLOCK_ID means "roll".
-void break_drops( RepGameState &state, const glm::ivec3 &pos, BlockID broken_id, ItemID force_item = LAST_BLOCK_ID );
+// Paired halves (doors, tall plants, beds) drop only while the partner cell
+// still holds the partner: whichever kill lands first produces the one
+// item — block_item_id maps either half to the lower — and the second sees
+// an empty partner and drops nothing. The bed pair is horizontal, so the
+// full broken_state comes in for the yaw. force_item skips the roll and
+// drops that single item (shears harvesting leaves); LAST_BLOCK_ID means
+// "roll".
+void break_drops( RepGameState &state, const glm::ivec3 &pos, const BlockState &broken_state, ItemID force_item = LAST_BLOCK_ID );

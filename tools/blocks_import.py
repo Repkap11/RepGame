@@ -79,6 +79,7 @@ BOOL_FIELDS = {
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "falls_with_gravity", "spine_shell",
     "is_stairs", "is_standing_sign", "is_hanging_sign", "climbable", "is_cake",
+    "is_bed", "is_bed_head",
     "is_door", "is_door_upper", "door_redstone_only",
     "is_tall_plant_upper",
     "forms_sources",
@@ -88,7 +89,7 @@ FLOAT_FIELDS = {"hardness", "fall_mass"}
 VEC3_SHORT = {"scale", "offset", "tex_offset"}
 VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
-BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner",
+BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner", "bed_partner",
                     "persistent_variant", "natural_variant", "crop_next",
                     "wall_variant", "standing_variant"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
@@ -197,7 +198,7 @@ def item_tool(it):
 DROP_KEYS = {"item", "min", "max", "chance"}
 RECIPE_KEYS = {"pattern", "key", "ingredients", "result", "count"}
 
-TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract"}
+TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract", "flip"}
 
 SHAPES_JSON = os.path.join(DATA_DIR, "shapes.json")
 
@@ -608,6 +609,23 @@ def load_blocks():
             fail("%s: tall_plant_partner %s does not point back" % (b["_file"], partner))
         if bool(b.get("is_tall_plant_upper")) == bool(pb.get("is_tall_plant_upper")):
             fail("%s: tall-plant pair %s/%s needs exactly one is_tall_plant_upper" % (b["_file"], b["name"], partner))
+    # bed_partner links a bed's foot and head halves the same way: the
+    # named block must exist, point back, be a bed, and carry the opposite
+    # is_bed_head flag.
+    for bid, b in blocks.items():
+        partner = b.get("bed_partner")
+        if partner is None:
+            continue
+        pbid = names.get(partner)
+        if pbid is None:
+            fail("%s: bed_partner %s not found" % (b["_file"], partner))
+        pb = blocks[pbid]
+        if pb.get("bed_partner") != b["name"]:
+            fail("%s: bed_partner %s does not point back" % (b["_file"], partner))
+        if not (b.get("is_bed") and pb.get("is_bed")):
+            fail("%s: bed_partner %s is not a bed" % (b["_file"], partner))
+        if bool(b.get("is_bed_head")) == bool(pb.get("is_bed_head")):
+            fail("%s: bed pair %s/%s needs exactly one is_bed_head" % (b["_file"], b["name"], partner))
     # persistent_variant / natural_variant link a natural leaf block to its
     # player-placed twin: each must point back at the other, and the six face
     # textures must match so the pair looks identical in the world.
@@ -1149,6 +1167,22 @@ def resolve_image(name, meta):
                 to = [TILE - to[0] - sz[0], to[1]]
             out.paste(piece, tuple(to))
         img = out
+    flip = meta.get("flip")
+    if flip is not None:
+        # Whole-tile transform for faces whose baked quad winding reads a
+        # directional tile backwards or on the wrong axis — e.g. the bed
+        # side profile on the left flank (its u runs opposite the right
+        # face's) or a top tile authored with its length axis on u when the
+        # top face samples u along x. "x"/"y" mirror, "transpose" swaps the
+        # axes; the names describe the sampled result, which coincides with
+        # the same-named PIL op here because the GL upload's X mirror
+        # cancels itself out for x, and y/transpose are unaffected by it.
+        ops = {"x": Image.Transpose.FLIP_LEFT_RIGHT,
+               "y": Image.Transpose.FLIP_TOP_BOTTOM,
+               "transpose": Image.Transpose.TRANSPOSE}
+        if flip not in ops:
+            fail("texture %r: flip must be x, y or transpose" % name)
+        img = img.transpose(ops[flip])
     return img
 
 

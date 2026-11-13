@@ -92,6 +92,13 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   interlock instead of overlapping).
 - `random_rotate` — tile participates in per-block random rotation. Used by
   dirt, grass top, snow and all leaf tiles.
+- `flip` — whole-tile transform applied last: `"x"` mirrors left-right,
+  `"y"` flips top-bottom, `"transpose"` swaps the axes. Use when a face's
+  baked quad winding samples a directional tile backwards or on the wrong
+  axis — the left flank's u runs opposite the right's (`vd_data_solid`),
+  so the bed's side profile needs a `flip:"x"` variant on `left`, and its
+  `bed_head_top` needs `"transpose"` to move the pillow band from the x
+  edge to the head edge.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
 
 `make bedrock_samples_build` clones Mojang's bedrock-samples (pinned
@@ -131,7 +138,7 @@ block rather than hand-tuned: opaque cubes use the defaults; binary-cutout
 tiles copy `GLASS`/leaves (see-through, `should_draw_*` off);
 partial-alpha tiles copy a translucent template like `GLASS_LIGHT_BLUE`;
 cross-quad plants copy the `Flowers` render template. Unrenderable shapes
-(walls, banners, beds, rails, panes...) are placeholder full cubes
+(walls, banners, rails, panes...) are placeholder full cubes
 until a render class exists for them — see `data/shapes.json` below for the
 workaround. Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
@@ -489,6 +496,40 @@ the default-true flag made even a 2px sliver darken a whole cell column.
 Old-world caveat: cakes placed while
 `rotate_on_placement` was set may have yaw 1-3 saved in rotation — they
 render as that many bites taken once disturbed.
+
+`BED` is a two-cell block like a door turned on its side: the foot half
+(the item, `data/blocks/bed.json`) and the head half (`bed_head.json`)
+link through `bed_partner`, with exactly one `is_bed_head` — the same
+paired-ref convention as `door_partner`. Placement writes both cells:
+the foot lands on the clicked cell and the head one block in the
+placer's facing direction (the shared 4-yaw `rotate_on_placement`
+rotation lives in both halves' `BlockState::rotation`);
+`block_bed_partner_dir` turns a half's yaw into its partner offset.
+`bed_foot_can_place` checks the head cell is replaceable plus both
+cells' floor support (each half also carries
+`needs_place_on_any_solid.top`), `block_can_survive_at` requires the
+partner half — so breaking either pops the other through the
+neighbour-update kill path — and `break_drops` yields the one `BED`
+item whichever half dies first (`block_item_id` maps the head back to
+the foot). Both halves are `scale [16,9,16]`, `is_seethrough`,
+`casts_shadow: false`, `piston_immovable` (a push would orphan a cell),
+and `is_bed` — right-clicking either runs `repgame_try_sleep`
+(docs/player.md). The head is `is_pickable: false` + `creative: false`:
+ray-targetable but unlisted, like a door upper (`is_bed` is on the pick
+whitelist in `ray_traversal.cpp`, same as `is_door`). Face tiles are the
+Bedrock pack's real two-block bed set (`bed_feet_end`, `bed_head_end`,
+`planks_oak` bottoms); the two touching inner faces use the fully
+transparent `air` tile so the coplanar quads never z-fight. Three faces
+sample their tiles through `textures.json` `flip` variants because the
+baked quad winding isn't symmetric: `left` gets `*_side_mirror`
+(`flip:"x"` — the left quad's u runs opposite the right's, so the side
+profile would show the pillow at the foot end), and the tops get
+`bed_head_top_rot` (`"transpose"` — moves the pillow band onto the head
+edge) and `bed_feet_top_flip` (`"y"` — parks the frame lip at the foot
+edge). The flat item icon is Bedrock's `bed_red` sprite. Old
+single-block BED cells read back as foot halves — they keep working
+until a neighbour edit asks them to re-survive, at which point the
+missing head pops them.
 
 `REPGAME_BLOCK_WORLD=1` ("block world") is a debug mode for eyeballing
 every block: `make linux-run-blocks` runs it. Normal terrain, structures,

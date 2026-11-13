@@ -184,6 +184,8 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.peaceful = saved_data.peaceful;
         globalGameState.survival_inventory.applySavedInventory( saved_data.survival_inventory );
         globalGameState.world_time = saved_data.world_time;
+        globalGameState.spawn_point_set = saved_data.has_spawn;
+        globalGameState.spawn_point = glm::ivec3( saved_data.spawn_x, saved_data.spawn_y, saved_data.spawn_z );
         // Saved render distance wins over the default but not over an
         // explicit REPGAME_RENDER_DISTANCE. Old saves lack the field (0)
         // and corrupt values below 1 fall back to the default; oversized
@@ -349,6 +351,10 @@ void RepGame::save_player_data( ) {
     saved_data.render_distance = globalGameState.input.render_distance;
     saved_data.min_ambient = imgui_overlay_get_imgui_debug_vars( ).min_ambient;
     saved_data.health = globalGameState.vitals.health;
+    saved_data.has_spawn = globalGameState.spawn_point_set;
+    saved_data.spawn_x = globalGameState.spawn_point.x;
+    saved_data.spawn_y = globalGameState.spawn_point.y;
+    saved_data.spawn_z = globalGameState.spawn_point.z;
 
     globalGameState.map_storage.write_player_data( saved_data );
 }

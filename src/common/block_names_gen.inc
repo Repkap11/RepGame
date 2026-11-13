@@ -1506,7 +1506,7 @@
     "BEETROOT_0",
     "BEETROOT_1",
     "BEETROOT_2",
-    nullptr,
+    "BED_HEAD",
     nullptr,
     nullptr,
     nullptr,

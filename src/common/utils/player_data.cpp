@@ -203,6 +203,10 @@ std::string player_data_serialize( const PlayerData &data ) {
     out += line;
     snprintf( line, sizeof( line ), "health %.9g\n", data.health );
     out += line;
+    if ( data.has_spawn ) {
+        snprintf( line, sizeof( line ), "spawn %d %d %d\n", data.spawn_x, data.spawn_y, data.spawn_z );
+        out += line;
+    }
     snprintf( line, sizeof( line ), "hotbar_selected %d\n", data.selected_hotbar_slot );
     out += line;
     write_slots( out, "hotbar", data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
@@ -362,6 +366,14 @@ static bool player_data_parse_text( const char *buf, size_t len, PlayerData &out
             double hp = 0.0;
             if ( parse_double( v, &v, hp ) ) {
                 out.health = static_cast<float>( hp );
+            }
+        } else if ( key_len == 5 && memcmp( s, "spawn", 5 ) == 0 ) {
+            long long sx = 0, sy = 0, sz = 0;
+            if ( parse_int( v, &v, sx ) && parse_int( v, &v, sy ) && parse_int( v, &v, sz ) ) {
+                out.has_spawn = true;
+                out.spawn_x = static_cast<int>( sx );
+                out.spawn_y = static_cast<int>( sy );
+                out.spawn_z = static_cast<int>( sz );
             }
         } else if ( key_len == 15 && memcmp( s, "hotbar_selected", 15 ) == 0 ) {
             if ( parse_int( v, &v, iv ) ) {

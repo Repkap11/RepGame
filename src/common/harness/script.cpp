@@ -347,6 +347,12 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         results::event( state.tick_number, "respawn_result", "\"health\":%.3f", state.vitals.health );
         return false;
     }
+    if ( strcmp( cmd, "sleep" ) == 0 && argc == 4 ) {
+        const glm::ivec3 pos( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) );
+        const bool slept = repgame_try_sleep( state, pos );
+        results::event( state.tick_number, "sleep_result", "\"slept\":%d,\"time\":%lld", slept ? 1 : 0, static_cast<long long>( state.world_time ) );
+        return false;
+    }
     if ( strcmp( cmd, "inventory" ) == 0 && argc == 2 ) {
         state.input.inventory_open = atoi( argv[ 1 ].c_str( ) ) != 0;
         return false;

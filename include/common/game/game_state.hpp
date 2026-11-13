@@ -62,6 +62,13 @@ struct RepGameState {
     // true, RepGame::tick waits for the column to load and snaps the player
     // onto the topmost colliding block.
     bool spawn_pending;
+    // Respawn point set by right-clicking a bed (repgame_try_sleep —
+    // docs/player.md). While spawn_point_set, spawn_pending/resolve_pending_spawn
+    // target this column instead of the (0,0) world spawn; a missing or
+    // obstructed bed clears it back to the world spawn. Persisted in
+    // player.dat.
+    glm::ivec3 spawn_point;
+    bool spawn_point_set;
     double frame_rate;
     // Pressure plates with a live PressurePlateEvent check chain. Positions
     // are added when the player steps on a plate and removed by the event

@@ -321,6 +321,9 @@ class MobManager {
     bool is_baby_at( int index ) const;
     // Wool sheared off (also true for mirrors via NET_MOB_FLAG_SHEARED).
     bool is_sheared_at( int index ) const;
+    // A live hostile mob (MOB_AI_HOSTILE_*, mirrors included) within `radius`
+    // of `pos` — the bed-sleep "monsters nearby" check (docs/player.md).
+    bool hostiles_within( const glm::dvec3 &pos, double radius ) const;
     const MobTypeDef &def_at( int index ) const { return mob_types[ this->mobs[ index ].type ]; }
     // The mob's feet position (for dropping items where it died).
     glm::dvec3 pos_at( int index ) const { return this->mobs[ index ].pos; }

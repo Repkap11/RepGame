@@ -106,6 +106,22 @@
   "beacon": {
     "source": "textures/blocks/beacon"
   },
+  "bed_feet_side_mirror": {
+    "source": "textures/blocks/bed_feet_side",
+    "flip": "x"
+  },
+  "bed_feet_top_flip": {
+    "source": "textures/blocks/bed_feet_top",
+    "flip": "y"
+  },
+  "bed_head_side_mirror": {
+    "source": "textures/blocks/bed_head_side",
+    "flip": "x"
+  },
+  "bed_head_top_rot": {
+    "source": "textures/blocks/bed_head_top",
+    "flip": "transpose"
+  },
   "bedrock": {
     "source": "textures/blocks/bedrock"
   },

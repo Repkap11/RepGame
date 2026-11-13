@@ -7,7 +7,8 @@
 #include "common/block.hpp"
 #include "common/world.hpp"
 
-void break_drops( RepGameState &state, const glm::ivec3 &pos, const BlockID broken_id, const ItemID force_item ) {
+void break_drops( RepGameState &state, const glm::ivec3 &pos, const BlockState &broken_state, const ItemID force_item ) {
+    const BlockID broken_id = broken_state.id;
     if ( broken_id == AIR || broken_id == LAST_BLOCK_ID ) {
         return;
     }
@@ -20,6 +21,14 @@ void break_drops( RepGameState &state, const glm::ivec3 &pos, const BlockID brok
         const BlockID partner = broken->is_door ? broken->door_partner : broken->tall_plant_partner;
         const glm::ivec3 partner_pos = pos + ( upper ? glm::ivec3( 0, -1, 0 ) : glm::ivec3( 0, 1, 0 ) );
         if ( state.world.get_loaded_block( partner_pos ).id != partner ) {
+            return;
+        }
+    }
+    if ( broken->bed_partner != LAST_BLOCK_ID ) {
+        // Same one-drop rule for the horizontal bed pair — the partner
+        // direction comes off the broken half's yaw.
+        const glm::ivec3 partner_pos = pos + block_bed_partner_dir( broken, broken_state.rotation );
+        if ( state.world.get_loaded_block( partner_pos ).id != broken->bed_partner ) {
             return;
         }
     }

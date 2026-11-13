@@ -218,6 +218,20 @@ void repgame_tick_vitals( RepGameState &state );
 // closed, player back on the world-spawn column — inventory kept.
 void repgame_respawn( RepGameState &state );
 
+// Right-clicking a bed: records it as the respawn point, and in the night
+// half of the day sleeps the world clock to the next dawn (refused while
+// hostiles are near — the spawn point is set regardless). True when the
+// clock advanced. A free function so rep_tests can drive it.
+bool repgame_try_sleep( RepGameState &state, const glm::ivec3 &bed_pos );
+
+// The body of RepGame::resolve_pending_spawn: while spawn_pending, wait
+// for the spawn column (the recorded bed when spawn_point_set, else (0,0))
+// to report generated data, then snap the player onto it — the bed top,
+// or the column's topmost colliding block. A missing/obstructed bed clears
+// the point back to the world spawn. A free function so rep_tests can
+// drive it.
+void repgame_resolve_pending_spawn( RepGameState &state );
+
 // Sign editor (src/common/game/sign_edit.cpp): modal four-line text box
 // opened by right-clicking a standing/wall sign. Free functions
 // so rep_tests and the harness can drive them.

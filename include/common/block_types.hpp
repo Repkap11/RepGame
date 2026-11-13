@@ -134,6 +134,16 @@ typedef struct {
     // cut face draws cake_inner. The bite past CAKE_MAX_BITES removes the
     // block.
     bool is_cake;
+    // Right-click sets the player's respawn point and, at night, sleeps to
+    // dawn (repgame_try_sleep — docs/player.md). Beds are two-cell blocks
+    // like doors but horizontal: the foot half (the item) links to the head
+    // half through bed_partner and the head cell sits one block in the
+    // placer's facing direction — both halves store the yaw in rotation
+    // bits 0-1 and is_bed_head marks the head. Breaking either half pops
+    // the other through the neighbour-update survive check.
+    bool is_bed;
+    bool is_bed_head;
+    BlockID bed_partner;
     // Whether the block is a full opaque cube for redstone purposes: solid
     // blocks can hold power (strong or weak), and dust can connect up over
     // them. Glass, leaves, slabs, and other transparent or non-full blocks —

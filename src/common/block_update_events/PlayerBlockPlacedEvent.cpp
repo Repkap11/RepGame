@@ -107,6 +107,24 @@ static bool tall_plant_lower_can_place( World &world, const glm::ivec3 &pos, con
            block_supports_present( world, pos, lower_state );
 }
 
+// Beds place as a foot+head pair like tall plants, but horizontally: the
+// head cell sits one block in the placer's facing direction (the foot
+// state's yaw). Both cells need their floor support and the head cell must
+// be replaceable — the partner isn't written yet, so the generic survive
+// check can't apply to either half.
+static bool bed_foot_can_place( World &world, const glm::ivec3 &pos, const BlockState &foot_state ) {
+    const Block *foot = block_definition_get_definition( foot_state.id );
+    const glm::ivec3 head_pos = pos + block_bed_partner_dir( foot, foot_state.rotation );
+    const BlockState head_current = world.get_loaded_block( head_pos );
+    if ( head_current.id == LAST_BLOCK_ID || !block_definition_get_definition( head_current.id )->can_be_placed_in ) {
+        return false;
+    }
+    BlockState head_state = foot_state;
+    head_state.id = foot->bed_partner;
+    head_state.display_id = foot->bed_partner;
+    return block_supports_present( world, pos, foot_state ) && block_supports_present( world, head_pos, head_state );
+}
+
 bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockState &blockState ) {
     const BlockState current_block_state = world.get_loaded_block( pos );
     if ( current_block_state.id == LAST_BLOCK_ID ) {
@@ -125,6 +143,9 @@ bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockSta
     }
     if ( block_is_tall_plant( new_block ) && !new_block->is_tall_plant_upper ) {
         return tall_plant_lower_can_place( world, pos, blockState );
+    }
+    if ( new_block->bed_partner != LAST_BLOCK_ID && !new_block->is_bed_head ) {
+        return bed_foot_can_place( world, pos, blockState );
     }
     return block_can_survive_at( world, pos, blockState );
 }
@@ -232,6 +253,29 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, upper_pos );
         return;
     }
+    // Beds place as a foot+head pair, same shape as the tall-plant branch
+    // but horizontal: the head cell sits one block in the facing direction
+    // and shares the foot's yaw; a lone head fails the survive check.
+    if ( !this->state_update && this->blockState.id != AIR && new_block->bed_partner != LAST_BLOCK_ID && !new_block->is_bed_head ) {
+        World &world = repGameState.world;
+        const glm::ivec3 head_pos = this->block_pos + block_bed_partner_dir( new_block, this->blockState.rotation );
+        const BlockState head_current = world.get_loaded_block( head_pos );
+        if ( !bed_foot_can_place( world, this->block_pos, this->blockState ) ) {
+            return;
+        }
+        BlockState head_state = this->blockState;
+        head_state.id = new_block->bed_partner;
+        head_state.display_id = new_block->bed_partner;
+        world.set_loaded_block( this->block_pos, this->blockState );
+        repGameState.multiplayer.set_block( this->block_pos, this->blockState );
+        repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
+        world.set_loaded_block( head_pos, head_state );
+        repGameState.multiplayer.set_block( head_pos, head_state );
+        repGameState.world.spawn_block_debris( head_pos, head_current, head_state.id );
+        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, this->block_pos );
+        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, head_pos );
+        return;
+    }
     // Don't place a block that can't survive here (e.g. dust above dust, a
     // torch on a missing attachment): it would sit for a tick and then pop
     // off, spawning break debris for a block that was never really placed.
@@ -273,7 +317,7 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
                              !current_block->waterloggable && !current_block_state.waterlogged;
     if ( drops_ok && current_block_state.id != AIR && current_block_state.id != LAST_BLOCK_ID &&
          ( this->blockState.id == AIR || fluid_broke ) ) {
-        break_drops( repGameState, this->block_pos, current_block_state.id );
+        break_drops( repGameState, this->block_pos, current_block_state );
     }
     if ( debris_spawn ) {
         repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );

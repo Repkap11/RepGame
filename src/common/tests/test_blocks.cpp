@@ -757,6 +757,12 @@ int test_cake( ) {
     // sliver still casts a whole-cell shadow on the floor.
     check_bool( "def: CAKE casts no shadow", !cake->casts_shadow );
     check_bool( "def: candles are not edible", !block_definition_get_definition( BLACK_CANDLE )->is_cake );
+    check_bool( "def: BED is_bed, dirt is not", block_definition_get_definition( BED )->is_bed && !block_definition_get_definition( DIRT )->is_bed );
+    const Block *bed_foot = block_definition_get_definition( BED );
+    const Block *bed_head = block_definition_get_definition( BED_HEAD );
+    check_bool( "def: BED pairs to BED_HEAD", bed_foot->bed_partner == BED_HEAD && !bed_foot->is_bed_head );
+    check_bool( "def: BED_HEAD pairs back", bed_head->is_bed && bed_head->is_bed_head && bed_head->bed_partner == BED );
+    check_bool( "def: BED_HEAD hidden, foot listed", !bed_head->is_pickable );
     check_bool( "def: bites fit the rotation field", CAKE_MAX_BITES <= 7 );
     check_bool( "def: bite count is never a yaw", block_yaw( cake, CAKE_MAX_BITES ) == 0 && block_yaw( cake, 4 ) == 0 );
 
@@ -1559,6 +1565,36 @@ int test_support_drops( ) {
     // then finds no partner (no drop).
     door_case( "floor break", glm::ivec3( 18, 21, 20 ), glm::ivec3( 18, 20, 20 ), false );
 
+    // --- Bed, same one-item rule: the pair lies horizontally (foot at
+    // base, head at base -z for yaw 0). Whichever half dies first yields
+    // the BED item, the partnerless pop drops nothing.
+    const BlockState bed_foot = { BED, 0, 0, BED, 0 };
+    const BlockState bed_head = { BED_HEAD, 0, 0, BED_HEAD, 0 };
+    const glm::ivec3 head_off( 0, 0, -1 );
+    auto bed_case = [ & ]( const char *name, const glm::ivec3 &base, const glm::ivec3 &kill_pos, const bool kill_is_bed ) {
+        world.set_loaded_block( base + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( base + head_off + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( base, bed_foot );
+        world.set_loaded_block( base + head_off, bed_head );
+        const int had = test_count_items( world, BED );
+        if ( kill_is_bed ) {
+            gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, kill_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival );
+        } else {
+            place( kill_pos, BLOCK_STATE_AIR );
+        }
+        run( 20 );
+        char label[ 96 ];
+        snprintf( label, sizeof( label ), "support: %s drops exactly one bed item", name );
+        check_bool( label, test_count_items( world, BED ) - had == 1 );
+        snprintf( label, sizeof( label ), "support: %s foot cleared", name );
+        failures += check_id( world, label, base, AIR );
+        snprintf( label, sizeof( label ), "support: %s head cleared", name );
+        failures += check_id( world, label, base + head_off, AIR );
+    };
+    bed_case( "foot break", glm::ivec3( 10, 21, 30 ), glm::ivec3( 10, 21, 30 ), true );
+    bed_case( "head break", glm::ivec3( 14, 21, 30 ), glm::ivec3( 14, 21, 29 ), true );
+    bed_case( "floor break", glm::ivec3( 18, 21, 30 ), glm::ivec3( 18, 20, 30 ), false );
+
     // --- Signs: each variant rides one support face through
     // needs_place_on_any_solid and pops when that support is removed. ---
     const Block *standing_sign_def = block_definition_get_definition( STANDING_SIGN );
@@ -1818,7 +1854,7 @@ int test_shears_bonemeal( ) {
     // item (block_item_id maps both variants to the natural one).
     world.set_loaded_block( glm::ivec3( 10, 11, 10 ), { OAK_LEAVES_PERSISTENT, 0, 0, OAK_LEAVES_PERSISTENT, 0 } );
     const int had_leaves = test_count_items( world, OAK_LEAVES );
-    break_drops( gs, glm::ivec3( 10, 11, 10 ), OAK_LEAVES_PERSISTENT, block_item_id( OAK_LEAVES_PERSISTENT ) );
+    break_drops( gs, glm::ivec3( 10, 11, 10 ), BlockState{ OAK_LEAVES_PERSISTENT, 0, 0, OAK_LEAVES_PERSISTENT, 0 }, block_item_id( OAK_LEAVES_PERSISTENT ) );
     check_bool( "shears: leaf item dropped", test_count_items( world, OAK_LEAVES ) - had_leaves == 1 );
 
     // Bone meal: grows the sapling immediately and consumes one.

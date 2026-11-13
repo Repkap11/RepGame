@@ -62,6 +62,7 @@ Artifacts land in `/tmp/repgame/mptest_<scenario>_*` and contain `server.log` pl
 | `damage <hp>` | `player_damage` on the local player; emits `damage_result {applied,health,dead}` (i-frames can refuse — retry after >0.5s) |
 | `eat` | right-click eat of the held food; emits `eat_result {applied,health}` |
 | `respawn` | death-screen Respawn; emits `respawn_result {health}` |
+| `sleep x y z` | `repgame_try_sleep` on the bed cell; emits `sleep_result {slept,time}` |
 | `probe x y z` | emit a `probe` event with the block at that cell |
 | `role x y z` | emit a `role` event with the client's role for that chunk |
 | `copen kind x y z` | subscribe to the container (CONTAINER_OPEN) |
@@ -84,7 +85,7 @@ Two line types:
   immediately. Event names: `welcome`, `ready`, `view_sent`, `cmd_error`,
   `explosion_received`, `pickup_result`, `player_hit_received`,
   `entity_transfer`, `probe`, `role`, `cprobe`, `damage_result`,
-  `eat_result`, `respawn_result`, `quit`.
+  `eat_result`, `respawn_result`, `sleep_result`, `quit`.
 - `{"type":"state",...}` — every `REPGAME_MP_DUMP_EVERY` ticks:
   - top level: `tick`, `session` (string), `connected` (0/1),
     `world_time`, `pos` (camera, `[x,y,z]` floats), `health` (half-hearts),

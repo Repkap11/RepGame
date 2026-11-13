@@ -243,6 +243,17 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
             return true;
         }
     }
+    if ( block->bed_partner != LAST_BLOCK_ID ) {
+        // Beds are a foot+head pair like doors but horizontal: the foot's
+        // partner head sits one block in the yaw direction. Breaking either
+        // half pops the other through the neighbour-update kill path. Both
+        // halves still need their own floor support, so fall through.
+        const glm::ivec3 partner_pos = block_pos + block_bed_partner_dir( block, block_state.rotation );
+        const BlockState partner_state = world.get_loaded_block( partner_pos );
+        if ( partner_state.id != block->bed_partner ) {
+            return false;
+        }
+    }
     if ( block->is_piston_head ) {
         // A head survives only with a piston base directly behind it that is
         // still pointing at this cell.

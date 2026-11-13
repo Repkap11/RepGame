@@ -1,0 +1,21 @@
+# Bed sleeping: `sleep x y z` drives repgame_try_sleep — refused by day
+# (spawn point still set), sleeps to the next dawn at night. Flat floor is
+# SANDSTONE at y=0; AIR starts at y=1. DAY_LENGTH_TICKS = 172800.
+# The bed is a two-cell block: the foot lands on the clicked cell, the head
+# one cell in the facing direction (setblock rotation 0 => head at -z).
+wait_idle 20 6000
+setblock 8 1 8 BED
+wait 30
+assert_block 8 1 8 BED
+assert_block 8 1 7 BED_HEAD
+# Noon (day): refused — sleep_result {slept:0}; the point is still recorded.
+time 43200
+sleep 8 1 8
+# Midnight: sleeps to just past dawn — sleep_result {slept:1,time:177120}.
+time 129600
+sleep 8 1 8
+assert_block 8 1 8 BED
+# A non-bed cell is refused outright even at night (slept:0).
+time 129600
+sleep 12 1 8
+echo bed sleep done

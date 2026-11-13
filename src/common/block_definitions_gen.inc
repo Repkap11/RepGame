@@ -310,14 +310,23 @@ block_definitions[ 19 ].scale = { 16, 8, 16 };
 block_definitions[ 19 ].tex_offset = { 0, -4, 0 };
 
 // BED (20)
-block_definitions[ 20 ].textures[ FACE_TOP ] = TEX_BED;
-block_definitions[ 20 ].textures[ FACE_BOTTOM ] = TEX_BED;
-block_definitions[ 20 ].textures[ FACE_RIGHT ] = TEX_BED;
-block_definitions[ 20 ].textures[ FACE_FRONT ] = TEX_BED;
-block_definitions[ 20 ].textures[ FACE_LEFT ] = TEX_BED;
-block_definitions[ 20 ].textures[ FACE_BACK ] = TEX_BED;
-block_definitions[ 20 ].icon_texture = TEX_BED;
+block_definitions[ 20 ].textures[ FACE_TOP ] = TEX_BED_FEET_TOP_FLIP;
+block_definitions[ 20 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_OAK;
+block_definitions[ 20 ].textures[ FACE_RIGHT ] = TEX_BED_FEET_SIDE;
+block_definitions[ 20 ].textures[ FACE_FRONT ] = TEX_BED_FEET_END;
+block_definitions[ 20 ].textures[ FACE_LEFT ] = TEX_BED_FEET_SIDE_MIRROR;
+block_definitions[ 20 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 20 ].icon_texture = TEX_BED_RED;
+block_definitions[ 20 ].bed_partner = BED_HEAD;
+block_definitions[ 20 ].casts_shadow = false;
 block_definitions[ 20 ].hardness = 0.5f;
+block_definitions[ 20 ].icon_is_isometric = false;
+block_definitions[ 20 ].is_bed = true;
+block_definitions[ 20 ].is_seethrough = true;
+block_definitions[ 20 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 20 ].piston_immovable = true;
+block_definitions[ 20 ].rotate_on_placement = true;
+block_definitions[ 20 ].scale = { 16, 9, 16 };
 
 // ACACIA_LEAVES (21)
 block_definitions[ 21 ].textures[ FACE_TOP ] = TEX_LEAVES_ACACIA_CARRIED;
@@ -21797,15 +21806,25 @@ block_definitions[ 1506 ].no_light = 0;
 block_definitions[ 1506 ].renderOrder = RenderOrder_Flowers;
 block_definitions[ 1506 ].scale = { 16, 8, 16 };
 
-// undefined (1507)
-block_definitions[ 1507 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1507 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1507 ].textures[ FACE_RIGHT ] = TEX_AIR;
+// BED_HEAD (1507)
+block_definitions[ 1507 ].textures[ FACE_TOP ] = TEX_BED_HEAD_TOP_ROT;
+block_definitions[ 1507 ].textures[ FACE_BOTTOM ] = TEX_PLANKS_OAK;
+block_definitions[ 1507 ].textures[ FACE_RIGHT ] = TEX_BED_HEAD_SIDE;
 block_definitions[ 1507 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1507 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1507 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1507 ].icon_texture = TEX_AIR;
+block_definitions[ 1507 ].textures[ FACE_LEFT ] = TEX_BED_HEAD_SIDE_MIRROR;
+block_definitions[ 1507 ].textures[ FACE_BACK ] = TEX_BED_HEAD_END;
+block_definitions[ 1507 ].icon_texture = TEX_BED_HEAD_TOP_ROT;
+block_definitions[ 1507 ].bed_partner = BED;
+block_definitions[ 1507 ].casts_shadow = false;
+block_definitions[ 1507 ].hardness = 0.5f;
+block_definitions[ 1507 ].is_bed = true;
+block_definitions[ 1507 ].is_bed_head = true;
 block_definitions[ 1507 ].is_pickable = false;
+block_definitions[ 1507 ].is_seethrough = true;
+block_definitions[ 1507 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1507 ].piston_immovable = true;
+block_definitions[ 1507 ].rotate_on_placement = true;
+block_definitions[ 1507 ].scale = { 16, 9, 16 };
 
 // undefined (1508)
 block_definitions[ 1508 ].textures[ FACE_TOP ] = TEX_AIR;

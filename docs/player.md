@@ -156,7 +156,8 @@ mob pre-empt the block target for left clicks.
   slice, the last one removes the block; `docs/blocks.md`), sign text
   editing (`block_is_sign` — opens the four-line sign editor, and
   sneak-click places past it like other interactables — `docs/ui.md`),
-  dust
+  beds (`is_bed` — sets the respawn point and sleeps at night; see
+  "Sleeping" below), dust
   toggling, buckets (`repgame_use_bucket` —
   `BUCKET` scoops the fluid source under `fluidSelectionInBounds`,
   `WATER_BUCKET`/`LAVA_BUCKET` pour a source at the flowing hit cell,
@@ -231,12 +232,39 @@ difficulty).
 At 0 health `player_damage` sets `dead` and raises the death screen:
 `PauseMenu` dead mode ("You died!" + only Respawn and Exit — Esc can't
 dismiss it; `tick_vitals` re-pins `menu_open` each tick). Inventory is
-kept. `repgame_respawn` restores full vitals and re-pins the world-spawn
-column (`spawn_pending` does the ground snap once it loads). Health is
+kept. `repgame_respawn` restores full vitals and re-pins the spawn
+column — the recorded bed when `spawn_point_set`, else the (0,0)
+world-spawn column (`spawn_pending` does the ground snap once it loads;
+`repgame_resolve_pending_spawn` is the free-function body the tests
+drive). Health is
 persisted in `player.dat` (`docs/persistence.md`); a saved 0 — quitting
 on the death screen — loads as a fresh spawn. In multiplayer the local
 health rides the player-location payload and a drop flashes the avatar
 red on other clients (`docs/multiplayer.md`).
+
+## Sleeping & respawn points
+
+Right-clicking a bed (`is_bed`) runs `repgame_try_sleep` and always
+records the clicked cell as `state.spawn_point` (persisted as `player.dat`'s
+`spawn` key). The bed block itself is two cells — foot on the clicked
+cell, head one block in the placer's facing direction (docs/blocks.md) —
+and either half answers the click. In the night half of the day (`world_time` mod
+`DAY_LENGTH_TICKS` ≥ half) it additionally sleeps: `world_time` jumps
+just past the next dawn (`SLEEP_WAKE_OFFSET` — the boundary itself is
+still sunrise-dim) and goes out as `WORLD_TIME` when connected — one sleeper
+skips the night for everyone, the same permissive model as the
+PgUp/PgDn clock keys. Sleeping is refused while a live hostile mob is
+within `SLEEP_MONSTER_RADIUS` (8 blocks —
+`MobManager::hostiles_within`); the spawn point is still set either way.
+Sneak-click places against the bed like the other interactables, and
+"can't sleep" feedback is log-only.
+
+`resolve_pending_spawn` honors the point on respawn: it keeps the camera
+over the bed column until the chunk reports generated data, stands the
+player on the bed top (stepping up past a low ceiling, bounded), and —
+when the bed is missing or unreachable — clears the point and falls back
+to the world-spawn column. Fresh saves and beds never clicked spawn at
+(0,0) as before.
 
 ## Game modes
 

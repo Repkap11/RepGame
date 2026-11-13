@@ -235,7 +235,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                           : pick_mode == 2   ? block_is_fluid( block )
                           : pick_mode == 3   ? block_is_fluid( block ) && fluid_level( blockState ) == 0
                                              : false;
-    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || fluid_pick;
+    const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || block->is_bed || fluid_pick;
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
     if ( result && ( block->is_stairs || block->is_fence || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign ) ) {
         // Pick against the block's real boxes — stairs use their collision

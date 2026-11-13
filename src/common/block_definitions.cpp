@@ -58,6 +58,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->door_partner = LAST_BLOCK_ID;
         block->is_tall_plant_upper = false;
         block->tall_plant_partner = LAST_BLOCK_ID;
+        block->is_bed_head = false;
+        block->bed_partner = LAST_BLOCK_ID;
         block->persistent_variant = LAST_BLOCK_ID;
         block->natural_variant = LAST_BLOCK_ID;
         block->crop_next = LAST_BLOCK_ID;

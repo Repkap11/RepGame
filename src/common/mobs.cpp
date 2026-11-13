@@ -1114,6 +1114,22 @@ bool MobManager::is_baby_at( const int index ) const {
     return index >= 0 && index < static_cast<int>( this->mobs.size( ) ) && this->mobs[ index ].age_ticks < 0;
 }
 
+bool MobManager::hostiles_within( const glm::dvec3 &pos, const double radius ) const {
+    for ( const Mob &mob : this->mobs ) {
+        if ( mob.death_ticks > 0 ) {
+            continue;
+        }
+        const MobAI ai = mob_types[ mob.type ].ai;
+        if ( ai != MOB_AI_HOSTILE_MELEE && ai != MOB_AI_HOSTILE_CREEPER ) {
+            continue;
+        }
+        if ( glm::distance( mob.pos, pos ) <= radius ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Shears on an unshorn adult of a shearable type (MobTypeDef::shear_drop).
 // Mirrors answer from the streamed SHEARED/BABY flags — accurate enough to
 // let the click through; the owner re-validates on the ENTITY_ACTION.

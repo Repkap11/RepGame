@@ -408,6 +408,12 @@ static void run_cmd( RepGameState &state, char *line ) {
         mp_test::event( &state, "respawn_result", "\"health\":%.3f", state.vitals.health );
         return;
     }
+    if ( strcmp( cmd, "sleep" ) == 0 && argc == 4 ) {
+        const glm::ivec3 pos( atoi( argv[ 1 ] ), atoi( argv[ 2 ] ), atoi( argv[ 3 ] ) );
+        const bool slept = repgame_try_sleep( state, pos );
+        mp_test::event( &state, "sleep_result", "\"slept\":%d,\"time\":%lld", slept ? 1 : 0, static_cast<long long>( state.world_time ) );
+        return;
+    }
     if ( strcmp( cmd, "mode" ) == 0 && argc == 2 ) {
         g_force_survival = strcasecmp( argv[ 1 ], "survival" ) == 0;
         state.game_mode = g_force_survival ? GameMode_Survival : GameMode_Creative;

@@ -661,3 +661,199 @@ int test_vitals( ) {
 
     return failures;
 }
+
+// Bed sleeping: repgame_try_sleep records the bed as the respawn point on
+// any click but only advances world_time in the night half of the day, and
+// refuses while a hostile mob is near (spawn point still set).
+// repgame_resolve_pending_spawn stands the player on the recorded bed —
+// retrying while its column is ungenerated, falling back to the
+// world-spawn column (and clearing the point) when the bed is gone.
+//
+//   bed at (8,10,8), 9/16 top at y=10.5625, player lands at eye 12.1825
+int test_sleep( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 8.5, 12.5, 8.5 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const glm::ivec3 bed( 8, 10, 8 );
+    world.set_loaded_block( bed, { BED, 0, 0, BED, 0 } );
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto check_near = [ & ]( const char *name, double actual, double expected ) {
+        const bool ok = fabs( actual - expected ) <= 1e-4;
+        pr_test( "  %-55s value=%-9.4f expected=%-9.4f  %s", name, actual, expected, ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+
+    // Day: refused, but the spawn point is still recorded (MC semantics).
+    gs.world_time = DAY_LENGTH_TICKS / 4;
+    check_bool( "day: sleep refused", !repgame_try_sleep( gs, bed ) );
+    check_bool( "day: spawn point still set", gs.spawn_point_set && gs.spawn_point == bed );
+    check_bool( "day: clock unchanged", gs.world_time == DAY_LENGTH_TICKS / 4 );
+
+    // Night: the clock lands just past the next dawn boundary.
+    gs.world_time = 5 * DAY_LENGTH_TICKS + DAY_LENGTH_TICKS * 3 / 4;
+    check_bool( "night: sleeps to next dawn",
+                repgame_try_sleep( gs, bed ) && gs.world_time == 6 * DAY_LENGTH_TICKS + SLEEP_WAKE_OFFSET );
+
+    // Non-bed target (the harness `sleep x y z` command can aim at any
+    // cell): refused outright at night, existing point untouched.
+    gs.world_time = 6 * DAY_LENGTH_TICKS + DAY_LENGTH_TICKS * 3 / 4;
+    check_bool( "non-bed: refused, point kept",
+                !repgame_try_sleep( gs, glm::ivec3( 8, 11, 8 ) ) && gs.spawn_point == bed );
+
+    // Monsters nearby: refused even at night (the point stays set).
+    gs.world_time = DAY_LENGTH_TICKS * 3 / 4;
+    world.mobs.spawn( MOB_ZOMBIE, glm::dvec3( 10.5, 12.0, 8.5 ), 0.0f, 1, false );
+    check_bool( "monsters nearby: refused",
+                !repgame_try_sleep( gs, bed ) && gs.world_time == DAY_LENGTH_TICKS * 3 / 4 );
+
+    // Bed column ungenerated (outside the single test chunk): pending
+    // holds and the camera is pulled over the column so it loads.
+    gs.spawn_point = glm::ivec3( 64, 10, 64 );
+    gs.spawn_point_set = true;
+    gs.spawn_pending = true;
+    repgame_resolve_pending_spawn( gs );
+    check_bool( "unloaded bed: stays pending, camera pulled",
+                gs.spawn_pending && gs.spawn_point_set && gs.camera.pos.x == 64.5 && gs.camera.pos.z == 64.5 );
+
+    // Respawn at the recorded bed: stands on the bed top, point kept for
+    // the next death.
+    gs.spawn_point = bed;
+    repgame_respawn( gs );
+    repgame_resolve_pending_spawn( gs );
+    check_bool( "bed respawn resolves", !gs.spawn_pending && gs.spawn_point_set );
+    check_near( "bed respawn stands on top", gs.camera.pos.y, Collision::block_collision_top( world, bed ) + PLAYER_EYE_HEIGHT );
+    check_near( "bed respawn centered on cell", gs.camera.pos.x, 8.5 );
+
+    // Bed gone: the point clears and resolution falls back to the
+    // world-spawn column (still pending in the test world — column (0,0)
+    // is all air there).
+    gs.spawn_point = glm::ivec3( 4, 10, 4 );
+    gs.spawn_point_set = true;
+    gs.spawn_pending = true;
+    repgame_resolve_pending_spawn( gs );
+    check_bool( "missing bed: point cleared, world spawn pending", !gs.spawn_point_set && gs.spawn_pending );
+
+    return failures;
+}
+
+// The bed is a two-cell block like a door turned on its side: placing the
+// foot item writes the head one cell in the placer's facing direction
+// (yaw 0 = -z), either half sleeps, and breaking one half pops the other.
+//
+//   foot (10,10,10..13) with stone floors at y=9
+int test_bed_pair( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 8.5, 12.5, 8.5 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            gs.tick_number++;
+            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        }
+    };
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
+    };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState bed_yaw[ 4 ] = {
+        { BED, 0, 0, BED, 0 }, { BED, BLOCK_ROTATE_90, 0, BED, 0 }, { BED, BLOCK_ROTATE_180, 0, BED, 0 }, { BED, BLOCK_ROTATE_270, 0, BED, 0 },
+    };
+    const glm::ivec3 head_dir[ 4 ] = { glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ) };
+
+    // A foot writes itself plus its head one cell in the yaw direction.
+    const glm::ivec3 feet[ 4 ] = { glm::ivec3( 4, 10, 12 ), glm::ivec3( 8, 10, 12 ), glm::ivec3( 12, 10, 12 ), glm::ivec3( 4, 10, 4 ) };
+    for ( int yaw = 0; yaw < 4; yaw++ ) {
+        const glm::ivec3 foot = feet[ yaw ];
+        const glm::ivec3 head = foot + head_dir[ yaw ];
+        world.set_loaded_block( foot + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( head + glm::ivec3( 0, -1, 0 ), stone );
+        place( foot, bed_yaw[ yaw ] );
+    }
+    run( 2 );
+    char label[ 96 ];
+    for ( int yaw = 0; yaw < 4; yaw++ ) {
+        snprintf( label, sizeof( label ), "place: yaw %d foot written", yaw );
+        failures += check_id( world, label, feet[ yaw ], BED );
+        snprintf( label, sizeof( label ), "place: yaw %d head written", yaw );
+        failures += check_id( world, label, feet[ yaw ] + head_dir[ yaw ], BED_HEAD );
+    }
+
+    // Sleeping works off the head half too — same is_bed interaction.
+    gs.world_time = DAY_LENGTH_TICKS * 3 / 4;
+    check_bool( "night: sleeps via the head half", repgame_try_sleep( gs, feet[ 0 ] + head_dir[ 0 ] ) );
+
+    // No floor under the head cell, a blocked head cell, and no floor under
+    // the foot each leave both cells empty.
+    const glm::ivec3 no_head_floor( 8, 10, 6 );
+    world.set_loaded_block( no_head_floor + glm::ivec3( 0, -1, 0 ), stone );
+    place( no_head_floor, bed_yaw[ 0 ] );
+    const glm::ivec3 blocked_head( 12, 10, 6 );
+    world.set_loaded_block( blocked_head + glm::ivec3( 0, -1, 0 ), stone );
+    world.set_loaded_block( blocked_head + head_dir[ 0 ] + glm::ivec3( 0, -1, 0 ), stone );
+    world.set_loaded_block( blocked_head + head_dir[ 0 ], stone );
+    place( blocked_head, bed_yaw[ 0 ] );
+    place( glm::ivec3( 10, 10, 8 ), bed_yaw[ 0 ] );
+    run( 2 );
+    failures += check_id( world, "no head floor: foot not placed", no_head_floor, AIR );
+    failures += check_id( world, "no head floor: head not placed", no_head_floor + head_dir[ 0 ], AIR );
+    failures += check_id( world, "blocked head: foot not placed", blocked_head, AIR );
+    failures += check_id( world, "no foot floor: nothing placed", glm::ivec3( 10, 10, 8 ), AIR );
+
+    // A lone head can't be placed by itself (no partner).
+    world.set_loaded_block( glm::ivec3( 6, 9, 6 ), stone );
+    place( glm::ivec3( 6, 10, 6 ), { BED_HEAD, 0, 0, BED_HEAD, 0 } );
+    run( 2 );
+    failures += check_id( world, "lone head: not placed", glm::ivec3( 6, 10, 6 ), AIR );
+
+    // Breaking the foot pops the head through the survive check.
+    place( feet[ 0 ], BLOCK_STATE_AIR );
+    run( 2 );
+    failures += check_id( world, "foot break: foot cleared", feet[ 0 ], AIR );
+    failures += check_id( world, "foot break: head popped", feet[ 0 ] + head_dir[ 0 ], AIR );
+    // Breaking the head pops the foot.
+    place( feet[ 1 ] + head_dir[ 1 ], BLOCK_STATE_AIR );
+    run( 2 );
+    failures += check_id( world, "head break: head cleared", feet[ 1 ] + head_dir[ 1 ], AIR );
+    failures += check_id( world, "head break: foot popped", feet[ 1 ], AIR );
+
+    // The head half is is_pickable=false but still ray-targetable — the
+    // is_bed whitelist spot in RayTraversal, same as the door upper.
+    const glm::ivec3 head2 = feet[ 2 ] + head_dir[ 2 ];
+    glm::ivec3 out( -1, -1, -1 );
+    int which_face = -1;
+    check_bool( "pick: ray hits the head half",
+                RayTraversal::find_block_from_to( world,
+                                                  glm::dvec3( head2.x + 0.5, head2.y + 0.3, head2.z + 2.5 ),
+                                                  glm::dvec3( head2.x + 0.5, head2.y + 0.3, head2.z - 1.5 ),
+                                                  out, &which_face ) &&
+                    out == head2 );
+
+    return failures;
+}

@@ -48,6 +48,12 @@ struct PlayerData {
     // Negative = absent (old saves) -> full health. A saved 0 means the
     // player exited on the death screen -> respawned fresh at spawn.
     float health = -1.0f;
+    // Bed respawn point (docs/player.md). Absent in old saves -> spawn at
+    // the world-spawn column.
+    bool has_spawn = false;
+    int spawn_x = 0;
+    int spawn_y = 0;
+    int spawn_z = 0;
 };
 
 // Serializes player data to the text format written to player.dat.

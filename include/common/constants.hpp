@@ -240,6 +240,13 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 // Peaceful regeneration: +1 hp per interval while the "Mobs" toggle is
 // peaceful, survival, alive and hurt.
 #define PLAYER_PEACEFUL_REGEN_TICKS ( 4 * UPS_RATE )
+// Bed sleeping ("monsters nearby"): a live hostile mob within this
+// distance of the player blocks the sleep (MC's 8-block check).
+#define SLEEP_MONSTER_RADIUS 8.0
+// Sleep lands this long past the dawn boundary: the daylight factor is
+// still sunrise-dim at exact dawn (~0.24) and ~0.87 here — reads as
+// morning instead of twilight (light.cpp light_daylight_factor).
+#define SLEEP_WAKE_OFFSET ( 30 * UPS_RATE )
 // Right-click eat also sets the standard click cadence (30 ticks) — same
 // as the bow, so holding the button eats at ~5/s.
 

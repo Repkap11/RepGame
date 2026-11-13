@@ -418,6 +418,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells |
 | `give <item> [count]`, `slot N` | hotbar add + slot select, refreshing the held-item overlay |
 | `damage <hp>`, `eat`, `respawn` | player vitals (docs/player.md); each emits a `*_result` event with `applied`/`health`/`dead` |
+| `sleep x y z` | `repgame_try_sleep` on the bed cell; emits `sleep_result {slept,time}` |
 | `inventory <0|1>` | toggle `input.inventory_open` (shows the survival grid + 2x2 crafting UI in survival) |
 | `menu <0|1>`, `search <0|1>` | toggle `input.menu_open` / `input.search_focused` (pause menu, creative search bar) |
 | `container chest\|furnace\|table x y z`, `container none` | open the container UI at the block as a right-click would (offline path; the block must be placed already — `setblock` lands on the next tick), or close any open container screen |

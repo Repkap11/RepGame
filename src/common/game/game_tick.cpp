@@ -12,6 +12,7 @@
 #include "common/utils/profile.hpp"
 #include "common/world.hpp"
 #include "common/utils/ray_traversal.hpp"
+#include "common/utils/collision.hpp"
 #include "common/utils/angles.hpp"
 #include "common/multiplayer.hpp"
 #include "common/harness/run_policy.hpp"
@@ -106,26 +107,65 @@ void RepGame::advance_clocks( ) {
 }
 
 void RepGame::resolve_pending_spawn( ) {
-    CameraState &cam = globalGameState.camera;
-    // Fresh spawn: the terrain-height estimate in initializeGameState can't
-    // see structure blocks (trees, features). Once every cell in the spawn
-    // column reports real generated data, stand on the topmost colliding
-    // block so the player never starts inside a trunk or spire.
-    if ( globalGameState.spawn_pending ) {
-        const int top_bound = ( int )ceil( MapGen::maxTerrainHeight( ) );
-        for ( int y = top_bound; y >= BEDROCK_LEVEL; y-- ) {
-            const BlockState bs = globalGameState.world.get_loaded_block( glm::ivec3( 0, y, 0 ) );
-            if ( bs.id == LAST_BLOCK_ID ) {
-                break; // Some chunk in the column isn't generated yet — retry next tick.
+    repgame_resolve_pending_spawn( globalGameState );
+}
+
+// The body of RepGame::resolve_pending_spawn as a free function so rep_tests
+// can drive it. Fresh spawn: the terrain-height estimate in
+// initializeGameState can't see structure blocks (trees, features). Once
+// every cell in the spawn column reports real generated data, stand on the
+// topmost colliding block so the player never starts inside a trunk or
+// spire. With spawn_point_set the target is the recorded bed instead:
+// stand on the bed top, or fall back to the world-spawn column when the
+// bed is missing or obstructed.
+void repgame_resolve_pending_spawn( RepGameState &state ) {
+    CameraState &cam = state.camera;
+    if ( !state.spawn_pending ) {
+        return;
+    }
+    if ( state.spawn_point_set ) {
+        // Bed respawn: stand the player on the bed cell once its column
+        // reports real data. A missing or obstructed bed clears the
+        // point and falls through to the world-spawn scan.
+        const glm::ivec3 bed = state.spawn_point;
+        const BlockState bed_bs = state.world.get_loaded_block( bed );
+        if ( bed_bs.id == LAST_BLOCK_ID ) {
+            // The column isn't generated yet: keep the camera over it so
+            // the chunk window centers there, and retry next tick.
+            cam.pos.x = bed.x + 0.5;
+            cam.pos.z = bed.z + 0.5;
+            return;
+        }
+        if ( block_definition_get_definition( bed_bs.id )->is_bed ) {
+            glm::dvec3 eye( bed.x + 0.5, Collision::block_collision_top( state.world, bed ) + PLAYER_EYE_HEIGHT, bed.z + 0.5 );
+            for ( int tries = 0; tries < 4 && Collision::collides_at( state.world, eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ); tries++ ) {
+                eye.y += 1.0;
             }
-            if ( block_definition_get_definition( bs.id )->collides_with_player ) {
-                cam.pos.x = 0.5;
-                cam.pos.z = 0.5;
-                cam.pos.y = y + 1.0 + PLAYER_EYE_HEIGHT + 0.5;
+            if ( !Collision::collides_at( state.world, eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) ) {
+                cam.pos = eye;
                 cam.y_speed = 0.0;
-                globalGameState.spawn_pending = false;
-                break;
+                state.spawn_pending = false;
+                return;
             }
+        }
+        // Bed gone or unreachable: forget the point and respawn at the
+        // world-spawn column (camera re-aimed so that column loads).
+        state.spawn_point_set = false;
+        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+    }
+    const int top_bound = ( int )ceil( MapGen::maxTerrainHeight( ) );
+    for ( int y = top_bound; y >= BEDROCK_LEVEL; y-- ) {
+        const BlockState bs = state.world.get_loaded_block( glm::ivec3( 0, y, 0 ) );
+        if ( bs.id == LAST_BLOCK_ID ) {
+            break; // Some chunk in the column isn't generated yet — retry next tick.
+        }
+        if ( block_definition_get_definition( bs.id )->collides_with_player ) {
+            cam.pos.x = 0.5;
+            cam.pos.z = 0.5;
+            cam.pos.y = y + 1.0 + PLAYER_EYE_HEIGHT + 0.5;
+            cam.y_speed = 0.0;
+            state.spawn_pending = false;
+            break;
         }
     }
 }

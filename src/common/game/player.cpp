@@ -49,6 +49,14 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
                                                        globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
                 return LAST_BLOCK_ID;
             }
+            // A bed foot also occupies the head cell one block in the
+            // placer's facing direction.
+            if ( placed_def->bed_partner != LAST_BLOCK_ID && !placed_def->is_bed_head &&
+                 Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos,
+                                                       block + block_bed_partner_dir( placed_def, blockState.rotation ), //
+                                                       globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
+                return LAST_BLOCK_ID;
+            }
         }
     } else {
         block = globalGameState.block_selection.pos_destroy;
@@ -190,7 +198,13 @@ void RepGame::break_selected_block( ) {
         if ( globalGameState.hotbar.getSelectedItem( ) == SHEARS && block_is_leaf( previous_block ) ) {
             force_item = block_item_id( previous_block );
         }
-        break_drops( globalGameState, globalGameState.block_selection.pos_destroy, previous_block, force_item );
+        // The removal is still queued, so the cell still holds the broken
+        // block — read its rotation for the horizontal bed-pair check, but
+        // keep the retargeted id (piston heads drop the base's item).
+        BlockState broken_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+        broken_state.id = previous_block;
+        broken_state.display_id = previous_block;
+        break_drops( globalGameState, globalGameState.block_selection.pos_destroy, broken_state, force_item );
     }
 }
 
@@ -276,7 +290,8 @@ bool repgame_eat_food( RepGameState &state ) {
     return true;
 }
 
-// Death-screen exit: stand the player back on the world-spawn column with
+// Death-screen exit: stand the player back on the spawn column — the
+// recorded bed when spawn_point_set, else the world-spawn column — with
 // full vitals, inventory kept. spawn_pending reuses the same topmost-
 // colliding-block snap as a fresh spawn once the column loads. A free
 // function so rep_tests and the mp-test ctl can drive it.
@@ -291,7 +306,11 @@ void repgame_respawn( RepGameState &state ) {
     CameraState &cam = state.camera;
     cam.horizontal_vel = glm::dvec2( 0.0 );
     cam.y_speed = 0.0;
-    cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+    if ( state.spawn_point_set ) {
+        cam.pos = glm::dvec3( state.spawn_point.x + 0.5, state.spawn_point.y + 2.0, state.spawn_point.z + 0.5 );
+    } else {
+        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+    }
     state.spawn_pending = true;
     cam.snapshot_prev( );
     state.ui.pause.set_dead( state, false );
@@ -300,6 +319,39 @@ void repgame_respawn( RepGameState &state ) {
 
 void RepGame::respawn( ) {
     repgame_respawn( globalGameState );
+}
+
+// Right-clicking a bed: always records it as the respawn point (the column
+// repgame_respawn/resolve_pending_spawn aim at); in the night half of the
+// day additionally sleeps the world clock to the next dawn. A non-bed or
+// unloaded cell is refused outright (the mp-test/script `sleep x y z`
+// command points the function at arbitrary cells). Sleeping is
+// refused while a hostile mob is within SLEEP_MONSTER_RADIUS (MC's
+// "monsters nearby" rule) — the spawn point is still set either way. In
+// multiplayer the new time goes out as WORLD_TIME like the PgUp/PgDn and
+// dbgcmd::set_time writes. A free function so rep_tests and the mp-test
+// ctl can drive it.
+bool repgame_try_sleep( RepGameState &state, const glm::ivec3 &bed_pos ) {
+    const BlockState bed_bs = state.world.get_loaded_block( bed_pos );
+    if ( bed_bs.id == LAST_BLOCK_ID || !block_definition_get_definition( bed_bs.id )->is_bed ) {
+        pr_debug( "Cannot sleep: no bed at %d,%d,%d", bed_pos.x, bed_pos.y, bed_pos.z );
+        return false;
+    }
+    state.spawn_point = bed_pos;
+    state.spawn_point_set = true;
+    const long t = state.world_time % DAY_LENGTH_TICKS;
+    if ( t < DAY_LENGTH_TICKS / 2 ) {
+        pr_debug( "Respawn point set (can only sleep at night)" );
+        return false;
+    }
+    if ( state.world.mobs.hostiles_within( state.camera.pos, SLEEP_MONSTER_RADIUS ) ) {
+        pr_debug( "Respawn point set (cannot sleep: monsters nearby)" );
+        return false;
+    }
+    state.world_time = ( state.world_time / DAY_LENGTH_TICKS + 1 ) * DAY_LENGTH_TICKS + SLEEP_WAKE_OFFSET;
+    state.multiplayer.send_world_time( state.world_time );
+    pr_debug( "Respawn point set (sleeping until dawn)" );
+    return true;
 }
 
 // Per-tick vitals upkeep — runs right after movement each tick: hurt
@@ -609,6 +661,13 @@ void RepGame::process_mouse_events( ) {
         // placed.
         if ( block_is_sign( target_state.id ) && !globalGameState.input.movement.sneakPressed ) {
             repgame_open_sign_editor( globalGameState, globalGameState.block_selection.pos_destroy );
+            globalGameState.input.click_delay_right = 30;
+        }
+        // Right-clicking a bed sets the respawn point and, at night,
+        // sleeps to dawn. Sneaking skips the interaction so a block can
+        // be placed.
+        if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_bed && !globalGameState.input.movement.sneakPressed ) {
+            repgame_try_sleep( globalGameState, globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
     }

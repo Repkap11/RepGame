@@ -589,6 +589,9 @@ static inline BlockID block_item_id( BlockID id ) {
     if ( b->is_tall_plant_upper ) {
         return b->tall_plant_partner;
     }
+    if ( b->is_bed_head ) {
+        return b->bed_partner;
+    }
     if ( block_is_persistent_leaf( b ) ) {
         return b->natural_variant;
     }
@@ -596,6 +599,17 @@ static inline BlockID block_item_id( BlockID id ) {
         return b->standing_variant;
     }
     return id;
+}
+
+// The cell offset from a bed half to its partner: a foot's head cell sits
+// one block in the placer's facing direction (rotation bits 0-1, yaw 0 =
+// -z); a head's foot sits the same vector negated. Only meaningful for
+// blocks with bed_partner set.
+static inline glm::ivec3 block_bed_partner_dir( const Block *b, unsigned char rotation ) {
+    static const int yaw_to_face[ 4 ] = { FACE_BACK, FACE_RIGHT, FACE_FRONT, FACE_LEFT };
+    const int face = yaw_to_face[ rotation & 3 ];
+    const glm::ivec3 dir( FACE_DIR_X_OFFSETS[ face ], FACE_DIR_Y_OFFSETS[ face ], FACE_DIR_Z_OFFSETS[ face ] );
+    return b->is_bed_head ? -dir : dir;
 }
 
 // A sign-style item covers a floor block and a wall block: a side-face

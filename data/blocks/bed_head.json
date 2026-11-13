@@ -1,0 +1,30 @@
+{
+  "bed_partner": "BED",
+  "casts_shadow": false,
+  "creative": false,
+  "hardness": 0.5,
+  "id": 1507,
+  "is_bed": true,
+  "is_bed_head": true,
+  "is_pickable": false,
+  "is_seethrough": true,
+  "name": "BED_HEAD",
+  "needs_place_on_any_solid": {
+    "top": true
+  },
+  "piston_immovable": true,
+  "rotate_on_placement": true,
+  "scale": [
+    16,
+    9,
+    16
+  ],
+  "textures": {
+    "back": "bed_head_end",
+    "bottom": "planks_oak",
+    "front": "air",
+    "left": "bed_head_side_mirror",
+    "right": "bed_head_side",
+    "top": "bed_head_top_rot"
+  }
+}

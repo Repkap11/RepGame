@@ -85,6 +85,17 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
         }
         return AIR;
     }
+    // Bed showcase in the free z<0 region: foot+head pairs at yaw 0, so
+    // the head cell sits one block at -z of the foot.
+    if ( ( z == -30 || z == -31 ) && y == 1 ) {
+        static const int bed_xs[] = { -9, -7, -5 };
+        for ( const int bx : bed_xs ) {
+            if ( x == bx ) {
+                return z == -30 ? BED : BED_HEAD;
+            }
+        }
+        return AIR;
+    }
     if ( y != 1 ) {
         return AIR;
     }

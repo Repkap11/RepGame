@@ -216,6 +216,7 @@ world_time <int64>
 render_distance <int>
 min_ambient <float>
 health <float>
+spawn <x> <y> <z>
 hotbar_selected <int>
 hotbar <slot> <item_id> <quantity>
 survival <slot> <item_id> <quantity>
@@ -232,6 +233,10 @@ or negative in old saves means full; a saved 0 means the player quit on
 the death screen and loads as a fresh spawn (health restored to max,
 `spawn_pending` re-pins the spawn column). The transient fields —
 breath, hurt cooldown, dead, fall distance — are not saved.
+
+`spawn` is the bed respawn point set by `repgame_try_sleep`
+(`docs/player.md`): the line is written only while a point is set, so old
+saves and un-set players respawn at the world-spawn column.
 
 `player_data_parse` falls through to five frozen legacy binary layouts
 (`PlayerDataLegacy` → `PlayerDataBinary` in player_data.cpp) when no
