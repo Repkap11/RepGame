@@ -71,6 +71,13 @@ int test_results( ) {
                         "\"asserts\":{\"total\":3,\"failed\":1},\"shots\":[\"screenshots/capture_0_display.tga\"],"
                         "\"settle_tick\":60}" );
 
+    fails += check_str( "json_escape", results::json_escape( "a\"b\\c\nd\te\x01" ), "a\\\"b\\\\c\\nd\\te\\u0001" );
+    fails += check_str( "json_escape null", results::json_escape( nullptr ), "" );
+    // Records longer than the old fixed snprintf buffers stay whole.
+    const std::string long_text( 3000, 'x' );
+    const std::string long_assert = results::format_assert( 1, 2, "assert_chat", true, long_text.c_str( ), long_text.c_str( ) );
+    fails += check_str( "assert long tail", long_assert.substr( long_assert.size( ) - 3 ), "x\"}" );
+
     // light dbg text: counter section keeps plain keys, the "| us:" section
     // is prefixed; "12/34" stays a string; nested parens flatten to keys.
     fails += check_str( "light_json", results::light_json_from_dbg( "loop=5 pq=12/34 jobs=7 | us: fin=9(lfin=4[fill=2]) remesh=3" ),

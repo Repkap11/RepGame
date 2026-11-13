@@ -2,9 +2,13 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
+#include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <strings.h>
 
 #include "common/RepGame.hpp"
@@ -36,6 +40,12 @@ static int g_idle_streak = 0;
 static long g_idle_streak_req = 20;
 static long g_idle_timeout = 6000;
 static bool g_shot_requested = false;
+static long g_shot_started = -1;
+// A `screenshot` whose frame never draws fails after this many ticks
+// instead of hanging the script (same budget as REPGAME_CAPTURE_TIMEOUT).
+static constexpr long SHOT_TIMEOUT_TICKS = 30 * UPS_RATE;
+// First malformed numeric arg on the current line; tick() fails the line.
+static std::string g_bad_arg;
 
 std::vector<std::string> script::tokenize( const std::string &line ) {
     std::vector<std::string> out;
@@ -77,38 +87,69 @@ bool script::eval_cmp( const char *op, const double actual, const double expecte
     return false;
 }
 
+bool script::parse_long( const std::string &tok, long *out ) {
+    if ( tok.empty( ) || isspace( static_cast<unsigned char>( tok[ 0 ] ) ) ) {
+        return false;
+    }
+    char *end = nullptr;
+    errno = 0;
+    const long v = strtol( tok.c_str( ), &end, 10 );
+    if ( errno == ERANGE || end != tok.c_str( ) + tok.size( ) ) {
+        return false;
+    }
+    *out = v;
+    return true;
+}
+
+bool script::parse_double( const std::string &tok, double *out ) {
+    if ( tok.empty( ) || isspace( static_cast<unsigned char>( tok[ 0 ] ) ) ) {
+        return false;
+    }
+    char *end = nullptr;
+    errno = 0;
+    const double v = strtod( tok.c_str( ), &end );
+    if ( errno == ERANGE || end != tok.c_str( ) + tok.size( ) || !std::isfinite( v ) ) {
+        return false;
+    }
+    *out = v;
+    return true;
+}
+
 static void load_script( const RepGameState &state, const char *path ) {
     g_loaded = true;
-    FILE *f = fopen( path, "r" );
-    if ( f == nullptr ) {
+    std::ifstream f( path );
+    if ( !f ) {
         pr_debug( "REPGAME_SCRIPT: cannot open %s", path );
         results::assert_( state, 0, "script", false, "readable file", path );
         g_done = true;
         return;
     }
-    char buf[ 1024 ];
+    std::string raw;
     int lineno = 0;
-    while ( fgets( buf, sizeof( buf ), f ) != nullptr ) {
+    while ( std::getline( f, raw ) ) {
         lineno++;
-        buf[ strcspn( buf, "\r\n" ) ] = '\0';
-        const char *s = buf;
-        while ( isspace( *s ) ) {
-            s++;
-        }
+        const size_t end = raw.find_first_of( "\r\n" );
+        const size_t start = raw.find_first_not_of( " \t\v\f" );
         // # comments and #! header lines (the Python side reads those).
-        if ( *s == '\0' || *s == '#' ) {
+        if ( start == std::string::npos || start >= end || raw[ start ] == '#' ) {
             continue;
         }
-        g_lines.push_back( s );
+        g_lines.push_back( raw.substr( start, end == std::string::npos ? std::string::npos : end - start ) );
         g_lineno.push_back( lineno );
     }
-    fclose( f );
 }
 
 // Event + failed assert for unknown commands / bad args so scripts fail loud.
 static void cmd_error( const RepGameState &state, const int line, const char *text ) {
-    results::event( state.tick_number, "cmd_error", "\"line\":%d,\"text\":\"%s\"", line, text );
+    results::event( state.tick_number, "cmd_error", "\"line\":%d,\"text\":\"%s\"", line, results::json_escape( text ).c_str( ) );
     results::assert_( state, line, text, false, "valid command", text );
+}
+
+// Screenshot names become file names: keep them to [A-Za-z0-9_-].
+static bool valid_shot_name( const std::string &name ) {
+    return !name.empty( ) && std::all_of( name.begin( ), name.end( ), []( const char c ) {
+        return isalnum( static_cast<unsigned char>( c ) ) || c == '_' || c == '-';
+    } );
 }
 
 // Current line number for asserts/events.
@@ -146,6 +187,7 @@ static bool blocked_wait_idle( const RepGameState &state, const ChunkLoader &loa
 
 static void clear_block_state( ) {
     g_shot_requested = false;
+    g_shot_started = -1;
     g_wait_until = -1;
     g_idle_started = -1;
     g_idle_streak = 0;
@@ -170,15 +212,42 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
     const int line = cur_line( );
     std::string err;
 
-    auto ivec_arg = [&]( int i ) { return atoi( argv[ i ].c_str( ) ); };
-    auto farg = [&]( int i ) { return atof( argv[ i ].c_str( ) ); };
+    // Numeric args must be whole numeric tokens; a malformed one records
+    // g_bad_arg (the command sees 0) and tick() fails the line.
+    auto bad_arg = [&]( int i ) {
+        if ( g_bad_arg.empty( ) ) {
+            g_bad_arg = std::string( cmd ) + ": arg " + std::to_string( i ) + " '" + argv[ i ] + "' is not a valid number";
+        }
+    };
+    auto larg = [&]( int i ) {
+        long v = 0;
+        if ( !script::parse_long( argv[ i ], &v ) ) {
+            bad_arg( i );
+        }
+        return v;
+    };
+    auto ivec_arg = [&]( int i ) {
+        const long v = larg( i );
+        if ( v < INT_MIN || v > INT_MAX ) {
+            bad_arg( i );
+            return 0;
+        }
+        return static_cast<int>( v );
+    };
+    auto farg = [&]( int i ) {
+        double v = 0;
+        if ( !script::parse_double( argv[ i ], &v ) ) {
+            bad_arg( i );
+        }
+        return v;
+    };
 
     if ( strcmp( cmd, "wait" ) == 0 && argc == 2 ) {
-        return blocked_wait( state, atol( argv[ 1 ].c_str( ) ) );
+        return blocked_wait( state, larg( 1 ) );
     }
     if ( strcmp( cmd, "wait_idle" ) == 0 && argc <= 3 ) {
-        const long streak = argc >= 2 ? atol( argv[ 1 ].c_str( ) ) : 20;
-        const long timeout = argc >= 3 ? atol( argv[ 2 ].c_str( ) ) : 6000;
+        const long streak = argc >= 2 ? larg( 1 ) : 20;
+        const long timeout = argc >= 3 ? larg( 2 ) : 6000;
         return blocked_wait_idle( state, loader, streak, timeout );
     }
     if ( strcmp( cmd, "camera" ) == 0 && ( argc == 6 || ( argc == 2 && strcmp( argv[ 1 ].c_str( ), "release" ) == 0 ) ) ) {
@@ -200,10 +269,21 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         return false;
     }
     if ( strcmp( cmd, "screenshot" ) == 0 && argc == 2 ) {
+        if ( !valid_shot_name( argv[ 1 ] ) ) {
+            cmd_error( state, line, "screenshot: name must be [A-Za-z0-9_-]+" );
+            return false;
+        }
         if ( !g_shot_requested ) {
             g_shot_requested = true;
+            g_shot_started = state.tick_number;
             run_policy( ).script.shot_name = argv[ 1 ];
             run_policy( ).script.shot_pending = true;
+        }
+        if ( run_policy( ).script.shot_pending && state.tick_number - g_shot_started >= SHOT_TIMEOUT_TICKS ) {
+            run_policy( ).script.shot_pending = false;
+            results::event( state.tick_number, "wait_timeout", "\"line\":%d,\"cmd\":\"screenshot\"", line );
+            results::assert_( state, line, "screenshot", false, "frame drawn within timeout", "no frame drawn" );
+            return false;
         }
         return run_policy( ).script.shot_pending; // cleared in draw_frame
     }
@@ -227,15 +307,15 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         return false;
     }
     if ( strcmp( cmd, "flags" ) == 0 && argc == 2 ) {
-        state.world.set_chunk_debug_flags( atoi( argv[ 1 ].c_str( ) ) );
+        state.world.set_chunk_debug_flags( ivec_arg( 1 ) );
         return false;
     }
     if ( strcmp( cmd, "rd" ) == 0 && argc == 2 ) {
-        state.input.render_distance = atoi( argv[ 1 ].c_str( ) );
+        state.input.render_distance = ivec_arg( 1 );
         return false;
     }
     if ( strcmp( cmd, "time" ) == 0 && argc == 2 ) {
-        dbgcmd::set_time( state, atol( argv[ 1 ].c_str( ) ) );
+        dbgcmd::set_time( state, larg( 1 ) );
         return false;
     }
     if ( strcmp( cmd, "mode" ) == 0 && argc == 2 ) {
@@ -422,23 +502,23 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         return false;
     }
     if ( strcmp( cmd, "inventory" ) == 0 && argc == 2 ) {
-        state.input.inventory_open = atoi( argv[ 1 ].c_str( ) ) != 0;
+        state.input.inventory_open = ivec_arg( 1 ) != 0;
         return false;
     }
     if ( strcmp( cmd, "debug" ) == 0 && argc == 2 ) {
-        state.input.debug_mode = atoi( argv[ 1 ].c_str( ) ) != 0;
+        state.input.debug_mode = ivec_arg( 1 ) != 0;
         return false;
     }
     if ( strcmp( cmd, "imgui" ) == 0 && argc == 2 ) {
-        state.ui.imgui.shown = atoi( argv[ 1 ].c_str( ) ) != 0;
+        state.ui.imgui.shown = ivec_arg( 1 ) != 0;
         return false;
     }
     if ( strcmp( cmd, "menu" ) == 0 && argc == 2 ) {
-        state.input.menu_open = atoi( argv[ 1 ].c_str( ) ) != 0;
+        state.input.menu_open = ivec_arg( 1 ) != 0;
         return false;
     }
     if ( strcmp( cmd, "search" ) == 0 && argc == 2 ) {
-        state.input.search_focused = atoi( argv[ 1 ].c_str( ) ) != 0;
+        state.input.search_focused = ivec_arg( 1 ) != 0;
         return false;
     }
     // chatopen [/] / chatclose — the chat box's real open/close paths;
@@ -533,14 +613,14 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         return false;
     }
     if ( strcmp( cmd, "assert_health" ) == 0 && argc == 3 ) {
-        const double expected = atof( argv[ 2 ].c_str() );
+        const double expected = farg( 2 );
         char actual[ 32 ];
         snprintf( actual, sizeof( actual ), "%.3f", state.vitals.health );
         results::assert_( state, line, argv[ 0 ].c_str( ), script::eval_cmp( argv[ 1 ].c_str( ), state.vitals.health, expected ), argv[ 2 ].c_str( ), actual );
         return false;
     }
     if ( strcmp( cmd, "assert_dead" ) == 0 && argc == 3 ) {
-        const double expected = atof( argv[ 2 ].c_str() );
+        const double expected = farg( 2 );
         results::assert_( state, line, argv[ 0 ].c_str( ), script::eval_cmp( argv[ 1 ].c_str( ), state.vitals.dead ? 1.0 : 0.0, expected ), argv[ 2 ].c_str( ), state.vitals.dead ? "1" : "0" );
         return false;
     }
@@ -574,7 +654,7 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
             cmd_error( state, line, "assert_light: want sky|block" );
             return false;
         }
-        const double expected = atof( argv[ 6 ].c_str( ) );
+        const double expected = farg( 6 );
         const int level = loader.light_probe( pos, channel );
         char actual[ 32 ];
         const BlockState bs = state.world.get_loaded_block( pos );
@@ -732,7 +812,7 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         return false;
     }
     if ( strcmp( cmd, "assert_mob_count" ) == 0 && ( argc == 3 || argc == 4 ) ) {
-        const double expected = atof( argv[ 2 ].c_str( ) );
+        const double expected = farg( 2 );
         const char *type = argc == 4 ? argv[ 3 ].c_str( ) : nullptr;
         const MobType want = type != nullptr ? dbgcmd::mob_from_name( type ) : MOB_TYPE_COUNT;
         if ( type != nullptr && want == MOB_TYPE_COUNT ) {
@@ -754,7 +834,7 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
             text += i == 1 ? "" : " ";
             text += argv[ i ];
         }
-        results::event( state.tick_number, "echo", "\"text\":\"%s\"", text.c_str( ) );
+        results::event( state.tick_number, "echo", "\"text\":\"%s\"", results::json_escape( text.c_str( ) ).c_str( ) );
         return false;
     }
     if ( strcmp( cmd, "dump" ) == 0 ) {
@@ -785,12 +865,16 @@ void script::tick( RepGameState &state, ChunkLoader &loader ) {
     }
     while ( g_pc < g_lines.size( ) ) {
         const std::vector<std::string> argv = script::tokenize( g_lines[ g_pc ] );
-        if ( argv.empty( ) || exec_line( state, loader, argv ) ) {
-            if ( argv.empty( ) ) {
-                g_pc++;
-                continue;
+        if ( !argv.empty( ) ) {
+            const bool blocked = exec_line( state, loader, argv );
+            if ( !g_bad_arg.empty( ) ) {
+                // Malformed number: fail the line rather than block on (or
+                // quietly continue with) the 0 the command saw.
+                cmd_error( state, cur_line( ), g_bad_arg.c_str( ) );
+                g_bad_arg.clear( );
+            } else if ( blocked ) {
+                return; // blocked — retry this line next tick
             }
-            return; // blocked — retry this line next tick
         }
         clear_block_state( );
         g_pc++;

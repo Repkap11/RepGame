@@ -38,13 +38,19 @@ static const char *build_string( ) {
 #endif
 }
 
-// JSON string escaping for names/specs that can carry quotes or backslashes.
-static std::string jescape( const char *s ) {
+std::string results::json_escape( const char *s ) {
     std::string out;
     if ( s == nullptr ) {
         return out;
     }
     for ( const char *p = s; *p != '\0'; p++ ) {
+        const unsigned char c = static_cast<unsigned char>( *p );
+        if ( c < 0x20 && c != '\n' && c != '\r' && c != '\t' ) {
+            char u[ 8 ];
+            snprintf( u, sizeof( u ), "\\u%04x", c );
+            out += u;
+            continue;
+        }
         switch ( *p ) {
             case '"':
                 out += "\\\"";
@@ -65,6 +71,29 @@ static std::string jescape( const char *s ) {
                 out += *p;
         }
     }
+    return out;
+}
+
+// printf into a string sized to fit — a truncated record is invalid JSON.
+static std::string vstrfmt( const char *fmt, va_list ap ) {
+    va_list ap2;
+    va_copy( ap2, ap );
+    const int n = vsnprintf( nullptr, 0, fmt, ap2 );
+    va_end( ap2 );
+    std::string out;
+    if ( n > 0 ) {
+        out.resize( static_cast<size_t>( n ) + 1 );
+        vsnprintf( &out[ 0 ], out.size( ), fmt, ap );
+        out.resize( static_cast<size_t>( n ) );
+    }
+    return out;
+}
+
+static std::string strfmt( const char *fmt, ... ) {
+    va_list ap;
+    va_start( ap, fmt );
+    std::string out = vstrfmt( fmt, ap );
+    va_end( ap );
     return out;
 }
 
@@ -132,7 +161,7 @@ std::string results::light_json_from_dbg( const char *dbg ) {
             out += val;
         } else {
             out += "\"";
-            out += jescape( val.c_str( ) );
+            out += json_escape( val.c_str( ) );
             out += "\"";
         }
         first = false;
@@ -167,7 +196,7 @@ std::string results::format_metric( long tick, int fly_phase, int rd, const glm:
 }
 
 std::string results::format_event( long tick, const char *name, const std::string &detail_json ) {
-    std::string out = "{\"type\":\"event\",\"tick\":" + std::to_string( tick ) + ",\"name\":\"" + jescape( name ) + "\"";
+    std::string out = "{\"type\":\"event\",\"tick\":" + std::to_string( tick ) + ",\"name\":\"" + json_escape( name ) + "\"";
     if ( !detail_json.empty( ) ) {
         out += ",\"detail\":{" + detail_json + "}";
     }
@@ -176,30 +205,22 @@ std::string results::format_event( long tick, const char *name, const std::strin
 }
 
 std::string results::format_probe( long tick, const glm::ivec3 &pos, int block, const char *name, int rotation, int sky, int blocklight ) {
-    char buf[ 512 ];
-    snprintf( buf, sizeof( buf ),
-              "{\"type\":\"probe\",\"tick\":%ld,\"pos\":[%d,%d,%d],\"block\":%d,\"name\":\"%s\",\"rotation\":%d,"
-              "\"sky\":%d,\"blocklight\":%d}",
-              tick, pos.x, pos.y, pos.z, block, jescape( name ).c_str( ), rotation, sky, blocklight );
-    return buf;
+    return strfmt( "{\"type\":\"probe\",\"tick\":%ld,\"pos\":[%d,%d,%d],\"block\":%d,\"name\":\"%s\",\"rotation\":%d,"
+                   "\"sky\":%d,\"blocklight\":%d}",
+                   tick, pos.x, pos.y, pos.z, block, json_escape( name ).c_str( ), rotation, sky, blocklight );
 }
 
 std::string results::format_assert( long tick, int line, const char *cmd, bool ok, const char *expected, const char *actual ) {
-    char buf[ 1024 ];
-    snprintf( buf, sizeof( buf ),
-              "{\"type\":\"assert\",\"tick\":%ld,\"line\":%d,\"cmd\":\"%s\",\"ok\":%s,\"expected\":\"%s\",\"actual\":\"%s\"}",
-              tick, line, jescape( cmd ).c_str( ), ok ? "true" : "false", jescape( expected ).c_str( ), jescape( actual ).c_str( ) );
-    return buf;
+    return strfmt( "{\"type\":\"assert\",\"tick\":%ld,\"line\":%d,\"cmd\":\"%s\",\"ok\":%s,\"expected\":\"%s\",\"actual\":\"%s\"}",
+                   tick, line, json_escape( cmd ).c_str( ), ok ? "true" : "false", json_escape( expected ).c_str( ),
+                   json_escape( actual ).c_str( ) );
 }
 
 std::string results::format_summary( long ticks, const char *exit_reason, int asserts_total, int asserts_failed, long settle_tick, const std::string &shots_json ) {
-    char buf[ 1024 ];
-    snprintf( buf, sizeof( buf ),
-              "{\"type\":\"summary\",\"tick\":%ld,\"ticks\":%ld,\"exit_reason\":\"%s\",\"asserts\":{\"total\":%d,\"failed\":%d},"
-              "\"shots\":%s,\"settle_tick\":%ld}",
-              ticks, ticks, jescape( exit_reason ).c_str( ), asserts_total, asserts_failed,
-              shots_json.empty( ) ? "[]" : shots_json.c_str( ), settle_tick );
-    return buf;
+    return strfmt( "{\"type\":\"summary\",\"tick\":%ld,\"ticks\":%ld,\"exit_reason\":\"%s\",\"asserts\":{\"total\":%d,\"failed\":%d},"
+                   "\"shots\":%s,\"settle_tick\":%ld}",
+                   ticks, ticks, json_escape( exit_reason ).c_str( ), asserts_total, asserts_failed,
+                   shots_json.empty( ) ? "[]" : shots_json.c_str( ), settle_tick );
 }
 
 bool results::active( ) {
@@ -242,7 +263,7 @@ void results::init( const char *world_name ) {
     char header[ 2600 ];
     snprintf( header, sizeof( header ),
               "{\"type\":\"header\",\"schema\":1,\"git\":\"%s\",\"build\":\"%s\",\"world\":\"%s\",\"policy\":{%s},\"start_unix\":%ld}",
-              jescape( p.git_sha != nullptr ? p.git_sha : "" ).c_str( ), build_string( ), jescape( world_name ).c_str( ), policy,
+              json_escape( p.git_sha != nullptr ? p.git_sha : "" ).c_str( ), build_string( ), json_escape( world_name ).c_str( ), policy,
               static_cast<long>( time( nullptr ) ) );
     write_line( header );
 }
@@ -261,12 +282,10 @@ void results::event( long tick, const char *name, const char *fmt, ... ) {
     }
     std::string detail;
     if ( fmt != nullptr && fmt[ 0 ] != '\0' ) {
-        char buf[ 1024 ];
         va_list ap;
         va_start( ap, fmt );
-        vsnprintf( buf, sizeof( buf ), fmt, ap );
+        detail = vstrfmt( fmt, ap );
         va_end( ap );
-        detail = buf;
     }
     if ( strcmp( name, "capture_shot" ) == 0 || strcmp( name, "screenshot" ) == 0 ) {
         // Collect shot filenames for the summary record; the "file" detail
@@ -316,7 +335,7 @@ void results::summary( const RepGameState &state ) {
     std::string shots = "[";
     for ( size_t i = 0; i < g_shots.size( ); i++ ) {
         shots += i == 0 ? "\"" : ",\"";
-        shots += jescape( g_shots[ i ].c_str( ) );
+        shots += json_escape( g_shots[ i ].c_str( ) );
         shots += "\"";
     }
     shots += "]";

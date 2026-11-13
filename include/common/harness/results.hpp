@@ -24,6 +24,9 @@ std::string format_summary( long ticks, const char *exit_reason, int asserts_tot
 // object for a metric's "light" member. Keys after "| us:" are prefixed
 // "us_" (they collide with the counter names); numeric values stay numbers.
 std::string light_json_from_dbg( const char *dbg );
+// JSON string-body escaping (quotes, backslashes, control chars; nullptr →
+// ""). Use for any free text spliced into an event() detail fragment.
+std::string json_escape( const char *s );
 
 bool active( );
 // Whether a metric record is due this tick (REPGAME_RESULTS_EVERY cadence).

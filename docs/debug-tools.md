@@ -405,14 +405,17 @@ headers read by rep-dbg, not the game:
 - `#! env K=V` — extra env var (repeatable)
 - `#! timeout S` — run timeout
 
-Commands (coordinates are whitespace-separated ints unless noted):
+Commands (coordinates are whitespace-separated ints unless noted; every
+numeric arg must be a whole numeric token — `1O`, `3.5` for an int, `x` or
+`nan` fail the line with `cmd_error` instead of reading as 0). Lines have
+no length limit:
 
 | Command | Effect |
 | --- | --- |
 | `wait <ticks>` | block for n ticks |
 | `wait_idle [streak=20] [timeout=6000]` | block until the chunk loader is idle `streak` ticks in a row; on timeout emits `wait_timeout` + a failed assert, then continues |
 | `camera x y z yaw pitch` / `release` | pin / unpin the camera (floats; same path as a capture view) |
-| `screenshot <name>` | block until the frame is drawn; writes `screenshots/script_<name>_display.tga` (→ PNG + `artifacts.screenshots`) and emits a `screenshot` event |
+| `screenshot <name>` | block until the frame is drawn; writes `screenshots/script_<name>_display.tga` (→ PNG + `artifacts.screenshots`) and emits a `screenshot` event. `name` is `[A-Za-z0-9_-]+`; if no frame draws within `30 * UPS_RATE` ticks it emits `wait_timeout` + a failed assert, then continues |
 | `quality low|medium|high|x_high`, `flags <u_DebugFlags int>`, `rd <n>` | same mechanisms as the capture views |
 | `time <ticks>`, `mode survival|creative`, `peaceful on|off`, `fly on|off` | world time / game mode / hostile-mob targeting / `input.player_flying` (flat worlds spawn flying) |
 | `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells |

@@ -14,6 +14,10 @@ namespace script {
 // Pure helpers covered by rep_tests.
 std::vector<std::string> tokenize( const std::string &line );
 bool eval_cmp( const char *op, double actual, double expected );
+// Whole-token numeric args: false on empty, trailing junk, overflow or (for
+// doubles) non-finite values — exec_line turns that into a cmd_error.
+bool parse_long( const std::string &tok, long *out );
+bool parse_double( const std::string &tok, double *out );
 
 // Per-tick driver, called from RepGame::tick (no-op without REPGAME_SCRIPT).
 // loader is passed in because World::chunkLoader is RepGame-private.
