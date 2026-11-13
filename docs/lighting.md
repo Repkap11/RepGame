@@ -39,12 +39,12 @@ diagonals need an open shared-face path (no corner leaks), and a light
 floor seals its vertical adjacencies. Maxed channels stay maxed so
 emitters and sun shafts aren't dimmed. Dirty sub-box uploads grow by
 the 1-cell footprint. This is the pause-menu "Shadows" setting
-(`input.shadow_quality` — `SHADOW_SMOOTH`/`SHADOW_FAST`, persisted in
+(`input.shadow_quality` — `SHADOW_SMOOTHER`/`SHADOW_SMOOTH`, persisted in
 player.dat; toggling re-uploads every live texture via
 `ChunkLoader::light_shadow_refresh_all`). `REPGAME_LIGHT_SMOOTH=0|1`
 forces the mode and ignores the menu.
 
-Under "Smooth" the blur only runs on chunks within
+Under "Smoother" the blur only runs on chunks within
 `REPGAME_LIGHT_SMOOTH_RADIUS` chunks of the camera
 (`light_smooth_in_radius`); farther chunks upload the raw field —
 the smoothing delta is sub-perceptual at that distance and streamed-in
@@ -195,7 +195,7 @@ full-sky stand-in (`light_fallback_texture`) instead of a neighbor's
 volume.
 
 The smoothed presentation fill is ~25x the raw expand per texel, so under
-"Smooth" it runs on the light workers instead of synchronously in the
+"Smoother" it runs on the light workers instead of synchronously in the
 upload pass (render-thread `upl` was the dominant hitch): the pop loop
 claims the chunk (`light.stage_state` IDLE→BUSY) and queues it, a worker
 exchanges the dirty box, fills a pooled buffer

@@ -177,7 +177,7 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.input.no_clip = saved_data.no_clip;
         globalGameState.input.worldDrawQuality = world_draw_quality_step( WorldDrawQuality::LOW, saved_data.worldDrawQuality );
         globalGameState.input.shadow_quality = static_cast<ShadowQuality>( saved_data.shadow_quality );
-        light_shadow_smooth_set( globalGameState.input.shadow_quality == SHADOW_SMOOTH );
+        light_shadow_smooth_set( globalGameState.input.shadow_quality == SHADOW_SMOOTHER );
         globalGameState.hotbar.applySavedInventory( saved_data.hotbar_inventory );
         globalGameState.hotbar.setSelectedSlot( saved_data.selected_hotbar_slot );
         globalGameState.game_mode = saved_data.game_mode;

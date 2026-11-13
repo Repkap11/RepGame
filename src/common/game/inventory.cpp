@@ -1271,8 +1271,8 @@ void RepGame::process_inventory_events( ) {
                 case PauseMenu::BUTTON_SHADOW:
                     // Rebuild every live light texture under the new upload
                     // mode; the canonical light field is untouched.
-                    globalGameState.input.shadow_quality = globalGameState.input.shadow_quality == SHADOW_SMOOTH ? SHADOW_FAST : SHADOW_SMOOTH;
-                    light_shadow_smooth_set( globalGameState.input.shadow_quality == SHADOW_SMOOTH );
+                    globalGameState.input.shadow_quality = globalGameState.input.shadow_quality == SHADOW_SMOOTHER ? SHADOW_SMOOTH : SHADOW_SMOOTHER;
+                    light_shadow_smooth_set( globalGameState.input.shadow_quality == SHADOW_SMOOTHER );
                     globalGameState.world.chunkLoader.light_shadow_refresh_all( );
                     break;
                 case PauseMenu::BUTTON_RENDER_MINUS:

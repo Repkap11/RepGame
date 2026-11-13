@@ -5,10 +5,10 @@
 #include "common/RepGameSDL2.hpp" // SDL_Keycode (keysInput)
 #endif
 
-// The "Shadows" pause-menu setting: FAST uploads the raw chamfer light
-// field; SMOOTH applies the air-gated 3x3x3 upload-time blur (light.cpp).
+// The "Shadows" pause-menu setting: SMOOTH uploads the raw chamfer light
+// field; SMOOTHER applies the air-gated 3x3x3 upload-time blur (light.cpp).
 // REPGAME_LIGHT_SMOOTH overrides it when set.
-enum ShadowQuality { SHADOW_FAST = 0, SHADOW_SMOOTH = 1, SHADOW_QUALITY_LAST };
+enum ShadowQuality { SHADOW_SMOOTH = 0, SHADOW_SMOOTHER = 1, SHADOW_QUALITY_LAST };
 
 class Input {
     void processMovement( );
@@ -67,7 +67,7 @@ class Input {
     bool player_sprinting;
     bool no_clip;
     WorldDrawQuality worldDrawQuality;
-    ShadowQuality shadow_quality = SHADOW_SMOOTH;
+    ShadowQuality shadow_quality = SHADOW_SMOOTHER;
     // Active horizontal render distance in chunks [1, RENDER_RADIUS_MAX];
     // adjusted live with =/- (numpad +/- too), applied to ChunkLoader each
     // frame. CHUNK_RADIUS_* remains the compiled-in torus capacity.

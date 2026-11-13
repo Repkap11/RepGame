@@ -42,7 +42,7 @@ the index, not the reference.
 | `REPGAME_LIGHT_CLAIM_RADIUS` | 1 | all | `1..4`: Chebyshev claim-conflict radius between light-job center columns | docs/rendering.md |
 | `REPGAME_LIGHT_MIPMAPS` | 1 | all | `0`/`1`: mipmapped light volume vs flat RG8 volume | docs/rendering.md |
 | `REPGAME_LIGHT_SMOOTH` | unset | all | `0`/`1`: force the Shadows quality mode (overrides the pause-menu setting) | docs/lighting.md |
-| `REPGAME_LIGHT_SMOOTH_RADIUS` | 5 | all | chunk radius around the camera that gets upload smoothing under "Shadows: Smooth"; outside it textures upload the raw field | docs/lighting.md |
+| `REPGAME_LIGHT_SMOOTH_RADIUS` | 5 | all | chunk radius around the camera that gets upload smoothing under "Shadows: Smoother"; outside it textures upload the raw field | docs/lighting.md |
 | `REPGAME_LIGHT_VERIFY` | 0 | desktop | `1`: in fly mode, verify the light field, halo mirrors and uploaded textures at settle and after the post-flight hover drains; `2`: hover check only (the settle check stalls the main loop for seconds and skews flight timing); logs mismatches | docs/lighting.md |
 | `REPGAME_LIGHT_WORKERS` | 4 | all | `1..8`: light worker pool size | docs/rendering.md |
 | `REPGAME_MIN_AMBIENT` | 0.05 | all | absolute light floor 0..1 (caves not pure black); overrides the `player.dat` value set by the pause-menu Cave Brightness row | docs/rendering.md |

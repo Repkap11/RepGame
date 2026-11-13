@@ -77,7 +77,7 @@ const char *PauseMenu::worst_label( const int button, const bool dead, char *buf
         case BUTTON_GRAPHICS:
             return "Graphics: X_HIGH";
         case BUTTON_SHADOW:
-            return "Shadows: Smooth (env)";
+            return "Shadows: Smoother (env)";
         case BUTTON_RENDER_ROW:
             snprintf( buf, buf_size, "Render Distance: %d", RENDER_RADIUS_MAX );
             return buf;
@@ -195,7 +195,7 @@ static void button_label( const int button, const bool dead, const RepGameState 
             snprintf( buf, buf_size, "Graphics: %s", quality_names[ state.input.worldDrawQuality ] );
             break;
         case PauseMenu::BUTTON_SHADOW:
-            snprintf( buf, buf_size, "Shadows: %s%s", light_shadow_smooth( ) ? "Smooth" : "Fast",
+            snprintf( buf, buf_size, "Shadows: %s%s", light_shadow_smooth( ) ? "Smoother" : "Smooth",
                       light_shadow_smooth_forced( ) ? " (env)" : "" );
             break;
         case PauseMenu::BUTTON_RENDER_RESET:

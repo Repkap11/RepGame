@@ -31,7 +31,7 @@ struct PlayerData {
     bool flying = false;
     bool no_clip = false;
     int worldDrawQuality = 0;
-    // ShadowQuality (input.hpp) — 0 SHADOW_FAST, 1 SHADOW_SMOOTH (default;
+    // ShadowQuality (input.hpp) — 0 SHADOW_SMOOTH, 1 SHADOW_SMOOTHER (default;
     // absent in old saves).
     int shadow_quality = 1;
     InventorySlot hotbar_inventory[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
