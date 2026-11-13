@@ -50,7 +50,7 @@ struct PlayerData {
     float health = -1.0f;
     // Requested multiplayer display name (the server-accepted spelling is
     // never persisted). Absent in old saves -> empty, init falls back to
-    // $USER/"Player".
+    // "Player".
     std::string name;
     // Bed respawn point (docs/player.md). Absent in old saves -> spawn at
     // the world-spawn column.

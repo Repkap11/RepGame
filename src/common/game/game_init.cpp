@@ -216,31 +216,14 @@ void RepGame::initializeGameState( const char *world_name ) {
             }
         }
     }
-    // Display name precedence: REPGAME_PLAYER_NAME > saved name > the OS
-    // user > "Player". Candidates are sanitized (chat name charset); an
-    // env/save value that sanitizes to empty falls through. The persisted
-    // value stays the *requested* name — a server-deduped spelling is
-    // never written back.
+    // Display name precedence: saved player.dat name > "Player" (the
+    // server dedupes collisions into Player_2, ...). Candidates are
+    // sanitized (chat name charset); a save value that sanitizes to empty
+    // falls through. The persisted value stays the *requested* name — a
+    // server-deduped spelling is never written back.
     {
-        std::string name;
-        if ( const char *env = env_get( "REPGAME_PLAYER_NAME" ) ) {
-            name = env;
-            chat_sanitize_name( name );
-        }
-        if ( name.empty( ) ) {
-            name = saved_data.name;
-            chat_sanitize_name( name );
-        }
-        if ( name.empty( ) ) {
-            const char *user = env_get( "USER" );
-            if ( user == nullptr ) {
-                user = env_get( "USERNAME" );
-            }
-            if ( user != nullptr ) {
-                name = user;
-                chat_sanitize_name( name );
-            }
-        }
+        std::string name = saved_data.name;
+        chat_sanitize_name( name );
         if ( name.empty( ) ) {
             name = "Player";
         }

@@ -49,10 +49,10 @@ existing names to a new joiner, and broadcasts joins/renames/leaves as
 SYSTEM lines. The server keeps no history. Full wire detail:
 `docs/multiplayer.md` "Chat".
 
-The local display name resolves at init: `REPGAME_PLAYER_NAME` >
-`player.dat`'s `name` > `$USER`/`$USERNAME` > `Player` — each
-sanitized; `/name` sets it live and it persists on exit (the requested
-name, never the server-deduped one). See `docs/persistence.md`.
+The local display name resolves at init: `player.dat`'s `name` >
+`Player` — sanitized; `/name` sets it live and it persists on exit (the
+requested name, never the server-deduped one). See
+`docs/persistence.md`.
 
 ## Commands
 

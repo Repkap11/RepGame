@@ -243,9 +243,8 @@ the death screen and loads as a fresh spawn (health restored to max,
 breath, hurt cooldown, dead, fall distance — are not saved.
 
 `name` is the requested multiplayer display name (`docs/chat.md`):
-written only when non-empty, absent means the init fallback chain
-(`REPGAME_PLAYER_NAME` > saved > `$USER`/`$USERNAME` > `Player`) keeps
-going. The saved value is the name the player asked for — the server's
+written only when non-empty, absent means init defaults to `Player`.
+The saved value is the name the player asked for — the server's
 deduped form is never persisted.
 
 `spawn` is the bed respawn point set by `repgame_try_sleep`

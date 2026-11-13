@@ -70,7 +70,6 @@ the index, not the reference.
 | `REPGAME_NO_WEBGPU_MESH` | unset | WASM | disables the WebGPU mesh half of the backend | docs/rendering.md |
 | `REPGAME_OCCLUSION` | 1 | all | `0` disables the hardware occlusion-culling probe pass | docs/rendering.md |
 | `REPGAME_PORT` | 25566 | all | server port override (read in `RepGame::init` when a hostname is given) | mp-test skill |
-| `REPGAME_PLAYER_NAME` | unset | client | multiplayer display name; overrides `player.dat`'s `name` (sanitized, `CHAT_NAME_MAX`) | docs/chat.md |
 | `REPGAME_RENDER_DISTANCE` | `RENDER_RADIUS_DEFAULT` | all | initial horizontal render distance in chunks (`1..RENDER_RADIUS_MAX`); overrides the `player.dat` value | docs/rendering.md |
 | `REPGAME_PROFILE` | 0 | all | `1` enables the `PROFILE_SCOPE` per-tick timers; each metric record gains a `"prof"` block (`src/common/utils/profile.cpp`) | docs/debug-tools.md |
 | `REPGAME_RESULTS` | unset | all | JSONL event-stream path (header/metric/event/probe/assert/summary records); presence enables the results writer | docs/debug-tools.md |
