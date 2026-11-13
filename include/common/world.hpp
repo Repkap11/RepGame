@@ -11,6 +11,7 @@ struct RepGameState;
 #include "common/arrows.hpp"
 #include "common/block_bodies.hpp"
 #include "common/item_entities.hpp"
+#include "common/minecarts.hpp"
 #include "common/mobs.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 #include "common/world_text.hpp"
@@ -185,6 +186,9 @@ class World {
     // Arrow projectiles: causer-simulated like bodies, ticked right after
     // items; rendered as velocity-aligned extruded sprites.
     ArrowEntities arrows;
+    // Minecarts: local rail-following entities, ticked right after bodies;
+    // rendered as model cubes through the mob shader/texture.
+    Minecarts carts;
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );

@@ -1,0 +1,82 @@
+# Rail staging: straight/curve/slope shapes auto-resolved by neighbour
+# updates, plus powered and unpowered golden rails. Flat floor is
+# SANDSTONE at y=0; AIR starts at y=1. Rails resolve through the
+# block-update queue, so a `wait` after the setblocks settles shapes.
+wait_idle 20 6000
+# Straights: an E-W run at z=4 and an N-S run at x=0.
+setblock -4 1 4 RAIL
+setblock -3 1 4 RAIL
+setblock -2 1 4 RAIL
+setblock 0 1 3 RAIL
+setblock 0 1 4 RAIL
+setblock 0 1 5 RAIL
+# Curves (each connects the named two arms): SE at x=-4, SW at x=0,
+# NW at x=4, NE at x=8 — spaced so clusters never touch.
+setblock -4 1 11 RAIL
+setblock -4 1 12 RAIL
+setblock -3 1 11 RAIL
+setblock 0 1 11 RAIL
+setblock 0 1 12 RAIL
+setblock -1 1 11 RAIL
+setblock 4 1 11 RAIL
+setblock 4 1 10 RAIL
+setblock 3 1 11 RAIL
+setblock 8 1 11 RAIL
+setblock 8 1 10 RAIL
+setblock 9 1 11 RAIL
+# Slopes: a plain rail beside a stone step climbs to the rail on top —
+# one per uphill direction (E, W, N, S). The steps land first because
+# same-tick events run in heap order, not script order: a rail placed in
+# the same tick as its support can see the cell below still empty.
+setblock -7 1 17 RAIL
+setblock -6 1 17 STONE
+setblock -1 1 17 RAIL
+setblock -2 1 17 STONE
+setblock 3 1 18 RAIL
+setblock 3 1 17 STONE
+setblock 7 1 17 RAIL
+setblock 7 1 18 STONE
+wait 10
+setblock -6 2 17 RAIL
+setblock -2 2 17 RAIL
+setblock 3 2 17 RAIL
+setblock 7 2 18 RAIL
+# Golden rails: powered chain (redstone block activates the head, power
+# chains down the track) and an unpowered run beside it.
+setblock 11 1 4 REDSTONE_BLOCK
+setblock 12 1 4 GOLDEN_RAIL
+setblock 13 1 4 GOLDEN_RAIL
+setblock 14 1 4 GOLDEN_RAIL
+setblock 16 1 4 GOLDEN_RAIL
+setblock 17 1 4 GOLDEN_RAIL
+wait 40
+assert_block -3 1 4 RAIL
+assert_block 0 1 4 RAIL
+assert_block -4 1 11 RAIL
+assert_block 0 1 11 RAIL
+assert_block 4 1 11 RAIL
+assert_block 8 1 11 RAIL
+assert_block -7 1 17 RAIL
+assert_block -6 2 17 RAIL
+assert_block -1 1 17 RAIL
+assert_block 3 1 18 RAIL
+assert_block 7 1 17 RAIL
+assert_block 13 1 4 GOLDEN_RAIL
+assert_block 16 1 4 GOLDEN_RAIL
+# Overview: straights and golden rails from the +z side.
+camera 0.5 8 12 0 35
+wait 20
+screenshot overview
+# Curves row straight on from +z (yaw 0 looks -z).
+camera 2.5 5 16 0 30
+wait 20
+screenshot curves
+# Slopes row from +z: the four ramps should climb toward their steps.
+camera 0.0 5 22 0 25
+wait 20
+screenshot slopes
+# Golden rails: powered run (left, lit) vs unpowered (right, dark).
+camera 13.5 4 9 0 30
+wait 20
+screenshot golden
+echo rails done

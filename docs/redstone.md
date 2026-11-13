@@ -163,6 +163,17 @@ The body physics, blast and multiplayer rules are in
 non-colliding cell — the delay lets a quick support restore win. Sim and
 sync: `docs/entities.md`.
 
+**Golden rails** (`GOLDEN_RAIL`) are mechanisms that also power down the
+track: with no direct activation (the `block_neighbor_power` scan every
+mechanism runs), `perform_checks` sets power 1 when
+`golden_rail_chain_powered` (`src/common/rail.cpp`) finds a directly
+activated golden rail within 8 connected hops — a BFS that follows shape
+endpoints, slope rises included, and reads only direct activation
+(`mechanism_direct_power`), never stored rail power, so a powered loop
+can't hold itself on. Powered rails swap their top tile to
+`rail_golden_powered` in `block_adjust_coord_based_on_state` (same trick
+as the lit lamp). Shape/track rules are in `docs/blocks.md`.
+
 ## Other event behaviours
 
 `perform_checks` also drives non-redstone reactions: **leaf decay**

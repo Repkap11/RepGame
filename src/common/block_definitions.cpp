@@ -57,6 +57,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->door_redstone_only = false;
         block->door_partner = LAST_BLOCK_ID;
         block->is_tall_plant_upper = false;
+        block->is_rail = false;
         block->tall_plant_partner = LAST_BLOCK_ID;
         block->is_bed_head = false;
         block->bed_partner = LAST_BLOCK_ID;
@@ -156,7 +157,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         }
         // The spine shell is emitted per cell — merging the core into a
         // multi-cell rect instance would give it the wrong boundary faces.
-        if ( block->spine_shell ) {
+        // Rails are the same: every cell has its own shape (rotation +
+        // display_id) and ascending cells carry the slope flag, so a merged
+        // run instance can never stand in for them.
+        if ( block->spine_shell || block->is_rail ) {
             block->calculated.can_mesh_x = false;
             block->calculated.can_mesh_y = false;
             block->calculated.can_mesh_z = false;

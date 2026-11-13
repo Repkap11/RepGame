@@ -36,6 +36,15 @@ struct CameraState {
     // Render-only smoothed eye height so the camera glides down/up over a
     // few ticks on pose changes instead of snapping.
     double eye_height_render = PLAYER_EYE_HEIGHT;
+    // Riding a minecart: the cart id (0 = not riding). While set,
+    // process_movement skips all body physics — the seat position comes
+    // from the cart's follow pass and rider_push carries the W/S intent
+    // fed to the cart tick.
+    uint32_t riding_cart = 0;
+    glm::dvec2 rider_push;
+    // Sneak dismount edge: set once sneak has been released after
+    // mounting, so a sneak held through the mount click doesn't eject.
+    int ride_sneak_seen_up = 0;
     glm::dvec3 prev_pos;
     double prev_eye_height = PLAYER_EYE_HEIGHT;
     float prev_angle_H;
@@ -97,6 +106,10 @@ struct BlockSelection {
     // outline (or place/pick) happens through the mob.
     int target_mob;
     double target_mob_dist;
+    // Same for a minecart under the crosshair: the cart raycast winner
+    // when nearer than the selected block (and than target_mob), else -1.
+    int target_cart;
+    double target_cart_dist;
 };
 
 // Survival-mode mining: while the left button is held on the same block,

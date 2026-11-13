@@ -1,0 +1,98 @@
+# Minecart riding: a loop with powered golden straights, an ascending
+# slope and corners. The player mounts with `ride`, screenshots come
+# from the seat (no camera pin), then `dismount` drops the player back
+# on the track side. Flat floor is SANDSTONE at y=0; AIR at y=1.
+wait_idle 20 6000
+# Upper-track supports.
+fill 8 1 4 8 1 8 STONE
+fill 0 1 8 7 1 8 STONE
+setblock 0 1 7 STONE
+wait 10
+# Upper track y=2: slope lands at (8,2,4), powered run south to the NW
+# corner (8,2,8), powered run west to the NE corner (0,2,8), then down
+# through (0,2,7) onto the (0,1,6) ASC_S rail.
+setblock 8 2 4 GOLDEN_RAIL
+setblock 8 2 5 GOLDEN_RAIL
+setblock 8 2 6 GOLDEN_RAIL
+setblock 8 2 7 GOLDEN_RAIL
+setblock 8 2 8 RAIL
+setblock 7 2 8 GOLDEN_RAIL
+setblock 6 2 8 GOLDEN_RAIL
+setblock 5 2 8 GOLDEN_RAIL
+setblock 4 2 8 GOLDEN_RAIL
+setblock 3 2 8 GOLDEN_RAIL
+setblock 2 2 8 GOLDEN_RAIL
+setblock 1 2 8 GOLDEN_RAIL
+setblock 0 2 8 RAIL
+setblock 0 2 7 RAIL
+# Descent + lower return leg (powered) and the NE corner at (0,1,0).
+setblock 0 1 6 RAIL
+setblock 0 1 5 GOLDEN_RAIL
+setblock 0 1 4 GOLDEN_RAIL
+setblock 0 1 3 GOLDEN_RAIL
+setblock 0 1 2 GOLDEN_RAIL
+setblock 0 1 1 GOLDEN_RAIL
+setblock 0 1 0 RAIL
+# Powered launch straight along z=0 eastbound, the SW corner at (8,1,0)
+# and the powered run south to the slope at (8,1,3).
+setblock 1 1 0 GOLDEN_RAIL
+setblock 2 1 0 GOLDEN_RAIL
+setblock 3 1 0 GOLDEN_RAIL
+setblock 4 1 0 GOLDEN_RAIL
+setblock 5 1 0 GOLDEN_RAIL
+setblock 6 1 0 GOLDEN_RAIL
+setblock 7 1 0 GOLDEN_RAIL
+setblock 8 1 0 RAIL
+setblock 8 1 1 GOLDEN_RAIL
+setblock 8 1 2 GOLDEN_RAIL
+setblock 8 1 3 RAIL
+# Redstone power: every powered leg has a source within 8 chain hops.
+setblock 1 1 1 REDSTONE_BLOCK
+setblock 7 1 1 REDSTONE_BLOCK
+setblock 9 1 2 REDSTONE_BLOCK
+setblock 7 2 4 REDSTONE_BLOCK
+setblock 7 2 7 REDSTONE_BLOCK
+setblock 7 2 9 REDSTONE_BLOCK
+setblock 1 2 9 REDSTONE_BLOCK
+setblock 1 1 3 REDSTONE_BLOCK
+setblock 1 1 5 REDSTONE_BLOCK
+wait 40
+assert_block 4 1 0 GOLDEN_RAIL
+assert_block 8 2 8 RAIL
+assert_block 0 1 6 RAIL
+assert_block 0 2 8 RAIL
+# Put the player beside the track and spawn the cart next to them.
+goto 1.4 2.62 1.8
+cart 1.5 1.1 0.5 0.05 0
+wait 10
+ride
+wait 10
+ride_state
+# Riding on the powered straight. The camera pin steers the seat view
+# (the pin applies before the ride follow, so its position is replaced
+# by the seat each tick — only yaw/pitch stick). Look +x, pitched down
+# enough that the rails crossing under the cart stay in frame.
+camera 0 0 0 90 15
+wait 30
+screenshot ride_flat
+ride_state
+# The cart climbs the slope around z=4 ~90 ticks later; look south.
+camera 0 0 0 180 10
+wait 115
+screenshot ride_slope
+carts
+ride_state
+# Upper west run, looking west, then dismount.
+camera 0 0 0 -90 10
+wait 135
+screenshot ride_upper
+release
+dismount
+wait 10
+ride_state
+carts
+# Standing shot of the track after dismount.
+camera 4.5 4.0 -2.0 0 25
+wait 20
+screenshot ride_standing
+echo minecart_ride done

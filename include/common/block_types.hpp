@@ -230,6 +230,16 @@ typedef struct {
     // neighbour-update survive check.
     bool is_tall_plant_upper;
     BlockID tall_plant_partner;
+    // Rails (RAIL, GOLDEN_RAIL, and the render-only RAIL_CORNER display
+    // block): a 1px plate that auto-connects to neighbouring rails. The
+    // 10-shape vocabulary (2 straight, 4 ascending, 4 curves — see
+    // common/rail.hpp) lives in BlockState::rotation plus display_id:
+    // shapes 0-5 keep display_id == id with rotation = shape; the four
+    // curves (plain RAIL only) show through display_id == RAIL_CORNER with
+    // rotation = shape - 6, so block_yaw masks the rotation to 0 for
+    // single-box consumers. Golden rails also carry redstone mechanism
+    // power for cart boosting.
+    bool is_rail;
     // Leaf variant pairing, like the partner fields above: natural
     // (generator-grown) leaves point at their player-placed twin via
     // persistent_variant; the persistent twin points back via

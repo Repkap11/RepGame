@@ -67,10 +67,10 @@ const BlockState &cell_at( const BlockState *cells, const glm::ivec3 &local ) {
 }
 
 struct DirScan {
-    std::vector<glm::ivec3> chests, mobs, items;
+    std::vector<glm::ivec3> chests, mobs, items, carts;
 };
 
-// Find {chest,mobs,items}_<cx>_<cy>_<cz> files under dir.
+// Find {chest,mobs,items,carts}_<cx>_<cy>_<cz> files under dir.
 DirScan scan_entity_files( const char *dir ) {
     DirScan out;
     DIR *d = opendir( dir );
@@ -86,6 +86,8 @@ DirScan scan_entity_files( const char *dir ) {
             out.mobs.emplace_back( a, b, c );
         } else if ( sscanf( e->d_name, "items_%d_%d_%d", &a, &b, &c ) == 3 ) {
             out.items.emplace_back( a, b, c );
+        } else if ( sscanf( e->d_name, "carts_%d_%d_%d", &a, &b, &c ) == 3 ) {
+            out.carts.emplace_back( a, b, c );
         }
     }
     closedir( d );
@@ -376,6 +378,18 @@ inspect::Result inspect::entities( const char *dir, const double *near, const do
                   jf( "item %s x%d (%.1f,%.1f,%.1f)", item_name( it.item ), it.count, it.x, it.y, it.z ) );
         }
     }
+    for ( const glm::ivec3 &off : scan.carts ) {
+        std::vector<CartFileRecord> recs;
+        ms.load_carts( off, recs );
+        for ( const CartFileRecord &c : recs ) {
+            if ( !within( c.x, c.y, c.z ) ) {
+                continue;
+            }
+            emit( "cart", jf( "\"pos\":[%.3f,%.3f,%.3f],\"vel\":[%.3f,%.3f,%.3f],\"yaw\":%.1f",
+                              c.x, c.y, c.z, c.vx, c.vy, c.vz, c.yaw ),
+                  jf( "cart (%.1f,%.1f,%.1f) v=(%.2f,%.2f,%.2f) yaw=%.1f", c.x, c.y, c.z, c.vx, c.vy, c.vz, c.yaw ) );
+        }
+    }
     r.json = jf( "{\"entities\":[%s]}", list_json.c_str( ) );
     r.human = list_text.empty() ? std::string( "no saved entities\n" ) : "entities:\n" + list_text;
     return r;
@@ -440,7 +454,7 @@ void usage( ) {
              "  slice y x1 z1 x2 z2 [--png out.png]  horizontal layer, ASCII grid + legend (max 256x256)\n"
              "  column x z [--y0 a --y1 b]           vertical column, run-length encoded\n"
              "  chunk cx cy cz                       file size + per-block counts (top 20)\n"
-             "  entities [--near x y z --radius r]   chests, mobs, items from save files\n"
+             "  entities [--near x y z --radius r]   chests, mobs, items, carts from save files\n"
              "  player                               player.dat + world.dat + world_type\n"
              "  --json prints exactly one JSON object. Light is not persisted; use\n"
              "  `probe_light` in a rep-dbg script to inspect light in a live world.\n" );

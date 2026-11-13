@@ -17,6 +17,7 @@
 #include "common/utils/map_storage.hpp"
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/structure_gen.hpp"
+#include "common/rail.hpp"
 #if defined( REPGAME_BUILD_WITH_HIP )
 #include "linux/hip/mesh_gen.hpp"
 #endif
@@ -360,6 +361,8 @@ void Chunk::release_terrain( ) {
     this->sidecars.player_edited = 0;
     this->sidecars.items.clear( );
     this->sidecars.items_file_present = 0;
+    this->sidecars.carts.clear( );
+    this->sidecars.carts_file_present = 0;
     // Every owned buffer was dropped — invalidate any async mesh snapshot
     // taken before this release.
     this->cell_version.fetch_add( 1u, std::memory_order_relaxed );
@@ -1103,6 +1106,8 @@ apply_edits:
     this->sidecars.mobs_removed.clear( );
     this->sidecars.items.clear( );
     this->sidecars.items_file_present = 0;
+    this->sidecars.carts.clear( );
+    this->sidecars.carts_file_present = 0;
     this->sidecars.player_edited = this->edited != nullptr ? 1 : 0;
     if ( !no_mobs ) {
         this->sidecars.mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->sidecars.mobs, &this->sidecars.mobs_removed ) ? 1 : 0;
@@ -1116,6 +1121,8 @@ apply_edits:
         // Dropped items follow the same test-mode rules as mobs: no file
         // reads (or writes) under REPGAME_MOBS=0 / REPGAME_MOB_TEST.
         this->sidecars.items_file_present = map_storage.load_items( this->chunk_pos, this->sidecars.items ) ? 1 : 0;
+        // Minecarts follow the same test-mode rules.
+        this->sidecars.carts_file_present = map_storage.load_carts( this->chunk_pos, this->sidecars.carts ) ? 1 : 0;
     }
     // Flood-fill emitters + column_open flags on the worker. Skylight is
     // resolved on the lighting thread by ChunkLoader::light_finalize_chunk.
@@ -1738,6 +1745,15 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                         blockCoord->mesh_y = size_y;
                         blockCoord->mesh_z = size_z;
                         blockCoord->face_shift = block_yaw( block, blockState.rotation );
+                        if ( block->is_rail ) {
+                            // The rail's rotation is its shape, not a yaw:
+                            // rail_render_yaw turns the straight/turned
+                            // tile onto the track, and ascending cells flag
+                            // the vertex shader to raise the uphill end.
+                            const RailShape rail_shape = rail_shape_of( blockState );
+                            blockCoord->face_shift = rail_render_yaw( rail_shape ) |
+                                                     ( rail_is_ascending( rail_shape ) ? BLOCK_COORDS_SLOPE : 0u );
+                        }
                         blockCoord->scale_x = block->scale.x;
                         blockCoord->scale_y = block->scale.y;
                         blockCoord->scale_z = block->scale.z;
@@ -2273,7 +2289,7 @@ void Chunk::program_terrain( ) {
                 for ( int i = 0; i < renderLayer.num_instances && reported < 40; i++ ) {
                     const BlockCoords &b = renderLayer.populated_blocks[ i ];
                     int bad = b.mesh_x < 1 || b.mesh_x > 32 || b.mesh_y < 1 || b.mesh_y > 32 || b.mesh_z < 1 || b.mesh_z > 32;
-                    bad |= ( b.face_shift & BLOCK_COORDS_ROTATION_MASK ) > 7u || ( b.face_shift & ~( BLOCK_COORDS_ROTATION_MASK | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL | BLOCK_COORDS_FLUID ) ) != 0;
+                    bad |= ( b.face_shift & BLOCK_COORDS_ROTATION_MASK ) > 7u || ( b.face_shift & ~( BLOCK_COORDS_ROTATION_MASK | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL | BLOCK_COORDS_FLUID | BLOCK_COORDS_SLOPE ) ) != 0;
                     bad |= ( b.x < ox - 1.0f ) || ( b.x > ox + CHUNK_SIZE_X + 1.0f );
                     bad |= ( b.y < oy - 1.0f ) || ( b.y > oy + CHUNK_SIZE_Y + 1.0f );
                     bad |= ( b.z < oz - 1.0f ) || ( b.z > oz + CHUNK_SIZE_Z + 1.0f );

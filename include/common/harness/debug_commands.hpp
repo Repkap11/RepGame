@@ -31,6 +31,10 @@ bool loader_idle( const ChunkLoader &loader );
 void goto_( RepGameState &state, const glm::dvec3 &pos );
 bool drop( RepGameState &state, const char *item, int count, const glm::dvec3 &pos, const glm::dvec3 &vel, std::string *err );
 bool mob( RepGameState &state, const char *type, const glm::dvec3 &pos, std::string *err );
+bool cart( RepGameState &state, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, std::string *err );
+// Mount the nearest cart within `max_dist` of the player, or dismount.
+bool ride( RepGameState &state, double max_dist, std::string *err );
+bool dismount( RepGameState &state, std::string *err );
 bool hit( RepGameState &state, unsigned long long net_id, std::string *err );
 // Right-click feed on the mob nearest `pos` (empty `item` picks the type's
 // first breed food); mirrors route through ENTITY_ACTION/NET_ACTION_FEED.

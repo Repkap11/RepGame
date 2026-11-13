@@ -135,6 +135,73 @@ disconnect hands the sim to the arrow's chunk owner via ENTITY_TRANSFER
 adopt=1, and arrows in uncovered chunks are dropped rather than
 persisted. Remote mob hits still go through ENTITY_ACTION.
 
+## Minecarts
+
+`Minecarts` (`include/common/minecarts.hpp`, `src/common/minecarts.cpp`,
+owned by `World` as `world.carts`) is the rail-cart sim — a headless CPU
+tick in the same shape as `ItemEntities`/`BlockBodies` (`MAX_CARTS` = 128;
+frozen in capture mode and while the cart's chunk isn't `CHUNK_LIVE`).
+Carts spawn via right-clicking a rail while holding `MINECART`
+(`spawn_on_rail` centres on the cell and faces the rail axis nearest the
+look yaw) or via the `cart` script command. `MAX_CART` carts are single
+player only: `spawn` returns 0 in multiplayer and no cart persistence
+runs while `multiplayer_mode()` is on.
+
+Rail following projects the cart onto a per-cell path — the straight
+segment between the shape's two `rail_endpoints` edge midpoints (the
+ascending end sits a block up; a curve is the diagonal between its two
+edge mids, like MC). Signed speed `s` along the path gets, per tick
+(constants are MC 20-TPS values converted to `UPS_RATE`, all named in
+`minecarts.cpp`): downhill gravity `CART_SLOPE_ACCEL`, powered
+`GOLDEN_RAIL` boost `CART_GOLDEN_BOOST` toward `CART_MAX_SPEED` (8 b/s),
+a `CART_LAUNCH_KICK` off a rest cart whose powered-rail end faces a solid
+block, unpowered-golden `CART_GOLDEN_BRAKE`/`CART_GOLDEN_SNAP`, friction
+`CART_FRICTION_RIDDEN`/`CART_FRICTION_EMPTY`, rider push
+`CART_PUSH_ACCEL` capped at `CART_PUSH_MAX` (fed by
+`CartTickInput::rider_*` while the player rides — see below), and
+`CART_PLAYER_PUSH` when
+the player's box overlaps an empty cart. Passing an endpoint steps into
+the next rail cell (same level, one up when the exit end climbs, or one
+down onto a rail ascending back); a solid next cell stops the cart at
+the endpoint and no rail at all derails it — derailed carts run gravity/
+drag through `Collision::move_box` and re-snap onto any rail their
+bottom-centre enters. `raycast` picks carts for clicks; overlapping
+carts separate and swap along-rail speeds (equal mass).
+
+Left-click a cart: creative removes it (no drop); survival accumulates
+`CART_DAMAGE_PER_HIT` that decays (`CART_DAMAGE_DECAY`) so three quick
+hits break it into a dropped `MINECART` item — `hurt_ticks` drives the
+render wobble.
+
+Riding lives in `src/common/game/minecart_ride.cpp`: right-click a cart
+to mount (`repgame_cart_mount` — sneak-click skips it, like other
+interactions), sneak to dismount (`repgame_cart_dismount`). While
+`camera.riding_cart` is set, `process_movement` skips all body physics
+and turns W/S intent into `CartTickInput::rider_push` (a sneak press is
+edge-gated so one held through the mount click doesn't eject
+instantly), and `repgame_cart_ride_follow` seats the camera at
+`cart.pos + CART_RIDER_EYE_OFFSET` every tick right after `carts.tick`,
+keeping `y_speed`/`horizontal_vel`/`fall_dist` zeroed — no fall damage
+while riding. The ridden cart isn't targetable (`resolve_target_mob`
+excludes it), can't be punched, and the player body doesn't shove
+carts. Dismount picks the first player-box-free cell perpendicular to
+the cart's yaw, then forward/back, then on top of the cart. Breaking
+or losing the ridden cart clears `riding_cart`; `RepGame::cleanup`
+dismounts before `player.dat` is written.
+
+Rendering rides the mob-model pipeline: `MOB_MODEL_MINECART`/
+`MOB_SKIN_MINECART` (a manifest model with no `MobType` — `docs/mobs.md`),
+one `MobPartInstance` per cube under `mob_shader`/`mobsTexture`, transform
+= interpolated pos × yaw × slope pitch × hurt-wobble roll × 1/16 × the
+shared `mob_bone_worlds`/`mob_cube_matrix` model matrices.
+
+Persistence is the items-style sidecar flow: `CartFileRecord`
+(`x,y,z` + `vx,vy,vz,yaw`) in `carts_x_y_z` files staged per-chunk on
+the worker, adopted in `World::render` next to `items.adopt_chunk`,
+persisted on window exit and `persist_all`, non-finite records dropped.
+Local cart IO is off in multiplayer and capture mode, same gates as
+item entities.
+
 ## Multiplayer entity sync
 
 Protocol v10+ (`include/common/net/packet.hpp`; ENTITY_STATE became

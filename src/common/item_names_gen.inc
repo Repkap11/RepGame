@@ -72,3 +72,4 @@
     "CAT_SPAWN_EGG",
     "BOW",
     "ARROW",
+    "MINECART",

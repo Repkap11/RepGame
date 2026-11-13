@@ -48,7 +48,14 @@ void RepGame::apply_harness_camera_pins( ) {
     // same fields the capture view pin sets, so movement/VR can't drift it.
     if ( policy.script.pin_camera ) {
         const ScriptState &sc = policy.script;
-        cam.pos = glm::dvec3( sc.cam_x, sc.cam_y, sc.cam_z );
+        // While riding a cart the seat owns the camera position — the
+        // follow writes cam.pos after this pin, but snapshot_prev has
+        // already copied whatever pos we set here into prev_pos, so a
+        // pinned pos would render the view from an origin→seat blend.
+        // Angles still pin, which is how a script steers the seat view.
+        if ( cam.riding_cart == 0 ) {
+            cam.pos = glm::dvec3( sc.cam_x, sc.cam_y, sc.cam_z );
+        }
         cam.angle_H = sc.cam_yaw;
         cam.angle_V = sc.cam_pitch;
         pin_harness_flight( in, cam );

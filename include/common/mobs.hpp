@@ -407,10 +407,20 @@ inline void mob_look_from_camera_rotation( const glm::mat4 &rot, float *yaw_deg,
 }
 
 // Head-look animator angles for update_render's bone_anim (added to the
-// bone's rest rotation in bone_local_matrix). head_yaw > 0 turns the head
-// in the +yaw sense of the forward convention (sin yaw, 0, -cos yaw);
+// bone's rest rotation in mob_bone_local_matrix). head_yaw > 0 turns the
+// head in the +yaw sense of the forward convention (sin yaw, 0, -cos yaw);
 // head_pitch > 0 looks up. In the bone's pivot frame a +X rotation pitches
 // the face up and a -Y rotation turns it toward +yaw.
 inline glm::vec3 mob_head_anim( float head_yaw, float head_pitch ) {
     return glm::vec3( head_pitch, -head_yaw, 0.0f );
 }
+
+// Model-space transform helpers (model pixels, 1/16 block), shared by
+// MobManager::update_render and other model consumers (minecarts).
+// mob_bone_local_matrix is a bone's pivot rotation + anim; mob_bone_worlds
+// composes locals through the parent chain (null anim args = rest pose);
+// mob_cube_matrix is a cube's origin/size box plus an optional cube.rot
+// spin about the bone pivot.
+glm::mat4 mob_bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &anim_rot, const glm::vec3 &anim_offset );
+void mob_bone_worlds( const MobModelDef &model, const glm::vec3 *anim_rot, const glm::vec3 *anim_offset, glm::mat4 *out );
+glm::mat4 mob_cube_matrix( const MobBoneDef &bone, const MobCubeDef &cube );

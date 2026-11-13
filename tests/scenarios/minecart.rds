@@ -1,0 +1,110 @@
+# Minecart staging: a closed loop with powered golden rails on every
+# straight leg (empty carts stall on long unpowered runs), a flat curve,
+# an ascending slope and a descent back down. Flat floor is SANDSTONE at
+# y=0; AIR starts at y=1. Supports go in first because same-tick
+# block-update events run in heap order, not script order.
+wait_idle 20 6000
+# Upper-track supports (stone under every y=2 rail).
+fill 10 1 5 10 1 11 STONE
+fill 0 1 11 9 1 11 STONE
+setblock 0 1 10 STONE
+wait 10
+# Upper track, y=2: the slope lands at (10,2,5), a powered golden run
+# goes south to the NW corner at (10,2,11), west along z=11, then the NE
+# corner at (0,2,11) turns north into (0,2,10).
+setblock 10 2 5 GOLDEN_RAIL
+setblock 10 2 6 GOLDEN_RAIL
+setblock 10 2 7 GOLDEN_RAIL
+setblock 10 2 8 GOLDEN_RAIL
+setblock 10 2 9 GOLDEN_RAIL
+setblock 10 2 10 GOLDEN_RAIL
+setblock 10 2 11 RAIL
+setblock 9 2 11 GOLDEN_RAIL
+setblock 8 2 11 GOLDEN_RAIL
+setblock 7 2 11 GOLDEN_RAIL
+setblock 6 2 11 GOLDEN_RAIL
+setblock 5 2 11 GOLDEN_RAIL
+setblock 4 2 11 GOLDEN_RAIL
+setblock 3 2 11 GOLDEN_RAIL
+setblock 2 2 11 GOLDEN_RAIL
+setblock 1 2 11 GOLDEN_RAIL
+setblock 0 2 11 RAIL
+setblock 0 2 10 RAIL
+# Descent and lower return leg: (0,1,9) ascends S up to (0,2,10), then
+# the cart drops down it heading north along powered golden rail to the
+# NE corner at (0,1,0).
+setblock 0 1 9 RAIL
+setblock 0 1 8 GOLDEN_RAIL
+setblock 0 1 7 GOLDEN_RAIL
+setblock 0 1 6 GOLDEN_RAIL
+setblock 0 1 5 GOLDEN_RAIL
+setblock 0 1 4 GOLDEN_RAIL
+setblock 0 1 3 GOLDEN_RAIL
+setblock 0 1 2 GOLDEN_RAIL
+setblock 0 1 1 GOLDEN_RAIL
+setblock 0 1 0 RAIL
+# Powered golden launch straight along z=0 (eastbound), then the SW
+# corner at (10,1,0) and the powered run south up to the slope.
+setblock 1 1 0 GOLDEN_RAIL
+setblock 2 1 0 GOLDEN_RAIL
+setblock 3 1 0 GOLDEN_RAIL
+setblock 4 1 0 GOLDEN_RAIL
+setblock 5 1 0 GOLDEN_RAIL
+setblock 6 1 0 GOLDEN_RAIL
+setblock 7 1 0 GOLDEN_RAIL
+setblock 8 1 0 GOLDEN_RAIL
+setblock 9 1 0 GOLDEN_RAIL
+setblock 10 1 0 RAIL
+setblock 10 1 1 GOLDEN_RAIL
+setblock 10 1 2 GOLDEN_RAIL
+setblock 10 1 3 GOLDEN_RAIL
+setblock 10 1 4 RAIL
+# Redstone sources: every powered leg gets a directly powered rail within
+# 8 chain hops of each end (chain power doesn't hop through plain-rail
+# corners, which is fine — corners are short).
+setblock 1 1 1 REDSTONE_BLOCK
+setblock 9 1 1 REDSTONE_BLOCK
+setblock 11 1 2 REDSTONE_BLOCK
+setblock 9 2 6 REDSTONE_BLOCK
+setblock 9 2 10 REDSTONE_BLOCK
+setblock 9 2 12 REDSTONE_BLOCK
+setblock 2 2 12 REDSTONE_BLOCK
+setblock 1 1 4 REDSTONE_BLOCK
+setblock 1 1 8 REDSTONE_BLOCK
+wait 40
+assert_block 5 1 0 GOLDEN_RAIL
+assert_block 10 1 0 RAIL
+assert_block 0 1 9 RAIL
+assert_block 10 2 11 RAIL
+assert_block 0 2 11 RAIL
+# Spawn the cart on the powered straight with a push; it laps at ~8 b/s
+# (18 ticks/block). Lap legs: +x 8.5 blocks, +z 4.5, slope+upper 7,
+# west 10, descent+north 11, corner back to the start.
+cart 1.5 1.1 0.5 0.05 0
+wait 10
+carts
+# Cart on the flat powered straight (camera north of the track, looking
+# south at the rail bed).
+wait 50
+camera 5.0 3.5 4.0 0 20
+wait 10
+screenshot cart_flat
+carts
+# Cart climbing the slope onto the raised track (from the east).
+wait 140
+camera 14.0 4.5 4.5 -90 15
+wait 10
+screenshot cart_slope
+carts
+# Cart on the upper track's NW corner (from the south-east).
+wait 150
+camera 13.5 5.0 15.0 -40 30
+wait 10
+screenshot cart_curve
+carts
+# Overview of the whole loop from the south, elevated and looking down.
+camera 5.5 10.0 18.0 0 30
+wait 20
+screenshot cart_overview
+carts
+echo minecart done

@@ -273,6 +273,9 @@ struct ChunkSidecars {
     // empty) instead of reviving stale records.
     std::vector<ItemFileRecord> items;
     int items_file_present;
+    // Minecart sidecar, same pattern as items.
+    std::vector<CartFileRecord> carts;
+    int carts_file_present;
     // A player edit touched this chunk's blocks: set by saved-edit file
     // hits, ChunkLoader::apply_diff_block and
     // World::set_loaded_block — never by random ticks or structure gen.
@@ -316,6 +319,7 @@ class Chunk {
     friend class ArrowEntities;
     friend class BlockBodies;
     friend class ItemEntities;
+    friend class Minecarts;
     friend class NetEntities;
     friend class TerrainLoadingThread;
     friend class Multiplayer;
@@ -328,6 +332,7 @@ class Chunk {
     friend int test_lighting( );
     friend int test_structure_border( );
     friend int test_item_entities( );
+    friend int test_minecarts( );
     friend int test_mobs( );
     friend int test_farming( );
     friend int test_doors( );

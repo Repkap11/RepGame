@@ -1163,7 +1163,24 @@ void RepGame::resolve_target_mob( RepGameState &state, const glm::dvec3 &ray_ori
     state.block_selection.target_mob = state.world.mobs.resolve_target( ray_origin, state.block_selection.ray_dir, REACH_DISTANCE,
                                                                       state.block_selection.selectionInBounds, state.block_selection.pos_destroy, &mob_dist );
     state.block_selection.target_mob_dist = mob_dist;
-    if ( state.block_selection.target_mob >= 0 ) {
+    // Carts compete on the same ray: the nearer of mob and cart wins (a
+    // mob inside a cart's hitbox still wins — riding mounts later).
+    double cart_dist = 0.0;
+    state.block_selection.target_cart = state.world.carts.resolve_target( ray_origin, state.block_selection.ray_dir, REACH_DISTANCE,
+                                                                        state.block_selection.selectionInBounds, state.block_selection.pos_destroy, &cart_dist );
+    // The cart being ridden is never a target — its hitbox fills the view.
+    if ( state.block_selection.target_cart >= 0 && state.camera.riding_cart != 0 &&
+         state.world.carts.id_at( state.block_selection.target_cart ) == state.camera.riding_cart ) {
+        state.block_selection.target_cart = -1;
+    }
+    state.block_selection.target_cart_dist = cart_dist;
+    if ( state.block_selection.target_cart >= 0 &&
+         ( state.block_selection.target_mob < 0 || cart_dist < mob_dist ) ) {
+        state.block_selection.target_mob = -1;
+    } else {
+        state.block_selection.target_cart = -1;
+    }
+    if ( state.block_selection.target_mob >= 0 || state.block_selection.target_cart >= 0 ) {
         state.block_selection.selectionInBounds = 0;
         state.block_selection.floatSelectionInBounds = 0;
         state.block_selection.fluidSelectionInBounds = 0;

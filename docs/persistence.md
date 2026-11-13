@@ -158,16 +158,23 @@ is `ChunkContainers.signs` keyed by in-chunk block index; the map is
 converted to/from world positions at the file boundary. Server-side the
 same files are driven by `ServerSigns` (`docs/multiplayer.md` "Signs").
 
-## Mob / item sidecars (`mobs_*`, `items_*`)
+## Mob / item / cart sidecars (`mobs_*`, `items_*`, `carts_*`)
 
 ```
-u32 record_size              // sizeof(MobFileRecord|ItemFileRecord)
+u32 record_size              // sizeof(MobFileRecord|ItemFileRecord|CartFileRecord)
 u32 count
 packed records...
 // mobs only, after the records:
 u32 removed_count
 u8 removed[removed_count]    // tombstoned natural-roll indices
 ```
+
+`CartFileRecord` (`map_storage.hpp`) is a packed
+`{ double x, y, z; float vx, vy, vz, yaw; }` per minecart — position,
+velocity and facing; records with non-finite positions are dropped on
+read. Carts are only persisted for the local single-player world: in
+multiplayer `Minecarts::spawn` refuses and local cart IO is off
+(`docs/entities.md`).
 
 `MobFileRecord`/`ItemFileRecord` are `__attribute__((packed))` structs
 with the shared-prefix read convention (a larger saved record still
@@ -277,7 +284,7 @@ pre-2047 saves and is permanently reserved — never reuse it. On load:
 
 - **Multiplayer**: while the session is (or was) connected —
   `multiplayer_mode()` is hostname + `connect_pending`/`ever_connected` —
-  local `mobs_*`/`items_*` persistence is off: entities belong to the
+  local `mobs_*`/`items_*`/`carts_*` persistence is off: entities belong to the
   server (`docs/entities.md`, `docs/multiplayer.md`). A hostname whose
   connect fails outright leaves a purely local session that persists
   entities normally; a session that connected and then dropped stays in

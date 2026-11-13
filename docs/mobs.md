@@ -269,6 +269,12 @@ Adding a mob:
    (base + `_N` variants pool, e.g. `pig_say_1..3`; `pig_death`,
    `pig_step_1..5`).
 
+A manifest entry with no `MobTypeDef`/`MOB_*` enum is a model-only import:
+it still yields `MOB_MODEL_*`/`MOB_SKIN_*` + `mob_cubes_*`/`mob_bones_*`
+for anything else that wants the Bedrock pipeline (the minecart —
+`docs/entities.md` — renders this way, driven by `Minecarts` rather than
+`MobManager`).
+
 Skin atlas convention: each skin is one 64x64 layer (`MOB_SKIN_*` is the
 layer index into `mobs.png`, `MK_TEXTURE(mobs, 64, 64*MOB_SKIN_COUNT,
 64, 64)`, NEAREST + no mipmaps via `Texture::init(..., mipmaps=false)`).

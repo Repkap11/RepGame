@@ -22,6 +22,7 @@
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/game/game_internal.hpp"
 #include "common/break_drops.hpp"
+#include "common/rail.hpp"
 #include "common/tree_grow.hpp"
 
 // Left-click damage to a mob in survival (creative kills in one hit).
@@ -529,6 +530,41 @@ void RepGame::process_mouse_events( ) {
             }
         }
     }
+    // Minecart hits pre-empt mining the same way mob hits do — recomputed
+    // fresh (carts.tick may have removed carts since the selection pass).
+    // Survival builds decaying damage so three quick hits break and drop
+    // the cart item; creative removes it outright with no drop.
+    int hit_cart = -1;
+    if ( hit_mob < 0 && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_left == 0 ) {
+        hit_cart = globalGameState.world.carts.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
+                                                             globalGameState.block_selection.selectionInBounds, globalGameState.block_selection.pos_destroy, nullptr );
+        // The cart being ridden can't be hit — it fills the view.
+        if ( hit_cart >= 0 && globalGameState.camera.riding_cart != 0 &&
+             globalGameState.world.carts.id_at( hit_cart ) == globalGameState.camera.riding_cart ) {
+            hit_cart = -1;
+        }
+    }
+    if ( hit_cart >= 0 ) {
+        globalGameState.input.click_delay_left = 30;
+        globalGameState.block_mining.progress_ticks = 0.0f;
+        globalGameState.vr.haptic_pending = true;
+        const glm::dvec3 cart_pos = globalGameState.world.carts.pos_at( hit_cart );
+        bool drop = false;
+        if ( globalGameState.world.carts.hurt( hit_cart, globalGameState.game_mode == GameMode_Survival, &drop ) && drop ) {
+            globalGameState.world.items.spawn( MINECART, 1, cart_pos + glm::dvec3( 0.0, 0.3, 0.0 ), repgame_item_drop_hop( ), 10 );
+        }
+    }
+    // Right-clicking a cart mounts it — before item use, rail placement and
+    // the minecart spawn path. Sneaking skips the mount so a sneak-click
+    // still reaches the use/place paths.
+    if ( globalGameState.block_selection.target_cart >= 0 && globalGameState.input.mouse.buttons.right &&
+         !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open &&
+         !globalGameState.input.movement.sneakPressed && globalGameState.input.click_delay_right == 0 ) {
+        const uint32_t cart_id = globalGameState.world.carts.id_at( globalGameState.block_selection.target_cart );
+        if ( repgame_cart_mount( globalGameState, cart_id ) ) {
+            globalGameState.input.click_delay_right = 30;
+        }
+    }
     // Mob use-item interactions pre-empt the block ones: a right-click aimed
     // at a mob while holding one of its use-items applies it — a breed food
     // feeds it, shears shear an unshorn sheep. A remote-owned mob gets
@@ -575,7 +611,7 @@ void RepGame::process_mouse_events( ) {
             globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
         }
     }
-    const bool holding_break = hit_mob < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
+    const bool holding_break = hit_mob < 0 && hit_cart < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
     if ( holding_break && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         if ( globalGameState.game_mode == GameMode_Survival ) {
@@ -808,6 +844,23 @@ void RepGame::process_mouse_events( ) {
                 pr_debug( "Spawn egg failed: mobs disabled" );
             }
         }
+        // Right-clicking a rail while holding a minecart sets one on the
+        // track — same interaction slot as the spawn egg. Refused in
+        // multiplayer (carts are local-only for now).
+        if ( globalGameState.hotbar.getSelectedItem( ) == MINECART ) {
+            const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+            if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_rail ) {
+                if ( globalGameState.multiplayer.multiplayer_mode( ) ) {
+                    pr_debug( "Minecarts are local-only in this build" );
+                } else if ( globalGameState.world.carts.spawn_on_rail( globalGameState.world, globalGameState.block_selection.pos_destroy, globalGameState.camera.angle_H ) != 0 ) {
+                    if ( globalGameState.game_mode == GameMode_Survival ) {
+                        globalGameState.hotbar.consumeSelected( 1 );
+                        globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+                    }
+                    globalGameState.input.click_delay_right = 30;
+                }
+            }
+        }
     }
     if ( globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
         // Right-click with the bow held releases an arrow along the look
@@ -905,7 +958,15 @@ void RepGame::process_mouse_events( ) {
                     if ( holdingBlockDef->can_float_on_water && globalGameState.block_selection.floatSelectionInBounds ) {
                         globalGameState.block_selection.pos_create = globalGameState.block_selection.pos_create_water;
                     }
-                    BlockID placed_block = change_block( 1, { placed_id, rotation, 0, placed_id, 0 } );
+                    BlockState placed_state = { placed_id, rotation, 0, placed_id, 0 };
+                    if ( holdingBlockDef->is_rail ) {
+                        // Resolve the track shape up front (player yaw picks
+                        // the fallback axis) so the placed cell never shows
+                        // a wrong shape for a tick.
+                        placed_state = rail_resolve_shape( globalGameState.world, globalGameState.block_selection.pos_create, placed_state,
+                                                           static_cast<int>( globalGameState.camera.angle_H ) );
+                    }
+                    BlockID placed_block = change_block( 1, placed_state );
                     if ( placed_block != LAST_BLOCK_ID ) {
                         audio_play_sfx( audio_block_place_pool( holdingBlock ) );
                     }
@@ -984,6 +1045,27 @@ void RepGame::process_camera_angle( ) {
 
 void RepGame::process_movement( ) {
     PROFILE_SCOPE( "player_movement" );
+
+    if ( globalGameState.camera.riding_cart != 0 ) {
+        // Riding a minecart: no walk/swim/climb body physics — the seat
+        // comes from repgame_cart_ride_follow after the cart tick. W/S
+        // intent rides along as rider_push; a sneak press dismounts,
+        // edge-gated so a sneak held through the mount click doesn't
+        // eject instantly.
+        if ( !globalGameState.input.movement.sneakPressed ) {
+            globalGameState.camera.ride_sneak_seen_up = 1;
+        } else if ( globalGameState.camera.ride_sneak_seen_up ) {
+            repgame_cart_dismount( globalGameState );
+            globalGameState.camera.rider_push = glm::dvec2( 0.0 );
+            return;
+        }
+        globalGameState.camera.rider_push = glm::dvec2( globalGameState.camera.movement.x, globalGameState.camera.movement.z ) *
+                                            static_cast<double>( globalGameState.input.movement.sizeH );
+        globalGameState.camera.standing_on_solid = 1;
+        return;
+    }
+    globalGameState.camera.rider_push = glm::dvec2( 0.0 );
+
     bool player_flying = globalGameState.input.player_flying;
     bool player_sprinting = globalGameState.input.player_sprinting;
 

@@ -629,9 +629,10 @@ static inline int block_wall_variant_rotation( const Block *block, const glm::iv
 // never reach the rotation >= 4 wall-torch branches. Slabs mask to 0 — their
 // rotation is only the top-half bit (BLOCK_ROTATE_SLAB_TOP), which those
 // consumers read off the raw rotation instead. Cake masks to 0 too — its
-// rotation is the bite count, not an orientation.
+// rotation is the bite count, not an orientation — and so do rails, whose
+// rotation is a rail shape (0-5, see common/rail.hpp), not a yaw.
 static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
-    return ( b->is_fence_gate || b->is_door || b->is_stairs || b->is_slab ) ? ( rot & 3 ) : ( b->is_cake ? 0 : rot );
+    return ( b->is_fence_gate || b->is_door || b->is_stairs || b->is_slab ) ? ( rot & 3 ) : ( b->is_cake || b->is_rail ? 0 : rot );
 }
 
 // face_shift flag bits: the low nibble holds the yaw rotation (0-7).
@@ -644,6 +645,10 @@ static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
 // surface heights in fluid_h0/fluid_h (1/64 block units) and the flow
 // texture animates along the surface gradient.
 #define BLOCK_COORDS_FLUID 0x40u
+// Ascending rail: the rotation nibble is the uphill direction (0=-z, 1=+x,
+// 2=+z, 3=-x); the vertex shader raises each vertex's y by its coordinate
+// along that axis so the 1px plate reads as a slope.
+#define BLOCK_COORDS_SLOPE 0x80u
 
 // See world.cpp for vbl
 typedef struct {

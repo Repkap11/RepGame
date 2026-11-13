@@ -358,6 +358,18 @@ void RepGame::tick_entities( ) {
     }
     // Falling blocks + primed TNT bodies integrate on the same cadence.
     gs.world.bodies.tick( gs );
+    // Minecarts: rail following, derailment and pushing. A riding player
+    // feeds the cart their forward intent and is never counted as a
+    // shoving body; the seat follow runs right after the cart tick.
+    Minecarts::CartTickInput cart_in;
+    cart_in.rider_cart = gs.camera.riding_cart;
+    cart_in.rider_push = gs.camera.rider_push;
+    cart_in.player_feet = gs.camera.pos - glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+    cart_in.player_width = PLAYER_WIDTH;
+    cart_in.player_height = PLAYER_HEIGHT;
+    cart_in.player_no_clip = gs.input.no_clip || gs.camera.riding_cart != 0;
+    gs.world.carts.tick( gs, cart_in );
+    repgame_cart_ride_follow( gs );
     // Dropped item entities: physics, merge, magnet/pickup, despawn.
     gs.world.items.tick( gs );
     // Arrow projectiles: ballistic flight, block sticking, mob hits.

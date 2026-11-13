@@ -17,6 +17,7 @@ struct BlockState;
 #define FILE_ROOT_SIGN "%s/sign_%d_%d_%d"
 #define FILE_ROOT_MOBS "%s/mobs_%d_%d_%d"
 #define FILE_ROOT_ITEMS "%s/items_%d_%d_%d"
+#define FILE_ROOT_CARTS "%s/carts_%d_%d_%d"
 #define FILE_ROOT_PLAYER_DATA "%s/player.dat"
 #define FILE_ROOT_WORLD_DATA "%s/world.dat"
 #include <glm/glm.hpp>
@@ -68,6 +69,16 @@ struct __attribute__( ( packed ) ) ItemFileRecord {
     int32_t age_ticks;
 };
 
+// Per-minecart save record (persist_carts/load_carts). Packed on disk;
+// readers copy only the shared prefix so records from a build with a
+// different size still parse. Records with a non-finite position are
+// skipped by the loader.
+struct __attribute__( ( packed ) ) CartFileRecord {
+    double x, y, z;
+    float vx, vy, vz;
+    float yaw;
+};
+
 struct PlayerData;
 
 // ---- Chunk edit files (format v1) ----------------------------------------
@@ -102,6 +113,7 @@ enum MapFileKind {
     MAP_FILE_CHUNK = 0,
     MAP_FILE_MOBS,
     MAP_FILE_ITEMS,
+    MAP_FILE_CARTS,
     MAP_FILE_CHEST,
     MAP_FILE_FURNACE,
     MAP_FILE_SIGN,
@@ -192,6 +204,11 @@ class MapStorage {
     void persist_items( const glm::ivec3 &chunk_offset, const std::vector<ItemFileRecord> &items );
     // Loads dropped-item records into `out`. Returns 1 when the file existed.
     int load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out );
+    // Writes the chunk's minecart records. An empty list still writes the
+    // file, same convention as items (keeps stale records from reviving).
+    void persist_carts( const glm::ivec3 &chunk_offset, const std::vector<CartFileRecord> &carts );
+    // Loads minecart records into `out`. Returns 1 when the file existed.
+    int load_carts( const glm::ivec3 &chunk_offset, std::vector<CartFileRecord> &out );
     int read_player_data( PlayerData &player_data );
     void write_player_data( const PlayerData &player_data );
     // Server-side world clock (world.dat). Returns 1 if the file existed and

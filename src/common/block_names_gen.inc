@@ -1437,7 +1437,7 @@
     "RED_POPLAR_LEAVES_PERSISTENT",
     "SPRUCE_LEAVES_PERSISTENT",
     "YELLOW_POPLAR_LEAVES_PERSISTENT",
-    nullptr,
+    "RAIL_CORNER",
     nullptr,
     nullptr,
     nullptr,

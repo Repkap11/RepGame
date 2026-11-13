@@ -662,3 +662,34 @@ spread delay in ticks at `UPS_RATE`. Companion keys
 The sim itself — `FluidUpdateEvent`, level recompute, drop-seeking
 spread, lava/water reactions — is `docs/fluids.md`; sloped-surface
 rendering is `docs/rendering.md`.
+
+## Rails
+
+`is_rail` blocks (`RAIL`, `GOLDEN_RAIL`, and the hidden render-only
+`RAIL_CORNER`/`POWERED_GOLDEN_RAIL` tiles) are 1px plates: scale
+[16,1,16], air on every face but the top tile, non-colliding, and they
+survive only over a colliding block — checked directly in
+`block_can_survive_at` rather than through `needs_place_on_any_solid`,
+because a rail's `rotation` is its shape, not a yaw.
+
+All track logic is pure and unit-tested in `include/common/rail.hpp` /
+`src/common/rail.cpp`: the `RailShape` enum (NS, EW, four ASC slopes,
+SE/SW/NW/NE curves), `rail_endpoints`/`rail_render_yaw` for the mesher
+and future cart physics, `rail_resolve_shape` for connection resolution
+(straights beat curves, sticky endpoints keep T-junctions stable, a lone
+uphill link makes an ascending shape, golden rails never curve, unloaded
+neighbours freeze the shape), and `golden_rail_chain_powered` for
+powered-rail chaining (`docs/redstone.md`). State encoding borrows
+dust's trick: shapes 0-5 live in `rotation` with `display_id == id`;
+the four curves keep `id == RAIL` but display `RAIL_CORNER` (the turned
+tile — its rotation-0 arc is SW, so SE/SW/NW/NE store rotations
+3,0,1,2).
+
+Placement pre-resolves the shape from `camera.angle_H`
+(`src/common/game/player.cpp`) so there's no wrong-shape flash, and
+`perform_checks` re-resolves on every neighbour change. In the mesher
+(`chunk.cpp` phase 2) rails emit one instance per cell with
+`face_shift = rail_render_yaw(shape)` — plus `BLOCK_COORDS_SLOPE` for
+ascending shapes, which makes `chunk_vertex.glsl` raise the uphill end
+of the plate (the rotation nibble doubles as the uphill direction:
+0=-z, 1=+x, 2=+z, 3=-x).

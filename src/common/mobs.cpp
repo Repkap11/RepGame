@@ -1526,7 +1526,7 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
 // Bone rest + animator rotation, in degrees, plus an animator position
 // offset in model pixels. The offset translates the whole bone (pivot and
 // children) in the parent frame.
-static glm::mat4 bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &anim_rot, const glm::vec3 &anim_offset ) {
+glm::mat4 mob_bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &anim_rot, const glm::vec3 &anim_offset ) {
     const glm::vec3 pivot( bone.pivot[ 0 ], bone.pivot[ 1 ], bone.pivot[ 2 ] );
     const glm::vec3 rot( bone.rest_rot[ 0 ] + anim_rot.x, bone.rest_rot[ 1 ] + anim_rot.y, bone.rest_rot[ 2 ] + anim_rot.z );
     glm::mat4 m = glm::translate( glm::mat4( 1.0f ), pivot );
@@ -1535,6 +1535,37 @@ static glm::mat4 bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &ani
     m = glm::rotate( m, glm::radians( rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
     m = glm::translate( m, -pivot );
     return glm::translate( glm::mat4( 1.0f ), anim_offset ) * m;
+}
+
+void mob_bone_worlds( const MobModelDef &model, const glm::vec3 *anim_rot, const glm::vec3 *anim_offset, glm::mat4 *out ) {
+    const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
+    const glm::vec3 zero( 0.0f );
+    for ( int i = 0; i < bone_count; i++ ) {
+        const MobBoneDef &bone = model.bones[ i ];
+        const glm::mat4 local = mob_bone_local_matrix( bone, anim_rot ? anim_rot[ i ] : zero, anim_offset ? anim_offset[ i ] : zero );
+        out[ i ] = bone.parent >= 0 ? out[ bone.parent ] * local : local;
+    }
+}
+
+glm::mat4 mob_cube_matrix( const MobBoneDef &bone, const MobCubeDef &cube ) {
+    const glm::vec3 origin( cube.origin[ 0 ] - cube.inflate, cube.origin[ 1 ] - cube.inflate, cube.origin[ 2 ] - cube.inflate );
+    const glm::vec3 size( cube.size[ 0 ] + 2.0f * cube.inflate, cube.size[ 1 ] + 2.0f * cube.inflate, cube.size[ 2 ] + 2.0f * cube.inflate );
+    glm::mat4 cube_m = glm::scale( glm::translate( glm::mat4( 1.0f ), origin ), size );
+    // A cube rot (MobCubeDef::rot — cubes authored pre-rotated, like the
+    // cat's vertical body) spins the textured box about the bone pivot.
+    // Inside the bone transform so the bone's children don't move; on the
+    // verts so each face keeps its painted texels — remapping origin/size
+    // to an AABB would scramble the box-uv face layout.
+    if ( cube.rot[ 0 ] != 0.0f || cube.rot[ 1 ] != 0.0f || cube.rot[ 2 ] != 0.0f ) {
+        const glm::vec3 pivot( bone.pivot[ 0 ], bone.pivot[ 1 ], bone.pivot[ 2 ] );
+        glm::mat4 rot_m = glm::translate( glm::mat4( 1.0f ), pivot );
+        rot_m = glm::rotate( rot_m, glm::radians( cube.rot[ 0 ] ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+        rot_m = glm::rotate( rot_m, glm::radians( cube.rot[ 1 ] ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+        rot_m = glm::rotate( rot_m, glm::radians( cube.rot[ 2 ] ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+        rot_m = glm::translate( rot_m, -pivot );
+        cube_m = rot_m * cube_m;
+    }
+    return cube_m;
 }
 
 void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha, glm::mat4 *out ) {
@@ -1606,7 +1637,7 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
 
     for ( int i = 0; i < bone_count; i++ ) {
         const MobBoneDef &bone = model.bones[ i ];
-        const glm::mat4 local = bone_local_matrix( bone, bone_anim[ i ], bone_offset[ i ] );
+        const glm::mat4 local = mob_bone_local_matrix( bone, bone_anim[ i ], bone_offset[ i ] );
         out[ i ] = bone.parent >= 0 ? out[ bone.parent ] * local : local;
     }
 
@@ -1735,24 +1766,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
             const MobBoneDef &bone = model.bones[ i ];
             for ( int c = 0; c < bone.cube_count; c++ ) {
                 const MobCubeDef &cube = model.cubes[ bone.cube_start + c ];
-                const glm::vec3 origin( cube.origin[ 0 ] - cube.inflate, cube.origin[ 1 ] - cube.inflate, cube.origin[ 2 ] - cube.inflate );
-                const glm::vec3 size( cube.size[ 0 ] + 2.0f * cube.inflate, cube.size[ 1 ] + 2.0f * cube.inflate, cube.size[ 2 ] + 2.0f * cube.inflate );
-                glm::mat4 cube_m = glm::scale( glm::translate( glm::mat4( 1.0f ), origin ), size );
-                // A cube rot (MobCubeDef::rot — cubes authored pre-rotated,
-                // like the cat's vertical body) spins the textured box
-                // about the bone pivot. Inside the bone transform so the
-                // bone's children don't move; on the verts so each face
-                // keeps its painted texels — remapping origin/size to an
-                // AABB would scramble the box-uv face layout.
-                if ( cube.rot[ 0 ] != 0.0f || cube.rot[ 1 ] != 0.0f || cube.rot[ 2 ] != 0.0f ) {
-                    const glm::vec3 pivot( bone.pivot[ 0 ], bone.pivot[ 1 ], bone.pivot[ 2 ] );
-                    glm::mat4 rot_m = glm::translate( glm::mat4( 1.0f ), pivot );
-                    rot_m = glm::rotate( rot_m, glm::radians( cube.rot[ 0 ] ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
-                    rot_m = glm::rotate( rot_m, glm::radians( cube.rot[ 1 ] ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-                    rot_m = glm::rotate( rot_m, glm::radians( cube.rot[ 2 ] ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-                    rot_m = glm::translate( rot_m, -pivot );
-                    cube_m = rot_m * cube_m;
-                }
+                const glm::mat4 cube_m = mob_cube_matrix( bone, cube );
                 MobPartInstance &inst = this->render_chain.get_instance( mob.parts[ part++ ] );
                 inst.transform = base * bone_world[ i ] * cube_m;
                 inst.light = light;

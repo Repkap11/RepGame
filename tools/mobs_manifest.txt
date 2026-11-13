@@ -12,7 +12,13 @@
 # reparents it to the root — for Java-ported geometry whose bind layout
 # relies on runtime pivot glue (the cat's tail2, authored detached behind
 # tail1) or to tuck a part inside the body (the cat's front legs, whose
-# authored tops poke 0.2 above the back).
+# authored tops poke 0.2 above the back). The bare token `cube_rot`
+# instead honours each cube's geo `rotation`/`pivot` keys — for models
+# that author their panels as rotated cubes (the minecart's bottom and
+# walls) rather than pre-rotated geometry. Cube rotations are baked into
+# MobCubeDef::rot about the bone pivot with a compensating origin shift;
+# entries without the token keep ignoring cube rotations (the chicken
+# body's geo rotation stays compensated by its `body=-90` override).
 pig|models/entity/pig_v1.0.geo.json|geometry.pig|textures/entity/pig/pig.png|body=-90,0,0
 player|models/mobs.json|geometry.humanoid.custom|textures/entity/steve.png
 cow|models/entity/cow_v1.0.geo.json|geometry.cow|textures/entity/cow/cow.png|body=-90,0,0
@@ -25,3 +31,4 @@ zombie|models/entity/zombie.geo.json|geometry.zombie.v1.8|textures/entity/zombie
 creeper|models/entity/creeper.geo.json|geometry.creeper.v1.8|textures/entity/creeper/creeper.png
 bee|models/entity/bee.geo.json|geometry.bee|textures/entity/bee/bee.png
 cat|models/entity/cat.geo.json|geometry.cat|textures/entity/cat/tabby.png,textures/entity/cat/tuxedo.png,textures/entity/cat/red.png,textures/entity/cat/siamesecat.png|body.cubes=-90,0,0;tail1=-51.57,0,0;tail2.move=0,-3,-16;tail2=-90,0,0;frontLegL.move=-0.3,-0.4,0;frontLegR.move=0.3,-0.4,0;backLegL.move=-0.3,0,0;backLegR.move=0.3,0,0
+minecart|models/entity/minecart.geo.json|geometry.minecart.v1.8|textures/entity/minecart.png|cube_rot

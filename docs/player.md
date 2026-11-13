@@ -18,7 +18,7 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 |---|---|
 | `W`/`A`/`S`/`D`, arrows (also `o`/`k`/`;`/`l`) | Move — folded into `input.movement` (`angleH`: W=0, D=+90, S=180, A=-90, diagonals ±45/±135; `sizeH` analog magnitude) |
 | `Space` | Jump; fly up; swim up; climb up |
-| `'` (apostrophe) | Sneak; fly down; sink while swimming; hang on climbables |
+| `'` (apostrophe) | Sneak; fly down; sink while swimming; hang on climbables; dismount a ridden minecart |
 | `P` (hold) | Sprint |
 | `F` | Toggle flying; with the creative inventory open, opens its item-name search box instead (typing filters the palette, `Enter`/`Esc` closes it) |
 | `C` | Toggle no-clip (`Ctrl+C` exits) |
@@ -70,6 +70,13 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   jump needs `standing_on_solid` and applies `JUMP_STRENGTH`; swimming
   eases `y_speed` toward jump/sink targets under `PLAYER_WATER_ACCEL`
   with `WATER_VERTICAL_DRAG` when idle.
+- **Riding a minecart.** Right-click a cart to mount
+  (`camera.riding_cart`); sneak dismounts. All body physics above is
+  skipped while riding — the seat comes from
+  `repgame_cart_ride_follow` (`src/common/game/minecart_ride.cpp`),
+  W/S intent pushes the cart along the rail, `fall_dist` stays 0
+  (no fall damage), and the player's box doesn't shove carts. See
+  `docs/entities.md` Minecarts for mount/dismount/targeting details.
 - **Swim vs wade.** Swimming requires the *standing* body center below
   the liquid's surface — `fluid_surface_height`, so a shallow flowing
   cell wades rather than swims (`WATER_HEIGHT` when the body cell

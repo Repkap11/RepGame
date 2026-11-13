@@ -80,6 +80,7 @@ flat out int v_block_auto_rotates;
 #define BLOCK_COORDS_INSIDE_OUT 0x10u
 #define BLOCK_COORDS_HALF_PIXEL 0x20u
 #define BLOCK_COORDS_FLUID 0x40u
+#define BLOCK_COORDS_SLOPE 0x80u
 
 #define NO_LIGHT_NO_DRAW 0x6fffffu
 
@@ -172,6 +173,23 @@ void main() {
     adjusted_position.x += blockCoords_offset_adjust.x;
     adjusted_position.y += blockCoords_offset_adjust.y;
     adjusted_position.z += blockCoords_offset_adjust.z;
+
+    // Ascending rails (BLOCK_COORDS_SLOPE): the rotation nibble is the
+    // uphill direction (0=-z, 1=+x, 2=+z, 3=-x) — raise each vertex's y by
+    // its coordinate along that axis so the flat plate reads as a ramp.
+    if((rotation_packed & BLOCK_COORDS_SLOPE) != 0u) {
+        float rise;
+        if(rotation == 0u) {
+            rise = 1.0 - cube_pos.z;
+        } else if(rotation == 1u) {
+            rise = cube_pos.x;
+        } else if(rotation == 2u) {
+            rise = cube_pos.z;
+        } else {
+            rise = 1.0 - cube_pos.x;
+        }
+        adjusted_position.y += rise;
+    }
 
     v_world_coords = adjusted_position + blockCoords - u_Origin;
 

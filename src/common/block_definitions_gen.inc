@@ -8945,18 +8945,26 @@ block_definitions[ 594 ].scale = { 6, 11, 6 };
 block_definitions[ 594 ].tex_offset = { -5, 0, -5 };
 
 // GOLDEN_RAIL (595)
-block_definitions[ 595 ].textures[ FACE_TOP ] = TEX_RAIL_GOLDEN_POWERED;
-block_definitions[ 595 ].textures[ FACE_BOTTOM ] = TEX_RAIL_GOLDEN;
-block_definitions[ 595 ].textures[ FACE_RIGHT ] = TEX_RAIL_GOLDEN;
-block_definitions[ 595 ].textures[ FACE_FRONT ] = TEX_RAIL_GOLDEN;
-block_definitions[ 595 ].textures[ FACE_LEFT ] = TEX_RAIL_GOLDEN;
-block_definitions[ 595 ].textures[ FACE_BACK ] = TEX_RAIL_GOLDEN;
-block_definitions[ 595 ].icon_texture = TEX_RAIL_GOLDEN_POWERED;
+block_definitions[ 595 ].textures[ FACE_TOP ] = TEX_RAIL_GOLDEN;
+block_definitions[ 595 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 595 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 595 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 595 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 595 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 595 ].icon_texture = TEX_RAIL_GOLDEN;
+block_definitions[ 595 ].affected_by_redstone_power = true;
+block_definitions[ 595 ].breaks_in_liquid = true;
 block_definitions[ 595 ].casts_shadow = false;
+block_definitions[ 595 ].collides_with_player = false;
 block_definitions[ 595 ].hardness = 0.35f;
+block_definitions[ 595 ].icon_is_isometric = false;
+block_definitions[ 595 ].is_rail = true;
+block_definitions[ 595 ].is_redstone_mechanism = true;
 block_definitions[ 595 ].is_seethrough = true;
 block_definitions[ 595 ].mineable = MINEABLE_PICKAXE;
+block_definitions[ 595 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 595 ].no_light = 6815743;
+block_definitions[ 595 ].scale = { 16, 1, 16 };
 
 // GRANITE (596)
 block_definitions[ 596 ].textures[ FACE_TOP ] = TEX_STONE_GRANITE;
@@ -15238,18 +15246,24 @@ block_definitions[ 1040 ].no_light = 6815743;
 block_definitions[ 1040 ].rotate_on_placement = true;
 
 // RAIL (1041)
-block_definitions[ 1041 ].textures[ FACE_TOP ] = TEX_RAIL_NORMAL_TURNED;
-block_definitions[ 1041 ].textures[ FACE_BOTTOM ] = TEX_RAIL_NORMAL;
-block_definitions[ 1041 ].textures[ FACE_RIGHT ] = TEX_RAIL_NORMAL;
-block_definitions[ 1041 ].textures[ FACE_FRONT ] = TEX_RAIL_NORMAL;
-block_definitions[ 1041 ].textures[ FACE_LEFT ] = TEX_RAIL_NORMAL;
-block_definitions[ 1041 ].textures[ FACE_BACK ] = TEX_RAIL_NORMAL;
-block_definitions[ 1041 ].icon_texture = TEX_RAIL_NORMAL_TURNED;
+block_definitions[ 1041 ].textures[ FACE_TOP ] = TEX_RAIL_NORMAL;
+block_definitions[ 1041 ].textures[ FACE_BOTTOM ] = TEX_AIR;
+block_definitions[ 1041 ].textures[ FACE_RIGHT ] = TEX_AIR;
+block_definitions[ 1041 ].textures[ FACE_FRONT ] = TEX_AIR;
+block_definitions[ 1041 ].textures[ FACE_LEFT ] = TEX_AIR;
+block_definitions[ 1041 ].textures[ FACE_BACK ] = TEX_AIR;
+block_definitions[ 1041 ].icon_texture = TEX_RAIL_NORMAL;
+block_definitions[ 1041 ].breaks_in_liquid = true;
 block_definitions[ 1041 ].casts_shadow = false;
+block_definitions[ 1041 ].collides_with_player = false;
 block_definitions[ 1041 ].hardness = 0.35f;
+block_definitions[ 1041 ].icon_is_isometric = false;
+block_definitions[ 1041 ].is_rail = true;
 block_definitions[ 1041 ].is_seethrough = true;
 block_definitions[ 1041 ].mineable = MINEABLE_PICKAXE;
+block_definitions[ 1041 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1041 ].no_light = 6815743;
+block_definitions[ 1041 ].scale = { 16, 1, 16 };
 
 // RAW_COPPER_BLOCK (1042)
 block_definitions[ 1042 ].textures[ FACE_TOP ] = TEX_RAW_COPPER_BLOCK;
@@ -21041,15 +21055,26 @@ block_definitions[ 1437 ].mineable = MINEABLE_SHEARS;
 block_definitions[ 1437 ].natural_variant = YELLOW_POPLAR_LEAVES;
 block_definitions[ 1437 ].no_light = 6815743;
 
-// undefined (1438)
-block_definitions[ 1438 ].textures[ FACE_TOP ] = TEX_AIR;
+// RAIL_CORNER (1438)
+block_definitions[ 1438 ].textures[ FACE_TOP ] = TEX_RAIL_NORMAL_TURNED;
 block_definitions[ 1438 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 1438 ].textures[ FACE_RIGHT ] = TEX_AIR;
 block_definitions[ 1438 ].textures[ FACE_FRONT ] = TEX_AIR;
 block_definitions[ 1438 ].textures[ FACE_LEFT ] = TEX_AIR;
 block_definitions[ 1438 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1438 ].icon_texture = TEX_AIR;
+block_definitions[ 1438 ].icon_texture = TEX_RAIL_NORMAL_TURNED;
+block_definitions[ 1438 ].breaks_in_liquid = true;
+block_definitions[ 1438 ].casts_shadow = false;
+block_definitions[ 1438 ].collides_with_player = false;
+block_definitions[ 1438 ].hardness = 0.35f;
+block_definitions[ 1438 ].icon_is_isometric = false;
 block_definitions[ 1438 ].is_pickable = false;
+block_definitions[ 1438 ].is_rail = true;
+block_definitions[ 1438 ].is_seethrough = true;
+block_definitions[ 1438 ].mineable = MINEABLE_PICKAXE;
+block_definitions[ 1438 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1438 ].no_light = 6815743;
+block_definitions[ 1438 ].scale = { 16, 1, 16 };
 
 // undefined (1439)
 block_definitions[ 1439 ].textures[ FACE_TOP ] = TEX_AIR;

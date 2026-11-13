@@ -80,7 +80,7 @@ BOOL_FIELDS = {
     "is_fence", "is_fence_gate", "falls_with_gravity", "spine_shell",
     "is_stairs", "is_standing_sign", "is_hanging_sign", "climbable", "is_cake",
     "is_bed", "is_bed_head",
-    "is_door", "is_door_upper", "door_redstone_only",
+    "is_door", "is_door_upper", "door_redstone_only", "is_rail",
     "is_tall_plant_upper",
     "forms_sources",
 }

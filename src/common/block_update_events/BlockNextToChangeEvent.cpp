@@ -9,6 +9,7 @@
 #include "common/block_update_events/FallingBlockEvent.hpp"
 #include "common/block_update_events/LeafDecayEvent.hpp"
 #include "common/block_update_events/FluidUpdateEvent.hpp"
+#include "common/rail.hpp"
 
 BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset ) : BlockUpdateEvent( tick_number ), block_pos( pos + offset ), affecting_block_pos( pos ) {
     this->name = "BlockNextToChangeEvent";
@@ -272,6 +273,14 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
         return next_to_block_id != LAST_BLOCK_ID && block_definition_get_definition( next_to_block_id )->collides_with_player;
     }
+    if ( block->is_rail ) {
+        // Rails need a colliding block below — checked directly rather than
+        // through the generic needs_place_on_any_solid path, which rotates
+        // the required support face by rotation: a rail's rotation is its
+        // shape (0-5), not a yaw, so rotations 2-5 would look beside/above.
+        const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
+        return below.id != LAST_BLOCK_ID && block_definition_get_definition( below.id )->collides_with_player;
+    }
     if ( block->is_crop ) {
         // Crops survive only on farmland — tilling away or trampling the
         // field pops the plant through the neighbour-update kill path.
@@ -328,6 +337,156 @@ static bool activator_attached_to( const glm::ivec3 &activator_pos, const BlockS
         }
     }
     return false;
+}
+
+// The power a solid block or mechanism at `pos` draws directly from its
+// six face neighbours: hard sources (a redstone block's initial power, a
+// powered torch below, an attached pressed button/plate) up to
+// REDSTONE_TORCH_POWER; when soft_ok (affected_by_redstone_power) and the
+// hard read is <= 1, soft sources instead decide — powered dust pointing
+// in or above, or a side torch not attached to this cell; and when
+// is_mechanism, any adjacent emitting block activates it (a powered block
+// feeds mechanisms whether its power is weak or strong, but powered
+// mechanisms never count — they would latch each other on forever). Never
+// reads the cell's own stored power. Extracted from perform_checks so
+// golden_rail_chain_powered can re-run the same scan off the event path.
+static int block_neighbor_power( World &world, const glm::ivec3 &pos, bool soft_ok, bool is_mechanism ) {
+    // Solid block: hard power (>1) from redstone blocks, a torch below,
+    // or an attached pressed button/plate; soft power (1) from dust
+    // pointing in or a torch's sides; mechanisms activate next to any
+    // powered block. Only solid blocks hold power — non-solids (air,
+    // water, glass, foliage) stay 0 so they can't act as a power source.
+    // Mechanisms that aren't solid (pistons) still activate here but
+    // are capped below so they never transmit power themselves.
+    int new_power = 0;
+    static constexpr glm::ivec3 directions[ 6 ] = {
+        glm::ivec3( 0, 1, 0 ),  //
+        glm::ivec3( 0, -1, 0 ), //
+        glm::ivec3( 1, 0, 0 ),  //
+        glm::ivec3( -1, 0, 0 ), //
+        glm::ivec3( 0, 0, 1 ),  //
+        glm::ivec3( 0, 0, -1 ), //
+    };
+    // Check for hard power sources:
+    // - Redstone block (any direction): hard power 15
+    // - Torch below (dir.y == -1): hard power 15 (torch strongly powers block above)
+    // - Torch above (dir.y == 1) with rotation 0: skip (torch doesn't power attachment)
+    // - Torch to the side attached to this block: skip (doesn't power attachment)
+    // Torch to the side NOT attached to this block: soft power, handled below.
+    for ( const glm::ivec3 &dir : directions ) {
+        BlockState neighbor = world.get_loaded_block( pos + dir );
+        if ( neighbor.id == LAST_BLOCK_ID ) {
+            continue;
+        }
+        const Block *neighbor_block = block_definition_get_definition( neighbor.id );
+        if ( neighbor_block->initial_redstone_power > 0 ) {
+            // Redstone block: hard power at source level
+            if ( neighbor_block->initial_redstone_power > new_power ) {
+                new_power = neighbor_block->initial_redstone_power;
+            }
+        }
+        if ( neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
+            // Check if this torch is attached to this block (skip if so)
+            // Torch attachment offset: rotation 0=(0,-1,0), 4=(-1,0,0), 5=(0,0,-1), 6=(1,0,0), 7=(0,0,1)
+            // Torch is attached to this block if attachment_offset == -dir
+            bool is_attached = false;
+            if ( neighbor.rotation == 0 && dir.y == 1 ) {
+                is_attached = true;
+            } else if ( neighbor.rotation == 4 && dir.x == 1 ) {
+                is_attached = true;
+            } else if ( neighbor.rotation == 5 && dir.z == 1 ) {
+                is_attached = true;
+            } else if ( neighbor.rotation == 6 && dir.x == -1 ) {
+                is_attached = true;
+            } else if ( neighbor.rotation == 7 && dir.z == -1 ) {
+                is_attached = true;
+            }
+            if ( is_attached ) {
+                continue; // Torch doesn't power its attachment block
+            }
+            if ( dir.y == -1 ) {
+                // Torch below: strongly powers this block (hard power 15)
+                if ( REDSTONE_TORCH_POWER > new_power ) {
+                    new_power = REDSTONE_TORCH_POWER;
+                }
+            }
+            // Torch to the side (not attached): weakly powers (soft power 1), handled below
+        }
+        if ( ( neighbor_block->is_button || neighbor_block->is_pressure_plate ) && neighbor.current_redstone_power > 0 ) {
+            // Pressed button/plate: strongly powers the block it's attached to.
+            if ( activator_attached_to( pos + dir, neighbor, pos ) && REDSTONE_TORCH_POWER > new_power ) {
+                new_power = REDSTONE_TORCH_POWER;
+            }
+        }
+    }
+
+    if ( new_power <= 1 && soft_ok ) {
+        new_power = 0;
+        // Check for soft power (dust adjacent, or torch to the side not attached)
+        for ( const glm::ivec3 &dir : directions ) {
+            BlockState neighbor = world.get_loaded_block( pos + dir );
+            if ( neighbor.id == LAST_BLOCK_ID ) {
+                continue;
+            }
+            const Block *neighbor_block = block_definition_get_definition( neighbor.id );
+            if ( neighbor_block->is_redstone_dust && neighbor.current_redstone_power > 0 ) {
+                // Dust above (dir.y==1) always powers the block below it, regardless of shape.
+                // Dust to the side (dir.y==0) only powers if its shape points toward this block.
+                // Dust below (dir.y==-1) never powers the block above it.
+                if ( dir.y == 1 || ( dir.y == 0 && dust_points_toward( neighbor.display_id, -dir ) ) ) {
+                    new_power = 1; // Soft power from dust
+                    break;
+                }
+            }
+            // Torch to the side (not attached to this block) gives soft power
+            if ( neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
+                bool is_attached = false;
+                if ( neighbor.rotation == 0 && dir.y == 1 ) {
+                    is_attached = true;
+                } else if ( neighbor.rotation == 4 && dir.x == 1 ) {
+                    is_attached = true;
+                } else if ( neighbor.rotation == 5 && dir.z == 1 ) {
+                    is_attached = true;
+                } else if ( neighbor.rotation == 6 && dir.x == -1 ) {
+                    is_attached = true;
+                } else if ( neighbor.rotation == 7 && dir.z == -1 ) {
+                    is_attached = true;
+                }
+                if ( !is_attached && dir.y == 0 ) {
+                    new_power = 1; // Soft power from torch side
+                    break;
+                }
+            }
+        }
+        // Mechanisms (pistons, lamps) also activate when an adjacent
+        // block is powered at all — a powered block feeds mechanism
+        // components whether its power is weak or strong. Only blocks
+        // that emit power count: powered solids, pressed buttons and
+        // plates. A powered mechanism (lit lamp, extended piston) is
+        // activated, not emitting — counting it would let two adjacent
+        // mechanisms latch each other on forever after their source is
+        // gone. Dust and torches have their own directional rules
+        // above.
+        if ( new_power == 0 && is_mechanism ) {
+            for ( const glm::ivec3 &dir : directions ) {
+                const BlockState neighbor = world.get_loaded_block( pos + dir );
+                if ( neighbor.id == LAST_BLOCK_ID || neighbor.current_redstone_power == 0 ) {
+                    continue;
+                }
+                const Block *neighbor_block = block_definition_get_definition( neighbor.id );
+                if ( ( neighbor_block->is_solid && !neighbor_block->is_redstone_mechanism ) || neighbor_block->is_button || neighbor_block->is_pressure_plate ) {
+                    new_power = 1;
+                    break;
+                }
+            }
+        }
+    }
+    return new_power;
+}
+
+int mechanism_direct_power( World &world, const glm::ivec3 &pos ) {
+    const int power = block_neighbor_power( world, pos, true, true );
+    return power > 1 ? 1 : power;
 }
 
 void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, //
@@ -434,6 +593,14 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
 
                 new_block_state.display_id = new_display_block_id;
             }
+        } else if ( affecting_block->is_rail ) {
+            // A rail re-resolves its shape on every neighbour change — the
+            // same kind of merge dust does, just across rotation +
+            // display_id together (rail_resolve_shape owns both). Unloaded
+            // neighbours leave the state untouched ("not ready").
+            const BlockState resolved = rail_resolve_shape( world, affecting_block_pos, affecting_block_state, -1 );
+            new_block_state.rotation = resolved.rotation;
+            new_block_state.display_id = resolved.display_id;
         }
     }
 
@@ -472,135 +639,17 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // connection graph, minus one per hop.
             new_power = compute_dust_power( world, affecting_block_pos );
         } else if ( affecting_block->is_solid || affecting_block->is_redstone_mechanism ) {
-            // Solid block: hard power (>1) from redstone blocks, a torch below,
-            // or an attached pressed button/plate; soft power (1) from dust
-            // pointing in or a torch's sides; mechanisms activate next to any
-            // powered block. Only solid blocks hold power — non-solids (air,
-            // water, glass, foliage) stay 0 so they can't act as a power source.
-            // Mechanisms that aren't solid (pistons) still activate here but
-            // are capped below so they never transmit power themselves.
-            new_power = 0;
-            static constexpr glm::ivec3 directions[ 6 ] = {
-                glm::ivec3( 0, 1, 0 ),  //
-                glm::ivec3( 0, -1, 0 ), //
-                glm::ivec3( 1, 0, 0 ),  //
-                glm::ivec3( -1, 0, 0 ), //
-                glm::ivec3( 0, 0, 1 ),  //
-                glm::ivec3( 0, 0, -1 ), //
-            };
-            // Check for hard power sources:
-            // - Redstone block (any direction): hard power 15
-            // - Torch below (dir.y == -1): hard power 15 (torch strongly powers block above)
-            // - Torch above (dir.y == 1) with rotation 0: skip (torch doesn't power attachment)
-            // - Torch to the side attached to this block: skip (doesn't power attachment)
-            // Torch to the side NOT attached to this block: soft power, handled below.
-            for ( const glm::ivec3 &dir : directions ) {
-                BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
-                if ( neighbor.id == LAST_BLOCK_ID ) {
-                    continue;
-                }
-                const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-                if ( neighbor_block->initial_redstone_power > 0 ) {
-                    // Redstone block: hard power at source level
-                    if ( neighbor_block->initial_redstone_power > new_power ) {
-                        new_power = neighbor_block->initial_redstone_power;
-                    }
-                }
-                if ( neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
-                    // Check if this torch is attached to this block (skip if so)
-                    // Torch attachment offset: rotation 0=(0,-1,0), 4=(-1,0,0), 5=(0,0,-1), 6=(1,0,0), 7=(0,0,1)
-                    // Torch is attached to this block if attachment_offset == -dir
-                    bool is_attached = false;
-                    if ( neighbor.rotation == 0 && dir.y == 1 ) {
-                        is_attached = true;
-                    } else if ( neighbor.rotation == 4 && dir.x == 1 ) {
-                        is_attached = true;
-                    } else if ( neighbor.rotation == 5 && dir.z == 1 ) {
-                        is_attached = true;
-                    } else if ( neighbor.rotation == 6 && dir.x == -1 ) {
-                        is_attached = true;
-                    } else if ( neighbor.rotation == 7 && dir.z == -1 ) {
-                        is_attached = true;
-                    }
-                    if ( is_attached ) {
-                        continue; // Torch doesn't power its attachment block
-                    }
-                    if ( dir.y == -1 ) {
-                        // Torch below: strongly powers this block (hard power 15)
-                        if ( REDSTONE_TORCH_POWER > new_power ) {
-                            new_power = REDSTONE_TORCH_POWER;
-                        }
-                    }
-                    // Torch to the side (not attached): weakly powers (soft power 1), handled below
-                }
-                if ( ( neighbor_block->is_button || neighbor_block->is_pressure_plate ) && neighbor.current_redstone_power > 0 ) {
-                    // Pressed button/plate: strongly powers the block it's attached to.
-                    if ( activator_attached_to( affecting_block_pos + dir, neighbor, affecting_block_pos ) && REDSTONE_TORCH_POWER > new_power ) {
-                        new_power = REDSTONE_TORCH_POWER;
-                    }
-                }
-            }
-
-            if ( new_power <= 1 && affecting_block->affected_by_redstone_power ) {
-                new_power = 0;
-                // Check for soft power (dust adjacent, or torch to the side not attached)
-                for ( const glm::ivec3 &dir : directions ) {
-                    BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
-                    if ( neighbor.id == LAST_BLOCK_ID ) {
-                        continue;
-                    }
-                    const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-                    if ( neighbor_block->is_redstone_dust && neighbor.current_redstone_power > 0 ) {
-                        // Dust above (dir.y==1) always powers the block below it, regardless of shape.
-                        // Dust to the side (dir.y==0) only powers if its shape points toward this block.
-                        // Dust below (dir.y==-1) never powers the block above it.
-                        if ( dir.y == 1 || ( dir.y == 0 && dust_points_toward( neighbor.display_id, -dir ) ) ) {
-                            new_power = 1; // Soft power from dust
-                            break;
-                        }
-                    }
-                    // Torch to the side (not attached to this block) gives soft power
-                    if ( neighbor.id == REDSTONE_TORCH && neighbor.current_redstone_power > 0 ) {
-                        bool is_attached = false;
-                        if ( neighbor.rotation == 0 && dir.y == 1 ) {
-                            is_attached = true;
-                        } else if ( neighbor.rotation == 4 && dir.x == 1 ) {
-                            is_attached = true;
-                        } else if ( neighbor.rotation == 5 && dir.z == 1 ) {
-                            is_attached = true;
-                        } else if ( neighbor.rotation == 6 && dir.x == -1 ) {
-                            is_attached = true;
-                        } else if ( neighbor.rotation == 7 && dir.z == -1 ) {
-                            is_attached = true;
-                        }
-                        if ( !is_attached && dir.y == 0 ) {
-                            new_power = 1; // Soft power from torch side
-                            break;
-                        }
-                    }
-                }
-                // Mechanisms (pistons, lamps) also activate when an adjacent
-                // block is powered at all — a powered block feeds mechanism
-                // components whether its power is weak or strong. Only blocks
-                // that emit power count: powered solids, pressed buttons and
-                // plates. A powered mechanism (lit lamp, extended piston) is
-                // activated, not emitting — counting it would let two adjacent
-                // mechanisms latch each other on forever after their source is
-                // gone. Dust and torches have their own directional rules
-                // above.
-                if ( new_power == 0 && affecting_block->is_redstone_mechanism ) {
-                    for ( const glm::ivec3 &dir : directions ) {
-                        const BlockState neighbor = world.get_loaded_block( affecting_block_pos + dir );
-                        if ( neighbor.id == LAST_BLOCK_ID || neighbor.current_redstone_power == 0 ) {
-                            continue;
-                        }
-                        const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-                        if ( ( neighbor_block->is_solid && !neighbor_block->is_redstone_mechanism ) || neighbor_block->is_button || neighbor_block->is_pressure_plate ) {
-                            new_power = 1;
-                            break;
-                        }
-                    }
-                }
+            // Solid blocks hold real power; mechanisms draw from the same
+            // neighbourhood scan and are capped to "activated" (1) below so
+            // they never emit power themselves.
+            new_power = block_neighbor_power( world, affecting_block_pos, //
+                                              affecting_block->affected_by_redstone_power, affecting_block->is_redstone_mechanism );
+            // A golden rail with no direct activation still powers when a
+            // directly-activated golden rail sits within 8 connected hops
+            // along the track (the BFS reads only direct activation, so a
+            // powered loop can't hold itself on).
+            if ( new_power == 0 && affecting_block_state.id == GOLDEN_RAIL && golden_rail_chain_powered( world, affecting_block_pos ) ) {
+                new_power = 1;
             }
             // A powered mechanism doesn't emit power of its own, so cap the
             // stored level at "activated": otherwise dust would read the

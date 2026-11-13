@@ -686,6 +686,7 @@
     "melon_side",
     "melon_stem_connected",
     "melon_top",
+    "minecart_normal",
     "mob_spawner",
     "moss_block",
     "mud",

@@ -6,6 +6,7 @@
 # builds never need bedrock-samples. Both outputs are deterministic.
 
 import json
+import math
 import os
 import sys
 
@@ -71,24 +72,52 @@ def strip_comments(text):
     return "".join(out)
 
 
-def parse_bone(b):
+def rot_matrix(deg):
+    # Same x->y->z composition mob_cube_matrix applies (R = Rx*Ry*Rz).
+    rx, ry, rz = [math.radians(v) for v in deg]
+    cx, sx, cy, sy, cz, sz = math.cos(rx), math.sin(rx), math.cos(ry), math.sin(ry), math.cos(rz), math.sin(rz)
+    mx = [[1, 0, 0], [0, cx, -sx], [0, sx, cx]]
+    my = [[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]]
+    mz = [[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]]
+    mm = lambda a, b: [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    return mm(mx, mm(my, mz))
+
+
+def parse_bone(b, cube_rot=False):
     name = b.get("name")
     if not name:
         fail("bone without a name")
     never_render = bool(b.get("neverRender", False))
     cubes = []
     bone_mirror = bool(b.get("mirror", False))
+    bone_pivot = [float(v) for v in b.get("pivot", [0.0, 0.0, 0.0])]
     for c in b.get("cubes", []):
         uv = c.get("uv")
         if not isinstance(uv, list) or len(uv) != 2:
             fail("bone %s: cube has non-box uv (per-face uv is not supported)" % name)
+        origin = [float(v) for v in c["origin"]]
+        size = [float(v) for v in c["size"]]
+        rot = [0.0, 0.0, 0.0]
+        if cube_rot and c.get("rotation"):
+            # MobCubeDef::rot spins about the *bone* pivot, but Bedrock
+            # rotates about the cube's pivot (the cube centre when there's
+            # no pivot key). Shift the origin by (R^-1 - I)(c - p) so the
+            # bone-pivot rotation lands the box identically.
+            rot = [float(v) for v in c["rotation"]]
+            cpivot = [float(v) for v in c.get("pivot", [origin[i] + size[i] / 2.0 for i in range(3)])]
+            r = rot_matrix(rot)
+            rinv = [[r[j][i] for j in range(3)] for i in range(3)]  # orthogonal
+            d = [cpivot[i] - bone_pivot[i] for i in range(3)]
+            for i in range(3):
+                origin[i] += sum(rinv[i][k] * d[k] for k in range(3)) - d[i]
+                origin[i] = round(origin[i], 6)
         cubes.append(
             {
-                "origin": [float(v) for v in c["origin"]],
-                "size": [float(v) for v in c["size"]],
+                "origin": origin,
+                "size": size,
                 "uv": [float(v) for v in uv],
                 "inflate": float(c.get("inflate", 0.0)),
-                "rot": [0.0, 0.0, 0.0],
+                "rot": rot,
                 "mirror": bool(c.get("mirror", bone_mirror)),
             }
         )
@@ -213,9 +242,13 @@ def parse_manifest():
             rot_overrides = {}
             cube_overrides = {}
             move_overrides = {}
+            cube_rot = False
             if len(fields) == 5:
                 for item in fields[4].split(";"):
                     if not item:
+                        continue
+                    if item == "cube_rot":
+                        cube_rot = True
                         continue
                     bone, rot = item.split("=", 1)
                     if bone.endswith(".cubes"):
@@ -238,6 +271,7 @@ def parse_manifest():
                     "rot_overrides": rot_overrides,
                     "cube_overrides": cube_overrides,
                     "move_overrides": move_overrides,
+                    "cube_rot": cube_rot,
                 }
             )
     return entries
@@ -252,7 +286,7 @@ def main():
         if not os.path.isfile(path):
             fail("missing geo file %s" % path)
         geo = resolve_geometry(load_geometries(path), e["geo_id"])
-        bones = [parse_bone(b) for b in geo["bones"]]
+        bones = [parse_bone(b, e["cube_rot"]) for b in geo["bones"]]
         all_bones = {b["name"]: b for b in bones}
         # Bedrock's neverRender bones (armor slot holders, base-model stubs)
         # carry no renderable geometry for us.

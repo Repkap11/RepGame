@@ -2372,6 +2372,7 @@
     "source": "textures/blocks/rail_golden"
   },
   "rail_golden_powered": {
+    "keep": true,
     "source": "textures/blocks/rail_golden_powered"
   },
   "rail_normal": {

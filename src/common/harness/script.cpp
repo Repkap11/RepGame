@@ -300,6 +300,45 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    // cart x y z [vx vz] — spawn a minecart (snaps onto a rail under it);
+    // carts — emit a cart_state results event per live cart.
+    if ( strcmp( cmd, "cart" ) == 0 && ( argc == 4 || argc == 6 ) ) {
+        const glm::dvec3 pos( farg( 1 ), farg( 2 ), farg( 3 ) );
+        const glm::dvec2 vel = argc == 6 ? glm::dvec2( farg( 4 ), farg( 5 ) ) : glm::dvec2( 0.0 );
+        if ( !dbgcmd::cart( state, pos, vel, &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
+    if ( strcmp( cmd, "carts" ) == 0 && argc == 1 ) {
+        for ( const Minecarts::Cart &c : state.world.carts.debug_carts( ) ) {
+            results::event( state.tick_number, "cart_state",
+                            "\"id\":%u,\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.6f,%.6f,%.6f],\"on_rail\":%d,\"rider\":%d",
+                            c.id, c.pos.x, c.pos.y, c.pos.z, c.vel.x, c.vel.y, c.vel.z, c.on_rail ? 1 : 0, c.rider ? 1 : 0 );
+        }
+        return false;
+    }
+    // ride — mount the nearest cart within 4 blocks of the player;
+    // dismount — leave the seat; ride_state — emit a ride_state results
+    // event with the riding cart id and camera position.
+    if ( strcmp( cmd, "ride" ) == 0 && argc == 1 ) {
+        if ( !dbgcmd::ride( state, 4.0, &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
+    if ( strcmp( cmd, "dismount" ) == 0 && argc == 1 ) {
+        if ( !dbgcmd::dismount( state, &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
+    if ( strcmp( cmd, "ride_state" ) == 0 && argc == 1 ) {
+        results::event( state.tick_number, "ride_state",
+                        "\"riding_cart\":%u,\"pos\":[%.4f,%.4f,%.4f]",
+                        state.camera.riding_cart, state.camera.pos.x, state.camera.pos.y, state.camera.pos.z );
+        return false;
+    }
     if ( strcmp( cmd, "feed" ) == 0 && ( argc == 4 || argc == 5 ) ) {
         if ( !dbgcmd::feed( state, glm::dvec3( farg( 1 ), farg( 2 ), farg( 3 ) ), argc == 5 ? argv[ 4 ].c_str( ) : nullptr, &err ) ) {
             cmd_error( state, line, err.c_str( ) );

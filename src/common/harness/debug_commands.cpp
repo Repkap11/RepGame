@@ -102,6 +102,50 @@ bool dbgcmd::mob( RepGameState &state, const char *type, const glm::dvec3 &pos, 
     return true;
 }
 
+// Spawns a minecart at pos (snapping onto a rail when it sits on one) with
+// an optional horizontal launch velocity in blocks/tick.
+bool dbgcmd::cart( RepGameState &state, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, std::string *err ) {
+    const uint32_t id = state.world.carts.spawn( pos, 0.0f );
+    if ( id == 0 ) {
+        *err = "cannot spawn minecart (cap or multiplayer)";
+        return false;
+    }
+    Minecarts::Cart *cart = state.world.carts.find( id );
+    if ( cart != nullptr ) {
+        cart->vel = glm::dvec3( vel_xz.x, 0.0, vel_xz.y );
+    }
+    return true;
+}
+
+// Player mount on the cart nearest the player within `max_dist` — same
+// result as a right-click on it.
+bool dbgcmd::ride( RepGameState &state, double max_dist, std::string *err ) {
+    const glm::dvec3 feet = state.camera.pos - glm::dvec3( 0.0, state.camera.eye_height, 0.0 );
+    double best = max_dist;
+    uint32_t best_id = 0;
+    for ( const Minecarts::Cart &c : state.world.carts.debug_carts( ) ) {
+        const double d = glm::length( c.pos - feet );
+        if ( d < best ) {
+            best = d;
+            best_id = c.id;
+        }
+    }
+    if ( best_id == 0 || !repgame_cart_mount( state, best_id ) ) {
+        *err = "ride: no cart within reach";
+        return false;
+    }
+    return true;
+}
+
+bool dbgcmd::dismount( RepGameState &state, std::string *err ) {
+    if ( state.camera.riding_cart == 0 ) {
+        *err = "dismount: not riding";
+        return false;
+    }
+    repgame_cart_dismount( state );
+    return true;
+}
+
 // Player melee hit on the mob carrying `net_id` — same shape as the
 // left-click path: mirrors get local feedback + ENTITY_ACTION, owned take
 // real damage.

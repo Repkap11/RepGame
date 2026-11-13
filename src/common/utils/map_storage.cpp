@@ -131,6 +131,7 @@ void MapStorage::enable_file_index( ) {
         { "chunk_", 6, MAP_FILE_CHUNK },
         { "mobs_", 5, MAP_FILE_MOBS },
         { "items_", 6, MAP_FILE_ITEMS },
+        { "carts_", 6, MAP_FILE_CARTS },
         { "chest_", 6, MAP_FILE_CHEST },
         { "furnace_", 8, MAP_FILE_FURNACE },
         { "sign_", 5, MAP_FILE_SIGN },
@@ -1098,6 +1099,74 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
             continue;
         }
         out.push_back( item );
+    }
+    free( raw );
+    return 1;
+}
+
+// Cart file layout: u32 record_size, u32 count, then `count`
+// CartFileRecords. Same conventions as the items file.
+void MapStorage::persist_carts( const glm::ivec3 &chunk_offset, const std::vector<CartFileRecord> &carts ) {
+    if ( repgame_block_world( ) ) {
+        return;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CARTS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *write_ptr = fopen( file_name, "wb" );
+    if ( write_ptr == NULL ) {
+        pr_debug( "fopen failed for carts file:%s", file_name );
+        return;
+    }
+    this->index_insert( MAP_FILE_CARTS, chunk_offset );
+    uint32_t record_size = sizeof( CartFileRecord );
+    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
+    uint32_t num_carts = static_cast<uint32_t>( carts.size( ) );
+    fwrite( &num_carts, sizeof( uint32_t ), 1, write_ptr );
+    for ( const CartFileRecord &record : carts ) {
+        fwrite( &record, sizeof( CartFileRecord ), 1, write_ptr );
+    }
+#if defined( REPGAME_WASM )
+    fdatasync( fileno( write_ptr ) );
+#endif
+    fclose( write_ptr );
+}
+
+int MapStorage::load_carts( const glm::ivec3 &chunk_offset, std::vector<CartFileRecord> &out ) {
+    if ( repgame_block_world( ) ) {
+        return 0;
+    }
+    if ( this->index_miss( MAP_FILE_CARTS, chunk_offset ) ) {
+        return 0;
+    }
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CARTS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    if ( read_ptr == NULL ) {
+        return 0;
+    }
+    out.clear( );
+    uint32_t record_size = 0;
+    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 ) {
+        fclose( read_ptr );
+        return 1;
+    }
+    uint32_t num_carts = 0;
+    if ( fread( &num_carts, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_carts > 65535 ) {
+        fclose( read_ptr );
+        return 1;
+    }
+    char *raw = static_cast<char *>( calloc( num_carts, record_size ) );
+    size_t num_read = fread( raw, record_size, num_carts, read_ptr );
+    fclose( read_ptr );
+    for ( size_t i = 0; i < num_read; i++ ) {
+        const char *record = &raw[ i * record_size ];
+        CartFileRecord cart = { 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0.0f };
+        const size_t prefix = sizeof( CartFileRecord ) <= (size_t)record_size ? sizeof( CartFileRecord ) : (size_t)record_size;
+        memcpy( &cart, record, prefix );
+        if ( !std::isfinite( cart.x ) || !std::isfinite( cart.y ) || !std::isfinite( cart.z ) ) {
+            continue;
+        }
+        out.push_back( cart );
     }
     free( raw );
     return 1;
