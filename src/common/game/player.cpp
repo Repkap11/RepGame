@@ -322,8 +322,9 @@ void RepGame::respawn( ) {
 }
 
 // Right-clicking a bed: always records it as the respawn point (the column
-// repgame_respawn/resolve_pending_spawn aim at); in the night half of the
-// day additionally sleeps the world clock to the next dawn. A non-bed or
+// repgame_respawn/resolve_pending_spawn aim at); from dusk on
+// (SLEEP_EARLIEST_TICKS — when the daylight first starts dimming)
+// additionally sleeps the world clock to the next dawn. A non-bed or
 // unloaded cell is refused outright (the mp-test/script `sleep x y z`
 // command points the function at arbitrary cells). Sleeping is
 // refused while a hostile mob is within SLEEP_MONSTER_RADIUS (MC's
@@ -334,23 +335,23 @@ void RepGame::respawn( ) {
 bool repgame_try_sleep( RepGameState &state, const glm::ivec3 &bed_pos ) {
     const BlockState bed_bs = state.world.get_loaded_block( bed_pos );
     if ( bed_bs.id == LAST_BLOCK_ID || !block_definition_get_definition( bed_bs.id )->is_bed ) {
-        pr_debug( "Cannot sleep: no bed at %d,%d,%d", bed_pos.x, bed_pos.y, bed_pos.z );
+        state.chat.push( CHAT_KIND_ERROR, "", "", "Cannot sleep: no bed there", state.tick_number );
         return false;
     }
     state.spawn_point = bed_pos;
     state.spawn_point_set = true;
     const long t = state.world_time % DAY_LENGTH_TICKS;
-    if ( t < DAY_LENGTH_TICKS / 2 ) {
-        pr_debug( "Respawn point set (can only sleep at night)" );
+    if ( t < SLEEP_EARLIEST_TICKS ) {
+        state.chat.push( CHAT_KIND_INFO, "", "", "Respawn point set (can only sleep at dusk or night)", state.tick_number );
         return false;
     }
     if ( state.world.mobs.hostiles_within( state.camera.pos, SLEEP_MONSTER_RADIUS ) ) {
-        pr_debug( "Respawn point set (cannot sleep: monsters nearby)" );
+        state.chat.push( CHAT_KIND_INFO, "", "", "Respawn point set (cannot sleep: monsters nearby)", state.tick_number );
         return false;
     }
     state.world_time = ( state.world_time / DAY_LENGTH_TICKS + 1 ) * DAY_LENGTH_TICKS + SLEEP_WAKE_OFFSET;
     state.multiplayer.send_world_time( state.world_time );
-    pr_debug( "Respawn point set (sleeping until dawn)" );
+    state.chat.push( CHAT_KIND_INFO, "", "", "Respawn point set (sleeping until dawn)", state.tick_number );
     return true;
 }
 

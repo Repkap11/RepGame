@@ -663,7 +663,8 @@ int test_vitals( ) {
 }
 
 // Bed sleeping: repgame_try_sleep records the bed as the respawn point on
-// any click but only advances world_time in the night half of the day, and
+// any click but only advances world_time from dusk on
+// (SLEEP_EARLIEST_TICKS), and
 // refuses while a hostile mob is near (spawn point still set).
 // repgame_resolve_pending_spawn stands the player on the recorded bed —
 // retrying while its column is ungenerated, falling back to the
@@ -702,6 +703,14 @@ int test_sleep( ) {
     check_bool( "day: sleep refused", !repgame_try_sleep( gs, bed ) );
     check_bool( "day: spawn point still set", gs.spawn_point_set && gs.spawn_point == bed );
     check_bool( "day: clock unchanged", gs.world_time == DAY_LENGTH_TICKS / 4 );
+
+    // Just before dusk: still refused; at SLEEP_EARLIEST_TICKS it sleeps.
+    gs.world_time = SLEEP_EARLIEST_TICKS - 1;
+    check_bool( "pre-dusk: sleep refused",
+                !repgame_try_sleep( gs, bed ) && gs.world_time == SLEEP_EARLIEST_TICKS - 1 );
+    gs.world_time = SLEEP_EARLIEST_TICKS;
+    check_bool( "dusk: sleeps to next dawn",
+                repgame_try_sleep( gs, bed ) && gs.world_time == DAY_LENGTH_TICKS + SLEEP_WAKE_OFFSET );
 
     // Night: the clock lands just past the next dawn boundary.
     gs.world_time = 5 * DAY_LENGTH_TICKS + DAY_LENGTH_TICKS * 3 / 4;

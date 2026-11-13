@@ -71,6 +71,11 @@ static inline unsigned short light_pack( const int sky, const int block ) {
 // world_time == 0 is dawn (sunrise); DAY_LENGTH_TICKS/4 is noon.
 #define DAY_LENGTH_TICKS ( 20 * 60 * UPS_RATE )
 
+// Earliest time-of-day repgame_try_sleep actually sleeps: 47% through the
+// day, just as light_daylight_factor starts falling off its full-day
+// plateau (sunset zero is at 50%).
+#define SLEEP_EARLIEST_TICKS ( DAY_LENGTH_TICKS * 47 / 100 )
+
 // Returns 0.04 (deep night) to 1.0 (full day) for a world_time tick count.
 float light_daylight_factor( long world_time );
 

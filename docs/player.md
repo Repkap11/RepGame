@@ -250,8 +250,9 @@ Right-clicking a bed (`is_bed`) runs `repgame_try_sleep` and always
 records the clicked cell as `state.spawn_point` (persisted as `player.dat`'s
 `spawn` key). The bed block itself is two cells — foot on the clicked
 cell, head one block in the placer's facing direction (docs/blocks.md) —
-and either half answers the click. In the night half of the day (`world_time` mod
-`DAY_LENGTH_TICKS` ≥ half) it additionally sleeps: `world_time` jumps
+and either half answers the click. From dusk on (`world_time` mod
+`DAY_LENGTH_TICKS` ≥ `SLEEP_EARLIEST_TICKS` — when the daylight factor
+starts dimming, just before the half-day sunset) it additionally sleeps: `world_time` jumps
 just past the next dawn (`SLEEP_WAKE_OFFSET` — the boundary itself is
 still sunrise-dim) and goes out as `WORLD_TIME` when connected — one sleeper
 skips the night for everyone, the same permissive model as the
