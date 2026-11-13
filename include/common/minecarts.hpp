@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <set>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -29,10 +30,13 @@ class Shader;
 // ridden ones. Derailed carts fall through the world with move_box
 // collision until they re-snap onto a rail or rest on the ground.
 //
-// Local to the client in this phase: multiplayer mode refuses spawns and
-// does no carts_* file IO. Riding (mount/dismount/camera) is Phase C —
-// the physics already honours a rider flag and a push input, but nothing
-// sets them yet.
+// Multiplayer phase 1 (empty carts): owner-simulated like items — the
+// chunk owner's client simulates and streams ENTITY_STATE; everyone else
+// holds a mirror that eases toward the streamed target and never runs
+// physics, collisions, pushes or rail stepping. Rider session ids ride the
+// record/state `count` field and are server-authoritative (phase 2 uses
+// them; phase 1 always streams 0). Local carts_* file IO stays off in
+// multiplayer (the server persists its own sidecars).
 class Minecarts {
   public:
     static constexpr size_t MAX_CARTS = 128;
@@ -52,7 +56,17 @@ class Minecarts {
         bool rider = false;     // local player riding (Phase C wires it)
         int persistent = 1;
         std::vector<entt::entity> parts; // render chain entities (render_inited only)
-        NetSync net;                   // reserved for future MP; unused
+        // Multiplayer sync (net.id 0 / net.mirror false in single player):
+        // mirrors skip physics entirely and ease toward net.pos. Pitch is
+        // not streamed — derived per tick from the rail under the mirror.
+        NetSync net;
+        // Rider session id (server-authoritative `count` field): nonzero
+        // means that session simulates the cart, not the chunk owner.
+        uint32_t rider_session = 0;
+        float net_yaw = 0.0f;          // latest streamed yaw (mirrors)
+        uint32_t net_flags = 0;        // latest streamed NET_CART_FLAG_* (edge detect)
+        float net_sent_yaw = 0.0f;     // yaw streamed with the last ENTITY_STATE
+        uint32_t net_sent_flags = 0;   // flags streamed with the last ENTITY_STATE
     };
 
     // Per-tick input from the game loop. The rider fields stay zero until
@@ -64,14 +78,19 @@ class Minecarts {
         double player_width = PLAYER_WIDTH;
         double player_height = PLAYER_HEIGHT;
         bool player_no_clip = false;
+        // Remote players' feet positions (multiplayer only): they shove
+        // owned empty carts with the same overlap rule as the local player.
+        std::vector<glm::dvec3> extra_pushers;
     };
 
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance );
     void init_storage( MapStorage *s );
 
     // Spawns a cart bottom-centred on `pos`, snapping onto a rail there.
-    // Returns its id (never 0); 0 at the cap or in multiplayer mode.
-    uint32_t spawn( const glm::dvec3 &pos, float yaw, int persistent = 1 );
+    // Returns its id (never 0); 0 at the cap or in a multiplayer session
+    // before WELCOME (the spawn can't be announced). A connected session
+    // mints the net id here and sends ENTITY_SPAWN like an item drop.
+    uint32_t spawn( const glm::dvec3 &pos, float yaw, int persistent = 1, bool from_net = false );
     // Right-click with MINECART on a rail cell: centre of cell, on the
     // rail, yaw along the rail axis nearest player_yaw.
     uint32_t spawn_on_rail( World &world, const glm::ivec3 &rail_cell, float player_yaw );
@@ -94,6 +113,17 @@ class Minecarts {
     // *drop set true when the caller should drop a MINECART item.
     bool hurt( int index, bool survival, bool *drop );
 
+    // One left-click on `index` — the whole mirror/owned branch in one
+    // place (player.cpp and the mp-test `carthit` ctl): a mirror gets an
+    // ENTITY_ACTION NET_ACTION_HIT sent to its owner and no local damage;
+    // an owned cart takes the hit through hurt() with its drop + remove
+    // handled centrally. Returns 0 (miss/no-op), 1 (applied locally) or
+    // 2 (action sent to the owner).
+    int hit_interact( RepGameState &state, int index, bool survival, const glm::dvec3 &attacker_pos );
+
+    bool net_mirror_at( int index ) const { return index >= 0 && this->carts[ index ].net.mirror; }
+    NetEntityId net_id_at( int index ) const { return index >= 0 ? this->carts[ index ].net.id : 0; }
+
     glm::dvec3 pos_at( int index ) const { return this->carts[ index ].pos; }
     uint32_t id_at( int index ) const { return this->carts[ index ].id; }
     int index_of( uint32_t id ) const;
@@ -108,10 +138,52 @@ class Minecarts {
     void adopt_chunk( Chunk &chunk );
     void persist_all( );
 
-    // Multiplayer: carts are local-only for now — mp mode refuses spawns
-    // and disables local file IO (NetSync on Cart is reserved).
-    void set_multiplayer_mode( bool mp_mode ) { this->mp_mode = mp_mode; }
+    // Multiplayer sync (NetEntities drives these; all no-ops single
+    // player). Local carts_* file reads/writes stay off while mp_mode —
+    // the server persists the authoritative records.
+    void set_multiplayer_mode( bool mp_mode, NetEntities *net );
     bool multiplayer_mode( ) const { return this->mp_mode; }
+    // Incoming record handlers (called by NetEntities).
+    Cart *find_by_net_id( NetEntityId net_id );
+    const Cart *find_by_net_id( NetEntityId net_id ) const;
+    // Where a remote avatar's feet sit inside the cart body — shared by
+    // MultiplayerAvatars::apply_cart_seats and the script `fake_rider` cmd.
+    static glm::dvec3 seat_pos( const Cart &c );
+    // Whether this client simulates `c`: a ridden cart is simulated by its
+    // rider's session, an empty one by its net.chunk's owner.
+    bool sim_here( const Cart &c ) const;
+    // ENTITY_SPAWN relay: decide the mirror flag ourselves (rider-aware).
+    void net_apply_spawn( const NetEntityRecord &rec );
+    // CHUNK_ROLE record / ENTITY_TRANSFER adopt: explicit mirror flag.
+    void net_apply_spawn( const NetEntityRecord &rec, bool mirror );
+    void net_apply_state( const NetEntityStateEntry &e );
+    void net_apply_remove( NetEntityId net_id );
+    // CHUNK_ROLE: drop the chunk (NONE) or re-sync it to the authoritative
+    // record set (VIEWER -> mirrors, OWNER -> locally simulated).
+    void net_apply_chunk_role( const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids );
+    // ENTITY_TRANSFER adopt=0: become a mirror if our role still covers the
+    // entity's chunk, else drop it.
+    void net_release_entity( const NetEntityRecord &rec, bool still_viewed );
+    // ENTITY_ACTION forwarded by the server to the chunk owner.
+    void net_apply_action( RepGameState &state, const NetEntityActionPayload &p );
+    // Owner-side outbound batch (dead-reckoned + drift/keyframe/chunk/
+    // stale/flags-changed throttle, same as items).
+    void collect_net_state( NetEntities &net, std::vector<NetEntityStateEntry> &out, long tick_number );
+
+    // Mount/dismount (multiplayer only — SP calls repgame_cart_mount
+    // directly). request_mount sends ENTITY_ACTION MOUNT and waits for the
+    // server's COUNT state; when rider_session becomes our session the
+    // pending mount completes through repgame_cart_mount.
+    bool request_mount( RepGameState &state, int index );
+    // Per-tick pending-mount bookkeeping (completion, refusal, 3 s
+    // timeout) — called from tick().
+    void tick_pending_mount( RepGameState &state );
+    // After repgame_cart_dismount places the camera: stream an immediate
+    // parked-position ENTITY_STATE then ENTITY_ACTION DISMOUNT, and keep
+    // simulating until the server's COUNT=0 lands.
+    void local_dismount( RepGameState &state, Cart *cart );
+    // Connection dropped while riding: local dismount (no wire traffic).
+    void net_disconnect( RepGameState &state );
 
     // Rebuilds the instance buffer for this frame. alpha interpolates
     // prev_pos/prev_yaw/prev_pitch.
@@ -122,7 +194,9 @@ class Minecarts {
     std::vector<Cart> debug_carts( ) const { return this->carts; }
     void cleanup( );
 
-    // rep_tests seam: mutate entities without a full RepGameState tick.
+    // rep_tests seams: bind the sync hub and mutate entities without a full
+    // RepGameState tick.
+    void test_bind_net( NetEntities *n ) { this->net = n; }
     std::vector<Cart> &test_carts( ) { return this->carts; }
 
   private:
@@ -130,10 +204,26 @@ class Minecarts {
     bool cart_chunk_live( World &world, const Cart &c ) const;
     void poll_owned( World &world );
     void drop_render_parts( Cart &c );
+    uint32_t spawn_record( const NetEntityRecord &rec, bool mirror );
+    // Send ENTITY_REMOVE for a synced entity we own (no-op otherwise).
+    void send_net_remove( Cart &c, uint8_t reason );
+    // hurt() + the shared remove-side effects: the MINECART item drop —
+    // the one place a broken cart drops (local clicks and forwarded
+    // ENTITY_ACTIONs alike, so MP and SP drop exactly once).
+    bool hurt_local( RepGameState &state, int index, bool survival );
 
     MapStorage *storage = nullptr;
+    // Bound to state.multiplayer.entities while multiplayer_mode — the sync
+    // hub. net_id minting and sends route through it.
+    NetEntities *net = nullptr;
     bool mp_mode = false;
     int poll_count = 0;
+    // Pending server-arbitrated mount: the cart we sent MOUNT for and the
+    // tick we sent it (3 s timeout).
+    NetEntityId pending_mount_id = 0;
+    long pending_mount_tick = 0;
+    // Apply a record's rider (`count`) field to a cart.
+    void apply_rider( RepGameState *state, Cart &c, int32_t count );
 
     std::vector<Cart> carts;
     uint32_t next_id = 1;

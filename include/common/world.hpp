@@ -213,4 +213,7 @@ class World {
     // A remote player's feet position (last entity-sync location), false
     // when no update has arrived for player_id — /tp <player> uses this.
     bool avatar_position_of( int player_id, glm::dvec3 &feet ) const;
+    // Cart net id ridden by the remote avatar behind `uid` (0 = standing)
+    // — the mp_test dump reads this without friend access.
+    uint64_t avatar_riding_cart_of_uid( uint32_t uid ) const;
 };

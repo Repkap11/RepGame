@@ -125,6 +125,8 @@ class MobManager {
         float sneak;        // eased 0..1 crouch amount (remote pose anim)
         float prev_sneak;
         float sneak_target;
+        int seated;         // remote avatar sits in a minecart (set_remote_seated)
+        float seat_yaw;     // body yaw while seated = the cart's yaw
         // Hostile AI state.
         int despawnable;    // night-spawner mobs: removed on distance/unload, never persisted
         int targeting;      // currently chasing the player
@@ -280,6 +282,12 @@ class MobManager {
     // The remote player's selected hotbar item (from NetPlayerPayload);
     // drawn in the avatar's right hand when the model has arm bones.
     void set_remote_held_item( uint32_t uid, ItemID item );
+    // Seat/unseat a remote avatar in a minecart: seated=true pins its feet
+    // to `seat_pos` (Minecarts::seat_pos — a leg-length below the cart's
+    // seat so the hips rest inside the cart), faces the body along
+    // `cart_yaw` and folds the legs forward; seated=false returns to the
+    // streamed pose. While seated, set_remote_pose only steers the head.
+    void set_remote_seated( uint32_t uid, const glm::dvec3 &seat_pos, float cart_yaw, bool seated = true );
     void remove_remote( uint32_t uid );
     // Remote-player hurt feedback (avatar): red flash + "player_hurt" faded
     // by distance to the local camera — driven by health drops in the

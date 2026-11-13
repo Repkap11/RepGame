@@ -181,6 +181,22 @@ void ServerEntities::load_chunk_entities( ServerChunkEntities &ce, const glm::iv
         e.age_ticks = rec.grow_ticks;
         ce.entities[ e.id ] = e;
     }
+    std::vector<CartFileRecord> carts;
+    this->storage->load_carts( chunk, carts );
+    for ( const CartFileRecord &rec : carts ) {
+        NetEntityRecord e;
+        e.id = this->mint_server_id( );
+        e.kind = NetEntityKind::CART;
+        e.x = rec.x;
+        e.y = rec.y;
+        e.z = rec.z;
+        e.vx = rec.vx;
+        e.vy = rec.vy;
+        e.vz = rec.vz;
+        e.yaw = rec.yaw;
+        e.count = 0; // rider session id — always empty on load
+        ce.entities[ e.id ] = e;
+    }
 }
 
 void ServerEntities::mark_dirty( ServerChunkEntities &ce, NetEntityKind kind ) {
@@ -188,6 +204,8 @@ void ServerEntities::mark_dirty( ServerChunkEntities &ce, NetEntityKind kind ) {
         ce.items_dirty = true;
     } else if ( kind == NetEntityKind::MOB ) {
         ce.mobs_dirty = true;
+    } else if ( kind == NetEntityKind::CART ) {
+        ce.carts_dirty = true;
     }
     // BODY records are never persisted.
 }
@@ -196,6 +214,7 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
     if ( this->storage == nullptr ) {
         ce.items_dirty = false;
         ce.mobs_dirty = false;
+        ce.carts_dirty = false;
         return;
     }
     if ( ce.items_dirty ) {
@@ -258,6 +277,21 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
         }
         ce.mobs_dirty = false;
     }
+    if ( ce.carts_dirty ) {
+        // Same convention as the items sidecar: an emptied chunk still
+        // writes, clearing the stale file.
+        std::vector<CartFileRecord> out;
+        for ( const auto &pair : ce.entities ) {
+            const NetEntityRecord &e = pair.second;
+            if ( e.kind != NetEntityKind::CART ) {
+                continue;
+            }
+            CartFileRecord rec = { e.x, e.y, e.z, e.vx, e.vy, e.vz, e.yaw };
+            out.push_back( rec );
+        }
+        this->storage->persist_carts( chunk, out );
+        ce.carts_dirty = false;
+    }
 }
 
 void ServerEntities::uncover_chunk( const glm::ivec3 &chunk ) {
@@ -268,6 +302,7 @@ void ServerEntities::uncover_chunk( const glm::ivec3 &chunk ) {
     for ( const auto &pair : it->second.entities ) {
         this->entity_chunk.erase( pair.first );
         this->body_sim_fd.erase( pair.first );
+        this->cart_rider_fd.erase( pair.first );
     }
     this->persist_chunk_entities( it->second, chunk );
     for ( int fd : it->second.viewers ) {
@@ -294,6 +329,7 @@ void ServerEntities::persist_stray_entity( const NetEntityRecord &rec, const glm
     tmp.entities[ rec.id ] = rec;
     tmp.items_dirty = true;
     tmp.mobs_dirty = true;
+    tmp.carts_dirty = true;
     this->persist_chunk_entities( tmp, chunk );
 }
 
@@ -405,6 +441,37 @@ void ServerEntities::on_client_connected( Server &server, int client_fd ) {
 }
 
 void ServerEntities::on_client_disconnected( Server &server, int client_fd ) {
+    // Carts this client rode: hand the sim back BEFORE the view teardown
+    // can persist the record with a stale rider. The chunk owner takes
+    // over (adopt=1 + COUNT=0 broadcast); a cart in an uncovered chunk (or
+    // one the leaver owned) persists as a stray.
+    for ( auto it = this->cart_rider_fd.begin( ); it != this->cart_rider_fd.end( ); ) {
+        if ( it->second != client_fd ) {
+            ++it;
+            continue;
+        }
+        const NetEntityId id = it->first;
+        it = this->cart_rider_fd.erase( it );
+        glm::ivec3 chunk;
+        ServerChunkEntities *ce = find_entity_chunk( id, &chunk );
+        if ( ce == nullptr ) {
+            continue;
+        }
+        NetEntityRecord &rec = ce->entities[ id ];
+        rec.count = 0;
+        this->mark_dirty( *ce, NetEntityKind::CART );
+        if ( ce->owner_fd >= 0 && ce->owner_fd != client_fd ) {
+            NetEntityTransferPayload adopt{ rec, 1 };
+            PacketWriter wa;
+            net_serialize_entity_transfer( wa, adopt );
+            server.queue_message( ce->owner_fd, NetMsgType::ENTITY_TRANSFER, 0, wa.take_buf( ) );
+            this->broadcast_cart_count( server, *ce, rec );
+        } else {
+            this->persist_stray_entity( rec, chunk );
+            ce->entities.erase( id );
+            this->entity_chunk.erase( id );
+        }
+    }
     const auto vit = this->clients.find( client_fd );
     EntityClientView view;
     if ( vit != this->clients.end( ) ) {
@@ -462,6 +529,116 @@ void ServerEntities::on_player_position( Server &server, int client_fd, float x,
     if ( v.valid ) {
         // Distances into every covered chunk changed; owners may flip.
         this->recompute_boxes( server, client_fd, old_view, v );
+    }
+}
+
+int ServerEntities::sim_fd_of( const ServerChunkEntities &ce, const NetEntityRecord &rec ) const {
+    if ( net_entity_causer_simulated( static_cast<NetEntityKind>( rec.kind ) ) ) {
+        const auto it = this->body_sim_fd.find( rec.id );
+        return it == this->body_sim_fd.end( ) ? -1 : it->second;
+    }
+    if ( rec.kind == NetEntityKind::CART ) {
+        const auto it = this->cart_rider_fd.find( rec.id );
+        if ( it != this->cart_rider_fd.end( ) ) {
+            return it->second;
+        }
+    }
+    return ce.owner_fd;
+}
+
+// The rider field reaches every client as a server-originated ENTITY_STATE
+// (header player 0) — same mechanism as a partial-pickup count update.
+void ServerEntities::broadcast_cart_count( Server &server, ServerChunkEntities &ce, const NetEntityRecord &rec ) {
+    NetEntityStatePayload sp;
+    NetEntityStateEntry e;
+    e.id = rec.id;
+    e.kind = static_cast<uint8_t>( rec.kind );
+    e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_COUNT;
+    e.x = rec.x;
+    e.y = rec.y;
+    e.z = rec.z;
+    e.vx = rec.vx;
+    e.vy = rec.vy;
+    e.vz = rec.vz;
+    e.count = rec.count;
+    sp.entries.push_back( e );
+    PacketWriter w;
+    net_serialize_entity_state( w, sp );
+    server.broadcast_to( ce.viewers, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
+}
+
+void ServerEntities::apply_cart_mount( Server &server, const int client_fd, const NetEntityActionPayload &p ) {
+    glm::ivec3 chunk;
+    ServerChunkEntities *ce = find_entity_chunk( p.id, &chunk );
+    if ( ce == nullptr ) {
+        return;
+    }
+    const auto rit = ce->entities.find( p.id );
+    // Empty carts only, and only from a client viewing the cart's chunk.
+    if ( rit == ce->entities.end( ) || rit->second.kind != NetEntityKind::CART || rit->second.count != 0 ||
+         !ce->viewers.count( client_fd ) ) {
+        return;
+    }
+    NetEntityRecord &rec = rit->second;
+    rec.count = static_cast<int32_t>( this->session_ids[ client_fd ] );
+    this->cart_rider_fd[ p.id ] = client_fd;
+    this->mark_dirty( *ce, NetEntityKind::CART );
+    se_pr_debug( "cart mount id=%llu rider=%d session=%u owner=%d", (unsigned long long)p.id, client_fd,
+                 this->session_ids[ client_fd ], ce->owner_fd );
+    this->broadcast_cart_count( server, *ce, rec );
+    if ( ce->owner_fd != client_fd ) {
+        // Sim moves to the rider: the chunk owner demotes to mirror, the
+        // rider adopts (the record carries count).
+        if ( ce->owner_fd >= 0 ) {
+            NetEntityTransferPayload drop{ rec, 0 };
+            PacketWriter wd;
+            net_serialize_entity_transfer( wd, drop );
+            server.queue_message( ce->owner_fd, NetMsgType::ENTITY_TRANSFER, 0, wd.take_buf( ) );
+        }
+        NetEntityTransferPayload adopt{ rec, 1 };
+        PacketWriter wa;
+        net_serialize_entity_transfer( wa, adopt );
+        server.queue_message( client_fd, NetMsgType::ENTITY_TRANSFER, 0, wa.take_buf( ) );
+    }
+}
+
+void ServerEntities::apply_cart_dismount( Server &server, const int client_fd, const NetEntityActionPayload &p ) {
+    glm::ivec3 chunk;
+    ServerChunkEntities *ce = find_entity_chunk( p.id, &chunk );
+    if ( ce == nullptr ) {
+        return;
+    }
+    const auto rit = ce->entities.find( p.id );
+    const auto rider = this->cart_rider_fd.find( p.id );
+    // Only the current rider may dismount.
+    if ( rit == ce->entities.end( ) || rit->second.kind != NetEntityKind::CART || rider == this->cart_rider_fd.end( ) ||
+         rider->second != client_fd ) {
+        return;
+    }
+    NetEntityRecord &rec = rit->second;
+    rec.count = 0;
+    this->cart_rider_fd.erase( p.id );
+    this->mark_dirty( *ce, NetEntityKind::CART );
+    se_pr_debug( "cart dismount id=%llu rider=%d owner=%d", (unsigned long long)p.id, client_fd, ce->owner_fd );
+    this->broadcast_cart_count( server, *ce, rec );
+    if ( ce->owner_fd != client_fd ) {
+        // Sim returns to the chunk owner (the rider always covers the
+        // cart's chunk, so owner_fd == -1 can't happen — guard anyway by
+        // persisting the record as a stray if it somehow does).
+        if ( ce->owner_fd >= 0 ) {
+            NetEntityTransferPayload adopt{ rec, 1 };
+            PacketWriter wa;
+            net_serialize_entity_transfer( wa, adopt );
+            server.queue_message( ce->owner_fd, NetMsgType::ENTITY_TRANSFER, 0, wa.take_buf( ) );
+            NetEntityTransferPayload drop{ rec, 0 };
+            PacketWriter wd;
+            net_serialize_entity_transfer( wd, drop );
+            server.queue_message( client_fd, NetMsgType::ENTITY_TRANSFER, 0, wd.take_buf( ) );
+        } else {
+            this->persist_stray_entity( rec, chunk );
+            ce->entities.erase( p.id );
+            this->entity_chunk.erase( p.id );
+        }
     }
 }
 
@@ -605,12 +782,18 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                 continue;
             }
             const bool is_causer_sim = net_entity_causer_simulated( ce->entities[ e.id ].kind );
-            // Causer-simulated: only its simulating client may move it.
-            // Others: only the chunk owner.
-            if ( is_causer_sim ? this->body_sim_fd[ e.id ] != client_fd : ce->owner_fd != client_fd ) {
+            // Whoever simulates may stream: the causer (bodies/arrows),
+            // the rider (a ridden cart), else the chunk owner.
+            const bool ridden = !is_causer_sim && this->cart_rider_fd.count( e.id ) != 0;
+            if ( this->sim_fd_of( *ce, ce->entities[ e.id ] ) != client_fd ) {
                 continue;
             }
             NetEntityRecord &rec = ce->entities[ e.id ];
+            // A CART's count is the rider session id — server-authoritative:
+            // strip any client-sent COUNT before applying or relaying it.
+            if ( rec.kind == NetEntityKind::CART ) {
+                e.present &= static_cast<uint8_t>( ~NET_SE_COUNT );
+            }
             const uint32_t prev_flags = rec.flags;
             const bool has_pos = ( e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA ) ) != 0;
             if ( has_pos ) {
@@ -664,7 +847,12 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                         this->body_sim_fd.erase( e.id );
                     } else {
                         // New chunk uncovered: persist it there and drop it
-                        // from the sender's simulation.
+                        // from the sender's simulation. A ridden cart lands
+                        // as an empty one — the rider is gone with it.
+                        if ( ridden ) {
+                            moved.count = 0;
+                            this->cart_rider_fd.erase( e.id );
+                        }
                         this->persist_stray_entity( moved, new_chunk );
                         NetEntityRemovePayload rem{ e.id, NET_REMOVE_LEFT_VIEW };
                         PacketWriter wr;
@@ -697,7 +885,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                     // Ownership transfer when the new chunk has a different
                     // owner. Bodies never transfer — the causer keeps
                     // simulating across chunk boundaries.
-                    if ( !is_causer_sim && nit->second.owner_fd != client_fd ) {
+                    if ( !is_causer_sim && !ridden && nit->second.owner_fd != client_fd ) {
                         NetEntityTransferPayload adopt{ moved, 1 };
                         PacketWriter wa;
                         net_serialize_entity_transfer( wa, adopt );
@@ -742,14 +930,15 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             return true;
         }
         const NetEntityKind kind = ce->entities[ p.id ].kind;
-        // BODY removals come from the simulating client; others from the
-        // chunk owner.
-        if ( net_entity_causer_simulated( kind ) ? this->body_sim_fd[ p.id ] != client_fd : ce->owner_fd != client_fd ) {
+        // Removals come from whoever simulates: the causer, the rider, or
+        // the chunk owner.
+        if ( this->sim_fd_of( *ce, ce->entities[ p.id ] ) != client_fd ) {
             return true;
         }
         ce->entities.erase( p.id );
         this->entity_chunk.erase( p.id );
         this->body_sim_fd.erase( p.id );
+        this->cart_rider_fd.erase( p.id );
         this->mark_dirty( *ce, kind );
         PacketWriter w;
         net_serialize_entity_remove( w, p );
@@ -842,10 +1031,30 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         }
         glm::ivec3 chunk;
         ServerChunkEntities *ce = find_entity_chunk( p.id, &chunk );
-        if ( ce != nullptr && ce->owner_fd >= 0 ) {
-            PacketWriter w;
-            net_serialize_entity_action( w, p );
-            server.queue_message( ce->owner_fd, NetMsgType::ENTITY_ACTION, client_fd, w.take_buf( ) );
+        if ( ce == nullptr ) {
+            return true;
+        }
+        const auto rit = ce->entities.find( p.id );
+        if ( rit != ce->entities.end( ) && rit->second.kind == NetEntityKind::CART ) {
+            // Cart mount/dismount are server-arbitrated, not forwarded.
+            if ( p.action == NET_ACTION_MOUNT ) {
+                this->apply_cart_mount( server, client_fd, p );
+                return true;
+            }
+            if ( p.action == NET_ACTION_DISMOUNT ) {
+                this->apply_cart_dismount( server, client_fd, p );
+                return true;
+            }
+        }
+        // Everything else (HIT, FEED, SHEAR) goes to whoever simulates:
+        // the rider of a ridden cart, else the chunk owner.
+        if ( rit != ce->entities.end( ) ) {
+            const int sim = this->sim_fd_of( *ce, rit->second );
+            if ( sim >= 0 ) {
+                PacketWriter w;
+                net_serialize_entity_action( w, p );
+                server.queue_message( sim, NetMsgType::ENTITY_ACTION, client_fd, w.take_buf( ) );
+            }
         }
         return true;
     }

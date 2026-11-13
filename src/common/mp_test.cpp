@@ -12,6 +12,7 @@
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/item.hpp"
+#include "common/minecarts.hpp"
 #include "common/mobs.hpp"
 #include "common/multiplayer.hpp"
 #include "common/net_entities.hpp"
@@ -117,6 +118,12 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
     // The requested display name (server-deduped spelling lives in
     // player_names[self_player_id]) plus the whole name table.
     jput( ",\"name\":\"%s\"", jescape( state.player_name ).c_str( ) );
+    {
+        const Minecarts::Cart *ridden =
+            state.camera.riding_cart != 0 ? state.world.carts.find( state.camera.riding_cart ) : nullptr;
+        jput( ",\"riding_cart\":" );
+        jnet_id( ridden != nullptr ? ridden->net.id : 0 );
+    }
     jput( ",\"players\":[" );
     {
         bool first_name = true;
@@ -179,13 +186,15 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
               "\"ai_state\":%d,\"hurt_ticks\":%d,\"death_ticks\":%d,\"fuse_ticks\":%d,"
               "\"walk_dist\":%.4f,\"leg_amp\":%.4f,\"head_yaw\":%.3f,\"head_pitch\":%.3f,"
               "\"sneak\":%.3f,\"despawnable\":%d,\"targeting\":%d,\"sheared\":%d,\"net_flags\":%u,"
-              "\"held_item\":%d}",
+              "\"held_item\":%d,\"seated\":%d,\"riding_cart\":",
               m.net.mirror ? 1 : 0, m.uid, static_cast<int>( m.type ), mob_types[ m.type ].name, m.variant,
               m.pos.x, m.pos.y, m.pos.z, m.vel.x, m.vel.y, m.vel.z, m.yaw, m.health,
               m.ai_state, m.hurt_ticks, m.death_ticks, m.fuse_ticks,
               m.walk_dist, m.leg_amp, m.head_yaw, m.head_pitch,
               m.sneak, m.despawnable, m.targeting, m.sheared, m.net_flags,
-              static_cast<int>( m.held_item ) );
+              static_cast<int>( m.held_item ), m.seated );
+        jnet_id( state.world.avatar_riding_cart_of_uid( m.uid ) );
+        jput( "}" );
         first = false;
     }
     jput( "]" );
@@ -202,6 +211,19 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
               "\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.4f,%.4f,%.4f],\"grounded\":%d,\"fuse_left\":%ld}",
               b.net.mirror ? 1 : 0, static_cast<int>( b.kind ), static_cast<int>( b.state.id ),
               b.min.x, b.min.y, b.min.z, b.vel.x, b.vel.y, b.vel.z, b.grounded, fuse_left );
+        first = false;
+    }
+    jput( "]" );
+
+    jput( ",\"carts\":[" );
+    first = true;
+    for ( const Minecarts::Cart &c : state.world.carts.debug_carts( ) ) {
+        jput( "%s{\"net_id\":", first ? "" : "," );
+        jnet_id( c.net.id );
+        jput( ",\"remote\":%d,\"on_rail\":%d,\"hurt_ticks\":%d,\"yaw\":%.3f,\"rider\":%u,"
+              "\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.4f,%.4f,%.4f]}",
+              c.net.mirror ? 1 : 0, c.on_rail ? 1 : 0, c.hurt_ticks, static_cast<double>( c.yaw ), c.rider_session,
+              c.pos.x, c.pos.y, c.pos.z, c.vel.x, c.vel.y, c.vel.z );
         first = false;
     }
     jput( "]" );
@@ -273,6 +295,74 @@ static void run_cmd( RepGameState &state, char *line ) {
         if ( !dbgcmd::mob( state, argv[ 1 ], glm::dvec3( atof( argv[ 2 ] ), atof( argv[ 3 ] ), atof( argv[ 4 ] ) ), &err ) ) {
             cmd_error( state, line );
         }
+        return;
+    }
+    // cart x y z [vx vz] — spawn a minecart through the normal spawn path
+    // (the debug `cart` command), with an optional horizontal velocity.
+    if ( strcmp( cmd, "cart" ) == 0 && ( argc == 4 || argc == 6 ) ) {
+        const glm::dvec3 pos( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) );
+        const glm::dvec2 vel = argc == 6 ? glm::dvec2( atof( argv[ 4 ] ), atof( argv[ 5 ] ) ) : glm::dvec2( 0.0 );
+        if ( !dbgcmd::cart( state, pos, vel, &err ) ) {
+            cmd_error( state, line );
+        }
+        return;
+    }
+    // carthit — one left-click on the cart nearest the camera: mirrors get
+    // ENTITY_ACTION, owned carts take the local hit (same rules as the
+    // player's real click path, including the client's game mode).
+    if ( strcmp( cmd, "carthit" ) == 0 && argc == 1 ) {
+        int best = -1;
+        double best_dist = 1e9;
+        const auto &carts = state.world.carts.debug_carts( );
+        for ( size_t i = 0; i < carts.size( ); i++ ) {
+            const double d = glm::length( carts[ i ].pos + glm::dvec3( 0.0, Minecarts::CART_HEIGHT * 0.5, 0.0 ) - state.camera.pos );
+            if ( d < best_dist ) {
+                best_dist = d;
+                best = static_cast<int>( i );
+            }
+        }
+        if ( best < 0 ) {
+            mp_test::event( &state, "cmd_error", "\"line\":\"carthit: no cart\"" );
+            return;
+        }
+        const int result = state.world.carts.hit_interact( state, best, state.game_mode == GameMode_Survival, state.camera.pos );
+        mp_test::event( &state, "carthit", "\"result\":%d,\"dist\":%g", result, best_dist );
+        return;
+    }
+    // ride — mount the cart nearest the camera through the real click path:
+    // multiplayer sends ENTITY_ACTION MOUNT and the pending request completes
+    // on the server's COUNT state (watch for the cart_mounted event);
+    // refused/occupied carts swallow the request. Single player mounts now.
+    if ( strcmp( cmd, "ride" ) == 0 && argc == 1 ) {
+        int best = -1;
+        double best_dist = 1e9;
+        const auto &carts = state.world.carts.debug_carts( );
+        for ( size_t i = 0; i < carts.size( ); i++ ) {
+            const double d = glm::length( carts[ i ].pos + glm::dvec3( 0.0, Minecarts::CART_HEIGHT * 0.5, 0.0 ) - state.camera.pos );
+            if ( d < best_dist ) {
+                best_dist = d;
+                best = static_cast<int>( i );
+            }
+        }
+        if ( best < 0 ) {
+            mp_test::event( &state, "cmd_error", "\"line\":\"ride: no cart\"" );
+            return;
+        }
+        const bool ok = state.world.carts.multiplayer_mode( )
+                            ? state.world.carts.request_mount( state, best )
+                            : repgame_cart_mount( state, state.world.carts.id_at( best ) );
+        mp_test::event( &state, "ride", "\"sent\":%d,\"dist\":%g", ok ? 1 : 0, best_dist );
+        return;
+    }
+    // dismount — step off the ridden cart: the camera moves immediately and
+    // multiplayer streams the parked state + ENTITY_ACTION DISMOUNT.
+    if ( strcmp( cmd, "dismount" ) == 0 && argc == 1 ) {
+        if ( state.camera.riding_cart == 0 ) {
+            mp_test::event( &state, "cmd_error", "\"line\":\"dismount: not riding\"" );
+            return;
+        }
+        repgame_cart_dismount( state );
+        mp_test::event( &state, "dismount", "" );
         return;
     }
     if ( strcmp( cmd, "hit" ) == 0 && argc == 2 ) {

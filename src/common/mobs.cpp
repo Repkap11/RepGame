@@ -204,6 +204,8 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.heart_ticks = 0;
     mob.next_heart_at = 0.0f;
     mob.was_emitting = 0;
+    mob.seated = 0;
+    mob.seat_yaw = 0.0f;
     mob.heart_burst = 0;
     mob.uid = 0;
     mob.look_yaw = 0.0f;
@@ -340,10 +342,27 @@ void MobManager::set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float
             if ( !std::isfinite( eye_height ) || eye_height < PLAYER_SNEAK_EYE_HEIGHT - 0.05f || eye_height > PLAYER_EYE_HEIGHT + 0.05f ) {
                 eye_height = mob_types[ mob.type ].eye_h;
             }
-            mob.target = eye_pos - glm::dvec3( 0.0, static_cast<double>( eye_height ), 0.0 );
+            // A seated avatar's position comes from its cart
+            // (set_remote_seated); a streamed pose only steers the head.
+            if ( !mob.seated ) {
+                mob.target = eye_pos - glm::dvec3( 0.0, static_cast<double>( eye_height ), 0.0 );
+            }
             mob.look_yaw = look_yaw_deg;
             mob.look_pitch = look_pitch_deg;
             mob.sneak_target = glm::clamp( ( PLAYER_EYE_HEIGHT - eye_height ) / PLAYER_SNEAK_EYE_DROP, 0.0f, 1.0f );
+            return;
+        }
+    }
+}
+
+void MobManager::set_remote_seated( const uint32_t uid, const glm::dvec3 &seat_pos, const float cart_yaw, const bool seated ) {
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.uid == uid ) {
+            mob.seated = seated;
+            if ( seated ) {
+                mob.target = seat_pos;
+                mob.seat_yaw = cart_yaw;
+            }
             return;
         }
     }
@@ -405,17 +424,25 @@ void MobManager::tick_remote( Mob &mob ) {
     mob.leg_amp += ( amp_target - mob.leg_amp ) * 0.2f;
     mob.sneak += ( mob.sneak_target - mob.sneak ) * 0.35f;
 
-    if ( hd > 1e-4 ) {
-        // While moving, the body eases toward the travel direction.
-        const float want_yaw = static_cast<float>( atan2( moved.x, -moved.z ) * ( 180.0 / M_PI ) );
-        mob.yaw += wrap_degrees_180( want_yaw - mob.yaw ) * 0.2f;
-    }
-    // The head can't lead the body by more than 50°: drag the body along.
-    const float lead = wrap_degrees_180( mob.look_yaw - mob.yaw );
-    if ( lead > 50.0f ) {
-        mob.yaw = wrap_degrees_180( mob.look_yaw - 50.0f );
-    } else if ( lead < -50.0f ) {
-        mob.yaw = wrap_degrees_180( mob.look_yaw + 50.0f );
+    if ( mob.seated ) {
+        // Seated in a minecart: the body faces the cart's yaw (head keeps
+        // the streamed look target), legs stay folded — no gait/crouch.
+        mob.yaw += wrap_degrees_180( mob.seat_yaw - mob.yaw ) * 0.35f;
+        mob.leg_amp = 0.0f;
+        mob.sneak = mob.prev_sneak = mob.sneak_target = 0.0f;
+    } else {
+        if ( hd > 1e-4 ) {
+            // While moving, the body eases toward the travel direction.
+            const float want_yaw = static_cast<float>( atan2( moved.x, -moved.z ) * ( 180.0 / M_PI ) );
+            mob.yaw += wrap_degrees_180( want_yaw - mob.yaw ) * 0.2f;
+        }
+        // The head can't lead the body by more than 50°: drag the body along.
+        const float lead = wrap_degrees_180( mob.look_yaw - mob.yaw );
+        if ( lead > 50.0f ) {
+            mob.yaw = wrap_degrees_180( mob.look_yaw - 50.0f );
+        } else if ( lead < -50.0f ) {
+            mob.yaw = wrap_degrees_180( mob.look_yaw + 50.0f );
+        }
     }
     mob.head_yaw = wrap_degrees_180( mob.look_yaw - mob.yaw );
     // angle_V > 0 looks down; the head animator's pitch > 0 looks up.
@@ -1611,6 +1638,10 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
             for ( int limb = 0; limb < 2; limb++ ) {
                 if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
                     bone_anim[ i ].x += ( limb == 0 ? 1.4f : -1.4f ) * tcos0;
+                    // Seated in a minecart: thighs folded forward at the hip.
+                    if ( mob.seated ) {
+                        bone_anim[ i ].x += 90.0f;
+                    }
                 }
                 if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
                     bone_anim[ i ].x += ( limb == 0 ? -1.0f : 1.0f ) * tcos0;

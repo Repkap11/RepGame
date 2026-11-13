@@ -53,6 +53,10 @@ Artifacts land in `/tmp/repgame/mptest_<scenario>_*` and contain `server.log` pl
 | `drop <item> <count> x y z [vx vy vz]` | spawn a dropped-item entity via the normal spawn path |
 | `mob <type> x y z` | spawn a mob via `MobManager::spawn` |
 | `hit <net_id>` | player melee hit on that mob (local damage on owned, feedback + ENTITY_ACTION on a mirror) |
+| `cart x y z [vx vz]` | spawn a minecart via the normal spawn path, with optional horizontal velocity |
+| `carthit` | left-click the cart nearest the camera — ENTITY_ACTION on a mirror, local hit on an owned cart (emits a `carthit` event) |
+| `ride` | mount the cart nearest the camera through the real right-click path (emits `ride {sent,dist}`; refused mounts produce no `cart_mounted`) |
+| `dismount` | leave the ridden cart (emits `dismount`; `cmd_error` when not riding) |
 | `feed x y z [item]` | feed the mob nearest the point (default: its first breed food); mirrors send NET_ACTION_FEED for the owner to validate |
 | `shear x y z` | shear the shearable mob nearest the point (as if shears held); mirrors send NET_ACTION_SHEAR for the owner to validate |
 | `fall <block> x y z` | spawn a falling-block body |
@@ -103,6 +107,13 @@ Two line types:
     net_flags}`.
   - `bodies`: `{net_id, remote, kind, block, pos, vel, grounded,
     fuse_left}`.
+  - `carts`: `{net_id, remote, on_rail, hurt_ticks, yaw, rider, pos,
+    vel}` — `remote` is the mirror flag (1 = not simulated locally),
+    `rider` is the rider session id (0 = empty).
+  - top level also carries `riding_cart` (net-id string of the cart the
+    local player rides); remote avatars appear in `mobs` with `uid` and
+    extra `seated`/`riding_cart` fields — `seated` = posed in their
+    riding_cart.
   - Net ids are **decimal strings** (64-bit, JSON numbers lose precision).
   - Mobs with `uid != 0` are remote-player avatars — they legitimately
     have no net_id; `mobs_of()` in the driver filters them out.

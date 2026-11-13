@@ -8,6 +8,7 @@
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/chunk.hpp"
 #include "common/item_entities.hpp"
+#include "common/minecarts.hpp"
 #include "common/mp_test.hpp"
 #include "common/multiplayer.hpp"
 #include "common/utils/env_config.hpp"
@@ -37,6 +38,10 @@ static bool entity_state_baseline( void *ctx, const NetEntityId id, const uint8_
         net = world.bodies.find_net_sync( id );
     } else if ( kind == static_cast<uint8_t>( NetEntityKind::ARROW ) ) {
         if ( ArrowEntities::Arrow *e = world.arrows.find_by_net_id( id ) ) {
+            net = &e->net;
+        }
+    } else if ( kind == static_cast<uint8_t>( NetEntityKind::CART ) ) {
+        if ( Minecarts::Cart *e = world.carts.find_by_net_id( id ) ) {
             net = &e->net;
         }
     }
@@ -166,6 +171,13 @@ void NetEntities::send_entity_action( const NetEntityActionPayload &p ) {
     this->mp->send( NetMsgType::ENTITY_ACTION, p );
 }
 
+void NetEntities::send_state_now( const NetEntityStatePayload &p ) {
+    if ( !this->welcomed ) {
+        return;
+    }
+    this->mp->send( NetMsgType::ENTITY_STATE, p );
+}
+
 void NetEntities::send_explosion( double x, double y, double z, float radius ) {
     if ( !this->welcomed ) {
         return;
@@ -210,6 +222,7 @@ void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &gran
     state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, records, grant.removed_natural, grant.late_ids );
     state.world.bodies.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
     state.world.arrows.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
+    state.world.carts.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
 }
 
 bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_id, PacketReader &r ) {
@@ -293,6 +306,10 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             } else if ( rec.kind == NetEntityKind::ARROW ) {
                 // Same causer-simulated model as bodies.
                 state.world.arrows.net_apply_spawn( rec, true );
+            } else if ( rec.kind == NetEntityKind::CART ) {
+                // The cart decides its own mirror flag — a rider field on
+                // the record beats the chunk-role guess.
+                state.world.carts.net_apply_spawn( rec );
             }
             return true;
         }
@@ -311,6 +328,8 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                     state.world.bodies.net_apply_state( e );
                 } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::ARROW ) ) {
                     state.world.arrows.net_apply_state( e );
+                } else if ( e.kind == static_cast<uint8_t>( NetEntityKind::CART ) ) {
+                    state.world.carts.net_apply_state( e );
                 }
             }
             return true;
@@ -326,11 +345,12 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             for ( PendingRole &pend : this->pending_roles ) {
                 pend.late_ids.erase( p.id );
             }
-            // One kind owns the id; try all four.
+            // One kind owns the id; try all five.
             state.world.items.net_apply_remove( p.id );
             state.world.mobs.net_apply_remove( p.id );
             state.world.bodies.net_apply_remove( p.id );
             state.world.arrows.net_apply_remove( p.id );
+            state.world.carts.net_apply_remove( p.id );
             return true;
         }
         case NetMsgType::ENTITY_TRANSFER: {
@@ -369,6 +389,14 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             } else if ( p.record.kind == NetEntityKind::ARROW ) {
                 if ( p.adopt ) {
                     state.world.arrows.net_apply_transfer( p.record );
+                }
+            } else if ( p.record.kind == NetEntityKind::CART ) {
+                if ( p.adopt ) {
+                    // We now simulate it (owned, not a mirror).
+                    state.world.carts.net_apply_spawn( p.record, false );
+                } else {
+                    const glm::ivec3 chunk = chunk_of_dpos( glm::dvec3( p.record.x, p.record.y, p.record.z ) );
+                    state.world.carts.net_release_entity( p.record, this->views_chunk( chunk ) );
                 }
             }
             return true;
@@ -432,8 +460,14 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
                 pr_debug( "Malformed ENTITY_ACTION" );
                 return true;
             }
-            // Forwarded to us as the owner of the entity's chunk (mob HITs).
-            state.world.mobs.net_apply_action( state, p );
+            // Forwarded to us as the owner of the entity's chunk (mob HITs,
+            // cart HITs). The action payload carries no kind — route by
+            // which manager holds the id.
+            if ( state.world.carts.find_by_net_id( p.id ) != nullptr ) {
+                state.world.carts.net_apply_action( state, p );
+            } else {
+                state.world.mobs.net_apply_action( state, p );
+            }
             return true;
         }
         default:
@@ -448,6 +482,8 @@ void NetEntities::tick( RepGameState &state ) {
             // Mirror bodies/arrows would freeze mid-flight without their sim.
             state.world.bodies.net_disconnect( );
             state.world.arrows.net_disconnect( );
+            // Riding a cart when the wire drops: get out of the seat.
+            state.world.carts.net_disconnect( state );
         }
         return;
     }
@@ -514,6 +550,7 @@ void NetEntities::tick( RepGameState &state ) {
         state.world.mobs.collect_net_state( *this, p.entries, state.tick_number );
         state.world.bodies.collect_net_state( p.entries, state.tick_number );
         state.world.arrows.collect_net_state( p.entries, state.tick_number );
+        state.world.carts.collect_net_state( *this, p.entries, state.tick_number );
         if ( !p.entries.empty( ) ) {
             this->mp->send( NetMsgType::ENTITY_STATE, p );
         }

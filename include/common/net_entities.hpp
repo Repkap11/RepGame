@@ -117,6 +117,9 @@ class NetEntities {
     void send_remove( NetEntityId id, uint8_t reason );
     void send_pickup_request( NetEntityId id, int32_t room );
     void send_entity_action( const NetEntityActionPayload &p );
+    // An ENTITY_STATE outside the 12-tick batch — e.g. the parked cart
+    // position right after a dismount.
+    void send_state_now( const NetEntityStatePayload &p );
     void send_explosion( double x, double y, double z, float radius );
     void send_chunk_populated( const glm::ivec3 &chunk );
     void send_player_hit( int32_t target_player_id, const glm::dvec3 &from, float damage );

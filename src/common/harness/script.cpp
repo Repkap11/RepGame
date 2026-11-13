@@ -318,6 +318,34 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    // fake_rider — spawn a remote-player avatar through the same
+    // spawn_remote path MultiplayerAvatars uses and seat it in the cart
+    // nearest the camera (same seat pose as a real remote rider). The seat
+    // flag sticks in single player — nothing unseats it without MP.
+    if ( strcmp( cmd, "fake_rider" ) == 0 && argc == 1 ) {
+        const std::vector<Minecarts::Cart> carts = state.world.carts.debug_carts( );
+        int best = -1;
+        double best_dist = 1e9;
+        for ( size_t i = 0; i < carts.size( ); i++ ) {
+            const double d = glm::length( carts[ i ].pos - state.camera.pos );
+            if ( d < best_dist ) {
+                best_dist = d;
+                best = static_cast<int>( i );
+            }
+        }
+        if ( best < 0 ) {
+            cmd_error( state, line, "fake_rider: no cart" );
+            return false;
+        }
+        const uint32_t uid = state.world.mobs.spawn_remote( MOB_PLAYER );
+        if ( uid == 0 ) {
+            cmd_error( state, line, "fake_rider: spawn failed" );
+            return false;
+        }
+        state.world.mobs.set_remote_seated( uid, Minecarts::seat_pos( carts[ best ] ), carts[ best ].yaw );
+        results::event( state.tick_number, "fake_rider", "\"uid\":%u,\"cart_id\":%u", uid, carts[ best ].id );
+        return false;
+    }
     // ride — mount the nearest cart within 4 blocks of the player;
     // dismount — leave the seat; ride_state — emit a ride_state results
     // event with the riding cart id and camera position.

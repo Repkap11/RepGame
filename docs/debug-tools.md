@@ -429,6 +429,7 @@ Commands (coordinates are whitespace-separated ints unless noted):
 | `ride` | mount the nearest cart within 4 blocks of the player (error when none) |
 | `dismount` | leave the ridden cart (no-op when not riding) |
 | `ride_state` | emit a `ride_state` event: `riding_cart` (0 = not riding) and the camera `pos` |
+| `fake_rider` | spawn a remote-player avatar (`MobManager::spawn_any` — the multiplayer path) and seat it in the cart nearest the camera through the same `set_remote_seated` code remote riders use; emits a `fake_rider` event `{uid,cart_id}` |
 | `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
 | `shear x y z` | shears the shearable mob nearest the point (as if holding shears); mirrors route ENTITY_ACTION like a right-click |
 | `probe x y z`, `probe_light x y z` | emit a results `probe` record (name + sky/block light) |

@@ -143,9 +143,9 @@ tick in the same shape as `ItemEntities`/`BlockBodies` (`MAX_CARTS` = 128;
 frozen in capture mode and while the cart's chunk isn't `CHUNK_LIVE`).
 Carts spawn via right-clicking a rail while holding `MINECART`
 (`spawn_on_rail` centres on the cell and faces the rail axis nearest the
-look yaw) or via the `cart` script command. `MAX_CART` carts are single
-player only: `spawn` returns 0 in multiplayer and no cart persistence
-runs while `multiplayer_mode()` is on.
+look yaw) or via the `cart` script command. `MAX_CARTS` counts owned
+carts and mirrors alike. Local cart file IO stays off while
+`multiplayer_mode()` is on (the server owns `carts_*` persistence).
 
 Rail following projects the cart onto a per-cell path — the straight
 segment between the shape's two `rail_endpoints` edge midpoints (the
@@ -197,6 +197,50 @@ Rendering rides the mob-model pipeline: `MOB_MODEL_MINECART`/
 one `MobPartInstance` per cube under `mob_shader`/`mobsTexture`, transform
 = interpolated pos × yaw × slope pitch × hurt-wobble roll × 1/16 × the
 shared `mob_bone_worlds`/`mob_cube_matrix` model matrices.
+
+Multiplayer (`NetEntityKind::CART`, protocol 16+) follows the
+owner-simulated items model: the chunk OWNER simulates, streams
+position/velocity/yaw plus `NET_CART_FLAG_HURT` in `flags`, and sends
+removals; every other covering client holds an easing/dead-reckoned
+mirror that runs no physics, collisions, pushes or rail stepping (its
+slope pitch is re-derived locally from the rail cell under it — pitch
+isn't streamed). A left-click on a mirror sends ENTITY_ACTION /
+NET_ACTION_HIT instead of local damage; the owner applies it through
+the same `hurt` path, so three quick survival hits still break the cart
+and drop one `MINECART` item through the ordinary item-sync spawn.
+CART `count` is the rider session id — server-authoritative; clients
+never set NET_SE_COUNT on cart entries and the server strips it before
+applying/relaying client-sent state. Remote players push nearby empty
+carts through `CartTickInput::extra_pushers` (remote avatar feet) on
+whoever simulates.
+
+Riding sync: right-clicking a cart sends ENTITY_ACTION /
+NET_ACTION_MOUNT (client `pending_mount`, 3 s timeout) — never a local
+mount, even when the client owns the cart's chunk. The server accepts
+only while `count == 0` and the requester views the chunk, then writes
+`count` to the rider's session, broadcasts a server-originated
+POS_ABS|VEL|COUNT state to all viewers (incl. the requester) and, when
+the rider isn't the chunk owner, ENTITY_TRANSFERs the record to the
+rider. From then on the RIDER simulates (`Minecarts::sim_here` —
+`rider_session == my session`, else the chunk owner for empty carts) and
+streams state; the chunk owner's state is ignored and ENTITY_ACTION
+routing (e.g. HIT) goes to the rider. A ridden cart crossing chunk
+boundaries moves the record but sends NO transfer — simulation stays
+with the rider. NET_ACTION_DISMOUNT (sent after the dismount's immediate
+POS_ABS flush) broadcasts `count = 0` and hands the record back to the
+chunk owner; the ex-rider keeps simulating until that COUNT=0 state
+arrives so the cart doesn't stall mid-handoff. Rider disconnect clears
+the rider on every cart record before view teardown — an owned chunk
+gets an adopt=1 transfer plus the COUNT=0 broadcast, an uncovered one is
+persisted via `persist_stray_entity` with `count` already 0. Riders see
+themselves through the single-player path; other clients seat the remote
+avatar via `NetPlayerPayload::riding_cart` + `apply_cart_seats` after
+`carts.tick` (feet at `Minecarts::seat_pos`, body yaw = cart yaw, head
+keeps the streamed look; seated mobs skip gait/crouch and fold their
+legs in `mobs.cpp`). Avatars riding a cart are excluded from
+`extra_pushers` and ridden carts are never pushed or rider-targeted. Server-side, carts persist in
+`carts_*` sidecars exactly like items (uncover/empty rewrite, stray
+persist, reload as minted records with count=0).
 
 Persistence is the items-style sidecar flow: `CartFileRecord`
 (`x,y,z` + `vx,vy,vz,yaw`) in `carts_x_y_z` files staged per-chunk on
@@ -289,10 +333,12 @@ from a record, chunk tracking via `net_entity_next_chunk`, removal, and
 dead-reckoned send-throttle. Entity-specific payload (item count/pickup, mob
 yaw/health/variant/flags, body kind/fuse/transfer) stays per-type.
 
-Items and mobs are chunk-owner simulated: the OWNER spawns, streams
+Items, mobs and minecarts are chunk-owner simulated: the OWNER spawns,
+streams
 states, and sends removals (LANDED/DIED/DESPAWN/PICKED_UP/EXPLODED);
-everyone else holds easing mirrors. The server persists items and
-non-despawnable mobs in `items_`/`mobs_` sidecar files on uncover —
+everyone else holds easing mirrors. The server persists items,
+non-despawnable mobs and carts in `items_`/`mobs_`/`carts_` sidecar
+files on uncover —
 client-side entity files are off while the session is or was connected
 (`multiplayer_mode`; a never-connected session persists locally).
 Natural mob spawning runs on the OWNER of an

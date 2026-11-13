@@ -54,7 +54,10 @@ last-known pos, quantized vel/yaw, gated aux fields, dead-reckoned
 send-throttling, and a 12-tick batch cadence. Protocol 13 added
 `SIGN_TEXT` (sign front text — see "Signs"); protocol 14 added
 `HEARTBEAT` (app-level liveness — see "Liveness"); protocol 15 added
-`CHAT` + `PLAYER_NAME` (see "Chat").
+`CHAT` + `PLAYER_NAME` (see "Chat"); protocol 16 added
+`NetEntityKind::CART` (minecarts — see `docs/entities.md`) plus the
+mount/dismount `ENTITY_ACTION` values and the `riding_cart`
+`NetPlayerPayload` field for riding sync.
 
 ## Transports
 
@@ -117,7 +120,10 @@ The client's side after that is driven by data it already produces:
   block icons as an extruded sprite, isometric block icons as their
   `block_icon_box_count` shape boxes (see `docs/mobs.md`). The server
   also stores the last health and held item in `PacketType_DataPlayer`
-  so `CLIENT_INIT` replays them to late joiners.
+  so `CLIENT_INIT` replays them to late joiners. A final optional
+  `uint64_t riding_cart` (protocol 16) carries the net id of the
+  minecart the sender rides — receivers seat that avatar in the cart
+  (`docs/entities.md`, "Minecarts"); absent on old peers = 0 (standing).
 - `VIEW` — sent by `NetEntities::send_view` once welcomed: the view
   center chunk plus radius (clamped to `NET_ENTITY_RADIUS_XZ`/`_Y`).
   The server answers with `CHUNK_ROLE` grants — see `docs/entities.md`.

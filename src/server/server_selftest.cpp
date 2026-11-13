@@ -458,6 +458,42 @@ NetEntityRecord item_record( NetEntityId id, uint32_t item, int32_t count, doubl
     return rec;
 }
 
+NetEntityRecord cart_record( NetEntityId id, double x, double y, double z, float yaw ) {
+    NetEntityRecord rec;
+    rec.id = id;
+    rec.kind = NetEntityKind::CART;
+    rec.x = x;
+    rec.y = y;
+    rec.z = z;
+    rec.yaw = yaw;
+    rec.count = 0; // rider session id — empty cart
+    return rec;
+}
+
+// A CART state send: pos + vel + yaw, plus a caller-controlled COUNT so the
+// strip can be exercised (clients must never set it, but a hostile one
+// might).
+void send_cart_state( Server &server, SimClient &c, NetEntityId id, double x, double y, double z,
+                      float vx, float vy, float vz, float yaw, int32_t count ) {
+    NetEntityStatePayload p;
+    NetEntityStateEntry e = { };
+    e.id = id;
+    e.kind = static_cast<uint8_t>( NetEntityKind::CART );
+    e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_YAW | NET_SE_COUNT;
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.vx = vx;
+    e.vy = vy;
+    e.vz = vz;
+    e.yaw = yaw;
+    e.count = count;
+    p.entries.push_back( e );
+    PacketWriter w;
+    net_serialize_entity_state( w, p );
+    server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
+}
+
 NetEntityRecord mob_record( NetEntityId id, uint32_t type, uint32_t flags, double x, double y, double z ) {
     NetEntityRecord rec;
     rec.id = id;
@@ -495,14 +531,18 @@ void send_entity_remove( Server &server, SimClient &c, NetEntityId id, uint8_t r
     server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_REMOVE, 0, w.buf( ) );
 }
 
-void send_entity_action( Server &server, SimClient &c, NetEntityId id ) {
+void send_entity_action_kind( Server &server, SimClient &c, NetEntityId id, uint8_t action ) {
     NetEntityActionPayload p{};
     p.id = id;
-    p.action = NET_ACTION_HIT;
+    p.action = action;
     p.damage = 4.0f;
     PacketWriter w;
     net_serialize_entity_action( w, p );
     server.test_logic( ).on_client_message( server, c.fd, NetMsgType::ENTITY_ACTION, 0, w.buf( ) );
+}
+
+void send_entity_action( Server &server, SimClient &c, NetEntityId id ) {
+    send_entity_action_kind( server, c, id, NET_ACTION_HIT );
 }
 
 void send_chunk_populated( Server &server, SimClient &c, const glm::ivec3 &chunk ) {
@@ -1068,6 +1108,262 @@ int server_selftest( ) {
             check( reloaded, "entity: re-covered chunk reloads persisted item records" );
         }
 
+        // --- CART entities: owner-simulated like items -------------------
+        // B owns chunk 1 here (the flip test above) — B drives the cart.
+        // COUNT strip: a CART's count is the server-authoritative rider
+        // session id — a client-sent COUNT must be dropped before the
+        // entry is applied or relayed.
+        const NetEntityId cart1 = ( static_cast<NetEntityId>( sess_b ) << 32 ) | 20;
+        send_entity_spawn( server, eb, cart_record( cart1, 70.0, 30.0, 10.0, 45.0f ) ); // chunk 1 (B owns)
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "cart: spawn relayed to viewer" );
+            check( se.entity_count_of( c1 ) > 0, "cart: record stored (n=%zu)", se.entity_count_of( c1 ) );
+        }
+        send_cart_state( server, eb, cart1, 71.0, 30.0, 10.0, 0.5f, 0.0f, 0.0f, 45.0f, 99 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            bool stripped = false;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_STATE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityStatePayload p;
+                if ( net_deserialize_entity_state( r, p ) ) {
+                    for ( const NetEntityStateEntry &ent : p.entries ) {
+                        if ( ent.id == cart1 ) {
+                            stripped = ( ent.present & NET_SE_COUNT ) == 0;
+                        }
+                    }
+                }
+            }
+            check( stripped, "cart: client-sent COUNT stripped before relay" );
+        }
+        // Chunk crossing into chunk -2 (only A covers, so A owns): the cart
+        // transfers like an item — B gets adopt=0, A gets adopt=1.
+        send_cart_state( server, eb, cart1, -100.0, 30.0, 10.0, 0.5f, 0.0f, 0.0f, 45.0f, 0 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            int adopt_a = -1, adopt_b = -1;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) && p.record.id == cart1 ) {
+                    adopt_a = p.adopt;
+                }
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) && p.record.id == cart1 ) {
+                    adopt_b = p.adopt;
+                }
+            }
+            check( adopt_a == 1 && adopt_b == 0, "cart: crossing transfers ownership (a=%d b=%d)", adopt_a, adopt_b );
+        }
+        // Remove the transferred cart — the mob block below reuses chunk -2
+        // and must find it empty.
+        send_entity_remove( server, ea, cart1, NET_REMOVE_DIED );
+        drain_client( server, ea );
+        drain_client( server, eb );
+
+        // Persistence: uncover writes the carts_ sidecar with pos/vel/yaw;
+        // re-cover reloads it as a minted CART record with count reset.
+        // (yaw 45.0 survives the 360/256 wire quantization exactly.)
+        const NetEntityId cart2 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 21;
+        send_entity_spawn( server, ea, cart_record( cart2, -180.0, 30.0, 10.0, 45.0f ) ); // chunk -3, only A covers
+        send_cart_state( server, ea, cart2, -180.5, 30.5, 10.5, 0.25f, -0.5f, 0.75f, 45.0f, 0 );
+        drain_client( server, ea );
+        drain_client( server, eb );
+        send_view( server, ea, glm::ivec3( -1, 0, 0 ), 0, 1 ); // uncover c_n3
+        drain_client( server, ea );
+        {
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<CartFileRecord> persisted;
+            const int existed = check_storage.load_carts( c_n3, persisted );
+            check( existed == 1 && persisted.size( ) == 1 && persisted[ 0 ].x == -180.5 && persisted[ 0 ].y == 30.5 &&
+                       persisted[ 0 ].vx == 0.25f && persisted[ 0 ].yaw == 45.0f,
+                   "cart: uncovered chunk persists carts file (existed=%d n=%zu)", existed, persisted.size( ) );
+        }
+        send_view( server, ea, glm::ivec3( -1, 0, 0 ), 2, 1 ); // re-cover
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            bool reloaded = false;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetChunkRolePayload p;
+                if ( !( net_deserialize_chunk_role( r, p ) && glm::ivec3( p.cx, p.cy, p.cz ) == c_n3 &&
+                        p.role == NET_ROLE_OWNER ) ) {
+                    continue;
+                }
+                for ( const NetEntityRecord &rec : p.records ) {
+                    if ( rec.kind == NetEntityKind::CART && rec.x == -180.5 && rec.yaw == 45.0f && rec.count == 0 ) {
+                        reloaded = true;
+                    }
+                }
+            }
+            check( reloaded, "cart: re-covered chunk reloads persisted records" );
+        }
+
+        // --- Riding: the rider simulates its cart -------------------------
+        // A mounts a cart in B-owned chunk 1: the server stamps count with
+        // A's session, broadcasts the COUNT state to every viewer (sender
+        // included), and moves the sim B -> A with adopt transfers.
+        const NetEntityId cart4 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 22;
+        send_entity_spawn( server, ea, cart_record( cart4, 70.0, 30.0, 10.0, 45.0f ) );
+        drain_client( server, ea );
+        drain_client( server, eb );
+        send_entity_action_kind( server, ea, cart4, NET_ACTION_MOUNT );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            int adopt_a = -1, adopt_b = -1;
+            bool count_a = false, count_b = false;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) && p.record.id == cart4 ) {
+                    adopt_a = p.adopt;
+                    check( p.record.count == (int32_t)sess_a, "cart ride: adopt record carries rider session" );
+                }
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) && p.record.id == cart4 ) {
+                    adopt_b = p.adopt;
+                }
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_STATE ) ) {
+                if ( f.player_id != 0 ) {
+                    continue;
+                }
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityStatePayload p;
+                if ( net_deserialize_entity_state( r, p ) ) {
+                    for ( const NetEntityStateEntry &ent : p.entries ) {
+                        if ( ent.id == cart4 && ( ent.present & NET_SE_COUNT ) && ent.count == (int32_t)sess_a ) {
+                            count_a = true;
+                        }
+                    }
+                }
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_STATE ) ) {
+                if ( f.player_id != 0 ) {
+                    continue;
+                }
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityStatePayload p;
+                if ( net_deserialize_entity_state( r, p ) ) {
+                    for ( const NetEntityStateEntry &ent : p.entries ) {
+                        if ( ent.id == cart4 && ( ent.present & NET_SE_COUNT ) && ent.count == (int32_t)sess_a ) {
+                            count_b = true;
+                        }
+                    }
+                }
+            }
+            check( se.rider_of( cart4 ) == ea.fd, "cart ride: rider table set on mount" );
+            check( count_a && count_b, "cart ride: COUNT state broadcast to rider and viewers (a=%d b=%d)", count_a, count_b );
+            check( adopt_a == 1 && adopt_b == 0, "cart ride: sim transfers owner -> rider (a=%d b=%d)", adopt_a, adopt_b );
+        }
+        // A competing mount is refused silently.
+        send_entity_action_kind( server, eb, cart4, NET_ACTION_MOUNT );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_STATE ).empty( ) &&
+                       frames_of_type( fb, NetMsgType::ENTITY_STATE ).empty( ) &&
+                       frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ).empty( ) &&
+                       frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ).empty( ),
+                   "cart ride: competing mount refused silently" );
+            check( se.rider_of( cart4 ) == ea.fd, "cart ride: competing mount keeps the rider" );
+        }
+        // While ridden the chunk owner's state is ignored; the rider's state
+        // relays to the other viewers.
+        send_cart_state( server, eb, cart4, 71.0, 30.0, 10.0, 0.5f, 0.0f, 0.0f, 45.0f, 0 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            check( frames_of_type( fa, NetMsgType::ENTITY_STATE ).empty( ), "cart ride: owner state ignored while ridden" );
+        }
+        send_cart_state( server, ea, cart4, 71.0, 30.0, 10.0, 0.5f, 0.0f, 0.0f, 45.0f, 0 );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fb, NetMsgType::ENTITY_STATE ).size( ) == 1, "cart ride: rider state relayed" );
+        }
+        // HIT routes to the rider, not the chunk owner.
+        send_entity_action( server, eb, cart4 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_ACTION ).size( ) == 1 &&
+                       frames_of_type( fb, NetMsgType::ENTITY_ACTION ).empty( ),
+                   "cart ride: HIT routed to rider" );
+        }
+        // A ridden cart crossing chunks keeps the rider — no transfer either
+        // way. Chunk 0 is A-owned, so the usual crossing rule WOULD send
+        // adopt=0/adopt=1 here if rider sim were bypassed.
+        send_cart_state( server, ea, cart4, 30.0, 30.0, 10.0, 0.5f, 0.0f, 0.0f, 45.0f, 0 );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ).empty( ) &&
+                       frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ).empty( ),
+                   "cart ride: ridden crossing sends no transfer" );
+            check( se.entity_count_of( c0 ) == 1, "cart ride: ridden crossing still moves the record" );
+        }
+        send_cart_state( server, ea, cart4, 70.0, 30.0, 10.0, 0.5f, 0.0f, 0.0f, 45.0f, 0 );
+        drain_client( server, ea );
+        drain_client( server, eb );
+        // Dismount hands the sim back to the chunk owner (B) with count 0.
+        send_entity_action_kind( server, ea, cart4, NET_ACTION_DISMOUNT );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            int adopt_a = -1, adopt_b = -1;
+            bool count_zero = false;
+            for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) && p.record.id == cart4 ) {
+                    adopt_a = p.adopt;
+                }
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityTransferPayload p;
+                if ( net_deserialize_entity_transfer( r, p ) && p.record.id == cart4 ) {
+                    adopt_b = p.adopt;
+                }
+            }
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_STATE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityStatePayload p;
+                if ( net_deserialize_entity_state( r, p ) ) {
+                    for ( const NetEntityStateEntry &ent : p.entries ) {
+                        if ( ent.id == cart4 && ( ent.present & NET_SE_COUNT ) && ent.count == 0 ) {
+                            count_zero = true;
+                        }
+                    }
+                }
+            }
+            check( count_zero, "cart ride: dismount broadcasts COUNT=0" );
+            check( adopt_b == 1 && adopt_a == 0, "cart ride: dismount hands sim back to owner (a=%d b=%d)", adopt_a, adopt_b );
+            check( se.rider_of( cart4 ) < 0, "cart ride: rider table cleared on dismount" );
+        }
+        // Re-mount by B: B owns the chunk, so no transfers — COUNT only. B is
+        // left riding it; the owner-disconnect block below then exercises the
+        // rider-disconnect path (owner == leaver -> persist stray).
+        send_entity_action_kind( server, eb, cart4, NET_ACTION_MOUNT );
+        {
+            const std::vector<ReceivedFrame> fa = drain_client( server, ea );
+            const std::vector<ReceivedFrame> fb = drain_client( server, eb );
+            check( frames_of_type( fa, NetMsgType::ENTITY_TRANSFER ).empty( ) &&
+                       frames_of_type( fb, NetMsgType::ENTITY_TRANSFER ).empty( ),
+                   "cart ride: mount by the owner sends no transfer" );
+            check( se.rider_of( cart4 ) == eb.fd, "cart ride: owner mounts without transfer" );
+        }
+
         // Owner disconnect: put an item into B-owned chunk 1, drop B, and A
         // (still viewing) takes over with the records.
         const NetEntityId item4 = ( static_cast<NetEntityId>( sess_b ) << 32 ) | 1;
@@ -1078,6 +1374,7 @@ int server_selftest( ) {
         {
             const std::vector<ReceivedFrame> fa = drain_client( server, ea );
             bool got_owner = false;
+            check( se.rider_of( cart4 ) < 0, "cart ride: rider disconnect clears the rider" );
             for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
                 PacketReader r( f.payload.data( ), f.payload.size( ) );
                 NetChunkRolePayload p;
@@ -1088,6 +1385,20 @@ int server_selftest( ) {
             }
             check( got_owner, "entity: owner disconnect hands OWNER + records to remaining viewer" );
             check( se.owner_of( c1 ) == ea.fd, "entity: A owns chunk 1 after B disconnect" );
+            // B rode cart4 and owned its chunk — nobody remains to simulate
+            // it, so the disconnect persists it as a stray carts_ record.
+            MapStorage check_storage;
+            check_storage.init( TEST_WORLD );
+            std::vector<CartFileRecord> stray;
+            const int existed = check_storage.load_carts( c1, stray );
+            bool persisted = false;
+            for ( const CartFileRecord &rec : stray ) {
+                if ( rec.x == 70.0 && rec.yaw == 45.0f ) {
+                    persisted = true;
+                }
+            }
+            check( existed == 1 && persisted, "cart ride: rider+owner disconnect persists the cart (existed=%d n=%zu)",
+                   existed, stray.size( ) );
         }
         disconnect_client( server, ea );
     }

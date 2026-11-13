@@ -249,8 +249,8 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
     this->bodies.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     // Arrows follow the same causer-simulated model.
     this->arrows.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
-    // Minecarts are local-only: mp mode refuses spawns + local file IO.
-    this->carts.set_multiplayer_mode( multiplayer.multiplayer_mode( ) );
+    // Minecarts: owner-simulated like items; local carts_* IO stays off.
+    this->carts.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     // Chunk + container files too: in multiplayer all of that state lives
     // on the server, so local chunk_*/chest_*/furnace_* IO stays off.
     if ( this->map_storage != nullptr ) {
@@ -1713,4 +1713,8 @@ void World::process_random_ticks( RepGameState &state ) {
 
 bool World::avatar_position_of( const int player_id, glm::dvec3 &feet ) const {
     return this->multiplayer_avatars.position_of( player_id, feet );
+}
+
+uint64_t World::avatar_riding_cart_of_uid( const uint32_t uid ) const {
+    return this->multiplayer_avatars.riding_cart_of_uid( uid );
 }

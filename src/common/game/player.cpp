@@ -548,11 +548,10 @@ void RepGame::process_mouse_events( ) {
         globalGameState.input.click_delay_left = 30;
         globalGameState.block_mining.progress_ticks = 0.0f;
         globalGameState.vr.haptic_pending = true;
-        const glm::dvec3 cart_pos = globalGameState.world.carts.pos_at( hit_cart );
-        bool drop = false;
-        if ( globalGameState.world.carts.hurt( hit_cart, globalGameState.game_mode == GameMode_Survival, &drop ) && drop ) {
-            globalGameState.world.items.spawn( MINECART, 1, cart_pos + glm::dvec3( 0.0, 0.3, 0.0 ), repgame_item_drop_hop( ), 10 );
-        }
+        // Owned cart: local hurt (drop + remove handled inside); a mirror
+        // sends ENTITY_ACTION to its owner instead.
+        globalGameState.world.carts.hit_interact( globalGameState, hit_cart, globalGameState.game_mode == GameMode_Survival,
+                                                  globalGameState.camera.pos );
     }
     // Right-clicking a cart mounts it — before item use, rail placement and
     // the minecart spawn path. Sneaking skips the mount so a sneak-click
@@ -561,7 +560,11 @@ void RepGame::process_mouse_events( ) {
          !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open &&
          !globalGameState.input.movement.sneakPressed && globalGameState.input.click_delay_right == 0 ) {
         const uint32_t cart_id = globalGameState.world.carts.id_at( globalGameState.block_selection.target_cart );
-        if ( repgame_cart_mount( globalGameState, cart_id ) ) {
+        // Multiplayer mounts go through the server (ENTITY_ACTION MOUNT +
+        // pending); single player mounts immediately.
+        if ( globalGameState.world.carts.multiplayer_mode( )
+                 ? globalGameState.world.carts.request_mount( globalGameState, globalGameState.block_selection.target_cart )
+                 : repgame_cart_mount( globalGameState, cart_id ) ) {
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -845,14 +848,13 @@ void RepGame::process_mouse_events( ) {
             }
         }
         // Right-clicking a rail while holding a minecart sets one on the
-        // track — same interaction slot as the spawn egg. Refused in
-        // multiplayer (carts are local-only for now).
+        // track — same interaction slot as the spawn egg. In multiplayer
+        // spawn() announces the cart through ENTITY_SPAWN (and refuses
+        // before WELCOME, returning 0).
         if ( globalGameState.hotbar.getSelectedItem( ) == MINECART ) {
             const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
             if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_rail ) {
-                if ( globalGameState.multiplayer.multiplayer_mode( ) ) {
-                    pr_debug( "Minecarts are local-only in this build" );
-                } else if ( globalGameState.world.carts.spawn_on_rail( globalGameState.world, globalGameState.block_selection.pos_destroy, globalGameState.camera.angle_H ) != 0 ) {
+                if ( globalGameState.world.carts.spawn_on_rail( globalGameState.world, globalGameState.block_selection.pos_destroy, globalGameState.camera.angle_H ) != 0 ) {
                     if ( globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
                         globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );

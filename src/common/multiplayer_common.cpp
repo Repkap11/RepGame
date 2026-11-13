@@ -133,7 +133,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             world.multiplayer_avatars.add( player_id );
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, p.held_item, state.camera.pos );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, p.held_item, state.camera.pos, p.riding_cart );
             break;
         }
         case NetMsgType::PLAYER_LOCATION: {
@@ -143,7 +143,7 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
                 return;
             }
             glm::mat4 rotation = glm::make_mat4( p.rotation );
-            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, p.held_item, state.camera.pos );
+            world.multiplayer_avatars.update_position( player_id, p.x, p.y, p.z, rotation, p.eye_height, p.flags, p.health, p.held_item, state.camera.pos, p.riding_cart );
             break;
         }
         case NetMsgType::PLAYER_CONNECTED: {
@@ -265,11 +265,11 @@ void Multiplayer::send_payload( NetMsgType type, int32_t player_id, const std::v
     }
 }
 
-void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item ) {
+void Multiplayer::update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item, uint64_t riding_cart ) {
     if ( !this->active ) {
         return;
     }
-    if ( prev_player_pos == player_pos && prev_rotation == rotation && prev_eye_height == eye_height && prev_flags == flags && prev_health == health && prev_held_item == held_item ) {
+    if ( prev_player_pos == player_pos && prev_rotation == rotation && prev_eye_height == eye_height && prev_flags == flags && prev_health == health && prev_held_item == held_item && prev_riding_cart == riding_cart ) {
         return;
     }
     prev_player_pos = player_pos;
@@ -278,6 +278,7 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
     prev_flags = flags;
     prev_health = health;
     prev_held_item = held_item;
+    prev_riding_cart = riding_cart;
     NetPlayerPayload p;
     p.x = player_pos.x;
     p.y = player_pos.y;
@@ -287,6 +288,7 @@ void Multiplayer::update_players_position( const glm::vec3 &player_pos, const gl
     p.flags = flags;
     p.health = health;
     p.held_item = held_item;
+    p.riding_cart = riding_cart;
     this->send( NetMsgType::PLAYER_LOCATION, p );
 }
 

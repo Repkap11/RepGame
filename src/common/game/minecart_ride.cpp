@@ -64,6 +64,9 @@ void repgame_cart_dismount( RepGameState &gs ) {
     gs.vitals.fall_dist = 0.0;
     // No render blend from the seat to the dismount spot.
     gs.camera.snapshot_prev( );
+    // Multiplayer: parked-state + DISMOUNT on the wire; the cart stays
+    // locally simulated until the server's COUNT=0 lands.
+    gs.world.carts.local_dismount( gs, cart );
 }
 
 void repgame_cart_ride_follow( RepGameState &gs ) {

@@ -283,6 +283,17 @@ def arrows_of(st):
     return st.get("arrows", []) if st else []
 
 
+def carts_of(st):
+    return st.get("carts", []) if st else []
+
+
+def find_cart(st, net_id=None):
+    for c in carts_of(st):
+        if net_id is None or c["net_id"] == net_id:
+            return c
+    return None
+
+
 def find_arrow(st, net_id=None):
     for a in arrows_of(st):
         if net_id is None or a["net_id"] == net_id:
@@ -835,6 +846,135 @@ def sc_mob_hit_kill(run, A, B):
     run.wait("drops on both", lambda: len(items_of(A.dump.last_state())) > 0 and
              sorted(i["net_id"] for i in items_of(A.dump.last_state())) ==
              sorted(i["net_id"] for i in items_of(B.dump.last_state())), timeout=120)
+
+
+def sc_cart_sync(run, A, B):
+    """Empty-minecart sync: A's owned cart streams to B's mirror; B hits it
+    (ENTITY_ACTION per hit), the owner breaks it on the third hit and the
+    MINECART drop arrives through normal item sync."""
+    gy = settle(run, A, B)
+    # Straight rail run beside A's pad: chunk 0 is A-owned (so A simulates
+    # the cart) and inside both clients' views (so B mirrors it).
+    for x in range(10, 33):
+        A.cmd("setblock %d %d 14 STONE" % (x, gy - 1))
+        A.cmd("setblock %d %d 14 RAIL" % (x, gy))
+    run.sleep_ticks(20)
+    A.cmd("cart 10.5 %g 14.5 1.5 0" % (gy + 0.1))
+    run.wait("cart on A", lambda: find_cart(A.dump.last_state()) is not None, timeout=60)
+    nid = find_cart(A.dump.last_state())["net_id"]
+    run.wait("cart mirror on B", lambda: find_cart(B.dump.last_state(), nid) is not None, timeout=60)
+    # The spawn may land before A's role grant — wait for the adopt to flip
+    # A's copy to simulated before asserting roles.
+    run.wait("cart simulated on A", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(A.dump.last_state(), nid)["remote"] == 0), timeout=60)
+    run.wait("cart mirrored on B", lambda: (
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid)["remote"] == 1), timeout=60)
+    # The mirror dead-reckons + eases to the owner's streamed position while
+    # the cart is running.
+    run.wait("positions converge", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid) is not None and
+        dist(find_cart(A.dump.last_state(), nid)["pos"],
+             find_cart(B.dump.last_state(), nid)["pos"]) < 0.6), timeout=60)
+    # B (survival) hits the mirror: each carthit sends ENTITY_ACTION, the
+    # owner accumulates 1 damage per hit and breaks it on the third.
+    B.cmd("mode survival")
+    B.goto(20.5, gy + 1.7, 18.5)  # sees the track, out of pickup range
+    for _ in range(12):
+        B.cmd("carthit")
+        run.sleep_ticks(6)
+        if find_cart(A.dump.last_state(), nid) is None:
+            break
+    run.wait("cart gone on both", lambda: (
+        find_cart(A.dump.last_state(), nid) is None and
+        find_cart(B.dump.last_state(), nid) is None), timeout=60)
+    # The break drops exactly one MINECART item, synced as an ordinary item.
+    run.wait("minecart drop on both", lambda: (
+        any(i["item_name"] == "MINECART" for i in items_of(A.dump.last_state())) and
+        any(i["item_name"] == "MINECART" for i in items_of(B.dump.last_state()))), timeout=60)
+
+
+def sc_cart_ride(run, A, B):
+    """Ridden minecart: the RIDER simulates its cart. B mounts a cart on a
+    powered golden run in A's chunk; the server hands the sim to B, A mirrors
+    the moving cart and sees B's avatar seated in it, a competing mount is
+    refused, and dismount hands the sim back to the chunk owner."""
+    gy = settle(run, A, B)
+    # Long straight run in A-owned chunk 0; a launched cart coasts across
+    # it — B mounts it mid-run (the server doesn't care that it's rolling).
+    # Stone bed first, THEN the rails: same-tick queue order is arbitrary,
+    # and a rail applied before its support is rejected outright.
+    for x in range(10, 46):
+        A.cmd("setblock %d %d 14 STONE" % (x, gy - 1))
+    run.sleep_ticks(2)
+    for x in range(10, 46):
+        A.cmd("setblock %d %d 14 RAIL" % (x, gy))
+    run.sleep_ticks(20)
+    B.goto(11.5, gy + 1.7, 15.5)  # sees the track, covers chunk 0
+    A.cmd("cart 11.5 %g 14.5 1.5 0" % (gy + 0.1))
+    run.wait("cart on A", lambda: find_cart(A.dump.last_state()) is not None, timeout=60)
+    nid = find_cart(A.dump.last_state())["net_id"]
+    run.wait("cart mirror on B", lambda: find_cart(B.dump.last_state(), nid) is not None, timeout=60)
+    # Wait until the owner's state stream has reached B's mirror — the sim
+    # handover keeps the local (dead-reckoned) pos/vel, so mounting before
+    # the first state lands would take over a stale at-rest snapshot.
+    run.wait("cart moving on B", lambda: (
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid)["pos"][0] > 12.0), timeout=60)
+    # B mounts through the real click path: ENTITY_ACTION MOUNT, then the
+    # server's COUNT state names B's session and completes the ride.
+    B.cmd("ride")
+    run.wait("B mounted", lambda: B.dump.last_state().get("riding_cart") == nid, timeout=60)
+    # Sim handover: B simulates (remote=0), A mirrors (remote=1); both know
+    # the rider session.
+    run.wait("rider owns the sim", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(A.dump.last_state(), nid)["remote"] == 1 and
+        find_cart(B.dump.last_state(), nid)["remote"] == 0 and
+        find_cart(A.dump.last_state(), nid)["rider"] != 0 and
+        find_cart(B.dump.last_state(), nid)["rider"] != 0), timeout=60)
+    # The ridden cart runs under B's sim; A's mirror tracks the streamed
+    # position (and actually moves, not just converges).
+    run.wait("ridden cart moves on both", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(A.dump.last_state(), nid)["pos"][0] > 15.0 and
+        dist(find_cart(A.dump.last_state(), nid)["pos"],
+             find_cart(B.dump.last_state(), nid)["pos"]) < 1.5), timeout=120)
+    # A sees B's avatar flagged seated at the cart.
+    run.wait("B avatar seated on A", lambda: any(
+        m.get("seated") == 1 and m.get("riding_cart") == nid and
+        find_cart(A.dump.last_state(), nid) is not None and
+        dist(m["pos"], find_cart(A.dump.last_state(), nid)["pos"]) < 1.5
+        for m in avatar_mobs_of(A.dump.last_state())), timeout=60)
+    # A's own ride attempt on the ridden cart is refused: nothing mounts,
+    # the cart stays ridden by B.
+    A.goto(21.5, gy + 1.7, 15.5)
+    A.cmd("ride")
+    run.sleep_ticks(30)
+    if A.dump.last_state().get("riding_cart") != "0":
+        raise Fail("A mounted an already-ridden cart")
+    if find_cart(A.dump.last_state(), nid) is None or find_cart(A.dump.last_state(), nid)["rider"] == 0:
+        raise Fail("A's refused mount cleared the rider")
+    # B dismounts: COUNT=0 everywhere and the sim returns to chunk owner A.
+    B.cmd("dismount")
+    run.wait("B dismounted", lambda: B.dump.last_state().get("riding_cart") == "0", timeout=60)
+    run.wait("cart riderless on both", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(A.dump.last_state(), nid)["rider"] == 0 and
+        find_cart(B.dump.last_state(), nid)["rider"] == 0), timeout=60)
+    run.wait("sim back on A", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(A.dump.last_state(), nid)["remote"] == 0 and
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid)["remote"] == 1), timeout=60)
+    # A's avatar for B stands again.
+    run.wait("B avatar standing on A", lambda: all(
+        m.get("seated", 0) == 0 for m in avatar_mobs_of(A.dump.last_state())), timeout=60)
 
 
 def sc_hostile_targets_remote(run, A, B):
@@ -1417,6 +1557,8 @@ SCENARIOS = [
     ("natural_mobs", sc_natural_mobs),
     ("natural_persist", sc_natural_persist),
     ("mob_hit_kill", sc_mob_hit_kill),
+    ("cart_sync", sc_cart_sync),
+    ("cart_ride", sc_cart_ride),
     ("hostile_targets_remote", sc_hostile_targets_remote),
     ("health", sc_health),
     ("falling_block", sc_falling_block),

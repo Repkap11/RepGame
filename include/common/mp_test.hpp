@@ -16,6 +16,21 @@
 //                                  spawn a dropped-item entity via the normal
 //                                  item spawn path (net_id + ENTITY_SPAWN)
 //   mob <type> x y z               spawn a mob via MobManager::spawn
+//   cart x y z [vx vz]             spawn a minecart via the normal spawn
+//                                  path (net_id + ENTITY_SPAWN), optional
+//                                  horizontal launch velocity
+//   carthit                        left-click the cart nearest the camera —
+//                                  a mirror sends ENTITY_ACTION, an owned
+//                                  cart takes the local hit (client's game
+//                                  mode decides survival vs creative)
+//   ride                           mount the cart nearest the camera through
+//                                  the real click path — MP sends ENTITY_ACTION
+//                                  MOUNT and the pending request completes on
+//                                  the server's COUNT state (cart_mounted
+//                                  event); occupied carts are refused
+//   dismount                       step off the ridden cart — the camera moves
+//                                  immediately, then the parked state and
+//                                  ENTITY_ACTION DISMOUNT go out
 //   hit <net_id>                   player melee hit on that mob (local damage,
 //                                  or feedback + ENTITY_ACTION on a mirror)
 //   feed x y z [item]              feed the mob nearest the point (default:
@@ -64,11 +79,15 @@
 // camera's chunk is CHUNK_LIVE + at least one CHUNK_ROLE grant applied),
 // cmd_error, explosion_received, pickup_result, player_hit_received,
 // entity_transfer, probe, role, cprobe, signprobe, damage_result,
-// eat_result, respawn_result, chat_received {kind,from,target,text}, quit.
+// eat_result, respawn_result, chat_received {kind,from,target,text},
+// carthit, ride, dismount, cart_mount_sent, cart_mounted,
+// cart_mount_timeout, cart_dismount_sent, cart_action_hit, quit.
 //
 // State lines additionally carry: health (half-hearts), dead, air_ticks,
 // name (the requested display name), players (the PLAYER_NAME table —
-// the server's effective, deduped spellings).
+// the server's effective, deduped spellings), riding_cart (net id of the
+// cart the local player rides), per-cart "rider" (rider session id) and
+// per-mob "seated"/"riding_cart" (remote avatars).
 //
 // The world-action implementations (setblock/drop/mob/hit/fall/tnt/mode/
 // time/goto/probe + name lookups) live in common/harness/debug_commands

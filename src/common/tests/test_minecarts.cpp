@@ -318,8 +318,9 @@ int test_minecarts( ) {
         // MP mode: spawn refuses and nothing persists.
         Minecarts mp_carts;
         mp_carts.init_storage( &storage );
-        mp_carts.set_multiplayer_mode( true );
-        check_bool( "cart: mp mode refuses spawn", mp_carts.spawn( glm::dvec3( 5.5, 11.0, 30.5 ), 0.0f ) == 0 && mp_carts.count( ) == 0 );
+        mp_carts.set_multiplayer_mode( true, nullptr );
+        // MP with no live sync hub (never connected / dropped) still refuses.
+        check_bool( "cart: mp unconnected refuses spawn", mp_carts.spawn( glm::dvec3( 5.5, 11.0, 30.5 ), 0.0f ) == 0 && mp_carts.count( ) == 0 );
         // In MP the adopt path drops the sidecar records instead of spawning.
         Chunk mp_chunk;
         mp_chunk.chunk_pos = glm::ivec3( 0, 0, 0 );
@@ -445,6 +446,231 @@ int test_minecarts( ) {
         check_bool( "cart: capture mode freezes", only_cart( ).pos.x == pos0.x );
     }
     carts.test_carts( ).clear( );
+
+    // --- remote players shove an owned empty cart --------------------------------------
+    // Same overlap rule as the local player, from CartTickInput::extra_pushers.
+    carts.spawn( glm::dvec3( 6.5, 11.0 + 1.0 / 16.0, 4.5 ), 0.0f );
+    {
+        Minecarts::CartTickInput push_in = in;
+        push_in.extra_pushers.push_back( glm::dvec3( 6.0, 11.0, 4.5 ) );
+        carts.tick( gs, push_in );
+        check_bool( "cart: remote player pushes", only_cart( ).vel.x > 1e-6 );
+    }
+    carts.test_carts( ).clear( );
+
+    // --- multiplayer: wire codec + mirror/owner split ------------------------------------
+    {
+        // CART record codec round trip (pos = bottom-centre, yaw + flags).
+        NetEntityRecord rec = { };
+        rec.id = 0x123456789ull;
+        rec.kind = NetEntityKind::CART;
+        rec.x = 16.5;
+        rec.y = 11.0625;
+        rec.z = 20.5;
+        rec.vx = 0.02f;
+        rec.yaw = 90.0f;
+        rec.flags = NET_CART_FLAG_HURT;
+        PacketWriter w;
+        net_write_entity_record( w, rec );
+        PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
+        NetEntityRecord got = { };
+        check_bool( "net cart: record round trip",
+                    net_read_entity_record( r, got ) && got.kind == NetEntityKind::CART && got.x == 16.5 &&
+                        got.yaw == 90.0f && got.flags == NET_CART_FLAG_HURT );
+
+        Multiplayer mp;
+        NetEntities net( &mp );
+        net.test_welcome( 9 );
+        net.test_set_role( glm::ivec3( 0, 0, 0 ), NET_ROLE_OWNER );
+        Minecarts mc;
+        mc.set_multiplayer_mode( true, &net );
+        // A welcomed session mints + owns its spawn (until the echo/role says
+        // otherwise); a pre-WELCOME session still refuses (covered above).
+        check_bool( "net cart: welcomed spawn mints id",
+                    mc.spawn( glm::dvec3( 6.5, 11.0 + 1.0 / 16.0, 4.5 ), 0.0f ) != 0 && mc.test_carts( )[ 0 ].net.id != 0 );
+        mc.test_carts( ).clear( );
+
+        // Mirror: no simulation — make chunk 0 a VIEWER role (the cart must
+        // stay inside the one live chunk for easing to run), parked on the
+        // ascending rail at (16,11,20): never slides, and only applied
+        // state moves it.
+        net.test_set_role( glm::ivec3( 0, 0, 0 ), NET_ROLE_VIEWER );
+        NetEntityRecord srec = { };
+        srec.id = ( static_cast<NetEntityId>( 9 ) << 32 ) | 7;
+        srec.kind = NetEntityKind::CART;
+        srec.x = 16.5;
+        srec.y = 11.0 + 1.0 / 16.0;
+        srec.z = 20.5;
+        mc.net_apply_spawn( srec, /*mirror*/ true );
+        check_bool( "net cart: mirror spawned", mc.count( ) == 1 && mc.test_carts( )[ 0 ].net.mirror );
+        const glm::dvec3 mpos = mc.test_carts( )[ 0 ].pos;
+        for ( int i = 0; i < 200; i++ ) {
+            mc.tick( gs, in );
+        }
+        check_bool( "net cart: mirror never simulates", mc.test_carts( )[ 0 ].pos == mpos );
+
+        NetEntityStateEntry se = { };
+        se.id = srec.id;
+        se.kind = static_cast<uint8_t>( NetEntityKind::CART );
+        se.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_YAW;
+        se.x = 17.2;
+        se.y = 11.0 + 1.0 / 16.0;
+        se.z = 20.5;
+        se.yaw = 90.0f;
+        mc.net_apply_state( se );
+        for ( int i = 0; i < 50; i++ ) {
+            mc.tick( gs, in );
+        }
+        check_bool( "net cart: mirror eases to streamed pos", mc.test_carts( )[ 0 ].pos.x > mpos.x + 0.1 );
+        check_bool( "net cart: mirror yaw from stream", fabs( mc.test_carts( )[ 0 ].yaw - 90.0f ) < 0.01f );
+
+        // HURT flag rising edge starts the wobble on a mirror.
+        NetEntityStateEntry fe = { };
+        fe.id = srec.id;
+        fe.kind = static_cast<uint8_t>( NetEntityKind::CART );
+        fe.present = NET_SE_FLAGS;
+        fe.flags = NET_CART_FLAG_HURT;
+        mc.net_apply_state( fe );
+        check_bool( "net cart: HURT edge starts wobble", mc.test_carts( )[ 0 ].hurt_ticks > 0 );
+
+        // A left-click on a mirror sends NET_ACTION_HIT — no local damage.
+        const int hres = mc.hit_interact( gs, 0, /*survival*/ true, glm::dvec3( 0.0 ) );
+        check_bool( "net cart: mirror hit sends action", hres == 2 );
+        check_bool( "net cart: mirror hit does no local damage", mc.count( ) == 1 && mc.test_carts( )[ 0 ].damage == 0.0f );
+
+        // Owned: emits a state entry (first collect always does), drifts
+        // emit again, and CART entries never carry NET_SE_COUNT.
+        net.test_set_role( glm::ivec3( 0, 0, 0 ), NET_ROLE_OWNER );
+        NetEntityRecord orec = srec;
+        orec.id = ( static_cast<NetEntityId>( 9 ) << 32 ) | 8;
+        orec.x = 10.5;
+        orec.z = 10.5;
+        mc.net_apply_spawn( orec, /*mirror*/ false );
+        Minecarts::Cart &own = mc.test_carts( )[ 1 ];
+        check_bool( "net cart: owned spawn", !own.net.mirror && own.net.chunk == glm::ivec3( 0, 0, 0 ) );
+        std::vector<NetEntityStateEntry> batch;
+        mc.collect_net_state( net, batch, 1 );
+        check_bool( "net cart: owned emits state",
+                    batch.size( ) == 1 && batch[ 0 ].kind == static_cast<uint8_t>( NetEntityKind::CART ) );
+        bool any_count = false;
+        for ( const NetEntityStateEntry &e : batch ) {
+            any_count |= ( e.present & NET_SE_COUNT ) != 0;
+        }
+        check_bool( "net cart: owned never streams COUNT", !any_count );
+        batch.clear( );
+        own.pos.x += 0.5; // simulated drift beyond the dead-reckoning eps
+        mc.collect_net_state( net, batch, 20 );
+        check_bool( "net cart: drift emits again", batch.size( ) == 1 );
+
+        // A forwarded ENTITY_ACTION HIT lands on the owner: three survival
+        // hits break the cart and drop the MINECART item exactly once.
+        const size_t items_before = gs.world.items.count( );
+        NetEntityActionPayload pact = { };
+        pact.id = orec.id;
+        pact.action = NET_ACTION_HIT;
+        pact.attacker_survival = 1;
+        mc.net_apply_action( gs, pact );
+        check_bool( "net cart: owner applies forwarded hit", mc.test_carts( )[ 1 ].hurt_ticks > 0 );
+        mc.net_apply_action( gs, pact );
+        mc.net_apply_action( gs, pact );
+        check_bool( "net cart: third hit breaks + drops once",
+                    mc.count( ) == 1 && gs.world.items.count( ) == items_before + 1 &&
+                        gs.world.items.debug_items( ).back( ).item == MINECART );
+        mc.test_carts( ).clear( );
+    }
+
+    // --- multiplayer phase 2: the rider session owns the sim ------------------
+    {
+        Multiplayer mp;
+        NetEntities net( &mp );
+        net.test_welcome( 9 );                                              // our session id
+        net.test_set_role( glm::ivec3( 0, 0, 0 ), NET_ROLE_OWNER );         // chunk 0 owned, chunk 1 foreign
+        carts.set_multiplayer_mode( true, &net );
+
+        // Empty cart in a foreign chunk: mirror by chunk ownership.
+        NetEntityRecord frec = { };
+        frec.id = ( static_cast<NetEntityId>( 77 ) << 32 ) | 5;
+        frec.kind = NetEntityKind::CART;
+        frec.x = 70.5;
+        frec.y = 11.0 + 1.0 / 16.0;
+        frec.z = 10.5;
+        carts.net_apply_spawn( frec );
+        Minecarts::Cart *fc = carts.find_by_net_id( frec.id );
+        check_bool( "ride net: foreign empty cart mirrors", fc != nullptr && fc->net.mirror );
+
+        // The server's COUNT naming our session hands the sim to us — same
+        // cart, same foreign chunk.
+        NetEntityStateEntry ce = { };
+        ce.id = frec.id;
+        ce.kind = static_cast<uint8_t>( NetEntityKind::CART );
+        ce.present = NET_SE_COUNT;
+        ce.count = 9;
+        carts.net_apply_state( ce );
+        check_bool( "ride net: ridden-by-me sims in foreign chunk", fc != nullptr && !fc->net.mirror );
+
+        // A server-originated COUNT-only state must not flip an owned cart
+        // to mirror nor clobber its simulated position.
+        fc->pos = glm::dvec3( 71.25, 12.0, 10.5 );
+        carts.net_apply_state( ce );
+        check_bool( "ride net: COUNT-only keeps owned pos",
+                    !fc->net.mirror && fc->pos.x == 71.25 && fc->pos.y == 12.0 );
+
+        // Ridden by someone else in our owned chunk: mirror — both via a
+        // COUNT state and via a chunk-role grant record.
+        NetEntityRecord orec = frec;
+        orec.id = ( static_cast<NetEntityId>( 77 ) << 32 ) | 6;
+        orec.x = 10.5;
+        carts.net_apply_spawn( orec, /*mirror*/ false );
+        Minecarts::Cart *oc = carts.find_by_net_id( orec.id );
+        check_bool( "ride net: empty cart in owned chunk is ours", oc != nullptr && !oc->net.mirror );
+        NetEntityStateEntry oe = ce;
+        oe.id = orec.id;
+        oe.count = 77;
+        carts.net_apply_state( oe );
+        check_bool( "ride net: ridden-by-other mirrors in owned chunk", oc != nullptr && oc->net.mirror );
+
+        NetEntityRecord grec = frec;
+        grec.id = ( static_cast<NetEntityId>( 77 ) << 32 ) | 7;
+        grec.count = 77;
+        grec.x = 20.5;
+        const std::vector<NetEntityRecord> recs{ grec };
+        carts.net_apply_chunk_role( glm::ivec3( 0, 0, 0 ), NET_ROLE_OWNER, recs, { } );
+        const Minecarts::Cart *gc = carts.find_by_net_id( grec.id );
+        check_bool( "ride net: grant record ridden-by-other mirrors", gc != nullptr && gc->net.mirror );
+
+        // Pending mount: request completes when a COUNT state names us.
+        carts.test_carts( ).clear( );
+        const uint32_t mid = carts.spawn( glm::dvec3( 6.5, 11.0 + 1.0 / 16.0, 4.5 ), 0.0f );
+        check_bool( "ride net: mp spawn mints net id", mid != 0 && carts.test_carts( )[ 0 ].net.id != 0 );
+        const NetEntityId mid_net = carts.test_carts( )[ 0 ].net.id;
+        check_bool( "ride net: mount request sent", carts.request_mount( gs, 0 ) );
+        NetEntityStateEntry grant = ce;
+        grant.id = mid_net;
+        grant.count = 9;
+        carts.net_apply_state( grant );
+        tick( 1 ); // tick_pending_mount runs inside carts.tick
+        check_bool( "ride net: pending mount completes on COUNT", gs.camera.riding_cart == mid );
+        repgame_cart_dismount( gs );
+        tick( 1 );
+
+        // A pending mount that never gets a COUNT times out after 3 s — a
+        // late grant must not mount then.
+        carts.test_carts( ).clear( );
+        const uint32_t mid2 = carts.spawn( glm::dvec3( 6.5, 11.0 + 1.0 / 16.0, 4.5 ), 0.0f );
+        check_bool( "ride net: second mount request sent", mid2 != 0 && carts.request_mount( gs, 0 ) );
+        const NetEntityId mid2_net = carts.test_carts( )[ 0 ].net.id;
+        gs.tick_number += 3 * static_cast<long>( UPS_RATE ) + 1;
+        tick( 1 );
+        NetEntityStateEntry late = grant;
+        late.id = mid2_net;
+        carts.net_apply_state( late );
+        tick( 1 );
+        check_bool( "ride net: timed-out mount does not complete", gs.camera.riding_cart == 0 );
+
+        repgame_cart_dismount( gs );
+        carts.set_multiplayer_mode( false, nullptr );
+        carts.test_carts( ).clear( );
+    }
 
     return failures;
 }

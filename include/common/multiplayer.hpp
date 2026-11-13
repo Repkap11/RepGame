@@ -26,6 +26,7 @@ class Multiplayer {
     uint8_t prev_flags = 0xFF;
     float prev_health = -1.0f;
     uint32_t prev_held_item = 0;
+    uint64_t prev_riding_cart = 0;
     friend class World;
     friend class NetEntities;
 
@@ -158,7 +159,7 @@ class Multiplayer {
     // multiplayer was never started (single player).
     const std::string &server_hostname( ) const { return this->hostname; }
     int server_port( ) const { return this->portno; }
-    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item );
+    void update_players_position( const glm::vec3 &player_pos, const glm::mat4 &rotation, float eye_height, uint8_t flags, float health, ItemID held_item, uint64_t riding_cart );
     // Returns false (and queues nothing) when not connected, so callers
     // retrying one-shot requests (initial_chunk_request_pending) or
     // coverage bookkeeping (slot_diff_req) can retry / stay unstamped.

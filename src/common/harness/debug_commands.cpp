@@ -107,7 +107,7 @@ bool dbgcmd::mob( RepGameState &state, const char *type, const glm::dvec3 &pos, 
 bool dbgcmd::cart( RepGameState &state, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, std::string *err ) {
     const uint32_t id = state.world.carts.spawn( pos, 0.0f );
     if ( id == 0 ) {
-        *err = "cannot spawn minecart (cap or multiplayer)";
+        *err = "cannot spawn minecart (cap, or pre-WELCOME in multiplayer)";
         return false;
     }
     Minecarts::Cart *cart = state.world.carts.find( id );

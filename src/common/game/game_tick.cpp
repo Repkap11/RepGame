@@ -372,8 +372,16 @@ void RepGame::tick_entities( ) {
     cart_in.player_width = PLAYER_WIDTH;
     cart_in.player_height = PLAYER_HEIGHT;
     cart_in.player_no_clip = gs.input.no_clip || gs.camera.riding_cart != 0;
+    // Remote players shove owned empty carts with the same overlap rule.
+    if ( gs.multiplayer.multiplayer_mode( ) ) {
+        gs.world.multiplayer_avatars.fill_remote_feet( cart_in.extra_pushers );
+    }
     gs.world.carts.tick( gs, cart_in );
     repgame_cart_ride_follow( gs );
+    // Remote riders: seat each avatar in its cart's eased position.
+    if ( gs.multiplayer.multiplayer_mode( ) ) {
+        gs.world.multiplayer_avatars.apply_cart_seats( gs.world.carts );
+    }
     // Dropped item entities: physics, merge, magnet/pickup, despawn.
     gs.world.items.tick( gs );
     // Arrow projectiles: ballistic flight, block sticking, mob hits.

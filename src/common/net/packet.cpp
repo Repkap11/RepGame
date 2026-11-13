@@ -224,6 +224,7 @@ void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p ) {
     w.write_u8( p.flags );
     w.write_f32( p.health );
     w.write_u32( p.held_item );
+    w.write_u64( p.riding_cart );
 }
 
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
@@ -240,6 +241,8 @@ bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p ) {
     r.read_f32( p.health );
     p.held_item = LAST_BLOCK_ID; // empty hand: peer predates held_item
     r.read_u32( p.held_item );
+    p.riding_cart = 0; // not riding: peer predates riding_cart
+    r.read_u64( p.riding_cart );
     return true;
 }
 
@@ -929,6 +932,7 @@ void NetCodec<NetPlayerPayload>::fill( NetPlayerPayload &p ) {
     p.flags = NET_PLAYER_FLAG_TARGETABLE;
     p.health = 17.5f;
     p.held_item = STICK;
+    p.riding_cart = 0x123456789ULL;
 }
 void NetCodec<NetBlockUpdatePayload>::fill( NetBlockUpdatePayload &p ) {
     p.x = 100;

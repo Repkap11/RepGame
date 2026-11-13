@@ -172,9 +172,10 @@ u8 removed[removed_count]    // tombstoned natural-roll indices
 `CartFileRecord` (`map_storage.hpp`) is a packed
 `{ double x, y, z; float vx, vy, vz, yaw; }` per minecart — position,
 velocity and facing; records with non-finite positions are dropped on
-read. Carts are only persisted for the local single-player world: in
-multiplayer `Minecarts::spawn` refuses and local cart IO is off
-(`docs/entities.md`).
+read. In multiplayer the client-side cart IO is off and the server owns
+`carts_*` persistence: `ServerEntities` loads and writes these files on
+chunk cover/uncover exactly like the item sidecars (a chunk that empties
+still rewrites, clearing the stale file) — see `docs/entities.md`.
 
 `MobFileRecord`/`ItemFileRecord` are `__attribute__((packed))` structs
 with the shared-prefix read convention (a larger saved record still
