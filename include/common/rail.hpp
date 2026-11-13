@@ -64,6 +64,11 @@ unsigned char rail_render_yaw( RailShape shape );
 
 bool rail_is_ascending( RailShape shape );
 
+// Pick-box height in 1/16 px: ascending rails select on an 8px box like
+// MC; flat and curved rails keep the def's 1px plate. Only meaningful for
+// is_rail cells — reads the cell's real state (rotation/display_id).
+int rail_pick_height_px( const BlockState &state );
+
 // The shape a rail cell should take given its neighbours: recompute the
 // four direction links (a rail beside us, one up that we ascend toward, or
 // one below ascending toward us — the neighbour must also accept), keep

@@ -2,6 +2,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/fluid.hpp"
+#include "common/rail.hpp"
 #include "common/world.hpp"
 #include "common/utils/ray_traversal.hpp"
 
@@ -112,6 +113,10 @@ static int contains_pixel( Block *pixel_block, BlockState &block_state, const gl
         } else if ( rot == 7 ) {
             offset_z = 0;
         }
+    }
+    if ( pixel_block->is_rail ) {
+        // Ascending rails pick on an 8px box (flat/curved stay the 1px plate).
+        scale_y = static_cast<char>( rail_pick_height_px( block_state ) );
     }
     if ( pixel_block->is_slab && ( block_state.rotation & BLOCK_ROTATE_SLAB_TOP ) != 0 ) {
         // Top-half slab: the pick box mirrors into the upper half of the cell.

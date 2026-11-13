@@ -135,6 +135,13 @@ bool rail_is_ascending( RailShape shape ) {
     return shape == RAIL_ASC_E || shape == RAIL_ASC_W || shape == RAIL_ASC_N || shape == RAIL_ASC_S;
 }
 
+int rail_pick_height_px( const BlockState &state ) {
+    if ( rail_is_ascending( rail_shape_of( state ) ) ) {
+        return 8;
+    }
+    return block_definition_get_definition( state.id )->scale.y;
+}
+
 // Whether `state` (already known to be a rail) at `npos` accepts a link
 // from direction dir_to_us (the direction it would point at us): its
 // current shape already reaches that side, or it still has a free end

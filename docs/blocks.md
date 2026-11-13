@@ -666,11 +666,14 @@ rendering is `docs/rendering.md`.
 ## Rails
 
 `is_rail` blocks (`RAIL`, `GOLDEN_RAIL`, and the hidden render-only
-`RAIL_CORNER`/`POWERED_GOLDEN_RAIL` tiles) are 1px plates: scale
+`RAIL_CORNER` tile) are 1px plates: scale
 [16,1,16], air on every face but the top tile, non-colliding, and they
 survive only over a colliding block — checked directly in
 `block_can_survive_at` rather than through `needs_place_on_any_solid`,
-because a rail's `rotation` is its shape, not a yaw.
+because a rail's `rotation` is its shape, not a yaw. Picking is the one
+exception: `rail_pick_height_px` makes ascending shapes select on an 8px
+box (MC behaviour; flat and curved stay 1px), applied in
+`ray_traversal.cpp` and `mouse_selection.cpp` so the outline matches.
 
 All track logic is pure and unit-tested in `include/common/rail.hpp` /
 `src/common/rail.cpp`: the `RailShape` enum (NS, EW, four ASC slopes,

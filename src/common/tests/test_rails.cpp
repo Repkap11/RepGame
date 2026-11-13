@@ -4,6 +4,7 @@
 #include "test_util.hpp"
 #include "common/rail.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
+#include "common/utils/ray_traversal.hpp"
 
 // Checks the resolved RailShape at a position, printing a line per check.
 static int check_shape( const World &world, const char *name, const glm::ivec3 &pos, RailShape expected ) {
@@ -162,6 +163,19 @@ int test_rails( ) {
                     g.display_id == GOLDEN_RAIL && ( rail_shape_of( g ) == RAIL_NS || rail_shape_of( g ) == RAIL_EW ) );
     }
     failures += check_shape( world, "L placed arms-first converges", glm::ivec3( 10, 11, 10 ), RAIL_SE );
+
+    // Ascending rails pick on an 8px box; flat/curved stay the 1px plate.
+    // A horizontal ray at cell.y + 0.3 hits the ASC rail at (20,11,8) but
+    // passes clean over the flat rails at (5-6,11,4).
+    {
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        check_bool( failures, "ray: ascending rail hit at +0.3",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 19.0, 11.3, 8.5 ), glm::dvec3( 21.0, 11.3, 8.5 ), out, &which_face ) &&
+                        out == glm::ivec3( 20, 11, 8 ) );
+        check_bool( failures, "ray: flat rail missed at +0.3",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 4.5, 11.3, 4.5 ), glm::dvec3( 7.5, 11.3, 4.5 ), out, &which_face ) );
+    }
 
     // Placer yaw decides a lone rail's axis (same buckets as
     // getPlacedRotation): facing E/W (yaw 90) lays E-W, facing N (0) N-S.

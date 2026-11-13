@@ -1,5 +1,6 @@
 #include "common/mouse_selection.hpp"
 #include "common/block.hpp"
+#include "common/rail.hpp"
 #include "common/world.hpp"
 
 MK_SHADER( selection_vertex );
@@ -211,6 +212,11 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
             blockCoords.offset_x = torch_offset[ 0 ];
             blockCoords.offset_y = torch_offset[ 1 ];
             blockCoords.offset_z = torch_offset[ 2 ];
+        }
+
+        // Ascending rails outline an 8px box, matching the pick path.
+        if ( block->is_rail ) {
+            blockCoords.scale_y = rail_pick_height_px( blockState );
         }
 
         // Top-half slab: the outline mirrors into the upper half of the cell.
