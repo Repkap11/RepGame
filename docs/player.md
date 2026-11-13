@@ -35,7 +35,7 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 | `G` | ImGui debug overlay |
 | `V` | Toggle vsync |
 | `N` | Spawn a mob (debug) |
-| `F12` | Screenshot |
+| `F12` | Screenshot (`./screenshots/screenshot_<n>_*.tga`, first unused `n` — earlier sessions' shots are kept) |
 | Left click | Mine / attack mob |
 | Right click | Place / interact; `Shift`+right-click places past interactables |
 | Middle click | Pick block (survival: pulls to hotbar; creative: gives) |

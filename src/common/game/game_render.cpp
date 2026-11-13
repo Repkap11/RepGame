@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <string>
 #include <stdlib.h>
 
@@ -22,6 +23,20 @@
 #include "common/light.hpp"
 #include "common/smelting.hpp"
 #include "common/game/game_internal.hpp"
+
+// "<kind>_<n>" for the first n >= *counter whose display image doesn't exist
+// yet: a new session's F12 shots don't overwrite the previous session's,
+// while a fresh run dir (rep-dbg) still numbers from 0.
+static std::string next_shot_prefix( const char *kind, int *counter ) {
+    for ( ;; ) {
+        std::string prefix = std::string( kind ) + "_" + std::to_string( ( *counter )++ );
+        FILE *f = fopen( ( "screenshots/" + prefix + "_display.tga" ).c_str( ), "rb" );
+        if ( f == nullptr ) {
+            return prefix;
+        }
+        fclose( f );
+    }
+}
 
 void RepGame::draw( float alpha ) {
     draw_frame( alpha, nullptr, 0 );
@@ -287,7 +302,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     if ( globalGameState.input.screenshot_requested ) {
         globalGameState.input.screenshot_requested = false;
         // Capture intermediate framebuffer attachments for debugging.
-        std::string prefix = "screenshot_" + std::to_string( screenshot_counter++ );
+        const std::string prefix = next_shot_prefix( "screenshot", &screenshot_counter );
         globalGameState.world.screenshot( prefix );
         results::event( globalGameState.tick_number, "screenshot", "\"file\":\"screenshots/%s_display.tga\"", prefix.c_str( ) );
         // Emit the current view in REPGAME_CAPTURE format so an interesting
@@ -347,7 +362,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     // offline corruption scans (e.g. during daytime with terrain visible).
     static int periodic_frame = 0;
     if ( run_policy( ).capture_periodic > 0 && ( periodic_frame++ % run_policy( ).capture_periodic ) == 0 ) {
-        std::string prefix = "periodic_" + std::to_string( screenshot_counter++ );
+        const std::string prefix = next_shot_prefix( "periodic", &screenshot_counter );
         globalGameState.world.screenshot( prefix );
     }
 
@@ -427,7 +442,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                     frames_since_hit = 0;
                     pr_debug( "ANOMALY pixel at (%d,%d) rgba=(%d,%d,%d,%d) min_rgb_diff=%d min_alpha_diff=%d — dumping attachments",
                               x, y, c[ 0 ], c[ 1 ], c[ 2 ], c[ 3 ], worst_diff, worst_alpha );
-                    std::string prefix = "anomaly_" + std::to_string( screenshot_counter++ );
+                    const std::string prefix = next_shot_prefix( "anomaly", &screenshot_counter );
                     globalGameState.world.screenshot( prefix );
                     goto anomaly_done;
                 }
