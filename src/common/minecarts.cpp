@@ -47,6 +47,9 @@ static constexpr double RAIL_TOP = 1.0 / 16.0;
 static constexpr float CART_DAMAGE_PER_HIT = 1.0f;
 static constexpr float CART_DAMAGE_DECAY = 2.0f / static_cast<float>( UPS_RATE );
 static constexpr int CART_HURT_WOBBLE_TICKS = UPS_RATE / 2;
+// The model draws a few percent oversized: a seated rider's arm faces sit
+// coplanar with the cart's side walls (both at 8px) and z-fight without it.
+static constexpr float CART_MODEL_SCALE = 1.05f;
 
 namespace {
 
@@ -1200,7 +1203,7 @@ void Minecarts::update_render( float alpha, const ChunkLoader &loader ) {
         const float rpitch = c.prev_pitch + ( c.pitch - c.prev_pitch ) * alpha;
 
         // translate(lerp pos) · rotY(yaw) · rotX(pitch) · wobble roll ·
-        // scale(1/16) · bone · cube — same base convention as mobs (model
+        // scale(model/16) · bone · cube — same base convention as mobs (model
         // -Z front lands on forward = (sin yaw, 0, -cos yaw)). The minecart
         // model's long axis is +x, so a -90° yaw pre-rot turns the cart
         // nose onto -Z.
@@ -1218,7 +1221,7 @@ void Minecarts::update_render( float alpha, const ChunkLoader &loader ) {
             base = glm::rotate( base, glm::radians( roll ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
         }
         base = glm::rotate( base, glm::radians( -90.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-        base = glm::scale( base, glm::vec3( 1.0f / 16.0f ) );
+        base = glm::scale( base, glm::vec3( CART_MODEL_SCALE / 16.0f ) );
 
         const glm::vec2 light = loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, CART_HEIGHT * 0.5f, 0.0f ) );
 
