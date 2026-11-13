@@ -37,7 +37,8 @@ static const double CART_FRICTION_RIDDEN = pow( 0.997, 20.0 / UPS );          //
 static const double CART_FRICTION_EMPTY = pow( 0.96, 20.0 / UPS );            // empty drag
 static constexpr double CART_PUSH_ACCEL = 2.0 / ( UPS * UPS );                // rider push
 static constexpr double CART_PUSH_MAX = 4.0 / UPS;                            // rider push caps out here
-static constexpr double CART_PLAYER_PUSH = 6.0 / ( UPS * UPS );               // player shoving an empty cart
+static constexpr double CART_PLAYER_PUSH = 6.0 / ( UPS * UPS );               // player shoving an empty cart on a rail
+static constexpr double CART_PLAYER_PUSH_GROUND = 24.0 / ( UPS * UPS );       // same shove off-rail — ground drag is far heavier
 static const double CART_AIR_DRAG = pow( 0.95, 20.0 / UPS );
 static const double CART_GROUND_DRAG = pow( 0.5, 20.0 / UPS );
 // Rail plate top sits 1/16 up the cell (scale 1 of 16 on the rail shape).
@@ -349,6 +350,36 @@ void Minecarts::tick( RepGameState &state, const CartTickInput &in ) {
             c.on_rail = false;
         }
 
+        // Bodies overlapping an empty cart shove it — the local player plus
+        // remote players (extra_pushers) with the same box rule; a ridden
+        // cart is never pushed (local or remote rider). apply() gets the
+        // normalized horizontal push direction once per overlapping body:
+        // on a rail it's projected onto the path, off the rails it
+        // accelerates the world-space velocity.
+        const auto for_each_push = [ & ]( const auto &apply ) {
+            if ( c.rider || c.rider_session != 0 ) {
+                return;
+            }
+            const glm::dvec3 cmin = cart_min( c.pos ), cmax = cart_max( c.pos );
+            const auto shove = [ & ]( const glm::dvec3 &feet ) {
+                const glm::dvec3 pmin = feet - glm::dvec3( in.player_width / 2.0, 0.0, in.player_width / 2.0 );
+                const glm::dvec3 pmax = feet + glm::dvec3( in.player_width / 2.0, in.player_height, in.player_width / 2.0 );
+                if ( cmin.x < pmax.x && cmax.x > pmin.x && cmin.y < pmax.y && cmax.y > pmin.y && cmin.z < pmax.z && cmax.z > pmin.z ) {
+                    glm::dvec3 away = c.pos + glm::dvec3( 0.0, CART_HEIGHT * 0.5, 0.0 ) - ( feet + glm::dvec3( 0.0, in.player_height * 0.5, 0.0 ) );
+                    away.y = 0.0;
+                    if ( glm::length( away ) > 1e-6 ) {
+                        apply( glm::normalize( away ) );
+                    }
+                }
+            };
+            if ( !in.player_no_clip ) {
+                shove( in.player_feet );
+            }
+            for ( const glm::dvec3 &feet : in.extra_pushers ) {
+                shove( feet );
+            }
+        };
+
         if ( c.on_rail ) {
             RailPath path = rail_path( world, cell, rail_state );
             // Project onto the path: t is the distance along p0 -> p1.
@@ -395,30 +426,10 @@ void Minecarts::tick( RepGameState &state, const CartTickInput &in ) {
                 const glm::dvec3 push_dir = glm::normalize( glm::dvec3( in.rider_push.x, 0.0, in.rider_push.y ) );
                 s += CART_PUSH_ACCEL * glm::dot( push_dir, path.u );
             }
-            // Bodies overlapping an empty cart shove it along the rail away
-            // from the pusher — the local player plus remote players
-            // (extra_pushers) with the same box rule. A ridden cart is
-            // never pushed (local or remote rider).
-            if ( !c.rider && c.rider_session == 0 ) {
-                const glm::dvec3 cmin = cart_min( c.pos ), cmax = cart_max( c.pos );
-                const auto shove = [ & ]( const glm::dvec3 &feet ) {
-                    const glm::dvec3 pmin = feet - glm::dvec3( in.player_width / 2.0, 0.0, in.player_width / 2.0 );
-                    const glm::dvec3 pmax = feet + glm::dvec3( in.player_width / 2.0, in.player_height, in.player_width / 2.0 );
-                    if ( cmin.x < pmax.x && cmax.x > pmin.x && cmin.y < pmax.y && cmax.y > pmin.y && cmin.z < pmax.z && cmax.z > pmin.z ) {
-                        glm::dvec3 away = c.pos + glm::dvec3( 0.0, CART_HEIGHT * 0.5, 0.0 ) - ( feet + glm::dvec3( 0.0, in.player_height * 0.5, 0.0 ) );
-                        away.y = 0.0;
-                        if ( glm::length( away ) > 1e-6 ) {
-                            s += CART_PLAYER_PUSH * glm::dot( glm::normalize( away ), path.u );
-                        }
-                    }
-                };
-                if ( !in.player_no_clip ) {
-                    shove( in.player_feet );
-                }
-                for ( const glm::dvec3 &feet : in.extra_pushers ) {
-                    shove( feet );
-                }
-            }
+            // The shove runs along the rail — projected onto the path.
+            for_each_push( [ & ]( const glm::dvec3 &dir ) {
+                s += CART_PLAYER_PUSH * glm::dot( dir, path.u );
+            } );
 
             s = std::max( -CART_MAX_SPEED, std::min( s, CART_MAX_SPEED ) );
 
@@ -473,6 +484,11 @@ void Minecarts::tick( RepGameState &state, const CartTickInput &in ) {
             }
         } else {
             // Off-rail: ballistic with ground/air drag and box collision.
+            // The same overlap shove accelerates the cart in world space —
+            // the player can push a grounded cart (e.g. back onto a track).
+            for_each_push( [ & ]( const glm::dvec3 &dir ) {
+                c.vel += dir * CART_PLAYER_PUSH_GROUND;
+            } );
             c.vel.y -= GRAVITY_STRENGTH;
             if ( c.vel.y < -TERMINAL_VELOCITY ) {
                 c.vel.y = -TERMINAL_VELOCITY;

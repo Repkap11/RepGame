@@ -258,6 +258,33 @@ int test_minecarts( ) {
     check_bool( "cart: player overlap pushes empty cart", only_cart( ).pos.x > 45.5 );
     carts.test_carts( ).clear( );
 
+    // --- player overlap pushes a grounded (off-rail) cart --------------------------
+    // Same box rule in world space — no rail under the cart.
+    carts.spawn( glm::dvec3( 45.5, 11.0, 34.5 ), 0.0f );
+    in.player_feet = glm::dvec3( 44.9, 11.0, 34.5 );
+    tick( 60 );
+    in.player_feet = glm::dvec3( 0.0, -100.0, 0.0 );
+    check_bool( "cart: player overlap pushes grounded cart",
+                !only_cart( ).on_rail && only_cart( ).pos.x > 45.5 );
+    carts.test_carts( ).clear( );
+
+    // --- pushed back onto the track --------------------------------------------------
+    // A grounded cart one cell east of a rail gets shoved west until its
+    // bottom-centre enters the rail cell and re-snaps. The feet keep
+    // trailing the cart — a player walking into it.
+    place( glm::ivec3( 55, 11, 34 ), rail );
+    run( 10 );
+    carts.spawn( glm::dvec3( 56.5, 11.0, 34.5 ), 0.0f );
+    for ( int i = 0; i < 400 && !only_cart( ).on_rail; i++ ) {
+        in.player_feet = only_cart( ).pos + glm::dvec3( 0.6, 0.0, 0.0 );
+        tick( 1 );
+    }
+    in.player_feet = glm::dvec3( 0.0, -100.0, 0.0 );
+    check_bool( "cart: pushed back onto a rail",
+                only_cart( ).on_rail && only_cart( ).pos.x > 55.0 && only_cart( ).pos.x < 56.0 &&
+                    fabs( only_cart( ).pos.y - ( 11.0 + 1.0 / 16.0 ) ) < 1e-6 );
+    carts.test_carts( ).clear( );
+
     // --- damage / drop rules ---------------------------------------------------------
     carts.spawn( glm::dvec3( 46.5, 11.0 + 1.0 / 16.0, 30.5 ), 0.0f );
     {

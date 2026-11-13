@@ -160,12 +160,16 @@ block, unpowered `CART_POWERED_BRAKE`/`CART_POWERED_SNAP`, friction
 `CART_PUSH_ACCEL` capped at `CART_PUSH_MAX` (fed by
 `CartTickInput::rider_*` while the player rides — see below), and
 `CART_PLAYER_PUSH` when
-the player's box overlaps an empty cart. Passing an endpoint steps into
+the player's box overlaps an empty cart. The same overlap shove works
+off-rail (`CART_PLAYER_PUSH_GROUND` — ground drag is much heavier than
+rail friction, so the accel is stronger), accelerating the cart's
+world-space velocity so a grounded cart can be pushed back onto a
+track. Passing an endpoint steps into
 the next rail cell (same level, one up when the exit end climbs, or one
 down onto a rail ascending back); a solid next cell stops the cart at
 the endpoint and no rail at all derails it — derailed carts run gravity/
 drag through `Collision::move_box` and re-snap onto any rail their
-bottom-centre enters. `raycast` picks carts for clicks — the
+bottom-centre enters (including one the player shoves them into). `raycast` picks carts for clicks — the
 block-vs-entity compare in `resolve_target` uses the pick ray's shape
 hit distance (`block_selection.block_hit_dist`), so a cart wins over the
 rail under it even though it sits inside the rail's cell; overlapping

@@ -29,6 +29,9 @@ class Shader;
 // ones brake, slopes accelerate downhill, empty carts lose more speed than
 // ridden ones. Derailed carts fall through the world with move_box
 // collision until they re-snap onto a rail or rest on the ground.
+// Overlapping player bodies shove an empty cart — along the rail while on
+// track, in world space while off it (a grounded cart can be pushed back
+// onto a rail it enters).
 //
 // Multiplayer phase 1 (empty carts): owner-simulated like items — the
 // chunk owner's client simulates and streams ENTITY_STATE; everyone else
