@@ -27,7 +27,7 @@
 // blocks/s speed divides by UPS_RATE and a blocks/s² accel by
 // UPS_RATE*UPS_RATE.
 static constexpr double UPS = UPS_RATE;
-static constexpr double CART_MAX_SPEED = 8.0 / UPS;                           // blocks/tick
+static constexpr double CART_MAX_SPEED = 12.0 / UPS;                          // blocks/tick
 static constexpr double CART_SLOPE_ACCEL = 5.0 / ( UPS * UPS );               // downhill gravity along the path
 static constexpr double CART_POWERED_BOOST = 24.0 / ( UPS * UPS );             // powered rail accel
 static constexpr double CART_LAUNCH_KICK = 0.4 / UPS;                         // kick off a blocked powered rail end

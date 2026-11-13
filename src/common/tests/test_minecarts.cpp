@@ -102,7 +102,7 @@ int test_minecarts( ) {
     tick( 80 );
     {
         const double bs = glm::length( only_cart( ).vel ) * UPS_RATE;
-        check_bool( "cart: powered rail boosts toward max", bs > 7.0 && bs <= 8.0 + 1e-9 );
+        check_bool( "cart: powered rail boosts toward max", bs > 8.0 && bs <= 12.0 + 1e-9 );
         check_bool( "cart: boosted cart stays on rail", only_cart( ).on_rail );
     }
     carts.test_carts( ).clear( );

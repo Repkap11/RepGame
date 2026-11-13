@@ -153,7 +153,7 @@ ascending end sits a block up; a curve is the diagonal between its two
 edge mids, like MC). Signed speed `s` along the path gets, per tick
 (constants are MC 20-TPS values converted to `UPS_RATE`, all named in
 `minecarts.cpp`): downhill gravity `CART_SLOPE_ACCEL`, powered
-`POWERED_RAIL` boost `CART_POWERED_BOOST` toward `CART_MAX_SPEED` (8 b/s),
+`POWERED_RAIL` boost `CART_POWERED_BOOST` toward `CART_MAX_SPEED` (12 b/s),
 a `CART_LAUNCH_KICK` off a rest cart whose powered-rail end faces a solid
 block, unpowered `CART_POWERED_BRAKE`/`CART_POWERED_SNAP`, friction
 `CART_FRICTION_RIDDEN`/`CART_FRICTION_EMPTY`, rider push
