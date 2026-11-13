@@ -1,6 +1,8 @@
 #include <queue>
 #include <unordered_map>
 
+#include <glm/gtx/hash.hpp>
+
 #include "common/rail.hpp"
 #include "common/world.hpp"
 #include "common/block.hpp"
