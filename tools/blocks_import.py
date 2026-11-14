@@ -78,7 +78,7 @@ BOOL_FIELDS = {
     "is_button",
     "is_pressure_plate", "is_redstone_mechanism", "is_piston", "is_sticky_piston",
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
-    "is_fence", "is_fence_gate", "falls_with_gravity", "spine_shell",
+    "is_fence", "is_fence_gate", "is_wall", "falls_with_gravity", "spine_shell",
     "is_stairs", "is_standing_sign", "is_hanging_sign", "climbable", "is_cake",
     "is_bed", "is_bed_head",
     "is_door", "is_door_upper", "door_redstone_only", "is_rail",
@@ -417,7 +417,8 @@ def creative_signature(b, r, layers):
         # (stairs, fences, gates) draw their own boxes, distinct from a
         # same-textured single-box icon.
         (b.get("is_stairs", False), b.get("is_fence", False),
-         b.get("is_fence_gate", False), b.get("is_button", False)),
+         b.get("is_fence_gate", False), b.get("is_wall", False),
+         b.get("is_button", False)),
         b.get("render_order", "Opaque"),
     )
 
@@ -1365,7 +1366,8 @@ def main():
 
     # Blocks whose drawn quads aren't the scale/offset box (custom meshes or
     # runtime-sliced shapes) — the window math doesn't describe them.
-    WINDOW_CHECK_SKIP = ("is_stairs", "is_fence", "is_fence_gate", "is_cake",
+    WINDOW_CHECK_SKIP = ("is_stairs", "is_fence", "is_fence_gate", "is_wall",
+                         "is_cake",
                          "is_piston", "is_piston_head", "spine_shell")
     for bid, b in sorted(blocks.items()):
         if any(b.get(k) for k in WINDOW_CHECK_SKIP):

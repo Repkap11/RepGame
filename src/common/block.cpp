@@ -156,6 +156,97 @@ int fence_collision_boxes( unsigned connections, BlockBox out[ FENCE_MAX_BOXES ]
     return n;
 }
 
+bool wall_connects_to( BlockID neighbor_id, unsigned char neighbor_rotation, bool along_x ) {
+    const Block *neighbor = block_definition_get_definition( neighbor_id );
+    // Walls connect to every wall material and to solid blocks; the gate
+    // axis rule is the fence's (a gate spans world x when ( rot & 1 ) == 0
+    // and connects on the sides perpendicular to its span). Fences aren't
+    // walls and aren't solid, so walls and fences never connect.
+    if ( neighbor->is_wall ) {
+        return true;
+    }
+    if ( neighbor->is_fence_gate ) {
+        return ( ( neighbor_rotation & 1 ) == 0 ) == along_x;
+    }
+    return neighbor->is_solid;
+}
+
+// Post x/z 4..12, y 0..16; arms 6 thick (5..11 on the perpendicular axis),
+// y 0..14 — or the full 16 when another wall sits on top (the taller arm
+// meets the upper wall's post cap, MC's "up" behaviour). Each arm runs from
+// the post face to the cell edge and never overlaps the post, so the arm's
+// buried end face is skipped (+x arm skips its -x face, etc.) while the
+// outer end face draws — a wall next to a thin neighbor (gate) would
+// otherwise show a hole.
+int wall_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] ) {
+    const unsigned conn = mask & ( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X | FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z );
+    // A run straight through on one axis with a clear cell above draws no
+    // post — one arm spans the whole cell.
+    const bool straight = conn == ( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X ) || conn == ( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z );
+    const bool post = !straight || ( mask & WALL_ABOVE_OCCUPIED ) != 0;
+    const signed char arm_h = ( mask & WALL_ABOVE_WALL ) != 0 ? 16 : 14;
+    int n = 0;
+    if ( !post ) {
+        const bool along_x = ( conn & FENCE_CONNECT_POS_X ) != 0;
+        out[ n ].scale[ 0 ] = along_x ? 16 : 6;
+        out[ n ].scale[ 1 ] = arm_h;
+        out[ n ].scale[ 2 ] = along_x ? 6 : 16;
+        out[ n ].offset[ 0 ] = along_x ? 0 : 5;
+        out[ n ].offset[ 1 ] = 0;
+        out[ n ].offset[ 2 ] = along_x ? 5 : 0;
+        out[ n ].skip_faces = 0;
+        return 1;
+    }
+    out[ n ].scale[ 0 ] = 8;
+    out[ n ].scale[ 1 ] = 16;
+    out[ n ].scale[ 2 ] = 8;
+    out[ n ].offset[ 0 ] = 4;
+    out[ n ].offset[ 1 ] = 0;
+    out[ n ].offset[ 2 ] = 4;
+    out[ n ].skip_faces = 0;
+    n++;
+    // (bit, axis is x, positive dir): post first, then arms +x, -x, +z, -z.
+    static const struct {
+        unsigned bit;
+        bool along_x;
+        bool positive;
+    } arm_dir[ 4 ] = {
+        { FENCE_CONNECT_POS_X, true, true },
+        { FENCE_CONNECT_NEG_X, true, false },
+        { FENCE_CONNECT_POS_Z, false, true },
+        { FENCE_CONNECT_NEG_Z, false, false },
+    };
+    for ( int d = 0; d < 4; d++ ) {
+        if ( !( conn & arm_dir[ d ].bit ) ) {
+            continue;
+        }
+        out[ n ].scale[ 0 ] = arm_dir[ d ].along_x ? 4 : 6;
+        out[ n ].scale[ 1 ] = arm_h;
+        out[ n ].scale[ 2 ] = arm_dir[ d ].along_x ? 6 : 4;
+        out[ n ].offset[ 0 ] = arm_dir[ d ].along_x ? ( arm_dir[ d ].positive ? 12 : 0 ) : 5;
+        out[ n ].offset[ 1 ] = 0;
+        out[ n ].offset[ 2 ] = arm_dir[ d ].along_x ? 5 : ( arm_dir[ d ].positive ? 12 : 0 );
+        // The arm's end buried in the post: FACE_LEFT/FRONT are the -x/-z
+        // faces, FACE_RIGHT/BACK the +x/+z ones.
+        const int buried_face = arm_dir[ d ].along_x ? ( arm_dir[ d ].positive ? FACE_LEFT : FACE_RIGHT )
+                                                   : ( arm_dir[ d ].positive ? FACE_FRONT : FACE_BACK );
+        out[ n ].skip_faces = static_cast<unsigned char>( 1u << buried_face );
+        n++;
+    }
+    return n;
+}
+
+// Collision boxes: the rendered boxes stretched to 1.5 blocks tall (24px),
+// like fences — a post's 16px cap can't be jumped either way.
+int wall_collision_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] ) {
+    const int n = wall_boxes( mask, out );
+    for ( int i = 0; i < n; i++ ) {
+        out[ i ].scale[ 1 ] = 24;
+        out[ i ].offset[ 1 ] = 0;
+    }
+    return n;
+}
+
 static void block_box_from_shape( const short scale[ 3 ], const short offset[ 3 ], BlockBox *out ) {
     for ( int i = 0; i < 3; i++ ) {
         out->scale[ i ] = static_cast<signed char>( scale[ i ] );
@@ -362,6 +453,19 @@ int fence_gate_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
     return n;
 }
 
+int wall_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
+    // A connected z segment with a raised post (WALL_ABOVE_OCCUPIED forces
+    // the post on so the icon doesn't read as a flat slab): the -z arm half
+    // behind the post emits first and the +z half last — the same
+    // back-to-front painter's order fence_icon_boxes uses.
+    BlockBox conn[ FENCE_MAX_BOXES ];
+    wall_boxes( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z | WALL_ABOVE_OCCUPIED, conn );
+    out[ 0 ] = conn[ 2 ]; // -z arm half
+    out[ 1 ] = conn[ 0 ]; // post
+    out[ 2 ] = conn[ 1 ]; // +z arm half
+    return 3;
+}
+
 unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char player_yaw_rot ) {
     if ( rotation & BLOCK_ROTATE_GATE_OPEN ) {
         return static_cast<unsigned char>( rotation & ~BLOCK_ROTATE_GATE_OPEN );
@@ -549,6 +653,9 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     }
     if ( block->is_fence_gate ) {
         return fence_gate_icon_boxes( out );
+    }
+    if ( block->is_wall ) {
+        return wall_icon_boxes( out );
     }
     if ( block->is_button ) {
         return button_icon_boxes( out );

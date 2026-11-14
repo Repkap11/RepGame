@@ -363,6 +363,10 @@ int piston_base_boxes( unsigned char rotation, BlockBox out[ PISTON_MAX_BOXES ] 
 #define FENCE_CONNECT_NEG_Z 8u
 #define FENCE_MAX_BOXES 5
 #define FENCE_GATE_MAX_BOXES 8
+// Wall mask bits on top of the four FENCE_CONNECT_* directions: bit 4 =
+// the cell above is loaded and not AIR, bit 5 = the cell above is a wall.
+#define WALL_ABOVE_OCCUPIED 16u
+#define WALL_ABOVE_WALL 32u
 // The largest multi-box item icon (the split fence-gate leaf's 7 boxes).
 // Every per-box icon path — inventory slots, the dragged item, held and
 // dropped item entities — sizes its instance array by this.
@@ -410,6 +414,56 @@ unsigned char fence_gate_toggle_rotation( unsigned char rotation, unsigned char 
 // so the leaf reads over it, the near post last to cover the rail end cap
 // inside it. Returns 7 boxes.
 int fence_gate_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] );
+
+// ---- Walls -----------------------------------------------------------------
+// Walls ride the fence multi-box pipeline with thicker geometry (MC-style):
+// an 8px center post plus 6px-thick arms to each connected neighbor.
+// `mask` is the FENCE_CONNECT_* bits plus WALL_ABOVE_*.
+
+// Whether a wall connects to a horizontal neighbor: any wall, a gate whose
+// span axis matches the connection direction (same rule as fences), or a
+// solid block. Walls and fences never connect to each other.
+bool wall_connects_to( BlockID neighbor_id, unsigned char neighbor_rotation, bool along_x );
+// The wall connection mask: the 4 horizontal FENCE_CONNECT_* bits via
+// wall_connects_to plus the two above-cell bits. `neighbor_at(dx,dy,dz)`
+// returns the cell's BlockState; unloaded cells report id >= LAST_BLOCK_ID
+// (they don't connect and don't count as occupied). Shared by the mesher
+// (halo cells), collision, raycast and the selection outline so a neighbor
+// change re-shapes every consumer at once.
+template <typename F>
+static inline unsigned wall_connection_mask( F neighbor_at ) {
+    static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
+        { 1, 0, FENCE_CONNECT_POS_X, 1 },
+        { -1, 0, FENCE_CONNECT_NEG_X, 1 },
+        { 0, 1, FENCE_CONNECT_POS_Z, 0 },
+        { 0, -1, FENCE_CONNECT_NEG_Z, 0 },
+    };
+    unsigned mask = 0;
+    for ( int d = 0; d < 4; d++ ) {
+        const BlockState neighbor = neighbor_at( conn_dir[ d ][ 0 ], 0, conn_dir[ d ][ 1 ] );
+        if ( neighbor.id < LAST_BLOCK_ID && wall_connects_to( neighbor.id, neighbor.rotation, conn_dir[ d ][ 3 ] ) ) {
+            mask |= conn_dir[ d ][ 2 ];
+        }
+    }
+    const BlockState above = neighbor_at( 0, 1, 0 );
+    if ( above.id < LAST_BLOCK_ID && above.id != AIR ) {
+        mask |= WALL_ABOVE_OCCUPIED;
+        if ( block_definition_get_definition( above.id )->is_wall ) {
+            mask |= WALL_ABOVE_WALL;
+        }
+    }
+    return mask;
+}
+// Fill `out` with the wall's boxes (rendered and pick — the arms are solid,
+// so unlike fences there is no separate pick merge). Box 0 is the post when
+// present. Returns the box count (<= FENCE_MAX_BOXES).
+int wall_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] );
+// The rendered boxes stretched to 1.5 blocks tall (like fence collision),
+// so walls can't be jumped. Returns the box count.
+int wall_collision_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] );
+// Icon/pickup shape: a connected z segment with the post — emitted in
+// painter's order like fence_icon_boxes. Returns 3 boxes.
+int wall_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] );
 
 // ---- Stairs -----------------------------------------------------------------
 // Stairs store the facing in rotation bits 0-1 — the yaw index doubles as the

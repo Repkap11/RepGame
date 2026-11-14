@@ -47,6 +47,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_redstone_dust = false;
         block->is_fence = false;
         block->is_fence_gate = false;
+        block->is_wall = false;
         block->is_stairs = false;
         block->is_slab = false;
         block->spine_shell = false;

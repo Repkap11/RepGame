@@ -242,7 +242,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                                              : false;
     const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || block->is_bed || fluid_pick;
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
-    if ( result && ( block->is_stairs || block->is_fence || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign ) ) {
+    if ( result && ( block->is_stairs || block->is_fence || block->is_wall || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign ) ) {
         // Pick against the block's real boxes — stairs use their collision
         // boxes (slab + step, with the neighbor-derived corner shape),
         // fences the post + merged rail bars (the two rendered rails merged
@@ -272,6 +272,13 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                 stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
             }
             num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
+        } else if ( block->is_wall ) {
+            // Wall arms are solid — the rendered boxes are the pick boxes.
+            // Same mask gather as collision.cpp/chunk.cpp phase 2.
+            const unsigned mask = wall_connection_mask( [ & ]( int dx, int dy, int dz ) {
+                return world.get_loaded_block( block_pos + glm::ivec3( dx, dy, dz ) );
+            } );
+            num_boxes = wall_boxes( mask, boxes );
         } else {
             // Same connection gather as collision.cpp/chunk.cpp phase 2.
             static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x

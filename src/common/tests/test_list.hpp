@@ -34,6 +34,7 @@ int test_player_data( );
 int test_creative( );
 int test_ui_layout( );
 int test_fences( );
+int test_walls( );
 int test_doors( );
 int test_block_world( );
 int test_mapgen( );

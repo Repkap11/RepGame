@@ -138,7 +138,7 @@ block rather than hand-tuned: opaque cubes use the defaults; binary-cutout
 tiles copy `GLASS`/leaves (see-through, `should_draw_*` off);
 partial-alpha tiles copy a translucent template like `GLASS_LIGHT_BLUE`;
 cross-quad plants copy the `Flowers` render template. Unrenderable shapes
-(walls, banners, rails, panes...) are placeholder full cubes
+(banners, rails, panes...) are placeholder full cubes
 until a render class exists for them — see `data/shapes.json` below for the
 workaround. Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
@@ -184,15 +184,15 @@ prefixes and one shape suffix, with dye-coloured blocks grouped into colour
 families (WOOL, CONCRETE, STAINED_GLASS, ...) sorted in dye order.
 
 A block JSON may set `"shape": "<name>"` (defined in `data/shapes.json`,
-three kinds). **Mask shapes** (wall, banner) are for silhouettes we can't
+three kinds). **Mask shapes** (banner) are for silhouettes we can't
 render: the importer
 replaces the 4 side faces with generated `<face_tex>__<shape>` tiles — the
 resolved source tile with the mask's `.` pixels cut to transparent black —
 and applies the shared `cutout` property set (see-through, no light
 blocking, no shadow). Top/bottom keep the plain material texture.
-**Model shapes** (fence, fence_gate, stairs) have real multi-box geometry: the
+**Model shapes** (fence, fence_gate, wall, stairs) have real multi-box geometry: the
 importer applies the `cutout` set plus the entry's own properties
-(`is_fence`, `is_stairs`, `scale`, `offset`, ...) and keeps the block's
+(`is_fence`, `is_wall`, `is_stairs`, `scale`, `offset`, ...) and keeps the block's
 plain textures; the entry's optional `"icon_mask"` grid cuts a generated
 `<side_tex>__<shape>`
 tile used as the flat inventory icon (`icon_is_isometric=false`) — stairs,
@@ -391,6 +391,25 @@ where it crosses the upright — halves behind, upright, halves in front —
 while the posts already bracket the leaf: the far post emits first so
 the leaf reads over it and the near post last to cover the rail end cap
 inside it.
+
+Walls (`is_wall`, e.g. COBBLESTONE_WALL) ride the same multi-box pipeline
+with thicker, Minecraft-style geometry — `wall_boxes` in block.cpp emits
+an 8px center post plus a 6px-thick arm per connected side, up to
+`FENCE_MAX_BOXES` boxes. The mask is `wall_connection_mask` (block.hpp):
+the four horizontal `FENCE_CONNECT_*` bits via `wall_connects_to` — any
+wall material, a gate on the matching span axis, or a solid block (walls
+and fences never connect to each other) — plus `WALL_ABOVE_OCCUPIED` /
+`WALL_ABOVE_WALL` read from the cell above. A wall connected on exactly
+two opposite sides drops the post into a single cell-spanning arm unless
+the cell above is occupied (MC's "up" rule); a wall above raises the arms
+to full height. Arm ends buried in the post get `NO_LIGHT_NO_DRAW` via
+`skip_faces`; outer ends draw so a wall next to a thin neighbor shows no
+hole. Collision (`wall_collision_boxes` via `block_collision_boxes`) is
+the rendered boxes stretched to 1.5 blocks tall like fences; raycast and
+the `MouseSelection` outline pick against `wall_boxes` directly — the
+arms are solid, so there is no pick-merge variant. Icons draw the real
+shape too: `wall_icon_boxes` emits the arm half behind the post, the
+post, then the front half in the same painter's order as the fence icon.
 
 Stairs render as 2-3 box instances per cell (chunk.cpp phase 2,
 `stairs_boxes` in block.cpp): a full-width half slab plus a full-height

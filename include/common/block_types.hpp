@@ -187,6 +187,11 @@ typedef struct {
     // (BLOCK_ROTATE_GATE_OPEN); the facing is rotation & 3.
     bool is_fence;
     bool is_fence_gate;
+    // Walls draw as a thick post plus arms that connect to neighbors — the
+    // fence multi-box pipeline with fatter geometry and a taller post that
+    // shows whenever the wall isn't a straight run or carries a block on
+    // top (see wall_boxes/wall_connection_mask in block.cpp/block.hpp).
+    bool is_wall;
     // Stairs draw as 2-3 boxes (a half slab plus step boxes) whose inner /
     // outer corner shape is derived live from the 4 horizontal neighbors
     // (stairs_shape_derive in block.cpp) — MC's getStairsShape. rotation

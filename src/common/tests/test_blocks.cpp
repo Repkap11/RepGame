@@ -314,6 +314,122 @@ int test_fences( ) {
     return failures;
 }
 
+// Walls: the fence multi-box pipeline with thicker geometry — post + arms
+// (wall_boxes), the post/tall-arm rules from the cell above, connection
+// rules, collision height, and the generated definitions.
+int test_walls( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto boxes_in_bounds = [ & ]( const BlockBox *boxes, int n ) {
+        for ( int i = 0; i < n; i++ ) {
+            for ( int a = 0; a < 3; a++ ) {
+                if ( boxes[ i ].offset[ a ] < 0 || boxes[ i ].scale[ a ] <= 0 || boxes[ i ].offset[ a ] + boxes[ i ].scale[ a ] > 16 ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    // --- wall_boxes -----------------------------------------------------
+    BlockBox boxes[ FENCE_MAX_BOXES ];
+    check_bool( "wall: no connections gives just the post",
+                wall_boxes( 0, boxes ) == 1 &&                                                            //
+                    boxes[ 0 ].scale[ 0 ] == 8 && boxes[ 0 ].scale[ 1 ] == 16 && boxes[ 0 ].scale[ 2 ] == 8 && //
+                    boxes[ 0 ].offset[ 0 ] == 4 && boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].offset[ 2 ] == 4 );
+    check_bool( "wall: one side gives post + 1 arm", wall_boxes( FENCE_CONNECT_POS_X, boxes ) == 2 );
+    check_bool( "wall: +x arm x 12..16 z 5..11 y 0..14",
+                boxes[ 1 ].offset[ 0 ] == 12 && boxes[ 1 ].scale[ 0 ] == 4 && //
+                    boxes[ 1 ].offset[ 1 ] == 0 && boxes[ 1 ].scale[ 1 ] == 14 && //
+                    boxes[ 1 ].offset[ 2 ] == 5 && boxes[ 1 ].scale[ 2 ] == 6 );
+    check_bool( "wall: +x arm skips only the post-side (-x) face",
+                boxes[ 1 ].skip_faces == ( 1u << FACE_LEFT ) );
+    check_bool( "wall: -x arm skips only the post-side (+x) face",
+                wall_boxes( FENCE_CONNECT_NEG_X, boxes ) == 2 && boxes[ 1 ].skip_faces == ( 1u << FACE_RIGHT ) );
+    check_bool( "wall: straight run drops the post",
+                wall_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X, boxes ) == 1 && //
+                    boxes[ 0 ].offset[ 0 ] == 0 && boxes[ 0 ].scale[ 0 ] == 16 &&        //
+                    boxes[ 0 ].offset[ 2 ] == 5 && boxes[ 0 ].scale[ 2 ] == 6 &&         //
+                    boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].scale[ 1 ] == 14 &&        //
+                    boxes[ 0 ].skip_faces == 0 );
+    check_bool( "wall: straight z run drops the post",
+                wall_boxes( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z, boxes ) == 1 && //
+                    boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 2 ] == 16 &&        //
+                    boxes[ 0 ].offset[ 0 ] == 5 && boxes[ 0 ].scale[ 0 ] == 6 );
+    check_bool( "wall: occupied above restores the post",
+                wall_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X | WALL_ABOVE_OCCUPIED, boxes ) == 3 && //
+                    boxes[ 0 ].scale[ 0 ] == 8 && boxes[ 1 ].offset[ 0 ] == 12 && boxes[ 2 ].offset[ 0 ] == 0 );
+    check_bool( "wall: wall above raises the arms to 16",
+                wall_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X | WALL_ABOVE_OCCUPIED | WALL_ABOVE_WALL, boxes ) == 3 && //
+                    boxes[ 1 ].scale[ 1 ] == 16 && boxes[ 2 ].scale[ 1 ] == 16 );
+    check_bool( "wall: all four sides give 5 boxes", wall_boxes( 0xF, boxes ) == 5 );
+    check_bool( "wall: corner gives post + 2 arms", wall_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_POS_Z, boxes ) == 3 );
+    bool all_ok = true;
+    for ( unsigned mask = 0; mask < 64; mask++ ) {
+        const int n = wall_boxes( mask, boxes );
+        all_ok &= n <= FENCE_MAX_BOXES && boxes_in_bounds( boxes, n );
+        // No pair of boxes may strictly overlap (arms stop at the post
+        // face so the coplanar top doesn't z-fight).
+        for ( int i = 0; i < n; i++ ) {
+            for ( int j = i + 1; j < n; j++ ) {
+                bool overlap = true;
+                for ( int a = 0; a < 3; a++ ) {
+                    overlap &= boxes[ i ].offset[ a ] < boxes[ j ].offset[ a ] + boxes[ j ].scale[ a ] &&
+                               boxes[ i ].offset[ a ] + boxes[ i ].scale[ a ] > boxes[ j ].offset[ a ];
+                }
+                all_ok &= !overlap;
+            }
+        }
+    }
+    check_bool( "wall: every mask in bounds, <= FENCE_MAX_BOXES, no overlaps", all_ok );
+
+    // --- wall_collision_boxes ----------------------------------------------
+    check_bool( "wall collision: post is 1.5 tall",
+                wall_collision_boxes( 0, boxes ) == 1 && boxes[ 0 ].scale[ 1 ] == 24 && boxes[ 0 ].offset[ 1 ] == 0 );
+    all_ok = true;
+    for ( unsigned mask = 0; mask < 64; mask++ ) {
+        const int n = wall_collision_boxes( mask, boxes );
+        for ( int i = 0; i < n; i++ ) {
+            all_ok &= boxes[ i ].offset[ 1 ] == 0 && boxes[ i ].scale[ 1 ] == 24;
+        }
+    }
+    check_bool( "wall collision: every box is 1.5 tall", all_ok );
+
+    // --- wall_connects_to ---------------------------------------------------
+    const Block *oak = block_definition_get_definition( OAK_FENCE );
+    check_bool( "wall: connects to another wall material", wall_connects_to( STONE_BRICK_WALL, 0, true ) );
+    check_bool( "wall: connects to solid stone", wall_connects_to( STONE, 0, true ) );
+    check_bool( "wall: does not connect to glass", !wall_connects_to( GLASS, 0, true ) );
+    check_bool( "wall: does not connect to air", !wall_connects_to( AIR, 0, true ) );
+    check_bool( "wall: does not connect to fences", !wall_connects_to( OAK_FENCE, 0, true ) );
+    check_bool( "wall: gate rot 0 connects along x", wall_connects_to( FENCE_GATE, 0, true ) );
+    check_bool( "wall: gate rot 0 not along z", !wall_connects_to( FENCE_GATE, 0, false ) );
+    check_bool( "wall: gate rot 1 connects along z", wall_connects_to( FENCE_GATE, 1, false ) );
+    check_bool( "wall: fence does not connect back", !fence_connects_to( oak, COBBLESTONE_WALL, 0, true ) );
+
+    // --- generated definitions + icon -----------------------------------------
+    const Block *cobble_wall = block_definition_get_definition( COBBLESTONE_WALL );
+    check_bool( "def: COBBLESTONE_WALL is_wall + post box",
+                cobble_wall->is_wall && !cobble_wall->is_fence &&           //
+                    cobble_wall->scale.x == 8 && cobble_wall->scale.y == 16 && cobble_wall->scale.z == 8 && //
+                    cobble_wall->offset.x == 4 && cobble_wall->offset.y == 0 && cobble_wall->offset.z == 4 );
+    check_bool( "def: wall icon is isometric", cobble_wall->icon_is_isometric );
+    check_bool( "icon: wall shows post + 2 arm halves",
+                block_icon_boxes( cobble_wall, boxes ) == 3 &&              //
+                    boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 2 ] == 4 &&  // -z arm half
+                    boxes[ 1 ].scale[ 0 ] == 8 && boxes[ 1 ].scale[ 1 ] == 16 &&  // post
+                    boxes[ 2 ].offset[ 2 ] == 12 && boxes[ 2 ].scale[ 2 ] == 4 ); // +z arm half
+    return failures;
+}
+
 // Stairs: the MC getStairsShape corner derive, def-space box geometry, the
 // world yaw remap, the top-half bit, generated defs, and world-level
 // collision/raycast including a walk-up-the-staircase sim. stair_rots[]

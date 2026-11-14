@@ -1712,6 +1712,16 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                                 }
                             }
                             num_boxes = fence_boxes( connections, boxes );
+                        } else if ( block->is_wall ) {
+                            // Same gather as the fence's plus the cell above
+                            // (post raise / tall arms) — the halo covers y±1
+                            // like the rail/below reads.
+                            const unsigned mask = wall_connection_mask( [ & ]( int dx, int dy, int dz ) {
+                                const BlockCell ncell = cells[ get_index_from_coords( x + dx, y + dy, z + dz ) ];
+                                BlockState s = { block_cell_id( ncell ), block_cell_rotation( ncell ), 0, block_cell_id( ncell ), 0 };
+                                return s;
+                            } );
+                            num_boxes = wall_boxes( mask, boxes );
                         } else if ( block->is_fence_gate ) {
                             num_boxes = fence_gate_boxes( ( blockState.rotation & BLOCK_ROTATE_GATE_OPEN ) != 0, boxes );
                         } else if ( block->is_stairs ) {
