@@ -20,6 +20,7 @@
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
 #include "common/game/game_internal.hpp"
+#include "common/block_update_events/PistonEvent.hpp"
 
 // Whether either cell a standing player would occupy at (x, y, z) is solid
 // terrain — used to keep the spawn point out of overhang stone.
@@ -395,6 +396,11 @@ void RepGame::cleanup( ) {
         save_player_data( );
     }
 
+    // In-flight piston moves land before teardown — MOVING_PISTON must
+    // never persist in a save. Relay goes out before multiplayer cleanup.
+    while ( !globalGameState.piston_moves.empty( ) ) {
+        piston_land_cell( globalGameState, globalGameState.piston_moves.begin( )->first );
+    }
     globalGameState.multiplayer.cleanup( );
     // Write live block bodies back into the world before the save tears down.
     globalGameState.world.bodies.land_all( globalGameState );

@@ -342,11 +342,11 @@ void PlayerBlockPlacedEvent::performAction( RepGameState &repGameState ) {
             schedule_redstone_update<DoorEvent>( repGameState, DOOR_DELAY_GT, lower_pos, DoorEvent::SYNC_POWER );
         }
     }
-    // A piston extends/retracts on a power edge. Queue it 1 game tick out so
-    // the new power state is visible to the event; the event re-reads live
-    // state, so stale triggers are harmless.
+    // A piston starts its move on the power edge's game tick — the slide
+    // itself takes PISTON_MOVE_GT before the blocks land. The event re-reads
+    // live state, so stale triggers are harmless.
     if ( new_block->is_piston && ( current_block_state.current_redstone_power > 0 ) != ( this->blockState.current_redstone_power > 0 ) ) {
-        schedule_redstone_update<PistonEvent>( repGameState, PISTON_DELAY_GT, this->block_pos );
+        schedule_redstone_update<PistonEvent>( repGameState, 0, this->block_pos );
     }
 
     // TNT ignites on a rising power edge: tnt_ignite removes the block,

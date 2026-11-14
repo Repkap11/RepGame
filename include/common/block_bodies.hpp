@@ -30,7 +30,11 @@ struct RepGameState;
 // MobManager).
 class BlockBodies {
   public:
-    enum BodyKind { BODY_FALLING, BODY_PRIMED_TNT };
+    // BODY_PISTON is a kinematic slide: it lerps from->to over a
+    // redstone-clock window, never collides or integrates, is never
+    // announced on the network, and moves to the landed list when the
+    // landing write takes it.
+    enum BodyKind { BODY_FALLING, BODY_PRIMED_TNT, BODY_PISTON };
 
     // Cube edge length — slightly under a full block like MC's entities.
     static constexpr double BODY_SIZE = 0.98;
@@ -48,6 +52,12 @@ class BlockBodies {
         int settle_ticks = 0;
         long fuse_start_tick = 0;
         long fuse_ticks = 0;
+        // BODY_PISTON only: the slide's box-min endpoints and its window on
+        // the redstone clock (start/duration in game ticks).
+        glm::dvec3 from = glm::dvec3( 0.0 );
+        glm::dvec3 to = glm::dvec3( 0.0 );
+        long start_gt = 0;
+        long duration_gt = 0;
         entt::entity entity = entt::null;                          // render chain entity (render_inited only)
         unsigned short face[ NUM_FACES_IN_CUBE ] = { 0 };          // resolved texture layers
         // Multiplayer sync (net.id 0 / net.mirror false in single player).
@@ -70,8 +80,14 @@ class BlockBodies {
     // Always succeeds: at the cap it evicts the oldest FALLING body, which
     // lands where it is if it can and otherwise breaks into debris.
     uint32_t spawn_primed_tnt( RepGameState &state, const glm::dvec3 &center, const glm::dvec3 &vel, BlockID id, long fuse_ticks, long now_tick );
-    // Removes the body and returns its current center. False when the id is
-    // not live (id 0 — e.g. a creeper blast — or already gone).
+    // Spawns a BODY_PISTON kinematic sliding `from` cell to `to` cell over
+    // [start_gt, start_gt + duration_gt] on the redstone clock. Local-only:
+    // never announced, never evicts. Returns its id, or 0 at the body cap.
+    uint32_t spawn_piston_mover( const BlockState &state, const glm::ivec3 &from, const glm::ivec3 &to, long start_gt, long duration_gt );
+    // Removes the body and returns its current center. A BODY_PISTON taken
+    // on landing moves to the landed list so it keeps drawing until the
+    // destination chunk remeshes. False when the id is not live (id 0 —
+    // e.g. a creeper blast — or already gone).
     bool take( uint32_t id, glm::dvec3 *center );
     // Pushes every live body away from `center`, linearly fading to 0 at
     // `radius`.
@@ -152,7 +168,7 @@ class BlockBodies {
     struct Landed {
         glm::dvec3 min;
         glm::ivec3 cell;
-        BlockID id; // shape source — the state is consumed by the write
+        BlockState state; // shape source — the state is consumed by the write
         unsigned short face[ NUM_FACES_IN_CUBE ];
         entt::entity entity;
     };

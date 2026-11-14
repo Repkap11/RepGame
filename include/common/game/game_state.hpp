@@ -4,6 +4,7 @@
 // composed of (player_state.hpp, ui_state.hpp, vr_state.hpp).
 // RepGame.hpp is the API; this header is the data.
 
+#include <unordered_map>
 #include <unordered_set>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -104,6 +105,18 @@ struct RepGameState {
     // re-arms itself for pulse extension), erased when the event fires.
     // At most one pending tick per repeater.
     std::unordered_set<glm::ivec3> pending_repeater_ticks;
+    // Cells mid piston slide, keyed by the MOVING_PISTON cell they hold.
+    // The map keeps the carried block's full state (repeater delay, power)
+    // that a cell can't encode — the cell itself only stores {display_id,
+    // rotation} as a persistence-safe fallback. `base` ties movers to their
+    // piston so a reverse can finish the move first; `body_id` is the
+    // BODY_PISTON kinematic drawing the slide (0 = none).
+    struct PistonMove {
+        BlockState carried;
+        glm::ivec3 base;
+        uint32_t body_id;
+    };
+    std::unordered_map<glm::ivec3, PistonMove> piston_moves;
 
     // Local player: input, camera, block interaction, and the player's own
     // inventories (persisted in player.dat; the panels in `ui` render them).

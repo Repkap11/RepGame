@@ -14,9 +14,19 @@ that ride the same connection are in `docs/multiplayer.md`.
 `BlockBodies` (`include/common/block_bodies.hpp`, `src/common/block_bodies.cpp`,
 owned by `World` as `world.bodies`) is the shared CPU simulation for
 axis-aligned block-sized bodies (0.98 box, `MAX_BLOCK_BODIES` = 1024, stable
-nonzero ids). It integrates two kinds: `BODY_FALLING` (any block with
-`falls_with_gravity` — sand, gravel, concrete powder, anvils) and
-`BODY_PRIMED_TNT` (ignited TNT). Physics runs at `UPS_RATE` inside
+nonzero ids). It integrates three kinds: `BODY_FALLING` (any block with
+`falls_with_gravity` — sand, gravel, concrete powder, anvils),
+`BODY_PRIMED_TNT` (ignited TNT) and `BODY_PISTON` (a piston move's kinematic
+slide, spawned by `PistonEvent` — `spawn_piston_mover(from, to, start_gt,
+duration_gt)` lerps the box between the two cells over a redstone-clock
+window, deriving a fractional game tick from `tick_number` for smooth
+per-physics-tick interpolation). `BODY_PISTON` never integrates, collides or
+impulses, is never announced or mirrored (remote clients see the landing
+writes instead — see docs/redstone.md's piston paragraph), doesn't count
+against the cap's eviction, and expires silently at its slide end (a
+retracting head) unless the landing write `take()`s it first — take() parks
+a taken mover in the `landed` list so it keeps drawing until the destination
+chunk remeshes. Physics runs at `UPS_RATE` inside
 `bodies.tick` (called right
 after `mobs.tick`): gravity/drag/terminal velocity (`GRAVITY_STRENGTH`,
 `TERMINAL_VELOCITY`, air drag ~0.9972), water medium (`WATER_GRAVITY_STRENGTH`,
@@ -59,7 +69,9 @@ blocks draw through `render_falling` + `block_object_shader`
 (`BlockObjectInstance`: transform + light + the block's pixel-space
 shape_scale/offset/tex_offset, folded into the unit cube by
 `block_object_vertex.glsl` with cropped per-face UVs — the literal
-`Block::offset`, so a non-full body matches the block it lands as), primed
+`Block::offset`, so a non-full body matches the block it lands as — piston
+movers share this path, except piston heads which draw the world-space plate
+box of `piston_head_shape(rotation)`), primed
 TNT through `render_tnt` +
 `primed_tnt_shader` (`PrimedTntInstance`: transform + light + CPU fuse-blink
 `flash`, same shader file `primed_tnt_vertex.glsl` reworked to consume the
@@ -70,6 +82,12 @@ net). In multiplayer each body is simulated by the client that caused it
 (the existing "causer simulates" rule — remote block updates still don't
 run these events) and mirrored to viewers; see "Multiplayer entity sync"
 below for the spawn/state/remove/handover rules.
+
+**Known limitation / future work:** the shared block-body rendering path
+draws a single definition box (plus the piston-head plate special case), so
+non-cube blocks — stairs, fences, rotated shapes — slide as approximate
+boxes during a piston move. Per-box `BlockBox` rendering for movers is
+planned eventually.
 
 ## Arrows
 

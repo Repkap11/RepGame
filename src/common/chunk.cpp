@@ -1577,6 +1577,13 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                 if ( !workingSpace[ index ].has_been_drawn ) {
 
                     const BlockState blockState = state_of( index );
+                    if ( blockState.id == MOVING_PISTON ) {
+                        // The cell itself is invisible — its carried block is
+                        // drawn by the sliding body — and its display_id
+                        // encodes the carried block for the landing
+                        // fallback, not for meshing.
+                        continue;
+                    }
                     Block *block = block_definition_get_definition( blockState.display_id );
                     // if ( blockState.display_id == REDSTONE_WIRE_CROSS ) {
                     //     pr_debug( "Got cross" );

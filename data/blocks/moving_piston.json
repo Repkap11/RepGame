@@ -1,0 +1,17 @@
+{
+  "affected_by_redstone_power": false,
+  "casts_shadow": false,
+  "collides_with_player": true,
+  "creative": false,
+  "hardness": -1,
+  "icon_is_isometric": false,
+  "id": 243,
+  "is_pickable": false,
+  "is_seethrough": true,
+  "name": "MOVING_PISTON",
+  "no_light": 0,
+  "piston_immovable": true,
+  "textures": {
+    "all": "air"
+  }
+}

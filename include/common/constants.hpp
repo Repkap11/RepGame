@@ -266,8 +266,9 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define REDSTONE_TORCH_DELAY_GT 2
 // MC redstone ticks are 2 game ticks each: a repeater waits 2 * delay gt.
 #define REDSTONE_REPEATER_STEP_GT 2
-// MC piston extend/retract latency: 1 gt.
-#define PISTON_DELAY_GT 1
+// MC piston move duration: the moving_piston slide takes 2 gt (the block
+// event itself starts on the edge's game tick, so there is no extra delay).
+#define PISTON_MOVE_GT 2
 // MC door open/close on a power edge: 1 gt.
 #define DOOR_DELAY_GT 1
 // MC button press durations: stone 1 s, wood 1.5 s.

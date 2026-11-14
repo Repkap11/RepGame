@@ -3753,7 +3753,7 @@ block_definitions[ 242 ].hardness = 0.35f;
 block_definitions[ 242 ].is_seethrough = true;
 block_definitions[ 242 ].no_light = 6815743;
 
-// undefined (243)
+// MOVING_PISTON (243)
 block_definitions[ 243 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 243 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 243 ].textures[ FACE_RIGHT ] = TEX_AIR;
@@ -3761,7 +3761,16 @@ block_definitions[ 243 ].textures[ FACE_FRONT ] = TEX_AIR;
 block_definitions[ 243 ].textures[ FACE_LEFT ] = TEX_AIR;
 block_definitions[ 243 ].textures[ FACE_BACK ] = TEX_AIR;
 block_definitions[ 243 ].icon_texture = TEX_AIR;
+block_definitions[ 243 ].affected_by_redstone_power = false;
+block_definitions[ 243 ].casts_shadow = false;
+block_definitions[ 243 ].collides_with_player = true;
+block_definitions[ 243 ].hardness = -1.0f;
+block_definitions[ 243 ].icon_is_isometric = false;
 block_definitions[ 243 ].is_pickable = false;
+block_definitions[ 243 ].is_seethrough = true;
+block_definitions[ 243 ].mineable = MINEABLE_PICKAXE;
+block_definitions[ 243 ].no_light = 0;
+block_definitions[ 243 ].piston_immovable = true;
 
 // CARPET (244)
 block_definitions[ 244 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_WHITE;

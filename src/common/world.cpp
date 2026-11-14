@@ -10,6 +10,7 @@
 #include "common/light.hpp"
 #include "common/fluid.hpp"
 #include "common/block_update_events/FluidUpdateEvent.hpp"
+#include "common/block_update_events/PistonEvent.hpp"
 
 #include <stdlib.h>
 #include <string>
@@ -1670,6 +1671,13 @@ void World::process_random_ticks( RepGameState &state ) {
             // dedupes, making this cheap.
             if ( fluid_level( cell ) > 0 ) {
                 fluid_schedule_update( state, world_pos );
+            }
+            // A MOVING_PISTON outlives its move when its events die with it
+            // (a chunk unload drops the queue, or the write raced the
+            // slide): cells without a side-table entry land on the spot via
+            // their {display_id, rotation} fallback encoding.
+            if ( cell.id == MOVING_PISTON && state.piston_moves.find( world_pos ) == state.piston_moves.end( ) ) {
+                piston_land_cell( state, world_pos );
             }
             const Block *cell_def = cell.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( cell.id );
             const bool is_crop_stage = cell_def != nullptr && cell_def->crop_next != LAST_BLOCK_ID;

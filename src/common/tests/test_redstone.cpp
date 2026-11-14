@@ -2,6 +2,7 @@
 #include "test_util.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
+#include "common/block_update_events/PistonEvent.hpp"
 #include "common/repeater.hpp"
 // Redstone mechanics, focused on the redstone torch:
 //
@@ -805,7 +806,9 @@ int test_redstone_clock( ) {
     check_bool( "clock: torch reads 15 until 2 gt", attach_on >= 0 && torch_off - attach_on >= 2 );
     check_bool( "clock: torch off by 3 gt", attach_on >= 0 && torch_off - attach_on <= 3 );
 
-    // --- piston: 1 gt ----------------------------------------------------------
+    // --- piston: move starts on the edge, lands 2 gt later ----------------------
+    // The delay-0 PistonEvent writes MOVING_PISTON cells on its drain; the
+    // landed head appears PISTON_MOVE_GT after that.
     place( glm::ivec3( 18, 11, 12 ), { PISTON, 0, 0, PISTON, 0 } ); // faces +z
     test_run_redstone_ticks( gs, 2 );
     place( glm::ivec3( 18, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
@@ -821,8 +824,8 @@ int test_redstone_clock( ) {
             head_on = now;
         }
     }
-    check_bool( "clock: piston extends 1 gt after its edge", edge >= 0 && head_on - edge >= 1 );
-    check_bool( "clock: piston extended", head_on >= 0 && head_on - edge <= 3 );
+    check_bool( "clock: piston lands 2+ gt after its edge", edge >= 0 && head_on - edge >= 2 );
+    check_bool( "clock: piston extended", head_on >= 0 && head_on - edge <= 4 );
 
     // --- buttons: 20/30 gt -----------------------------------------------------
     // rot-0 buttons mount on the -z side, so each gets a stone behind it.
@@ -872,5 +875,126 @@ int test_redstone_clock( ) {
     }
     check_bool( "clock: plate releases within 21 gt", plate_rel >= 1 && plate_rel <= 21 );
 
+    return failures;
+}
+
+// Piston slide animation: a power edge writes MOVING_PISTON cells locally and
+// spawns one kinematic BODY_PISTON per mover; per-cell PistonLandEvents land
+// the carried states PISTON_MOVE_GT (2 gt) later, relay then.
+int test_piston( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_redstone
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    for ( int x = 0; x < 32; x++ ) {
+        for ( int z = 0; z < 32; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
+    };
+    auto piston_body_count = [ & ]( ) {
+        int n = 0;
+        for ( const auto &b : world.bodies.debug_bodies( ) ) {
+            n += b.kind == BlockBodies::BODY_PISTON;
+        }
+        return n;
+    };
+    auto moving_count = [ & ]( ) {
+        int n = 0;
+        for ( int x = 0; x < 32; x++ ) {
+            for ( int y = 0; y < 32; y++ ) {
+                for ( int z = 0; z < 32; z++ ) {
+                    n += world.get_loaded_block( glm::ivec3( x, y, z ) ).id == MOVING_PISTON;
+                }
+            }
+        }
+        return n;
+    };
+
+    // --- extension: MOVING_PISTON mid-state, lands after 2 gt -----------------
+    // Piston at (5,11,5) faces +z, pushes the stone at (5,11,6) into (5,11,7).
+    place( glm::ivec3( 5, 11, 5 ), { PISTON, 0, 0, PISTON, 0 } );
+    place( glm::ivec3( 5, 11, 6 ), stone );
+    test_run_redstone_ticks( gs, 2 );
+    place( glm::ivec3( 5, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_game_ticks( gs, 3 ); // the edge + the delay-0 PistonEvent both ran
+    const BlockState mid_head = world.get_loaded_block( glm::ivec3( 5, 11, 6 ) );
+    const BlockState mid_dest = world.get_loaded_block( glm::ivec3( 5, 11, 7 ) );
+    check_bool( "piston: head cell is MOVING_PISTON mid-slide", mid_head.id == MOVING_PISTON );
+    check_bool( "piston: head cell carries the head id", mid_head.display_id == PISTON_ARM_COLLISION );
+    check_bool( "piston: pushed cell is MOVING_PISTON mid-slide", mid_dest.id == MOVING_PISTON );
+    check_bool( "piston: pushed cell carries the stone", mid_dest.display_id == STONE );
+    check_bool( "piston: side table holds both movers", gs.piston_moves.size( ) == 2 );
+    check_bool( "piston: one BODY_PISTON per mover", piston_body_count( ) == 2 );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_id( world, "piston: head landed", glm::ivec3( 5, 11, 6 ), PISTON_ARM_COLLISION );
+    failures += check_id( world, "piston: pushed stone landed", glm::ivec3( 5, 11, 7 ), STONE );
+    check_bool( "piston: no movers after landing", piston_body_count( ) == 0 );
+    check_bool( "piston: side table drained", gs.piston_moves.empty( ) );
+    check_bool( "piston: no orphan MOVING_PISTON cells", moving_count( ) == 0 );
+
+    // --- sticky retract: pull cell AIRs now, pulled block lands at 2 gt ------
+    // Sticky piston at (8,11,5) faces +z; its head takes (8,11,6) and pulls
+    // the stone at (8,11,7) back to (8,11,6) on release.
+    place( glm::ivec3( 8, 11, 5 ), { STICKY_PISTON, 0, 0, STICKY_PISTON, 0 } );
+    place( glm::ivec3( 8, 11, 7 ), stone );
+    test_run_redstone_ticks( gs, 2 );
+    place( glm::ivec3( 8, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_redstone_ticks( gs, 4 ); // extended: head at (8,11,6)
+    failures += check_id( world, "piston: sticky head extended", glm::ivec3( 8, 11, 6 ), STICKY_PISTON_ARM_COLLISION );
+    place( glm::ivec3( 8, 11, 4 ), BLOCK_STATE_AIR );
+    test_run_game_ticks( gs, 3 );
+    failures += check_id( world, "piston: pull cell vacated at once", glm::ivec3( 8, 11, 7 ), AIR );
+    const BlockState mid_pull = world.get_loaded_block( glm::ivec3( 8, 11, 6 ) );
+    check_bool( "piston: pulled block slides as MOVING_PISTON", mid_pull.id == MOVING_PISTON && mid_pull.display_id == STONE );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_id( world, "piston: pulled stone landed at head cell", glm::ivec3( 8, 11, 6 ), STONE );
+    check_bool( "piston: retract left no orphans", moving_count( ) == 0 && gs.piston_moves.empty( ) );
+
+    // --- power drop mid-extension: finish-on-reverse ---------------------------
+    // Piston at (11,11,5) starts pushing the stone to (11,11,7); cutting the
+    // power before 2 gt lands the in-flight move, then retracts the head.
+    place( glm::ivec3( 11, 11, 5 ), { PISTON, 0, 0, PISTON, 0 } );
+    place( glm::ivec3( 11, 11, 6 ), stone );
+    test_run_redstone_ticks( gs, 2 );
+    place( glm::ivec3( 11, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_game_ticks( gs, 3 ); // mid-slide: MOVING_PISTON at (11,11,6)+(11,11,7)
+    check_bool( "piston: reverse setup is mid-slide", world.get_loaded_block( glm::ivec3( 11, 11, 7 ) ).id == MOVING_PISTON );
+    place( glm::ivec3( 11, 11, 4 ), BLOCK_STATE_AIR );
+    test_run_redstone_ticks( gs, 4 );
+    failures += check_id( world, "piston: reverse finished the push", glm::ivec3( 11, 11, 7 ), STONE );
+    failures += check_id( world, "piston: reverse removed the head", glm::ivec3( 11, 11, 6 ), AIR );
+    check_bool( "piston: reverse left no orphans", moving_count( ) == 0 && gs.piston_moves.empty( ) );
+
+    // --- repeater delay survives the push -------------------------------------
+    // A delay-3 repeater (delay lives in display_id) keeps its full state
+    // through the side table, not just the fallback encoding.
+    place( glm::ivec3( 14, 11, 5 ), { PISTON, 0, 0, PISTON, 0 } );
+    place( glm::ivec3( 14, 11, 6 ), { REPEATER, 0, 0, REPEATER_DELAY_3, 0 } );
+    test_run_redstone_ticks( gs, 2 );
+    place( glm::ivec3( 14, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_redstone_ticks( gs, 4 );
+    const BlockState landed_rep = world.get_loaded_block( glm::ivec3( 14, 11, 7 ) );
+    check_bool( "piston: repeater landed at destination", landed_rep.id == REPEATER );
+    check_bool( "piston: repeater kept delay 3", landed_rep.display_id == REPEATER_DELAY_3 );
+
+    // --- rescue: a MOVING_PISTON without an entry lands on its encoding -------
+    world.set_loaded_block( glm::ivec3( 17, 11, 5 ), { MOVING_PISTON, 0, 0, GOLD_BLOCK, 0 } );
+    piston_land_cell( gs, glm::ivec3( 17, 11, 5 ) );
+    failures += check_id( world, "piston: orphan MOVING_PISTON landed via fallback", glm::ivec3( 17, 11, 5 ), GOLD_BLOCK );
     return failures;
 }

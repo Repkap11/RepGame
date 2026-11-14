@@ -77,7 +77,8 @@ Which events wait on which clock:
 | `FluidUpdateEvent` | physics | `fluid_schedule_update` |
 | `RepeaterEvent` schedule/re-arm | redstone | `2 * delay` |
 | `RepeaterEvent` on/off write | redstone | 0 |
-| `PistonEvent` on a power edge | redstone | `PISTON_DELAY_GT` (1) |
+| `PistonEvent` on a power edge | redstone | 0 |
+| `PistonLandEvent` per moved cell | redstone | `PISTON_MOVE_GT` (2) |
 | `DoorEvent(SYNC_POWER)` | redstone | `DOOR_DELAY_GT` (1) |
 | `tnt_ignite` fuse | physics | `TNT_FUSE_TICKS` |
 | Button press write | physics | 0 (instant) |
@@ -200,18 +201,37 @@ exactly one chain exists per plate. Both strongly power their
 attachment block.
 
 **Pistons** (`is_piston`/`is_sticky_piston`) move on a power edge:
-`PlayerBlockPlacedEvent` queues `PistonEvent` `PISTON_DELAY_GT` (1 gt)
-out when a piston's power crosses 0 either way. Powered extends: scan up to
-`PISTON_PUSH_LIMIT` (12) solid movable cells until a free cell (air or
-`can_be_placed_in`) or a destroyable non-solid (broken into debris);
-unloaded cells and `piston_immovable`/powered-piston/head cells block
-the push. The arm itself is an `is_piston_head` block
-(`PISTON_ARM_COLLISION`/`STICKY_PISTON_ARM_COLLISION`) written into the
-cell in front, kept alive by `block_can_survive_at`'s base check.
-Unpowered retracts the head, and sticky pistons pull the block that was
-in front. Every moved cell goes through `piston_set_block`, which writes
-+ relays + queues neighbour updates, so redstone and support re-evaluate
-around the whole moved chain.
+`PlayerBlockPlacedEvent` queues `PistonEvent` at redstone delay 0 when a
+piston's power crosses 0 either way. The event first lands every in-flight
+move of that base (`piston_finish_moves` — MC's finish-on-reverse), then
+starts the slide. Powered extends: scan up to `PISTON_PUSH_LIMIT` (12) solid
+movable cells until a free cell (air or `can_be_placed_in`) or a destroyable
+non-solid (broken into debris); unloaded cells and `piston_immovable`/
+powered-piston/head/`MOVING_PISTON` cells block the push.
+
+Each destination cell gets a `MOVING_PISTON` (id 243) placeholder — an
+invisible, `piston_immovable` block whose `display_id`/`rotation` encode the
+carried block as a fallback — while the full carried `BlockState` (so a
+pushed repeater keeps its delay) sits in `RepGameState::piston_moves` beside
+a `BODY_PISTON` kinematic body that slides source→destination over
+`PISTON_MOVE_GT` (2 gt) on the redstone clock. The start writes are
+local-only (`piston_set_local`: world write + neighbour wake, no relay);
+`PistonLandEvent` per touched cell lands the carried state and relays then,
+so remote clients snap straight to the final cells. A land event on an
+unloaded cell just drops its table entry. Stale `MOVING_PISTON` cells (lost
+queue on unload, or a write that raced the slide) are rescued by the random
+tick in `world.cpp` through the fallback encoding, and all in-flight moves
+land in `cleanup` so `MOVING_PISTON` never persists.
+
+Unpowered retracts: the head slides back into the base and is discarded at
+arrival; sticky pistons pull the block that was in front into the vacated
+head cell as a `MOVING_PISTON` move, and the pull cell relays AIR. The arm
+itself is an `is_piston_head` block
+(`PISTON_ARM_COLLISION`/`STICKY_PISTON_ARM_COLLISION`) kept alive by
+`block_can_survive_at`'s base check. Every touched cell queues a
+physics-clock neighbour update, so redstone and support re-evaluate around
+the whole moved chain; the body physics and rendering are in
+`docs/entities.md`.
 
 **Doors** are `is_redstone_mechanism` blocks whose power edge queues
 `DoorEvent(SYNC_POWER)` `DOOR_DELAY_GT` (1 gt) out: combined lower|upper
