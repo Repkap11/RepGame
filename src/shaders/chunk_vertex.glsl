@@ -81,6 +81,7 @@ flat out int v_block_auto_rotates;
 #define BLOCK_COORDS_HALF_PIXEL 0x20u
 #define BLOCK_COORDS_FLUID 0x40u
 #define BLOCK_COORDS_SLOPE 0x80u
+#define BLOCK_COORDS_ENTITY 0x100u
 
 #define NO_LIGHT_NO_DRAW 0x6fffffu
 
@@ -390,5 +391,6 @@ void main() {
     // }
     // v_blockID is the 0-based texture layer; the rotatable textures are
     // packed first so a layer rotates iff it's below TEXTURE_ROTATABLE_COUNT.
-    v_block_auto_rotates = int(v_blockID < uint(TEXTURE_ROTATABLE_COUNT));
+    // Bodies skip the per-cell random rotation: their cell changes mid-move.
+    v_block_auto_rotates = (rotation_packed & BLOCK_COORDS_ENTITY) != 0u ? 0 : int(v_blockID < uint(TEXTURE_ROTATABLE_COUNT));
 }

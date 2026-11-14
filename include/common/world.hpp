@@ -10,6 +10,7 @@ struct RepGameState;
 #include "common/heart_particles.hpp"
 #include "common/arrows.hpp"
 #include "common/block_bodies.hpp"
+#include "common/block_instance_batch.hpp"
 #include "common/item_entities.hpp"
 #include "common/vehicles.hpp"
 #include "common/mobs.hpp"
@@ -176,9 +177,12 @@ class World {
     // removed. No-op for air, same-id state changes, and liquids.
     void spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, BlockID new_id, int num_particles = DEBRIS_PER_BLOCK );
     // CPU physics bodies: falling blocks (sand, gravel, concrete powder,
-    // anvils) and primed TNT. ticked from the game loop right after
-    // mobs.tick; rendered through two instanced chains in draw.
+    // anvils), primed TNT and kinematic piston movers, ticked from the game
+    // loop right after mobs.tick. TNT keeps its own flash chain; the rest
+    // emit their full block model into body_batch, which ChunkLoader::draw
+    // renders through the chunk shader after each order's terrain.
     BlockBodies bodies;
+    BlockInstanceBatch body_batch;
     // Dropped item entities: client-local physics + pickup; ticked right
     // after bodies, rendered as mini cubes (isometric block items) or
     // extruded sprites.

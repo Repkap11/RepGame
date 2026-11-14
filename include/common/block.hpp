@@ -710,6 +710,10 @@ static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
 // 2=+z, 3=-x); the vertex shader raises each vertex's y by its coordinate
 // along that axis so the 1px plate reads as a slope.
 #define BLOCK_COORDS_SLOPE 0x80u
+// Block-body (falling block / piston mover) instance at a fractional
+// position: lit like terrain, but no per-cell random texture rotation (the
+// cell changes mid-move, so the texture would pop).
+#define BLOCK_COORDS_ENTITY 0x100u
 
 // See world.cpp for vbl
 typedef struct {

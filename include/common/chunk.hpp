@@ -588,3 +588,9 @@ class Chunk {
 // Called by Chunk::set_block_by_index_if_different from network/worker
 // threads; no-ops when the chunk is already listed.
 void light_pending_enqueue( Chunk &chunk );
+// Shared index-buffer accessors for the block-body instance batch drawn by
+// ChunkLoader::draw (block_instance_batch.hpp). chunk_ib_full_face_range
+// returns the range a chunk with an all-ones visibility mask would draw.
+class IndexBuffer;
+void chunk_ib_full_face_range( RenderOrder order, bool draw_reflect, unsigned *offset, unsigned *count );
+const IndexBuffer &chunk_ib_buffer( );

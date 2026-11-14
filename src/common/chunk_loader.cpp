@@ -14,6 +14,7 @@
 #include "common/Platforms.hpp" // IWYU pragma: keep — GL headers + platform macros
 #include "common/Logging.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/block_instance_batch.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/multiplayer.hpp"
 #include "common/net/mpload_trace.hpp"
@@ -1704,6 +1705,42 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         chunk.light_ensure_texture( this );
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );
                     }
+                }
+            }
+            // Block-body model instances (falling blocks, piston movers)
+            // ride this order's terrain pass — one group per light chunk,
+            // drawn through the same shader + index buffer right after the
+            // chunk list so movers pick up identical lighting and blending.
+            if ( this->body_batch != nullptr ) {
+                // The opaque occlusion probe leaves occl_shader bound; the raw
+                // glUniform3f below targets whatever program is current.
+                shader.bind( );
+                for ( auto &entry : this->body_batch->groups ) {
+                    const BlockInstanceBatch::Key &key = entry.first;
+                    BlockInstanceBatch::Group &g = entry.second;
+                    if ( key.order != renderOrder || g.cpu.empty( ) ) {
+                        continue;
+                    }
+                    Chunk *light_chunk = this->get_chunk( key.chunk_pos );
+                    if ( light_chunk != nullptr ) {
+                        light_chunk->light_ensure_texture( this );
+                    }
+                    if ( light_chunk != nullptr && light_chunk->light.texture != 0 ) {
+                        glBindTexture( GL_TEXTURE_3D, light_chunk->light.texture );
+                        const glm::vec3 light_base = glm::vec3( key.chunk_pos * CHUNK_SIZE_I ) - render_origin;
+                        glUniform3f( light_base_loc, light_base.x, light_base.y, light_base.z );
+                    } else {
+                        glBindTexture( GL_TEXTURE_3D, light_fallback_texture( ) );
+                        glUniform3f( light_base_loc, -render_origin.x, -render_origin.y, -render_origin.z );
+                    }
+                    unsigned batch_off = 0;
+                    unsigned batch_cnt = 0;
+                    chunk_ib_full_face_range( static_cast<RenderOrder>( renderOrder ), draw_reflect, &batch_off, &batch_cnt );
+                    if ( batch_cnt == 0 ) {
+                        continue;
+                    }
+                    this->body_batch->ensure_gl( g, g.water_layout );
+                    renderer.draw( g.va, chunk_ib_buffer( ), shader, g.cpu.size( ), batch_cnt, batch_off );
                 }
             }
             if ( translucent_pass ) {

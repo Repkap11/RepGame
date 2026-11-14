@@ -79,6 +79,22 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    by any camera move; a pure rotation only invalidates verdicts earned
    while the chunk wasn't fully inside the frustum — a full-box probe is
    rotation-invariant from a fixed eye position.
+
+   The per-cell instance emission itself lives in
+   `block_mesh_emit.hpp`/`.cpp` (`block_emit_cell` +
+   `block_emit_count`, extracted from `calculate_sides` phase 2): given a
+   `BlockEmitParams` — state, the 3x3x3 `BlockEmitNeighbors`, merged-run
+   mesh size, packed lighting and `fluid_corners` — it produces the exact
+   `BlockCoords` set a cell emits (fence/gate/stair multi-box models,
+   torch orb, repeater torches+glow, piston arm, spine shells, dust side
+   strips, rail underside). `cull_against_neighbors` gates the
+   neighbour-cover culls so the same emitter serves block bodies:
+   `BlockBodies::update_render` refills `World::body_batch`
+   (`BlockInstanceBatch` — CPU `BlockCoords` lists grouped by render
+   order and light chunk, one VA/VB per group uploaded per frame) and
+   `ChunkLoader::draw` draws each group right after that order's chunk
+   list with the group chunk's own light volume bound. See
+   `docs/entities.md` for the body side.
 5. **Edits.** A block write (`World::set_loaded_block`) dirties the
    chunk (`dirty`, `needs_repopulation`), marks the cell in
    `chunk.edited` (the bitset `MapStorage::persist_chunk` writes as edit

@@ -6,6 +6,9 @@
 
 // Level stored in BlockState::rotation (3 bits): 0 = source, 1..7 flowing.
 #define FLUID_MAX_LEVEL 7
+// All four surface corners at source height — the s_fluid_corners value a
+// flat field packs, and the constant block bodies pass for fluid_corners.
+#define FLUID_CORNERS_FLAT 0xFFFFFFFFu
 // Corner heights are transmitted in 1/64ths of a block (byte per corner).
 #define FLUID_HEIGHT_UNITS 64
 // Source surface height must match WATER_HEIGHT in block.hpp (0.875 * 64).

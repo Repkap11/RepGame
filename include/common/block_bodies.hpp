@@ -7,6 +7,7 @@
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
 #include "common/block_definitions.hpp"
+#include "common/block_mesh_emit.hpp"
 #include "common/net/packet.hpp"
 #include "common/net/net_sync.hpp"
 #include "common/utils/collision.hpp"
@@ -58,6 +59,10 @@ class BlockBodies {
         glm::dvec3 to = glm::dvec3( 0.0 );
         long start_gt = 0;
         long duration_gt = 0;
+        // 3x3x3 around the SOURCE cell, snapshotted at spawn (all-AIR for
+        // falling bodies): neighbour-dependent shapes (fence connections,
+        // stair corners) keep the form they had when the move started.
+        BlockEmitNeighbors nb = {};
         entt::entity entity = entt::null;                          // render chain entity (render_inited only)
         unsigned short face[ NUM_FACES_IN_CUBE ] = { 0 };          // resolved texture layers
         // Multiplayer sync (net.id 0 / net.mirror false in single player).
@@ -67,7 +72,7 @@ class BlockBodies {
         NetSync net;
     };
 
-    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_primed_tnt_instance );
+    void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_primed_tnt_instance );
 
     // Per-game-tick simulation. Frozen in capture mode, and per body while
     // the chunk at its center is not CHUNK_LIVE.
@@ -83,7 +88,7 @@ class BlockBodies {
     // Spawns a BODY_PISTON kinematic sliding `from` cell to `to` cell over
     // [start_gt, start_gt + duration_gt] on the redstone clock. Local-only:
     // never announced, never evicts. Returns its id, or 0 at the body cap.
-    uint32_t spawn_piston_mover( const BlockState &state, const glm::ivec3 &from, const glm::ivec3 &to, long start_gt, long duration_gt );
+    uint32_t spawn_piston_mover( const BlockState &state, const glm::ivec3 &from, const glm::ivec3 &to, long start_gt, long duration_gt, const BlockEmitNeighbors &nb );
     // Removes the body and returns its current center. A BODY_PISTON taken
     // on landing moves to the landed list so it keeps drawing until the
     // destination chunk remeshes. False when the id is not live (id 0 —
@@ -96,8 +101,10 @@ class BlockBodies {
     // and puts PRIMED_TNT back as an unlit block, so nothing is lost on save.
     void land_all( RepGameState &state );
 
-    // Rebuilds both instance buffers for this frame (called where
-    // mobs.update_render runs). alpha interpolates prev_min -> min.
+    // Refreshes the frame's renders: TNT keeps its flash instance chain;
+    // every other body emits its full block model into the shared
+    // BlockInstanceBatch ChunkLoader draws after terrain (alpha
+    // interpolates prev_min -> min).
     void update_render( float alpha, const ChunkLoader &chunk_loader );
     void draw( const Renderer &renderer, const Shader &block_object_shader, const Shader &primed_tnt_shader );
 
@@ -169,12 +176,11 @@ class BlockBodies {
         glm::dvec3 min;
         glm::ivec3 cell;
         BlockState state; // shape source — the state is consumed by the write
-        unsigned short face[ NUM_FACES_IN_CUBE ];
-        entt::entity entity;
+        bool full_size = false; // piston mover: cell origin = min, no BODY_SIZE inset
+        BlockEmitNeighbors nb = {};
     };
     std::vector<Landed> landed;
 
     bool render_inited = false;
-    RenderChain<ParticleVertex, BlockObjectInstance> render_falling;
     RenderChain<ParticleVertex, PrimedTntInstance> render_tnt;
 };

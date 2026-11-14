@@ -14,6 +14,8 @@
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/block_update_events/schedule.hpp"
+#include "common/block_instance_batch.hpp"
+#include "common/fluid.hpp"
 
 // Per-tick constants at UPS_RATE (144). Body gravity matches the old primed
 // TNT's 9.8 blocks/s² — NOT the player's GRAVITY_STRENGTH (0.002/tick² ≈
@@ -36,10 +38,20 @@
 // Grid-alignment tolerance for settling (position vs the centered cell).
 #define BODY_ALIGN_EPS 0.05
 
-void BlockBodies::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_primed_tnt_instance ) {
-    this->render_falling.init( vbl_object_vertex, vbl_block_object_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
+void BlockBodies::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_primed_tnt_instance ) {
     this->render_tnt.init( vbl_object_vertex, vbl_primed_tnt_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_inited = true;
+}
+
+// Falling bodies/net mirrors have no neighbour-shaped models — an all-AIR
+// snapshot with the centre cell filled keeps their emitter input defined.
+static BlockEmitNeighbors neighbors_air( const BlockState &center ) {
+    BlockEmitNeighbors nb;
+    for ( int i = 0; i < 27; i++ ) {
+        nb.cells[ i ] = BLOCK_STATE_AIR;
+    }
+    nb.at( 0, 0, 0 ) = center;
+    return nb;
 }
 
 static void resolve_body_faces( const BlockState &state, unsigned short face[ NUM_FACES_IN_CUBE ] ) {
@@ -61,22 +73,6 @@ static glm::ivec3 rest_cell( const glm::dvec3 &min ) {
     return glm::ivec3( glm::floor( min + glm::dvec3( 0.5 ) ) );
 }
 
-// Fill a BlockObjectInstance's shape vectors for a body/landed state: the
-// block's own def box, except piston heads which take the world-space plate
-// box of their rotation.
-static void body_instance_shape( const BlockState &state, BlockObjectInstance &inst ) {
-    const Block *block = block_definition_get_definition( state.id );
-    if ( block->is_piston_head ) {
-        short scale[ 3 ], offset[ 3 ];
-        piston_head_shape( state.rotation, scale, offset );
-        inst.shape_scale = glm::vec3( scale[ 0 ], scale[ 1 ], scale[ 2 ] );
-        inst.shape_offset = glm::vec3( offset[ 0 ], offset[ 1 ], offset[ 2 ] );
-        inst.shape_tex_offset = glm::vec3( 0.0f );
-        return;
-    }
-    block_object_shape( block, false, inst.shape_scale, inst.shape_offset, inst.shape_tex_offset );
-}
-
 static glm::dvec3 body_center( const BlockBodies::Body &b ) {
     return b.min + glm::dvec3( BlockBodies::BODY_SIZE * 0.5 );
 }
@@ -89,11 +85,7 @@ bool BlockBodies::body_chunk_live( World &world, const Body &b ) const {
 void BlockBodies::remove_body( const size_t i ) {
     Body &b = this->bodies[ i ];
     if ( b.entity != entt::null ) {
-        if ( b.kind == BODY_PRIMED_TNT ) {
-            this->render_tnt.remove( b.entity );
-        } else {
-            this->render_falling.remove( b.entity );
-        }
+        this->render_tnt.remove( b.entity );
     }
     this->bodies.erase( this->bodies.begin( ) + i );
 }
@@ -217,6 +209,7 @@ uint32_t BlockBodies::spawn_falling( const glm::ivec3 &cell, const BlockState &s
     b.min = glm::dvec3( cell ) + glm::dvec3( inset );
     b.prev_min = b.min;
     b.vel = vel;
+    b.nb = neighbors_air( state );
     resolve_body_faces( state, b.face );
     this->bodies.push_back( b );
     // Multiplayer: announce the spawn (mints a net id). No-op unbound or
@@ -241,18 +234,12 @@ uint32_t BlockBodies::spawn_primed_tnt( RepGameState &state, const glm::dvec3 &c
                     l.min = b.min;
                     l.cell = rest_cell( b.min );
                     l.state = b.state;
-                    l.entity = b.entity;
-                    memcpy( l.face, b.face, sizeof( l.face ) );
-                    b.entity = entt::null;
+                    l.nb = b.nb;
                     this->landed.push_back( l );
                 }
             } else {
                 this->send_net_remove( b, NET_REMOVE_DESPAWN );
                 state.world.spawn_block_debris( glm::ivec3( glm::floor( body_center( b ) ) ), b.state, AIR );
-                if ( b.entity != entt::null ) {
-                    this->render_falling.remove( b.entity );
-                    b.entity = entt::null;
-                }
             }
             this->bodies.erase( this->bodies.begin( ) + i );
             break;
@@ -277,7 +264,7 @@ uint32_t BlockBodies::spawn_primed_tnt( RepGameState &state, const glm::dvec3 &c
     return b.id;
 }
 
-uint32_t BlockBodies::spawn_piston_mover( const BlockState &state, const glm::ivec3 &from, const glm::ivec3 &to, const long start_gt, const long duration_gt ) {
+uint32_t BlockBodies::spawn_piston_mover( const BlockState &state, const glm::ivec3 &from, const glm::ivec3 &to, const long start_gt, const long duration_gt, const BlockEmitNeighbors &nb ) {
     if ( this->bodies.size( ) >= MAX_BLOCK_BODIES ) {
         return 0; // at the cap: no slide visual — the landing write still runs
     }
@@ -289,13 +276,15 @@ uint32_t BlockBodies::spawn_piston_mover( const BlockState &state, const glm::iv
     b.kind = BODY_PISTON;
     b.state = state;
     b.mass = 1.0f;
-    const double inset = ( 1.0 - BODY_SIZE ) * 0.5;
-    b.from = glm::dvec3( from ) + glm::dvec3( inset );
-    b.to = glm::dvec3( to ) + glm::dvec3( inset );
+    // Full cell, no BODY_SIZE inset: a pushed block must look like the block
+    // it lands as, not a shrunken falling entity.
+    b.from = glm::dvec3( from );
+    b.to = glm::dvec3( to );
     b.min = b.from;
     b.prev_min = b.min;
     b.start_gt = start_gt;
     b.duration_gt = duration_gt;
+    b.nb = nb;
     resolve_body_faces( state, b.face );
     this->bodies.push_back( b );
     // Local-only: no announce_spawn — remote clients see the landing writes.
@@ -320,9 +309,8 @@ bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
                     l.min = b.min;
                     l.cell = rest_cell( b.min );
                     l.state = b.state;
-                    l.entity = b.entity;
-                    memcpy( l.face, b.face, sizeof( l.face ) );
-                    b.entity = entt::null;
+                    l.full_size = true;
+                    l.nb = b.nb;
                     this->landed.push_back( l );
                 }
                 remove_body( i );
@@ -589,12 +577,55 @@ void BlockBodies::tick( RepGameState &state ) {
             l.min = b.min;
             l.cell = rest_cell( b.min );
             l.state = b.state;
-            l.entity = b.entity;
-            memcpy( l.face, b.face, sizeof( l.face ) );
-            b.entity = entt::null;
+            l.nb = b.nb;
             this->landed.push_back( l );
         }
         remove_body( i );
+    }
+}
+
+// Emits a body's full block model into the shared batch (block_mesh_emit):
+// drawn cell corner at `draw_min`, 1x1x1 mesh, full-bright packed lighting
+// (the 3D light volume shades the faces), the spawn-time neighbourhood
+// snapshot, and no boundary culls — a body has no opaque neighbors to hide
+// behind.
+static void body_emit( BlockInstanceBatch *batch, const BlockState &state, const BlockEmitNeighbors &nb,
+                       const glm::vec3 &draw_min, const glm::ivec3 &light_chunk ) {
+    BlockEmitParams emit;
+    emit.block = block_definition_get_definition( state.display_id );
+    emit.state = &state;
+    emit.origin = draw_min;
+    emit.mesh_x = emit.mesh_y = emit.mesh_z = 1;
+    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+        emit.packed_lighting[ f ] = NO_LIGHT_BRIGHT;
+    }
+    emit.nb = nb;
+    emit.fluid_corners = FLUID_CORNERS_FLAT;
+    emit.cull_against_neighbors = false;
+    // Emit locally first: the emitter writes face_shift itself, so the
+    // entity flag can only be OR'd in afterwards.
+    BlockCoords local[ 32 ];
+    const int cap = block_emit_count( emit );
+    std::vector<BlockCoords> heap;
+    BlockCoords *buf = local;
+    if ( cap > 32 ) {
+        heap.resize( static_cast<size_t>( cap ) );
+        buf = heap.data( );
+    }
+    struct Fill {
+        BlockCoords *buf;
+        int n, cap;
+    } fill = { buf, 0, cap };
+    const BlockEmitSink local_sink = { &fill, []( void *ctx ) -> BlockCoords * {
+                                          Fill &f = *static_cast<Fill *>( ctx );
+                                          return f.n < f.cap ? &f.buf[ f.n++ ] : nullptr;
+                                      } };
+    block_emit_cell( emit, local_sink );
+    const BlockEmitSink out = batch->sink( emit.block->renderOrder, light_chunk, fill.n );
+    for ( int i = 0; i < fill.n; i++ ) {
+        BlockCoords *slot = out.alloc( out.ctx );
+        *slot = buf[ i ];
+        slot->face_shift |= BLOCK_COORDS_ENTITY;
     }
 }
 
@@ -602,40 +633,40 @@ void BlockBodies::update_render( const float alpha, const ChunkLoader &chunk_loa
     if ( !this->render_inited ) {
         return;
     }
+    BlockInstanceBatch *batch = chunk_loader.body_batch;
+    if ( batch != nullptr ) {
+        batch->begin( );
+    }
     const glm::vec3 scale_v( static_cast<float>( BODY_SIZE ) );
+    const glm::vec3 inset_v( static_cast<float>( ( 1.0 - BODY_SIZE ) * 0.5 ) );
+    const glm::vec3 chunk_dim( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( Body &b : this->bodies ) {
-        if ( b.entity == entt::null ) {
-            if ( b.kind != BODY_PRIMED_TNT ) {
-                const std::pair<entt::entity, BlockObjectInstance &> data = this->render_falling.create_instance( );
-                b.entity = data.first;
-                for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-                    data.second.face[ f ] = b.face[ f ];
-                }
-                // The block's own shape, literal offset: the drawn body must
-                // match the block it lands as.
-                body_instance_shape( b.state, data.second );
-            } else {
+        const glm::dvec3 rmin = glm::mix( b.prev_min, b.min, static_cast<double>( alpha ) );
+        if ( b.kind == BODY_PRIMED_TNT ) {
+            if ( b.entity == entt::null ) {
                 const std::pair<entt::entity, PrimedTntInstance &> data = this->render_tnt.create_instance( );
                 b.entity = data.first;
                 for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                     data.second.face[ f ] = b.face[ f ];
                 }
             }
-        }
-        const glm::dvec3 rmin = glm::mix( b.prev_min, b.min, static_cast<double>( alpha ) );
-        const glm::mat4 transform = glm::scale( glm::translate( glm::mat4( 1.0f ), glm::vec3( rmin ) ), scale_v );
-        const glm::vec2 light = chunk_loader.light_sample( glm::vec3( body_center( b ) ) );
-        if ( b.kind != BODY_PRIMED_TNT ) {
-            BlockObjectInstance &inst = this->render_falling.get_instance( b.entity );
-            inst.transform = transform;
-            inst.light = light;
-        } else {
+            const glm::mat4 transform = glm::scale( glm::translate( glm::mat4( 1.0f ), glm::vec3( rmin ) ), scale_v );
             PrimedTntInstance &inst = this->render_tnt.get_instance( b.entity );
             inst.transform = transform;
-            inst.light = light;
+            inst.light = chunk_loader.light_sample( glm::vec3( body_center( b ) ) );
             const double age_s = static_cast<double>( now_tick - b.fuse_start_tick ) / UPS_RATE;
             inst.flash = static_cast<float>( static_cast<long>( floor( age_s * 4.0 ) ) % 2 );
+            continue;
         }
+        if ( batch == nullptr ) {
+            continue;
+        }
+        // Falling bodies keep the BODY_SIZE physics box — draw the full
+        // cell around it so a resting body lands exactly on its cell;
+        // piston movers slide cell-to-cell with no inset.
+        const glm::vec3 draw_min = glm::vec3( rmin ) - ( b.kind == BODY_PISTON ? glm::vec3( 0.0f ) : inset_v );
+        const glm::ivec3 light_chunk( glm::floor( ( draw_min + glm::vec3( 0.5f ) ) / chunk_dim ) );
+        body_emit( batch, b.state, b.nb, draw_min, light_chunk );
     }
 
     // Landed bodies keep drawing at their rest cell until the target chunk's
@@ -643,31 +674,20 @@ void BlockBodies::update_render( const float alpha, const ChunkLoader &chunk_loa
     // landed write could still be pending a frame later).
     for ( size_t i = 0; i < this->landed.size( ); ) {
         Landed &l = this->landed[ i ];
-        const glm::vec3 chunk_size( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-        const Chunk *chunk = chunk_loader.get_chunk( glm::ivec3( glm::floor( glm::vec3( l.cell ) / chunk_size ) ) );
+        const glm::ivec3 light_chunk( glm::floor( glm::vec3( l.cell ) / chunk_dim ) );
+        const Chunk *chunk = chunk_loader.get_chunk( light_chunk );
         if ( chunk == nullptr || chunk->needs_repopulation == 0 ) {
-            if ( l.entity != entt::null ) {
-                this->render_falling.remove( l.entity );
-            }
             this->landed[ i ] = this->landed.back( );
             this->landed.pop_back( );
             continue;
         }
-        if ( l.entity == entt::null ) {
-            const std::pair<entt::entity, BlockObjectInstance &> data = this->render_falling.create_instance( );
-            l.entity = data.first;
-            for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-                data.second.face[ f ] = l.face[ f ];
-            }
-            body_instance_shape( l.state, data.second );
+        if ( batch != nullptr ) {
+            const glm::vec3 draw_min = glm::vec3( l.min ) - ( l.full_size ? glm::vec3( 0.0f ) : inset_v );
+            body_emit( batch, l.state, l.nb, draw_min, light_chunk );
         }
-        BlockObjectInstance &inst = this->render_falling.get_instance( l.entity );
-        inst.transform = glm::scale( glm::translate( glm::mat4( 1.0f ), glm::vec3( l.min ) ), scale_v );
-        inst.light = chunk_loader.light_sample( glm::vec3( l.cell ) + glm::vec3( 0.5f ) );
         i++;
     }
 
-    this->render_falling.invalidate_all( );
     this->render_tnt.invalidate_all( );
 }
 
@@ -675,7 +695,8 @@ void BlockBodies::draw( const Renderer &renderer, const Shader &block_object_sha
     if ( !this->render_inited ) {
         return;
     }
-    this->render_falling.draw( renderer, block_object_shader );
+    // Falling blocks and piston movers go through the chunk shader inside
+    // ChunkLoader::draw — only primed TNT uses this path now.
     this->render_tnt.draw( renderer, primed_tnt_shader );
 }
 
@@ -696,7 +717,6 @@ size_t BlockBodies::count_tnt( ) const {
 }
 
 void BlockBodies::cleanup( ) {
-    this->render_falling.clear( );
     this->render_tnt.clear( );
     this->bodies.clear( );
     this->landed.clear( );
@@ -776,6 +796,7 @@ bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, c
         b.fuse_start_tick = now_tick;
         b.fuse_ticks = rec.fuse_ticks;
     }
+    b.nb = neighbors_air( b.state );
     resolve_body_faces( b.state, b.face );
     netsync_apply_record( b.net, rec, mirror );
     this->bodies.push_back( b );

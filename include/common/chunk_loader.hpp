@@ -400,6 +400,9 @@ class ChunkLoader {
     // the second eye so both eyes share one verdict generation.
     void set_occlusion_probe_pass( bool probe ) { this->occl_probe_pass = probe; }
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
+    // Block-body model instances drawn after each render order's terrain
+    // (block_instance_batch.hpp); World fills it in BlockBodies::update_render.
+    class BlockInstanceBatch *body_batch = nullptr;
     const glm::ivec3 &get_chunk_center( ) const { return this->chunk_center; }
     // Re-upload every live light texture under the current smoothing mode —
     // the "Shadows" quality toggle calls this (render thread).

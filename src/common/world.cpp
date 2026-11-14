@@ -130,7 +130,9 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->multiplayer_avatars.init( &this->mobs );
     this->blockDebris.init( this->vbl_object_vertex, this->vbl_debris_instance );
     this->heartParticles.init( this->vbl_object_vertex, this->vbl_debris_instance );
-    this->bodies.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_primed_tnt_instance );
+    this->bodies.init( this->vbl_object_vertex, this->vbl_primed_tnt_instance );
+    this->body_batch.init( this->chunkLoader.solid.vb_block, this->chunkLoader.water.vb_block, this->vbl_block, this->vbl_coords );
+    this->chunkLoader.body_batch = &this->body_batch;
     this->items.init( this->vbl_object_vertex, this->vbl_block_object_instance, this->vbl_item_instance );
     // Arrows share the extruded item-sprite mesh + shader.
     this->arrows.init( this->vbl_object_vertex, this->vbl_item_instance );
@@ -968,6 +970,7 @@ void World::cleanup( MapStorage &map_storage ) {
     this->multiplayer_avatars.cleanup( );
     this->blockDebris.cleanup( );
     this->bodies.cleanup( );
+    this->body_batch.destroy( );
     this->items.cleanup( );
     this->arrows.cleanup( );
     this->vehicles.cleanup( );

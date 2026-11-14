@@ -13,7 +13,8 @@ that ride the same connection are in `docs/multiplayer.md`.
 
 `BlockBodies` (`include/common/block_bodies.hpp`, `src/common/block_bodies.cpp`,
 owned by `World` as `world.bodies`) is the shared CPU simulation for
-axis-aligned block-sized bodies (0.98 box, `MAX_BLOCK_BODIES` = 1024, stable
+axis-aligned block-sized bodies (0.98 box; `BODY_PISTON` movers use the full
+1.0 cell so a pushed block matches its landed mesh, `MAX_BLOCK_BODIES` = 1024, stable
 nonzero ids). It integrates three kinds: `BODY_FALLING` (any block with
 `falls_with_gravity` — sand, gravel, concrete powder, anvils),
 `BODY_PRIMED_TNT` (ignited TNT) and `BODY_PISTON` (a piston move's kinematic
@@ -63,31 +64,41 @@ like everything else; a gravity block that loses support outside the sphere
 still falls normally through `FallingBlockEvent`. TNT spawning at the body cap evicts the oldest falling body; a falling
 spawn at the cap leaves the block in place.
 
-Rendering is client-side instances rebuilt per frame in `update_render`
-(interpolating `prev_min`→`min` by alpha, per-body light sampling): falling
-blocks draw through `render_falling` + `block_object_shader`
-(`BlockObjectInstance`: transform + light + the block's pixel-space
-shape_scale/offset/tex_offset, folded into the unit cube by
-`block_object_vertex.glsl` with cropped per-face UVs — the literal
-`Block::offset`, so a non-full body matches the block it lands as — piston
-movers share this path, except piston heads which draw the world-space plate
-box of `piston_head_shape(rotation)`), primed
-TNT through `render_tnt` +
-`primed_tnt_shader` (`PrimedTntInstance`: transform + light + CPU fuse-blink
-`flash`, same shader file `primed_tnt_vertex.glsl` reworked to consume the
-instance transform). Chains are only touched after `init()`/`render_inited`,
-so headless tests simulate fine. Landed bodies keep an instance at their rest
-cell until the target chunk's `needs_repopulation` drains (the remesh safety
-net). In multiplayer each body is simulated by the client that caused it
-(the existing "causer simulates" rule — remote block updates still don't
-run these events) and mirrored to viewers; see "Multiplayer entity sync"
-below for the spawn/state/remove/handover rules.
-
-**Known limitation / future work:** the shared block-body rendering path
-draws a single definition box (plus the piston-head plate special case), so
-non-cube blocks — stairs, fences, rotated shapes — slide as approximate
-boxes during a piston move. Per-box `BlockBox` rendering for movers is
-planned eventually.
+Rendering reuses the terrain path: `update_render` emits every non-TNT
+body's full block model through the shared per-cell emitter
+(`block_mesh_emit.hpp` — the same multi-box instance set the chunk mesher
+produces: stairs incl. corner shapes, fences with their connection rails,
+piston heads incl. the arm, repeaters with torches + glow shell, anvils,
+signs, dust, rails) into `World::body_batch`, a `BlockInstanceBatch` grouped
+by render order and by the chunk containing the body's centre cell.
+`ChunkLoader::draw` then renders each group right after that order's terrain
+through the chunk shader and shared index buffer (full-shell face ranges),
+binding the group chunk's 3D light volume (`light_ensure_texture`, or
+`light_fallback_texture()` for unloaded/missing chunks) — so bodies get
+terrain-identical models, lighting and blending, and the reflection pass
+covers them for free. All bodies draw at full 1.0 cell size; `BODY_SIZE`
+(0.98) stays the physics/collision box only, so a falling body's drawn
+origin is `min - (1-BODY_SIZE)/2` while a piston mover slides cell-to-cell
+with no inset. Neighbour-dependent shapes freeze the form they had when the
+move started: `Body::nb` is a 3x3x3 snapshot taken at spawn before the
+piston's MOVING_PISTON/AIR writes (all-AIR for falling/net-spawned bodies —
+no neighbour-shaped block falls). Emitter neighbour culls
+(`cull_against_neighbors`) stay off for bodies. Body instances carry
+`BLOCK_COORDS_ENTITY` in `face_shift`, which only disables the per-cell
+random texture rotation (the cell changes mid-move); lighting, AO and face
+grow are terrain's. The batch draw must rebind the chunk shader before its
+raw `glUniform3f(u_LightBase)` — the opaque occlusion probe leaves
+`occl_shader` bound, and a stale light base lit bodies from the last-drawn
+chunk's volume (view-dependent black flicker). Primed TNT keeps its own
+`render_tnt` + `primed_tnt_shader` chain (`PrimedTntInstance`: transform +
+light + CPU fuse-blink `flash`). Chains and the batch are only touched
+after `init()`/`render_inited`, so headless tests simulate fine. Landed
+bodies keep emitting at their rest cell until the target chunk's
+`needs_repopulation` drains (the remesh safety net). In multiplayer each
+body is simulated by the client that caused it (the existing "causer
+simulates" rule — remote block updates still don't run these events) and
+mirrored to viewers; see "Multiplayer entity sync" below for the
+spawn/state/remove/handover rules.
 
 ## Arrows
 

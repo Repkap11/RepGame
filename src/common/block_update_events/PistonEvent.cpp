@@ -46,6 +46,33 @@ static void piston_set_local( RepGameState &repGameState, const glm::ivec3 &pos,
     queue_neighbor_block_updates( repGameState, pos );
 }
 
+// The 3x3x3 around `cell`, snapshotted before an event's MOVING_PISTON/AIR
+// writes so a neighbour-dependent model (fence connections, stair corners)
+// keeps the shape it had when the move started. Unloaded cells read as AIR.
+static BlockEmitNeighbors piston_snapshot( World &world, const glm::ivec3 &cell ) {
+    BlockEmitNeighbors nb;
+    for ( int dy = -1; dy <= 1; dy++ ) {
+        for ( int dz = -1; dz <= 1; dz++ ) {
+            for ( int dx = -1; dx <= 1; dx++ ) {
+                const BlockState s = world.get_loaded_block( cell + glm::ivec3( dx, dy, dz ) );
+                nb.at( dx, dy, dz ) = s.id == LAST_BLOCK_ID ? BLOCK_STATE_AIR : s;
+            }
+        }
+    }
+    return nb;
+}
+
+// Piston heads and bases have no neighbour-dependent shape — an all-AIR
+// snapshot with the centre filled is enough.
+static BlockEmitNeighbors piston_nb_air( const BlockState &center ) {
+    BlockEmitNeighbors nb;
+    for ( int i = 0; i < 27; i++ ) {
+        nb.cells[ i ] = BLOCK_STATE_AIR;
+    }
+    nb.at( 0, 0, 0 ) = center;
+    return nb;
+}
+
 void piston_land_cell( RepGameState &state, const glm::ivec3 &pos ) {
     World &world = state.world;
     const BlockState cur = world.get_loaded_block( pos );
@@ -158,6 +185,13 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         }
 
         const BlockID head_id = base->is_sticky_piston ? STICKY_PISTON_ARM_COLLISION : PISTON_ARM_COLLISION;
+        // Shape snapshots before any writes — a destination MOVING_PISTON
+        // would otherwise clobber a neighbour read for the next mover's
+        // source cell.
+        BlockEmitNeighbors snap[ PISTON_PUSH_LIMIT ];
+        for ( int i = 2; i <= dest_i; i++ ) {
+            snap[ i - 2 ] = piston_snapshot( world, this->block_pos + dir * ( i - 1 ) );
+        }
         // MOVING_PISTON writes run farthest-first so no cell is read after
         // being overwritten; each carries its block in the side table and
         // lands through its own PistonLandEvent PISTON_MOVE_GT later.
@@ -167,7 +201,7 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
             RepGameState::PistonMove move;
             move.carried = carried;
             move.base = this->block_pos;
-            move.body_id = world.bodies.spawn_piston_mover( carried, this->block_pos + dir * ( i - 1 ), dst, start_gt, PISTON_MOVE_GT );
+            move.body_id = world.bodies.spawn_piston_mover( carried, this->block_pos + dir * ( i - 1 ), dst, start_gt, PISTON_MOVE_GT, snap[ i - 2 ] );
             repGameState.piston_moves[ dst ] = move;
             const BlockState moving = { MOVING_PISTON, carried.rotation, 0, carried.id, 0 };
             piston_set_local( repGameState, dst, moving );
@@ -178,7 +212,7 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         head_move.carried = head_block_state;
         head_move.base = this->block_pos;
         // The head slides out of the base cell.
-        head_move.body_id = world.bodies.spawn_piston_mover( head_block_state, this->block_pos, head_pos, start_gt, PISTON_MOVE_GT );
+        head_move.body_id = world.bodies.spawn_piston_mover( head_block_state, this->block_pos, head_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( head_block_state ) );
         repGameState.piston_moves[ head_pos ] = head_move;
         const BlockState moving_head = { MOVING_PISTON, base_state.rotation, 0, head_id, 0 };
         piston_set_local( repGameState, head_pos, moving_head );
@@ -200,17 +234,19 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
             const auto it = repGameState.piston_moves.find( head_pos );
             slide_state = it != repGameState.piston_moves.end( ) ? it->second.carried : BlockState{ head_state.display_id, head_state.rotation, 0, head_state.display_id, 0 };
         }
-        world.bodies.spawn_piston_mover( slide_state, head_pos, this->block_pos, start_gt, PISTON_MOVE_GT );
+        world.bodies.spawn_piston_mover( slide_state, head_pos, this->block_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( slide_state ) );
         if ( base->is_sticky_piston ) {
             const glm::ivec3 pull_pos = head_pos + dir;
             const BlockState pull_state = world.get_loaded_block( pull_pos );
             if ( piston_can_move( pull_state ) ) {
+                // Snapshot before the pull cell's AIR write.
+                const BlockEmitNeighbors pull_nb = piston_snapshot( world, pull_pos );
                 // The pulled block lands where the head was.
                 piston_set_local( repGameState, pull_pos, BLOCK_STATE_AIR );
                 RepGameState::PistonMove move;
                 move.carried = pull_state;
                 move.base = this->block_pos;
-                move.body_id = world.bodies.spawn_piston_mover( pull_state, pull_pos, head_pos, start_gt, PISTON_MOVE_GT );
+                move.body_id = world.bodies.spawn_piston_mover( pull_state, pull_pos, head_pos, start_gt, PISTON_MOVE_GT, pull_nb );
                 repGameState.piston_moves[ head_pos ] = move;
                 const BlockState moving = { MOVING_PISTON, pull_state.rotation, 0, pull_state.id, 0 };
                 piston_set_local( repGameState, head_pos, moving );
