@@ -7,7 +7,7 @@
 #include "common/font_renderer.hpp"
 #include "common/ui_layout.hpp"
 
-static int check_strip( UiLayout &layout, const char *name, float w, float h, float slab_w, float stride, unsigned want_overflow, bool check_positions = true ) {
+static int check_strip( UiLayout &layout, const char *name, float w, float h, float slab_w, float stride, unsigned want_overflow, bool check_positions = true, bool bottom_corners = false ) {
     int failures = 0;
     UiLayoutInput in;
     in.screen_w = w;
@@ -188,8 +188,10 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     snprintf( what, sizeof( what ), "%s: furnace backdrop covers fuel", name );
     is_true( what, r.furnace_backdrop.left <= r.furnace_fuel.left && r.furnace_backdrop.bottom <= r.furnace_fuel.bottom );
 
-    // Touch controls: the gameplay set hugs the corners and the strip's
-    // top edge; nothing overlaps each other or the hotbar.
+    // Touch controls: the gameplay set hugs the corners — on the screen
+    // bottom beside the hotbar where the gutters allow it, lifted onto
+    // the HUD strip's top edge where they don't. Nothing overlaps the
+    // hotbar, the strip, or each other.
     const UiRect *gp[] = { &r.touch_joystick, &r.touch_jump, &r.touch_sneak, &r.touch_menu, &r.touch_chat,
                            &r.touch_break, &r.touch_pick, &r.touch_place, &r.touch_inventory };
     const char *gpn[] = { "joystick", "jump", "sneak", "menu", "chat", "break", "pick", "place", "inv" };
@@ -201,46 +203,102 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
         snprintf( what, sizeof( what ), "%s: touch %s inside viewport", name, gpn[ i ] );
         is_true( what, gp[ i ]->left >= -w * 0.5f - eps && gp[ i ]->right( ) <= w * 0.5f + eps &&
                        gp[ i ]->bottom >= -h * 0.5f - eps && gp[ i ]->top( ) <= h * 0.5f + eps );
-        snprintf( what, sizeof( what ), "%s: touch %s clears hotbar", name, gpn[ i ] );
-        is_true( what, !overlaps( *gp[ i ], r.hotbar, eps ) );
+        snprintf( what, sizeof( what ), "%s: touch %s clears hotbar+strip", name, gpn[ i ] );
+        is_true( what, !overlaps( *gp[ i ], r.hotbar, eps ) && !overlaps( *gp[ i ], r.hud_strip, eps ) );
         for ( int j = i + 1; j < 9; j++ ) {
             snprintf( what, sizeof( what ), "%s: touch %s/%s disjoint", name, gpn[ i ], gpn[ j ] );
             is_true( what, !overlaps( *gp[ i ], *gp[ j ], eps ) );
         }
     }
-    // The joystick is a 2r square on the strip's top; the inventory set
-    // mirrors Inv/Jump and the page arrows sit clear of the panels.
+    // Corner placement: a control's unlifted home rect is tested against
+    // the strip/hotbar exactly like compute() does — hit means the
+    // control lifts just enough for its bottom to sit on the strip's
+    // top edge (minimal clearance, not a fixed step).
     const float touch_r = fminf( w * 0.25f, h * 0.5f ) * 0.5f;
+    const auto home_bottom = [ & ]( const UiRect &home ) {
+        return overlaps( home, r.hud_strip, eps ) || overlaps( home, r.hotbar, eps ) ? r.hud_strip.top( ) : -h * 0.5f;
+    };
     snprintf( what, sizeof( what ), "%s: touch joystick is 2r", name );
     near_to( what, r.touch_joystick.width, 2.0f * touch_r );
-    snprintf( what, sizeof( what ), "%s: touch joystick bottom on strip", name );
-    near_to( what, r.touch_joystick.bottom, r.hud_strip.top( ) );
+    snprintf( what, sizeof( what ), "%s: touch joystick bottom", name );
+    near_to( what, r.touch_joystick.bottom, home_bottom( { -w * 0.5f, -h * 0.5f, 2.0f * touch_r, 2.0f * touch_r } ) );
     snprintf( what, sizeof( what ), "%s: touch joystick at left edge", name );
     near_to( what, r.touch_joystick.left, -w * 0.5f );
+    // Top row: Pick hangs off Menu's right edge, tops aligned; Chat
+    // hangs off the left edge directly under Sneak.
+    snprintf( what, sizeof( what ), "%s: touch pick right of menu", name );
+    near_to( what, r.touch_pick.left, r.touch_menu.right( ) );
+    snprintf( what, sizeof( what ), "%s: touch pick top-aligned with menu", name );
+    near_to( what, r.touch_pick.top( ), r.touch_menu.top( ) );
+    snprintf( what, sizeof( what ), "%s: touch chat is r", name );
+    near_to( what, r.touch_chat.width, touch_r );
+    // Chat's home is under Sneak on the left edge; when that would hit
+    // the (lifted) joystick it moves right of Sneak on the top row.
+    const UiRect joy_home{ -w * 0.5f, home_bottom( { -w * 0.5f, -h * 0.5f, 2.0f * touch_r, 2.0f * touch_r } ),
+                           2.0f * touch_r, 2.0f * touch_r };
+    const UiRect chat_home{ -w * 0.5f, h * 0.5f - 2.0f * touch_r, touch_r, touch_r };
+    if ( overlaps( joy_home, chat_home, eps ) ) {
+        snprintf( what, sizeof( what ), "%s: touch chat right of sneak", name );
+        near_to( what, r.touch_chat.left, r.touch_sneak.right( ) );
+        snprintf( what, sizeof( what ), "%s: touch chat top-aligned with sneak", name );
+        near_to( what, r.touch_chat.top( ), r.touch_sneak.top( ) );
+    } else {
+        snprintf( what, sizeof( what ), "%s: touch chat under sneak", name );
+        near_to( what, r.touch_chat.top( ), r.touch_sneak.bottom );
+        snprintf( what, sizeof( what ), "%s: touch chat at left edge", name );
+        near_to( what, r.touch_chat.left, -w * 0.5f );
+    }
+    snprintf( what, sizeof( what ), "%s: touch break bottom", name );
+    near_to( what, r.touch_break.bottom, home_bottom( { w * 0.5f - 2.0f * touch_r, -h * 0.5f, touch_r, touch_r } ) );
+    snprintf( what, sizeof( what ), "%s: touch break left of place", name );
+    near_to( what, r.touch_break.right( ), r.touch_place.left );
+    snprintf( what, sizeof( what ), "%s: touch place bottom", name );
+    near_to( what, r.touch_place.bottom, home_bottom( { w * 0.5f - touch_r, -h * 0.5f, touch_r, touch_r } ) );
+    snprintf( what, sizeof( what ), "%s: touch place at right edge", name );
+    near_to( what, r.touch_place.right( ), w * 0.5f );
+    // Inv hangs off the right edge directly under Jump (it doesn't
+    // stack on Place and never lifts).
+    snprintf( what, sizeof( what ), "%s: touch inv under jump", name );
+    near_to( what, r.touch_inventory.top( ), r.touch_jump.bottom );
+    snprintf( what, sizeof( what ), "%s: touch inv at right edge", name );
+    near_to( what, r.touch_inventory.right( ), w * 0.5f );
+    if ( bottom_corners ) {
+        // Wide-enough screen: nothing lifts, the corners sit on the
+        // screen's bottom edge.
+        snprintf( what, sizeof( what ), "%s: joystick bottom = screen bottom", name );
+        near_to( what, r.touch_joystick.bottom, -h * 0.5f );
+        snprintf( what, sizeof( what ), "%s: break bottom = screen bottom", name );
+        near_to( what, r.touch_break.bottom, -h * 0.5f );
+        snprintf( what, sizeof( what ), "%s: place bottom = screen bottom", name );
+        near_to( what, r.touch_place.bottom, -h * 0.5f );
+    }
     snprintf( what, sizeof( what ), "%s: touch close at inv spot", name );
     near_to( what, r.touch_inv_close.left, r.touch_inventory.left );
     near_to( what, r.touch_inv_close.bottom, r.touch_inventory.bottom );
     snprintf( what, sizeof( what ), "%s: touch mode at jump spot", name );
     near_to( what, r.touch_inv_mode.left, r.touch_jump.left );
     near_to( what, r.touch_inv_mode.bottom, r.touch_jump.bottom );
-    // Chat is a half-size square flush against the menu's right edge,
-    // tops aligned.
-    snprintf( what, sizeof( what ), "%s: touch chat is r/2", name );
-    near_to( what, r.touch_chat.width, touch_r * 0.5f );
-    snprintf( what, sizeof( what ), "%s: touch chat right of menu", name );
-    near_to( what, r.touch_chat.left, r.touch_menu.right( ) );
-    snprintf( what, sizeof( what ), "%s: touch chat top-aligned with menu", name );
-    near_to( what, r.touch_chat.top( ), r.touch_menu.top( ) );
+    // The inventory-open set is pairwise disjoint: Close hangs under
+    // Mode on the right edge, the page arrows share one y low enough
+    // to clear Close.
+    const UiRect *is[] = { &r.touch_inv_close, &r.touch_inv_mode, &r.touch_page_prev, &r.touch_page_next };
+    const char *isn[] = { "close", "mode", "prev", "next" };
+    for ( int i = 0; i < 4; i++ ) {
+        for ( int j = i + 1; j < 4; j++ ) {
+            snprintf( what, sizeof( what ), "%s: touch inv-set %s/%s disjoint", name, isn[ i ], isn[ j ] );
+            is_true( what, !overlaps( *is[ i ], *is[ j ], eps ) );
+        }
+    }
     // The inventory set vs the inventory panels: the page arrows must
-    // not cover the creative palette; Close/Mode sit on the strip/corner
+    // not cover the creative palette; Mode sits on the strip/corner
     // where the survival slab can't quite reach (a sub-3px edge graze at
     // narrow aspects is inherent to the bounding-square geometry the
-    // Java circles were drawn inside).
+    // Java circles were drawn inside). Close sits directly under Mode —
+    // top-right like it, clear of the panels at every tested aspect.
     snprintf( what, sizeof( what ), "%s: page prev/next clear creative", name );
     is_true( what, !overlaps( r.touch_page_prev, r.creative_panel, eps ) && !overlaps( r.touch_page_next, r.creative_panel, eps ) );
-    snprintf( what, sizeof( what ), "%s: inventory set ~clears panels", name );
-    is_true( what, !overlaps( r.touch_inv_close, r.creative_panel, 3.0f ) && !overlaps( r.touch_inv_mode, r.creative_panel, 3.0f ) &&
-                   !overlaps( r.touch_inv_close, r.survival_items, 3.0f ) && !overlaps( r.touch_inv_mode, r.survival_items, 3.0f ) );
+    snprintf( what, sizeof( what ), "%s: inventory mode ~clears panels", name );
+    is_true( what, !overlaps( r.touch_inv_mode, r.creative_panel, 3.0f ) && !overlaps( r.touch_inv_mode, r.survival_items, 3.0f ) );
 
     // Pause menu: floating centered panel of stacked rows.
     snprintf( what, sizeof( what ), "%s: pause panel centered", name );
@@ -273,7 +331,11 @@ int test_ui_layout( ) {
     int failures = 0;
     // Slab dims mirror what InventoryRenderer::compute_layout produces:
     // the auto-fit stride shrinks so the slab always fits the screen.
-    failures += check_strip( layout, "16:9", 1920.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE );
+    failures += check_strip( layout, "16:9", 1920.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE, true, true );
+    // Phone landscape + the Pixel's in-game resolution: the gutters
+    // beside the hotbar are wide enough that nothing lifts.
+    failures += check_strip( layout, "phone", 2400.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE, true, true );
+    failures += check_strip( layout, "pixel", 1568.0f, 704.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE, true, true );
     failures += check_strip( layout, "21:9", 2560.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE );
     failures += check_strip( layout, "32:9", 3840.0f, 1080.0f, 500.0f, 55.0f, UI_OVERFLOW_NONE );
     failures += check_strip( layout, "9:16", 600.0f, 1080.0f, 460.0f, 50.0f, UI_OVERFLOW_NONE );

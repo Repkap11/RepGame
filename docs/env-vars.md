@@ -98,6 +98,7 @@ the index, not the reference.
 | `REPGAME_WALKTEST_TICKS` | 0 (run forever) | all | quit after n ticks through the normal exit path (walktest only) | capture skill |
 | `REPGAME_WEBGPU` | 0 | WASM | `1` opts into the WebGPU terrain-gen/mesh backend | docs/rendering.md |
 | `REPGAME_WINDOW_MSAA` | on (`MSAA_SAMPLES`) | desktop (SDL3) | `0` requests a non-multisampled window | docs/rendering.md |
+| `REPGAME_WINDOW_SIZE` | fullscreen | desktop (SDL3) | `"WxH"` opens a windowed window at that size; under `SDL_VIDEODRIVER=offscreen` it also sets the drawable size, so rep-dbg `screenshot` is faithful at any aspect (pair with the `resize` verb for mid-run layout checks) | docs/debug-tools.md |
 
 Non-`REPGAME_*` env seams used by tests: `SDL_VIDEODRIVER=offscreen` +
 `SDL_AUDIODRIVER=dummy` for headless runs (the dummy audio driver keeps test

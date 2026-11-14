@@ -230,6 +230,19 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     int default_width = DEFAULT_WINDOW_WIDTH;
     int default_height = DEFAULT_WINDOW_HEIGHT;
     Uint64 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN;
+    // REPGAME_WINDOW_SIZE=WxH opens a windowed (non-fullscreen) window at
+    // that size — under the offscreen driver this also sets the real
+    // drawable size, so rep-dbg screenshots are faithful at any aspect.
+    if ( const char *size_env = env_get( "REPGAME_WINDOW_SIZE" ) ) {
+        int w = 0, h = 0;
+        if ( sscanf( size_env, "%dx%d", &w, &h ) == 2 && w > 0 && h > 0 ) {
+            default_width = w;
+            default_height = h;
+            window_flags &= ~SDL_WINDOW_FULLSCREEN;
+        } else {
+            pr_debug( "REPGAME_WINDOW_SIZE=%s is invalid (want WxH)", size_env );
+        }
+    }
 
     // SDL3's SDL_GetPrimaryDisplay() queries GNOME DBus / picks the best
     // display on Wayland (where there's no native "primary" concept). Allow

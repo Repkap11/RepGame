@@ -29,6 +29,11 @@ InventoryRenderer &repgame_crafting_grid( RepGameState &state );
 void repgame_layout_containers( RepGameState &state );
 void repgame_apply_ui_layout( RepGameState &state );
 
+// The whole platform-resize chain on a state (RepGame.cpp):
+// RepGame::changeSize delegates here; the rep-dbg `resize` verb calls it
+// to verify layout at arbitrary sizes without a real window resize.
+void repgame_set_screen_size( RepGameState &state, int w, int h );
+
 // Repaints open-chest/furnace slot icons when the world contents changed
 // without a click handler (server CONTAINER_* writes, tick-driven smelts).
 // Called from RepGame::tick — the pull model that keeps the net layer out

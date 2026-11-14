@@ -34,44 +34,55 @@ bool RepGame::should_lock_pointer( ) const {
     return !run_policy().capture.enabled && !globalGameState.input.inventory_open && !globalGameState.input.menu_open && !globalGameState.input.text_input_active;
 }
 
-void RepGame::changeSize( const int w, const int h ) {
-    // pr_debug( "Screen Size Change:%dx%d", w, h );
+// The full resize chain on a state: screen dims + GL viewport, mouse
+// recentering, inventory grid metrics, the Clay layout pass, slab
+// adoption, and the projection matrices. RepGame::changeSize delegates
+// here; the rep-dbg `resize` verb calls it directly to verify layout at
+// arbitrary sizes (the platform window keeps its real size — under a
+// headless/offscreen driver the GL framebuffer clips, so only layout
+// output like `uistate` is faithful at sizes other than the real one).
+void repgame_set_screen_size( RepGameState &state, const int w, const int h ) {
     if ( w == 0 || h == 0 ) {
         return;
     }
-    globalGameState.screen.width = static_cast<float>( w );
-    globalGameState.screen.height = static_cast<float>( h );
+    state.screen.width = static_cast<float>( w );
+    state.screen.height = static_cast<float>( h );
     glViewport( 0, 0, w, h );
 
-    globalGameState.input.mouse.currentPosition.x = w / 2;
-    globalGameState.input.mouse.currentPosition.y = h / 2;
+    state.input.mouse.currentPosition.x = w / 2;
+    state.input.mouse.currentPosition.y = h / 2;
 
-    globalGameState.input.mouse.previousPosition.x = w / 2;
-    globalGameState.input.mouse.previousPosition.y = h / 2;
-    globalGameState.ui.overlay.on_screen_size_change( w, h );
-    globalGameState.ui.font.onScreenSizeChange( w, h );
+    state.input.mouse.previousPosition.x = w / 2;
+    state.input.mouse.previousPosition.y = h / 2;
+    state.ui.overlay.on_screen_size_change( w, h );
+    state.ui.font.onScreenSizeChange( w, h );
     // Sizing pass: every panel the Clay layout positions gets its grid
     // metrics first — compute_layout is pure (no GL rebuild).
-    globalGameState.hotbar.inventory_renderer.compute_layout( w, h );
-    globalGameState.survival_inventory.inventory_renderer.compute_layout( w, h );
-    globalGameState.ui.creative.inventory_renderer.compute_layout( w, h );
+    state.hotbar.inventory_renderer.compute_layout( w, h );
+    state.survival_inventory.inventory_renderer.compute_layout( w, h );
+    state.ui.creative.inventory_renderer.compute_layout( w, h );
     // Container grids share the survival stride — size them before the
     // pass so the declared slab sizes match.
-    repgame_layout_containers( globalGameState );
-    globalGameState.ui.layout.compute( ui_layout_input( globalGameState ) );
+    repgame_layout_containers( state );
+    state.ui.layout.compute( ui_layout_input( state ) );
     // Adopt the measured rects: each slab lands where the layout put it
     // (the hotbar flush at the screen bottom, the survival inventory above
     // the HUD strip, the creative palette centered + floor-lifted, the
     // container screens floating over the survival slab).
-    const UiLayoutRects &rects = globalGameState.ui.layout.rects( );
-    globalGameState.hotbar.apply_layout( rects.hotbar );
-    globalGameState.survival_inventory.apply_layout( rects.survival_items );
-    globalGameState.ui.creative.apply_layout( w, h, rects.creative_items, rects.search_box );
-    repgame_apply_ui_layout( globalGameState );
-    globalGameState.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), globalGameState.screen.width / globalGameState.screen.height, 0.1f, CAMERA_FAR_PLANE );
-    globalGameState.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
-    globalGameState.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );
-    globalGameState.world.change_size( w, h );
+    const UiLayoutRects &rects = state.ui.layout.rects( );
+    state.hotbar.apply_layout( rects.hotbar );
+    state.survival_inventory.apply_layout( rects.survival_items );
+    state.ui.creative.apply_layout( w, h, rects.creative_items, rects.search_box );
+    repgame_apply_ui_layout( state );
+    state.screen.proj = glm::perspective<float>( glm::radians( CAMERA_FOV ), state.screen.width / state.screen.height, 0.1f, CAMERA_FAR_PLANE );
+    state.screen.ortho = glm::ortho<float>( 0.f, w, 0.f, h, -1.f, 1.f );
+    state.screen.ortho_center = glm::ortho<float>( -w / 2.0f, w / 2.0f, -h / 2.0f, h / 2.0f, -1.f, 1.f );
+    state.world.change_size( w, h );
+}
+
+void RepGame::changeSize( const int w, const int h ) {
+    // pr_debug( "Screen Size Change:%dx%d", w, h );
+    repgame_set_screen_size( globalGameState, w, h );
 }
 
 void RepGame::clear( ) {

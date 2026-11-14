@@ -425,6 +425,7 @@ no length limit:
 | `inventory <0|1>` | toggle `input.inventory_open` (shows the survival grid + 2x2 crafting UI in survival) |
 | `menu <0|1>`, `search <0|1>` | toggle `input.menu_open` / `input.search_focused` (pause menu, creative search bar) |
 | `touchui <0|1>` | toggle `input.touch_ui` — the on-screen touch controls (docs/ui.md) |
+| `resize <w> <h>` | run the full screen-size chain (`repgame_set_screen_size`: layout pass, slab adoption, projections) at an arbitrary size — `uistate` is faithful; `screenshot` is clipped to the real framebuffer, so pair with `REPGAME_WINDOW_SIZE` for exact-size shots |
 | `touch down\|move\|up\|cancel <id> <x> <y>` | one touch event in window pixels through `repgame_touch_event` (a no-op while `touch_ui` is off); button rects come from `uistate`'s `touch` dump |
 | `assert_pos x y z <tol>` | assert the camera is within `tol` of the point |
 | `assert_ui_open inventory\|menu <0|1>` | assert `input.inventory_open` / `input.menu_open` |

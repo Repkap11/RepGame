@@ -542,6 +542,16 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         state.input.search_focused = ivec_arg( 1 ) != 0;
         return false;
     }
+    // resize <w> <h> — run the full screen-size chain (layout pass +
+    // slab adoption + projections) at an arbitrary size, for layout
+    // verification at sizes the real window doesn't offer. The platform
+    // framebuffer keeps its physical size, so `uistate` and the layout
+    // rects are faithful but `screenshot` output is only valid at sizes
+    // up to the real framebuffer.
+    if ( strcmp( cmd, "resize" ) == 0 && argc == 3 ) {
+        repgame_set_screen_size( state, ivec_arg( 1 ), ivec_arg( 2 ) );
+        return false;
+    }
     // touchui 0|1 — the touch-controls master switch (same flag the
     // pause menu's "Touch Controls" button toggles).
     if ( strcmp( cmd, "touchui" ) == 0 && argc == 2 ) {

@@ -57,13 +57,13 @@ sizes every button.
 
 | Touch | Action |
 |---|---|
-| Joystick (bottom-left, hold + drag) | Move — `positionHMove(dist/maxDist, angleH)` with the same convention as WASD (drag up = 0 forward, right = +90); release resets `sizeH` to 0 |
+| Joystick (bottom-left corner, hold + drag) | Move — `positionHMove(dist/maxDist, angleH)` with the same convention as WASD (drag up = 0 forward, right = +90); release resets `sizeH` to 0 |
 | Jump (top-right, hold) | `movement.jumpPressed` |
 | Sneak (top-left, tap) | Toggle `movement.sneakPressed` — a toggle because holding it while aiming is impractical |
-| Break / Pick / Place (row above the hotbar strip, hold) | `setButtonState` left / middle / right |
-| Inv (bottom-right, tap) | `onInventoryClicked` |
+| Break / Place (bottom-right corner row, hold) + Pick (top, right of Menu) | `setButtonState` left / middle / right |
+| Inv (right edge, directly under Jump, tap) | `onInventoryClicked` |
 | Menu (top-center, tap) | `onMenuClicked` (close inventory, else pause menu); opening the menu releases every held control |
-| Chat (half-size, right of Menu, tap) | `chat_open_request` → `repgame_open_chat` — chat uses the shared `text_input_active` capture; on Android the box opens but there's no IME bridge yet |
+| Chat (left edge, directly under Sneak — or right of Sneak on the top row when the lifted joystick would cover it, tap) | `chat_open_request` → `repgame_open_chat` — chat uses the shared `text_input_active` capture; on Android the box opens but there's no IME bridge yet |
 | System back (Android) / browser back (WASM) | `Input::backPressed()`: text field → `text_escape`, focused creative search → `search_close`, else `onMenuClicked` |
 | Drag anywhere else | Look — `lookMove(dx, dy)` at `TOUCH_LOOK_SENSITIVITY` (1.25×) per move |
 | Short tap anywhere else | Tap — `screen_tap_pending` at `absPosition`: hotbar slot select with the inventory closed, a UI click when it's open (slop = `TOUCH_TAP_SLOP_FRACTION` × short screen edge) |
@@ -71,7 +71,10 @@ sizes every button.
 | `menu_open` or `text_input_active` | Every touch is a tap: `absPosition` tracks the finger, `screen_tap_pending` on a within-slop release |
 
 Multi-touch tracks one pointer id per control (a second finger on a held
-control is ignored); `TOUCH_CANCEL` releases without a tap.
+control is ignored); `TOUCH_CANCEL` releases without a tap. On narrow
+screens where a bottom-corner control would cover the hotbar, it lifts
+so its bottom sits on the HUD strip's top edge (Pick stays aligned with
+the joystick).
 
 ## Movement (`RepGame::process_movement`)
 
