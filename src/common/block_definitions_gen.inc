@@ -5307,18 +5307,25 @@ block_definitions[ 346 ].icon_texture = TEX_COPPER_ORE;
 block_definitions[ 346 ].mineable = MINEABLE_PICKAXE;
 
 // COPPER_TORCH (347)
-block_definitions[ 347 ].textures[ FACE_TOP ] = TEX_COPPER_TORCH;
-block_definitions[ 347 ].textures[ FACE_BOTTOM ] = TEX_COPPER_TORCH;
+block_definitions[ 347 ].textures[ FACE_TOP ] = TEX_COPPER_TORCH_TOP;
+block_definitions[ 347 ].textures[ FACE_BOTTOM ] = TEX_COPPER_TORCH_BOTTOM;
 block_definitions[ 347 ].textures[ FACE_RIGHT ] = TEX_COPPER_TORCH;
 block_definitions[ 347 ].textures[ FACE_FRONT ] = TEX_COPPER_TORCH;
 block_definitions[ 347 ].textures[ FACE_LEFT ] = TEX_COPPER_TORCH;
 block_definitions[ 347 ].textures[ FACE_BACK ] = TEX_COPPER_TORCH;
 block_definitions[ 347 ].icon_texture = TEX_COPPER_TORCH;
+block_definitions[ 347 ].breaks_in_liquid = true;
 block_definitions[ 347 ].casts_shadow = false;
-block_definitions[ 347 ].hardness = 0.35f;
-block_definitions[ 347 ].is_seethrough = true;
+block_definitions[ 347 ].collides_with_player = false;
+block_definitions[ 347 ].emits_light = 14;
+block_definitions[ 347 ].hardness = 0.0f;
+block_definitions[ 347 ].icon_is_isometric = false;
+block_definitions[ 347 ].is_torch = true;
 block_definitions[ 347 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 347 ].no_light = 6815743;
+block_definitions[ 347 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 347 ].offset = { 7, 0, 7 };
+block_definitions[ 347 ].scale = { 2, 10, 2 };
+block_definitions[ 347 ].tex_offset = { -7, 0, -7 };
 
 // COPPER_TRAPDOOR (348)
 block_definitions[ 348 ].textures[ FACE_TOP ] = TEX_COPPER_TRAPDOOR;
@@ -16794,18 +16801,24 @@ block_definitions[ 1141 ].icon_texture = TEX_SOUL_SOIL;
 block_definitions[ 1141 ].mineable = MINEABLE_SHOVEL;
 
 // SOUL_TORCH (1142)
-block_definitions[ 1142 ].textures[ FACE_TOP ] = TEX_SOUL_TORCH;
-block_definitions[ 1142 ].textures[ FACE_BOTTOM ] = TEX_SOUL_TORCH;
+block_definitions[ 1142 ].textures[ FACE_TOP ] = TEX_SOUL_TORCH_TOP;
+block_definitions[ 1142 ].textures[ FACE_BOTTOM ] = TEX_SOUL_TORCH_BOTTOM;
 block_definitions[ 1142 ].textures[ FACE_RIGHT ] = TEX_SOUL_TORCH;
 block_definitions[ 1142 ].textures[ FACE_FRONT ] = TEX_SOUL_TORCH;
 block_definitions[ 1142 ].textures[ FACE_LEFT ] = TEX_SOUL_TORCH;
 block_definitions[ 1142 ].textures[ FACE_BACK ] = TEX_SOUL_TORCH;
 block_definitions[ 1142 ].icon_texture = TEX_SOUL_TORCH;
+block_definitions[ 1142 ].breaks_in_liquid = true;
 block_definitions[ 1142 ].casts_shadow = false;
+block_definitions[ 1142 ].collides_with_player = false;
 block_definitions[ 1142 ].emits_light = 10;
-block_definitions[ 1142 ].hardness = 0.35f;
-block_definitions[ 1142 ].is_seethrough = true;
-block_definitions[ 1142 ].no_light = 6815743;
+block_definitions[ 1142 ].hardness = 0.0f;
+block_definitions[ 1142 ].icon_is_isometric = false;
+block_definitions[ 1142 ].is_torch = true;
+block_definitions[ 1142 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1142 ].offset = { 7, 0, 7 };
+block_definitions[ 1142 ].scale = { 2, 10, 2 };
+block_definitions[ 1142 ].tex_offset = { -7, 0, -7 };
 
 // SPONGE (1143)
 block_definitions[ 1143 ].textures[ FACE_TOP ] = TEX_SPONGE;

@@ -793,6 +793,40 @@
   "copper_torch": {
     "source": "textures/blocks/copper_torch"
   },
+  "copper_torch_bottom": {
+    "extract": {
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "copper_torch"
+  },
+  "copper_torch_top": {
+    "extract": {
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "copper_torch"
+  },
   "copper_trapdoor": {
     "source": "textures/blocks/copper_trapdoor"
   },
@@ -4523,6 +4557,40 @@
   },
   "soul_torch": {
     "source": "textures/blocks/soul_torch"
+  },
+  "soul_torch_bottom": {
+    "extract": {
+      "from": [
+        7,
+        13
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "soul_torch"
+  },
+  "soul_torch_top": {
+    "extract": {
+      "from": [
+        7,
+        6
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "to": [
+        7,
+        7
+      ]
+    },
+    "source": "soul_torch"
   },
   "spawn_egg_bee": {
     "source": "textures/items/spawn_eggs/spawn_egg_bee"
