@@ -72,7 +72,7 @@ bool chat_edit_apply_input( ChatUi &chat, const Input &in, std::string *submitte
 }
 
 void repgame_open_chat( RepGameState &state, const std::string &prefix ) {
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM ) || defined( REPGAME_ANDROID )
     ChatUi &chat = state.ui.chat;
     // Refused while another modal screen or text capture owns the keys.
     if ( chat.open || state.ui.sign_edit.open || state.input.menu_open || state.input.inventory_open ) {
@@ -101,7 +101,7 @@ void repgame_close_chat( RepGameState &state ) {
     chat.open = false;
     chat.line.clear( );
     chat.history_pos = -1;
-#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
+#if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM ) || defined( REPGAME_ANDROID )
     state.input.text_input_end( );
 #endif
 }

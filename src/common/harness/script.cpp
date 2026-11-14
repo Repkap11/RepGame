@@ -542,6 +542,60 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         state.input.search_focused = ivec_arg( 1 ) != 0;
         return false;
     }
+    // touchui 0|1 — the touch-controls master switch (same flag the
+    // pause menu's "Touch Controls" button toggles).
+    if ( strcmp( cmd, "touchui" ) == 0 && argc == 2 ) {
+        state.input.touch_ui = ivec_arg( 1 ) != 0;
+        return false;
+    }
+    // touch down|move|up|cancel <id> <x> <y> — one touch event in window
+    // pixels through the same repgame_touch_event path platforms call.
+    if ( strcmp( cmd, "touch" ) == 0 && argc == 5 ) {
+        const char *ph = argv[ 1 ].c_str( );
+        TouchPhase phase;
+        if ( strcmp( ph, "down" ) == 0 ) {
+            phase = TOUCH_DOWN;
+        } else if ( strcmp( ph, "move" ) == 0 ) {
+            phase = TOUCH_MOVE;
+        } else if ( strcmp( ph, "up" ) == 0 ) {
+            phase = TOUCH_UP;
+        } else if ( strcmp( ph, "cancel" ) == 0 ) {
+            phase = TOUCH_CANCEL;
+        } else {
+            cmd_error( state, line, "touch: want down|move|up|cancel" );
+            return false;
+        }
+        repgame_touch_event( state, phase, larg( 2 ), static_cast<float>( farg( 3 ) ), static_cast<float>( farg( 4 ) ) );
+        return false;
+    }
+    // assert_pos x y z tol — the camera is within tol of the point.
+    if ( strcmp( cmd, "assert_pos" ) == 0 && argc == 5 ) {
+        const glm::dvec3 want( farg( 1 ), farg( 2 ), farg( 3 ) );
+        const double tol = farg( 4 );
+        const glm::dvec3 &got = state.camera.pos;
+        char want_buf[ 96 ], actual[ 96 ];
+        snprintf( want_buf, sizeof( want_buf ), "%s %s %s +- %s", argv[ 1 ].c_str( ), argv[ 2 ].c_str( ), argv[ 3 ].c_str( ), argv[ 4 ].c_str( ) );
+        snprintf( actual, sizeof( actual ), "%.3f,%.3f,%.3f", got.x, got.y, got.z );
+        results::assert_( state, line, argv[ 0 ].c_str( ), glm::distance( want, got ) <= tol, want_buf, actual );
+        return false;
+    }
+    // assert_ui_open inventory|menu 0|1 — the flag reads as expected
+    // after a tap-driven open/close.
+    if ( strcmp( cmd, "assert_ui_open" ) == 0 && argc == 3 ) {
+        const char *which = argv[ 1 ].c_str( );
+        const bool want = ivec_arg( 2 ) != 0;
+        bool got;
+        if ( strcmp( which, "inventory" ) == 0 ) {
+            got = state.input.inventory_open;
+        } else if ( strcmp( which, "menu" ) == 0 ) {
+            got = state.input.menu_open;
+        } else {
+            cmd_error( state, line, "assert_ui_open: want inventory|menu" );
+            return false;
+        }
+        results::assert_( state, line, argv[ 0 ].c_str( ), got == want, argv[ 2 ].c_str( ), got ? "1" : "0" );
+        return false;
+    }
     // chatopen [/] / chatclose — the chat box's real open/close paths;
     // `type` and `signkey` inject characters and keys while it's open.
     if ( strcmp( cmd, "chatopen" ) == 0 && ( argc == 1 || ( argc == 2 && strcmp( argv[ 1 ].c_str( ), "/" ) == 0 ) ) ) {
@@ -622,7 +676,8 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
                         "\"furnace\":{\"in\":\"%s\",\"fuel\":\"%s\",\"out\":\"%s\",\"in_slab\":\"%s\",\"fuel_slab\":\"%s\",\"out_slab\":\"%s\"},"
                         "\"craft3\":{\"grid\":\"%s\",\"grid_slab\":\"%s\"},"
                         "\"surv\":{\"rect\":\"%s\",\"slab\":\"%s\"},"
-                        "\"chat\":{\"log\":\"%s\",\"input\":\"%s\",\"lines\":%d}",
+                        "\"chat\":{\"log\":\"%s\",\"input\":\"%s\",\"lines\":%d},"
+                        "\"touch\":{\"joy\":\"%s\",\"jump\":\"%s\",\"sneak\":\"%s\",\"menu\":\"%s\",\"chat\":\"%s\",\"brk\":\"%s\",\"pick\":\"%s\",\"place\":\"%s\",\"inv\":\"%s\",\"close\":\"%s\",\"mode\":\"%s\",\"prev\":\"%s\",\"next\":\"%s\"}",
                         r.overflow,
                         state.ui.chest.open ? 1 : 0, state.ui.furnace.open ? 1 : 0, state.ui.crafting.table_open ? 1 : 0,
                         urect( r.chest_items ).c_str( ), slab( state.ui.chest.inventory_renderer ).c_str( ),
@@ -630,7 +685,10 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
                         slab( state.ui.furnace.input ).c_str( ), slab( state.ui.furnace.fuel ).c_str( ), slab( state.ui.furnace.output ).c_str( ),
                         urect( r.crafting_grid3 ).c_str( ), slab( state.ui.crafting.grid3 ).c_str( ),
                         urect( r.survival_items ).c_str( ), slab( state.survival_inventory.inventory_renderer ).c_str( ),
-                        urect( r.chat_log ).c_str( ), urect( r.chat_input ).c_str( ), r.chat_lines );
+                        urect( r.chat_log ).c_str( ), urect( r.chat_input ).c_str( ), r.chat_lines,
+                        urect( r.touch_joystick ).c_str( ), urect( r.touch_jump ).c_str( ), urect( r.touch_sneak ).c_str( ), urect( r.touch_menu ).c_str( ), urect( r.touch_chat ).c_str( ),
+                        urect( r.touch_break ).c_str( ), urect( r.touch_pick ).c_str( ), urect( r.touch_place ).c_str( ), urect( r.touch_inventory ).c_str( ),
+                        urect( r.touch_inv_close ).c_str( ), urect( r.touch_inv_mode ).c_str( ), urect( r.touch_page_prev ).c_str( ), urect( r.touch_page_next ).c_str( ) );
         return false;
     }
     if ( strcmp( cmd, "assert_health" ) == 0 && argc == 3 ) {

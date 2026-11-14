@@ -103,6 +103,10 @@ class Input {
     // acts as a click at absPosition when the inventory is open, or a hotbar
     // slot tap-select when it is closed.
     bool screen_tap_pending;
+    // Enables the on-screen touch controls (TouchControls): set at init on
+    // Android, from JS on WASM, and toggled by the pause menu / `touchui`
+    // rep-dbg verb elsewhere.
+    bool touch_ui = false;
     // Creative-inventory search box: the 'f' down-edge while the inventory
     // is open arms search_toggle, which the inventory tick turns into a
     // search_focused flip (only when the creative palette is actually
@@ -115,10 +119,10 @@ class Input {
     int search_chars_len;
     int search_backspaces;
     bool search_close;
-    // Sign editor text capture: while text_input_active the platform loop
+    // Modal text capture: while text_input_active the platform loop
     // runs SDL text input and every printable key goes to text_chars for
-    // the sign-edit tick to drain — raw key presses don't reach movement
-    // keys or the world. The modal sign editor is the only user for now.
+    // the sign-edit / chat tick to drain — raw key presses don't reach
+    // movement keys or the world.
     bool text_input_active = false;
     char text_chars[ 128 ];
     int text_chars_len = 0;
@@ -140,12 +144,13 @@ class Input {
     void mousePosition( int x, int y );
     // SDL text event payload (UTF-8); queues the printable-ASCII bytes.
     void textInput( const char *utf8 );
-#else
+#endif
+    // Touch-path input (shared input_touch.cpp): driven by the C++ touch
+    // controls on every platform — Android JNI and WASM forward to it.
     void positionHMove( float sizeH, float angleH );
     void setJumpPressed( int jumpPressed );
     void setButtonState( int left, int middle, int right );
     void onInventoryClicked( );
-#endif
     // Enter/leave modal text capture. begin clears held movement keys so a
     // key held across the open doesn't keep the player moving. No text
     // editing exists on Android/VR, so those builds never call these.
@@ -154,5 +159,8 @@ class Input {
     // Escape (desktop) / Menu button (Android): closes the inventory if it's
     // open, otherwise toggles the pause menu.
     void onMenuClicked( );
+    // Android back / WASM history-back: abandons an open text capture or
+    // search box first, otherwise behaves like Menu/Escape.
+    void backPressed( );
     void lookMove( int x, int y );
 };

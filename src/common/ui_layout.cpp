@@ -217,6 +217,20 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                                           : fmaxf( 0.4f * in.screen_w,
                                                                    this->font_->getTextWidth( "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW", chat_t ) ) );
 
+    // Touch controls: button unit r = min(w/4, h/2)/2 (UIOverlayView's
+    // lookMaxRadius). The joystick is a 2r square bottom-left on the HUD
+    // strip; Break/Pick/Place share the strip between the joystick's
+    // right edge and the inventory button's left edge (shrinking to fit
+    // at tiny sizes); the inventory set mirrors Inv/Jump with the
+    // creative page arrows floating in the margins beside the panel.
+    const float touch_r = fminf( in.screen_w * 0.25f, in.screen_h * 0.5f ) * 0.5f;
+    const float touch_row_left = 2.0f * touch_r;
+    const float touch_row_right = in.screen_w - touch_r;
+    const float touch_bs = fmaxf( 0.0f, fminf( touch_r, ( touch_row_right - touch_row_left ) / 3.0f ) );
+    const float touch_margin = fmaxf( 0.0f, ( in.screen_w - in.creative_panel_w ) * 0.5f );
+    const float touch_page_s = fmaxf( 0.0f, fminf( in.screen_w * 0.09f, touch_margin - 8.0f ) );
+    const float touch_page_off = fmaxf( 0.0f, ( touch_margin - touch_page_s ) * 0.5f );
+
     // Fit-solve the pause menu's integer text scale k: shrink it until the
     // panel fits the viewport caps (same rule the old k-- loop applied).
     int pause_k = static_cast<int>( lroundf( ui_layout_height_basis( in.screen_w, in.screen_h ) / 400.0f ) );
@@ -368,6 +382,79 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                 .floating = { .offset = { chat_pad, -( strip_h + 2.0f * chat_pad + chat_input_h ) },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        // Touch controls float off the root corners and the HUD strip's
+        // precomputed height — same geometry UIOverlayView::onSizeChanged
+        // produced, anchored to the real strip rather than its
+        // HOTBAR_MAX_HEIGHT_PERCENT guess. Declared unconditionally;
+        // only the touch draw decides visibility.
+        CLAY( { .id = CLAY_ID( "touch_joystick" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( 2.0f * touch_r ), CLAY_SIZING_FIXED( 2.0f * touch_r ) } },
+                .floating = { .offset = { 0, -strip_h },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_jump" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_sneak" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_TOP },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_menu" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_TOP, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        // Chat: a half-size button pinned immediately right of the menu
+        // button (menu is r wide, centered on CENTER_TOP).
+        CLAY( { .id = CLAY_ID( "touch_chat" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r * 0.5f ), CLAY_SIZING_FIXED( touch_r * 0.5f ) } },
+                .floating = { .offset = { touch_r * 0.5f, 0 },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_inventory" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .floating = { .offset = { 0, -strip_h },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_break" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_bs ), CLAY_SIZING_FIXED( touch_bs ) } },
+                .floating = { .offset = { touch_row_left, -strip_h },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_place" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_bs ), CLAY_SIZING_FIXED( touch_bs ) } },
+                .floating = { .offset = { -touch_r, -strip_h },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        // Pick centers between Break and Place (midpoint of the row
+        // span's inner edges = screen center + r/2).
+        CLAY( { .id = CLAY_ID( "touch_pick" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_bs ), CLAY_SIZING_FIXED( touch_bs ) } },
+                .floating = { .offset = { touch_r * 0.5f, -strip_h },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        // Inventory-open set: Close at Inv's spot, mode at Jump's, page
+        // arrows vertically centered in the margins beside the creative
+        // panel (shrunk to fit when the margin is tight).
+        CLAY( { .id = CLAY_ID( "touch_inv_close" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .floating = { .offset = { 0, -strip_h },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_inv_mode" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_page_prev" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_page_s ), CLAY_SIZING_FIXED( touch_page_s ) } },
+                .floating = { .offset = { touch_page_off, 0 },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_CENTER, .parent = CLAY_ATTACH_POINT_LEFT_CENTER },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        CLAY( { .id = CLAY_ID( "touch_page_next" ),
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_page_s ), CLAY_SIZING_FIXED( touch_page_s ) } },
+                .floating = { .offset = { -touch_page_off, 0 },
+                              .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_CENTER, .parent = CLAY_ATTACH_POINT_RIGHT_CENTER },
+                              .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         // The pause panel floats (attachTo ROOT): it never displaces the
         // HUD strip, and is laid out whether or not the menu is open. The
         // sign editor shares its fit-solved text scale and sits in the
@@ -446,6 +533,20 @@ void UiLayout::compute( const UiLayoutInput &in ) {
         this->rects_.sign_lines[ i ] = rect_of( CLAY_IDI( "sign_line", i ) );
     }
 
+    this->rects_.touch_joystick = rect_of( CLAY_ID( "touch_joystick" ) );
+    this->rects_.touch_jump = rect_of( CLAY_ID( "touch_jump" ) );
+    this->rects_.touch_sneak = rect_of( CLAY_ID( "touch_sneak" ) );
+    this->rects_.touch_menu = rect_of( CLAY_ID( "touch_menu" ) );
+    this->rects_.touch_chat = rect_of( CLAY_ID( "touch_chat" ) );
+    this->rects_.touch_inventory = rect_of( CLAY_ID( "touch_inventory" ) );
+    this->rects_.touch_break = rect_of( CLAY_ID( "touch_break" ) );
+    this->rects_.touch_pick = rect_of( CLAY_ID( "touch_pick" ) );
+    this->rects_.touch_place = rect_of( CLAY_ID( "touch_place" ) );
+    this->rects_.touch_inv_close = rect_of( CLAY_ID( "touch_inv_close" ) );
+    this->rects_.touch_inv_mode = rect_of( CLAY_ID( "touch_inv_mode" ) );
+    this->rects_.touch_page_prev = rect_of( CLAY_ID( "touch_page_prev" ) );
+    this->rects_.touch_page_next = rect_of( CLAY_ID( "touch_page_next" ) );
+
     this->rects_.chat_input = rect_of( CLAY_ID( "chat_input" ) );
     this->rects_.chat_log = rect_of( CLAY_ID( "chat_log" ) );
     this->rects_.chat_k = chat_k;
@@ -511,6 +612,19 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     screen( UI_OVERFLOW_SIGN, "sign_panel", r.sign_panel );
     screen( UI_OVERFLOW_CHAT, "chat_input", r.chat_input );
     screen( UI_OVERFLOW_CHAT, "chat_log", r.chat_log );
+    screen( UI_OVERFLOW_TOUCH, "touch_joystick", r.touch_joystick );
+    screen( UI_OVERFLOW_TOUCH, "touch_jump", r.touch_jump );
+    screen( UI_OVERFLOW_TOUCH, "touch_sneak", r.touch_sneak );
+    screen( UI_OVERFLOW_TOUCH, "touch_menu", r.touch_menu );
+    screen( UI_OVERFLOW_TOUCH, "touch_chat", r.touch_chat );
+    screen( UI_OVERFLOW_TOUCH, "touch_inventory", r.touch_inventory );
+    screen( UI_OVERFLOW_TOUCH, "touch_break", r.touch_break );
+    screen( UI_OVERFLOW_TOUCH, "touch_pick", r.touch_pick );
+    screen( UI_OVERFLOW_TOUCH, "touch_place", r.touch_place );
+    screen( UI_OVERFLOW_TOUCH, "touch_inv_close", r.touch_inv_close );
+    screen( UI_OVERFLOW_TOUCH, "touch_inv_mode", r.touch_inv_mode );
+    screen( UI_OVERFLOW_TOUCH, "touch_page_prev", r.touch_page_prev );
+    screen( UI_OVERFLOW_TOUCH, "touch_page_next", r.touch_page_next );
 
     // Sibling non-overlap invariants — a violation here is a real layout
     // bug (not a fit problem). Each pair gets a bit so warnings fire once

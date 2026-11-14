@@ -188,6 +188,60 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     snprintf( what, sizeof( what ), "%s: furnace backdrop covers fuel", name );
     is_true( what, r.furnace_backdrop.left <= r.furnace_fuel.left && r.furnace_backdrop.bottom <= r.furnace_fuel.bottom );
 
+    // Touch controls: the gameplay set hugs the corners and the strip's
+    // top edge; nothing overlaps each other or the hotbar.
+    const UiRect *gp[] = { &r.touch_joystick, &r.touch_jump, &r.touch_sneak, &r.touch_menu, &r.touch_chat,
+                           &r.touch_break, &r.touch_pick, &r.touch_place, &r.touch_inventory };
+    const char *gpn[] = { "joystick", "jump", "sneak", "menu", "chat", "break", "pick", "place", "inv" };
+    const auto overlaps = []( const UiRect &a, const UiRect &b, float margin ) {
+        return a.left < b.right( ) - margin && a.right( ) > b.left + margin &&
+               a.bottom < b.top( ) - margin && a.top( ) > b.bottom + margin;
+    };
+    for ( int i = 0; i < 9; i++ ) {
+        snprintf( what, sizeof( what ), "%s: touch %s inside viewport", name, gpn[ i ] );
+        is_true( what, gp[ i ]->left >= -w * 0.5f - eps && gp[ i ]->right( ) <= w * 0.5f + eps &&
+                       gp[ i ]->bottom >= -h * 0.5f - eps && gp[ i ]->top( ) <= h * 0.5f + eps );
+        snprintf( what, sizeof( what ), "%s: touch %s clears hotbar", name, gpn[ i ] );
+        is_true( what, !overlaps( *gp[ i ], r.hotbar, eps ) );
+        for ( int j = i + 1; j < 9; j++ ) {
+            snprintf( what, sizeof( what ), "%s: touch %s/%s disjoint", name, gpn[ i ], gpn[ j ] );
+            is_true( what, !overlaps( *gp[ i ], *gp[ j ], eps ) );
+        }
+    }
+    // The joystick is a 2r square on the strip's top; the inventory set
+    // mirrors Inv/Jump and the page arrows sit clear of the panels.
+    const float touch_r = fminf( w * 0.25f, h * 0.5f ) * 0.5f;
+    snprintf( what, sizeof( what ), "%s: touch joystick is 2r", name );
+    near_to( what, r.touch_joystick.width, 2.0f * touch_r );
+    snprintf( what, sizeof( what ), "%s: touch joystick bottom on strip", name );
+    near_to( what, r.touch_joystick.bottom, r.hud_strip.top( ) );
+    snprintf( what, sizeof( what ), "%s: touch joystick at left edge", name );
+    near_to( what, r.touch_joystick.left, -w * 0.5f );
+    snprintf( what, sizeof( what ), "%s: touch close at inv spot", name );
+    near_to( what, r.touch_inv_close.left, r.touch_inventory.left );
+    near_to( what, r.touch_inv_close.bottom, r.touch_inventory.bottom );
+    snprintf( what, sizeof( what ), "%s: touch mode at jump spot", name );
+    near_to( what, r.touch_inv_mode.left, r.touch_jump.left );
+    near_to( what, r.touch_inv_mode.bottom, r.touch_jump.bottom );
+    // Chat is a half-size square flush against the menu's right edge,
+    // tops aligned.
+    snprintf( what, sizeof( what ), "%s: touch chat is r/2", name );
+    near_to( what, r.touch_chat.width, touch_r * 0.5f );
+    snprintf( what, sizeof( what ), "%s: touch chat right of menu", name );
+    near_to( what, r.touch_chat.left, r.touch_menu.right( ) );
+    snprintf( what, sizeof( what ), "%s: touch chat top-aligned with menu", name );
+    near_to( what, r.touch_chat.top( ), r.touch_menu.top( ) );
+    // The inventory set vs the inventory panels: the page arrows must
+    // not cover the creative palette; Close/Mode sit on the strip/corner
+    // where the survival slab can't quite reach (a sub-3px edge graze at
+    // narrow aspects is inherent to the bounding-square geometry the
+    // Java circles were drawn inside).
+    snprintf( what, sizeof( what ), "%s: page prev/next clear creative", name );
+    is_true( what, !overlaps( r.touch_page_prev, r.creative_panel, eps ) && !overlaps( r.touch_page_next, r.creative_panel, eps ) );
+    snprintf( what, sizeof( what ), "%s: inventory set ~clears panels", name );
+    is_true( what, !overlaps( r.touch_inv_close, r.creative_panel, 3.0f ) && !overlaps( r.touch_inv_mode, r.creative_panel, 3.0f ) &&
+                   !overlaps( r.touch_inv_close, r.survival_items, 3.0f ) && !overlaps( r.touch_inv_mode, r.survival_items, 3.0f ) );
+
     // Pause menu: floating centered panel of stacked rows.
     snprintf( what, sizeof( what ), "%s: pause panel centered", name );
     near_to( what, r.pause_panel.center_x( ), 0.0f );
@@ -231,10 +285,11 @@ int test_ui_layout( ) {
     // sizing shrinks with the window); the chat scrollback tops out of
     // the viewport too. Clay repositions rather than centers at
     // degenerate sizes, so only the mask is asserted.
+    // The joystick's fixed 2r size tops out of the viewport too.
     failures += check_strip( layout, "extreme", 240.0f, 160.0f, 360.0f, 40.0f,
                            UI_OVERFLOW_HUD | UI_OVERFLOW_SURVIVAL | UI_OVERFLOW_CHEST |
                                UI_OVERFLOW_CRAFTING2 | UI_OVERFLOW_CRAFTING3 | UI_OVERFLOW_FURNACE | UI_OVERFLOW_PAUSE |
-                               UI_OVERFLOW_CHAT,
+                               UI_OVERFLOW_CHAT | UI_OVERFLOW_TOUCH,
                            false );
 
     // Death screen: the menu collapses to Respawn + Exit.

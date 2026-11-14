@@ -690,6 +690,12 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
         globalGameState.ui.overlay.draw_held_inventory_item( globalGameState.ui.held_slot, globalGameState.ui.holding_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
     }
+    // The touch controls ride the HUD layer: they self-hide while the
+    // menu is up (or input.touch_ui is off), and their labels flush with
+    // the HUD text below.
+    if ( !run_policy().capture.enabled ) {
+        globalGameState.ui.touch.draw( globalGameState.world.renderer, globalGameState.ui.overlay.get_shader( ), globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center, globalGameState );
+    }
     // Flush the HUD/inventory text layer before the pause menu: glyphs in
     // the batch rasterize at flush time, so anything still queued (item
     // label, furnace readout, slot counts) would otherwise draw over the

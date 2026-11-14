@@ -46,6 +46,7 @@ class PauseMenu {
         BUTTON_PEACEFUL,
         BUTTON_FLYING,
         BUTTON_IMGUI,
+        BUTTON_TOUCH,
         BUTTON_EXIT,
         NUM_BUTTONS
     };

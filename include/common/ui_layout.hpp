@@ -175,6 +175,17 @@ struct UiLayoutRects {
     int chat_lines = 0;
     int chat_k = 0;
 
+    // Touch controls (UIOverlayView port; drawn/hit-tested only while
+    // input.touch_ui and the menu is closed — always laid out). Buttons
+    // are squares of side r where r = min(w/4, h/2)/2; the joystick is a
+    // 2r square.
+    UiRect touch_joystick, touch_jump, touch_sneak, touch_menu, touch_chat;
+    UiRect touch_break, touch_pick, touch_place, touch_inventory;
+    // Inventory-open variants: Close at the inventory button's spot,
+    // game-mode at Jump's, and the creative page arrows in the side
+    // margins beside the creative panel.
+    UiRect touch_inv_close, touch_inv_mode, touch_page_prev, touch_page_next;
+
     // Bitmask of UiOverflow — which screens exceeded the viewport this
     // pass. Overflow is possible (a window can be smaller than a screen
     // needs) but inspectable: the draw code still runs, and tests/debug
@@ -195,6 +206,7 @@ enum UiOverflow : unsigned {
     UI_OVERFLOW_PAUSE = 1u << 7,
     UI_OVERFLOW_SIGN = 1u << 8,
     UI_OVERFLOW_CHAT = 1u << 9,
+    UI_OVERFLOW_TOUCH = 1u << 10,
 };
 
 // 16:9-normalized height basis shared by UI sizing: the UI stays a

@@ -112,6 +112,10 @@ class RepGame {
     // OpenXR convention: angleLeft/angleDown are negative). Matches
     // glm::perspective for symmetric FOVs; GL [-1,1] clip depth.
     static glm::mat4 projection_from_fov( float angle_left, float angle_right, float angle_up, float angle_down, float near_z, float far_z );
+    // Platform touch entry point: one pointer event in window pixels
+    // (top-left origin, y down). A no-op unless input.touch_ui; routes
+    // into ui.touch (the shared UIOverlayView port).
+    void touch_event( TouchPhase phase, int64_t id, float x, float y );
     void cleanup( );
     // Writes current position/inventory/mode/clock to player.dat. Called by
     // cleanup() and, on WASM, periodically so crashes don't lose player state.

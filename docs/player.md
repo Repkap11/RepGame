@@ -6,8 +6,8 @@ velocities, pose heights — `include/common/game/player_state.hpp`),
 `block_mining`, `held_swing`, `hotbar`. Per-tick work happens in
 `src/common/game/game_tick.cpp` (`RepGame::tick`) and
 `src/common/game/player.cpp`; this doc covers the desktop keyboard/mouse
-path — VR bindings are `docs/vr.md`, and Android/touch has its own input
-file under its platform dir. `RepGame::tick` itself is a short ordered
+path — VR bindings are `docs/vr.md`, and the touch controls live in the
+shared `src/common/touch_controls.cpp` (see *Touch bindings* below). `RepGame::tick` itself is a short ordered
 list of named phases: gameplay phases live in `game_tick.cpp`, the
 scripted/debug-only phases (capture, fly, walktest, results, script) in
 `src/common/game/game_harness.cpp`, and the VR phases in `vr.cpp`.
@@ -46,6 +46,32 @@ While `menu_open`, key *presses* are swallowed except Esc/inventory
 consistent. Mouse presses record where they began
 (`*_pressed_in_ui`) so a drag started over the UI never mines and a drag
 started in the world never moves items.
+
+## Touch bindings (`TouchControls`, `src/common/touch_controls.cpp`)
+
+The shared touch controls — the C++ port of Android's `UIOverlayView`,
+active while `input.touch_ui` (Android at init, WASM from JS, the pause
+menu's "Touch Controls" button elsewhere). Geometry is the layout pass's
+`UiLayoutRects::touch_*` (docs/ui.md); a `r = min(w/4, h/2)/2` unit
+sizes every button.
+
+| Touch | Action |
+|---|---|
+| Joystick (bottom-left, hold + drag) | Move — `positionHMove(dist/maxDist, angleH)` with the same convention as WASD (drag up = 0 forward, right = +90); release resets `sizeH` to 0 |
+| Jump (top-right, hold) | `movement.jumpPressed` |
+| Sneak (top-left, tap) | Toggle `movement.sneakPressed` — a toggle because holding it while aiming is impractical |
+| Break / Pick / Place (row above the hotbar strip, hold) | `setButtonState` left / middle / right |
+| Inv (bottom-right, tap) | `onInventoryClicked` |
+| Menu (top-center, tap) | `onMenuClicked` (close inventory, else pause menu); opening the menu releases every held control |
+| Chat (half-size, right of Menu, tap) | `chat_open_request` → `repgame_open_chat` — chat uses the shared `text_input_active` capture; on Android the box opens but there's no IME bridge yet |
+| System back (Android) / browser back (WASM) | `Input::backPressed()`: text field → `text_escape`, focused creative search → `search_close`, else `onMenuClicked` |
+| Drag anywhere else | Look — `lookMove(dx, dy)` at `TOUCH_LOOK_SENSITIVITY` (1.25×) per move |
+| Short tap anywhere else | Tap — `screen_tap_pending` at `absPosition`: hotbar slot select with the inventory closed, a UI click when it's open (slop = `TOUCH_TAP_SLOP_FRACTION` × short screen edge) |
+| Inventory open: Close / Creative\|Survival / `<` `>` | Close the inventory / arm `toggle_game_mode` / page the creative palette (wheel counter, creative only); other touches tap-track like the menu case |
+| `menu_open` or `text_input_active` | Every touch is a tap: `absPosition` tracks the finger, `screen_tap_pending` on a within-slop release |
+
+Multi-touch tracks one pointer id per control (a second finger on a held
+control is ignored); `TOUCH_CANCEL` releases without a tap.
 
 ## Movement (`RepGame::process_movement`)
 

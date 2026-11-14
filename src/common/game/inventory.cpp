@@ -1343,6 +1343,12 @@ void RepGame::process_inventory_events( ) {
                 case PauseMenu::BUTTON_IMGUI:
                     globalGameState.input.toggle_imgui = true;
                     break;
+                case PauseMenu::BUTTON_TOUCH:
+                    globalGameState.input.touch_ui = !globalGameState.input.touch_ui;
+                    if ( !globalGameState.input.touch_ui ) {
+                        globalGameState.ui.touch.cancel_all( globalGameState.input );
+                    }
+                    break;
                 case PauseMenu::BUTTON_EXIT:
                     globalGameState.input.exitGame = true;
                     break;

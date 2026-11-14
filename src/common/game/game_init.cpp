@@ -46,6 +46,11 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.input.mouse.smoothed_dy = 0.0f;
     globalGameState.input.shift_held = false;
     globalGameState.input.screen_tap_pending = false;
+#if defined( REPGAME_ANDROID )
+    // Android's primary input is the touchscreen; WASM sets this from JS
+    // and desktop toggles it from the pause menu.
+    globalGameState.input.touch_ui = true;
+#endif
     // Start a fresh world at noon (fully inside the daylight plateau); a
     // save may overwrite this below.
     globalGameState.world_time = DAY_LENGTH_TICKS / 4;
@@ -326,6 +331,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
 
     globalGameState.ui.overlay.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     globalGameState.ui.pause.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
+    globalGameState.ui.touch.init( vbl_ui_overlay_vertex, vbl_ui_overlay_instance );
     imgui_overlay_init( &globalGameState.ui.imgui );
     globalGameState.ui.font.init( );
     globalGameState.world.init_sign_text( globalGameState.ui.font );
@@ -417,6 +423,7 @@ void RepGame::cleanup( ) {
     globalGameState.ui.crafting.grid3.cleanup( );
     globalGameState.ui.crafting.output.cleanup( );
     globalGameState.ui.pause.cleanup( );
+    globalGameState.ui.touch.cleanup( );
     imgui_overlay_cleanup( &globalGameState.ui.imgui );
     block_definitions_free_definitions( );
     audio_cleanup( );

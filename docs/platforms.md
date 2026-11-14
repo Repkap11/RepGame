@@ -102,6 +102,19 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   `wasm_server.py` (COOP/COEP headers for SharedArrayBuffer).
 - `make wasm-run` — build + open in Chrome (`WASM_START_COMMAND`).
 - `make wasm-deploy` — rsync `out/wasm/delivery/` to repkap11.com.
+- Touch: `input.touch_ui` defaults on for `matchMedia('(pointer: coarse)')`
+  (override with `?touch=0|1`). SDL finger events forward to the shared
+  `TouchControls` (src/common/touch_controls.cpp); with touch UI on,
+  `SDL_HINT_TOUCH_MOUSE_EVENTS=0` suppresses SDL's emulated mouse and
+  pointer lock is never requested. With it off, touch degrades to SDL's
+  normal emulated mouse.
+- Soft keyboard: `index.js` keeps a hidden focusable `<input>`; it is
+  focused on `touchend` when `repgame_wasm_wants_text()` reports a text
+  capture (chat, sign edit, creative-search focus). `beforeinput`/`input`
+  and Enter forward through `repgame_wasm_text`/`repgame_wasm_text_key`.
+- Back: the browser back/history path calls `repgame_wasm_back()` →
+  `Input::backPressed()` (text field → escape, search → close, else the
+  pause menu) instead of exiting the game.
 
 ## Windows
 
@@ -121,6 +134,20 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 - `make android-run` / `make android_debug-run` — install to a device over
   adb and tail logcat.
 - `make android-deploy` — rsync the release APK to repkap11.com.
+- Input is a thin JNI bridge: `RepGameActivity` installs an
+  `OnTouchListener` on the `GLSurfaceView` and forwards every
+  `MotionEvent` as `(phase, pointerId, x, y)` through
+  `queueEvent(...)` → `touchEvent(...)` → `repgame.touch_event`, so all
+  `Input` writes happen on the GL thread. The phase constants in
+  `RepGameJNIWrapper` mirror `TouchPhase` (touch_controls.hpp). The
+  on-screen controls themselves are the shared C++ `TouchControls`
+  (`input.touch_ui` is forced on at init) — there is no Java overlay.
+- The system back button queues `Input::backPressed()` on the GL thread
+  (text field → escape, creative search → close, else pause-menu toggle).
+  Exit is polled once per `onDrawFrame` via `shouldExit()` and finishes
+  the Activity on the UI thread.
+- Chat opens through the touch Chat button (`text_input_active`), but
+  there is no IME bridge yet — text can be escaped with back, not typed.
 
 ## Docker
 

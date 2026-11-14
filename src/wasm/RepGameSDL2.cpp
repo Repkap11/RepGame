@@ -27,19 +27,16 @@ static void repgame_apply_vsync( ) {
 void repgame_linux_process_sdl_events( RepGame &repgame ) {
     SDL_Event event;
     Input &input = repgame.getInputState( );
-    // On mobile, SDL2 converts touch to mouse events. A touch-drag to look
-    // around would be interpreted as holding left-click (mining blocks).
-    // Track touch movement to distinguish tap (break block) from drag (look).
-    static bool touch_active = false;
-    static int touch_start_x = 0, touch_start_y = 0;
-    static bool touch_moved = false;
-    static bool tap_break_pending = false;
-    const int TAP_THRESHOLD_PX = 10;
-    // Clear any pending tap-break from the previous frame so left-click is
-    // only held for one tick (enough to break one block).
-    if ( tap_break_pending ) {
-        input.mouseInput( SDL_BUTTON_LEFT, true );
-        tap_break_pending = false;
+    // Touch-to-mouse emulation follows touch_ui: with the C++ touch
+    // controls on, SDL's synthetic mouse events are disabled so they
+    // can't double-drive clicks; with them off, a finger just behaves
+    // as a mouse. The hint is read through a callback, so setting it
+    // live flips the emulation mid-session.
+    static int touch_mouse_events_on = -1;
+    const int want_mouse_events = input.touch_ui ? 0 : 1;
+    if ( touch_mouse_events_on != want_mouse_events ) {
+        touch_mouse_events_on = want_mouse_events;
+        SDL_SetHint( SDL_HINT_TOUCH_MOUSE_EVENTS, want_mouse_events ? "1" : "0" );
     }
     // Capture mode: ignore user input entirely (the camera is scripted), but
     // still honor window resize/close — same rule as the desktop loop.
@@ -92,29 +89,13 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 if ( handledMouse ) {
                     break;
                 }
-                if ( event.button.which == SDL_TOUCH_MOUSEID ) {
-                    // Touch-synthesized mouse event — apply tap-vs-drag logic.
-                    if ( event.type == SDL_MOUSEBUTTONDOWN ) {
-                        touch_active = true;
-                        touch_start_x = event.button.x;
-                        touch_start_y = event.button.y;
-                        touch_moved = false;
-                    } else { // SDL_MOUSEBUTTONUP
-                        if ( touch_active ) {
-                            touch_active = false;
-                            if ( !touch_moved ) {
-                                // Tap: forward as a brief left-click so the
-                                // game breaks one block on the next tick.
-                                input.mouseInput( SDL_BUTTON_LEFT, false );
-                                tap_break_pending = true;
-                            }
-                            // Drag: don't forward — camera already moved.
-                        }
-                    }
-                } else {
-                    // Real mouse event (desktop WASM) — forward normally.
-                    input.mouseInput( event.button.button, event.type == SDL_MOUSEBUTTONUP );
+                if ( input.touch_ui && event.button.which == SDL_TOUCH_MOUSEID ) {
+                    // Touch-synthesized mouse event — the C++ touch
+                    // controls already handled the finger; drop it
+                    // (the hint above should prevent these anyway).
+                    break;
                 }
+                input.mouseInput( event.button.button, event.type == SDL_MOUSEBUTTONUP );
                 break;
             case SDL_MOUSEWHEEL:
                 if ( handledMouse ) {
@@ -126,12 +107,14 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                 if ( handledMouse ) {
                     break;
                 }
-                // Touch-drag look works without pointer lock; real mouse
-                // motion is applied only while the browser reports the
-                // pointer locked (and not in the discard batch — see above).
-                if ( event.motion.which == SDL_TOUCH_MOUSEID ) {
-                    input.lookMove( event.motion.xrel, event.motion.yrel );
-                } else if ( pointer_locked ) {
+                // Real mouse motion is applied only while the browser
+                // reports the pointer locked (and not in the discard
+                // batch — see above). Touch motion goes through the
+                // SDL_FINGER* path instead.
+                if ( input.touch_ui && event.motion.which == SDL_TOUCH_MOUSEID ) {
+                    break;
+                }
+                if ( pointer_locked ) {
                     if ( discard_locked_motion ) {
                         discarded_this_batch = true;
                     } else {
@@ -139,13 +122,26 @@ void repgame_linux_process_sdl_events( RepGame &repgame ) {
                     }
                 }
                 input.mousePosition( event.motion.x, event.motion.y );
-                if ( touch_active ) {
-                    int dx = event.motion.x - touch_start_x;
-                    int dy = event.motion.y - touch_start_y;
-                    if ( dx * dx + dy * dy > TAP_THRESHOLD_PX * TAP_THRESHOLD_PX ) {
-                        touch_moved = true;
-                    }
+                break;
+            case SDL_FINGERDOWN:
+            case SDL_FINGERMOTION:
+            case SDL_FINGERUP:
+                if ( capture ) {
+                    break;
                 }
+                // tfinger x/y are normalized over the canvas's CSS size —
+                // scale into window pixels (the same space
+                // mouse.absPosition uses; screen.* is what changeSize
+                // received, i.e. CSS px, no devicePixelRatio factor).
+                // SDL2's emscripten backend maps the browser's touchcancel
+                // to FINGERUP (a cancel without a tap).
+                repgame.touch_event( event.type == SDL_FINGERDOWN     ? TOUCH_DOWN
+                                     : event.type == SDL_FINGERMOTION ? TOUCH_MOVE
+                                     : event.type == SDL_FINGERUP     ? TOUCH_UP
+                                                                      : TOUCH_CANCEL,
+                                     event.tfinger.fingerId,
+                                     event.tfinger.x * static_cast<float>( globalGameState->screen.width ),
+                                     event.tfinger.y * static_cast<float>( globalGameState->screen.height ) );
                 break;
             default:
                 break;
@@ -244,6 +240,19 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
     // first frame is correct even if no SDL_WINDOWEVENT_RESIZED arrives
     // (headless browsers may never fire one).
     repgame.changeSize( default_width, default_height );
+    // Enable the on-screen touch controls on coarse-pointer (mobile)
+    // devices; ?touch=0|1 overrides (touch=1 lets a desktop browser test
+    // the touch UI, touch=0 keeps mouse controls on a touch laptop).
+    globalGameState->input.touch_ui = EM_ASM_INT( {
+        var t = new URLSearchParams( location.search ).get( 'touch' );
+        if ( t === '0' ) {
+            return 0;
+        }
+        if ( t === '1' ) {
+            return 1;
+        }
+        return window.matchMedia && matchMedia( '(pointer: coarse)' ).matches ? 1 : 0;
+    } ) != 0;
     emscripten_set_main_loop_arg( main_loop_wasm, ( void * )&repgame, 0, 1 );
     return 0;
 }
@@ -263,6 +272,108 @@ extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_exit( ) {
 extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_menu( ) {
     if ( globalGameState && !globalGameState->input.menu_open && !globalGameState->input.inventory_open ) {
         globalGameState->input.onMenuClicked( );
+    }
+}
+
+// Called from JS on the mobile history-back gesture while the touch UI is
+// active: routes through Input::backPressed (abandons an open text capture
+// or search box, otherwise acts like Menu/Escape). Exiting stays on the
+// pause menu's Exit Game button — back never kills the session.
+extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_back( ) {
+    if ( globalGameState ) {
+        globalGameState->input.backPressed( );
+    }
+}
+
+// Whether the touch controls are active. index.js polls this before any
+// pointer-lock attempt and to pick the back-button behaviour.
+extern "C" EMSCRIPTEN_KEEPALIVE int repgame_wasm_touch_ui( ) {
+    return globalGameState && globalGameState->input.touch_ui ? 1 : 0;
+}
+
+// Whether the soft keyboard should be up (index.js focuses its hidden
+// input on the next touchend while this is true, blurs it when it drops).
+extern "C" EMSCRIPTEN_KEEPALIVE int repgame_wasm_wants_text( ) {
+    if ( !globalGameState ) {
+        return 0;
+    }
+    const Input &in = globalGameState->input;
+    return in.text_input_active || in.search_focused || globalGameState->ui.chat.open ? 1 : 0;
+}
+
+// Soft-keyboard text: feeds the modal text capture (sign edit / chat)
+// through Input::textInput, or the creative search box the way
+// keysInput's printable-ASCII path does.
+extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_text( const char *utf8 ) {
+    if ( !globalGameState || utf8 == nullptr ) {
+        return;
+    }
+    Input &in = globalGameState->input;
+    if ( in.text_input_active ) {
+        in.textInput( utf8 );
+    } else if ( in.search_focused ) {
+        for ( const unsigned char *p = reinterpret_cast<const unsigned char *>( utf8 );
+              *p >= 32 && *p <= 126 && in.search_chars_len < ( int )sizeof( in.search_chars ); p++ ) {
+            in.search_chars[ in.search_chars_len++ ] = static_cast<char>( *p );
+        }
+    }
+}
+
+// Soft-keyboard editing keys: k=0 backspace, k=1 enter — whichever text
+// capture owns the keyboard drains the matching counter.
+extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_text_key( int k ) {
+    if ( !globalGameState ) {
+        return;
+    }
+    Input &in = globalGameState->input;
+    if ( k == 0 ) {
+        if ( in.text_input_active ) {
+            in.text_backspaces++;
+        } else if ( in.search_focused && in.search_backspaces < ( int )sizeof( in.search_chars ) ) {
+            in.search_backspaces++;
+        }
+    } else if ( k == 1 ) {
+        if ( in.text_input_active ) {
+            in.text_enters++;
+        } else if ( in.search_focused ) {
+            in.search_close = true;
+        }
+    }
+}
+
+// Player position getters for the touch-capture harness (it can't read
+// the game state directly; joystick drags show up here).
+extern "C" EMSCRIPTEN_KEEPALIVE double repgame_wasm_player_x( ) {
+    return globalGameState ? globalGameState->camera.pos.x : 0.0;
+}
+extern "C" EMSCRIPTEN_KEEPALIVE double repgame_wasm_player_z( ) {
+    return globalGameState ? globalGameState->camera.pos.z : 0.0;
+}
+
+// Touch-control rects for the touch-capture harness, in window pixels
+// (top-left origin, y down). index 0..12 follows UiLayoutRects order:
+// joystick, jump, sneak, menu, chat, break, pick, place, inventory,
+// inv_close, inv_mode, page_prev, page_next; component 0..3 -> x,y,w,h.
+// (Scalar-returning because HEAPF32 isn't an exported runtime method.)
+extern "C" EMSCRIPTEN_KEEPALIVE float repgame_wasm_touch_rect( int index, int component ) {
+    if ( !globalGameState || index < 0 || index >= 13 || component < 0 || component >= 4 ) {
+        return 0.0f;
+    }
+    const UiLayoutRects &r = globalGameState->ui.layout.rects( );
+    const UiRect rects[ 13 ] = { r.touch_joystick, r.touch_jump, r.touch_sneak, r.touch_menu, r.touch_chat,
+                                 r.touch_break, r.touch_pick, r.touch_place, r.touch_inventory,
+                                 r.touch_inv_close, r.touch_inv_mode, r.touch_page_prev, r.touch_page_next };
+    const float w = globalGameState->screen.width;
+    const float h = globalGameState->screen.height;
+    switch ( component ) {
+        case 0:
+            return rects[ index ].left + w * 0.5f;
+        case 1:
+            return h * 0.5f - rects[ index ].top( );
+        case 2:
+            return rects[ index ].width;
+        default:
+            return rects[ index ].height;
     }
 }
 
@@ -287,7 +398,10 @@ static void gate_request_lock( ) {
 static void gate_pointer_lock_transition( RepGame &repgame ) {
     Input &in = repgame.getInputState( );
     // Touch devices never get pointer lock; capture mode is scripted.
-    if ( RepGame::capture_mode( ) || EM_ASM_INT( { return typeof pointerLockSupported !== 'undefined' && pointerLockSupported ? 1 : 0; } ) == 0 ) {
+    // The touch UI draws its own controls, so it bypasses the gate too —
+    // no pointer lock is requested when a tap closes a UI screen.
+    if ( RepGame::capture_mode( ) || in.touch_ui ||
+         EM_ASM_INT( { return typeof pointerLockSupported !== 'undefined' && pointerLockSupported ? 1 : 0; } ) == 0 ) {
         gate_prev_menu_open = in.menu_open;
         gate_prev_inventory_open = in.inventory_open;
         return;
@@ -406,7 +520,12 @@ void repgame_linux_process_window_and_pointer_state( RepGame &repgame ) {
         input.mouse.smoothed_dx = 0.0f;
         input.mouse.smoothed_dy = 0.0f;
 #if ALLOW_GRAB_MOUSE
-        SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
+        // Skip the relative-mode request entirely under the touch UI:
+        // SDL2's emscripten backend implements it as a pointer-lock
+        // request, which the touch controls never want.
+        if ( !input.touch_ui ) {
+            SDL_SetRelativeMouseMode( should_lock_pointer ? SDL_TRUE : SDL_FALSE );
+        }
 #endif
         is_locking_pointer = should_lock_pointer;
     }

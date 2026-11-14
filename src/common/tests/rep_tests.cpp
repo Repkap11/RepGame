@@ -46,6 +46,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( player_data ),     //
     MK_TEST( creative ),        //
     MK_TEST( ui_layout ),       //
+    MK_TEST( touch ),           //
     MK_TEST( fences ),          //
     MK_TEST( walls ),           //
     MK_TEST( stairs ),          //

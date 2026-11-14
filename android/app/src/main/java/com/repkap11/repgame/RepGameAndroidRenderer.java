@@ -17,9 +17,12 @@ import javax.microedition.khronos.opengles.GL10;
 public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     static private final String TAG = RepGameAndroidRenderer.class.getSimpleName();
     private final Context mApplicationContext;
+    private final RepGameActivity mActivity;
+    private boolean mExitHandled = false;
 
-    public RepGameAndroidRenderer(Context applicationContext) {
+    public RepGameAndroidRenderer(Context applicationContext, RepGameActivity activity) {
         mApplicationContext = applicationContext;
+        mActivity = activity;
     }
 
     @Override
@@ -35,69 +38,15 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 gl) {
         RepGameJNIWrapper.onDrawFrame();
+        // The game asked to exit (the pause menu's Exit Game): finish the
+        // activity once. finish() must run on the UI thread; the teardown
+        // it triggers (onDestroy -> onSurfaceDestroyed -> repgame.cleanup)
+        // saves the world.
+        if (!mExitHandled && RepGameJNIWrapper.shouldExit()) {
+            mExitHandled = true;
+            mActivity.runOnUiThread(mActivity::finish);
+        }
     }
-
-    public void lookInput(int xdiff, int ydiff) {
-        RepGameJNIWrapper.lookInput(xdiff, ydiff);
-    }
-
-    public void positionHInput(float sizeH, float angleH) {
-        RepGameJNIWrapper.positionHInput(sizeH, angleH);
-    }
-
-    public void setButtonState(int left, int middle, int right) {
-        RepGameJNIWrapper.setButtonState(left, middle, right);
-    }
-
-
-    public void setJumpPressed(int jumpPressed) {
-        RepGameJNIWrapper.setJumpPressed(jumpPressed);
-    }
-
-    public void onInventoryClicked() {
-        RepGameJNIWrapper.onInventoryClicked();
-    }
-
-    public void inventoryPageScrolled(int direction) {
-        RepGameJNIWrapper.inventoryPageScrolled(direction);
-    }
-
-    public void setMousePosition(int x, int y) {
-        RepGameJNIWrapper.setMousePosition(x, y);
-    }
-
-    public void screenTapped(int x, int y) {
-        RepGameJNIWrapper.screenTapped(x, y);
-    }
-
-    public void setSneakPressed(int sneakPressed) {
-        RepGameJNIWrapper.setSneakPressed(sneakPressed);
-    }
-
-    public void toggleGameMode() {
-        RepGameJNIWrapper.toggleGameMode();
-    }
-
-    public int getGameMode() {
-        return RepGameJNIWrapper.getGameMode();
-    }
-
-    public boolean isInventoryOpen() {
-        return RepGameJNIWrapper.isInventoryOpen();
-    }
-
-    public void onMenuClicked() {
-        RepGameJNIWrapper.onMenuClicked();
-    }
-
-    public boolean isMenuOpen() {
-        return RepGameJNIWrapper.isMenuOpen();
-    }
-
-    public boolean shouldExit() {
-        return RepGameJNIWrapper.shouldExit();
-    }
-
 
     public void onDestroy() {
         RepGameJNIWrapper.onSurfaceDestroyed();

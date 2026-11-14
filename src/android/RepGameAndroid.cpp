@@ -115,77 +115,15 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
     }
 }
 
-#define ANDROID_PAN_SENSITIVITY 1.25f
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_lookInput( JNIEnv *env, jobject obj, jint xdiff, jint ydiff ) {
-    Input &input = repgame.getInputState( );
-    input.lookMove(xdiff * ANDROID_PAN_SENSITIVITY, ydiff * ANDROID_PAN_SENSITIVITY );
+// All input arrives as raw touches: Java forwards every MotionEvent here
+// (on the GL thread via GLSurfaceView.queueEvent) and the shared C++
+// TouchControls module handles control routing, hit testing and taps.
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_touchEvent( JNIEnv *env, jobject obj, jint phase, jlong id, jfloat x, jfloat y ) {
+    repgame.touch_event( static_cast<TouchPhase>( phase ), static_cast<int64_t>( id ), x, y );
 }
 
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setButtonState( JNIEnv *env, jobject obj, jint left, jint middle, jint right ) {
-    Input &input = repgame.getInputState( );
-    input.setButtonState(left, middle, right );
-}
-
-#define ANDROID_MOVE_SENSITIVITY 1
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_positionHInput( JNIEnv *env, jobject obj, jfloat sizeH, jfloat angleH ) {
-    Input &input = repgame.getInputState( );
-    input.positionHMove(sizeH * ANDROID_MOVE_SENSITIVITY, angleH );
-}
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setJumpPressed( JNIEnv *env, jobject obj, jint jumpPressed ) {
-    Input &input = repgame.getInputState( );
-    input.setJumpPressed(jumpPressed );
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onInventoryClicked( JNIEnv *env, jobject obj ) {
-    Input &input = repgame.getInputState( );
-    repgame.getInputState( ).onInventoryClicked( );
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onMenuClicked( JNIEnv *env, jobject obj ) {
-    repgame.getInputState( ).onMenuClicked( );
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_inventoryPageScrolled( JNIEnv *env, jobject obj, jint direction ) {
-    Input &input = repgame.getInputState( );
-    // Feed the wheel counter so the tick loop applies the same page/hotbar
-    // logic as a desktop scroll (wheel_diff = previous - current).
-    input.mouse.currentPosition.wheel_counts -= direction;
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setMousePosition( JNIEnv *env, jobject obj, jint x, jint y ) {
-    Input &input = repgame.getInputState( );
-    input.mouse.absPosition.x = x;
-    input.mouse.absPosition.y = y;
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_screenTapped( JNIEnv *env, jobject obj, jint x, jint y ) {
-    Input &input = repgame.getInputState( );
-    input.mouse.absPosition.x = x;
-    input.mouse.absPosition.y = y;
-    input.screen_tap_pending = true;
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_setSneakPressed( JNIEnv *env, jobject obj, jint sneakPressed ) {
-    Input &input = repgame.getInputState( );
-    input.movement.sneakPressed = sneakPressed;
-}
-
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_toggleGameMode( JNIEnv *env, jobject obj ) {
-    Input &input = repgame.getInputState( );
-    input.toggle_game_mode = true;
-}
-
-JNIEXPORT jint JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_getGameMode( JNIEnv *env, jobject obj ) {
-    return ( jint )repgame.getGameMode( );
-}
-
-JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_isInventoryOpen( JNIEnv *env, jobject obj ) {
-    return repgame.getInputState( ).inventory_open ? JNI_TRUE : JNI_FALSE;
-}
-
-JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_isMenuOpen( JNIEnv *env, jobject obj ) {
-    return repgame.getInputState( ).menu_open ? JNI_TRUE : JNI_FALSE;
+JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_backPressed( JNIEnv *env, jobject obj ) {
+    repgame.getInputState( ).backPressed( );
 }
 
 JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_shouldExit( JNIEnv *env, jobject obj ) {

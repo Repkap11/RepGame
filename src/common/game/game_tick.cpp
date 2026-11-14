@@ -35,6 +35,9 @@ void RepGame::tick( ) {
         process_vr_input( );
         update_vr_ui_pointer( );
     }
+    // Touch controls housekeeping: drops held pointers when the menu
+    // opens or the touch UI is switched off.
+    globalGameState.ui.touch.tick( globalGameState.input );
     advance_clocks( );
     resolve_pending_spawn( );
     apply_harness_camera_pins( );

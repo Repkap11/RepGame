@@ -44,6 +44,10 @@ draw code  +  click routing   (both read the same rects)
 - **HUD content hides under `menu_open`** (item label precedent) — a
   dimmed sliver peeking past the panel edge reads as a bug.
 
+Existing consumers of the pass include the touch controls
+(`UiLayoutRects::touch_*`, drawn/hit-tested only while
+`input.touch_ui`) — see `docs/ui.md`.
+
 ## Adding a UI element
 
 1. Add the `UiRect`(s) to `UiLayoutRects` in

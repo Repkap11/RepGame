@@ -9,6 +9,13 @@ class RepGameJNIWrapper {
         System.loadLibrary("RepGameAndroid");
     }
 
+    // Touch phases — must match TouchPhase in
+    // include/common/touch_controls.hpp (TOUCH_DOWN..TOUCH_CANCEL).
+    public static final int TOUCH_DOWN = 0;
+    public static final int TOUCH_MOVE = 1;
+    public static final int TOUCH_UP = 2;
+    public static final int TOUCH_CANCEL = 3;
+
     public static native void onSurfaceCreated(String world_name);
 
     public static native void onSurfaceDestroyed();
@@ -17,33 +24,13 @@ class RepGameJNIWrapper {
 
     public static native void onSizeChanged(int width, int height);
 
-    public static native void lookInput(int xdiff, int ydiff);
+    // Forwarded MotionEvents — the shared C++ touch controls consume
+    // these. Must be called on the GL thread (via queueEvent).
+    public static native void touchEvent(int phase, long id, float x, float y);
 
-    public static native void positionHInput(float sizeH, float angleH);
-
-    public static native void setJumpPressed(int jumpPressed);
-
-    public static native void onInventoryClicked();
-
-    public static native void inventoryPageScrolled(int direction);
-
-    public static native void setButtonState(int left, int middle, int right);
-
-    public static native void setMousePosition(int x, int y);
-
-    public static native void screenTapped(int x, int y);
-
-    public static native void setSneakPressed(int sneakPressed);
-
-    public static native void toggleGameMode();
-
-    public static native int getGameMode();
-
-    public static native boolean isInventoryOpen();
-
-    public static native void onMenuClicked();
-
-    public static native boolean isMenuOpen();
+    // Android back button → Input::backPressed (dismiss text capture or
+    // search first, otherwise acts like Menu/Escape).
+    public static native void backPressed();
 
     public static native boolean shouldExit();
 

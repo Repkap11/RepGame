@@ -61,7 +61,9 @@ int PauseMenu::build_lines( const bool dead, Line *lines, const int max_lines ) 
         lines[ nl++ ] = Line{ { BUTTON_GAME_MODE, BUTTON_PEACEFUL }, 2 };
         lines[ nl++ ] = Line{ { BUTTON_FLYING, BUTTON_DEBUG_VIEW }, 2 };
 #if SUPPORTS_IMGUI_OVERLAY
-        lines[ nl++ ] = Line{ { BUTTON_IMGUI }, 1 };
+        lines[ nl++ ] = Line{ { BUTTON_IMGUI, BUTTON_TOUCH }, 2 };
+#else
+        lines[ nl++ ] = Line{ { BUTTON_TOUCH }, 1 };
 #endif
         lines[ nl++ ] = Line{ { BUTTON_EXIT }, 1 };
     }
@@ -95,6 +97,8 @@ const char *PauseMenu::worst_label( const int button, const bool dead, char *buf
             return "Flying: Off";
         case BUTTON_IMGUI:
             return "Debug Overlay: Off";
+        case BUTTON_TOUCH:
+            return "Touch Controls: Off";
         case BUTTON_EXIT:
             return "Exit Game";
         default:
@@ -226,6 +230,9 @@ static void button_label( const int button, const bool dead, const RepGameState 
             break;
         case PauseMenu::BUTTON_IMGUI:
             snprintf( buf, buf_size, "Debug Overlay: %s", state.ui.imgui.shown ? "On" : "Off" );
+            break;
+        case PauseMenu::BUTTON_TOUCH:
+            snprintf( buf, buf_size, "Touch Controls: %s", state.input.touch_ui ? "On" : "Off" );
             break;
         case PauseMenu::BUTTON_EXIT:
             snprintf( buf, buf_size, "Exit Game" );

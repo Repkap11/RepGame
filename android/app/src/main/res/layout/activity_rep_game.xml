@@ -12,14 +12,5 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <com.repkap11.repgame.views.UIOverlayView
-        android:id="@+id/repgame_ui_overlay_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:moveRadiusFraction="0.9"
-        app:overlayColor="@color/colorOverlay"
-        tools:layout_editor_absoluteX="0dp"
-        tools:layout_editor_absoluteY="0dp" />
-
 
 </android.support.constraint.ConstraintLayout>

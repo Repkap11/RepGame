@@ -12,6 +12,7 @@
 #include "common/font_renderer.hpp"
 #include "common/creative_inventory.hpp"
 #include "common/pause_menu.hpp"
+#include "common/touch_controls.hpp"
 #include "common/inventory_renderer.hpp"
 #include "common/block_definitions.hpp" // InventorySlot
 #include "common/chest.hpp"             // CHEST_SLOTS
@@ -117,6 +118,9 @@ struct UiState {
     FontRenderer font;
     CreativeInventory creative;
     PauseMenu pause;
+    // On-screen touch controls (shared Android/WASM port of
+    // UIOverlayView); active while input.touch_ui.
+    TouchControls touch;
     // Item stack currently being dragged with the mouse (Minecraft-style
     // click-to-pick-up / click-to-place). When holding_slot is true,
     // held_slot contains the stack picked up from a slot.

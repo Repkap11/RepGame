@@ -6,10 +6,9 @@ import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
-
-import com.repkap11.repgame.views.UIOverlayView;
 
 public class RepGameActivity extends AppCompatActivity {
 
@@ -17,7 +16,6 @@ public class RepGameActivity extends AppCompatActivity {
     private GLSurfaceView glSurfaceView;
     private boolean mRendererSet;
     private RepGameAndroidRenderer mRenderWrapper;
-    private UIOverlayView mUIOverlay;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,7 +23,7 @@ public class RepGameActivity extends AppCompatActivity {
         configureFullScreen();
 
         //Configure the JNI wrapper
-        mRenderWrapper = new RepGameAndroidRenderer(getApplicationContext());
+        mRenderWrapper = new RepGameAndroidRenderer(getApplicationContext(), this);
 
         //Verify that we support OpenGL ES 3.1
         ConfigurationInfo configurationInfo = ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getDeviceConfigurationInfo();
@@ -48,10 +46,54 @@ public class RepGameActivity extends AppCompatActivity {
 
         mRendererSet = true;
 
-        //Configure the UI overlay
-        mUIOverlay = findViewById(R.id.repgame_ui_overlay_view);
-
-        mUIOverlay.setRenderer(mRenderWrapper);
+        // The on-screen controls are drawn in-game by the shared C++
+        // TouchControls — this view just forwards MotionEvents. Events are
+        // dispatched via queueEvent so every Input write happens on the GL
+        // thread (the old UI-overlay path wrote from the UI thread, racing
+        // the render thread's tick).
+        glSurfaceView.setOnTouchListener((view, event) -> {
+            final int actionIndex = event.getActionIndex();
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN: {
+                    final long id = event.getPointerId(actionIndex);
+                    final float x = event.getX(actionIndex);
+                    final float y = event.getY(actionIndex);
+                    glSurfaceView.queueEvent(() -> RepGameJNIWrapper.touchEvent(RepGameJNIWrapper.TOUCH_DOWN, id, x, y));
+                    break;
+                }
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_POINTER_UP: {
+                    final long id = event.getPointerId(actionIndex);
+                    final float x = event.getX(actionIndex);
+                    final float y = event.getY(actionIndex);
+                    glSurfaceView.queueEvent(() -> RepGameJNIWrapper.touchEvent(RepGameJNIWrapper.TOUCH_UP, id, x, y));
+                    break;
+                }
+                case MotionEvent.ACTION_MOVE:
+                case MotionEvent.ACTION_CANCEL: {
+                    // MOVE and CANCEL cover every active pointer.
+                    final int phase = event.getActionMasked() == MotionEvent.ACTION_MOVE ? RepGameJNIWrapper.TOUCH_MOVE
+                                                                                       : RepGameJNIWrapper.TOUCH_CANCEL;
+                    final int n = event.getPointerCount();
+                    final long[] ids = new long[n];
+                    final float[] xs = new float[n];
+                    final float[] ys = new float[n];
+                    for (int i = 0; i < n; i++) {
+                        ids[i] = event.getPointerId(i);
+                        xs[i] = event.getX(i);
+                        ys[i] = event.getY(i);
+                    }
+                    glSurfaceView.queueEvent(() -> {
+                        for (int i = 0; i < n; i++) {
+                            RepGameJNIWrapper.touchEvent(phase, ids[i], xs[i], ys[i]);
+                        }
+                    });
+                    break;
+                }
+            }
+            return true;
+        });
     }
 
     @Override
@@ -74,11 +116,11 @@ public class RepGameActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (mUIOverlay != null && mRendererSet) {
-            // Back is the Android Escape: it closes the inventory or the
-            // pause menu when one is open, otherwise it opens the menu.
-            // Exiting goes through the menu's Exit Game button.
-            mUIOverlay.onMenuClicked();
+        if (mRendererSet) {
+            // Back is the Android Escape: it abandons a text capture or
+            // search box first, otherwise closes the inventory / toggles
+            // the pause menu. Exiting goes through Exit Game.
+            glSurfaceView.queueEvent(() -> RepGameJNIWrapper.backPressed());
         } else {
             super.onBackPressed();
         }

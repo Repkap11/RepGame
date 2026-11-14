@@ -151,6 +151,38 @@ function request_exit() {
   Module.ccall("repgame_wasm_request_exit");
 }
 
+// Whether the C++ touch controls are active (false before the game
+// starts). Pointer-lock attempts and the back behaviour key off this.
+function isTouchUi() {
+  try {
+    return Module.ccall("repgame_wasm_touch_ui") === 1;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Touch-mode decision for code that runs before the game exists (the
+// play-button gesture) or outside it. Mirrors the C++ default in
+// repgame_sdl2_main: ?touch=0|1 wins, otherwise coarse-pointer media.
+// Once the game is running its input.touch_ui is authoritative.
+function touchMode() {
+  var t = new URLSearchParams(location.search).get("touch");
+  if (t === "0") return false;
+  if (t === "1") return true;
+  if (gameRunning) return isTouchUi();
+  return !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
+}
+
+// Whether a text capture (sign edit, chat, creative search) wants the
+// soft keyboard up.
+function wantsText() {
+  try {
+    return Module.ccall("repgame_wasm_wants_text") === 1;
+  } catch (e) {
+    return false;
+  }
+}
+
 // The wasmfs OPFS backend mounts the browser's OPFS root at /repgame_wasm, so
 // the saved world (/repgame_wasm/World1 - chunk_* files plus player.dat)
 // appears as a top-level "World1" directory in OPFS. Deleting it recursively
@@ -339,15 +371,20 @@ document.addEventListener("contextmenu", function(e) {
   }
 });
 
-// On mobile, the back button should exit the game back to the startup page.
-// Push a history state when the game starts so pressing back fires popstate
-// instead of navigating away from the page.
+// On mobile, the back button navigates in-game while the touch UI is on
+// (close the text field/search, else act like Menu/Escape — exiting stays
+// on the pause menu's Exit Game button). With mouse controls it exits to
+// the startup page like before. A history state is pushed when the game
+// starts so pressing back fires popstate instead of leaving the page.
 window.addEventListener("popstate", function() {
   if (gameRunning) {
-    // Back button was pressed during the game. Exit the game (the C++ cleanup
-    // path calls show_exit_screen, which uses location.replace() and so
-    // clears forward entries).
-    request_exit();
+    if (touchMode()) {
+      Module.ccall("repgame_wasm_back");
+    } else {
+      // Exit the game (the C++ cleanup path calls show_exit_screen, which
+      // uses location.replace() and so clears forward entries).
+      request_exit();
+    }
   }
 });
 
@@ -401,7 +438,94 @@ function onModuleReady() {
   console.log("Module ready");
   Module.canvas = document.getElementById("canvas");
   setup_click_handler();
+  setup_soft_keyboard(Module.canvas);
   window.onresize = set_canvas_size;
+}
+
+// Stop the page gestures a game canvas shouldn't cause: scroll,
+// pull-to-refresh, pinch/double-tap zoom. passive:false is required —
+// canvas CSS is touch-action:none anyway, this covers browsers that
+// ignore it (plus SDL only preventDefaults some touch events).
+function setup_touch_guards(canvas) {
+  canvas.addEventListener("touchstart", function(e) { e.preventDefault(); }, { passive: false });
+  canvas.addEventListener("touchmove", function(e) { e.preventDefault(); }, { passive: false });
+}
+
+// The mobile soft keyboard needs a focusable DOM input. A 1px invisible
+// <input> (offscreen, not display:none — unfocusable) sits under the
+// canvas; while the game wants text (wants_text export) we focus it so
+// the OS keyboard rises, and blur it when capture ends. SDL2-emscripten
+// listens for keys on window, so every key event here stopPropagates or
+// typed text would double through SDL's keydown handler.
+function setup_soft_keyboard(canvas) {
+  var softKb = document.getElementById("soft_keyboard");
+  if (!softKb) return;
+  setup_touch_guards(canvas);
+
+  // Mobile keyboards deliver text through beforeinput; Enter and some
+  // Backspace presses also arrive as keydown. Timestamps dedupe keys that
+  // fire on both paths (a beforeinput handled within the last 200ms wins).
+  var lastEnterMs = 0;
+  var lastDeleteMs = 0;
+  softKb.addEventListener("beforeinput", function(e) {
+    e.stopPropagation();
+    e.preventDefault(); // never let text accumulate in the box
+    if (e.inputType === "insertText" && e.data) {
+      Module.ccall("repgame_wasm_text", null, ["string"], [e.data]);
+    } else if (e.inputType === "insertLineBreak" || e.inputType === "insertParagraph") {
+      Module.ccall("repgame_wasm_text_key", null, ["number"], [1]);
+      lastEnterMs = performance.now();
+    } else if (e.inputType === "deleteContentBackward" || e.inputType === "deleteWordBackward" ||
+               e.inputType === "deleteSoftLineBackward" || e.inputType === "deleteHardLineBackward") {
+      Module.ccall("repgame_wasm_text_key", null, ["number"], [0]);
+      lastDeleteMs = performance.now();
+    }
+  }, true);
+  // Fallback for environments without beforeinput: drain whatever landed
+  // in the box (composition text still arrives through beforeinput on
+  // supported browsers, so this only fires for simple insertions).
+  softKb.addEventListener("input", function(e) {
+    e.stopPropagation();
+    if (softKb.value) {
+      Module.ccall("repgame_wasm_text", null, ["string"], [softKb.value]);
+      softKb.value = "";
+    }
+  }, true);
+  softKb.addEventListener("keydown", function(e) {
+    e.stopPropagation(); // keep SDL's window key handler out of this
+    var now = performance.now();
+    if (e.key === "Enter") {
+      if (now - lastEnterMs > 200) {
+        Module.ccall("repgame_wasm_text_key", null, ["number"], [1]);
+      }
+      e.preventDefault();
+    } else if (e.key === "Backspace") {
+      if (now - lastDeleteMs > 200) {
+        Module.ccall("repgame_wasm_text_key", null, ["number"], [0]);
+      }
+      e.preventDefault();
+    }
+  }, true);
+  softKb.addEventListener("keyup", function(e) { e.stopPropagation(); }, true);
+  softKb.addEventListener("keypress", function(e) { e.stopPropagation(); }, true);
+
+  // Focus changes need a user gesture: the canvas touchend that closed a
+  // tap is one, so it's the hook that raises/lowers the keyboard.
+  canvas.addEventListener("touchend", function() {
+    if (wantsText()) {
+      softKb.focus();
+    } else {
+      softKb.blur();
+    }
+  });
+  // Captures can also end between gestures (Enter submits, the pause menu
+  // steals focus) — poll each frame and blur a stale focus.
+  (function softKbPoll() {
+    if (document.activeElement === softKb && !wantsText()) {
+      softKb.blur();
+    }
+    requestAnimationFrame(softKbPoll);
+  })();
 }
 
 function setup_click_handler() {
@@ -419,7 +543,8 @@ function setup_click_handler() {
   // re-check once shortly after the keypress while its user activation
   // still applies.
   function request_pointer_lock_if_wanted() {
-    if (gameWantsPointerLock && !document.pointerLockElement) {
+    // The touch UI never uses pointer lock (its controls handle taps).
+    if (gameWantsPointerLock && !document.pointerLockElement && !touchMode()) {
       var result = canvas.requestPointerLock();
       if (result && result.catch) {
         // Rejected requests (gesture cooldowns, platforms without pointer
@@ -432,8 +557,10 @@ function setup_click_handler() {
 
   function callback(event) {
     console.log("Got a press");
-    var lockResult = canvas.requestPointerLock();
-    if (lockResult && lockResult.catch) lockResult.catch(function() {});
+    if (!touchMode()) {
+      var lockResult = canvas.requestPointerLock();
+      if (lockResult && lockResult.catch) lockResult.catch(function() {});
+    }
     if (first_time) {
       document.addEventListener("keydown", function() {
         request_pointer_lock_if_wanted();

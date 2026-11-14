@@ -33,6 +33,7 @@ int test_save_migration( );
 int test_player_data( );
 int test_creative( );
 int test_ui_layout( );
+int test_touch( );
 int test_fences( );
 int test_walls( );
 int test_doors( );

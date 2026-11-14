@@ -15,6 +15,7 @@ UiState
 ├── creative   CreativeInventory  creative palette pages + renderer, plus
 │              the 'f'-opened item-name search box (docs/player.md keys)
 ├── pause      PauseMenu     Esc menu: buttons + stepper rows
+├── touch      TouchControls on-screen touch controls (input.touch_ui)
 ├── held_slot / holding_slot  stack currently dragged by the mouse
 ├── chest      ChestUi       open chest panel (at most one)
 ├── furnace    FurnaceUi     open furnace panel: input/fuel/output 1x1s
@@ -274,6 +275,31 @@ matching and the output slot are documented with the item/recipe data in
   screen with only Respawn (the RESUME button, relabelled) and Exit —
   `tick_vitals` re-pins `menu_open` each tick so it can't be dismissed
   without respawning (`docs/player.md`).
+- `TouchControls` (`include/common/touch_controls.hpp`): the shared C++
+  port of Android's `UIOverlayView` — a joystick plus
+  Jump/Sneak/Break/Pick/Place/Inv/Menu buttons while playing (a half-size
+  `touch_chat` button sits right of Menu and opens chat via
+  `input.chat_open_request`), and Close/game-mode/creative-page-arrow
+  buttons while `inventory_open`.
+  Geometry comes from the layout pass (`UiLayoutRects::touch_*`: the
+  joystick is a `2r` square on the HUD strip's top edge, the rest are
+  `r` squares with `r = min(w/4, h/2)/2`, page arrows in the margins
+  beside the creative panel); `UI_OVERFLOW_TOUCH` flags any escaping
+  rect. Platform touches enter through `RepGame::touch_event` ->
+  `repgame_touch_event` (window pixels, y down — a no-op unless
+  `input.touch_ui`), which builds a `TouchContext` and calls
+  `TouchControls::event`; `tick` runs once per frame from `RepGame::tick`
+  and cancels held controls when the menu opens or `touch_ui` turns off.
+  `input.touch_ui` is forced on at Android init, defaults from the
+  coarse-pointer media query on WASM (`?touch=0|1` overrides), and
+  toggles everywhere via the pause menu's "Touch Controls" button or the
+  `touchui` rep-dbg verb. Draws translucent quads + labels
+  in the HUD text layer of `draw_ui_pass`, hidden while `menu_open`.
+  Platform back buttons feed `Input::backPressed()` (src/common/
+  input_touch.cpp): an open text field eats it as `text_escape`, a
+  focused creative search as `search_close`, otherwise it toggles the
+  pause menu — Android's system back and the WASM browser-back path
+  both route through it.
 - `ImGuiOverlay` (`SUPPORTS_IMGUI_OVERLAY` platforms): `shown` toggled
   by 'g' or `SHOW_IMGUI` at start; `ImGuiDebugVars` (position, world
   time, daylight, ambient floors, `LoaderDebugStats`, entity counts) is

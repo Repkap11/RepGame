@@ -3,6 +3,12 @@ body {
     color: #e0e0e0;
 }
 
+/* No pull-to-refresh / back-swipe overscroll during play. */
+html,
+body {
+    overscroll-behavior: none;
+}
+
 #canvas_holder {
     position: relative;
     width: 100vw;
@@ -137,6 +143,25 @@ body {
     top: 0;
     left: 0;
     z-index: 0;
+    /* Fingers go to the game's touch controls, never scroll or zoom the
+       page (index.js also preventDefaults the touch events for browsers
+       that ignore this). */
+    touch-action: none;
+}
+
+/* The mobile soft-keyboard focus target: invisible, 1px, but focusable
+   (display:none can't receive focus). index.js forwards its input events
+   into the game's text captures. */
+#soft_keyboard {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
 }
 
 #download {

@@ -447,7 +447,7 @@ if(REPGAME_BUILD_CLIENT)
 			--use-port=emdawnwebgpu
 			"SHELL:-s MAX_WEBGL_VERSION=2"
 			"SHELL:-s ASSERTIONS=1"
-			"SHELL:-s EXPORTED_FUNCTIONS='[\"_main\", \"_repgame_wasm_start_storage\", \"_repgame_wasm_request_exit\", \"_repgame_wasm_request_menu\", \"_repgame_wasm_pointer_lock_result\", \"_repgame_wasm_set_server\", \"_repgame_main_probe_get\"]'"
+			"SHELL:-s EXPORTED_FUNCTIONS='[\"_main\", \"_repgame_wasm_start_storage\", \"_repgame_wasm_request_exit\", \"_repgame_wasm_request_menu\", \"_repgame_wasm_pointer_lock_result\", \"_repgame_wasm_set_server\", \"_repgame_main_probe_get\", \"_repgame_wasm_back\", \"_repgame_wasm_touch_ui\", \"_repgame_wasm_wants_text\", \"_repgame_wasm_text\", \"_repgame_wasm_text_key\", \"_repgame_wasm_player_x\", \"_repgame_wasm_player_z\", \"_repgame_wasm_touch_rect\"]'"
 			-lwebsocket.js
 			"SHELL:-s EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'"
 			-pthread
