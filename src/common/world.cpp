@@ -1642,6 +1642,12 @@ void World::set_loaded_block_natural( const glm::ivec3 &block_pos, BlockState bl
 #define CROP_GROW_CHANCE_DEN 3
 // Minimum sky or block light level (of 15) for a sapling or crop to grow.
 #define SAPLING_GROW_MIN_LIGHT ( 9.0f / 15.0f )
+// Fraction of bamboo random ticks that grow a segment — the crop cadence,
+// so an open column gains ~1 segment per ~3.5 min near the player.
+#define BAMBOO_GROW_CHANCE_DEN 3
+// A shoot's growth tick pops a small column instead of one segment, so a
+// planted bamboo reads as a plant right away.
+#define BAMBOO_SAPLING_SEGMENTS 3
 
 void World::process_random_ticks( RepGameState &state ) {
     const glm::ivec3 center_chunk( static_cast<int>( floor( state.camera.pos.x / CHUNK_SIZE_X ) ),
@@ -1688,7 +1694,8 @@ void World::process_random_ticks( RepGameState &state ) {
             }
             const Block *cell_def = cell.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( cell.id );
             const bool is_crop_stage = cell_def != nullptr && cell_def->crop_next != LAST_BLOCK_ID;
-            if ( !is_crop_stage && !tree_spec_for_sapling( cell.id, world_pos, &spec ) ) {
+            const bool is_bamboo_cell = cell.id == BAMBOO || cell.id == BAMBOO_SAPLING;
+            if ( !is_crop_stage && !is_bamboo_cell && !tree_spec_for_sapling( cell.id, world_pos, &spec ) ) {
                 // Grass-family cells tick from the source: covered grass
                 // dies to dirt, open grass may spread to nearby dirt.
                 if ( cell.id == GRASS || cell.id == SNOWY_GRASS || cell.id == MYCELIUM ) {
@@ -1703,6 +1710,19 @@ void World::process_random_ticks( RepGameState &state ) {
             this->random_tick_state ^= this->random_tick_state << 13;
             this->random_tick_state ^= this->random_tick_state >> 17;
             this->random_tick_state ^= this->random_tick_state << 5;
+            if ( is_bamboo_cell ) {
+                // Only the column's top grows — a ticked interior cell
+                // does nothing (MC's per-column rate). A shoot always may
+                // grow: it converts and opens the column.
+                if ( cell.id == BAMBOO && this->get_loaded_block( world_pos + glm::ivec3( 0, 1, 0 ) ).id == BAMBOO ) {
+                    continue;
+                }
+                if ( this->random_tick_state % BAMBOO_GROW_CHANCE_DEN != 0 ) {
+                    continue;
+                }
+                bamboo_grow_try( state, world_pos, cell.id == BAMBOO_SAPLING ? BAMBOO_SAPLING_SEGMENTS : 1, true );
+                continue;
+            }
             if ( is_crop_stage ) {
                 // Crop growth advances the stage chain in place — a plain
                 // write (no debris, no support change), synced like the tree

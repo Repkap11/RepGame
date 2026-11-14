@@ -674,7 +674,8 @@ static void body_emit( BlockInstanceBatch *batch, const BlockState &state, const
     // Emit locally first: the emitter writes face_shift itself, so the
     // entity flag can only be OR'd in afterwards.
     BlockCoords local[ 32 ];
-    const int cap = block_emit_count( emit );
+    int cap_extra = 0;
+    const int cap = block_emit_count( emit, &cap_extra );
     std::vector<BlockCoords> heap;
     BlockCoords *buf = local;
     if ( cap > 32 ) {
@@ -685,10 +686,12 @@ static void body_emit( BlockInstanceBatch *batch, const BlockState &state, const
         BlockCoords *buf;
         int n, cap;
     } fill = { buf, 0, cap };
+    // No second channel — bamboo bodies draw the bare stalk.
     const BlockEmitSink local_sink = { &fill, []( void *ctx ) -> BlockCoords * {
                                           Fill &f = *static_cast<Fill *>( ctx );
                                           return f.n < f.cap ? &f.buf[ f.n++ ] : nullptr;
-                                      } };
+                                      },
+                                       nullptr, nullptr };
     block_emit_cell( emit, local_sink );
     const BlockEmitSink out = batch->sink( emit.block->renderOrder, light_chunk, fill.n );
     for ( int i = 0; i < fill.n; i++ ) {

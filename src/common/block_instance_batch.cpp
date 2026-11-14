@@ -66,7 +66,8 @@ BlockEmitSink BlockInstanceBatch::sink( const RenderOrder order, const glm::ivec
     // so the vector must never reallocate mid-emit.
     g.cpu.reserve( g.cpu.size( ) + static_cast<size_t>( reserve ) );
     g.water_layout = order == RenderOrder_Water;
-    return { &g.cpu, batch_alloc };
+    // Bodies have no second channel — a falling bamboo draws the bare stalk.
+    return { &g.cpu, batch_alloc, nullptr, nullptr };
 }
 
 void BlockInstanceBatch::ensure_gl( Group &g, bool water ) {

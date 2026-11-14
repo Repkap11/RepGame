@@ -47,6 +47,7 @@ int test_falling_blocks( );
 int test_leaf_decay( );
 int test_support_drops( );
 int test_sapling_grow( );
+int test_bamboo_grow( );
 int test_leaf_placement( );
 int test_shears_bonemeal( );
 int test_farming( );

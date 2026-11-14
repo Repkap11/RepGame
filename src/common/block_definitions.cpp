@@ -53,6 +53,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->spine_shell = false;
         block->is_standing_sign = false;
         block->is_hanging_sign = false;
+        block->is_bamboo = false;
         block->is_door = false;
         block->is_door_upper = false;
         block->door_redstone_only = false;
@@ -160,8 +161,9 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         // multi-cell rect instance would give it the wrong boundary faces.
         // Rails are the same: every cell has its own shape (rotation +
         // display_id) and ascending cells carry the slope flag, so a merged
-        // run instance can never stand in for them.
-        if ( block->spine_shell || block->is_rail ) {
+        // run instance can never stand in for them. Bamboo too: its leaf
+        // cross is emitted per cell off the rotation leaf tier.
+        if ( block->spine_shell || block->is_rail || block->is_bamboo ) {
             block->calculated.can_mesh_x = false;
             block->calculated.can_mesh_y = false;
             block->calculated.can_mesh_z = false;

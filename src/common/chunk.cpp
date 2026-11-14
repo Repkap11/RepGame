@@ -1724,13 +1724,19 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                                 }
                             }
                         }
-                        const int emit_count = block_emit_count( emit );
+                        int emit_count2 = 0;
+                        const int emit_count = block_emit_count( emit, &emit_count2 );
                         ensure_capacity( block->renderOrder, emit_count );
-                        if ( num_instances[ block->renderOrder ] + emit_count > capacity[ block->renderOrder ] ) {
+                        // The second channel is bamboo's leaf crosses in
+                        // RenderOrder_Flowers.
+                        ensure_capacity( RenderOrder_Flowers, emit_count2 );
+                        if ( num_instances[ block->renderOrder ] + emit_count > capacity[ block->renderOrder ] ||
+                             num_instances[ RenderOrder_Flowers ] + emit_count2 > capacity[ RenderOrder_Flowers ] ) {
                             continue; // OOM — drop this cell's instances.
                         }
                         ChunkEmitCtx emit_ctx = { emit_buf[ block->renderOrder ], &num_instances[ block->renderOrder ] };
-                        const BlockEmitSink sink = { &emit_ctx, chunk_emit_alloc };
+                        ChunkEmitCtx emit_ctx2 = { emit_buf[ RenderOrder_Flowers ], &num_instances[ RenderOrder_Flowers ] };
+                        const BlockEmitSink sink = { &emit_ctx, chunk_emit_alloc, &emit_ctx2, chunk_emit_alloc };
                         block_emit_cell( emit, sink );
 
                     }

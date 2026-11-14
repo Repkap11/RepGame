@@ -27,3 +27,15 @@ bool tree_spec_for_sapling( BlockID sapling, const glm::ivec3 &pos, TreeSpec *ou
 // player_edited flag — random-tick growth isn't a player edit; bone-meal
 // growth is, so callers there leave it off.
 bool tree_grow_try( RepGameState &state, const glm::ivec3 &pos, bool preserve_player_edited = false );
+
+// Bamboo column growth: `pos` holds BAMBOO or BAMBOO_SAPLING. A shoot on
+// soil — or stacked on more bamboo, since worldgen writes stacked shoots
+// that convert bottom-up — becomes a bare stalk; growth then stacks up to
+// `segments` new BAMBOO cells onto the column top, into air only, under a
+// per-column height cap hashed off the base (MC's 11-16). Leaf tiers ride
+// in BlockState::rotation (0 none, 1 small, 2 large — top is large,
+// second small, deeper none) and are rewritten around the new top.
+// Writes go through the world + multiplayer sync like tree_grow_try;
+// preserve_player_edited has the same meaning. Returns true when any cell
+// was written.
+bool bamboo_grow_try( RepGameState &state, const glm::ivec3 &pos, int segments, bool preserve_player_edited = false );

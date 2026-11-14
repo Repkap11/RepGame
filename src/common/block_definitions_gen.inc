@@ -1098,18 +1098,28 @@ block_definitions[ 71 ].no_light = 6815743;
 block_definitions[ 71 ].persistent_variant = AZALEA_LEAVES_FLOWERED_PERSISTENT;
 
 // BAMBOO (72)
-block_definitions[ 72 ].textures[ FACE_TOP ] = TEX_BAMBOO;
-block_definitions[ 72 ].textures[ FACE_BOTTOM ] = TEX_BAMBOO;
-block_definitions[ 72 ].textures[ FACE_RIGHT ] = TEX_BAMBOO;
-block_definitions[ 72 ].textures[ FACE_FRONT ] = TEX_BAMBOO;
-block_definitions[ 72 ].textures[ FACE_LEFT ] = TEX_BAMBOO;
-block_definitions[ 72 ].textures[ FACE_BACK ] = TEX_BAMBOO;
+block_definitions[ 72 ].textures[ FACE_TOP ] = TEX_BAMBOO_LEAF;
+block_definitions[ 72 ].textures[ FACE_BOTTOM ] = TEX_BAMBOO_SMALL_LEAF;
+block_definitions[ 72 ].textures[ FACE_RIGHT ] = TEX_BAMBOO_STEM;
+block_definitions[ 72 ].textures[ FACE_FRONT ] = TEX_BAMBOO_STEM;
+block_definitions[ 72 ].textures[ FACE_LEFT ] = TEX_BAMBOO_STEM;
+block_definitions[ 72 ].textures[ FACE_BACK ] = TEX_BAMBOO_STEM;
 block_definitions[ 72 ].icon_texture = TEX_BAMBOO;
+block_definitions[ 72 ].affected_by_redstone_power = false;
+block_definitions[ 72 ].breaks_in_liquid = true;
 block_definitions[ 72 ].casts_shadow = false;
+block_definitions[ 72 ].collides_with_player = false;
 block_definitions[ 72 ].hardness = 0.35f;
+block_definitions[ 72 ].icon_is_isometric = false;
+block_definitions[ 72 ].is_bamboo = true;
 block_definitions[ 72 ].is_seethrough = true;
 block_definitions[ 72 ].mineable = MINEABLE_AXE;
+block_definitions[ 72 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 72 ].needs_place_on_solid_but_can_stack_on_self = true;
 block_definitions[ 72 ].no_light = 6815743;
+block_definitions[ 72 ].offset = { 6, 0, 6 };
+block_definitions[ 72 ].scale = { 4, 16, 4 };
+block_definitions[ 72 ].tex_offset = { -6, 0, -6 };
 
 // BAMBOO_BLOCK (73)
 block_definitions[ 73 ].textures[ FACE_TOP ] = TEX_BAMBOO_BLOCK_TOP;
@@ -15120,6 +15130,7 @@ block_definitions[ 1010 ].icon_is_isometric = false;
 block_definitions[ 1010 ].is_seethrough = true;
 block_definitions[ 1010 ].mineable = MINEABLE_AXE;
 block_definitions[ 1010 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1010 ].needs_place_on_solid_but_can_stack_on_self = true;
 block_definitions[ 1010 ].no_light = 0;
 block_definitions[ 1010 ].renderOrder = RenderOrder_Flowers;
 

@@ -39,19 +39,26 @@ struct BlockEmitParams {
     bool cull_against_neighbors; // chunks: true. Bodies: false — nb still shapes the model but no boundary cull applies
 };
 
-// Appends instances to one render order (the emitting block's own).
+// Appends instances to render orders: `alloc`/`ctx` is the emitting
+// block's own order; `alloc2`/`ctx2` is an optional second channel used by
+// bamboo to emit its leaf crosses into RenderOrder_Flowers (nullptr when
+// the caller has no second order — the extra instances are dropped).
 struct BlockEmitSink {
     void *ctx;
     // Returns the slot to fill, nullptr to drop the instance.
     BlockCoords *( *alloc )( void *ctx );
+    void *ctx2;
+    BlockCoords *( *alloc2 )( void *ctx2 );
 };
 
 // True when this block's emit path reads `nb` — callers may skip filling
 // the neighbourhood for cells that never consult it.
 bool block_emit_needs_neighbors( const Block *block );
-// Exact count of instances block_emit_cell will append — the chunk capacity
-// pre-check. nb must already be filled when needs_neighbors is true.
-int block_emit_count( const BlockEmitParams &p );
+// Count of instances block_emit_cell will append — `extra` gets the count
+// bound for the sink's second channel (bamboo leaf crosses), the return
+// value is the block's own-order count. The chunk capacity pre-check.
+// nb must already be filled when needs_neighbors is true.
+int block_emit_count( const BlockEmitParams &p, int *extra );
 // Emits the full per-cell instance set through `sink`. Returns the number
 // appended.
 int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink );

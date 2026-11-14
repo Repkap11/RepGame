@@ -85,6 +85,8 @@ static const char *block_material( int block_id ) {
     case BEETROOT_2:
     case BEETROOTS:
     case REEDS:
+    case BAMBOO:
+    case BAMBOO_SAPLING:
     case WATERLILY:
     case MELON_STEM:
     case NETHER_WART_1:

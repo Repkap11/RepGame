@@ -197,3 +197,92 @@ bool tree_grow_try( RepGameState &state, const glm::ivec3 &pos, const bool prese
     }
     return true;
 }
+
+// A shoot converts on the same soils trees use, plus the sands MC also
+// accepts, plus the bamboo family itself — worldgen writes stacked shoots
+// and they convert bottom-up.
+static bool bamboo_soil( const BlockID id ) {
+    switch ( id ) {
+        case GRASS:
+        case DIRT:
+        case PODZOL:
+        case SNOWY_GRASS:
+        case MYCELIUM:
+        case PALE_MOSS_BLOCK:
+        case COARSE_DIRT:
+        case MOSS_BLOCK:
+        case MUD:
+        case SAND:
+        case RED_SAND:
+        case BAMBOO:
+        case BAMBOO_SAPLING:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static void bamboo_write( RepGameState &state, const glm::ivec3 &pos, const BlockState &blockState, const bool preserve_player_edited ) {
+    if ( preserve_player_edited ) {
+        // Random-tick growth isn't a player edit: keep the pen rule out.
+        state.world.set_loaded_block_natural( pos, blockState );
+    } else {
+        state.world.set_loaded_block( pos, blockState );
+    }
+    state.multiplayer.set_block( pos, blockState, NET_BU_FLAG_NO_DEBRIS );
+    queue_neighbor_block_updates( state, pos );
+}
+
+// Leaf tiers are positional from the column top (MC's leaves property):
+// top large (2), second small (1), deeper none (0). Writes only on a
+// mismatch so a settled column costs no writes.
+static void bamboo_set_tier( RepGameState &state, const glm::ivec3 &pos, const int tier, const bool preserve_player_edited ) {
+    const BlockState cur = state.world.get_loaded_block( pos );
+    if ( cur.id != BAMBOO || cur.rotation == tier ) {
+        return;
+    }
+    BlockState next = cur;
+    next.rotation = static_cast<unsigned char>( tier );
+    bamboo_write( state, pos, next, preserve_player_edited );
+}
+
+bool bamboo_grow_try( RepGameState &state, const glm::ivec3 &pos, const int segments, const bool preserve_player_edited ) {
+    const BlockState cur = state.world.get_loaded_block( pos );
+    if ( cur.id == BAMBOO_SAPLING ) {
+        if ( !bamboo_soil( state.world.get_loaded_block( pos + glm::ivec3( 0, -1, 0 ) ).id ) ) {
+            return false;
+        }
+        const BlockState shoot = { BAMBOO, 0, 0, BAMBOO, 0 };
+        bamboo_write( state, pos, shoot, preserve_player_edited );
+    } else if ( cur.id != BAMBOO ) {
+        return false;
+    }
+    // Column bounds — growth only ever happens at the top.
+    glm::ivec3 base = pos;
+    while ( state.world.get_loaded_block( base + glm::ivec3( 0, -1, 0 ) ).id == BAMBOO ) {
+        base += glm::ivec3( 0, -1, 0 );
+    }
+    glm::ivec3 top = pos;
+    while ( state.world.get_loaded_block( top + glm::ivec3( 0, 1, 0 ) ).id == BAMBOO ) {
+        top += glm::ivec3( 0, 1, 0 );
+    }
+    // MC caps a natural column at 11-16 segments, hashed per column base.
+    const int max_h = 11 + static_cast<int>( sg_roll( base.x, base.z, 7 ) * 5.9999f );
+    int grew = 0;
+    for ( int i = 0; i < segments; i++ ) {
+        const glm::ivec3 above = top + glm::ivec3( 0, 1, 0 );
+        if ( top.y - base.y + 1 >= max_h || state.world.get_loaded_block( above ).id != AIR ) {
+            break;
+        }
+        const BlockState next = { BAMBOO, 2, 0, BAMBOO, 0 };
+        bamboo_write( state, above, next, preserve_player_edited );
+        top = above;
+        grew++;
+    }
+    if ( grew > 0 ) {
+        // Refresh the leaf tiers around the new top.
+        bamboo_set_tier( state, top + glm::ivec3( 0, -1, 0 ), 1, preserve_player_edited );
+        bamboo_set_tier( state, top + glm::ivec3( 0, -2, 0 ), 0, preserve_player_edited );
+    }
+    return grew > 0 || cur.id == BAMBOO_SAPLING;
+}

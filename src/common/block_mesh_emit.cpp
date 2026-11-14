@@ -84,10 +84,13 @@ static bool emit_piston_arm( const BlockEmitParams &p ) {
     return p.block->is_piston_head || ( p.block->is_piston && p.state->current_redstone_power > 0 );
 }
 
-int block_emit_count( const BlockEmitParams &p ) {
+int block_emit_count( const BlockEmitParams &p, int *extra ) {
     const Block *block = p.block;
     BlockBox boxes[ FENCE_GATE_MAX_BOXES ];
     const int num_boxes = emit_shape_boxes( p, boxes );
+    // Bamboo leaf crosses go to the sink's second channel
+    // (RenderOrder_Flowers) — one per run cell with a nonzero leaf tier.
+    *extra = ( block->is_bamboo && p.state->rotation != 0 ) ? p.mesh_x * p.mesh_y * p.mesh_z : 0;
     return ( num_boxes > 0 ? num_boxes : 1 ) + ( emit_redstone_orb( p ) ? 1 : 0 ) + ( block->spine_shell ? 2 : 0 ) +
            ( emit_piston_arm( p ) ? p.mesh_x * p.mesh_y * p.mesh_z : 0 ) +
            ( block->is_repeater ? ( p.state->current_redstone_power > 0 ? 4 : 2 ) : 0 );
@@ -573,6 +576,71 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
                 const int opposing_face = OPPOSITE_FACE[ mesh_rotated_face( f, nrot ) ];
                 if ( !mesh_face_seethrough( mesh_defs[ ncell.id ], ncell.current_redstone_power != 0, nrot, opposing_face ) ) {
                     blockCoord->packed_lighting[ f ] = NO_LIGHT_NO_DRAW;
+                }
+            }
+        }
+    }
+
+    // Bamboo: the def box is the thin stalk; a cell with a
+    // leaf tier (BlockState::rotation — MC's leaves
+    // property, 0 none/1 small/2 large) also emits a leaf
+    // cross into the sink's second channel, which the
+    // chunk caller binds to RenderOrder_Flowers — the only
+    // index buffer that draws the diagonal quads. The
+    // bottom cap is culled: it sits coplanar on the
+    // supporting face. Bodies pass no second channel and
+    // draw the bare stalk.
+    if ( block->is_bamboo ) {
+        blockCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+        if ( blockState.rotation != 0 && sink.alloc2 != nullptr ) {
+            // The leaf tiles ride the def's TOP/BOTTOM slots: the stalk's
+            // bottom is culled and its 4px cap just reads as leaf at the
+            // column tip.
+            const TextureID leaf_tex = block->textures[ blockState.rotation >= 2 ? FACE_TOP : FACE_BOTTOM ];
+            for ( int ax = 0; ax < size_x; ax++ ) {
+                for ( int ay = 0; ay < size_y; ay++ ) {
+                    for ( int az = 0; az < size_z; az++ ) {
+                        BlockCoords *leaf = sink.alloc2( sink.ctx2 );
+                        if ( leaf == nullptr ) {
+                            continue;
+                        }
+                        *leaf = *blockCoord;
+                        leaf->x = blockCoord->x + ax;
+                        leaf->y = blockCoord->y + ay;
+                        leaf->z = blockCoord->z + az;
+                        leaf->mesh_x = 1;
+                        leaf->mesh_y = 1;
+                        leaf->mesh_z = 1;
+                        if ( blockState.rotation >= 2 ) {
+                            // Large leaves: a full-cell cross.
+                            leaf->scale_x = 16;
+                            leaf->scale_y = 16;
+                            leaf->scale_z = 16;
+                            leaf->offset_x = 0;
+                            leaf->offset_y = 0;
+                            leaf->offset_z = 0;
+                            leaf->tex_offset_x = 0;
+                            leaf->tex_offset_y = 0;
+                            leaf->tex_offset_z = 0;
+                        } else {
+                            // Small leaves: a slightly
+                            // inset cross.
+                            leaf->scale_x = 14;
+                            leaf->scale_y = 14;
+                            leaf->scale_z = 14;
+                            leaf->offset_x = 1;
+                            leaf->offset_y = 1;
+                            leaf->offset_z = 1;
+                            leaf->tex_offset_x = -1;
+                            leaf->tex_offset_y = -1;
+                            leaf->tex_offset_z = -1;
+                        }
+                        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                            leaf->face[ f ] = TEX_AIR;
+                        }
+                        leaf->face[ FACE_BACK ] = leaf_tex;
+                        leaf->face[ FACE_FRONT ] = leaf_tex;
+                    }
                 }
             }
         }

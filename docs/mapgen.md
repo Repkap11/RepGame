@@ -288,5 +288,7 @@ Chunk-local callers pass the chunk origin `co`; world callers pass
 
 The new generator no longer places saplings in decorations — saplings
 exist only as items from leaf drops and grow via `tree_grow_try`.
-`BAMBOO_SAPLING` and `DARK_DEAD_SAPLING` remain as decor (they never
-grow).
+`DARK_DEAD_SAPLING` remains as decor (it never grows). Jungle-edge
+bamboo still scatters short `BAMBOO_SAPLING` columns, but they are no
+longer static: random ticks convert them bottom-up into `BAMBOO` stalks
+that keep growing (see `bamboo_grow_try`).

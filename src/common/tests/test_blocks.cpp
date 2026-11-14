@@ -2,6 +2,8 @@
 #include "test_util.hpp"
 #include "common/block_update_events/LeafDecayEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
+#include "common/block_mesh_emit.hpp"
+#include "common/fluid.hpp"
 #include "common/tree_grow.hpp"
 #include "common/break_drops.hpp"
 #include "common/ui_overlay_buffers.hpp"
@@ -1956,6 +1958,146 @@ int test_sapling_grow( ) {
     world.set_loaded_block( bamboo + glm::ivec3( 0, -1, 0 ), grass );
     world.set_loaded_block( bamboo, { BAMBOO_SAPLING, 0, 0, BAMBOO_SAPLING, 0 } );
     check_bool( "grow: bamboo sapling fails", !tree_grow_try( gs, bamboo ) );
+    return failures;
+}
+
+// Bamboo column growth: the shoot converts on soil (or stacked on more
+// bamboo — the worldgen decor path) and the column's top stacks segments
+// into air under a hashed 11-16 cap. Leaf tiers ride in rotation:
+// top large (2), second small (1), deeper none (0).
+int test_bamboo_grow( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.game_mode = GameMode_Survival;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    const BlockState grass = { GRASS, 0, 0, GRASS, 0 };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+
+    // --- Shoot converts and a small column pops. ---
+    const glm::ivec3 pos( 10, 11, 10 );
+    world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( pos, { BAMBOO_SAPLING, 0, 0, BAMBOO_SAPLING, 0 } );
+    check_bool( "bamboo: shoot converts and grows", bamboo_grow_try( gs, pos, 3 ) );
+    check_bool( "bamboo: shoot cell is bamboo", world.get_loaded_block( pos ).id == BAMBOO );
+    check_bool( "bamboo: column grew 3 more", world.get_loaded_block( pos + glm::ivec3( 0, 3, 0 ) ).id == BAMBOO );
+    check_bool( "bamboo: growth stopped at 4", world.get_loaded_block( pos + glm::ivec3( 0, 4, 0 ) ).id == AIR );
+    check_bool( "bamboo: top tier is large", world.get_loaded_block( pos + glm::ivec3( 0, 3, 0 ) ).rotation == 2 );
+    check_bool( "bamboo: second tier is small", world.get_loaded_block( pos + glm::ivec3( 0, 2, 0 ) ).rotation == 1 );
+    check_bool( "bamboo: deeper tier is none", world.get_loaded_block( pos + glm::ivec3( 0, 1, 0 ) ).rotation == 0 );
+
+    // --- Top grows one segment per call, demoting the old tip. ---
+    check_bool( "bamboo: top grows one", bamboo_grow_try( gs, pos + glm::ivec3( 0, 3, 0 ), 1 ) );
+    check_bool( "bamboo: column is 5", world.get_loaded_block( pos + glm::ivec3( 0, 4, 0 ) ).id == BAMBOO );
+    check_bool( "bamboo: new top is large", world.get_loaded_block( pos + glm::ivec3( 0, 4, 0 ) ).rotation == 2 );
+    check_bool( "bamboo: old top demoted", world.get_loaded_block( pos + glm::ivec3( 0, 3, 0 ) ).rotation == 1 );
+    check_bool( "bamboo: old second cleared", world.get_loaded_block( pos + glm::ivec3( 0, 2, 0 ) ).rotation == 0 );
+
+    // --- Bonemeal-style call on an interior cell still grows the top. ---
+    check_bool( "bamboo: interior call grows top", bamboo_grow_try( gs, pos, 1 ) );
+    check_bool( "bamboo: column is 6", world.get_loaded_block( pos + glm::ivec3( 0, 5, 0 ) ).id == BAMBOO );
+
+    // --- Bad ground and a covered top fail. ---
+    const glm::ivec3 bad( 30, 11, 30 );
+    world.set_loaded_block( bad + glm::ivec3( 0, -1, 0 ), stone );
+    world.set_loaded_block( bad, { BAMBOO_SAPLING, 0, 0, BAMBOO_SAPLING, 0 } );
+    check_bool( "bamboo: shoot on stone fails", !bamboo_grow_try( gs, bad, 3 ) );
+    check_bool( "bamboo: shoot unchanged", world.get_loaded_block( bad ).id == BAMBOO_SAPLING );
+    const glm::ivec3 covered( 40, 11, 40 );
+    world.set_loaded_block( covered + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( covered, { BAMBOO, 0, 0, BAMBOO, 0 } );
+    world.set_loaded_block( covered + glm::ivec3( 0, 1, 0 ), stone );
+    check_bool( "bamboo: covered top fails", !bamboo_grow_try( gs, covered, 1 ) );
+
+    // --- The hashed cap is at most 16: a 16-tall column never grows. ---
+    const glm::ivec3 tall( 50, 11, 50 );
+    world.set_loaded_block( tall + glm::ivec3( 0, -1, 0 ), grass );
+    for ( int i = 0; i < 16; i++ ) {
+        world.set_loaded_block( tall + glm::ivec3( 0, i, 0 ), { BAMBOO, 0, 0, BAMBOO, 0 } );
+    }
+    check_bool( "bamboo: 16-tall column is capped", !bamboo_grow_try( gs, tall + glm::ivec3( 0, 15, 0 ), 2 ) );
+
+    // --- Worldgen's stacked shoots convert bottom-up. ---
+    const glm::ivec3 stacked( 60, 11, 60 );
+    world.set_loaded_block( stacked + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( stacked, { BAMBOO_SAPLING, 0, 0, BAMBOO_SAPLING, 0 } );
+    world.set_loaded_block( stacked + glm::ivec3( 0, 1, 0 ), { BAMBOO_SAPLING, 0, 0, BAMBOO_SAPLING, 0 } );
+    check_bool( "bamboo: stacked shoot converts", bamboo_grow_try( gs, stacked, 0 ) );
+    check_bool( "bamboo: bottom is bamboo", world.get_loaded_block( stacked ).id == BAMBOO );
+    check_bool( "bamboo: upper shoot untouched", world.get_loaded_block( stacked + glm::ivec3( 0, 1, 0 ) ).id == BAMBOO_SAPLING );
+    check_bool( "bamboo: upper converts on stalk", bamboo_grow_try( gs, stacked + glm::ivec3( 0, 1, 0 ), 0 ) );
+    check_bool( "bamboo: column continues", world.get_loaded_block( stacked + glm::ivec3( 0, 1, 0 ) ).id == BAMBOO );
+
+    // --- Placement validity: stalk on stalk, stalk on shoot, floating. ---
+    const glm::ivec3 sup( 55, 11, 55 );
+    world.set_loaded_block( sup + glm::ivec3( 0, -1, 0 ), grass );
+    world.set_loaded_block( sup, { BAMBOO, 0, 0, BAMBOO, 0 } );
+    const BlockState stalk = { BAMBOO, 0, 0, BAMBOO, 0 };
+    const BlockState shoot = { BAMBOO_SAPLING, 0, 0, BAMBOO_SAPLING, 0 };
+    check_bool( "bamboo: stalk on stalk is valid", player_placement_valid( world, sup + glm::ivec3( 0, 1, 0 ), stalk ) );
+    check_bool( "bamboo: shoot on stalk is valid", player_placement_valid( world, sup + glm::ivec3( 0, 1, 0 ), shoot ) );
+    world.set_loaded_block( sup + glm::ivec3( 0, 1, 0 ), shoot );
+    check_bool( "bamboo: stalk on shoot is valid", player_placement_valid( world, sup + glm::ivec3( 0, 2, 0 ), stalk ) );
+    // Mid-air in the loaded chunk: nothing colliding or bamboo below.
+    check_bool( "bamboo: floating stalk is invalid", !player_placement_valid( world, glm::ivec3( 20, 20, 20 ), stalk ) );
+
+    // --- Emit: the stalk is the block's own instance; a tiered cell also
+    // drops a leaf cross on the sink's second channel. ---
+    const Block *bamboo_def = block_definition_get_definition( BAMBOO );
+    BlockState leafy = { BAMBOO, 2, 0, BAMBOO, 0 };
+    BlockEmitParams emit = {};
+    emit.block = bamboo_def;
+    emit.state = &leafy;
+    emit.mesh_x = emit.mesh_y = emit.mesh_z = 1;
+    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+        emit.packed_lighting[ f ] = NO_LIGHT_BRIGHT;
+    }
+    emit.fluid_corners = FLUID_CORNERS_FLAT;
+    emit.cull_against_neighbors = false;
+    int extra = -1;
+    const int own_count = block_emit_count( emit, &extra );
+    check_bool( "emit: stalk is one instance", own_count == 1 );
+    check_bool( "emit: tier 2 reserves a leaf cross", extra == 1 );
+    struct EmitBuf {
+        BlockCoords buf[ 4 ];
+        int n = 0;
+    } own_out, leaf_out;
+    auto buf_alloc = []( void *ctx ) -> BlockCoords * {
+        EmitBuf &b = *static_cast<EmitBuf *>( ctx );
+        return b.n < 4 ? &b.buf[ b.n++ ] : nullptr;
+    };
+    const BlockEmitSink sink = { &own_out, buf_alloc, &leaf_out, buf_alloc };
+    block_emit_cell( emit, sink );
+    check_bool( "emit: one stalk instance", own_out.n == 1 );
+    check_bool( "emit: one leaf cross instance", leaf_out.n == 1 );
+    if ( own_out.n == 1 ) {
+        check_bool( "emit: stalk box is thin", own_out.buf[ 0 ].scale_x == 4 && own_out.buf[ 0 ].offset_x == 6 );
+        check_bool( "emit: stalk bottom cap culled", own_out.buf[ 0 ].packed_lighting[ FACE_BOTTOM ] == NO_LIGHT_NO_DRAW );
+    }
+    if ( leaf_out.n == 1 ) {
+        check_bool( "emit: large leaf is a full cross", leaf_out.buf[ 0 ].scale_x == 16 && leaf_out.buf[ 0 ].scale_z == 16 );
+        check_bool( "emit: leaf uses the def's top tile", leaf_out.buf[ 0 ].face[ FACE_BACK ] == bamboo_def->textures[ FACE_TOP ] );
+    }
+    // A bare stalk emits no leaf instance.
+    BlockState bare = { BAMBOO, 0, 0, BAMBOO, 0 };
+    emit.state = &bare;
+    own_out.n = leaf_out.n = 0;
+    int bare_extra = -1;
+    block_emit_count( emit, &bare_extra );
+    check_bool( "emit: bare stalk reserves no leaf", bare_extra == 0 );
+    block_emit_cell( emit, sink );
+    check_bool( "emit: bare emits no leaf", leaf_out.n == 0 && own_out.n == 1 );
     return failures;
 }
 

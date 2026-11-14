@@ -70,6 +70,9 @@
   "bamboo_fence_gate": {
     "source": "textures/blocks/bamboo_fence_gate"
   },
+  "bamboo_leaf": {
+    "source": "textures/blocks/bamboo_leaf"
+  },
   "bamboo_mosaic": {
     "source": "textures/blocks/bamboo_mosaic"
   },
@@ -81,6 +84,12 @@
   },
   "bamboo_shelf": {
     "source": "textures/blocks/bamboo_shelf"
+  },
+  "bamboo_small_leaf": {
+    "source": "textures/blocks/bamboo_small_leaf"
+  },
+  "bamboo_stem": {
+    "source": "textures/blocks/bamboo_stem"
   },
   "bamboo_trapdoor": {
     "source": "textures/blocks/bamboo_trapdoor"

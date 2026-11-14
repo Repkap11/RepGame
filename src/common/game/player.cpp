@@ -782,6 +782,10 @@ void RepGame::process_mouse_events( ) {
             if ( target != nullptr && target->crop_next != LAST_BLOCK_ID ) {
                 repgame_convert_block( globalGameState, pos, target->crop_next );
                 grown = true;
+            } else if ( target_state.id == BAMBOO || target_state.id == BAMBOO_SAPLING ) {
+                // Bamboo grows two segments per use (MC's rate) — the
+                // shoot converts and the column's top takes the growth.
+                grown = bamboo_grow_try( globalGameState, pos, 2 );
             } else {
                 TreeSpec spec;
                 grown = target != nullptr && tree_spec_for_sapling( target_state.id, pos, &spec ) && tree_grow_try( globalGameState, pos );
@@ -981,6 +985,18 @@ void RepGame::process_mouse_events( ) {
                     BlockID placed_block = change_block( 1, placed_state );
                     if ( placed_block != LAST_BLOCK_ID ) {
                         audio_play_sfx( audio_block_place_pool( holdingBlock ) );
+                    }
+                    // Bamboo stacked on bamboo demotes the old tip's leaf
+                    // crown one tier (large -> small — MC's leaves
+                    // property is positional from the top).
+                    if ( placed_block != LAST_BLOCK_ID && placed_id == BAMBOO ) {
+                        const glm::ivec3 below_pos = globalGameState.block_selection.pos_create + glm::ivec3( 0, -1, 0 );
+                        const BlockState below_state = globalGameState.world.get_loaded_block( below_pos );
+                        if ( below_state.id == BAMBOO && below_state.rotation > 1 ) {
+                            BlockState demoted = below_state;
+                            demoted.rotation = 1;
+                            schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, below_pos, demoted, true );
+                        }
                     }
                     if ( placed_block != LAST_BLOCK_ID && globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );

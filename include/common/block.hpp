@@ -691,9 +691,11 @@ static inline int block_wall_variant_rotation( const Block *block, const glm::iv
 // rotation is only the top-half bit (BLOCK_ROTATE_SLAB_TOP), which those
 // consumers read off the raw rotation instead. Cake masks to 0 too — its
 // rotation is the bite count, not an orientation — and so do rails, whose
-// rotation is a rail shape (0-5, see common/rail.hpp), not a yaw.
+// rotation is a rail shape (0-5, see common/rail.hpp), not a yaw. Bamboo
+// masks to 0 as well — its rotation is a leaf tier (see is_bamboo), and
+// the symmetric stalk box has no yaw to give.
 static inline unsigned char block_yaw( const Block *b, unsigned char rot ) {
-    return ( b->is_fence_gate || b->is_door || b->is_stairs || b->is_slab ) ? ( rot & 3 ) : ( b->is_cake || b->is_rail ? 0 : rot );
+    return ( b->is_fence_gate || b->is_door || b->is_stairs || b->is_slab ) ? ( rot & 3 ) : ( b->is_cake || b->is_rail || b->is_bamboo ? 0 : rot );
 }
 
 // face_shift flag bits: the low nibble holds the yaw rotation (0-7).

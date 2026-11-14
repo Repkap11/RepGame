@@ -294,6 +294,16 @@ pick/collision/icon box (cactus uses `[14,16,14]`/`[1,0,1]`), and
 `can_mesh_*` is disabled so emission stays per-cell — see `cactus.json` and
 the `block->spine_shell` block in chunk.cpp phase 2.
 
+`"is_bamboo": true` (bamboo stalks) is a two-order model: the def box is
+the thin 4px stalk drawn in the block's own order, and a cell whose
+`BlockState::rotation` is a nonzero leaf tier also emits a leaf cross
+into `RenderOrder_Flowers` through `BlockEmitSink`'s second channel —
+the only index buffer that draws the diagonal quads. The leaf tiles ride
+the def's TOP/BOTTOM texture slots (the stalk's bottom cap is culled
+since it sits coplanar on the support; the 4px top cap just reads as leaf
+material at the column tip). Block bodies pass no second channel and draw
+the bare stalk. `can_mesh_*` is disabled so emission stays per-cell.
+
 Pistons are the opposite special case: their mesh box depends on state, not
 just the def — a head plate (`is_piston_head`, the
 `*_ARM_COLLISION` blocks) is thin on its facing axis while the def carries
@@ -615,8 +625,21 @@ generator runs, so shapes are a pure function of position and two clients
 grow identical cells. Random ticks are off in capture mode, fly mode, the
 block world and flat worlds, and paused while the player is flying or
 no-clipping (traversal would otherwise persist frontier chunks nobody
-edited — every natural write marks its chunk `dirty`). Bamboo, dead,
+edited — every natural write marks its chunk `dirty`). Dead,
 garbage and potted saplings and the mangrove propagule never grow.
+
+Bamboo grows as a column, not a tree: `bamboo_grow_try` (tree_grow.cpp)
+converts a `BAMBOO_SAPLING` shoot on soil (the tree list plus sands, or
+stacked on more bamboo — worldgen's stacked shoots convert bottom-up) and
+stacks new `BAMBOO` segments onto the column's top, into air only, under
+a per-column cap of 11–16 hashed off the base (`sg_roll`). Random ticks
+grow one segment and only when the sampled cell is the column top; a shoot
+tick pops a small column (`BAMBOO_SAPLING_SEGMENTS` = 3). Bone meal grows
+two segments from any cell clicked. The leaf tier rides in
+`BlockState::rotation` (0 none, 1 small, 2 large — MC's `leaves`
+property: top is large, second small, deeper none); `block_yaw` masks it
+to 0 so it's never a yaw, and the same positional rule demotes the old
+tip when a player stacks bamboo by hand.
 
 ## Grass & dirt
 

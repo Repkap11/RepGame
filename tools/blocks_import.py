@@ -83,6 +83,7 @@ BOOL_FIELDS = {
     "is_bed", "is_bed_head",
     "is_door", "is_door_upper", "door_redstone_only", "is_rail",
     "is_tall_plant_upper",
+    "is_bamboo",
     "forms_sources",
 }
 INT_FIELDS = {"no_light", "flows", "flow_range", "flow_slope", "initial_redstone_power", "emits_light", "light_absorb"}

@@ -203,8 +203,9 @@ mob pre-empt the block target for left clicks.
   toggling, buckets (`repgame_use_bucket` —
   `BUCKET` scoops the fluid source under `fluidSelectionInBounds`,
   `WATER_BUCKET`/`LAVA_BUCKET` pour a source at the flowing hit cell,
-  `pos_fluid_create` or `pos_create`), bone meal (sapling or crop
-  stage), hoe tilling, spawn eggs and the bow before falling through to
+  `pos_fluid_create` or `pos_create`), bone meal (sapling, crop
+  stage, or bamboo — two column segments per use), hoe tilling, spawn
+  eggs and the bow before falling through to
   placement (`docs/redstone.md`, `docs/ui.md`). A held `BOW` fires an
   arrow along the camera look vector at the standard 30-tick click
   cadence (`repgame_fire_arrow` — no charge-up; release is biased a

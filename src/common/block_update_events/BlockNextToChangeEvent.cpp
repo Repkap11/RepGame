@@ -310,10 +310,16 @@ bool block_supports_present( World &world, const glm::ivec3 &block_pos, const Bl
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
         // Cake's rotation is the bite count, not a yaw — its support face
         // stays unrotated or a partly-eaten cake would check a side face.
-        int rotated_face = get_rotated_face( face, block->is_cake ? 0 : block_state.rotation );
+        // Bamboo's rotation is a leaf tier, likewise not a yaw.
+        int rotated_face = get_rotated_face( face, ( block->is_cake || block->is_bamboo ) ? 0 : block_state.rotation );
         if ( block->needs_place_on_any_solid[ rotated_face ] ) {
             BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ face ], block_pos.y - FACE_DIR_Y_OFFSETS[ face ], block_pos.z - FACE_DIR_Z_OFFSETS[ face ] ) ).id;
-            if ( block->needs_place_on_solid_but_can_stack_on_self && next_to_block_id == block_state.id ) {
+            // Bamboo and its shoot are the same plant family — either
+            // stage supports the other (worldgen writes stacked shoots
+            // that convert to stalks bottom-up through random ticks).
+            const bool bamboo_family_support = ( block_state.id == BAMBOO || block_state.id == BAMBOO_SAPLING ) &&
+                                               ( next_to_block_id == BAMBOO || next_to_block_id == BAMBOO_SAPLING );
+            if ( block->needs_place_on_solid_but_can_stack_on_self && ( next_to_block_id == block_state.id || bamboo_family_support ) ) {
                 block_is_ok_to_place = true;
                 break;
             } else {

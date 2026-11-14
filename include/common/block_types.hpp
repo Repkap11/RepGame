@@ -223,6 +223,13 @@ typedef struct {
     // 3-wide chain strands rising to the support block overhead. The
     // block's own scale/offset is the board plate — the pick fallback.
     bool is_hanging_sign;
+    // Bamboo draws its def box (a thin stalk) into its own render order
+    // plus, when BlockState::rotation is a leaf tier (0 none, 1 small,
+    // 2 large — MC's leaves property, kept by bamboo_grow_try), a leaf
+    // cross into RenderOrder_Flowers through the emit sink's second
+    // channel. block_yaw masks the rotation to 0 so the tier is never a
+    // yaw.
+    bool is_bamboo;
     // Doors are two-cell blocks: a lower half and an upper half (linked by
     // door_partner) whose 3px slab hitbox swings to an adjacent facing when
     // opened. Both halves store the current slab yaw in rotation bits 0-1 so

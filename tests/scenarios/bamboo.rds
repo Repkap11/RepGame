@@ -1,0 +1,32 @@
+# Bamboo staging: leaf tiers live in rotation (0 none, 1 small, 2 large —
+# MC's leaves property). The 4px stalk box draws in the opaque pass;
+# tiered cells also emit a leaf cross into the flowers order. Flat floor
+# is SANDSTONE at y=0; AIR starts at y=1.
+# Columns are staged one cell per tick: same-tick placement events have no
+# order guarantee and a stacked bamboo only survives once the cell below
+# holds bamboo.
+wait_idle 20 6000
+setblock 4 1 8 BAMBOO 0
+wait 2
+setblock 6 1 8 BAMBOO 0
+wait 2
+setblock 6 2 8 BAMBOO 0
+wait 2
+setblock 6 3 8 BAMBOO 0
+wait 2
+setblock 6 4 8 BAMBOO 1
+wait 2
+setblock 6 5 8 BAMBOO 2
+wait 2
+setblock 8 1 8 BAMBOO_SAPLING 0
+wait 2
+setblock 10 1 8 BAMBOO 2
+wait 30
+assert_block 4 1 8 BAMBOO
+assert_block 6 5 8 BAMBOO
+assert_block 8 1 8 BAMBOO_SAPLING
+assert_block 10 1 8 BAMBOO
+camera 7.0 4.5 3.5 180 10
+wait 20
+screenshot bamboo
+echo bamboo done
