@@ -1,11 +1,36 @@
 {
+ "affected_by_redstone_power": false,
+ "breaks_in_liquid": true,
  "casts_shadow": false,
- "hardness": 0.35,
+ "collides_with_player": false,
+ "hardness": 0,
+ "icon_is_isometric": false,
  "id": 618,
  "is_seethrough": true,
  "name": "GREEN_CANDLE",
- "no_light": 6815743,
+ "needs_place_on_any_solid": {
+  "top": true
+ },
+ "no_light": 0,
+ "offset": [
+  4,
+  0,
+  4
+ ],
+ "render_order": "Flowers",
+ "scale": [
+  7,
+  15,
+  7
+ ],
+ "tex_offset": [
+  -4,
+  0,
+  -4
+ ],
  "textures": {
-  "all": "green_candle"
+  "bottom": "air",
+  "side": "green_candle",
+  "top": "air"
  }
 }

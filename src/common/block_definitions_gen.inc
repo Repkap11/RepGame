@@ -2458,17 +2458,26 @@ block_definitions[ 149 ].icon_texture = TEX_LOG_BIRCH;
 block_definitions[ 149 ].mineable = MINEABLE_AXE;
 
 // BLACK_CANDLE (150)
-block_definitions[ 150 ].textures[ FACE_TOP ] = TEX_BLACK_CANDLE;
-block_definitions[ 150 ].textures[ FACE_BOTTOM ] = TEX_BLACK_CANDLE;
+block_definitions[ 150 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 150 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 150 ].textures[ FACE_RIGHT ] = TEX_BLACK_CANDLE;
 block_definitions[ 150 ].textures[ FACE_FRONT ] = TEX_BLACK_CANDLE;
 block_definitions[ 150 ].textures[ FACE_LEFT ] = TEX_BLACK_CANDLE;
 block_definitions[ 150 ].textures[ FACE_BACK ] = TEX_BLACK_CANDLE;
 block_definitions[ 150 ].icon_texture = TEX_BLACK_CANDLE;
+block_definitions[ 150 ].affected_by_redstone_power = false;
+block_definitions[ 150 ].breaks_in_liquid = true;
 block_definitions[ 150 ].casts_shadow = false;
-block_definitions[ 150 ].hardness = 0.35f;
+block_definitions[ 150 ].collides_with_player = false;
+block_definitions[ 150 ].hardness = 0.0f;
+block_definitions[ 150 ].icon_is_isometric = false;
 block_definitions[ 150 ].is_seethrough = true;
-block_definitions[ 150 ].no_light = 6815743;
+block_definitions[ 150 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 150 ].no_light = 0;
+block_definitions[ 150 ].offset = { 4, 0, 4 };
+block_definitions[ 150 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 150 ].scale = { 7, 15, 7 };
+block_definitions[ 150 ].tex_offset = { -4, 0, -4 };
 
 // REPEATER_DELAY_2 (151)
 block_definitions[ 151 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
@@ -2871,17 +2880,26 @@ block_definitions[ 178 ].scale = { 14, 8, 14 };
 block_definitions[ 178 ].tex_offset = { -1, 0, -1 };
 
 // BLUE_CANDLE (179)
-block_definitions[ 179 ].textures[ FACE_TOP ] = TEX_BLUE_CANDLE;
-block_definitions[ 179 ].textures[ FACE_BOTTOM ] = TEX_BLUE_CANDLE;
+block_definitions[ 179 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 179 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 179 ].textures[ FACE_RIGHT ] = TEX_BLUE_CANDLE;
 block_definitions[ 179 ].textures[ FACE_FRONT ] = TEX_BLUE_CANDLE;
 block_definitions[ 179 ].textures[ FACE_LEFT ] = TEX_BLUE_CANDLE;
 block_definitions[ 179 ].textures[ FACE_BACK ] = TEX_BLUE_CANDLE;
 block_definitions[ 179 ].icon_texture = TEX_BLUE_CANDLE;
+block_definitions[ 179 ].affected_by_redstone_power = false;
+block_definitions[ 179 ].breaks_in_liquid = true;
 block_definitions[ 179 ].casts_shadow = false;
-block_definitions[ 179 ].hardness = 0.35f;
+block_definitions[ 179 ].collides_with_player = false;
+block_definitions[ 179 ].hardness = 0.0f;
+block_definitions[ 179 ].icon_is_isometric = false;
 block_definitions[ 179 ].is_seethrough = true;
-block_definitions[ 179 ].no_light = 6815743;
+block_definitions[ 179 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 179 ].no_light = 0;
+block_definitions[ 179 ].offset = { 4, 0, 4 };
+block_definitions[ 179 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 179 ].scale = { 7, 15, 7 };
+block_definitions[ 179 ].tex_offset = { -4, 0, -4 };
 
 // REPEATER_DELAY_3 (180)
 block_definitions[ 180 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
@@ -3257,17 +3275,26 @@ block_definitions[ 206 ].scale = { 8, 16, 8 };
 block_definitions[ 206 ].tex_offset = { -4, 0, -4 };
 
 // BROWN_CANDLE (207)
-block_definitions[ 207 ].textures[ FACE_TOP ] = TEX_BROWN_CANDLE;
-block_definitions[ 207 ].textures[ FACE_BOTTOM ] = TEX_BROWN_CANDLE;
+block_definitions[ 207 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 207 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 207 ].textures[ FACE_RIGHT ] = TEX_BROWN_CANDLE;
 block_definitions[ 207 ].textures[ FACE_FRONT ] = TEX_BROWN_CANDLE;
 block_definitions[ 207 ].textures[ FACE_LEFT ] = TEX_BROWN_CANDLE;
 block_definitions[ 207 ].textures[ FACE_BACK ] = TEX_BROWN_CANDLE;
 block_definitions[ 207 ].icon_texture = TEX_BROWN_CANDLE;
+block_definitions[ 207 ].affected_by_redstone_power = false;
+block_definitions[ 207 ].breaks_in_liquid = true;
 block_definitions[ 207 ].casts_shadow = false;
-block_definitions[ 207 ].hardness = 0.35f;
+block_definitions[ 207 ].collides_with_player = false;
+block_definitions[ 207 ].hardness = 0.0f;
+block_definitions[ 207 ].icon_is_isometric = false;
 block_definitions[ 207 ].is_seethrough = true;
-block_definitions[ 207 ].no_light = 6815743;
+block_definitions[ 207 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 207 ].no_light = 0;
+block_definitions[ 207 ].offset = { 4, 0, 4 };
+block_definitions[ 207 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 207 ].scale = { 7, 15, 7 };
+block_definitions[ 207 ].tex_offset = { -4, 0, -4 };
 
 // REPEATER_DELAY_4 (208)
 block_definitions[ 208 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
@@ -3753,17 +3780,26 @@ block_definitions[ 241 ].mineable = MINEABLE_AXE;
 block_definitions[ 241 ].no_light = 6815743;
 
 // CANDLE (242)
-block_definitions[ 242 ].textures[ FACE_TOP ] = TEX_CANDLE;
-block_definitions[ 242 ].textures[ FACE_BOTTOM ] = TEX_CANDLE;
+block_definitions[ 242 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 242 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 242 ].textures[ FACE_RIGHT ] = TEX_CANDLE;
 block_definitions[ 242 ].textures[ FACE_FRONT ] = TEX_CANDLE;
 block_definitions[ 242 ].textures[ FACE_LEFT ] = TEX_CANDLE;
 block_definitions[ 242 ].textures[ FACE_BACK ] = TEX_CANDLE;
 block_definitions[ 242 ].icon_texture = TEX_CANDLE;
+block_definitions[ 242 ].affected_by_redstone_power = false;
+block_definitions[ 242 ].breaks_in_liquid = true;
 block_definitions[ 242 ].casts_shadow = false;
-block_definitions[ 242 ].hardness = 0.35f;
+block_definitions[ 242 ].collides_with_player = false;
+block_definitions[ 242 ].hardness = 0.0f;
+block_definitions[ 242 ].icon_is_isometric = false;
 block_definitions[ 242 ].is_seethrough = true;
-block_definitions[ 242 ].no_light = 6815743;
+block_definitions[ 242 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 242 ].no_light = 0;
+block_definitions[ 242 ].offset = { 4, 0, 4 };
+block_definitions[ 242 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 242 ].scale = { 7, 15, 7 };
+block_definitions[ 242 ].tex_offset = { -4, 0, -4 };
 
 // MOVING_PISTON (243)
 block_definitions[ 243 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -6609,17 +6645,26 @@ block_definitions[ 426 ].scale = { 16, 8, 16 };
 block_definitions[ 426 ].tex_offset = { 0, -4, 0 };
 
 // CYAN_CANDLE (427)
-block_definitions[ 427 ].textures[ FACE_TOP ] = TEX_CYAN_CANDLE;
-block_definitions[ 427 ].textures[ FACE_BOTTOM ] = TEX_CYAN_CANDLE;
+block_definitions[ 427 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 427 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 427 ].textures[ FACE_RIGHT ] = TEX_CYAN_CANDLE;
 block_definitions[ 427 ].textures[ FACE_FRONT ] = TEX_CYAN_CANDLE;
 block_definitions[ 427 ].textures[ FACE_LEFT ] = TEX_CYAN_CANDLE;
 block_definitions[ 427 ].textures[ FACE_BACK ] = TEX_CYAN_CANDLE;
 block_definitions[ 427 ].icon_texture = TEX_CYAN_CANDLE;
+block_definitions[ 427 ].affected_by_redstone_power = false;
+block_definitions[ 427 ].breaks_in_liquid = true;
 block_definitions[ 427 ].casts_shadow = false;
-block_definitions[ 427 ].hardness = 0.35f;
+block_definitions[ 427 ].collides_with_player = false;
+block_definitions[ 427 ].hardness = 0.0f;
+block_definitions[ 427 ].icon_is_isometric = false;
 block_definitions[ 427 ].is_seethrough = true;
-block_definitions[ 427 ].no_light = 6815743;
+block_definitions[ 427 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 427 ].no_light = 0;
+block_definitions[ 427 ].offset = { 4, 0, 4 };
+block_definitions[ 427 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 427 ].scale = { 7, 15, 7 };
+block_definitions[ 427 ].tex_offset = { -4, 0, -4 };
 
 // undefined (428)
 block_definitions[ 428 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -9141,17 +9186,26 @@ block_definitions[ 601 ].no_light = 6815743;
 block_definitions[ 601 ].scale = { 16, 15, 16 };
 
 // GRAY_CANDLE (602)
-block_definitions[ 602 ].textures[ FACE_TOP ] = TEX_GRAY_CANDLE;
-block_definitions[ 602 ].textures[ FACE_BOTTOM ] = TEX_GRAY_CANDLE;
+block_definitions[ 602 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 602 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 602 ].textures[ FACE_RIGHT ] = TEX_GRAY_CANDLE;
 block_definitions[ 602 ].textures[ FACE_FRONT ] = TEX_GRAY_CANDLE;
 block_definitions[ 602 ].textures[ FACE_LEFT ] = TEX_GRAY_CANDLE;
 block_definitions[ 602 ].textures[ FACE_BACK ] = TEX_GRAY_CANDLE;
 block_definitions[ 602 ].icon_texture = TEX_GRAY_CANDLE;
+block_definitions[ 602 ].affected_by_redstone_power = false;
+block_definitions[ 602 ].breaks_in_liquid = true;
 block_definitions[ 602 ].casts_shadow = false;
-block_definitions[ 602 ].hardness = 0.35f;
+block_definitions[ 602 ].collides_with_player = false;
+block_definitions[ 602 ].hardness = 0.0f;
+block_definitions[ 602 ].icon_is_isometric = false;
 block_definitions[ 602 ].is_seethrough = true;
-block_definitions[ 602 ].no_light = 6815743;
+block_definitions[ 602 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 602 ].no_light = 0;
+block_definitions[ 602 ].offset = { 4, 0, 4 };
+block_definitions[ 602 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 602 ].scale = { 7, 15, 7 };
+block_definitions[ 602 ].tex_offset = { -4, 0, -4 };
 
 // undefined (603)
 block_definitions[ 603 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -9340,17 +9394,26 @@ block_definitions[ 617 ].no_light = 6815743;
 block_definitions[ 617 ].rotate_on_placement = true;
 
 // GREEN_CANDLE (618)
-block_definitions[ 618 ].textures[ FACE_TOP ] = TEX_GREEN_CANDLE;
-block_definitions[ 618 ].textures[ FACE_BOTTOM ] = TEX_GREEN_CANDLE;
+block_definitions[ 618 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 618 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 618 ].textures[ FACE_RIGHT ] = TEX_GREEN_CANDLE;
 block_definitions[ 618 ].textures[ FACE_FRONT ] = TEX_GREEN_CANDLE;
 block_definitions[ 618 ].textures[ FACE_LEFT ] = TEX_GREEN_CANDLE;
 block_definitions[ 618 ].textures[ FACE_BACK ] = TEX_GREEN_CANDLE;
 block_definitions[ 618 ].icon_texture = TEX_GREEN_CANDLE;
+block_definitions[ 618 ].affected_by_redstone_power = false;
+block_definitions[ 618 ].breaks_in_liquid = true;
 block_definitions[ 618 ].casts_shadow = false;
-block_definitions[ 618 ].hardness = 0.35f;
+block_definitions[ 618 ].collides_with_player = false;
+block_definitions[ 618 ].hardness = 0.0f;
+block_definitions[ 618 ].icon_is_isometric = false;
 block_definitions[ 618 ].is_seethrough = true;
-block_definitions[ 618 ].no_light = 6815743;
+block_definitions[ 618 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 618 ].no_light = 0;
+block_definitions[ 618 ].offset = { 4, 0, 4 };
+block_definitions[ 618 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 618 ].scale = { 7, 15, 7 };
+block_definitions[ 618 ].tex_offset = { -4, 0, -4 };
 
 // undefined (619)
 block_definitions[ 619 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10166,17 +10229,26 @@ block_definitions[ 677 ].is_seethrough = true;
 block_definitions[ 677 ].no_light = 6815743;
 
 // LIGHT_BLUE_CANDLE (678)
-block_definitions[ 678 ].textures[ FACE_TOP ] = TEX_LIGHT_BLUE_CANDLE;
-block_definitions[ 678 ].textures[ FACE_BOTTOM ] = TEX_LIGHT_BLUE_CANDLE;
+block_definitions[ 678 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 678 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 678 ].textures[ FACE_RIGHT ] = TEX_LIGHT_BLUE_CANDLE;
 block_definitions[ 678 ].textures[ FACE_FRONT ] = TEX_LIGHT_BLUE_CANDLE;
 block_definitions[ 678 ].textures[ FACE_LEFT ] = TEX_LIGHT_BLUE_CANDLE;
 block_definitions[ 678 ].textures[ FACE_BACK ] = TEX_LIGHT_BLUE_CANDLE;
 block_definitions[ 678 ].icon_texture = TEX_LIGHT_BLUE_CANDLE;
+block_definitions[ 678 ].affected_by_redstone_power = false;
+block_definitions[ 678 ].breaks_in_liquid = true;
 block_definitions[ 678 ].casts_shadow = false;
-block_definitions[ 678 ].hardness = 0.35f;
+block_definitions[ 678 ].collides_with_player = false;
+block_definitions[ 678 ].hardness = 0.0f;
+block_definitions[ 678 ].icon_is_isometric = false;
 block_definitions[ 678 ].is_seethrough = true;
-block_definitions[ 678 ].no_light = 6815743;
+block_definitions[ 678 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 678 ].no_light = 0;
+block_definitions[ 678 ].offset = { 4, 0, 4 };
+block_definitions[ 678 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 678 ].scale = { 7, 15, 7 };
+block_definitions[ 678 ].tex_offset = { -4, 0, -4 };
 
 // undefined (679)
 block_definitions[ 679 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10365,17 +10437,26 @@ block_definitions[ 693 ].no_light = 6815743;
 block_definitions[ 693 ].rotate_on_placement = true;
 
 // LIGHT_GRAY_CANDLE (694)
-block_definitions[ 694 ].textures[ FACE_TOP ] = TEX_LIGHT_GRAY_CANDLE;
-block_definitions[ 694 ].textures[ FACE_BOTTOM ] = TEX_LIGHT_GRAY_CANDLE;
+block_definitions[ 694 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 694 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 694 ].textures[ FACE_RIGHT ] = TEX_LIGHT_GRAY_CANDLE;
 block_definitions[ 694 ].textures[ FACE_FRONT ] = TEX_LIGHT_GRAY_CANDLE;
 block_definitions[ 694 ].textures[ FACE_LEFT ] = TEX_LIGHT_GRAY_CANDLE;
 block_definitions[ 694 ].textures[ FACE_BACK ] = TEX_LIGHT_GRAY_CANDLE;
 block_definitions[ 694 ].icon_texture = TEX_LIGHT_GRAY_CANDLE;
+block_definitions[ 694 ].affected_by_redstone_power = false;
+block_definitions[ 694 ].breaks_in_liquid = true;
 block_definitions[ 694 ].casts_shadow = false;
-block_definitions[ 694 ].hardness = 0.35f;
+block_definitions[ 694 ].collides_with_player = false;
+block_definitions[ 694 ].hardness = 0.0f;
+block_definitions[ 694 ].icon_is_isometric = false;
 block_definitions[ 694 ].is_seethrough = true;
-block_definitions[ 694 ].no_light = 6815743;
+block_definitions[ 694 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 694 ].no_light = 0;
+block_definitions[ 694 ].offset = { 4, 0, 4 };
+block_definitions[ 694 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 694 ].scale = { 7, 15, 7 };
+block_definitions[ 694 ].tex_offset = { -4, 0, -4 };
 
 // undefined (695)
 block_definitions[ 695 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10625,17 +10706,26 @@ block_definitions[ 712 ].scale = { 6, 11, 6 };
 block_definitions[ 712 ].tex_offset = { -5, 0, -5 };
 
 // LIME_CANDLE (713)
-block_definitions[ 713 ].textures[ FACE_TOP ] = TEX_LIME_CANDLE;
-block_definitions[ 713 ].textures[ FACE_BOTTOM ] = TEX_LIME_CANDLE;
+block_definitions[ 713 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 713 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 713 ].textures[ FACE_RIGHT ] = TEX_LIME_CANDLE;
 block_definitions[ 713 ].textures[ FACE_FRONT ] = TEX_LIME_CANDLE;
 block_definitions[ 713 ].textures[ FACE_LEFT ] = TEX_LIME_CANDLE;
 block_definitions[ 713 ].textures[ FACE_BACK ] = TEX_LIME_CANDLE;
 block_definitions[ 713 ].icon_texture = TEX_LIME_CANDLE;
+block_definitions[ 713 ].affected_by_redstone_power = false;
+block_definitions[ 713 ].breaks_in_liquid = true;
 block_definitions[ 713 ].casts_shadow = false;
-block_definitions[ 713 ].hardness = 0.35f;
+block_definitions[ 713 ].collides_with_player = false;
+block_definitions[ 713 ].hardness = 0.0f;
+block_definitions[ 713 ].icon_is_isometric = false;
 block_definitions[ 713 ].is_seethrough = true;
-block_definitions[ 713 ].no_light = 6815743;
+block_definitions[ 713 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 713 ].no_light = 0;
+block_definitions[ 713 ].offset = { 4, 0, 4 };
+block_definitions[ 713 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 713 ].scale = { 7, 15, 7 };
+block_definitions[ 713 ].tex_offset = { -4, 0, -4 };
 
 // undefined (714)
 block_definitions[ 714 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10919,17 +11009,26 @@ block_definitions[ 737 ].icon_texture = TEX_LOOM_TOP;
 block_definitions[ 737 ].mineable = MINEABLE_AXE;
 
 // MAGENTA_CANDLE (738)
-block_definitions[ 738 ].textures[ FACE_TOP ] = TEX_MAGENTA_CANDLE;
-block_definitions[ 738 ].textures[ FACE_BOTTOM ] = TEX_MAGENTA_CANDLE;
+block_definitions[ 738 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 738 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 738 ].textures[ FACE_RIGHT ] = TEX_MAGENTA_CANDLE;
 block_definitions[ 738 ].textures[ FACE_FRONT ] = TEX_MAGENTA_CANDLE;
 block_definitions[ 738 ].textures[ FACE_LEFT ] = TEX_MAGENTA_CANDLE;
 block_definitions[ 738 ].textures[ FACE_BACK ] = TEX_MAGENTA_CANDLE;
 block_definitions[ 738 ].icon_texture = TEX_MAGENTA_CANDLE;
+block_definitions[ 738 ].affected_by_redstone_power = false;
+block_definitions[ 738 ].breaks_in_liquid = true;
 block_definitions[ 738 ].casts_shadow = false;
-block_definitions[ 738 ].hardness = 0.35f;
+block_definitions[ 738 ].collides_with_player = false;
+block_definitions[ 738 ].hardness = 0.0f;
+block_definitions[ 738 ].icon_is_isometric = false;
 block_definitions[ 738 ].is_seethrough = true;
-block_definitions[ 738 ].no_light = 6815743;
+block_definitions[ 738 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 738 ].no_light = 0;
+block_definitions[ 738 ].offset = { 4, 0, 4 };
+block_definitions[ 738 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 738 ].scale = { 7, 15, 7 };
+block_definitions[ 738 ].tex_offset = { -4, 0, -4 };
 
 // undefined (739)
 block_definitions[ 739 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -12322,17 +12421,26 @@ block_definitions[ 832 ].scale = { 6, 11, 6 };
 block_definitions[ 832 ].tex_offset = { -5, 0, -5 };
 
 // ORANGE_CANDLE (833)
-block_definitions[ 833 ].textures[ FACE_TOP ] = TEX_ORANGE_CANDLE;
-block_definitions[ 833 ].textures[ FACE_BOTTOM ] = TEX_ORANGE_CANDLE;
+block_definitions[ 833 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 833 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 833 ].textures[ FACE_RIGHT ] = TEX_ORANGE_CANDLE;
 block_definitions[ 833 ].textures[ FACE_FRONT ] = TEX_ORANGE_CANDLE;
 block_definitions[ 833 ].textures[ FACE_LEFT ] = TEX_ORANGE_CANDLE;
 block_definitions[ 833 ].textures[ FACE_BACK ] = TEX_ORANGE_CANDLE;
 block_definitions[ 833 ].icon_texture = TEX_ORANGE_CANDLE;
+block_definitions[ 833 ].affected_by_redstone_power = false;
+block_definitions[ 833 ].breaks_in_liquid = true;
 block_definitions[ 833 ].casts_shadow = false;
-block_definitions[ 833 ].hardness = 0.35f;
+block_definitions[ 833 ].collides_with_player = false;
+block_definitions[ 833 ].hardness = 0.0f;
+block_definitions[ 833 ].icon_is_isometric = false;
 block_definitions[ 833 ].is_seethrough = true;
-block_definitions[ 833 ].no_light = 6815743;
+block_definitions[ 833 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 833 ].no_light = 0;
+block_definitions[ 833 ].offset = { 4, 0, 4 };
+block_definitions[ 833 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 833 ].scale = { 7, 15, 7 };
+block_definitions[ 833 ].tex_offset = { -4, 0, -4 };
 
 // undefined (834)
 block_definitions[ 834 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -13375,17 +13483,26 @@ block_definitions[ 901 ].scale = { 16, 8, 16 };
 block_definitions[ 901 ].tex_offset = { 0, -4, 0 };
 
 // PINK_CANDLE (902)
-block_definitions[ 902 ].textures[ FACE_TOP ] = TEX_PINK_CANDLE;
-block_definitions[ 902 ].textures[ FACE_BOTTOM ] = TEX_PINK_CANDLE;
+block_definitions[ 902 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 902 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 902 ].textures[ FACE_RIGHT ] = TEX_PINK_CANDLE;
 block_definitions[ 902 ].textures[ FACE_FRONT ] = TEX_PINK_CANDLE;
 block_definitions[ 902 ].textures[ FACE_LEFT ] = TEX_PINK_CANDLE;
 block_definitions[ 902 ].textures[ FACE_BACK ] = TEX_PINK_CANDLE;
 block_definitions[ 902 ].icon_texture = TEX_PINK_CANDLE;
+block_definitions[ 902 ].affected_by_redstone_power = false;
+block_definitions[ 902 ].breaks_in_liquid = true;
 block_definitions[ 902 ].casts_shadow = false;
-block_definitions[ 902 ].hardness = 0.35f;
+block_definitions[ 902 ].collides_with_player = false;
+block_definitions[ 902 ].hardness = 0.0f;
+block_definitions[ 902 ].icon_is_isometric = false;
 block_definitions[ 902 ].is_seethrough = true;
-block_definitions[ 902 ].no_light = 6815743;
+block_definitions[ 902 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 902 ].no_light = 0;
+block_definitions[ 902 ].offset = { 4, 0, 4 };
+block_definitions[ 902 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 902 ].scale = { 7, 15, 7 };
+block_definitions[ 902 ].tex_offset = { -4, 0, -4 };
 
 // undefined (903)
 block_definitions[ 903 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -15027,17 +15144,26 @@ block_definitions[ 1011 ].no_light = 0;
 block_definitions[ 1011 ].renderOrder = RenderOrder_Flowers;
 
 // PURPLE_CANDLE (1012)
-block_definitions[ 1012 ].textures[ FACE_TOP ] = TEX_PURPLE_CANDLE;
-block_definitions[ 1012 ].textures[ FACE_BOTTOM ] = TEX_PURPLE_CANDLE;
+block_definitions[ 1012 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1012 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 1012 ].textures[ FACE_RIGHT ] = TEX_PURPLE_CANDLE;
 block_definitions[ 1012 ].textures[ FACE_FRONT ] = TEX_PURPLE_CANDLE;
 block_definitions[ 1012 ].textures[ FACE_LEFT ] = TEX_PURPLE_CANDLE;
 block_definitions[ 1012 ].textures[ FACE_BACK ] = TEX_PURPLE_CANDLE;
 block_definitions[ 1012 ].icon_texture = TEX_PURPLE_CANDLE;
+block_definitions[ 1012 ].affected_by_redstone_power = false;
+block_definitions[ 1012 ].breaks_in_liquid = true;
 block_definitions[ 1012 ].casts_shadow = false;
-block_definitions[ 1012 ].hardness = 0.35f;
+block_definitions[ 1012 ].collides_with_player = false;
+block_definitions[ 1012 ].hardness = 0.0f;
+block_definitions[ 1012 ].icon_is_isometric = false;
 block_definitions[ 1012 ].is_seethrough = true;
-block_definitions[ 1012 ].no_light = 6815743;
+block_definitions[ 1012 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1012 ].no_light = 0;
+block_definitions[ 1012 ].offset = { 4, 0, 4 };
+block_definitions[ 1012 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1012 ].scale = { 7, 15, 7 };
+block_definitions[ 1012 ].tex_offset = { -4, 0, -4 };
 
 // undefined (1013)
 block_definitions[ 1013 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -15432,17 +15558,26 @@ block_definitions[ 1044 ].icon_texture = TEX_RAW_IRON_BLOCK;
 block_definitions[ 1044 ].mineable = MINEABLE_PICKAXE;
 
 // RED_CANDLE (1045)
-block_definitions[ 1045 ].textures[ FACE_TOP ] = TEX_RED_CANDLE;
-block_definitions[ 1045 ].textures[ FACE_BOTTOM ] = TEX_RED_CANDLE;
+block_definitions[ 1045 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1045 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 1045 ].textures[ FACE_RIGHT ] = TEX_RED_CANDLE;
 block_definitions[ 1045 ].textures[ FACE_FRONT ] = TEX_RED_CANDLE;
 block_definitions[ 1045 ].textures[ FACE_LEFT ] = TEX_RED_CANDLE;
 block_definitions[ 1045 ].textures[ FACE_BACK ] = TEX_RED_CANDLE;
 block_definitions[ 1045 ].icon_texture = TEX_RED_CANDLE;
+block_definitions[ 1045 ].affected_by_redstone_power = false;
+block_definitions[ 1045 ].breaks_in_liquid = true;
 block_definitions[ 1045 ].casts_shadow = false;
-block_definitions[ 1045 ].hardness = 0.35f;
+block_definitions[ 1045 ].collides_with_player = false;
+block_definitions[ 1045 ].hardness = 0.0f;
+block_definitions[ 1045 ].icon_is_isometric = false;
 block_definitions[ 1045 ].is_seethrough = true;
-block_definitions[ 1045 ].no_light = 6815743;
+block_definitions[ 1045 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1045 ].no_light = 0;
+block_definitions[ 1045 ].offset = { 4, 0, 4 };
+block_definitions[ 1045 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1045 ].scale = { 7, 15, 7 };
+block_definitions[ 1045 ].tex_offset = { -4, 0, -4 };
 
 // undefined (1046)
 block_definitions[ 1046 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -20103,17 +20238,26 @@ block_definitions[ 1366 ].textures[ FACE_BACK ] = TEX_SPONGE_WET;
 block_definitions[ 1366 ].icon_texture = TEX_SPONGE_WET;
 
 // WHITE_CANDLE (1367)
-block_definitions[ 1367 ].textures[ FACE_TOP ] = TEX_WHITE_CANDLE;
-block_definitions[ 1367 ].textures[ FACE_BOTTOM ] = TEX_WHITE_CANDLE;
+block_definitions[ 1367 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1367 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 1367 ].textures[ FACE_RIGHT ] = TEX_WHITE_CANDLE;
 block_definitions[ 1367 ].textures[ FACE_FRONT ] = TEX_WHITE_CANDLE;
 block_definitions[ 1367 ].textures[ FACE_LEFT ] = TEX_WHITE_CANDLE;
 block_definitions[ 1367 ].textures[ FACE_BACK ] = TEX_WHITE_CANDLE;
 block_definitions[ 1367 ].icon_texture = TEX_WHITE_CANDLE;
+block_definitions[ 1367 ].affected_by_redstone_power = false;
+block_definitions[ 1367 ].breaks_in_liquid = true;
 block_definitions[ 1367 ].casts_shadow = false;
-block_definitions[ 1367 ].hardness = 0.35f;
+block_definitions[ 1367 ].collides_with_player = false;
+block_definitions[ 1367 ].hardness = 0.0f;
+block_definitions[ 1367 ].icon_is_isometric = false;
 block_definitions[ 1367 ].is_seethrough = true;
-block_definitions[ 1367 ].no_light = 6815743;
+block_definitions[ 1367 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1367 ].no_light = 0;
+block_definitions[ 1367 ].offset = { 4, 0, 4 };
+block_definitions[ 1367 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1367 ].scale = { 7, 15, 7 };
+block_definitions[ 1367 ].tex_offset = { -4, 0, -4 };
 
 // undefined (1368)
 block_definitions[ 1368 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -20378,17 +20522,26 @@ block_definitions[ 1387 ].icon_texture = TEX_WOOL_COLORED_WHITE;
 block_definitions[ 1387 ].mineable = MINEABLE_SHEARS;
 
 // YELLOW_CANDLE (1388)
-block_definitions[ 1388 ].textures[ FACE_TOP ] = TEX_YELLOW_CANDLE;
-block_definitions[ 1388 ].textures[ FACE_BOTTOM ] = TEX_YELLOW_CANDLE;
+block_definitions[ 1388 ].textures[ FACE_TOP ] = TEX_AIR;
+block_definitions[ 1388 ].textures[ FACE_BOTTOM ] = TEX_AIR;
 block_definitions[ 1388 ].textures[ FACE_RIGHT ] = TEX_YELLOW_CANDLE;
 block_definitions[ 1388 ].textures[ FACE_FRONT ] = TEX_YELLOW_CANDLE;
 block_definitions[ 1388 ].textures[ FACE_LEFT ] = TEX_YELLOW_CANDLE;
 block_definitions[ 1388 ].textures[ FACE_BACK ] = TEX_YELLOW_CANDLE;
 block_definitions[ 1388 ].icon_texture = TEX_YELLOW_CANDLE;
+block_definitions[ 1388 ].affected_by_redstone_power = false;
+block_definitions[ 1388 ].breaks_in_liquid = true;
 block_definitions[ 1388 ].casts_shadow = false;
-block_definitions[ 1388 ].hardness = 0.35f;
+block_definitions[ 1388 ].collides_with_player = false;
+block_definitions[ 1388 ].hardness = 0.0f;
+block_definitions[ 1388 ].icon_is_isometric = false;
 block_definitions[ 1388 ].is_seethrough = true;
-block_definitions[ 1388 ].no_light = 6815743;
+block_definitions[ 1388 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1388 ].no_light = 0;
+block_definitions[ 1388 ].offset = { 4, 0, 4 };
+block_definitions[ 1388 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1388 ].scale = { 7, 15, 7 };
+block_definitions[ 1388 ].tex_offset = { -4, 0, -4 };
 
 // undefined (1389)
 block_definitions[ 1389 ].textures[ FACE_TOP ] = TEX_AIR;
