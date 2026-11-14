@@ -269,11 +269,11 @@ void TouchControls::draw( const Renderer &renderer, Shader &shader, const Textur
 
     this->quads.clear( );
     const float text_size = rects.touch_jump.height * 0.22f;
-    const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    const float white[ 4 ] = { 1.0f, 1.0f, 1.0f, 0.8f };
     const auto button = [ & ]( const UiRect &rect, const char *label, bool pressed ) {
-        // Translucent black like the Java paints: 0.35 base, brighter
+        // Translucent black: 0.25 base, darker
         // while held / toggled on.
-        add_touch_quad( this->quads, rect.left, rect.bottom, rect.width, rect.height, ORDER_Z_TOUCH, 0.0f, 0.0f, 0.0f, pressed ? 0.7f : 0.35f );
+        add_touch_quad( this->quads, rect.left, rect.bottom, rect.width, rect.height, ORDER_Z_TOUCH, 0.0f, 0.0f, 0.0f, pressed ? 0.6f : 0.25f );
         if ( label != nullptr && label[ 0 ] != '\0' ) {
             const float baseline = rect.center_y( ) - font.getCapHeight( text_size ) * 0.5f;
             font.text_append( label, rect.center_x( ) - font.getTextWidth( label, text_size ) * 0.5f, baseline, text_size, white );
@@ -289,13 +289,13 @@ void TouchControls::draw( const Renderer &renderer, Shader &shader, const Textur
         }
     } else {
         const UiRect &joy = rects.touch_joystick;
-        add_touch_quad( this->quads, joy.left, joy.bottom, joy.width, joy.height, ORDER_Z_TOUCH, 0.0f, 0.0f, 0.0f, 0.35f );
+        add_touch_quad( this->quads, joy.left, joy.bottom, joy.width, joy.height, ORDER_Z_TOUCH, 0.0f, 0.0f, 0.0f, 0.25f );
         const float knob_size = joy.width / 3.0f;
         const bool held = this->move_id != -1;
         add_touch_quad( this->quads,
                         ( held ? this->knob_x : joy.center_x( ) ) - knob_size * 0.5f,
                         ( held ? this->knob_y : joy.center_y( ) ) - knob_size * 0.5f,
-                        knob_size, knob_size, ORDER_Z_TOUCH_KNOB, 0.0f, 0.0f, 0.0f, held ? 0.7f : 0.35f );
+                        knob_size, knob_size, ORDER_Z_TOUCH_KNOB, 0.0f, 0.0f, 0.0f, held ? 0.6f : 0.25f );
         button( rects.touch_jump, "Jump", this->jump_id != -1 );
         button( rects.touch_sneak, "Sneak", input.movement.sneakPressed );
         button( rects.touch_break, "Break", this->left_id != -1 );

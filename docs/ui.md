@@ -277,8 +277,8 @@ matching and the output slot are documented with the item/recipe data in
   without respawning (`docs/player.md`).
 - `TouchControls` (`include/common/touch_controls.hpp`): the shared C++
   port of Android's `UIOverlayView` — a joystick plus
-  Jump/Sneak/Break/Pick/Place/Inv/Menu buttons while playing (a half-size
-  `touch_chat` button sits right of Menu and opens chat via
+  Jump/Sneak/Break/Pick/Place/Inv/Menu buttons while playing (a
+  `touch_chat` button under Sneak opens chat via
   `input.chat_open_request`), and Close/game-mode/creative-page-arrow
   buttons while `inventory_open`.
   Geometry comes from the layout pass (`UiLayoutRects::touch_*`: fixed
@@ -286,8 +286,9 @@ matching and the output slot are documented with the item/recipe data in
   bottom-right, Jump/Sneak/Menu on the top corners/edge, Chat under
   Sneak on the left, Inv under Jump on the right, Pick top-aligned
   right of Menu; buttons are `r` wide × `0.75r` tall with
-  `r = min(w/4, h/2)/2`, page arrows in the margins beside the
-  creative panel; on narrow screens the bottom set may cover the
+  `r = min(w/4, h/2)/2`, separated by a `0.04r` gap (edge-anchored
+  sides stay flush to the screen), page arrows in the margins beside
+  the creative panel; on narrow screens the bottom set may cover the
   hotbar, and `UI_OVERFLOW_TOUCH` flags any escaping rect. Platform touches enter through `RepGame::touch_event` ->
   `repgame_touch_event` (window pixels, y down — a no-op unless
   `input.touch_ui`), which builds a `TouchContext` and calls

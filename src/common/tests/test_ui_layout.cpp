@@ -210,6 +210,7 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     }
     const float touch_r = fminf( w * 0.25f, h * 0.5f ) * 0.5f;
     const float touch_bh = touch_r * 0.75f;
+    const float touch_gap = touch_r * 0.04f;
     snprintf( what, sizeof( what ), "%s: touch joystick is 2r square", name );
     near_to( what, r.touch_joystick.width, 2.0f * touch_r );
     near_to( what, r.touch_joystick.height, 2.0f * touch_r );
@@ -234,20 +235,20 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     near_to( what, r.touch_sneak.left, -w * 0.5f );
     near_to( what, r.touch_sneak.top( ), h * 0.5f );
     snprintf( what, sizeof( what ), "%s: touch pick right of menu", name );
-    near_to( what, r.touch_pick.left, r.touch_menu.right( ) );
+    near_to( what, r.touch_pick.left, r.touch_menu.right( ) + touch_gap );
     snprintf( what, sizeof( what ), "%s: touch pick top-aligned with menu", name );
     near_to( what, r.touch_pick.top( ), r.touch_menu.top( ) );
     snprintf( what, sizeof( what ), "%s: touch chat under sneak", name );
-    near_to( what, r.touch_chat.top( ), r.touch_sneak.bottom );
+    near_to( what, r.touch_chat.top( ), r.touch_sneak.bottom - touch_gap );
     snprintf( what, sizeof( what ), "%s: touch chat at left edge", name );
     near_to( what, r.touch_chat.left, -w * 0.5f );
     snprintf( what, sizeof( what ), "%s: touch inv under jump", name );
-    near_to( what, r.touch_inventory.top( ), r.touch_jump.bottom );
+    near_to( what, r.touch_inventory.top( ), r.touch_jump.bottom - touch_gap );
     snprintf( what, sizeof( what ), "%s: touch inv at right edge", name );
     near_to( what, r.touch_inventory.right( ), w * 0.5f );
     // Bottom-right: Break left of Place, both on the screen's bottom.
     snprintf( what, sizeof( what ), "%s: touch break left of place", name );
-    near_to( what, r.touch_break.right( ), r.touch_place.left );
+    near_to( what, r.touch_break.right( ), r.touch_place.left - touch_gap );
     snprintf( what, sizeof( what ), "%s: touch break bottom = screen bottom", name );
     near_to( what, r.touch_break.bottom, -h * 0.5f );
     snprintf( what, sizeof( what ), "%s: touch place bottom-right", name );

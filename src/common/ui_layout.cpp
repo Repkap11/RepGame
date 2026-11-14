@@ -228,14 +228,17 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     // page arrows floating in the margins.
     const float touch_r = fminf( in.screen_w * 0.25f, in.screen_h * 0.5f ) * 0.5f;
     const float touch_bh = touch_r * 0.75f;
+    // Spacing between neighbouring buttons; edge-anchored sides stay
+    // flush to the screen edge.
+    const float touch_gap = touch_r * 0.04f;
     const float touch_margin = fmaxf( 0.0f, ( in.screen_w - in.creative_panel_w ) * 0.5f );
     const float touch_page_s = fmaxf( 0.0f, fminf( in.screen_w * 0.09f, touch_margin - 8.0f ) );
     const float touch_page_off = fmaxf( 0.0f, ( touch_margin - touch_page_s ) * 0.5f );
     // Page arrows: vertically centered on the creative panel when that
-    // already clears Close (Close's bottom edge = h/2 - 2*bh, it hangs
-    // under Jump on the right edge); otherwise pushed flush below it.
-    // Both arrows share the y so the pair stays level.
-    const float touch_close_bottom = in.screen_h * 0.5f - 2.0f * touch_bh;
+    // already clears Close (Close's bottom edge = h/2 - 2*bh - gap, it
+    // hangs under Mode on the right edge); otherwise pushed flush below
+    // it. Both arrows share the y so the pair stays level.
+    const float touch_close_bottom = in.screen_h * 0.5f - 2.0f * touch_bh - touch_gap;
     const float creative_center_y = creative_bottom + in.creative_panel_h * 0.5f;
     const float touch_page_top = fminf( creative_center_y + touch_page_s * 0.5f, touch_close_bottom );
     const float touch_page_center_off = -( touch_page_top - touch_page_s * 0.5f ); // y-down offset from screen center
@@ -411,41 +414,44 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                 .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
                 .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_TOP, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
-        // Chat hangs off the left edge directly under Sneak (mirrors
-        // Inv under Jump on the right).
+        // Chat hangs off the left edge under Sneak with a touch_gap
+        // between them (mirrors Inv under Jump on the right).
         CLAY( { .id = CLAY_ID( "touch_chat" ),
                 .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
-                .floating = { .offset = { 0, touch_bh },
+                .floating = { .offset = { 0, touch_bh + touch_gap },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
-        // Pick sits top-aligned immediately right of Menu (menu is r
-        // wide, centered on CENTER_TOP, so its right edge is +r/2).
+        // Pick sits top-aligned right of Menu with a touch_gap (menu is
+        // r wide, centered on CENTER_TOP, so its right edge is +r/2).
         CLAY( { .id = CLAY_ID( "touch_pick" ),
                 .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
-                .floating = { .offset = { touch_r * 0.5f, 0 },
+                .floating = { .offset = { touch_r * 0.5f + touch_gap, 0 },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
-        // Inv hangs off the right edge directly under Jump.
+        // Inv hangs off the right edge under Jump with a touch_gap.
         CLAY( { .id = CLAY_ID( "touch_inventory" ),
                 .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
-                .floating = { .offset = { 0, touch_bh },
+                .floating = { .offset = { 0, touch_bh + touch_gap },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
+        // Break left of Place with a touch_gap; Place stays flush on
+        // the right edge.
         CLAY( { .id = CLAY_ID( "touch_break" ),
                 .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
-                .floating = { .offset = { -touch_r, 0 },
+                .floating = { .offset = { -( touch_r + touch_gap ), 0 },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_place" ),
                 .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
                 .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
-        // Inventory-open set: Close at Inv's spot, mode at Jump's, page
-        // arrows vertically centered in the margins beside the creative
-        // panel (shrunk to fit when the margin is tight).
+        // Inventory-open set: Close at Inv's spot (under Mode with a
+        // touch_gap), mode at Jump's, page arrows vertically centered
+        // in the margins beside the creative panel (shrunk to fit when
+        // the margin is tight).
         CLAY( { .id = CLAY_ID( "touch_inv_close" ),
                 .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
-                .floating = { .offset = { 0, touch_bh },
+                .floating = { .offset = { 0, touch_bh + touch_gap },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_inv_mode" ),
