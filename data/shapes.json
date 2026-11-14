@@ -148,6 +148,7 @@
   },
   "carpet": {
    "template": "SPRUCE_PRESSURE_PLATE",
+   "icon_is_isometric": false,
    "drop": [
     "is_pressure_plate",
     "connects_to_redstone_dust"
@@ -165,6 +166,7 @@
   },
   "trapdoor": {
    "template": "SPRUCE_PRESSURE_PLATE",
+   "icon_is_isometric": false,
    "drop": [
     "is_pressure_plate",
     "connects_to_redstone_dust"

@@ -49,6 +49,7 @@ int test_leaf_placement( );
 int test_shears_bonemeal( );
 int test_farming( );
 int test_stairs( );
+int test_buttons( );
 int test_slabs( );
 int test_cake( );
 int test_grass( );

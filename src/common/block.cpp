@@ -479,6 +479,19 @@ int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] ) {
     return n;
 }
 
+int button_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
+    // MC's button_inventory model: the plate's def box sits against the
+    // mount face, but the item shows a small centered button.
+    out[ 0 ].scale[ 0 ] = 6;
+    out[ 0 ].scale[ 1 ] = 4;
+    out[ 0 ].scale[ 2 ] = 4;
+    out[ 0 ].offset[ 0 ] = 5;
+    out[ 0 ].offset[ 1 ] = 6;
+    out[ 0 ].offset[ 2 ] = 6;
+    out[ 0 ].skip_faces = 0;
+    return 1;
+}
+
 int standing_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] ) {
     // Board plate: same 16x9x2 slab the wall sign mounts, parked at the top
     // of the cell (y 7..15).
@@ -536,6 +549,9 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     }
     if ( block->is_fence_gate ) {
         return fence_gate_icon_boxes( out );
+    }
+    if ( block->is_button ) {
+        return button_icon_boxes( out );
     }
     return 0;
 }

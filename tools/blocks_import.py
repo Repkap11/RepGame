@@ -417,7 +417,7 @@ def creative_signature(b, r, layers):
         # (stairs, fences, gates) draw their own boxes, distinct from a
         # same-textured single-box icon.
         (b.get("is_stairs", False), b.get("is_fence", False),
-         b.get("is_fence_gate", False)),
+         b.get("is_fence_gate", False), b.get("is_button", False)),
         b.get("render_order", "Opaque"),
     )
 

@@ -473,6 +473,12 @@ int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], B
 // (2: slab + step).
 int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] );
 
+// ---- Buttons ----------------------------------------------------------------
+// Icon/pickup shape for a button item: the def box sits against the mount
+// face (offset z 0, thin), but the item shows MC's button_inventory model —
+// a small centered 6x4x4 button. Returns 1 box.
+int button_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] );
+
 // ---- Standing signs ---------------------------------------------------------
 // The two definition-space boxes of a standing sign: box 0 is the 16x9x2
 // board plate at the top of the cell (offset y 7, matching the wall sign's
@@ -498,7 +504,8 @@ int hanging_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] );
 // ---- Item icons -------------------------------------------------------------
 // The model-space boxes a block's item icon draws: stairs their
 // stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),
-// gates the closed leaf spanning z (fence_gate_icon_boxes). Returns the
+// gates the closed leaf spanning z (fence_gate_icon_boxes), buttons the
+// centered button_inventory box (button_icon_boxes). Returns the
 // box count — 0 for blocks whose icon is their single def box
 // (Block::scale/offset/tex_offset), which callers draw through the
 // non-box path.

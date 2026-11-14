@@ -575,6 +575,59 @@ int test_stairs( ) {
     return failures;
 }
 
+// Buttons and pressure plates: their item icons are real isometric boxes —
+// buttons a small centered 6x4x4 box (button_icon_boxes), plates their own
+// thin def slab — while carpets and trapdoors keep flat icons through the
+// shapes.json template override.
+int test_buttons( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    const Block *stone_button = block_definition_get_definition( STONE_BUTTON );
+    const Block *wooden_button = block_definition_get_definition( WOODEN_BUTTON );
+    check_bool( "def: buttons are buttons + isometric icons",
+                stone_button->is_button && wooden_button->is_button &&       //
+                    stone_button->icon_is_isometric && wooden_button->icon_is_isometric );
+
+    // Icon shape: one centered 6x4x4 box (MC's button_inventory model), so
+    // the held/dropped button reads as a button, not the flat mount plate.
+    BlockBox boxes[ ICON_MAX_BOXES ];
+    check_bool( "icon: button is one centered box",
+                block_icon_boxes( stone_button, boxes ) == 1 &&            //
+                    boxes[ 0 ].scale[ 0 ] == 6 && boxes[ 0 ].scale[ 1 ] == 4 && boxes[ 0 ].scale[ 2 ] == 4 && //
+                    boxes[ 0 ].offset[ 0 ] == 5 && boxes[ 0 ].offset[ 1 ] == 6 && boxes[ 0 ].offset[ 2 ] == 6 && //
+                    boxes[ 0 ].skip_faces == 0 );
+    check_bool( "icon: box counts", block_icon_box_count( stone_button ) == 1 && block_icon_box_count( wooden_button ) == 1 );
+
+    // Pressure plates are isometric straight off their own 14x2x14 def
+    // slab — no icon box override.
+    const Block *stone_plate = block_definition_get_definition( STONE_PRESSURE_PLATE );
+    const Block *spruce_plate = block_definition_get_definition( SPRUCE_PRESSURE_PLATE );
+    check_bool( "def: plates are plates + isometric icons",
+                stone_plate->is_pressure_plate && spruce_plate->is_pressure_plate && //
+                    stone_plate->icon_is_isometric && spruce_plate->icon_is_isometric );
+    check_bool( "icon: plates draw their own def box",
+                block_icon_boxes( stone_plate, boxes ) == 0 && block_icon_boxes( spruce_plate, boxes ) == 0 && //
+                    block_icon_box_count( stone_plate ) == 1 );
+    check_bool( "icon: plate def box is the thin slab",
+                stone_plate->scale.x == 14 && stone_plate->scale.y == 2 && stone_plate->scale.z == 14 );
+
+    // Carpets and trapdoors template off SPRUCE_PRESSURE_PLATE but keep
+    // flat icons via the shapes.json override.
+    check_bool( "icon: carpet + trapdoor stay flat",
+                !block_definition_get_definition( WHITE_CARPET )->icon_is_isometric && //
+                    !block_definition_get_definition( ACACIA_TRAPDOOR )->icon_is_isometric );
+    return failures;
+}
+
 // Half slabs: the derived is_slab flag, rotation bit 2 as the top-half
 // marker (BLOCK_ROTATE_SLAB_TOP — shared with stairs/gates/doors), the
 // mirrored collision/raycast box, the block_adjust geometry flip, and the

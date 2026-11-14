@@ -48,6 +48,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( ui_layout ),       //
     MK_TEST( fences ),          //
     MK_TEST( stairs ),          //
+    MK_TEST( buttons ),         //
     MK_TEST( slabs ),           //
     MK_TEST( cake ),            //
     MK_TEST( doors ),           //

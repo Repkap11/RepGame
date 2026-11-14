@@ -197,14 +197,19 @@ plain textures; the entry's optional `"icon_mask"` grid cuts a generated
 `<side_tex>__<shape>`
 tile used as the flat inventory icon (`icon_is_isometric=false`) — stairs,
 fences and gates don't use it, they draw real multi-box isometric icons
-instead (`block_icon_boxes`).
+instead (`block_icon_boxes`), and buttons draw one centered box there too.
 **Template shapes** (slab, button, pressure_plate, carpet, trapdoor,
 standing_sign, wall_sign, hanging_sign) copy
 geometry (`scale`/`offset`/`tex_offset`) plus behaviour properties
 (`is_button`, `is_pressure_plate`, `collides_with_player`, ...) from a named
 kept block via `"template"`; `"drop"` removes copied keys and other entry
 keys override the template but not the block's own JSON. Textures always
-stay the block's own.
+stay the block's own. Button and pressure-plate icons are isometric like
+the models: `button_icon_boxes` draws a centered 6x4x4 box (MC's
+button_inventory model — the def box sits against the mount face, wrong
+for the item), while plates fall back to their own 14x2x14 def box.
+Carpets and trapdoors template off SPRUCE_PRESSURE_PLATE too but keep flat
+icons through the entries' `"icon_is_isometric": false` override.
 
 Signs are thin boxes whose faces sample the Bedrock entity/item sprites.
 A `*_STANDING_SIGN` (`is_standing_sign`) renders as two boxes
@@ -417,9 +422,10 @@ shape everywhere an icon appears (`icon_is_isometric`, no `icon_mask`):
 `stairs_icon_boxes` gives the straight bottom-half stair yawed 270 so the
 tread faces the iso view's front, and inventory slots, the dragged item,
 the in-hand block and dropped item entities each emit one instance per
-box (`block_icon_box_count`). Fences and gates ride the same path —
-`block_icon_boxes` dispatches on the block flags and `ICON_MAX_BOXES`
-bounds every per-box instance array.
+box (`block_icon_box_count`). Fences, gates and buttons ride the same
+path — `block_icon_boxes` dispatches on the block flags (`button_icon_boxes`
+gives the button's single centered 6x4x4 box) and `ICON_MAX_BOXES` bounds
+every per-box instance array.
 
 Half slabs (OAK_SLAB etc. — the derived `is_slab` flag marks any colliding,
 bottom-aligned, half-height box over the full footprint, so the legacy
