@@ -75,6 +75,8 @@ int test_dimension( ) {
     check_bool( "nether has no sky", !dimension_has_sky( DIM_NETHER ) );
     check_bool( "nether forbids water", !dimension_profile( DIM_NETHER )->water_allowed );
     check_bool( "nether beds explode", dimension_profile( DIM_NETHER )->beds_explode );
+    check_bool( "nether has an inherent ambient floor", dimension_profile( DIM_NETHER )->min_ambient > 0.0f );
+    check_bool( "overworld ambient is user-only", dimension_profile( DIM_OVERWORLD )->min_ambient == 0.0f );
 
     // ---- Nether generator (MapGen::gen_block_id dispatches on the band) ----
     {
@@ -135,6 +137,22 @@ int test_dimension( ) {
         check_bool( "no overworld blocks in nether", forbidden == 0 );
         // glowstone is a nice-to-have, not guaranteed by density.
         (void)glowstone;
+    }
+
+    // ---- Bounded roof: past MGN_ROOF_THICK over the highest possible
+    // roof_base (+jitter) the band is solid bedrock filler — no caves. ----
+    {
+        int filler_gaps = 0;
+        // roof_base max is MGN_ROOF_MID+20; cap = that + MGN_ROOF_THICK + 4
+        // jitter ≈ 262. Sample above it with margin.
+        for ( int x = -96; x < 96; x += 3 ) {
+            for ( int z = -96; z < 96; z += 3 ) {
+                for ( int ly = 270; ly < DIM_BLOCK_SPAN - 1; ly += 61 ) {
+                    filler_gaps += MapGen::gen_block_id( x, DIM_BY_MIN_N + ly, z ) != BEDROCK;
+                }
+            }
+        }
+        check_bool( "nether roof is capped by solid bedrock", filler_gaps == 0 );
     }
 
     // ---- Overworld band still generates overworld terrain ----

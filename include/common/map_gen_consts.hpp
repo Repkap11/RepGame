@@ -32,6 +32,8 @@
 #define MGN_LAVA_SEA 32      // Cavern air at/below this becomes LAVA.
 #define MGN_FLOOR_MID 55.0f  // Noise centre of the cavern floor surface.
 #define MGN_ROOF_MID 190.0f  // Noise centre of the roof mass underside.
+#define MGN_ROOF_THICK 48.0f // Carvable roof thickness above roof_base; a
+                           // jittered bedrock cap fills the rest of the band.
 
 // Terraced mesa plateaus on desert columns (map_gen_fields.hpp): the
 // heightmap quantizer can lift terrain by the plateau offset plus one step.

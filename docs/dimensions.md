@@ -28,17 +28,20 @@ dialect (`docs/mapgen.md`) can use only the `#define` half of the header.
 ## Per-dimension profile
 
 `include/common/dimension_profile.hpp` is the policy table — skylight,
-skybox, fog tint/range, water evaporation, bed explosions, natural spawns,
-music set. Gameplay/rendering code reads `dimension_profile(dim)` rather
-than scattering `dim == DIM_NETHER` checks. The spare slots are inert
-voids (no sky, no spawns).
+skybox, fog tint/range, ambient light floor, water evaporation, bed
+explosions, natural spawns, music set. Gameplay/rendering code reads
+`dimension_profile(dim)` rather than scattering `dim == DIM_NETHER`
+checks. The spare slots are inert voids (no sky, no spawns).
 
 ## Terrain
 
 `include/common/map_gen_nether.hpp` (`mgn_pick_block`) is the shared
-nether generator in the multi-backend dialect — bedrock floor and roof,
+nether generator in the multi-backend dialect — bedrock floor,
 netherrack caverns, lava sea, quartz/gold ore, glowstone ceiling clusters,
-soul sand/soil and basalt veins. `map_gen.cpp` dispatches on
+soul sand/soil and basalt veins. The roof mass is a bounded
+`MGN_ROOF_THICK` layer over `roof_base`; past a jittered cap the rest of
+the band is solid bedrock filler, so digging/flying up ends in ~50 blocks
+of rock, not kilometres of caves. `map_gen.cpp` dispatches on
 `DIM_IS_NETHER_BY(y)` so CPU, CUDA, HIP and the WGSL/WebGPU path all pick
 it up; `StructureGen::place` stays overworld-only (nether features are
 baked into the generator). Flat/block worlds bypass dimensions entirely.
@@ -50,7 +53,10 @@ column fills, no boundary sky seeds, no cascade sky contribution — the
 band is lit only by lava/fire/glowstone/portal emitters. Rendering keys
 off the profile too: `World::draw` swaps the panorama skybox for a
 fog-colored void (`SkyBox` nether variant) with a short red-brown fog, and
-the day/night factor is pinned dark. `/pos` and the debug overlay show the
+the day/night factor is pinned dark. The profile's `min_ambient` is an
+inherent light floor — `max()`'d with the player's Cave Brightness before
+it reaches the shaders, so nether caverns stay dimly visible regardless of
+that setting. `/pos` and the debug overlay show the
 dimension name (`dim_name`, `dim_local_block_y`).
 
 ## Portals

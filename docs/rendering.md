@@ -82,7 +82,9 @@ per-platform defines in `chunk_dimensions.hpp`). The chunk torus is always alloc
   linear lift, not a clamp: `light = mix(min_ambient, 1, raw)`, so falloff
   gradients stay smooth at high settings and full light stays 1.0. It is
   also adjustable live from the pause menu (Cave Brightness row) and
-  persisted in `player.dat`. Not
+  persisted in `player.dat`. The dimension profile adds its own inherent
+  floor (`DimensionProfile::min_ambient`, e.g. the nether's ember glow):
+  the shader gets `max(user, dimension)`. Not
   HDR-related — these are sRGB-encoded light values, identical in SDR and
   HDR.
 - `REPGAME_LIGHT_MIPMAPS` — `0|1`: runtime switch for the mipmapped light

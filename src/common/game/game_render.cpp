@@ -8,6 +8,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/fluid.hpp"
 #include "common/utils/map_storage.hpp"
 #include "common/utils/profile.hpp"
@@ -507,9 +508,12 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
         }
         // Light the in-hand block from the flood-fill volume at the eye,
         // combined like the chunk/object shaders (skylight scales with
-        // the day factor, torch light doesn't, min ambient lifts caves).
+        // the day factor, torch light doesn't, min ambient lifts caves —
+        // the dimension's inherent floor stacks on the user's setting).
         const glm::vec2 held_light = globalGameState.world.chunkLoader.light_sample( glm::vec3( render_pos ) );
-        const float held_block_light = glm::mix( imgui_overlay_get_imgui_debug_vars( ).min_ambient, 1.0f, glm::max( held_light.x * daylight, held_light.y ) );
+        const float held_ambient = glm::max( imgui_overlay_get_imgui_debug_vars( ).min_ambient,
+                                             dimension_profile( dimension_of_pos( render_pos ) )->min_ambient );
+        const float held_block_light = glm::mix( held_ambient, 1.0f, glm::max( held_light.x * daylight, held_light.y ) );
         // The in-hand item draws with the same meshes the dropped-item
         // entities use, posed in camera space right after the depth clear —
         // extruded sprite for flat items, real cube for isometric block

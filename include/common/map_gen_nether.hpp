@@ -4,14 +4,30 @@
 // after map_gen_fields.hpp (same dialect contract: MG_QUAL,
 // MAP_GEN_PERLIN2D/3D, wgsl_dialect.hpp). map_logic.hpp dispatches to
 // mgn_pick_block when the encoded block y lands in the nether band.
+// The map_gen backends define MG_QUAL + MAP_GEN_PERLIN2D/3D first, exactly
+// as map_gen_fields.hpp requires. A standalone host include (clangd, tests,
+// ad-hoc tools) instead falls back to the CPU dialect map_gen.cpp uses, so
+// this header stays self-contained and mgn_pick_block is callable from host
+// code. A backend context missing the perlin macros is still an error.
+#if defined( MG_QUAL ) || defined( REPGAME_WGSL_GEN )
+#if !defined( MAP_GEN_PERLIN2D ) || !defined( MAP_GEN_PERLIN3D )
+#error "map_gen_nether.hpp requires MAP_GEN_PERLIN2D and MAP_GEN_PERLIN3D"
+#endif
+#else
+#include "common/perlin_noise.hpp"
+#define MG_QUAL static inline
+#define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
+#define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
+#endif
 //
 // Layout (local y = encoded y - DIM_BY_MIN_N, [0, DIM_BLOCK_SPAN)):
 //   ly   0..~5    jittered bedrock floor
 //   ly  ~5..floor_h   netherrack floor mass (cave worms + ore pockets)
 //   ly  floor_h..roof_base  open cavern; air at/below MGN_LAVA_SEA is lava
-//   ly  roof_base..~3960  netherrack roof mass (glowstone clusters near its
-//                         base, exposed where carving opens them)
-//   ly  ~3960..3967  jittered bedrock ceiling
+//   ly  roof_base..+MGN_ROOF_THICK  netherrack roof mass (glowstone clusters
+//                         near its base, exposed where carving opens them)
+//   ly  > roof_base+MGN_ROOF_THICK+jitter  solid bedrock — the remaining
+//                         ~3.7k blocks of band are dead filler, not caves
 
 #include "common/wgsl_dialect.hpp"
 #include "common/map_gen_consts.hpp"
@@ -43,13 +59,17 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     if ( MG_F32( ly ) <= 1.0f + bedrock_floor * 4.0f ) {
         return BEDROCK;
     }
-    MG_LET( float, bedrock_roof, MAP_GEN_PERLIN2D( x, z, 0.6f, 1, MAP_SEED + 41 ) )
-    if ( MG_F32( ly ) >= MG_F32( DIM_BLOCK_SPAN ) - 2.0f - bedrock_roof * 4.0f ) {
-        return BEDROCK;
-    }
-
     MG_LET( float, floor_h, mgn_floor_height( x, z ) )
     MG_LET( float, roof_base, mgn_roof_base( x, z ) )
+
+    // Jittered bedrock ceiling a bounded thickness above the roof base. The
+    // band is ~4000 tall but the cavern only needs ~240 — everything past
+    // this cap is unreachable solid bedrock filler up to the band top (and
+    // this early-out skips the carving/ore noise for all of it).
+    MG_LET( float, bedrock_roof, MAP_GEN_PERLIN2D( x, z, 0.6f, 1, MAP_SEED + 41 ) )
+    if ( MG_F32( ly ) >= roof_base + MGN_ROOF_THICK + bedrock_roof * 4.0f ) {
+        return BEDROCK;
+    }
 
     MG_VAR( int, solid, 0 )
     if ( MG_F32( ly ) <= floor_h || MG_F32( ly ) >= roof_base ) {

@@ -329,6 +329,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     const DimensionId camera_dim = dimension_of_pos( camera_pos );
     const DimensionProfile *dim_prof = dimension_profile( camera_dim );
     this->skyBox.set_dimension( camera_dim );
+    // The dimension's inherent ambient floor stacks on the player's Cave
+    // Brightness setting (nether caverns are never pitch black regardless of
+    // that slider); both are floors, so the higher one wins.
+    const float scene_min_ambient = glm::max( min_ambient, dim_prof->min_ambient );
 
     // Distance fog: blend terrain toward the sky color in a band ending at
     // the render edge. The band is a constant number of blocks (capped at
@@ -396,9 +400,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     // Daylight scales the sky-light nibble sampled from each chunk's 3D light
     // volume (chunk_fragment) and dims sky/mobs/debris (object_fragment).
-    // u_MinAmbient is an absolute light floor so unlit caves are never black.
+    // u_MinAmbient is an absolute light floor so unlit caves are never black
+    // (user setting and the dimension profile's floor combined above).
     this->chunkLoader.shader.set_uniform1f( "u_Daylight", daylight );
-    this->chunkLoader.shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->chunkLoader.shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
 
     this->object_shader.set_uniform1f( "u_FogNear", fog_near );
     this->object_shader.set_uniform1f( "u_FogFar", fog_far );
@@ -410,7 +415,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->object_shader.set_uniform1f( "u_Daylight", daylight );
-    this->object_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->object_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
 
     // Debris shares object_fragment.glsl, so it needs the same fog/water set.
     this->debris_shader.set_uniform1f( "u_FogNear", fog_near );
@@ -422,7 +427,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->debris_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->debris_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->debris_shader.set_uniform1f( "u_Daylight", daylight );
-    this->debris_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->debris_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
     this->debris_shader.set_uniform1f( "u_Time", time_s );
 
     // Hearts share object_fragment.glsl too, plus the billboard basis
@@ -436,7 +441,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->heart_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->heart_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->heart_shader.set_uniform1f( "u_Daylight", daylight );
-    this->heart_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->heart_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
     this->heart_shader.set_uniform1f( "u_Time", time_s );
     const glm::vec3 cam_right( view_look[ 0 ][ 0 ], view_look[ 1 ][ 0 ], view_look[ 2 ][ 0 ] );
     const glm::vec3 cam_up( view_look[ 0 ][ 1 ], view_look[ 1 ][ 1 ], view_look[ 2 ][ 1 ] );
@@ -454,7 +459,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->primed_tnt_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->primed_tnt_shader.set_uniform1f( "u_Daylight", daylight );
-    this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
 
     // Block objects (non-full-cube items + falling blocks) share
     // object_fragment.glsl too — same fog/water set, no u_Time.
@@ -467,7 +472,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->block_object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->block_object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->block_object_shader.set_uniform1f( "u_Daylight", daylight );
-    this->block_object_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->block_object_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
 
     // Item sprites also share object_fragment.glsl — same fog/water set.
     this->item_sprite_shader.set_uniform1f( "u_FogNear", fog_near );
@@ -479,7 +484,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->item_sprite_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->item_sprite_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->item_sprite_shader.set_uniform1f( "u_Daylight", daylight );
-    this->item_sprite_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->item_sprite_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
 
     // Mobs share object_fragment.glsl — same fog/water set.
     this->mob_shader.set_uniform1f( "u_FogNear", fog_near );
@@ -492,7 +497,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->mob_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->mob_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->mob_shader.set_uniform1f( "u_Daylight", daylight );
-    this->mob_shader.set_uniform1f( "u_MinAmbient", min_ambient );
+    this->mob_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
 
     if ( useFrameBuffer ) {
         this->frameBuffer.bind( );
