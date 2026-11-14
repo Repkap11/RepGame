@@ -27,7 +27,12 @@ public class RepGameAndroidRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        RepGameJNIWrapper.onSurfaceCreated(mApplicationContext.getFilesDir().getPath() + File.separator + "World1");
+        boolean initialized = RepGameJNIWrapper.onSurfaceCreated(mApplicationContext.getFilesDir().getPath() + File.separator + "World1");
+        if (!initialized) {
+            // Second surface in a live process: the native side has
+            // saved and shut down; relaunch in a fresh process.
+            mActivity.runOnUiThread(mActivity::relaunchProcess);
+        }
     }
 
     @Override

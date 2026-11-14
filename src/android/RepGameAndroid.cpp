@@ -2,6 +2,8 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <atomic>
+#include <mutex>
 
 #include "common/RepGame.hpp"
 
@@ -23,7 +25,47 @@ static inline long long now_us( void ) {
 
 int next_game_step;
 
-JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jstring world_name_java ) {
+// The engine is init-once: globalGameState is process-global, so a
+// second onSurfaceCreated in the same process (a second Activity
+// instance created before the first dies, a recreated EGL context) can
+// never re-init. g_engine_state is claimed *before* init() runs —
+// observed logs show the second surface arriving on a different GL
+// thread while the first init is still in-flight, so a flag set after
+// init() returns is too late. Anything other than ENGINE_READY makes
+// the JNI entry points below no-op.
+enum EngineState { ENGINE_NEW = 0, ENGINE_STARTING = 1, ENGINE_READY = 2, ENGINE_DEAD = 3 };
+static std::atomic<int> g_engine_state{ ENGINE_NEW };
+
+// RepGame::cleanup() is not re-entrant: its clean_up_done flag is only
+// set when teardown finishes, so concurrent calls (e.g. the GL-thread
+// restart path racing a dying Activity's onSurfaceDestroyed) both enter
+// and double-join the terrain worker threads. Serialize it — the first
+// caller runs the save/teardown and later callers wait for it to
+// finish, so the process never exits mid-save.
+static std::mutex g_cleanup_mutex;
+static bool g_cleanup_done = false;
+
+static void cleanup_once( ) {
+    std::lock_guard<std::mutex> lock( g_cleanup_mutex );
+    if ( !g_cleanup_done ) {
+        repgame.cleanup( );
+        g_cleanup_done = true;
+    }
+}
+
+JNIEXPORT jboolean JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCreated( JNIEnv *env, jobject obj, jstring world_name_java ) {
+    int prior = g_engine_state.exchange( ENGINE_STARTING );
+    if ( prior != ENGINE_NEW ) {
+        pr_debug( "GL surface recreated in a live process; engine can't re-init — saving and restarting" );
+        // A completed init can save+teardown; a still-running init can't
+        // be safely cleaned, so just mark dead — the relaunching process
+        // exit takes the half-initialized engine down with it.
+        if ( prior == ENGINE_READY ) {
+            cleanup_once( );
+        }
+        g_engine_state = ENGINE_DEAD;
+        return JNI_FALSE;
+    }
     pr_debug( "################################# START #################################" );
     pr_debug( "Using OpenGL Version:%s", glGetString( GL_VERSION ) );
     const char *world_name = env->GetStringUTFChars( world_name_java, 0 );
@@ -31,23 +73,43 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceCrea
     repgame.init( world_name, true, "repkap11.com", true );
     // repgame.init( world_name, true, "192.168.1.8", true );
     env->ReleaseStringUTFChars( world_name_java, world_name );
+    // A second surface that arrived mid-init already latched ENGINE_DEAD
+    // — don't resurrect it.
+    int expected = ENGINE_STARTING;
+    g_engine_state.compare_exchange_strong( expected, ENGINE_READY );
     next_game_step = now_ms( );
+    return JNI_TRUE;
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSurfaceDestroyed( JNIEnv *env, jobject obj ) {
-    repgame.cleanup( );
+    // ENGINE_NEW means a surface was destroyed before one was ever
+    // created — nothing to tear down.
+    if ( g_engine_state.load( ) != ENGINE_NEW ) {
+        cleanup_once( );
+    }
+    g_engine_state = ENGINE_DEAD;
 }
 
 static int current_screen_width = 0;
 static int current_screen_height = 0;
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onSizeChanged( JNIEnv *env, jobject obj, jint width, jint height ) {
+    if ( g_engine_state.load( ) != ENGINE_READY ) {
+        return;
+    }
     current_screen_width = width;
     current_screen_height = height;
     repgame.changeSize( ( int )width, ( int )height );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( JNIEnv *env, jobject obj ) {
+    // Held for the whole frame so a restart-path cleanup_once() on another
+    // GL thread can't tear down the engine mid-frame; the state check runs
+    // under the lock because that path leaves READY before cleaning up.
+    std::lock_guard<std::mutex> lock( g_cleanup_mutex );
+    if ( g_engine_state.load( ) != ENGINE_READY ) {
+        return;
+    }
     int now = now_ms( );
     int computer_is_too_slow_limit = 10; // max number of advances per render, if you can't get 20 fps, slow the game's UPS
     int num_ticks_in_frame = 0;
@@ -119,10 +181,16 @@ JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_onDrawFrame( 
 // (on the GL thread via GLSurfaceView.queueEvent) and the shared C++
 // TouchControls module handles control routing, hit testing and taps.
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_touchEvent( JNIEnv *env, jobject obj, jint phase, jlong id, jfloat x, jfloat y ) {
+    if ( g_engine_state.load( ) != ENGINE_READY ) {
+        return;
+    }
     repgame.touch_event( static_cast<TouchPhase>( phase ), static_cast<int64_t>( id ), x, y );
 }
 
 JNIEXPORT void JNICALL Java_com_repkap11_repgame_RepGameJNIWrapper_backPressed( JNIEnv *env, jobject obj ) {
+    if ( g_engine_state.load( ) != ENGINE_READY ) {
+        return;
+    }
     repgame.getInputState( ).backPressed( );
 }
 

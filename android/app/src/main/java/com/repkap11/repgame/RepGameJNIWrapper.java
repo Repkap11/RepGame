@@ -16,7 +16,10 @@ class RepGameJNIWrapper {
     public static final int TOUCH_UP = 2;
     public static final int TOUCH_CANCEL = 3;
 
-    public static native void onSurfaceCreated(String world_name);
+    // Returns false when the process already initialized the engine
+    // once — the renderer must then restart the process (the engine is
+    // init-once and cleanup() has already saved the world natively).
+    public static native boolean onSurfaceCreated(String world_name);
 
     public static native void onSurfaceDestroyed();
 

@@ -148,6 +148,11 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   the Activity on the UI thread.
 - Chat opens through the touch Chat button (`text_input_active`), but
   there is no IME bridge yet — text can be escaped with back, not typed.
+- The engine is init-once (`globalGameState` is process-global): the
+  manifest pins `RepGameActivity` to `singleTask` + `configChanges` so
+  it isn't recreated, and if a second GL surface still appears in a
+  live process `onSurfaceCreated` saves via `cleanup()` and the Java
+  side restarts the process (`relaunchProcess`).
 
 ## Docker
 

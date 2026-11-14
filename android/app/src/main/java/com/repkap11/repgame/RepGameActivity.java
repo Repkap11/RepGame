@@ -2,6 +2,7 @@ package com.repkap11.repgame;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
 import android.support.v7.app.AppCompatActivity;
@@ -134,6 +135,18 @@ public class RepGameActivity extends AppCompatActivity {
         }
     }
 
+
+    // The engine is init-once: when a second GL surface is created in a
+    // live process the native side saves and shuts down instead, and we
+    // relaunch into a fresh process so the game comes back up.
+    void relaunchProcess() {
+        Intent intent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        }
+        Runtime.getRuntime().exit(0);
+    }
 
     private void configureFullScreen() {
         View decorView = getWindow().getDecorView();
