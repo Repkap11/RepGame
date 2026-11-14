@@ -34,17 +34,30 @@ enum class VehiclePhysics : uint8_t {
     WATER,
 };
 
+// One concentric piece of a compound collision hull: an oriented
+// rectangle (half extents along the hull fwd/side axes) centred on the
+// vehicle. The union of a type's rects is its collision footprint.
+struct VehicleHullRect {
+    double half_length, half_width;
+};
+
 struct VehicleTypeDef {
     const char *name;        // "minecart" — script / mp-test / inspect spelling
     ItemID item;             // dropped when broken, placed from
     MobModel model;          // MOB_MODEL_MINECART
     int skin;                // skin index within the model
     VehiclePhysics physics;
-    double width, height;    // collision box (minecart: 0.98 x 0.7)
+    double width, length, height; // hull footprint XZ (minecart: length == width -> one square box)
     double rider_eye_offset; // camera height above bottom-centre while riding
     double seat_hip_height;  // remote-avatar hip height above bottom-centre
     double seat_back;        // remote-avatar pin distance behind centre
     float model_scale;       // render scale factor on the model's 1/16 units
+    // Compound collision hull (nullptr -> the single width x length
+    // rect). Every rect corner inside radius 1.0 of centre lets a boat
+    // spin in place in 2-wide water while the narrow end rects still
+    // cover the bow/stern.
+    const VehicleHullRect *hull_rects;
+    int hull_rect_count;
 };
 
 const VehicleTypeDef &vehicle_type_def( VehicleType t );

@@ -1020,6 +1020,13 @@ def sc_boat_ride(run, A, B):
         find_cart(B.dump.last_state(), nid)["rider"] != 0), timeout=60)
     p0 = find_cart(A.dump.last_state(), nid)["pos"]
     yaw0 = find_cart(A.dump.last_state(), nid)["yaw"]
+    # Steering in open water: move's angleH maps to A/D (turn), the hull
+    # yaw must change. A hull pressed against a wall can't rotate (the
+    # hull must never turn into terrain), so turn before paddling.
+    A.cmd("move 0.5 90")
+    run.wait("boat turns on A", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        abs(find_cart(A.dump.last_state(), nid)["yaw"] - yaw0) > 15), timeout=120)
     A.cmd("move 1 0")
     run.wait("boat paddles on both", lambda: (
         find_cart(A.dump.last_state(), nid) is not None and
@@ -1027,11 +1034,6 @@ def sc_boat_ride(run, A, B):
         dist(find_cart(A.dump.last_state(), nid)["pos"], p0) > 0.5 and
         dist(find_cart(A.dump.last_state(), nid)["pos"],
              find_cart(B.dump.last_state(), nid)["pos"]) < 1.5), timeout=120)
-    # Steering: move's angleH maps to A/D (turn), the hull yaw must change.
-    A.cmd("move 0.5 90")
-    run.wait("boat turns on A", lambda: (
-        find_cart(A.dump.last_state(), nid) is not None and
-        abs(find_cart(A.dump.last_state(), nid)["yaw"] - yaw0) > 15), timeout=120)
     A.cmd("move 0 0")
     # B sees A's avatar flagged seated at the boat.
     run.wait("A avatar seated on B", lambda: any(

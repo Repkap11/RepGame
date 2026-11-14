@@ -189,19 +189,38 @@ void Vehicles::tick( RepGameState &state, const VehicleTickInput &in ) {
             }
             const VehicleTypeDef &adef = vehicle_type_def( a.type );
             const VehicleTypeDef &bdef = vehicle_type_def( b.type );
-            const glm::dvec3 amin = vehicle_min( adef, a.pos ), amax = vehicle_max( adef, a.pos );
-            const glm::dvec3 bmin = vehicle_min( bdef, b.pos ), bmax = vehicle_max( bdef, b.pos );
-            if ( !( amin.x < bmax.x && amax.x > bmin.x && amin.y < bmax.y && amax.y > bmin.y && amin.z < bmax.z && amax.z > bmin.z ) ) {
+            glm::dvec3 amin[ VEHICLE_HULL_BOXES ], amax[ VEHICLE_HULL_BOXES ];
+            glm::dvec3 bmin[ VEHICLE_HULL_BOXES ], bmax[ VEHICLE_HULL_BOXES ];
+            const int an = vehicle_hull_boxes( adef, a.pos, a.yaw, amin, amax );
+            const int bn = vehicle_hull_boxes( bdef, b.pos, b.yaw, bmin, bmax );
+            bool touching = false;
+            for ( int i = 0; i < an && !touching; i++ ) {
+                for ( int j = 0; j < bn && !touching; j++ ) {
+                    touching = amin[ i ].x < bmax[ j ].x && amax[ i ].x > bmin[ j ].x && amin[ i ].y < bmax[ j ].y &&
+                               amax[ i ].y > bmin[ j ].y && amin[ i ].z < bmax[ j ].z && amax[ i ].z > bmin[ j ].z;
+                }
+            }
+            if ( !touching ) {
                 continue;
             }
             glm::dvec3 sep = ( a.pos - b.pos );
             sep.y = 0.0;
             double dist = glm::length( sep );
             glm::dvec3 n = dist > 1e-6 ? sep / dist : glm::dvec3( 1.0, 0.0, 0.0 );
-            const double overlap = ( adef.width + bdef.width ) * 0.5 - dist;
+            const double overlap = ( std::max( adef.width, adef.length ) + std::max( bdef.width, bdef.length ) ) * 0.5 - dist;
             if ( overlap > 0.0 ) {
+                // Separation writes pos directly — it must never push a
+                // hull into terrain (an embedded hull slips past the
+                // face-crossing clamps). Revert each side's push if its
+                // new hull collides.
                 a.pos += n * ( overlap * 0.5 );
+                if ( vehicle_hull_collides( world, adef, a.pos, a.yaw ) ) {
+                    a.pos -= n * ( overlap * 0.5 );
+                }
                 b.pos -= n * ( overlap * 0.5 );
+                if ( vehicle_hull_collides( world, bdef, b.pos, b.yaw ) ) {
+                    b.pos += n * ( overlap * 0.5 );
+                }
             }
             // Equal-mass exchange along the collision normal.
             const double va = glm::dot( a.vel, n );
@@ -224,10 +243,14 @@ int Vehicles::raycast( const glm::dvec3 &origin, const glm::dvec3 &dir, double m
     for ( size_t i = 0; i < this->vehicles.size( ); i++ ) {
         const Vehicle &c = this->vehicles[ i ];
         const VehicleTypeDef &def = vehicle_type_def( c.type );
-        double d = 0.0;
-        if ( RayTraversal::ray_aabb_entry( origin, dir, vehicle_min( def, c.pos ), vehicle_max( def, c.pos ), best_dist, &d ) && d < best_dist ) {
-            best_dist = d;
-            best = static_cast<int>( i );
+        glm::dvec3 mins[ VEHICLE_HULL_BOXES ], maxs[ VEHICLE_HULL_BOXES ];
+        const int n = vehicle_hull_boxes( def, c.pos, c.yaw, mins, maxs );
+        for ( int j = 0; j < n; j++ ) {
+            double d = 0.0;
+            if ( RayTraversal::ray_aabb_entry( origin, dir, mins[ j ], maxs[ j ], best_dist, &d ) && d < best_dist ) {
+                best_dist = d;
+                best = static_cast<int>( i );
+            }
         }
     }
     if ( best >= 0 && out_dist != nullptr ) {

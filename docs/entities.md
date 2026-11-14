@@ -302,8 +302,48 @@ item entities.
 
 `VEHICLE_OAK_BOAT` … `VEHICLE_POPLAR_BOAT` (ten wood variants, all
 `VehiclePhysics::WATER`, sim in `src/common/vehicle_boat.cpp`) share one
-`MOB_MODEL_BOAT` with the variant picked by the def's `skin`. The box is
-MC's 1.375 × 0.5625; `vehicle_type_for_item` maps each `*_BOAT` item.
+`MOB_MODEL_BOAT` with the variant picked by the def's `skin`. The hull
+footprint is a 1.25 × 2.0 rectangle (def `width`/`length`) rotated by
+yaw; `vehicle_type_for_item` maps each `*_BOAT` item.
+
+Collision uses a compound oriented hull (`src/common/vehicle_hull.cpp`):
+the footprint is a union of concentric yaw-aligned rectangles
+(`VehicleTypeDef::hull_rects` — boats use 1.50×1.25, 1.80×0.80 and
+1.94×0.30, every corner inside radius ~0.99 of centre so the union can
+spin in place in a 2-wide channel while the narrow end rects still
+cover the bow/stern; types without rects fall back to the single
+`length × width` rect). For a hull at `(pos, yaw)` the terrain
+`block_collision_boxes` (slabs and
+fences included) under the union's XZ bounding box are SAT-tested in 2D
+against each rect on four axes (world x/z, hull forward/side);
+a box only counts when its Y range overlaps the hull's by more than a
+skin (`HULL_SKIN`), so the block a boat rests on never pushes sideways.
+Types with `length <= width` (minecart) keep the plain AABB path. XZ
+motion is move-then-depenetrate: per substep (`COLLISION_MAX_SUBSTEP`
+bound, so a push can never resolve to the far side of a one-block wall)
+the hull translates, then up to four passes push it out along the
+minimum-translation vector of the deepest overlap and strip the
+velocity component into each contact normal — the tangential part
+survives, which is what makes a boat slide along a wall instead of
+stopping dead. The total push per tick is capped (`BOAT_PUSH_CAP`,
+0.3), so a badly embedded hull (vehicle-vehicle separation, a stale
+mirror handoff, a legacy save) escapes over a few ticks rather than
+teleporting; a substep whose passes leave the hull deeper than it
+started is rejected outright. Turning is rotate-then-depenetrate: the
+yaw delta is applied, the rotated hull is depenetrated positionally (no
+velocity change) and accepted when it ends skin-clear within the push
+cap; otherwise a half-delta is retried once, else the yaw is reverted
+and `yaw_rate` zeroed — the depenetration slide is kept when it doesn't
+worsen the overlap, so holding A/D pivots a pressed hull off the wall
+or wiggles it out of a wedge. Rotation gets its own much smaller shared
+budget (`BOAT_TURN_PUSH_CAP`, 0.02 — a ~1.2°/tick pivot only needs to
+move a hull corner a hair), so a refused turn can't fling the boat. Y stays AABB-style (`vehicle_hull_move_y`
+crossed-face clamp), but only against boxes some hull rect strictly
+overlaps in XZ. `vehicle_hull_collides` (pair-separation
+revert, placement fit) uses the same exact union test; the coarser
+`vehicle_hull_boxes` sub-grid survives only for raycast picking, player
+shove overlap and the pair touch test. Vehicle-vehicle separation
+reverts a push that would embed a hull in terrain.
 
 Placement (`repgame_vehicle_place` in `vehicle_ride.cpp`): the water ray
 (`pick_water` in `game_tick.cpp`) runs whenever the held item maps to a
@@ -320,7 +360,7 @@ lava doesn't; the surface is the max `fluid_surface_height`):
 `UNDER_WATER` (water above the box top — rises via `BOAT_RISE_ACCEL`
 capped at `BOAT_RISE_MAX`), `IN_WATER` (a damped spring on `vel.y`,
 `BOAT_BUOY_ACCEL` × `BOAT_VERTICAL_DAMP`, settles the bottom at
-`surface − BOAT_DRAFT`), `ON_LAND` (rests through `Collision::move_box`),
+`surface − BOAT_DRAFT`), `ON_LAND` (rests on the hull's axis-clamped move),
 `IN_AIR` (gravity like the derailed cart).
 
 Ridden boats take `VehicleTickInput::rider_forward`/`rider_turn`
@@ -331,11 +371,16 @@ A/D to steer — the camera stays free-look): `BOAT_FORWARD_ACCEL`,
 stronger `BOAT_FRICTION_LAND` — all MC 20-TPS values converted to
 `UPS_RATE` like the rail constants. `repgame_vehicle_ride_follow` adds
 the hull's yaw delta to `camera.angle_H` for water vehicles so the view
-turns with the boat. Walls stop the blocked axis through `move_box`
-(no tunnelling, stays afloat); empty boats are shoved by player overlap
+turns with the boat. Walls deflect the hull through the
+move-then-depenetrate solve described above (sliding, no tunnelling,
+stays afloat); empty boats are
+shoved by player overlap
 (`BOAT_PLAYER_PUSH`), ridden ones never are. Dismount prefers adjacent
 land cells and falls back to the water beside the boat. No step-up and
-no water-current push yet — follow-ups. Mirrors run no physics and hold
+no water-current push yet — follow-ups; the rendered 2.0×1.25 hull can
+visually overlap terrain ~0.03 bow/stern-first and ~0.18 on a diagonal
+corner where the narrower collision rects don't reach (the price of a
+spin-in-2-wide hull). Mirrors run no physics and hold
 `pitch = 0`; the paddle bones row by `paddle_phase` (advanced by
 horizontal speed while any rider is aboard — render-only, not
 streamed). Everything else — hurt/drop of the variant item, mount

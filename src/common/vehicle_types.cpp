@@ -10,13 +10,23 @@
 // Boats share MOB_MODEL_BOAT with a skin per wood variant, in the same
 // order the boat skins appear in mobs_manifest.txt. Seat/eye values are
 // capture-tuned starting points.
+// Compound hull: concentric oriented rects, every corner inside radius
+// 1.0 of centre (the union spins in place in a 2-wide channel), with
+// the narrow end rects still covering the bow/stern of the 2.0x1.25
+// render hull.
+static const VehicleHullRect BOAT_HULL_RECTS[] = {
+    { 0.75, 0.625 }, // 1.50 x 1.25, corner radius 0.976
+    { 0.90, 0.40 },  // 1.80 x 0.80, corner radius 0.985
+    { 0.97, 0.15 },  // 1.94 x 0.30, corner radius 0.982
+};
 #define BOAT_DEF( NAME, ITEM, SKIN ) { NAME, ITEM, MOB_MODEL_BOAT, SKIN, VehiclePhysics::WATER, \
-                                       1.375, 0.5625, 1.0, 0.3, 0.3, 1.0f }
+                                       1.25, 2.0, 0.5625, 1.0, 0.3, 0.3, 1.0f, \
+                                       BOAT_HULL_RECTS, 3 }
 static const VehicleTypeDef VEHICLE_TYPE_DEFS[ VEHICLE_TYPE_COUNT ] = {
     // name        item      model               skin              physics
-    // width  height  rider_eye  seat_hip  seat_back  model_scale
+    // width  length  height  rider_eye  seat_hip  seat_back  model_scale
     { "minecart", MINECART, MOB_MODEL_MINECART, MOB_SKIN_MINECART, VehiclePhysics::RAIL,
-      0.98,  0.7,     1.3,        0.4,      0.25,      1.05f },
+      0.98,  0.98,    0.7,    1.3,        0.4,      0.25,      1.05f, nullptr, 0 },
     BOAT_DEF( "oak_boat", OAK_BOAT, MOB_SKIN_BOAT_BOAT_OAK ),
     BOAT_DEF( "spruce_boat", SPRUCE_BOAT, MOB_SKIN_BOAT_BOAT_SPRUCE ),
     BOAT_DEF( "birch_boat", BIRCH_BOAT, MOB_SKIN_BOAT_BOAT_BIRCH ),

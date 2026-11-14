@@ -304,7 +304,7 @@ static void run_cmd( RepGameState &state, char *line ) {
     if ( strcmp( cmd, "cart" ) == 0 && ( argc == 4 || argc == 6 ) ) {
         const glm::dvec3 pos( atof( argv[ 1 ] ), atof( argv[ 2 ] ), atof( argv[ 3 ] ) );
         const glm::dvec2 vel = argc == 6 ? glm::dvec2( atof( argv[ 4 ] ), atof( argv[ 5 ] ) ) : glm::dvec2( 0.0 );
-        if ( !dbgcmd::vehicle( state, "minecart", pos, vel, &err ) ) {
+        if ( !dbgcmd::vehicle( state, "minecart", pos, vel, 0.0f, &err ) ) {
             cmd_error( state, line );
         }
         return;
@@ -312,7 +312,7 @@ static void run_cmd( RepGameState &state, char *line ) {
     if ( strcmp( cmd, "vehicle" ) == 0 && ( argc == 5 || argc == 7 ) ) {
         const glm::dvec3 pos( atof( argv[ 2 ] ), atof( argv[ 3 ] ), atof( argv[ 4 ] ) );
         const glm::dvec2 vel = argc == 7 ? glm::dvec2( atof( argv[ 5 ] ), atof( argv[ 6 ] ) ) : glm::dvec2( 0.0 );
-        if ( !dbgcmd::vehicle( state, argv[ 1 ], pos, vel, &err ) ) {
+        if ( !dbgcmd::vehicle( state, argv[ 1 ], pos, vel, 0.0f, &err ) ) {
             cmd_error( state, line );
         }
         return;

@@ -640,6 +640,32 @@ void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &
     *out_standing = standing ? 1 : 0;
 }
 
+int Collision::terrain_boxes( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax,
+                              glm::dvec3 *mins_out, glm::dvec3 *maxs_out, const int max_boxes ) {
+    const double eps = 1e-4;
+    const int x0 = static_cast<int>( floor( amin.x ) );
+    const int x1 = static_cast<int>( floor( amax.x - eps ) );
+    const int y0 = static_cast<int>( floor( amin.y ) ) - 1;
+    const int y1 = static_cast<int>( floor( amax.y - eps ) );
+    const int z0 = static_cast<int>( floor( amin.z ) );
+    const int z1 = static_cast<int>( floor( amax.z - eps ) );
+    int n = 0;
+    for ( int x = x0; x <= x1; x++ ) {
+        for ( int y = y0; y <= y1; y++ ) {
+            for ( int z = z0; z <= z1; z++ ) {
+                glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+                const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
+                for ( int i = 0; i < num_boxes && n < max_boxes; i++ ) {
+                    mins_out[ n ] = mins[ i ];
+                    maxs_out[ n ] = maxs[ i ];
+                    n++;
+                }
+            }
+        }
+    }
+    return n;
+}
+
 void Collision::move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const glm::dvec3 &delta,
                           const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing ) {
     hit_axis[ 0 ] = hit_axis[ 1 ] = hit_axis[ 2 ] = false;

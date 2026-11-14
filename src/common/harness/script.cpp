@@ -385,15 +385,16 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
     if ( strcmp( cmd, "cart" ) == 0 && ( argc == 4 || argc == 6 ) ) {
         const glm::dvec3 pos( farg( 1 ), farg( 2 ), farg( 3 ) );
         const glm::dvec2 vel = argc == 6 ? glm::dvec2( farg( 4 ), farg( 5 ) ) : glm::dvec2( 0.0 );
-        if ( !dbgcmd::vehicle( state, "minecart", pos, vel, &err ) ) {
+        if ( !dbgcmd::vehicle( state, "minecart", pos, vel, 0.0f, &err ) ) {
             cmd_error( state, line, err.c_str( ) );
         }
         return false;
     }
-    if ( strcmp( cmd, "vehicle" ) == 0 && ( argc == 5 || argc == 7 ) ) {
+    if ( strcmp( cmd, "vehicle" ) == 0 && ( argc == 5 || argc == 7 || argc == 8 ) ) {
         const glm::dvec3 pos( farg( 2 ), farg( 3 ), farg( 4 ) );
-        const glm::dvec2 vel = argc == 7 ? glm::dvec2( farg( 5 ), farg( 6 ) ) : glm::dvec2( 0.0 );
-        if ( !dbgcmd::vehicle( state, argv[ 1 ].c_str( ), pos, vel, &err ) ) {
+        const glm::dvec2 vel = argc >= 7 ? glm::dvec2( farg( 5 ), farg( 6 ) ) : glm::dvec2( 0.0 );
+        const float yaw = argc == 8 ? static_cast<float>( farg( 7 ) ) : 0.0f;
+        if ( !dbgcmd::vehicle( state, argv[ 1 ].c_str( ), pos, vel, yaw, &err ) ) {
             cmd_error( state, line, err.c_str( ) );
         }
         return false;

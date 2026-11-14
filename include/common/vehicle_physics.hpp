@@ -21,6 +21,27 @@ void vehicle_tick_boat( RepGameState &state, Vehicles::Vehicle &v, const Vehicle
 // How deep a boat's bottom rides under the water surface. Shared with
 // boat placement (spawn bottom = surface - draft).
 inline constexpr double VEHICLE_BOAT_DRAFT = 0.1;
+
+// Exact oriented-hull collision (vehicle_hull.cpp) for WATER vehicles:
+// the hull's true footprint — a def.length x def.width rectangle rotated
+// by yaw, extruded def.height — SAT-tested against terrain boxes in 2D
+// (axes: world x, world z, hull forward, hull side).
+//
+// vehicle_hull_penetration: deepest minimum-translation depth of any
+// overlapping terrain box (0 = clear by more than the contact skin).
+double vehicle_hull_penetration( World &world, const VehicleTypeDef &def, const glm::dvec3 &pos, float yaw );
+// Pushes the hull out of terrain along the deepest overlaps' MTVs (up to
+// 4 passes, total push capped at push_cap). Returns the number of
+// contact normals written (the velocity component into each should be
+// removed by the caller to get wall sliding); applied_push gets the
+// summed push. A legacy/embedded hull escapes over a few ticks instead
+// of teleporting.
+int vehicle_hull_depenetrate( World &world, const VehicleTypeDef &def, glm::dvec3 &pos, float yaw, double push_cap,
+                              glm::dvec2 *applied_push, glm::dvec2 normals[ 4 ] );
+// Vertical clamp for the exact footprint: only terrain boxes whose XZ
+// rect the hull strictly overlaps participate. Returns the applied Y
+// delta; `standing` reports a downward clamp (resting on the ground).
+double vehicle_hull_move_y( World &world, const VehicleTypeDef &def, glm::dvec3 &pos, float yaw, double dy, bool *standing );
 // Shared angle wrap used by both the rail sim and the generic net/render
 // interpolation.
 double vehicle_wrap_180( double d );

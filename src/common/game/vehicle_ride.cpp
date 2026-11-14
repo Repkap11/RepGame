@@ -41,7 +41,7 @@ bool repgame_vehicle_place( RepGameState &gs, const VehicleType type ) {
         const BlockState ts = gs.world.get_loaded_block( tcell );
         if ( ts.id != LAST_BLOCK_ID && block_definition_get_definition( ts.id )->collides_with_player ) {
             spawn_pos = glm::dvec3( tcell.x + 0.5, tcell.y + 1.0, tcell.z + 0.5 );
-            can_spawn = !Collision::box_collides( gs.world, vehicle_min( def, spawn_pos ), vehicle_max( def, spawn_pos ) );
+            can_spawn = !vehicle_hull_collides( gs.world, def, spawn_pos, gs.camera.angle_H );
         }
     }
     if ( !can_spawn || gs.world.vehicles.spawn( type, spawn_pos, gs.camera.angle_H ) == 0 ) {

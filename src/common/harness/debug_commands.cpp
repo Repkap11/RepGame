@@ -105,13 +105,13 @@ bool dbgcmd::mob( RepGameState &state, const char *type, const glm::dvec3 &pos, 
 
 // Spawns a vehicle of `type` at pos (a minecart snaps onto a rail under
 // it) with an optional horizontal launch velocity in blocks/tick.
-bool dbgcmd::vehicle( RepGameState &state, const char *type_name, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, std::string *err ) {
+bool dbgcmd::vehicle( RepGameState &state, const char *type_name, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, const float yaw, std::string *err ) {
     VehicleType type;
     if ( !vehicle_type_from_name( type_name, &type ) ) {
         *err = std::string( "unknown vehicle type " ) + type_name;
         return false;
     }
-    const uint32_t id = state.world.vehicles.spawn( type, pos, 0.0f );
+    const uint32_t id = state.world.vehicles.spawn( type, pos, yaw );
     if ( id == 0 ) {
         *err = std::string( "cannot spawn " ) + type_name + " (cap, or pre-WELCOME in multiplayer)";
         return false;
@@ -126,7 +126,7 @@ bool dbgcmd::vehicle( RepGameState &state, const char *type_name, const glm::dve
 // Spawns a minecart at pos (snapping onto a rail when it sits on one) with
 // an optional horizontal launch velocity in blocks/tick.
 bool dbgcmd::cart( RepGameState &state, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, std::string *err ) {
-    return vehicle( state, "minecart", pos, vel_xz, err );
+    return vehicle( state, "minecart", pos, vel_xz, 0.0f, err );
 }
 
 // Player mount on the cart nearest the player within `max_dist` — same

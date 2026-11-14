@@ -428,7 +428,7 @@ no length limit:
 | `uistate` | emit a `uistate` event: the pass's `overflow` mask (`UI_OVERFLOW_*` — screens exceeding the viewport), layout rects + each container panel's applied items-slab position (centered y-up UI coords) |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
 | `cart x y z [vx vz]` | spawn a minecart at the position (snaps onto a rail if the cell has one); optional initial velocity in blocks/tick — alias for `vehicle minecart` |
-| `vehicle <type> x y z [vx vz]` | spawn any vehicle by `VehicleTypeDef::name` (`minecart`, `oak_boat`, …) |
+| `vehicle <type> x y z [vx vz] [yaw]` | spawn any vehicle by `VehicleTypeDef::name` (`minecart`, `oak_boat`, …); optional yaw in degrees after the velocity pair |
 | `carts` | emit a `cart_state` event per vehicle: `id`, `type`, `pos`, `vel`, `on_rail`, `rider` |
 | `ride` | mount the nearest vehicle within 4 blocks of the player (error when none) |
 | `dismount` | leave the ridden vehicle (no-op when not riding) |

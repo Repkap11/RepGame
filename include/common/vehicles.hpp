@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <set>
 #include <vector>
@@ -10,7 +11,8 @@
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
 #include "common/net/net_sync.hpp"
-#include "common/vehicle_types.hpp" // VehicleType / vehicle_type_def
+#include "common/utils/collision.hpp" // Collision::box_collides (hull helpers)
+#include "common/vehicle_types.hpp"   // VehicleType / vehicle_type_def
 
 class Chunk;
 class ChunkLoader;
@@ -265,3 +267,44 @@ inline glm::dvec3 vehicle_min( const VehicleTypeDef &def, const glm::dvec3 &pos 
 inline glm::dvec3 vehicle_max( const VehicleTypeDef &def, const glm::dvec3 &pos ) {
     return pos + glm::dvec3( def.width / 2.0, def.height, def.width / 2.0 );
 }
+
+// Oriented hull collision: a hull whose footprint is a length x width
+// rectangle rotated by yaw is approximated by a 2-across x 4-along grid
+// of sub-cells, each emitted as the world AABB of that rotated cell —
+// the union hugs the hull at any yaw (exact at 0/90 deg, slight corner
+// overcoverage at 45 deg). Types with length <= width get the single
+// square box (minecart: identical to before).
+constexpr int VEHICLE_HULL_BOXES = 8;
+inline int vehicle_hull_boxes( const VehicleTypeDef &def, const glm::dvec3 &pos, const float yaw,
+                               glm::dvec3 mins[ VEHICLE_HULL_BOXES ], glm::dvec3 maxs[ VEHICLE_HULL_BOXES ] ) {
+    if ( def.length <= def.width ) {
+        mins[ 0 ] = vehicle_min( def, pos );
+        maxs[ 0 ] = vehicle_max( def, pos );
+        return 1;
+    }
+    const double ry = glm::radians( static_cast<double>( yaw ) );
+    const glm::dvec2 fwd( sin( ry ), -cos( ry ) ); // xz forward
+    const glm::dvec2 side( cos( ry ), sin( ry ) ); // xz right
+    const double cell_l = def.length / 4.0, cell_w = def.width / 2.0;
+    const double hu = cell_w * 0.5, hv = cell_l * 0.5;
+    // AABB of a rotated sub-cell: half-extents projected onto x/z.
+    const double hx = fabs( side.x ) * hu + fabs( fwd.x ) * hv;
+    const double hz = fabs( side.y ) * hu + fabs( fwd.y ) * hv;
+    int n = 0;
+    for ( int i = 0; i < 4; i++ ) {
+        const double v = -def.length * 0.5 + ( i + 0.5 ) * cell_l;
+        for ( int j = 0; j < 2; j++ ) {
+            const double u = -def.width * 0.5 + ( j + 0.5 ) * cell_w;
+            const glm::dvec3 centre( pos.x + side.x * u + fwd.x * v, pos.y, pos.z + side.y * u + fwd.y * v );
+            mins[ n ] = centre - glm::dvec3( hx, 0.0, hz );
+            maxs[ n ] = centre + glm::dvec3( hx, def.height, hz );
+            n++;
+        }
+    }
+    return n;
+}
+
+// True when the vehicle's exact oriented hull overlaps terrain — for
+// WATER types the 2D-OBB SAT test in vehicle_hull.cpp; for square types
+// (minecart) a plain AABB check. Implemented in vehicle_hull.cpp.
+bool vehicle_hull_collides( World &world, const VehicleTypeDef &def, const glm::dvec3 &pos, float yaw );

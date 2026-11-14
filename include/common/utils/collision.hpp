@@ -80,6 +80,11 @@ class Collision {
     // clamped on axis i; when the clamp came from an extra box,
     // hit_extra_axis[i] holds that box's index (else -1). *standing is set
     // when a downward Y move is blocked.
+    // Fills mins/maxs with the terrain collision AABBs in the cells
+    // overlapping the given box (full block shapes: fences, stairs, slabs,
+    // pistons), returns the count. Shared by oriented-hull collision.
+    static int terrain_boxes( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax,
+                              glm::dvec3 *mins, glm::dvec3 *maxs, int max_boxes );
     static void move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const glm::dvec3 &delta,
                           const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing );
 };
