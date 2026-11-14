@@ -6,6 +6,7 @@
 #include "common/RepGame.hpp"
 #include "common/chunk.hpp"
 #include "common/chunk_render.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/fluid.hpp"
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
@@ -646,6 +647,9 @@ static uint64_t mob_spawn_seed( const glm::ivec3 &pos, int type ) {
 // that have hitbox headroom inside the chunk.
 bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
     if ( this->cells == nullptr ) {
+        return false;
+    }
+    if ( !dimension_profile( dimension_of_chunk( this->chunk_pos ) )->natural_spawns ) {
         return false;
     }
     bool spawned = false;

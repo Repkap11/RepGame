@@ -37,7 +37,7 @@ struct ChatCmd {
 };
 
 // Defined at the bottom, after every handler; cmd_help iterates it too.
-extern const ChatCmd CHAT_COMMANDS_TABLE[ 16 ];
+extern const ChatCmd CHAT_COMMANDS_TABLE[ 17 ];
 
 // One coordinate token: a plain number, '~' (the player's component), or
 // '~N'/'~-N' (player-relative offset). `base` is the feet-relative origin
@@ -153,13 +153,15 @@ static void cmd_pos( RepGameState &state, const std::vector<std::string> &args )
     const glm::ivec3 block( static_cast<int>( floor( feet.x ) ), static_cast<int>( floor( feet.y ) ),
                             static_cast<int>( floor( feet.z ) ) );
     const glm::ivec3 chunk = glm::floor( glm::vec3( block ) / CHUNK_SIZE_F );
+    const DimensionId dim = dimension_of_block_y( block.y );
     // angle_H: 0 faces -z (north); name the nearest compass direction.
     const float yaw = fmodf( fmodf( state.camera.angle_H, 360.0f ) + 360.0f, 360.0f );
     static const char *dirs[ 8 ] = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" };
     const char *facing = dirs[ static_cast<int>( floorf( ( yaw + 22.5f ) / 45.0f ) ) % 8 ];
-    char buf[ 160 ];
-    snprintf( buf, sizeof( buf ), "pos %.1f %.1f %.1f - block %d %d %d, chunk %d %d %d, facing %s (yaw %.0f)",
-              feet.x, feet.y, feet.z, block.x, block.y, block.z, chunk.x, chunk.y, chunk.z, facing, yaw );
+    char buf[ 192 ];
+    snprintf( buf, sizeof( buf ), "pos %.1f %.1f %.1f - %s y%d, block %d %d %d, chunk %d %d %d, facing %s (yaw %.0f)",
+              feet.x, feet.y, feet.z, dim_name( dim ), dim_local_block_y( block.y ), block.x, block.y, block.z, chunk.x,
+              chunk.y, chunk.z, facing, yaw );
     chat_info( state, buf );
 }
 
@@ -188,6 +190,28 @@ static void cmd_tp( RepGameState &state, const std::vector<std::string> &args ) 
         return;
     }
     chat_teleport( state, feet );
+}
+
+static void cmd_dimension( RepGameState &state, const std::vector<std::string> &args ) {
+    if ( args.size( ) == 1 ) {
+        const DimensionId dim = dimension_of_pos( state.camera.pos );
+        chat_info( state, std::string( "Dimension: " ) + dim_name( dim ) );
+        return;
+    }
+    if ( args.size( ) != 2 ) {
+        chat_err( state, "Usage: /dimension [overworld|nether]" );
+        return;
+    }
+    const DimensionId dim = dim_from_name( args[ 1 ].c_str( ) );
+    if ( dimension_of_pos( state.camera.pos ) == dim ) {
+        chat_err( state, std::string( "Already in " ) + dim_name( dim ) );
+        return;
+    }
+    if ( !portal_travel_to_dimension( state, dim ) ) {
+        chat_err( state, std::string( "No landing spot found in " ) + dim_name( dim ) );
+        return;
+    }
+    chat_info( state, std::string( "Travelled to " ) + dim_name( dim ) );
 }
 
 static void cmd_give( RepGameState &state, const std::vector<std::string> &args ) {
@@ -439,11 +463,12 @@ static void cmd_me( RepGameState &state, const std::vector<std::string> &args ) 
     }
 }
 
-const ChatCmd CHAT_COMMANDS_TABLE[ 16 ] = {
+const ChatCmd CHAT_COMMANDS_TABLE[ 17 ] = {
     { "help", "", "/help [command]", "List commands, or one command's usage.", cmd_help },
     { "clear", "", "/clear", "Clear the chat log.", cmd_clear },
     { "pos", "", "/pos", "Where you are: feet position, block, chunk, facing.", cmd_pos },
     { "tp", "teleport", "/tp <x> <y> <z> | /tp <player>", "Teleport to feet coords or a player ('~' = current).", cmd_tp },
+    { "dimension", "dim", "/dimension [overworld|nether]", "Report or jump to a dimension (portal-less travel).", cmd_dimension },
     { "give", "", "/give <item> [count]", "Add items to the hotbar like a pickup.", cmd_give },
     { "gamemode", "gm", "/gamemode <survival|creative>", "Switch game mode (s/c/0/1 also work).", cmd_gamemode },
     { "time", "", "/time <set|add> <ticks|day|noon|night|midnight>", "Set or add to the world clock.", cmd_time },

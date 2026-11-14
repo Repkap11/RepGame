@@ -22,6 +22,7 @@
 #include "common/utils/profile.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/block_definitions.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/renderer/texture.hpp"
 
 static inline void light_cpu_relax( ) {
@@ -790,13 +791,14 @@ glm::vec2 ChunkLoader::light_sample( const glm::vec3 &pos ) const {
                 const glm::ivec3 cell = base + glm::ivec3( dx, dy, dz );
                 const int sky = this->light_get( cell, LIGHT_CHANNEL_SKY );
                 const int blk = this->light_get( cell, LIGHT_CHANNEL_BLOCK );
-                accum.x += w * static_cast<float>( sky < 0 ? LIGHT_RAW_MAX : sky );
+                const int sky_default = dimension_has_sky( dimension_of_block_y( cell.y ) ) ? LIGHT_RAW_MAX : 0;
+                accum.x += w * static_cast<float>( sky < 0 ? sky_default : sky );
                 if ( blk > 0 ) {
                     accum.y += w * static_cast<float>( blk );
                 }
                 if ( sky < 0 || !light_opaque_id( this->light_block_id_at( cell ) ) ) {
                     wsum += w;
-                    masked.x += w * static_cast<float>( sky < 0 ? LIGHT_RAW_MAX : sky );
+                    masked.x += w * static_cast<float>( sky < 0 ? sky_default : sky );
                     if ( blk > 0 ) {
                         masked.y += w * static_cast<float>( blk );
                     }
@@ -1927,7 +1929,9 @@ void ChunkLoader::light_cascade_column( const int world_x, const int world_z ) {
     const int cz = static_cast<int>( floorf( world_z / CHUNK_SIZE_F.z ) );
     const int lx = world_x - cx * CHUNK_SIZE_X;
     const int lz = world_z - cz * CHUNK_SIZE_Z;
-    int open = 1; // Nothing above the top of the loaded grid is sky.
+    // Nothing above the top of the loaded grid is sky — unless the top of the
+    // torus sits in a skyless dimension (nether), where no sky exists at all.
+    int open = dimension_has_sky( dimension_of_chunk( this->chunk_center.y + CHUNK_RADIUS_Y ) ) ? 1 : 0;
     for ( int cy = this->chunk_center.y + CHUNK_RADIUS_Y; cy >= this->chunk_center.y - CHUNK_RADIUS_Y; cy-- ) {
         Chunk *chunk = this->get_chunk( glm::ivec3( cx, cy, cz ) );
         if ( !chunk || chunk->load_state ) {
@@ -1995,8 +1999,12 @@ int ChunkLoader::light_cascade_columns( Chunk &start_chunk ) {
         stack[ i ] = this->get_chunk( glm::ivec3( cx, this->chunk_center.y + CHUNK_RADIUS_Y - i, cz ) );
     }
     // open[col] = every loaded chunk above has column_open for this column.
+    // Seeded 0 in skyless dimensions: the top of the torus is roofed by the
+    // dimension's own ceiling, so no sky enters the stack at all.
+    const unsigned char sky_above =
+        dimension_has_sky( dimension_of_chunk( this->chunk_center.y + CHUNK_RADIUS_Y ) ) ? 1 : 0;
     unsigned char open[ LIGHT_FLAGS_COUNT ];
-    memset( open, 1, sizeof( open ) );
+    memset( open, sky_above, sizeof( open ) );
     for ( int i = 0; i < N_LEVELS; i++ ) {
         Chunk *chunk = stack[ i ];
         if ( !chunk || chunk->load_state ) {
@@ -2917,10 +2925,11 @@ void light_fill_chunk( Chunk &chunk ) {
             chunk_free_air_mask( chunk.light.shade_mask );
             chunk.light.shade_mask = nullptr;
         }
-        chunk.light.uniform = static_cast<unsigned short>( LIGHT_RAW_MAX << 8 );
+        chunk.light.uniform = static_cast<unsigned short>( dimension_has_sky( dimension_of_chunk( chunk.chunk_pos ) ) ? LIGHT_RAW_MAX << 8 : 0 );
         ChunkLoader::light_compute_column_open( chunk );
         if ( chunk.light.columns ) {
-            memset( chunk.light.columns + LIGHT_FLAGS_COUNT, 1, LIGHT_FLAGS_COUNT );
+            memset( chunk.light.columns + LIGHT_FLAGS_COUNT, dimension_has_sky( dimension_of_chunk( chunk.chunk_pos ) ) ? 1 : 0,
+                    LIGHT_FLAGS_COUNT );
         }
         return;
     }
@@ -3035,7 +3044,7 @@ void light_fill_chunk( Chunk &chunk ) {
         }
     }
     ChunkLoader::light_compute_column_open( chunk );
-    if ( chunk.light.columns ) {
+    if ( chunk.light.columns && dimension_has_sky( dimension_of_chunk( chunk.chunk_pos ) ) ) {
         // Optimistic skylight: assume open above so the chunk doesn't draw
         // black in the window between terrain upload and light finalize.
         // Cells above the topmost opaque cell get a direct sky=15 fill, and

@@ -1658,6 +1658,60 @@ def sc_health(run, A, B):
              (A.dump.last_state() or {}).get("dead") == 0, timeout=30)
 
 
+def sc_dimension(run, A, B):
+    """Cross-dimension isolation: a player in the nether band vanishes from
+    an overworld peer's avatar list, but the streamed position still backs
+    /tp <player>; once the peer follows, the avatars are visible again."""
+    settle(run, A, B)
+
+    def avatars(c):
+        return avatar_mobs_of(c.dump.last_state())
+
+    def pos_y(c):
+        return (c.dump.last_state() or {}).get("pos", [0, 0, 0])[1]
+
+    # Give each client a distinct server-side name — both request "Player"
+    # and the dump's "name" is the requested (not deduped) spelling, so
+    # /tp by that name can resolve to the wrong fd.
+    A.cmd("chat /name DimA")
+    B.cmd("chat /name DimB")
+    run.wait("names propagated",
+             lambda: "DimA" in ((B.dump.last_state() or {}).get("players") or []) and
+                     "DimB" in ((A.dump.last_state() or {}).get("players") or []),
+             timeout=60)
+
+    # Baseline: overworld peers see each other's avatars, and /tp works.
+    run.wait("avatars visible in overworld",
+             lambda: len(avatars(A)) >= 1 and len(avatars(B)) >= 1, timeout=120)
+    B.cmd("chat /tp DimA")
+    run.wait("baseline /tp moves B", lambda: dist(
+        (B.dump.last_state() or {}).get("pos", [0, 0, 0]), A.pos) < 5, timeout=60)
+
+    # A travels to the nether through the /dimension portal path.
+    A.cmd("chat /dimension nether")
+    run.wait("A in nether band", lambda: pos_y(A) < -2000, timeout=60)
+
+    # B's dimension filter removes A's avatar, while the streamed position
+    # still resolves /tp <player> into the nether band.
+    run.wait("B lost A's avatar", lambda: len(avatars(B)) == 0, timeout=60)
+    B.cmd("chat /tp DimA")
+    run.wait("B followed via /tp", lambda: pos_y(B) < -2000, timeout=60)
+
+    # Both in the nether band: avatars visible again. A is pinned static so
+    # its position dedupe has nothing new to broadcast — nudge it a couple
+    # blocks (real play moves constantly) so B gets a same-dimension packet
+    # and respawns the avatar.
+    ax, ay, az = (A.dump.last_state() or {}).get("pos", A.pos)
+    A.goto(ax + 2, ay, az)
+    run.wait("avatars back in nether",
+             lambda: len(avatars(A)) >= 1 and len(avatars(B)) >= 1, timeout=120)
+
+    # A returns; B (still in the nether) loses the avatar once more.
+    A.cmd("chat /dimension overworld")
+    run.wait("A back in overworld", lambda: pos_y(A) > -2000, timeout=60)
+    run.wait("B lost A's avatar again", lambda: len(avatars(B)) == 0, timeout=60)
+
+
 def sc_avatar_at_mob_cap(run, A, B):
     """A full mob list must not drop a late joiner's avatar (MAX_MOBS gates
     locally created mobs, not storage)."""
@@ -1705,6 +1759,7 @@ SCENARIOS = [
     ("disconnect_cleanup", sc_disconnect_cleanup),
     ("first_view_correct", sc_first_view_correct),
     ("avatar_at_mob_cap", sc_avatar_at_mob_cap),
+    ("dimension", sc_dimension),
     ("containers", sc_containers),
     ("sign_text", sc_sign_text),
     ("chat", sc_chat),

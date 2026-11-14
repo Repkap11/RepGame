@@ -107,6 +107,13 @@ per-y loop runs `map_logic.hpp`:
 Dispatch order in `load_terrain` is CUDA → HIP → WebGPU → C; the debug
 overlay shows which backend won (`imgui_overlay.cpp`).
 
+All of the above generates the overworld band. Chunks in the nether band
+(`DIM_IS_NETHER_BY` — `docs/dimensions.md`) take a different dialect
+picker, `mgn_pick_block` in `include/common/map_gen_nether.hpp`
+(netherrack caverns, bedrock roof/floor, lava sea, nether ores,
+glowstone), dispatched in `map_gen.cpp` so every backend shares it;
+`StructureGen::place` is overworld-only.
+
 ## World layout
 
 Constants live in `map_gen_consts.hpp` (`WATER_LEVEL`, `BEDROCK_LEVEL`,

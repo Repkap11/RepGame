@@ -157,6 +157,11 @@ exist; a chunk finalized early with optimistic assumptions is flagged
 and later re-finalized ("healed", `light_heal_chunk`, bounded by
 `LIGHT_HEAL_PER_SHIFT` per grid shift plus `light_heal_idle`).
 
+All of the above is gated per dimension band: where
+`dimension_profile(dim)->has_sky` is 0 (the nether) `light.cpp` skips the
+column fills, boundary sky seeds and the cascade's sky contribution, so
+the band is lit only by block emitters (`docs/dimensions.md`).
+
 The same stale flag is also set by `light_seed_gate` when a propagation
 seed is refused under the backlog caps. The flags live in a per-slot
 atomic bitset, `ChunkLoader::light_stale_bits` (64 chunk slots per

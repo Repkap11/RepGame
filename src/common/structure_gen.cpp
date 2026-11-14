@@ -1,4 +1,5 @@
 #include "common/structure_gen.hpp"
+#include "common/dimension.hpp"
 #include "common/tree_shapes.hpp"
 #include "common/perlin_noise.hpp"
 #include "common/constants.hpp"
@@ -997,6 +998,12 @@ void StructureGen::place_formations( Chunk &chunk, const int cox, const int coy,
 #endif // !REPGAME_MAP_GEN_LEGACY
 
 void StructureGen::place( Chunk &chunk ) {
+    if ( dimension_of_chunk( chunk.chunk_pos ) != DIM_OVERWORLD ) {
+        // Structures are overworld-only for now; the nether's terrain
+        // features (lava sea, glowstone clusters, biome patches) are baked
+        // into mgn_pick_block.
+        return;
+    }
 #if REPGAME_MAP_GEN_LEGACY
     place_legacy( chunk );
 #else

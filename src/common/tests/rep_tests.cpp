@@ -57,6 +57,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( doors ),           //
     MK_TEST( block_world ),     //
     MK_TEST( mapgen ),          //
+    MK_TEST( dimension ),       //
     MK_TEST( waterlog ),        //
     MK_TEST( fluids ),          //
     MK_TEST( lighting ),        //

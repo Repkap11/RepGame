@@ -38,12 +38,14 @@ static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-end
 // bit, and mismatched builds fail the per-frame version check on both
 // ends — a new-terrain client is dropped by a legacy server on the
 // first frame (and vice versa), while matched builds still peer.
-// Bump the low bits (17) on layout changes as usual; 0x80 stays
-// reserved for the generator bit.
+// Bump the low bits (18) on layout changes as usual; 0x80 stays
+// reserved for the generator bit. v18 = dimension bands (dimension.hpp):
+// nether-band chunk-y values generate nether terrain, so v17 peers would
+// produce a different "unmodified" base in those chunks.
 #if REPGAME_MAP_GEN_LEGACY
-static constexpr uint8_t NET_PROTOCOL_VERSION = 17;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 18;
 #else
-static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 17;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 18;
 #endif
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.

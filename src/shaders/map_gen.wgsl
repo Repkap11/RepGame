@@ -22,6 +22,7 @@
 
 #include "common/perlin_noise_shared.hpp"
 #include "common/map_gen_fields.hpp"
+#include "common/map_gen_nether.hpp"
 
 struct MapGenParams {
     chunk_x : i32,

@@ -83,3 +83,4 @@
     "CHERRY_BOAT",
     "PALE_OAK_BOAT",
     "POPLAR_BOAT",
+    "FLINT_AND_STEEL",

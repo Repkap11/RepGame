@@ -76,6 +76,7 @@ const CraftRecipe CRAFT_RECIPES[] = {
     { 1, 3, 3, { { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 }, { nullptr, 0 }, { RECIPE_OPTS_3, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_3, 1 }, { nullptr, 0 } }, DIAMOND_PICKAXE, 1 },
     { 1, 1, 3, { { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_3, 1 }, { RECIPE_OPTS_3, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, DIAMOND_SHOVEL, 1 },
     { 1, 1, 3, { { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_20, 1 }, { RECIPE_OPTS_3, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, DIAMOND_SWORD, 1 },
+    { 0, 0, 0, { { RECIPE_OPTS_11, 1 }, { RECIPE_OPTS_2, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, FLINT_AND_STEEL, 1 },
     { 1, 3, 3, { { RECIPE_OPTS_21, 2 }, { RECIPE_OPTS_21, 2 }, { RECIPE_OPTS_21, 2 }, { RECIPE_OPTS_21, 2 }, { nullptr, 0 }, { RECIPE_OPTS_21, 2 }, { RECIPE_OPTS_21, 2 }, { RECIPE_OPTS_21, 2 }, { RECIPE_OPTS_21, 2 } }, FURNACE, 1 },
     { 1, 3, 3, { { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 }, { RECIPE_OPTS_10, 1 } }, HAY_BLOCK, 1 },
     { 1, 2, 3, { { RECIPE_OPTS_11, 1 }, { RECIPE_OPTS_11, 1 }, { RECIPE_OPTS_11, 1 }, { RECIPE_OPTS_3, 1 }, { nullptr, 0 }, { RECIPE_OPTS_3, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, IRON_AXE, 1 },

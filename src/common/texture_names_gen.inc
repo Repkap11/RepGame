@@ -463,6 +463,7 @@
     "fletcher_table_side2",
     "fletcher_table_top",
     "flint",
+    "flint_and_steel",
     "flower_allium",
     "flower_blue_orchid",
     "flower_cornflower",

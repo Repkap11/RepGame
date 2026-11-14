@@ -44,7 +44,8 @@ is `docs/chunks.md`; the light model these tunables feed is
 - `REPGAME_FOG_RANGE` — width of the distance-fog band in blocks (default
   96). The band ends at the render edge so pop-in stays hidden, and is
   capped at 38% of render distance so small render distances look
-  unchanged.
+  unchanged. In dimensions without a skybox the profile's `fog_*` tint and
+  range apply instead (nether: short red-brown — `docs/dimensions.md`).
 - `REPGAME_RENDER_DISTANCE` — initial horizontal render distance in chunks
   (1..`CHUNK_RADIUS_XZ`, default `CHUNK_RADIUS_XZ_DEFAULT`; both are
 per-platform defines in `chunk_dimensions.hpp`). The chunk torus is always allocated

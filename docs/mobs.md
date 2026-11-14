@@ -40,6 +40,8 @@ menu "Mobs" toggle, persisted in `player.dat`. `MobTickInput`/`MobTickOutput`
 carry `player_hits` and `explosions` per tick). They acquire within 16
 blocks, drop past 24, and chase at `chase_speed` (10°/tick max turn);
 untargeted hostiles wander like passives but don't panic when hit.
+Remote-player targets come from `fill_remote_targets(dim)` — players in
+another dimension band are never valid (`docs/dimensions.md`).
 Zombies melee in reach (mob half-width + 0.3 + 0.5, |dy| < 1.5) with a
 1 s cooldown → a `MobPlayerHit`, handled by `RepGame::player_hurt`
 (knockback away from the hit + a hop off the ground + the `player_hurt`
@@ -140,7 +142,8 @@ cell to `DIRT` (no drop, no debris, same `repgame_convert_block`
 hand-off as tramples). Panic or losing the ground aborts a started graze.
 
 The night spawner runs inside `MobManager::tick` (off under
-`REPGAME_MOB_TEST`, capture mode, fly mode and `REPGAME_MOB_SPAWNER=0`):
+`REPGAME_MOB_TEST`, capture mode, fly mode, `REPGAME_MOB_SPAWNER=0` and
+in dimensions whose profile clears `natural_spawns` — `docs/dimensions.md`):
 every 2 s, while fewer than 12 despawnable hostiles live, up to 4
 attempts pick a random ring 24–44 blocks out, scan down from
 player_y + 16 (40 cells) for a colliding top block with 2 air cells

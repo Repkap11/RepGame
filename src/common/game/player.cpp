@@ -6,6 +6,7 @@
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/fluid.hpp"
 #include "common/map_gen.hpp"
 #include "common/utils/map_storage.hpp"
@@ -19,6 +20,7 @@
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
+#include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/schedule.hpp"
 #include "common/game/game_internal.hpp"
@@ -340,6 +342,14 @@ bool repgame_try_sleep( RepGameState &state, const glm::ivec3 &bed_pos ) {
     const BlockState bed_bs = state.world.get_loaded_block( bed_pos );
     if ( bed_bs.id == LAST_BLOCK_ID || !block_definition_get_definition( bed_bs.id )->is_bed ) {
         state.chat.push( CHAT_KIND_ERROR, "", "", "Cannot sleep: no bed there", state.tick_number );
+        return false;
+    }
+    // Beds explode in dimensions whose profile forbids sleeping (the nether):
+    // remove the bed (the partner half pops through the neighbour kill) and
+    // drop a short-fuse TNT where it stood.
+    if ( dimension_profile( dimension_of_pos( bed_pos ) )->beds_explode ) {
+        schedule_block_update<PlayerBlockPlacedEvent>( state, 0, bed_pos, BLOCK_STATE_AIR, false );
+        tnt_launch( state, glm::vec3( bed_pos ) + glm::vec3( 0.5f ), glm::vec3( 0.0f ), UPS_RATE / 2, false );
         return false;
     }
     state.spawn_point = bed_pos;
@@ -866,6 +876,25 @@ void RepGame::process_mouse_events( ) {
                         globalGameState.hotbar.consumeSelected( 1 );
                         globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
                     }
+                    globalGameState.input.click_delay_right = 30;
+                }
+            }
+        }
+        // Flint & steel: try to light a nether portal in the frame the click
+        // aims into first (an obsidian ring around the place cell); failing
+        // that, set the place cell alight like a normal fire strike.
+        if ( globalGameState.hotbar.getSelectedItem( ) == FLINT_AND_STEEL && globalGameState.input.click_delay_right == 0 ) {
+            if ( portal_ignite( globalGameState, globalGameState.block_selection.pos_create ) ||
+                 portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ) {
+                audio_play_sfx( audio_block_place_pool( OBSIDIAN ) );
+                globalGameState.input.click_delay_right = 30;
+            } else {
+                const glm::ivec3 &pos = globalGameState.block_selection.pos_create;
+                const BlockState cell = globalGameState.world.get_loaded_block( pos );
+                const BlockState below = globalGameState.world.get_loaded_block( pos + glm::ivec3( 0, -1, 0 ) );
+                if ( cell.id != LAST_BLOCK_ID && block_definition_get_definition( cell.id )->can_be_placed_in && below.id != LAST_BLOCK_ID &&
+                     block_definition_get_definition( below.id )->collides_with_player ) {
+                    change_block( 1, { FIRE, BLOCK_ROTATE_0, 0, FIRE, 0 } );
                     globalGameState.input.click_delay_right = 30;
                 }
             }

@@ -179,6 +179,10 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         const FrameTimeStats::Summary &fps = frame_stats.summary( );
         ImGui::Text( "FPS avg:%5.1f  1%%:%5.1f  0.1%%:%5.1f  (%6.2f ms)", fps.avg_fps, fps.low1_fps, fps.low01_fps, fps.avg_ms );
         ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
+        {
+            const DimensionId pdim = dimension_of_pos( debug_vars.player_pos );
+            ImGui::Text( "Dimension: %s (local y %d)", dim_name( pdim ), dim_local_block_y( static_cast<int>( debug_vars.player_pos.y ) ) );
+        }
         if ( state.block_selection.selectionInBounds ) {
             const BlockState target = state.world.get_loaded_block( state.block_selection.pos_destroy );
             const char *bname = target.id < LAST_BLOCK_ID ? block_definition_get_name( target.id ) : nullptr;

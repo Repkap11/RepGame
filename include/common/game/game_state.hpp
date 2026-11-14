@@ -36,6 +36,7 @@
 #include "common/utils/ecs.hpp"
 #include "common/game/player_state.hpp"
 #include "common/game/vr_state.hpp"
+#include "common/portal.hpp"
 
 struct ScreenState {
     float width;
@@ -123,6 +124,8 @@ struct RepGameState {
     Input input;
     CameraState camera;
     PlayerVitals vitals;
+    // Nether portal dwell/cooldown — portal.hpp, ticked by repgame_portal_tick.
+    PortalState portal;
     Hotbar hotbar;
     SurvivalInventory survival_inventory;
     BlockSelection block_selection;

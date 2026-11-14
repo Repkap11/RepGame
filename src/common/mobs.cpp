@@ -13,6 +13,7 @@
 #include "common/utils/env_config.hpp"
 #include "common/utils/profile.hpp"
 #include "common/chunk_loader.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/imgui_overlay.hpp"
 #include "common/item_entities.hpp"
 #include "common/light.hpp"
@@ -1480,6 +1481,9 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
 void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, const MobTickInput &in ) {
     if ( ++this->spawn_ticks < 2 * UPS_RATE ) {
         return;
+    }
+    if ( !dimension_profile( dimension_of_pos( player_feet ) )->natural_spawns ) {
+        return; // the overworld mob table doesn't apply to other dimensions
     }
     this->spawn_ticks = 0;
     if ( !this->under_mob_cap( ) ) {

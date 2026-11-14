@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "common/constants.hpp"
+#include "common/dimension.hpp"
 #include "common/mobs.hpp"
 
 class Vehicles;
@@ -41,11 +42,15 @@ class MultiplayerAvatars {
     // /tp <player>.
     bool position_of( int player_id, glm::dvec3 &feet ) const;
     // Fill `out` with every connected remote player's targeting info.
+    // The `dim` overloads only include players whose position is inside that
+    // dimension — mobs and carts in one dimension can't see another.
     void fill_remote_targets( std::vector<MobRemoteTarget> &out ) const;
+    void fill_remote_targets( std::vector<MobRemoteTarget> &out, DimensionId dim ) const;
     // Fill `out` with every connected remote player's feet position —
     // the pushers that shove owned empty minecarts. Seated riders are
     // skipped: they can't shove their own (or any) cart.
     void fill_remote_feet( std::vector<glm::dvec3> &out ) const;
+    void fill_remote_feet( std::vector<glm::dvec3> &out, DimensionId dim ) const;
     // Seat each riding avatar in its cart. Runs after vehicles.tick so the
     // pose tracks the cart's eased position; avatars whose cart is gone
     // (or who dismounted) fall back to the streamed standing pose.

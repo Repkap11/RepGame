@@ -16,6 +16,7 @@
 #define SKY_BOX_INDEX_COUNT ( SKY_BOX_TRIANGLES_COUNT * 6 )
 
 MK_TEXTURE( sky4, 2048, 1024, 2048, 1024 );
+MK_TEXTURE( sky_nether, 2048, 1024, 2048, 1024 );
 
 void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position ) {
     ParticleVertex *vb_data = static_cast<ParticleVertex *>( calloc( SKY_BOX_VERTEX_COUNT, sizeof( ParticleVertex ) ) );
@@ -71,6 +72,7 @@ void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBuff
     sky_instance = { { }, glm::mat4( 1.0f ), glm::vec2( 0.0f ) }; // The sky's vertexes are scaled, no need to scale instance.
 
     this->texture.init( texture_source_sky4, 1 );
+    this->texture_nether.init( texture_source_sky_nether, 1 );
 
     // Pre-compute the average color of the entire sky texture for use as the
     // fog color. This gives a single uniform color that is representative of
@@ -101,12 +103,17 @@ void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBuff
 #endif
 }
 
+void SkyBox::set_dimension( const DimensionId dim ) {
+    this->m_dimension = dim;
+}
+
 void SkyBox::draw( const Renderer &renderer, Shader &shader ) {
-    shader.set_uniform1i_texture( "u_Texture", this->texture );
+    shader.set_uniform1i_texture( "u_Texture", this->get_texture( ) );
     this->render_chain_sky_box.draw( renderer, shader );
 }
 
 void SkyBox::destroy( ) {
     this->render_chain_sky_box.clear( );
     this->texture.destroy( );
+    this->texture_nether.destroy( );
 }

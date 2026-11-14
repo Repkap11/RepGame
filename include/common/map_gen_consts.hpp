@@ -28,6 +28,11 @@
 #define MOUNTAIN_ROCK_LINE 30 // Above this, surface tends to bare stone.
 #define MAX_MOUNTAIN_HEIGHT 200.0f
 
+// Nether band layout (map_gen_nether.hpp), in band-local y [0, DIM_BLOCK_SPAN).
+#define MGN_LAVA_SEA 32      // Cavern air at/below this becomes LAVA.
+#define MGN_FLOOR_MID 55.0f  // Noise centre of the cavern floor surface.
+#define MGN_ROOF_MID 190.0f  // Noise centre of the roof mass underside.
+
 // Terraced mesa plateaus on desert columns (map_gen_fields.hpp): the
 // heightmap quantizer can lift terrain by the plateau offset plus one step.
 #define MESA_MAX_RISE 30.0f

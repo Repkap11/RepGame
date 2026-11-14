@@ -36,8 +36,9 @@ static inline float audio_distance_gain( const double dist ) {
 // (no device, no driver) leaves audio disabled and the game silent.
 void audio_init( );
 // Per-tick housekeeping: schedules the next ambient track after a random
-// gap and reaps finished one-shot SFX streams.
-void audio_tick( long tick_number );
+// gap and reaps finished one-shot SFX streams. `music_set` is the dimension
+// music set (DIM_MUSIC_* in dimension_profile.hpp) the rotation draws from.
+void audio_tick( long tick_number, int music_set );
 // Plays a random variant of the named SFX pool (manifest names dig_1..dig_n
 // all belong to base "dig"). Unknown/empty pools are ignored.
 void audio_play_sfx( const char *base_name );
@@ -53,7 +54,7 @@ void audio_cleanup( );
 
 static inline void audio_init( ) {
 }
-static inline void audio_tick( long tick_number ) {
+static inline void audio_tick( long tick_number, int music_set ) {
 }
 static inline void audio_play_sfx( const char *base_name ) {
 }

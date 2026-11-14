@@ -3,6 +3,7 @@
 
 #include <string.h>
 
+#include "common/dimension.hpp"
 #include "common/vehicles.hpp"
 
 void MultiplayerAvatars::init( MobManager *mob_manager ) {
@@ -33,9 +34,18 @@ void MultiplayerAvatars::update_position( const int player_id, const float x, co
     // never triggers, so a joiner's first packet can't spuriously flash.
     const float prev_health = this->health_map[ player_id ];
     this->health_map[ player_id ] = health;
-    const uint32_t uid = this->uid_map[ player_id ];
-    if ( uid == 0 ) {
+    // Avatars in another dimension are hidden: despawn their mob until a
+    // packet lands in the listener's dimension again. Their streamed
+    // positions still update eye_pos_map, so /tp <player> keeps working.
+    if ( dimension_of_pos( glm::dvec3( x, y, z ) ) != dimension_of_pos( listener_pos ) ) {
+        this->remove( player_id );
         return;
+    }
+    uint32_t uid = this->uid_map[ player_id ];
+    if ( uid == 0 ) {
+        // Re-entering the listener's dimension: respawn the avatar mob.
+        uid = this->mobs->spawn_remote( MOB_PLAYER );
+        this->uid_map[ player_id ] = uid;
     }
     if ( health >= 0.0f && prev_health >= 0.0f && health < prev_health ) {
         this->mobs->flash_remote_hurt( uid, listener_pos );
@@ -49,8 +59,9 @@ void MultiplayerAvatars::update_position( const int player_id, const float x, co
 }
 
 bool MultiplayerAvatars::position_of( const int player_id, glm::dvec3 &feet ) const {
-    if ( player_id < 0 || player_id >= MAX_CLIENT_FDS || this->uid_map[ player_id ] == 0 ||
-         this->eye_height_map[ player_id ] <= 0.0f ) {
+    // No uid requirement — an avatar hidden in another dimension (uid 0)
+    // still has a streamed position /tp can jump to.
+    if ( player_id < 0 || player_id >= MAX_CLIENT_FDS || this->eye_height_map[ player_id ] <= 0.0f ) {
         return false;
     }
     feet = this->eye_pos_map[ player_id ];
@@ -71,6 +82,17 @@ void MultiplayerAvatars::fill_remote_targets( std::vector<MobRemoteTarget> &out 
     }
 }
 
+// Remote players in other dimensions are never valid targets or pushers —
+// hostile AI and cart shoving only consider eye_pos_map entries in `dim`.
+void MultiplayerAvatars::fill_remote_targets( std::vector<MobRemoteTarget> &out, const DimensionId dim ) const {
+    for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+        if ( this->uid_map[ fd ] == 0 || dimension_of_pos( this->eye_pos_map[ fd ] ) != dim ) {
+            continue;
+        }
+        out.push_back( { fd, this->eye_pos_map[ fd ], this->eye_height_map[ fd ], this->targetable( fd ) } );
+    }
+}
+
 void MultiplayerAvatars::fill_remote_feet( std::vector<glm::dvec3> &out ) const {
     for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
         if ( this->riding_vehicle_map[ fd ] != 0 ) {
@@ -78,6 +100,18 @@ void MultiplayerAvatars::fill_remote_feet( std::vector<glm::dvec3> &out ) const 
         }
         glm::dvec3 feet;
         if ( this->position_of( fd, feet ) ) {
+            out.push_back( feet );
+        }
+    }
+}
+
+void MultiplayerAvatars::fill_remote_feet( std::vector<glm::dvec3> &out, const DimensionId dim ) const {
+    for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+        if ( this->riding_vehicle_map[ fd ] != 0 ) {
+            continue; // riders can't shove vehicles
+        }
+        glm::dvec3 feet;
+        if ( this->position_of( fd, feet ) && dimension_of_pos( feet ) == dim ) {
             out.push_back( feet );
         }
     }

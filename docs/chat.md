@@ -63,8 +63,9 @@ them locally and reports through INFO/ERROR log lines:
 |---|---|
 | `/help [command]` | List commands, or one command's usage |
 | `/clear` | Empty the log |
-| `/pos` | Feet position, block, chunk, facing |
-| `/tp <x> <y> <z>` | Teleport feet to coords (`~` keeps current); `/tp <player>` goes to a remote avatar. Zeroes velocity/fall state |
+| `/pos` | Feet position, dimension name, block, chunk, facing |
+| `/tp <x> <y> <z>` | Teleport feet to coords (`~` keeps current); `/tp <player>` goes to a remote avatar — works across dimension bands since the streamed position is kept even when the avatar is hidden. Zeroes velocity/fall state |
+| `/dimension [overworld\|nether]` | Report the current dimension, or travel to another band at the same x/z (portal-less path — `docs/dimensions.md`) |
 | `/give <item> [count]` | Add items to the hotbar like a pickup |
 | `/gamemode <survival\|creative>` (alias `/gm`, `s`/`c`/`0`/`1`) | Switch game mode |
 | `/time set\|add <ticks\|day\|noon\|night\|midnight>` | World clock; names keep the current day; bare `/time`/`query` reports it |

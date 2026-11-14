@@ -61,7 +61,10 @@ mount/dismount `ENTITY_ACTION` values and the `riding_cart`
 to `NetEntityKind::VEHICLE` (wire value 4 unchanged), gave
 `NetEntityRecord::type` meaning for vehicles (it carries `VehicleType`,
 invalid types are dropped), and renamed the payload field to
-`riding_vehicle` (layout unchanged).
+`riding_vehicle` (layout unchanged). Protocol 18 changed no wire layout:
+it fences off the dimension-aware terrain contract — old clients would
+generate bedrock where new clients generate the nether band
+(`docs/dimensions.md`).
 
 ## Transports
 
@@ -131,6 +134,10 @@ The client's side after that is driven by data it already produces:
   17 renamed it) carries the net id of the vehicle the sender rides —
   receivers seat that avatar in the vehicle (`docs/entities.md`,
   "Vehicles"); absent on old peers = 0 (standing).
+  Positions feed dimension filtering too: a packet that lands in a
+  different dimension band despawn the avatar mob (respawned on
+  re-entry) while the streamed position stays on file for
+  `/tp <player>` — see `docs/dimensions.md`.
 - `VIEW` — sent by `NetEntities::send_view` once welcomed: the view
   center chunk plus radius (clamped to `NET_ENTITY_RADIUS_XZ`/`_Y`).
   The server answers with `CHUNK_ROLE` grants — see `docs/entities.md`.

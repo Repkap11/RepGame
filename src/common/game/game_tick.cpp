@@ -8,6 +8,8 @@
 
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
+#include "common/dimension.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/block_definitions.hpp"
 #include "common/utils/profile.hpp"
 #include "common/world.hpp"
@@ -81,6 +83,7 @@ void RepGame::tick( ) {
     RepGame::process_camera_angle( );
     RepGame::process_movement( );
     tick_vitals( );
+    repgame_portal_tick( globalGameState );
     tick_entities( );
     // Furnaces burn and cook only in singleplayer; in multiplayer the server
     // ticks them authoritatively and streams CONTAINER_CONTENTS + lit-state
@@ -103,7 +106,9 @@ void RepGame::tick( ) {
 void RepGame::advance_clocks( ) {
     globalGameState.tick_number++;
     // Music scheduling + one-shot SFX reaping (no-op without REPGAME_AUDIO).
-    audio_tick( globalGameState.tick_number );
+    // The dimension's music set selects the rotation (nether tracks play
+    // underground in the nether band).
+    audio_tick( globalGameState.tick_number, dimension_profile( dimension_of_pos( globalGameState.camera.pos ) )->music_set );
     // Feed the tick to the light pool: the BFS starve window measures backlog
     // age in ticks so the seed hot paths never read the clock.
     globalGameState.world.chunkLoader.light_note_tick( globalGameState.tick_number );
@@ -352,7 +357,7 @@ void RepGame::tick_entities( ) {
     // Owned hostiles also consider remote players (positions + targetable
     // flags come from the PLAYER_LOCATION stream).
     if ( gs.multiplayer.multiplayer_mode( ) ) {
-        gs.world.multiplayer_avatars.fill_remote_targets( mob_in.remote_targets );
+        gs.world.multiplayer_avatars.fill_remote_targets( mob_in.remote_targets, dimension_of_pos( gs.camera.pos ) );
     }
     MobTickOutput mob_out;
     gs.world.mobs.tick( gs.world, gs.camera.pos, &mob_in, &mob_out );
@@ -384,7 +389,7 @@ void RepGame::tick_entities( ) {
     vehicle_in.player_no_clip = gs.input.no_clip || gs.camera.riding_vehicle != 0;
     // Remote players shove owned empty vehicles with the same overlap rule.
     if ( gs.multiplayer.multiplayer_mode( ) ) {
-        gs.world.multiplayer_avatars.fill_remote_feet( vehicle_in.extra_pushers );
+        gs.world.multiplayer_avatars.fill_remote_feet( vehicle_in.extra_pushers, dimension_of_pos( gs.camera.pos ) );
     }
     gs.world.vehicles.tick( gs, vehicle_in );
     repgame_vehicle_ride_follow( gs );

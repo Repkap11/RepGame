@@ -707,12 +707,22 @@ void audio_init( ) {
 #endif
 }
 
-void audio_tick( long tick_number ) {
+void audio_tick( long tick_number, const int music_set ) {
     if ( !audio_enabled ) {
         return;
     }
     const int num_music = ( int )( sizeof( MUSIC_TRACKS ) / sizeof( MUSIC_TRACKS[ 0 ] ) ) - 1;
-    if ( music_enabled && num_music > 0 && music_want.load( ) && next_track.load( ) < 0 ) {
+    // Tracks eligible in this dimension's music set (nether rotates its own
+    // list; an in-flight overworld track finishes but the next pick is
+    // nether).
+    int set_tracks[ 32 ];
+    int num_set = 0;
+    for ( int i = 0; i < num_music && num_set < 32; i++ ) {
+        if ( MUSIC_TRACKS[ i ].set == music_set ) {
+            set_tracks[ num_set++ ] = i;
+        }
+    }
+    if ( music_enabled && num_set > 0 && music_want.load( ) && next_track.load( ) < 0 ) {
         if ( gap_until_tick == 0 ) {
             // The first track starts after a few seconds (world still loading);
             // later tracks wait out the full random gap.
@@ -721,9 +731,9 @@ void audio_tick( long tick_number ) {
             gap_until_tick = tick_number + delay;
         }
         if ( tick_number >= gap_until_tick ) {
-            int idx = rand( ) % num_music;
-            if ( num_music > 1 && idx == last_track ) {
-                idx = ( idx + 1 ) % num_music;
+            int idx = set_tracks[ rand( ) % num_set ];
+            if ( num_set > 1 && idx == last_track ) {
+                idx = set_tracks[ ( rand( ) % ( num_set - 1 ) + 1 ) % num_set ];
             }
             gap_until_tick = 0;
             music_want.store( false );

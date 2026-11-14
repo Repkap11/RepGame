@@ -52,9 +52,12 @@ the browser suspends the AudioContext until the first user gesture; SDL2's
 Emscripten driver auto-resumes it (the callback keeps running into a
 throwaway buffer meanwhile).
 
-Sources: `sounds/mc_pack` is a Minecraft assets tree (WAV) — only the
-overworld music (game/, water/, creative/) is in the rotation; nether/end/
-menu/records are excluded. `make mc_pack_build` downloads it: a tarball of
+Sources: `sounds/mc_pack` is a Minecraft assets tree (WAV) — the
+overworld tracks (game/, water/, creative/) rotate in the overworld and
+the nether tracks rotate in the nether band; the manifest's `set` column
+tags each entry and `audio.cpp` picks the set from the player's dimension
+(`docs/dimensions.md`). End/menu/records are excluded.
+`make mc_pack_build` downloads it: a tarball of
 just the manifest-listed WAVs hosted at repkap11.com/files/repgame
 (copyrighted, so untracked — not an `install` dep).
 

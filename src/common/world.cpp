@@ -1,5 +1,6 @@
 #include "common/world.hpp"
 #include "common/chunk.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/multiplayer.hpp"
 #include "common/utils/env_config.hpp"
@@ -322,13 +323,21 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         debug_block_scale = 0.0f;
     }
 
+    // The camera's dimension drives the environment: sky panorama, fog tint
+    // and fog range all come from its profile (nether = no sky, close
+    // ember-haze fog).
+    const DimensionId camera_dim = dimension_of_pos( camera_pos );
+    const DimensionProfile *dim_prof = dimension_profile( camera_dim );
+    this->skyBox.set_dimension( camera_dim );
+
     // Distance fog: blend terrain toward the sky color in a band ending at
     // the render edge. The band is a constant number of blocks (capped at
     // the old 38% of render distance so small render distances are
     // unchanged), so the haze stays thin at large render distances instead
     // of scaling up, while still reaching full opacity at the edge to hide
     // chunk pop-in.
-    static const float fog_range_blocks = env_float( "REPGAME_FOG_RANGE", 96.0f );
+    static const float env_fog_range = env_float( "REPGAME_FOG_RANGE", 96.0f );
+    const float fog_range_blocks = camera_dim == DIM_OVERWORLD ? env_fog_range : dim_prof->fog_range;
     // The fog band ends at the ACTIVE render edge (runtime radius), not the
     // torus capacity, so pop-in stays hidden at small render distances.
     const float render_distance = static_cast<float>( this->chunkLoader.render_distance_blocks( ) );
@@ -344,6 +353,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // instead of the sky average; the composite phase then blends toward the
     // sky attachment, same mechanism as the above-ground fog.
     glm::vec3 fog_blend_color = this->skyBox.get_avg_color( );
+    if ( !dim_prof->has_sky ) {
+        // No sky: fog blends toward the dimension's fixed haze instead of a
+        // sky panorama average.
+        fog_blend_color = glm::vec3( dim_prof->fog_r, dim_prof->fog_g, dim_prof->fog_b );
+    }
     if ( headInWater ) {
         const float depthBelow = ( WATER_HEIGHT - 1.0f ) - y_height; // WATER_LEVEL(0) + WATER_HEIGHT - 1 = surface Y
         const float depthF = glm::clamp( depthBelow / 30.0f, 0.0f, 1.0f );
@@ -351,8 +365,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     }
     // The rendered sky is the sky texture dimmed by u_Daylight, so the fog
     // target must dim the same way or distant terrain blends toward a
-    // day-bright color at night.
-    fog_blend_color *= daylight;
+    // day-bright color at night. Skyless dimensions have a constant haze
+    // instead — the day/night cycle doesn't exist underground.
+    if ( dim_prof->has_sky ) {
+        fog_blend_color *= daylight;
+    }
 
     this->chunkLoader.shader.set_uniform1f( "u_FogNear", fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );

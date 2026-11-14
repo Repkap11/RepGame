@@ -271,6 +271,12 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         // still pointing at this cell.
         return piston_head_base( world, block_pos, block_state ) != block_pos;
     }
+    if ( block_state.id == PORTAL ) {
+        // A portal cell survives only inside a complete obsidian ring — the
+        // run scan in portal.cpp. Breaking a frame block pops the adjacent
+        // cell and the pop cascades through the interior.
+        return portal_cell_survives( world, block_pos, block_state );
+    }
     if ( block->is_torch && block_state.rotation >= 4 ) {
         // Side-mounted torch: check the attachment block is still solid.
         // rotation 4=attached LEFT(solid at x-1), 5=FRONT(z-1), 6=RIGHT(x+1), 7=BACK(z+1)

@@ -6,6 +6,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/audio.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/fluid.hpp"
 #include "common/world.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
@@ -84,6 +85,15 @@ bool repgame_use_bucket( RepGameState &state ) {
         target = sel.pos_create;
     } else {
         return false;
+    }
+    // Water evaporates on pour in dimensions whose profile forbids it (the
+    // nether) — the bucket still empties, MC-style.
+    if ( fluid == WATER && !dimension_profile( dimension_of_pos( target ) )->water_allowed ) {
+        if ( state.game_mode == GameMode_Survival ) {
+            bucket_swap_item( state, BUCKET );
+        }
+        bucket_finish( state, fluid );
+        return true;
     }
     const BlockState write = fluid_state( fluid, 0 );
     if ( !player_placement_valid( state.world, target, write ) ) {

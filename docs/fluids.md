@@ -127,7 +127,9 @@ MC, then the rest of the hotbar, then the survival inventory — only a
 completely full inventory throws the result ahead); creative doesn't
 consume. All world
 changes go through the queue, so scoop-removal recedes the flow
-naturally and poured sources sim normally.
+naturally and poured sources sim normally. In a dimension whose profile
+clears `water_allowed` (the nether) a water pour evaporates on the spot —
+hiss + steam, bucket emptied, no source placed (`docs/dimensions.md`).
 
 ## Rendering
 

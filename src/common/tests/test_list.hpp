@@ -40,6 +40,7 @@ int test_bars( );
 int test_doors( );
 int test_block_world( );
 int test_mapgen( );
+int test_dimension( );
 int test_waterlog( );
 int test_fluids( );
 int test_lighting( );

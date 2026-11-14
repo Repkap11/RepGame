@@ -1,4 +1,4 @@
-# Sound manifest: name|source|type|title
+# Sound manifest: name|source|type|title|set
 #   name   - blob name: becomes out/sounds/<name>.ogg and the C identifier used
 #            by MK_BLOB(out_sounds, <name>, ogg). Lowercase alnum + underscore.
 #   source - file under sounds/ (untracked — not committed, see .gitignore).
@@ -6,10 +6,13 @@
 #            by base name (dig_stone_1/dig_stone_2 share the "dig_stone" pool
 #            for random variants — the name minus the trailing _N is the base).
 #   title  - display name for logging.
+#   set    - music only: overworld | nether (default overworld) — the
+#            dimension music set (DIM_MUSIC_*) the track rotates in.
 #
-# Sources are WAV files from sounds/mc_pack (a Minecraft assets tree) — only
-# overworld music (game/, game/water, game/creative) is listed; nether, end,
-# menu and record discs are excluded. To drop or add an entry, edit this file.
+# Sources are WAV files from sounds/mc_pack (a Minecraft assets tree) — the
+# overworld (game/, game/water, game/creative) and nether (game/nether)
+# tracks are listed; end, menu and record discs are excluded. To drop or add
+# an entry, edit this file.
 calm_1|mc_pack/music/game/calm1.wav|music|Minecraft
 calm_2|mc_pack/music/game/calm2.wav|music|Clark
 calm_3|mc_pack/music/game/calm3.wav|music|Sweden
@@ -31,6 +34,13 @@ creative_3|mc_pack/music/game/creative/creative3.wav|music|Haunt Muskie
 creative_4|mc_pack/music/game/creative/creative4.wav|music|Aria Math
 creative_5|mc_pack/music/game/creative/creative5.wav|music|Dreiton
 creative_6|mc_pack/music/game/creative/creative6.wav|music|Taswell
+nether_1|mc_pack/music/game/nether/nether1.wav|music|Concrete Halls|nether
+nether_2|mc_pack/music/game/nether/nether2.wav|music|Dead Voxel|nether
+nether_3|mc_pack/music/game/nether/nether3.wav|music|Warmth|nether
+nether_4|mc_pack/music/game/nether/nether4.wav|music|Ballad of the Cats|nether
+nether_rubedo|mc_pack/music/game/nether/nether_wastes/rubedo.wav|music|Rubedo|nether
+nether_so_below|mc_pack/music/game/nether/soulsand_valley/so_below.wav|music|So Below|nether
+nether_chrysopoeia|mc_pack/music/game/nether/crimson_forest/chrysopoeia.wav|music|Chrysopoeia|nether
 
 # SFX — per-material dig pools (audio_play_sfx picks a random _N variant of
 # the named base; the block being broken/placed selects the material).

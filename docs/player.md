@@ -300,7 +300,9 @@ PgUp/PgDn clock keys. Sleeping is refused while a live hostile mob is
 within `SLEEP_MONSTER_RADIUS` (8 blocks —
 `MobManager::hostiles_within`); the spawn point is still set either way.
 Sneak-click places against the bed like the other interactables, and
-"can't sleep" feedback is log-only.
+"can't sleep" feedback is log-only. In a dimension whose profile sets
+`beds_explode` (the nether), the click detonates the bed instead of
+sleeping — no spawn point is recorded (`docs/dimensions.md`).
 
 `resolve_pending_spawn` honors the point on respawn: it keeps the camera
 over the bed column until the chunk reports generated data, stands the

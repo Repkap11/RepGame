@@ -1,0 +1,75 @@
+#! terrain
+#! timeout 300
+# Nether portal travel: a hand-staged obsidian ring filled with PORTAL
+# cells (frame detection/ignition is covered by test_dimension; setblock
+# writes the lit cells directly). Standing in the plate for
+# PORTAL_TRAVEL_TICKS (80) trips repgame_portal_tick's dwell counter and
+# drops the player on generated nether ground; portal_pending_tick then
+# finds or builds the destination portal once the torus catches up.
+# /dimension reports the band, so assert_chat verifies each hop.
+wait_idle 20 6000
+debug 0
+imgui 0
+
+# Baseline: the flat test world starts in the overworld band.
+chatopen /
+type dimension
+wait 2
+signkey enter
+wait 2
+assert_chat Dimension: overworld
+
+# Stage a lit 4x5 portal: obsidian ring at x 20..23, y 70..74, z 30;
+# `ignite` runs the real portal_ignite path — it validates the ring and
+# fills the interior (x 21..22, y 71..73) with PORTAL cells.
+fill 20 70 30 23 74 30 OBSIDIAN
+wait 5
+# Placement only writes replaceable cells, so the interior must be
+# re-opened to AIR before ignition.
+fill 21 71 30 22 73 30 AIR
+wait 5
+ignite 21 71 30
+wait 5
+assert_block 21 72 30 PORTAL
+assert_block 20 72 30 OBSIDIAN
+
+# Stand inside the plate. Gravity settles feet on the bottom frame row;
+# feet and body cells both land on PORTAL cells.
+goto 21.5 73 30.5
+wait 120
+chatopen /
+type dimension
+wait 2
+signkey enter
+wait 2
+assert_chat Dimension: nether
+# The destination portal materializes around the drop point; the camera
+# sits inside or beside it — red fog, no skybox, plate in view.
+wait 60
+screenshot nether_portal
+
+# Return through the command path: same landing-column search, no frame.
+chatopen /
+type dimension overworld
+wait 2
+signkey enter
+wait 60
+chatopen /
+type dimension
+wait 2
+signkey enter
+wait 2
+assert_chat Dimension: overworld
+
+# Breaking a frame block pops the adjacent PORTAL cell via the
+# survive rule, cascading the interior clear. goto first so the original
+# portal's chunks are back inside the torus.
+# Stand beside the frame — inside the plate would just travel again.
+goto 24.5 73 30.5
+wait_idle 10 6000
+setblock 20 72 30 AIR
+wait 10
+assert_block 21 72 30 AIR
+assert_block 22 72 30 AIR
+
+echo nether_portal done

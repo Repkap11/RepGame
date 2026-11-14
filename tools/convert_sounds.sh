@@ -80,10 +80,11 @@ case "${1:-}" in
             echo 'typedef struct {'
             echo '    const char *path;'
             echo '    const char *title;'
+            echo '    int set; // dimension music set (DIM_MUSIC_*)'
             echo '} MusicTrackEntry;'
             echo 'static const MusicTrackEntry MUSIC_TRACKS[] = {'
-            awk -F'|' '!/^[[:space:]]*(#|$)/ && $3 == "music" { printf "    { \"sounds/%s.ogg\", \"%s\" },\n", $1, $4 }' "$MANIFEST"
-            echo '    { NULL, NULL },'
+            awk -F'|' '!/^[[:space:]]*(#|$)/ && $3 == "music" { s = ($5 == "nether" ? 1 : 0); printf "    { \"sounds/%s.ogg\", \"%s\", %d },\n", $1, $4, s }' "$MANIFEST"
+            echo '    { NULL, NULL, 0 },'
             echo '};'
             echo 'typedef struct {'
             echo '    const char *base;'
@@ -98,10 +99,11 @@ case "${1:-}" in
             echo 'typedef struct {'
             echo '    const BinaryBlob *blob;'
             echo '    const char *title;'
+            echo '    int set; // dimension music set (DIM_MUSIC_*)'
             echo '} MusicTrackEntry;'
             echo 'static const MusicTrackEntry MUSIC_TRACKS[] = {'
-            awk -F'|' '!/^[[:space:]]*(#|$)/ && $3 == "music" { printf "    { &%s, \"%s\" },\n", $1, $4 }' "$MANIFEST"
-            echo '    { NULL, NULL },'
+            awk -F'|' '!/^[[:space:]]*(#|$)/ && $3 == "music" { s = ($5 == "nether" ? 1 : 0); printf "    { &%s, \"%s\", %d },\n", $1, $4, s }' "$MANIFEST"
+            echo '    { NULL, NULL, 0 },'
             echo '};'
             echo 'typedef struct {'
             echo '    const char *base;'

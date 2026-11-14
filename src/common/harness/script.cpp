@@ -21,6 +21,7 @@
 #include "common/harness/results.hpp"
 #include "common/harness/run_policy.hpp"
 #include "common/item.hpp"
+#include "common/portal.hpp"
 #include "common/sign.hpp"
 #include "common/Logging.hpp"
 #include "common/mobs.hpp"
@@ -347,6 +348,14 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         if ( !dbgcmd::fill( state, glm::ivec3( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) ),
                             glm::ivec3( ivec_arg( 4 ), ivec_arg( 5 ), ivec_arg( 6 ) ), argv[ 7 ].c_str( ), &err ) ) {
             cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
+    // ignite x y z — light the obsidian frame containing the cell (the real
+    // portal_ignite path: validates the ring and fills it with PORTAL).
+    if ( strcmp( cmd, "ignite" ) == 0 && argc == 4 ) {
+        if ( !portal_ignite( state, glm::ivec3( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) ) ) ) {
+            cmd_error( state, line, "ignite: no complete obsidian frame here" );
         }
         return false;
     }
