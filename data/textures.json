@@ -2546,11 +2546,13 @@
     "source": "textures/items/repeater"
   },
   "repeater_off": {
-    "source": "textures/blocks/repeater_off"
+    "source": "textures/blocks/repeater_off",
+    "extract": [ { "from": [ 0, 0 ], "size": [ 16, 16 ], "to": [ 0, 0 ] }, { "from": [ 7, 6 ], "size": [ 2, 4 ], "to": [ 7, 2 ] } ]
   },
   "repeater_on": {
     "keep": true,
-    "source": "textures/blocks/repeater_on"
+    "source": "textures/blocks/repeater_on",
+    "extract": [ { "from": [ 0, 0 ], "size": [ 16, 16 ], "to": [ 0, 0 ] }, { "from": [ 7, 6 ], "size": [ 2, 4 ], "to": [ 7, 2 ] } ]
   },
   "repeating_command_block_back_mipmap": {
     "source": "textures/blocks/repeating_command_block_back_mipmap"
