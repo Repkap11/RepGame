@@ -15132,7 +15132,10 @@ block_definitions[ 1010 ].mineable = MINEABLE_AXE;
 block_definitions[ 1010 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1010 ].needs_place_on_solid_but_can_stack_on_self = true;
 block_definitions[ 1010 ].no_light = 0;
+block_definitions[ 1010 ].offset = { 5, 0, 5 };
 block_definitions[ 1010 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1010 ].scale = { 6, 14, 6 };
+block_definitions[ 1010 ].tex_offset = { -5, 0, -5 };
 
 // PUMPKIN_STEM (1011)
 block_definitions[ 1011 ].textures[ FACE_TOP ] = TEX_AIR;

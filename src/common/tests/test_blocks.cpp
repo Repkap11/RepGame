@@ -2039,6 +2039,11 @@ int test_bamboo_grow( ) {
     check_bool( "bamboo: upper converts on stalk", bamboo_grow_try( gs, stacked + glm::ivec3( 0, 1, 0 ), 0 ) );
     check_bool( "bamboo: column continues", world.get_loaded_block( stacked + glm::ivec3( 0, 1, 0 ) ).id == BAMBOO );
 
+    // --- Def boxes: the shoot's pick box is a thin sprout, not the full
+    // cell; the stalk is its own 4px box. ---
+    const Block *shoot_def = block_definition_get_definition( BAMBOO_SAPLING );
+    check_bool( "bamboo: shoot pick box is thin", shoot_def->scale.x == 6 && shoot_def->scale.y == 14 && shoot_def->offset.x == 5 );
+
     // --- Placement validity: stalk on stalk, stalk on shoot, floating. ---
     const glm::ivec3 sup( 55, 11, 55 );
     world.set_loaded_block( sup + glm::ivec3( 0, -1, 0 ), grass );
