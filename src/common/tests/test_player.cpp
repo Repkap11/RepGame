@@ -784,7 +784,7 @@ int test_bed_pair( ) {
     auto run = [ & ]( const int ticks ) {
         for ( int i = 0; i < ticks; i++ ) {
             gs.tick_number++;
-            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+            repgame_drain_block_updates( gs );
         }
     };
     auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
@@ -841,14 +841,15 @@ int test_bed_pair( ) {
     run( 2 );
     failures += check_id( world, "lone head: not placed", glm::ivec3( 6, 10, 6 ), AIR );
 
-    // Breaking the foot pops the head through the survive check.
+    // Breaking the foot pops the head through the survive check — the kill
+    // write is tagged "now" so it lands a tick after the neighbour wake.
     place( feet[ 0 ], BLOCK_STATE_AIR );
-    run( 2 );
+    run( 3 );
     failures += check_id( world, "foot break: foot cleared", feet[ 0 ], AIR );
     failures += check_id( world, "foot break: head popped", feet[ 0 ] + head_dir[ 0 ], AIR );
     // Breaking the head pops the foot.
     place( feet[ 1 ] + head_dir[ 1 ], BLOCK_STATE_AIR );
-    run( 2 );
+    run( 3 );
     failures += check_id( world, "head break: head cleared", feet[ 1 ] + head_dir[ 1 ], AIR );
     failures += check_id( world, "head break: foot popped", feet[ 1 ], AIR );
 

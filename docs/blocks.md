@@ -457,7 +457,7 @@ Right-click toggles non-`door_redstone_only` doors through `DoorEvent`
 (TOGGLE), like gates; iron doors fall through to placement. Doors are
 `is_redstone_mechanism`, so each half stores 0/1 power: a state update
 whose combined lower|upper power changed queues `DoorEvent(SYNC_POWER)`
-one tick out, giving MC edge semantics — rising opens, falling closes, and
+one game tick out, giving MC edge semantics — rising opens, falling closes, and
 a hand toggle in between persists. The full power model, dust shapes and
 the event queue everything rides on are in `docs/redstone.md`.
 

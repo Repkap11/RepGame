@@ -285,7 +285,7 @@ int test_chat( ) {
         gs.world.set_loaded_block( glm::ivec3( 10, 8, 8 ), BLOCK_STATE_AIR );
         chat_submit( gs, "/setblock ~ ~ ~ stone" );
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
         check_bool( "chat cmd: /setblock ~ ~ ~ floors the fractional feet",
                     gs.world.get_loaded_block( glm::ivec3( 10, 8, 8 ) ).id == STONE );
 

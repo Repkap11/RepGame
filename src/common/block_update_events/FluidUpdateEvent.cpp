@@ -5,6 +5,7 @@
 #include "common/RepGame.hpp"
 #include "common/fluid.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 static const glm::ivec3 fluid_horiz_dirs[ 4 ] = {
     glm::ivec3( 1, 0, 0 ),  //
@@ -98,7 +99,7 @@ void fluid_schedule_update( RepGameState &state, const glm::ivec3 &pos ) {
     }
     const Block *def = block_definition_get_definition( fluid );
     const long delay = ( fluid == LAVA && lava_touching_water( state.world, pos ) ) ? 1 : def->flows;
-    state.blockUpdateQueue.addBlockUpdate<FluidUpdateEvent>( state.tick_number + delay, pos );
+    schedule_block_update<FluidUpdateEvent>( state, delay, pos );
 }
 
 int fluid_slope_distance( World &world, const glm::ivec3 &pos, const glm::ivec3 &horiz_dir, const BlockID fluid, const int flow_slope ) {
@@ -140,7 +141,7 @@ FluidUpdateEvent::FluidUpdateEvent( long tick_number, const glm::ivec3 &pos ) //
     this->name = "FluidUpdateEvent";
 }
 
-void FluidUpdateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void FluidUpdateEvent::performAction( RepGameState &repGameState ) {
     repGameState.pending_fluid_updates.erase( this->block_pos );
     World &world = repGameState.world;
     const BlockState cell = world.get_loaded_block( this->block_pos );
@@ -156,7 +157,7 @@ void FluidUpdateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGam
     const bool fluid_above = same_fluid( world.get_loaded_block( this->block_pos + fluid_up ), fluid );
 
     auto queue_write = [ & ]( const glm::ivec3 &pos, const BlockState &state, BreakDrops drops = BreakDrops::None ) {
-        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, pos, state, false, drops );
+        schedule_block_update<PlayerBlockPlacedEvent>( repGameState, 0, pos, state, false, drops );
     };
 
     // R — lava touching water petrifies in place: a source becomes

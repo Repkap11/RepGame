@@ -34,6 +34,8 @@ class BlockUpdateQueue {
     }
 
     void processAllBlockUpdates( RepGameState &repGameState, long tick_number );
+    // The redstone drain: runs every event with tick <= now as one batch.
+    void processUpTo( RepGameState &repGameState, long now );
 
   private:
     static constexpr size_t EVENT_SLOT_BYTES = 128;
@@ -52,7 +54,7 @@ class BlockUpdateEvent {
   public:
     BlockUpdateEvent( long tick_number );
     const char *name = "Unnamed BlockUpdateEvent";
-    virtual void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) = 0;
+    virtual void performAction( RepGameState &repGameState ) = 0;
 
     long tick_number;
     virtual ~BlockUpdateEvent( ) {

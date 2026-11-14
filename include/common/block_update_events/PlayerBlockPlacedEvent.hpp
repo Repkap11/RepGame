@@ -5,9 +5,10 @@
 
 // Queues BlockNextToChangeEvents for the 6 face neighbors of `pos`, plus the
 // extended offsets dust needs for vertical connections (dust over/under solid
-// and non-solid neighbors). Shared with PistonEvent, which moves several
-// blocks per action.
-void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, const glm::ivec3 &pos );
+// and non-solid neighbors). Always wakes on the physics clock with delay 0,
+// whichever queue the write came from. Shared with PistonEvent, which moves
+// several blocks per action.
+void queue_neighbor_block_updates( RepGameState &state, const glm::ivec3 &pos );
 
 // Mirrors the rejection checks PlayerBlockPlacedEvent::performAction applies
 // to a non-state_update, non-AIR placement, so a caller can tell up front
@@ -42,7 +43,7 @@ class PlayerBlockPlacedEvent : public BlockUpdateEvent {
   public:
     PlayerBlockPlacedEvent( long tick_number, const glm::ivec3 &block, BlockState blockState, bool state_update, BreakDrops drops = BreakDrops::None,
                             BreakDebris debris = BreakDebris::Spawn );
-    void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
+    void performAction( RepGameState &repGameState ) override;
 
   private:
     glm::ivec3 block_pos;

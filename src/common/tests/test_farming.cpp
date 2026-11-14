@@ -101,7 +101,7 @@ int test_farming( ) {
         repgame_convert_block( gs, field, DIRT );
         for ( int i = 0; i < 4; i++ ) {
             gs.tick_number++;
-            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+            repgame_drain_block_updates( gs );
         }
         failures += check_id( world, "trample: crop popped", field + glm::ivec3( 0, 1, 0 ), AIR );
     }

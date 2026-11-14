@@ -9,22 +9,83 @@ change queues another write. Power levels live on the cells
 nonzero), so a chunk reload restores the whole powered network without
 replaying anything.
 
-## The event queue
+## The two clocks
 
-`BlockUpdateQueue` (`include/common/BlockUpdateQueue.hpp`,
-`RepGameState::blockUpdateQueue`) is a priority queue of
-`BlockUpdateEvent`s ordered by `tick_number`, drained once per tick by
-`RepGame::process_block_updates` (`src/common/game/player.cpp`) near the
-top of `RepGame::tick`. Events are pooled — `addBlockUpdate<E>(args...)`
-placement-news them into fixed slots carved from seed_fifo's shared 4KB
-block pool, so a fluid drain or TNT chain costs no heap traffic. Events
-fire only when their `tick_number` is
-*strictly less* than the current tick — so an event tagged "now" lands
-next tick, and `tick + n` means at least `n` full ticks of delay.
-`REDSTONE_DELAY` (1) is therefore a 2-tick hop per neighbour. Events are
-never persisted: a queued fuse or pending release is lost on save (a
-button saved while pressed is revived by the re-queued release in
+RepGame runs two clocks. The **physics clock** is `tick_number` itself,
+incremented once per update at `UPS_RATE` (144/s). The **redstone clock**
+is Minecraft's 20 Hz game tick ("gt"):
+`redstone_tick_now(state) = tick_number * REDSTONE_UPS / UPS_RATE`
+(`include/common/block_update_events/schedule.hpp`) — a pure function of
+`tick_number`, so there is no persisted or synced state for it. Each
+clock has its own `BlockUpdateQueue`: `RepGameState::blockUpdateQueue`
+for physics events, `RepGameState::redstoneQueue` for redstone events.
+
+`repgame_drain_block_updates` runs once per physics tick from
+`RepGame::process_block_updates` (`src/common/game/player.cpp`) after
+the random ticks: first the physics queue, then the redstone queue at
+the current redstone time. The two queues have *different* firing
+semantics:
+
+- Physics (`processAllBlockUpdates`) fires events with `tick_number`
+  *strictly less* than now — an event tagged "now" lands next tick.
+- Redstone (`processUpTo`) first pops every event with `tick <= now`
+  into a local batch, then runs the batch — so an event queued while
+  the batch runs, even one due now, waits for the next drain.
+
+A delay of 0 therefore means "the next drain" on either clock: physics
+delay 0 fires next physics tick, redstone delay 0 fires on the next
+game-tick drain (which happens every physics tick, so dust stays at
+about two physics ticks per hop). Explicit delays on the redstone queue
+are what wait for game-tick boundaries.
+
+## Scheduling
+
+`include/common/block_update_events/schedule.hpp` (included from .cpp
+files only) is the only way to queue an event:
+
+- `schedule_block_update<E>(state, delay, args...)` — physics clock,
+  fires `delay` ticks out; 0 = next tick.
+- `schedule_redstone_update<E>(state, delay_gt, args...)` — redstone
+  clock, fires once `redstone_tick_now` reaches now + `delay_gt`; 0 =
+  the next game-tick drain.
+
+**Never schedule from `this->tick_number`** — inside an event it is in
+whichever base queued it, so it can't seed a target time on either
+clock. `BlockUpdateEvent::performAction(RepGameState&)` takes no queue,
+which forces every site through these helpers with an explicit clock.
+
+`queue_neighbor_block_updates(state, pos)` — the neighbour wakes every
+block write fans out — always schedules on the physics clock with delay
+0, whichever queue the write came from.
+
+Events are pooled — `addBlockUpdate<E>(args...)` placement-news them
+into fixed slots carved from seed_fifo's shared 4KB block pool, so a
+fluid drain or TNT chain costs no heap traffic. Events are never
+persisted: a queued fuse or pending release is lost on save (a button
+saved while pressed is revived by the re-queued release in
 `player.cpp` — see "Buttons" below).
+
+Which events wait on which clock:
+
+| Site | Clock | Delay |
+|---|---|---|
+| `perform_checks` merged power/display write | redstone | 0 |
+| ...same write when the affecting torch's power changes | redstone | `REDSTONE_TORCH_DELAY_GT` (2) |
+| `perform_checks` support kill (AIR write) | physics | 0 |
+| `FallingBlockEvent` | physics | 2 |
+| `LeafDecayEvent` | physics | jittered |
+| `FluidUpdateEvent` | physics | `fluid_schedule_update` |
+| `RepeaterEvent` schedule/re-arm | redstone | `2 * delay` |
+| `RepeaterEvent` on/off write | redstone | 0 |
+| `PistonEvent` on a power edge | redstone | `PISTON_DELAY_GT` (1) |
+| `DoorEvent(SYNC_POWER)` | redstone | `DOOR_DELAY_GT` (1) |
+| `tnt_ignite` fuse | physics | `TNT_FUSE_TICKS` |
+| Button press write | physics | 0 (instant) |
+| Button release | redstone | 20 / 30 gt |
+| `PressurePlateEvent` start/write/recheck | redstone | 0 / 0 / `PRESSURE_PLATE_RECHECK_GT` (20) |
+| Right-click toggles, buckets, harness writes, place/break | physics | 0 |
+| `TntExplodeEvent` | physics | unchanged |
+| Neighbour wakes (all writes) | physics | 0 |
 
 The event types live in `src/common/block_update_events/`:
 
@@ -119,22 +180,28 @@ with dust in hand toggles a connected dust between CROSS and DOT
 power the block above, weakly power their other sides, and never power
 their attachment (rotation 0=below, 4..7=attached to a horizontal face).
 Their own power level is `0` when the attachment block is powered at all
-(weak or hard) — that's the inverter.
+(weak or hard) — that's the inverter. State changes wait
+`REDSTONE_TORCH_DELAY_GT` (2 gt): when a neighbour write lands on a cell
+whose update was triggered by a torch's own power change, `perform_checks`
+queues the merged write at that delay instead of 0.
 
-**Buttons** (`is_button`) press on right-click (`player.cpp` queues a
-pressed state update with `REDSTONE_SOURCE_POWER`, plus a release event
-at `tick + UPS_RATE` or `+1.5*UPS_RATE` for wood — the release is
-re-queued every press so a saved-pressed button still pops out).
+**Buttons** (`is_button`) press on right-click (`repgame_press_button`
+in `player.cpp`): the pressed state update with `REDSTONE_SOURCE_POWER`
+is instant (physics clock), while the release waits on the redstone
+clock — `STONE_BUTTON_PRESS_GT` = 20 gt for stone,
+`WOOD_BUTTON_PRESS_GT` = 30 gt for wood. The release is re-queued every
+press so a saved-pressed button still pops out.
 **Pressure plates** (`is_pressure_plate`) press while stood on:
 `RepGame::process_pressure_plates` detects a foot AABB overlap per tick
 and starts a self-rescheduling `PressurePlateEvent` chain
-(`PRESSURE_PLATE_RECHECK_TICKS` = 8 ticks between checks), deduped by
-`RepGameState::watched_pressure_plates` so exactly one chain exists per
-plate. Both strongly power their attachment block.
+(`PRESSURE_PLATE_RECHECK_GT` = 20 gt between checks, about a second of
+MC release time), deduped by `RepGameState::watched_pressure_plates` so
+exactly one chain exists per plate. Both strongly power their
+attachment block.
 
 **Pistons** (`is_piston`/`is_sticky_piston`) move on a power edge:
-`PlayerBlockPlacedEvent` queues `PistonEvent` one tick out when a
-piston's power crosses 0 either way. Powered extends: scan up to
+`PlayerBlockPlacedEvent` queues `PistonEvent` `PISTON_DELAY_GT` (1 gt)
+out when a piston's power crosses 0 either way. Powered extends: scan up to
 `PISTON_PUSH_LIMIT` (12) solid movable cells until a free cell (air or
 `can_be_placed_in`) or a destroyable non-solid (broken into debris);
 unloaded cells and `piston_immovable`/powered-piston/head cells block
@@ -147,9 +214,10 @@ in front. Every moved cell goes through `piston_set_block`, which writes
 around the whole moved chain.
 
 **Doors** are `is_redstone_mechanism` blocks whose power edge queues
-`DoorEvent(SYNC_POWER)`: combined lower|upper power rising opens,
-falling closes, and a hand toggle in between persists (MC edge
-semantics). `DoorEvent(TOGGLE)` is the right-click path. Placement,
+`DoorEvent(SYNC_POWER)` `DOOR_DELAY_GT` (1 gt) out: combined lower|upper
+power rising opens, falling closes, and a hand toggle in between
+persists (MC edge semantics). `DoorEvent(TOGGLE)` is the right-click
+path, immediate on the physics clock. Placement,
 pairing and hinge rules: `docs/blocks.md`.
 
 **TNT** (`is_tnt`) ignites on a *rising* edge in the same event that
@@ -182,11 +250,11 @@ hard power 15 out the front — refreshing the signal and strongly
 powering the cell in front. Facing is `rotation & 3` (0=-z, 1=+x,
 2=+z, 3=-x) with output toward facing; `repeater_output_dir`/
 `repeater_points_into` in `src/common/repeater.cpp` hold the mapping.
-The delay (1–4 redstone ticks) lives in `display_id`, swapped between
+The delay (1–4) lives in `display_id`, swapped between
 `REPEATER` and the hidden render-only `REPEATER_DELAY_2/3/4` ids — the
-id never changes, only the display. `REDSTONE_TICK_TICKS`
-(`UPS_RATE / 10`) is one redstone tick in game ticks, so delay-4 is
-`4 * REDSTONE_TICK_TICKS` ticks. Right-click cycles 1→2→3→4→1
+id never changes, only the display. Each delay step is
+`REDSTONE_REPEATER_STEP_GT` (2) game ticks, so delay-4 waits
+`repeater_delay_gt` = 8 gt. Right-click cycles 1→2→3→4→1
 (`player.cpp`, skipped while sneaking).
 
 Repeater state changes don't run through `perform_checks` — they need a
@@ -249,6 +317,10 @@ TESTS=redstone`) builds a torch/dust/piston/lamp scenario and asserts
 the MC semantics listed at the top of that file — read its header
 comment for the canonical example. `test_repeaters` (same file,
 `TESTS=repeater`) covers facing, delay cycling, pulse extension and
-hard power. `test_doors` (same file) and
+hard power. `test_redstone_clock` (same file) covers the clock itself:
+the `redstone_tick_now` mapping, delay-0 and delay-n firing semantics,
+dust speed, and the torch/piston/button/plate game-tick delays.
+`test_doors` (same file) and
 `test_falling_blocks`/`test_tnt` (`test_blocks.cpp`) exercise the same
-queue.
+queues. Tests drive the clocks with `test_run_game_ticks` /
+`test_run_redstone_ticks` (`src/common/tests/test_util.hpp`).

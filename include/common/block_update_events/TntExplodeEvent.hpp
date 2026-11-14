@@ -21,7 +21,7 @@
 // PlayerBlockPlacedEvent; a no-op when a stale/racing trigger lands on a cell
 // that is no longer TNT. `inverse` selects the inverse-TNT blast (restore
 // terrain) for an is_inverse_tnt block.
-void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, long fuse_ticks, bool inverse );
+void tnt_ignite( RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, long fuse_ticks, bool inverse );
 
 // Launches a primed (flying + flashing) TNT body from center — the source
 // block must already be out of the world. `velocity` is in blocks/second and
@@ -29,7 +29,7 @@ void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
 // at tick_number + fuse_ticks carrying the body id; the blast lands wherever
 // the body actually is when the fuse ends. `inverse` propagates the
 // inverse-TNT blast type through chain ignition.
-void tnt_launch( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, long fuse_ticks, bool inverse );
+void tnt_launch( RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, long fuse_ticks, bool inverse );
 
 // Detonates a primed TNT in three passes: removes every TNT block in the
 // blast sphere (they all chain-ignite), destroys the remaining breakable
@@ -44,7 +44,7 @@ void tnt_launch( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
 class TntExplodeEvent : public BlockUpdateEvent {
   public:
     TntExplodeEvent( long tick_number, const glm::ivec3 &pos, uint32_t body_id, bool inverse );
-    void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
+    void performAction( RepGameState &repGameState ) override;
 
   private:
     glm::ivec3 block_pos;

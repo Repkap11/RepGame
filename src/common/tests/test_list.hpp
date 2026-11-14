@@ -12,6 +12,7 @@ int test_angle_wrap( );
 int test_teleport_parse( );
 int test_redstone( );
 int test_repeaters( );
+int test_redstone_clock( );
 int test_rails( );
 int test_minecarts( );
 int test_torch_pick( );

@@ -32,8 +32,8 @@ int repeater_delay( const BlockState &state );
 BlockState repeater_with_delay( BlockState state, int delay );
 // The right-click cycle: delay 1->2->3->4->1.
 BlockState repeater_cycle_delay( BlockState state );
-// The delay in game ticks: delay * REDSTONE_TICK_TICKS.
-long repeater_delay_ticks( const BlockState &state );
+// The delay in MC game ticks: delay * REDSTONE_REPEATER_STEP_GT.
+long repeater_delay_gt( const BlockState &state );
 
 // Whether `rep` is a powered repeater whose output cell is `target` —
 // the only direction a repeater feeds.

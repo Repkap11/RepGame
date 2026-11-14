@@ -32,7 +32,7 @@ bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_dust );
 class BlockNextToChangeEvent : public BlockUpdateEvent {
   public:
     BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset );
-    void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
+    void performAction( RepGameState &repGameState ) override;
 
   private:
     glm::ivec3 block_pos;

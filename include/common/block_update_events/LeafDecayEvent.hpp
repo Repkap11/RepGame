@@ -29,7 +29,7 @@ bool leaf_has_log_support( World &world, const glm::ivec3 &pos );
 class LeafDecayEvent : public BlockUpdateEvent {
   public:
     LeafDecayEvent( long tick_number, const glm::ivec3 &pos );
-    void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
+    void performAction( RepGameState &repGameState ) override;
 
   private:
     glm::ivec3 block_pos;

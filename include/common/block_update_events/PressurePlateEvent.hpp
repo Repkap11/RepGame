@@ -10,7 +10,7 @@
 class PressurePlateEvent : public BlockUpdateEvent {
   public:
     PressurePlateEvent( long tick_number, const glm::ivec3 &pos );
-    void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
+    void performAction( RepGameState &repGameState ) override;
 
   private:
     glm::ivec3 block_pos;

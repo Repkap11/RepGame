@@ -6,6 +6,7 @@
 
 #include "common/RepGame.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/item.hpp"
 #include "common/multiplayer.hpp"
@@ -282,7 +283,7 @@ bool dbgcmd::fall( RepGameState &state, const char *item, const glm::ivec3 &pos,
 bool dbgcmd::tnt( RepGameState &state, const glm::vec3 &center, std::string *err ) {
     // The normal launch path: body + TntExplodeEvent at tick + fuse.
     (void)err;
-    tnt_launch( state.blockUpdateQueue, state, center, glm::vec3( 0.0f, 4.0f, 0.0f ), TNT_FUSE_TICKS, false );
+    tnt_launch( state, center, glm::vec3( 0.0f, 4.0f, 0.0f ), TNT_FUSE_TICKS, false );
     return true;
 }
 
@@ -314,7 +315,7 @@ bool dbgcmd::setblock( RepGameState &state, const glm::ivec3 &pos, const char *b
         state.pending_container_loot.insert( pos );
     }
     // Scripted writes aren't breaks — no debris locally or on the wire.
-    state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, pos, bs, false, BreakDrops::None, BreakDebris::None );
+    schedule_block_update<PlayerBlockPlacedEvent>( state, 0, pos, bs, false, BreakDrops::None, BreakDebris::None );
     return true;
 }
 
@@ -336,7 +337,7 @@ bool dbgcmd::fill( RepGameState &state, const glm::ivec3 &a, const glm::ivec3 &b
     for ( int x = lo.x; x <= hi.x; x++ ) {
         for ( int y = lo.y; y <= hi.y; y++ ) {
             for ( int z = lo.z; z <= hi.z; z++ ) {
-                state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, glm::ivec3( x, y, z ), bs, false, BreakDrops::None, BreakDebris::None );
+                schedule_block_update<PlayerBlockPlacedEvent>( state, 0, glm::ivec3( x, y, z ), bs, false, BreakDrops::None, BreakDebris::None );
             }
         }
     }

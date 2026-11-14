@@ -35,7 +35,7 @@ int fluid_slope_distance( World &world, const glm::ivec3 &pos, const glm::ivec3 
 class FluidUpdateEvent : public BlockUpdateEvent {
   public:
     FluidUpdateEvent( long tick_number, const glm::ivec3 &pos );
-    void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
+    void performAction( RepGameState &repGameState ) override;
 
   private:
     glm::ivec3 block_pos;

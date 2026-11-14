@@ -260,10 +260,21 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 // Redstone power emitted by a pressed button/pressure plate (same as a torch).
 #define REDSTONE_SOURCE_POWER 15
 
-// Ticks per redstone-tick step of repeater delay (MC's 0.1s): a repeater's
-// 1-4 delay reads as delay * REDSTONE_TICK_TICKS. The hook a global
-// redstone tick would retune together with REDSTONE_DELAY.
-#define REDSTONE_TICK_TICKS ( UPS_RATE / 10 )
+// The redstone clock rate: MC game ticks ("gt"), 20 per second.
+#define REDSTONE_UPS 20
+// MC redstone-torch reaction delay: 2 gt.
+#define REDSTONE_TORCH_DELAY_GT 2
+// MC redstone ticks are 2 game ticks each: a repeater waits 2 * delay gt.
+#define REDSTONE_REPEATER_STEP_GT 2
+// MC piston extend/retract latency: 1 gt.
+#define PISTON_DELAY_GT 1
+// MC door open/close on a power edge: 1 gt.
+#define DOOR_DELAY_GT 1
+// MC button press durations: stone 1 s, wood 1.5 s.
+#define STONE_BUTTON_PRESS_GT 20
+#define WOOD_BUTTON_PRESS_GT 30
+// MC pressure-plate release: ~1 s after stepping off (the recheck cadence).
+#define PRESSURE_PLATE_RECHECK_GT 20
 
 // Bounded timeout for the background TCP connect attempt to a multiplayer
 // server. Prevents the OS default (~75s+) from stalling if SYNs are silently

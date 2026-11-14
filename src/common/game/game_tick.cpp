@@ -18,6 +18,7 @@
 #include "common/harness/run_policy.hpp"
 #include "common/map_gen.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/game/game_internal.hpp"
 
@@ -421,7 +422,7 @@ void RepGame::tick_entities( ) {
         }
     }
     for ( const glm::dvec3 &pos : mob_out.explosions ) {
-        gs.blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( gs.tick_number, glm::ivec3( glm::floor( pos + glm::dvec3( 0.0, 0.5, 0.0 ) ) ), 0, false );
+        schedule_block_update<TntExplodeEvent>( gs, 0, glm::ivec3( glm::floor( pos + glm::dvec3( 0.0, 0.5, 0.0 ) ) ), 0, false );
     }
 }
 

@@ -50,6 +50,9 @@ struct RepGameState {
     World world;
     Multiplayer multiplayer;
     BlockUpdateQueue blockUpdateQueue;
+    // The redstone clock's queue: tick_number fields here are in MC game
+    // ticks (redstone_tick_now), not physics ticks.
+    BlockUpdateQueue redstoneQueue;
     GameMode game_mode;
     // Peaceful (default) = hostile mobs never target the local player;
     // hostile = they do. Game mode no longer factors in (see

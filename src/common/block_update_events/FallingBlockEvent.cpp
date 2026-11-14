@@ -2,12 +2,13 @@
 #include "common/RepGame.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 FallingBlockEvent::FallingBlockEvent( long tick_number, const glm::ivec3 &pos ) : BlockUpdateEvent( tick_number ), block_pos( pos ) {
     this->name = "FallingBlockEvent";
 }
 
-void FallingBlockEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void FallingBlockEvent::performAction( RepGameState &repGameState ) {
     World &world = repGameState.world;
     const BlockState state = world.get_loaded_block( this->block_pos );
     if ( state.id == LAST_BLOCK_ID || !block_definition_get_definition( state.id )->falls_with_gravity ) {
@@ -33,6 +34,6 @@ void FallingBlockEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGa
         // The block becomes a falling body, not debris — peers see the same
         // via the entity spawn, so suppress the removal burst.
         repGameState.multiplayer.set_block( cell, BLOCK_STATE_AIR, NET_BU_FLAG_NO_DEBRIS );
-        queue_neighbor_block_updates( blockUpdateQueue, world, repGameState.tick_number, cell );
+        queue_neighbor_block_updates( repGameState, cell );
     }
 }

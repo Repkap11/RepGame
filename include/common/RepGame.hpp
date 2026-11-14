@@ -204,6 +204,12 @@ bool repgame_fire_arrow( RepGameState &state );
 // function so rep_tests and the mp-test harness can drive it.
 bool repgame_eat_food( RepGameState &state );
 
+// Right-click a button: powers it for its press duration (stone ~1 s,
+// wood ~1.5 s on the redstone clock), then releases it. The press write is
+// instant; the release is re-queued every press so a saved-pressed button
+// still pops out. A free function so rep_tests can drive it.
+void repgame_press_button( RepGameState &state, const glm::ivec3 &pos );
+
 // Explosion blast on the local player: distance-falloff damage
 // (PLAYER_EXPLOSION_MAX_DAMAGE at the center fading to 0 at `radius`)
 // plus a shove away from the blast. Called from TntExplodeEvent for local

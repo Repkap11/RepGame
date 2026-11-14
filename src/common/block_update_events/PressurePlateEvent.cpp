@@ -1,10 +1,7 @@
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/RepGame.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
-
-// While occupied, how long until the next occupancy check (and thus the max
-// release delay after the player steps off).
-#define PRESSURE_PLATE_RECHECK_TICKS 8
+#include "common/block_update_events/schedule.hpp"
 
 PressurePlateEvent::PressurePlateEvent( long tick_number, const glm::ivec3 &pos ) : BlockUpdateEvent( tick_number ), block_pos( pos ) {
     this->name = "PressurePlateEvent";
@@ -25,7 +22,7 @@ static bool player_stands_on_plate( const glm::dvec3 &eye, double player_height,
            pmin.z < bmax.z && pmax.z > bmin.z;
 }
 
-void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void PressurePlateEvent::performAction( RepGameState &repGameState ) {
     const BlockState current_state = repGameState.world.get_loaded_block( this->block_pos );
     const bool still_pressed_area = current_state.id != LAST_BLOCK_ID && block_definition_get_definition( current_state.id )->is_pressure_plate &&
                                     player_stands_on_plate( repGameState.camera.pos, repGameState.camera.player_height, repGameState.camera.eye_height, this->block_pos );
@@ -33,9 +30,9 @@ void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepG
         if ( current_state.current_redstone_power == 0 ) {
             BlockState pressed_state = current_state;
             pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
-            blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, pressed_state, true );
+            schedule_redstone_update<PlayerBlockPlacedEvent>( repGameState, 0, this->block_pos, pressed_state, true );
         }
-        blockUpdateQueue.addBlockUpdate<PressurePlateEvent>( this->tick_number + PRESSURE_PLATE_RECHECK_TICKS, this->block_pos );
+        schedule_redstone_update<PressurePlateEvent>( repGameState, PRESSURE_PLATE_RECHECK_GT, this->block_pos );
         return;
     }
     // Nobody on it (or the plate is gone/unloaded): release it and end the
@@ -43,7 +40,7 @@ void PressurePlateEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepG
     if ( current_state.id != LAST_BLOCK_ID && block_definition_get_definition( current_state.id )->is_pressure_plate && current_state.current_redstone_power > 0 ) {
         BlockState released_state = current_state;
         released_state.current_redstone_power = 0;
-        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, released_state, true );
+        schedule_redstone_update<PlayerBlockPlacedEvent>( repGameState, 0, this->block_pos, released_state, true );
     }
     repGameState.watched_pressure_plates.erase( this->block_pos );
 }

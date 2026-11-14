@@ -5,6 +5,7 @@
 #include "common/RepGame.hpp"
 #include "common/block.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 static const glm::ivec3 leaf_decay_dirs[ 6 ] = {
     glm::ivec3( 0, 1, 0 ),  //
@@ -48,7 +49,7 @@ LeafDecayEvent::LeafDecayEvent( long tick_number, const glm::ivec3 &pos ) //
     this->name = "LeafDecayEvent";
 }
 
-void LeafDecayEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void LeafDecayEvent::performAction( RepGameState &repGameState ) {
     repGameState.pending_leaf_decay.erase( this->block_pos );
     const BlockState state = repGameState.world.get_loaded_block( this->block_pos );
     if ( state.id == LAST_BLOCK_ID || !block_is_natural_leaf( block_definition_get_definition( state.id ) ) ) {
@@ -60,5 +61,5 @@ void LeafDecayEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameS
     // No log within LEAF_DECAY_RANGE: the leaf breaks and drops its rolled
     // items in either game mode (nothing mined it — decay is a natural
     // cause). Its neighbor updates queue the next leaves' checks.
-    blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, BLOCK_STATE_AIR, false, BreakDrops::Always );
+    schedule_block_update<PlayerBlockPlacedEvent>( repGameState, 0, this->block_pos, BLOCK_STATE_AIR, false, BreakDrops::Always );
 }

@@ -14,6 +14,7 @@
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 #include "common/utils/collision.hpp"
 #include "common/mobs.hpp"
 #include "common/net/packet.hpp"
@@ -52,6 +53,29 @@ int check_power( const World &world, const char *name, const glm::ivec3 &pos, in
 
 // Checks the block id at a position. Returns the number of failures.
 int check_id( const World &world, const char *name, const glm::ivec3 &pos, BlockID expected );
+
+// Advances n physics ticks, draining both event queues each tick in the
+// same order RepGame::process_block_updates does.
+static inline void test_run_game_ticks( RepGameState &gs, int n ) {
+    for ( int i = 0; i < n; i++ ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+    }
+}
+
+// Runs game ticks until the redstone clock has advanced `gt` game ticks,
+// plus one extra drain so a write scheduled exactly at now + gt has
+// landed. A redstone delay of 0 fires in the next drain; n waits for the
+// clock to reach start + n.
+static inline void test_run_redstone_ticks( RepGameState &gs, long gt ) {
+    const long target = redstone_tick_now( gs ) + gt;
+    while ( redstone_tick_now( gs ) < target ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+    }
+    gs.tick_number++;
+    repgame_drain_block_updates( gs );
+}
 
 // Fills the hotbar + survival inventory fields headlessly (init() does GL
 // work; friend access mirrors test_mobs).

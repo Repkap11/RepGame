@@ -41,8 +41,8 @@ BlockState repeater_cycle_delay( BlockState state ) {
     return repeater_with_delay( state, repeater_delay( state ) % 4 + 1 );
 }
 
-long repeater_delay_ticks( const BlockState &state ) {
-    return repeater_delay( state ) * REDSTONE_TICK_TICKS;
+long repeater_delay_gt( const BlockState &state ) {
+    return repeater_delay( state ) * REDSTONE_REPEATER_STEP_GT;
 }
 
 bool repeater_points_into( const BlockState &rep, const glm::ivec3 &rep_pos, const glm::ivec3 &target ) {

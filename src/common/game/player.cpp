@@ -20,6 +20,7 @@
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 #include "common/game/game_internal.hpp"
 #include "common/break_drops.hpp"
 #include "common/rail.hpp"
@@ -77,7 +78,7 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
     }
     BlockID previous_block_id = globalGameState.world.get_loaded_block( block ).id;
     // globalGameState.world.set_loaded_block( block, blockState );
-    globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, block, blockState, false );
+    schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, block, blockState, false );
     return previous_block_id;
 }
 
@@ -656,21 +657,9 @@ void RepGame::process_mouse_events( ) {
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_button ) {
             // Right-click presses a button instead of placing against it:
-            // powered for a timeout, then released. Wood stays pressed ~1.5s,
-            // stone ~1s. The click delay also swallows the placement attempt
-            // below.
-            const long press_ticks = target_state.id == STONE_BUTTON ? UPS_RATE : UPS_RATE + UPS_RATE / 2;
-            BlockState released_state = target_state;
-            released_state.current_redstone_power = 0;
-            if ( target_state.current_redstone_power == 0 ) {
-                BlockState pressed_state = target_state;
-                pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
-                globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, pressed_state, true );
-            }
-            // Always (re)queue the release: idempotent while unpressed, and it
-            // revives a button saved while pressed (queued events don't
-            // persist across loads).
-            globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number + press_ticks, globalGameState.block_selection.pos_destroy, released_state, true );
+            // powered for a timeout, then released. The click delay also
+            // swallows the placement attempt below.
+            repgame_press_button( globalGameState, globalGameState.block_selection.pos_destroy );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -720,7 +709,7 @@ void RepGame::process_mouse_events( ) {
         if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_fence_gate && !globalGameState.input.movement.sneakPressed ) {
             BlockState toggled_state = target_state;
             toggled_state.rotation = fence_gate_toggle_rotation( target_state.rotation, getPlacedRotation( target_state.id ) );
-            globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, toggled_state, true );
+            schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy, toggled_state, true );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -730,7 +719,7 @@ void RepGame::process_mouse_events( ) {
         // interaction so the block can be placed.
         const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
         if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_repeater && !globalGameState.input.movement.sneakPressed ) {
-            globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy,
+            schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy,
                                                                                    repeater_cycle_delay( target_state ), true );
             audio_play_sfx( audio_block_dig_pool( target_state.id ) );
             globalGameState.input.click_delay_right = 30;
@@ -744,7 +733,7 @@ void RepGame::process_mouse_events( ) {
         if ( target_state.id != LAST_BLOCK_ID && !globalGameState.input.movement.sneakPressed ) {
             const Block *target = block_definition_get_definition( target_state.id );
             if ( target->is_door && !target->door_redstone_only ) {
-                globalGameState.blockUpdateQueue.addBlockUpdate<DoorEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, DoorEvent::TOGGLE );
+                schedule_block_update<DoorEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy, DoorEvent::TOGGLE );
                 globalGameState.input.click_delay_right = 30;
             }
         }
@@ -759,10 +748,10 @@ void RepGame::process_mouse_events( ) {
             if ( target_state.rotation < CAKE_MAX_BITES ) {
                 BlockState eaten_state = target_state;
                 eaten_state.rotation = static_cast<unsigned char>( target_state.rotation + 1 );
-                globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, eaten_state, true );
+                schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy, eaten_state, true );
             } else {
                 // The last slice is eaten, not broken: no drop, no debris.
-                globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, BLOCK_STATE_AIR, false,
+                schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy, BLOCK_STATE_AIR, false,
                                                                                        BreakDrops::None, BreakDebris::None );
             }
             audio_play_sfx( audio_block_dig_pool( target_state.id ) );
@@ -938,7 +927,7 @@ void RepGame::process_mouse_events( ) {
                         new_block_state.display_id = LAST_BLOCK_ID; // sentinel: don't toggle
                     }
                     if ( new_block_state.display_id != LAST_BLOCK_ID ) {
-                        globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, new_block_state, true );
+                        schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy, new_block_state, true );
                         globalGameState.input.click_delay_right = 30;
                         did_toggle_dust = true;
                     }
@@ -1454,6 +1443,29 @@ void RepGame::process_movement( ) {
     }
 }
 
+// Right-click a button: powered for a timeout, then released. Wood stays
+// pressed ~1.5 s (30 gt), stone ~1 s (20 gt). The press write is instant
+// (physics clock) so the click feels immediate; the release waits on the
+// redstone clock. A free function so rep_tests can drive it.
+void repgame_press_button( RepGameState &state, const glm::ivec3 &pos ) {
+    const BlockState target_state = state.world.get_loaded_block( pos );
+    if ( target_state.id == LAST_BLOCK_ID || !block_definition_get_definition( target_state.id )->is_button ) {
+        return;
+    }
+    if ( target_state.current_redstone_power == 0 ) {
+        BlockState pressed_state = target_state;
+        pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
+        schedule_block_update<PlayerBlockPlacedEvent>( state, 0, pos, pressed_state, true );
+    }
+    // Always (re)queue the release: idempotent while unpressed, and it
+    // revives a button saved while pressed (queued events don't
+    // persist across loads).
+    BlockState released_state = target_state;
+    released_state.current_redstone_power = 0;
+    const long press_gt = target_state.id == STONE_BUTTON ? STONE_BUTTON_PRESS_GT : WOOD_BUTTON_PRESS_GT;
+    schedule_redstone_update<PlayerBlockPlacedEvent>( state, press_gt, pos, released_state, true );
+}
+
 void RepGame::process_block_updates( ) {
     PROFILE_SCOPE( "block_updates" );
     // Random ticks (growth + grass) stay off in capture/fly/flat/block-world
@@ -1465,7 +1477,7 @@ void RepGame::process_block_updates( ) {
     if ( !RepGame::capture_mode( ) && !RepGame::fly_mode( ) && !repgame_block_world( ) && !repgame_flat_world( ) && !globalGameState.input.player_flying && !globalGameState.input.no_clip ) {
         globalGameState.world.process_random_ticks( globalGameState );
     }
-    globalGameState.blockUpdateQueue.processAllBlockUpdates( globalGameState, globalGameState.tick_number );
+    repgame_drain_block_updates( globalGameState );
 }
 
 void RepGame::process_pressure_plates( ) {
@@ -1492,7 +1504,7 @@ void RepGame::process_pressure_plates( ) {
             // event reschedules itself until nobody is on it. Watching is what
             // bounds this to one chain per plate.
             if ( block_definition_get_definition( block_state.id )->is_pressure_plate && globalGameState.watched_pressure_plates.insert( block_pos ).second ) {
-                globalGameState.blockUpdateQueue.addBlockUpdate<PressurePlateEvent>( globalGameState.tick_number, block_pos );
+                schedule_redstone_update<PressurePlateEvent>( globalGameState, 0, block_pos );
             }
         }
     }

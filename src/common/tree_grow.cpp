@@ -191,9 +191,9 @@ bool tree_grow_try( RepGameState &state, const glm::ivec3 &pos, const bool prese
     // co = (0,0,0): pos is already world coords, so the hash inputs
     // co + local are the world cells, exactly like mapgen.
     sg_place_tree( target, spec, pos.x, pos.y, pos.z, glm::ivec3( 0, 0, 0 ) );
-    queue_neighbor_block_updates( state.blockUpdateQueue, state.world, state.tick_number, pos + glm::ivec3( 0, -1, 0 ) );
+    queue_neighbor_block_updates( state, pos + glm::ivec3( 0, -1, 0 ) );
     for ( const glm::ivec3 &cell : target.trunk_cells ) {
-        queue_neighbor_block_updates( state.blockUpdateQueue, state.world, state.tick_number, cell );
+        queue_neighbor_block_updates( state, cell );
     }
     return true;
 }

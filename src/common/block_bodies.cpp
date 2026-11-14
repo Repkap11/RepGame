@@ -13,6 +13,7 @@
 #include "common/net_entities.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 // Per-tick constants at UPS_RATE (144). Body gravity matches the old primed
 // TNT's 9.8 blocks/s² — NOT the player's GRAVITY_STRENGTH (0.002/tick² ≈
@@ -122,7 +123,7 @@ bool BlockBodies::settle_land( RepGameState &state, Body &b ) {
         }
         world.set_loaded_block( cell, b.state );
         state.multiplayer.set_block( cell, b.state );
-        queue_neighbor_block_updates( state.blockUpdateQueue, world, state.tick_number, cell );
+        queue_neighbor_block_updates( state, cell );
         lift_bodies_above( cell, b.id );
         return true;
     }
@@ -756,7 +757,7 @@ void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord
         const bool inverse = block_definition_get_definition( b->state.id )->is_inverse_tnt;
         const long remaining = std::max<long>( 1, b->fuse_ticks );
         const glm::ivec3 explode_pos = glm::ivec3( glm::floor( body_center( *b ) ) );
-        state.blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( state.tick_number + remaining, explode_pos, b->id, inverse );
+        schedule_block_update<TntExplodeEvent>( state, remaining, explode_pos, b->id, inverse );
     }
 }
 

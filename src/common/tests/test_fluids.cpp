@@ -26,7 +26,7 @@ static void place( RepGameState &gs, const glm::ivec3 &pos, const BlockState &st
 static void settle( RepGameState &gs, int ticks ) {
     for ( int i = 0; i < ticks; i++ ) {
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
     }
 }
 

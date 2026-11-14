@@ -95,7 +95,7 @@ int test_rails( ) {
     auto run = [ & ]( const int ticks ) {
         for ( int i = 0; i < ticks; i++ ) {
             gs.tick_number++;
-            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+            repgame_drain_block_updates( gs );
         }
     };
     const BlockState rail = { RAIL, 0, 0, RAIL, 0 };

@@ -3,12 +3,13 @@
 #include "common/multiplayer.hpp"
 #include "common/block.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 DoorEvent::DoorEvent( long tick_number, const glm::ivec3 &pos, Mode mode ) : BlockUpdateEvent( tick_number ), block_pos( pos ), mode( mode ) {
     this->name = "DoorEvent";
 }
 
-void DoorEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void DoorEvent::performAction( RepGameState &repGameState ) {
     World &world = repGameState.world;
 
     // Resolve the lower half: the event may have been queued on either cell.
@@ -48,6 +49,6 @@ void DoorEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState 
     repGameState.multiplayer.set_block( lower_pos, lower_state, NET_BU_FLAG_NO_DEBRIS );
     world.set_loaded_block( upper_pos, upper_state );
     repGameState.multiplayer.set_block( upper_pos, upper_state, NET_BU_FLAG_NO_DEBRIS );
-    queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, lower_pos );
-    queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, upper_pos );
+    queue_neighbor_block_updates( repGameState, lower_pos );
+    queue_neighbor_block_updates( repGameState, upper_pos );
 }

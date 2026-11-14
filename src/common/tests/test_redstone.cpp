@@ -1,6 +1,7 @@
 // Redstone + door mechanics tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
+#include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/repeater.hpp"
 // Redstone mechanics, focused on the redstone torch:
 //
@@ -109,10 +110,7 @@ int test_redstone( ) {
     place( glm::ivec3( 29, 11, 18 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );   // M2 (only neighbor is M1)
     place( glm::ivec3( 28, 11, 19 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } ); // source beside M1
 
-    for ( int i = 0; i < 40; i++ ) {
-        gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
-    }
+    test_run_redstone_ticks( gs, 20 );
 
     int failures = 0;
     failures += check_power( world, "torch T1 (floor torch)", glm::ivec3( 10, 11, 10 ), 15 );
@@ -196,10 +194,7 @@ int test_redstone( ) {
     place( glm::ivec3( 20, 11, 11 ), BLOCK_STATE_AIR );
     place( glm::ivec3( 25, 12, 10 ), stone );
     place( glm::ivec3( 28, 11, 19 ), BLOCK_STATE_AIR );
-    for ( int i = 0; i < 40; i++ ) {
-        gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
-    }
+    test_run_redstone_ticks( gs, 20 );
     failures += check_power( world, "s1 after source removed", glm::ivec3( 20, 11, 10 ), 0 );
     failures += check_power( world, "s2 after source removed", glm::ivec3( 21, 12, 10 ), 0 );
     failures += check_power( world, "s3 after source removed", glm::ivec3( 22, 13, 10 ), 0 );
@@ -211,10 +206,7 @@ int test_redstone( ) {
     // pos_destroy through piston_head_base): the base write then pops the
     // head through the same survive check an orphaned head uses.
     place( glm::ivec3( 10, 12, 11 ), BLOCK_STATE_AIR );
-    for ( int i = 0; i < 10; i++ ) {
-        gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
-    }
+    test_run_redstone_ticks( gs, 5 );
     failures += check_id( world, "piston base removed", glm::ivec3( 10, 12, 11 ), AIR );
     failures += check_id( world, "piston head popped with base", glm::ivec3( 10, 12, 12 ), AIR );
     return failures;
@@ -303,10 +295,7 @@ int test_doors( ) {
         gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     auto run = [ & ]( const int ticks ) {
-        for ( int i = 0; i < ticks; i++ ) {
-            gs.tick_number++;
-            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
-        }
+        test_run_redstone_ticks( gs, ticks );
     };
     auto toggle = [ & ]( const glm::ivec3 &pos ) {
         gs.blockUpdateQueue.addBlockUpdate<DoorEvent>( gs.tick_number, pos, DoorEvent::TOGGLE );
@@ -517,8 +506,8 @@ int test_repeaters( ) {
     check_bool( "repeater: delay/display_id round-trips 1-4", delay_ok );
     check_bool( "repeater: cycle wraps 4 back to 1",
                 repeater_delay( repeater_cycle_delay( repeater_with_delay( { REPEATER, 0, 0, REPEATER, 0 }, 4 ) ) ) == 1 );
-    check_bool( "repeater: delay ticks scale by REDSTONE_TICK_TICKS",
-                repeater_delay_ticks( repeater_with_delay( { REPEATER, 0, 0, REPEATER, 0 }, 3 ) ) == 3 * REDSTONE_TICK_TICKS );
+    check_bool( "repeater: delay scales by REDSTONE_REPEATER_STEP_GT",
+                repeater_delay_gt( repeater_with_delay( { REPEATER, 0, 0, REPEATER, 0 }, 3 ) ) == 3 * REDSTONE_REPEATER_STEP_GT );
 
     RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_redstone
     gs.tick_number = 0;
@@ -536,10 +525,7 @@ int test_repeaters( ) {
         gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
     };
     auto run = [ & ]( const int ticks ) {
-        for ( int i = 0; i < ticks; i++ ) {
-            gs.tick_number++;
-            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
-        }
+        test_run_redstone_ticks( gs, ticks );
     };
     const BlockState rep_x = { REPEATER, 1, 0, REPEATER, 0 }; // facing +x
 
@@ -559,7 +545,7 @@ int test_repeaters( ) {
     place( glm::ivec3( 10, 11, 4 ), rep_x );
     place( glm::ivec3( 11, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
 
-    run( 60 );
+    run( 10 );
     failures += check_power( world, "repeater powered through dust", glm::ivec3( 6, 11, 4 ), 15 );
     failures += check_power( world, "dust in front of powered repeater", glm::ivec3( 7, 11, 4 ), 14 );
     failures += check_power( world, "dust beside repeater (-z) stays dark", glm::ivec3( 6, 11, 3 ), 0 );
@@ -568,63 +554,65 @@ int test_repeaters( ) {
     failures += check_power( world, "dust behind front-fed repeater stays dark", glm::ivec3( 9, 11, 4 ), 0 );
 
     // --- delay timing --------------------------------------------------------
-    // One repeater per delay: the gap between the tick the input first reads
-    // on and the tick the output reaches 15 is the delay in ticks.
-    long input_on[ 5 ] = { 0 };
-    long power_on[ 5 ] = { 0 };
+    // One repeater per delay: the gap between the game tick the input first
+    // reads on and the game tick the output reaches 15 is 2 * delay gt.
+    long input_on[ 5 ] = { -1, -1, -1, -1, -1 };
+    long power_on[ 5 ] = { -1, -1, -1, -1, -1 };
     for ( int d = 1; d <= 4; d++ ) {
         place( glm::ivec3( 19, 11, 8 + d ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
         place( glm::ivec3( 20, 11, 8 + d ), repeater_with_delay( rep_x, d ) );
     }
-    for ( int i = 0; i < 4 * REDSTONE_TICK_TICKS + 20; i++ ) {
+    for ( int i = 0; i < 100; i++ ) {
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
+        const long now = redstone_tick_now( gs );
         for ( int d = 1; d <= 4; d++ ) {
             const glm::ivec3 p( 20, 11, 8 + d );
             const BlockState s = world.get_loaded_block( p );
-            if ( input_on[ d ] == 0 && repeater_input_powered( world, p, s ) ) {
-                input_on[ d ] = gs.tick_number;
+            if ( input_on[ d ] < 0 && repeater_input_powered( world, p, s ) ) {
+                input_on[ d ] = now;
             }
-            if ( power_on[ d ] == 0 && s.current_redstone_power == 15 ) {
-                power_on[ d ] = gs.tick_number;
+            if ( power_on[ d ] < 0 && s.current_redstone_power == 15 ) {
+                power_on[ d ] = now;
             }
         }
     }
     for ( int d = 1; d <= 4; d++ ) {
-        const long gap = ( input_on[ d ] && power_on[ d ] ) ? power_on[ d ] - input_on[ d ] : -1;
-        check_bool( d == 1   ? "repeater delay 1: on within [14,16] ticks" :
-                    d == 2   ? "repeater delay 2: on within [28,30] ticks" :
-                    d == 3   ? "repeater delay 3: on within [42,44] ticks" :
-                               "repeater delay 4: on within [56,58] ticks",
-                    gap >= d * REDSTONE_TICK_TICKS && gap <= d * REDSTONE_TICK_TICKS + 2 );
+        const long gap = ( input_on[ d ] >= 0 && power_on[ d ] >= 0 ) ? power_on[ d ] - input_on[ d ] : -1;
+        check_bool( d == 1   ? "repeater delay 1: on within [2,3] gt" :
+                    d == 2   ? "repeater delay 2: on within [4,5] gt" :
+                    d == 3   ? "repeater delay 3: on within [6,7] gt" :
+                               "repeater delay 4: on within [8,9] gt",
+                    gap >= 2 * d && gap <= 2 * d + 1 );
     }
 
     // --- pulse extension -----------------------------------------------------
-    // A 1-tick input pulse on a delay-4 repeater still produces a full-delay
+    // A 1-gt input pulse on a delay-4 repeater still produces a full-delay
     // output pulse (the event re-arms when the input is already gone).
     const glm::ivec3 pulse_rep( 24, 11, 16 );
     place( glm::ivec3( 23, 11, 16 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
     place( pulse_rep, repeater_with_delay( rep_x, 4 ) );
-    run( 8 ); // input on and the tick scheduled, but the delay hasn't elapsed
+    test_run_game_ticks( gs, 8 ); // input on and the tick scheduled, but the delay hasn't elapsed
     place( glm::ivec3( 23, 11, 16 ), BLOCK_STATE_AIR );
     long pulse_on = -1;
     long pulse_off = -1;
-    for ( int i = 0; i < 8 * REDSTONE_TICK_TICKS + 40; i++ ) {
+    for ( int i = 0; i < 200; i++ ) {
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
+        const long now = redstone_tick_now( gs );
         const int p = world.get_loaded_block( pulse_rep ).current_redstone_power;
         if ( pulse_on < 0 && p == 15 ) {
-            pulse_on = gs.tick_number;
+            pulse_on = now;
         }
         if ( pulse_on >= 0 && p == 0 ) {
-            pulse_off = gs.tick_number;
+            pulse_off = now;
             break;
         }
     }
     check_bool( "pulse: delay-4 repeater still turns on", pulse_on >= 0 );
     check_bool( "pulse: stays on about the full delay",
-                pulse_on >= 0 && pulse_off > pulse_on && pulse_off - pulse_on >= 4 * REDSTONE_TICK_TICKS - 4 &&
-                    pulse_off - pulse_on <= 4 * REDSTONE_TICK_TICKS + 10 );
+                pulse_on >= 0 && pulse_off > pulse_on && pulse_off - pulse_on >= 4 * REDSTONE_REPEATER_STEP_GT - 1 &&
+                    pulse_off - pulse_on <= 4 * REDSTONE_REPEATER_STEP_GT + 2 );
     check_bool( "pulse: no repeater tick left pending", gs.pending_repeater_ticks.empty( ) );
 
     // --- hard power out the front ---------------------------------------------
@@ -653,7 +641,7 @@ int test_repeaters( ) {
     place( glm::ivec3( 19, 11, 28 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
     place( glm::ivec3( 20, 11, 29 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
 
-    run( 30 );
+    run( 5 );
     failures += check_power( world, "repeater hard-powers the front block", glm::ivec3( 5, 11, 20 ), 15 );
     failures += check_power( world, "dust past hard-powered block", glm::ivec3( 6, 11, 20 ), 14 );
     failures += check_power( world, "torch on powered stone turns off", glm::ivec3( 5, 12, 20 ), 0 );
@@ -663,7 +651,7 @@ int test_repeaters( ) {
     check_bool( "dust behind repeater is a LINE", world.get_loaded_block( glm::ivec3( 19, 11, 28 ) ).display_id == REDSTONE_WIRE_LINE_1 );
     check_bool( "dust beside repeater stays a CROSS", world.get_loaded_block( glm::ivec3( 20, 11, 29 ) ).display_id == REDSTONE_WIRE_CROSS );
 
-    run( 80 );
+    run( 10 );
     failures += check_power( world, "chain: rep2 on after both delays", glm::ivec3( 16, 11, 24 ), 15 );
 
     // --- support -------------------------------------------------------------
@@ -675,5 +663,214 @@ int test_repeaters( ) {
     failures += check_id( world, "repeater pops without its support", glm::ivec3( 26, 11, 28 ), AIR );
 
     check_bool( "no repeater ticks left pending", gs.pending_repeater_ticks.empty( ) );
+    return failures;
+}
+
+// A redstone-queue probe for the batch-semantics check: counts its fires
+// and, when `chain` is set, queues another copy of itself at delay 0 —
+// which must wait for the next drain, not run in the same batch.
+static int clock_probe_hits = 0;
+class ClockProbeEvent : public BlockUpdateEvent {
+  public:
+    ClockProbeEvent( long tick_number, bool chain ) : BlockUpdateEvent( tick_number ), chain( chain ) {
+    }
+    void performAction( RepGameState &state ) override {
+        clock_probe_hits++;
+        if ( this->chain ) {
+            schedule_redstone_update<ClockProbeEvent>( state, 0, false );
+        }
+    }
+
+  private:
+    bool chain;
+};
+
+// The redstone clock itself: the tick_number -> game-tick mapping, delay-0
+// and delay-n firing semantics, dust staying fast, and the MC delays of
+// torches, pistons, buttons and pressure plates.
+int test_redstone_clock( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_redstone
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    for ( int x = 0; x < 32; x++ ) {
+        for ( int z = 0; z < 32; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
+    };
+
+    // --- clock mapping --------------------------------------------------------
+    {
+        bool monotonic = true, gaps78 = true;
+        long prev = -1, last_change = 0;
+        for ( long t = 0; t <= 200; t++ ) {
+            gs.tick_number = t;
+            const long now = redstone_tick_now( gs );
+            if ( now < prev ) {
+                monotonic = false;
+            }
+            if ( now != prev ) {
+                if ( prev >= 0 && t - last_change != 7 && t - last_change != 8 ) {
+                    gaps78 = false;
+                }
+                last_change = t;
+            }
+            prev = now;
+        }
+        gs.tick_number = 0;
+        check_bool( "clock: 0 at tick 0", redstone_tick_now( gs ) == 0 );
+        gs.tick_number = 144;
+        check_bool( "clock: 20 at tick 144", redstone_tick_now( gs ) == 20 );
+        check_bool( "clock: monotonic, advances every 7-8 ticks", monotonic && gaps78 );
+        gs.tick_number = 0;
+    }
+
+    // --- delay 0 --------------------------------------------------------------
+    // Fires in the next drain — no redstone-tick boundary needed — and a
+    // delay-0 event it queues does not run in the same drain.
+    clock_probe_hits = 0;
+    schedule_redstone_update<ClockProbeEvent>( gs, 0, true );
+    gs.tick_number++;
+    repgame_drain_block_updates( gs );
+    check_bool( "clock: delay-0 event fired on the next drain", clock_probe_hits == 1 );
+    gs.tick_number++;
+    repgame_drain_block_updates( gs );
+    check_bool( "clock: delay-0 child waited for the next drain", clock_probe_hits == 2 );
+
+    // --- delay n --------------------------------------------------------------
+    // A STONE write at delay 3 stays unapplied while the clock is behind and
+    // lands on the first drain reaching start + 3.
+    const glm::ivec3 p3( 5, 11, 5 );
+    const long start = redstone_tick_now( gs );
+    schedule_redstone_update<PlayerBlockPlacedEvent>( gs, 3, p3, BlockState{ STONE, 0, 0, STONE, 0 }, false );
+    bool early = false;
+    while ( redstone_tick_now( gs ) < start + 3 ) {
+        early |= world.get_loaded_block( p3 ).id == STONE;
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+    }
+    check_bool( "clock: delay-3 write waits for the clock", !early );
+    if ( world.get_loaded_block( p3 ).id != STONE ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+    }
+    check_bool( "clock: delay-3 write applied at the boundary", world.get_loaded_block( p3 ).id == STONE );
+
+    // --- dust stays fast ------------------------------------------------------
+    // A 10-dust line from a redstone block: ~1 hop per drain, so the far end
+    // is powered well inside 4 redstone ticks. The source goes down last so
+    // its neighbor wake recomputes the already-placed wire; the line avoids
+    // x=0, a chunk border where test-world writes are dropped.
+    for ( int x = 11; x <= 19; x++ ) {
+        place( glm::ivec3( x, 11, 20 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+    }
+    place( glm::ivec3( 10, 11, 20 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_redstone_ticks( gs, 4 );
+    check_bool( "clock: 10-dust line lit within 4 gt", world.get_loaded_block( glm::ivec3( 19, 11, 20 ) ).current_redstone_power > 0 );
+
+    // --- torch: 2 gt ----------------------------------------------------------
+    // Powering the stone under a torch turns it off 2 gt later. The rig sits
+    // on the y=11 layer so the power source lands on an empty cell.
+    place( glm::ivec3( 14, 11, 8 ), stone );
+    place( glm::ivec3( 14, 12, 8 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH, 0 } );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_power( world, "clock: torch on before the edge", glm::ivec3( 14, 12, 8 ), 15 );
+    place( glm::ivec3( 15, 11, 8 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    long attach_on = -1, torch_off = -1;
+    for ( int i = 0; i < 80; i++ ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+        const long now = redstone_tick_now( gs );
+        if ( attach_on < 0 && world.get_loaded_block( glm::ivec3( 14, 11, 8 ) ).current_redstone_power > 0 ) {
+            attach_on = now;
+        }
+        if ( torch_off < 0 && world.get_loaded_block( glm::ivec3( 14, 12, 8 ) ).current_redstone_power == 0 ) {
+            torch_off = now;
+        }
+    }
+    check_bool( "clock: torch reads 15 until 2 gt", attach_on >= 0 && torch_off - attach_on >= 2 );
+    check_bool( "clock: torch off by 3 gt", attach_on >= 0 && torch_off - attach_on <= 3 );
+
+    // --- piston: 1 gt ----------------------------------------------------------
+    place( glm::ivec3( 18, 11, 12 ), { PISTON, 0, 0, PISTON, 0 } ); // faces +z
+    test_run_redstone_ticks( gs, 2 );
+    place( glm::ivec3( 18, 11, 11 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    long edge = -1, head_on = -1;
+    for ( int i = 0; i < 40; i++ ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+        const long now = redstone_tick_now( gs );
+        if ( edge < 0 && world.get_loaded_block( glm::ivec3( 18, 11, 12 ) ).current_redstone_power > 0 ) {
+            edge = now;
+        }
+        if ( head_on < 0 && world.get_loaded_block( glm::ivec3( 18, 11, 13 ) ).id == PISTON_ARM_COLLISION ) {
+            head_on = now;
+        }
+    }
+    check_bool( "clock: piston extends 1 gt after its edge", edge >= 0 && head_on - edge >= 1 );
+    check_bool( "clock: piston extended", head_on >= 0 && head_on - edge <= 3 );
+
+    // --- buttons: 20/30 gt -----------------------------------------------------
+    // rot-0 buttons mount on the -z side, so each gets a stone behind it.
+    auto button_release_gt = [ & ]( const glm::ivec3 &pos, const BlockState &button ) {
+        place( pos + glm::ivec3( 0, 0, -1 ), stone );
+        place( pos, button );
+        test_run_redstone_ticks( gs, 2 );
+        repgame_press_button( gs, pos );
+        test_run_game_ticks( gs, 2 ); // the instant press write applies
+        const long t0 = redstone_tick_now( gs );
+        long rel = -1;
+        for ( int i = 0; i < 300; i++ ) {
+            gs.tick_number++;
+            repgame_drain_block_updates( gs );
+            if ( world.get_loaded_block( pos ).current_redstone_power == 0 ) {
+                rel = redstone_tick_now( gs ) - t0;
+                break;
+            }
+        }
+        return rel;
+    };
+    const long stone_rel = button_release_gt( glm::ivec3( 22, 11, 16 ), { STONE_BUTTON, 0, 0, STONE_BUTTON, 0 } );
+    check_bool( "clock: stone button released in [19,21] gt", stone_rel >= 19 && stone_rel <= 21 );
+    const long wood_rel = button_release_gt( glm::ivec3( 24, 11, 16 ), { WOODEN_BUTTON, 0, 0, WOODEN_BUTTON, 0 } );
+    check_bool( "clock: wood button released in [29,31] gt", wood_rel >= 29 && wood_rel <= 31 );
+
+    // --- pressure plate: 20 gt recheck -----------------------------------------
+    // A pressed plate with nobody on it releases at its next recheck.
+    const glm::ivec3 plate( 26, 11, 24 );
+    place( plate, { STONE_PRESSURE_PLATE, 0, 0, STONE_PRESSURE_PLATE, 0 } );
+    test_run_redstone_ticks( gs, 2 );
+    gs.camera.pos = glm::dvec3( 26.5, 11.0 + PLAYER_EYE_HEIGHT, 24.5 );
+    gs.watched_pressure_plates.insert( plate );
+    schedule_redstone_update<PressurePlateEvent>( gs, 0, plate );
+    test_run_redstone_ticks( gs, 2 );
+    check_bool( "clock: plate pressed while stood on", world.get_loaded_block( plate ).current_redstone_power == 15 );
+    gs.camera.pos.y += 10.0;
+    const long t0 = redstone_tick_now( gs );
+    long plate_rel = -1;
+    for ( int i = 0; i < 300; i++ ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+        if ( world.get_loaded_block( plate ).current_redstone_power == 0 ) {
+            plate_rel = redstone_tick_now( gs ) - t0;
+            break;
+        }
+    }
+    check_bool( "clock: plate releases within 21 gt", plate_rel >= 1 && plate_rel <= 21 );
+
     return failures;
 }

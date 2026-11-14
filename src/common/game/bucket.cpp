@@ -9,6 +9,7 @@
 #include "common/fluid.hpp"
 #include "common/world.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 // Survival item swap: consume one of the held stack, then put `result` back
 // preferring the selected hotbar slot (the just-emptied slot takes it,
@@ -50,7 +51,7 @@ bool repgame_use_bucket( RepGameState &state ) {
         }
         // Removing the source queues neighbour updates that recede the flow
         // naturally — no explicit drain needed.
-        state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, sel.pos_fluid, BLOCK_STATE_AIR, false );
+        schedule_block_update<PlayerBlockPlacedEvent>( state, 0, sel.pos_fluid, BLOCK_STATE_AIR, false );
         if ( state.game_mode == GameMode_Survival ) {
             bucket_swap_item( state, fluid == LAVA ? LAVA_BUCKET : WATER_BUCKET );
         }
@@ -90,7 +91,7 @@ bool repgame_use_bucket( RepGameState &state ) {
     }
     // Water written onto a waterloggable cell waterlogs it via
     // block_state_normalize in Chunk::set_block.
-    state.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( state.tick_number, target, write, false );
+    schedule_block_update<PlayerBlockPlacedEvent>( state, 0, target, write, false );
     if ( state.game_mode == GameMode_Survival ) {
         bucket_swap_item( state, BUCKET );
     }

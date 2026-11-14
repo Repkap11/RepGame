@@ -832,12 +832,12 @@ int test_cake( ) {
         world.set_loaded_block( pos2, { CAKE, 0, 0, CAKE, 0 } );
         gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BlockState{ CAKE, 1, 0, CAKE, 0 }, true );
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
         check_bool( "eat: bite write lands the rotation", world.get_loaded_block( pos2 ).rotation == 1 );
         world.set_loaded_block( pos2, { CAKE, CAKE_MAX_BITES, 0, CAKE, 0 } );
         gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BLOCK_STATE_AIR, false, BreakDrops::None, BreakDebris::None );
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
         failures += check_id( world, "eat: last slice removes the block", pos2, AIR );
         // The last slice is eaten, not mined — no break debris. A plain
         // removal still spawns it, so the flag isn't a global no-op.
@@ -847,7 +847,7 @@ int test_cake( ) {
         world.set_loaded_block( pos3, { CAKE, 0, 0, CAKE, 0 } );
         gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos3, BLOCK_STATE_AIR, false );
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
         check_bool( "break: normal removal still spawns debris", world.blockDebris.count( ) > 0 );
     }
     return failures;
@@ -991,7 +991,7 @@ int test_waterlog( ) {
     place( glm::ivec3( 12, 10, 10 ), { STONE, 0, 0, STONE, 0 } ); // a change beside the water
     for ( int i = 0; i < 1500; i++ ) {
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
     }
     // With the loop, ~14 neighbor updates per expansion re-arm every 20
     // ticks and the queue explodes past the 100k-event guard (exit). The
@@ -1030,7 +1030,7 @@ int test_waterlog( ) {
     place( glm::ivec3( 30, 11, 30 ), { WATER, 0, 0, WATER, 0 } ); // wakes the source
     for ( int i = 0; i < 1500; i++ ) {
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
     }
     failures += check_id( world, "water falls into the open cell", glm::ivec3( 31, 10, 30 ), WATER );
     failures += check_id( world, "sealed box interior stays air", glm::ivec3( 33, 11, 30 ), AIR );
@@ -1066,7 +1066,7 @@ int test_tnt( ) {
     auto tick = [ & ]( ) {
         gs.tick_number++;
         world.bodies.tick( gs );
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
     };
 
     const BlockState stone = { STONE, 0, 0, STONE, 0 };
@@ -1201,7 +1201,7 @@ int test_falling_blocks( ) {
     auto tick = [ & ]( ) {
         gs.tick_number++;
         world.bodies.tick( gs );
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
     };
     auto run = [ & ]( const int ticks ) {
         for ( int i = 0; i < ticks; i++ ) {
@@ -1422,7 +1422,7 @@ int test_leaf_decay( ) {
     };
     auto tick = [ & ]( ) {
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
     };
     auto run = [ & ]( const int ticks ) {
         for ( int i = 0; i < ticks; i++ ) {
@@ -1511,7 +1511,7 @@ int test_support_drops( ) {
     };
     auto tick = [ & ]( ) {
         gs.tick_number++;
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        repgame_drain_block_updates( gs );
     };
     auto run = [ & ]( const int ticks ) {
         for ( int i = 0; i < ticks; i++ ) {
@@ -1823,7 +1823,7 @@ int test_leaf_placement( ) {
     const glm::ivec3 pos2( 12, 11, 10 );
     gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos2, BlockState{ OAK_LEAVES, 0, 0, OAK_LEAVES, 0 }, false );
     gs.tick_number++;
-    gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+    repgame_drain_block_updates( gs );
     failures += check_id( world, "place: cell holds persistent leaves", pos, OAK_LEAVES_PERSISTENT );
     failures += check_id( world, "place: natural id lands as-is", pos2, OAK_LEAVES );
     return failures;

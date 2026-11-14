@@ -2,6 +2,7 @@
 #include "common/RepGame.hpp"
 #include "common/repeater.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 RepeaterEvent::RepeaterEvent( long tick_number, const glm::ivec3 &pos ) : BlockUpdateEvent( tick_number ), block_pos( pos ) {
     this->name = "RepeaterEvent";
@@ -20,10 +21,10 @@ void repeater_schedule_update( RepGameState &state, const glm::ivec3 &pos ) {
     if ( !state.pending_repeater_ticks.insert( pos ).second ) {
         return;
     }
-    state.blockUpdateQueue.addBlockUpdate<RepeaterEvent>( state.tick_number + repeater_delay_ticks( cell ), pos );
+    schedule_redstone_update<RepeaterEvent>( state, repeater_delay_gt( cell ), pos );
 }
 
-void RepeaterEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void RepeaterEvent::performAction( RepGameState &repGameState ) {
     repGameState.pending_repeater_ticks.erase( this->block_pos );
     World &world = repGameState.world;
     const BlockState cell = world.get_loaded_block( this->block_pos );
@@ -35,16 +36,16 @@ void RepeaterEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameSt
     if ( powered && !input ) {
         BlockState off_state = cell;
         off_state.current_redstone_power = 0;
-        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, off_state, true );
+        schedule_redstone_update<PlayerBlockPlacedEvent>( repGameState, 0, this->block_pos, off_state, true );
     } else if ( !powered ) {
         // MC DiodeBlock.tick: an unpowered diode turns on even when the
         // input already went away, then re-arms for another delay — a
         // 1-tick input pulse still produces a full-delay output pulse.
         BlockState on_state = cell;
         on_state.current_redstone_power = REDSTONE_SOURCE_POWER;
-        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( this->tick_number, this->block_pos, on_state, true );
+        schedule_redstone_update<PlayerBlockPlacedEvent>( repGameState, 0, this->block_pos, on_state, true );
         if ( !input && repGameState.pending_repeater_ticks.insert( this->block_pos ).second ) {
-            blockUpdateQueue.addBlockUpdate<RepeaterEvent>( this->tick_number + repeater_delay_ticks( cell ), this->block_pos );
+            schedule_redstone_update<RepeaterEvent>( repGameState, repeater_delay_gt( cell ), this->block_pos );
         }
     }
 }

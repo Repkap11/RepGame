@@ -10,6 +10,7 @@
 #include "common/block_update_events/LeafDecayEvent.hpp"
 #include "common/block_update_events/FluidUpdateEvent.hpp"
 #include "common/block_update_events/RepeaterEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 #include "common/rail.hpp"
 #include "common/repeater.hpp"
 
@@ -48,7 +49,6 @@ bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_dust ) {
     }
 }
 
-#define REDSTONE_DELAY 1
 #define REDSTONE_TORCH_POWER 15
 
 // Returns the strongest power the dust at `pos` can read from adjacent non-dust
@@ -518,9 +518,10 @@ static bool dust_connects_side( const Block *neighbor_def, const BlockState &nei
     return true;
 }
 
-void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, //
-                     const glm::ivec3 &block_pos,                                        //
+void perform_checks( RepGameState &repGameState, //
+                     const glm::ivec3 &block_pos,
                      const glm::ivec3 &affecting_block_pos ) {
+    World &world = repGameState.world;
 
     // The updating block  was next to the updating one, and might need to change
     const BlockState updateing_block_state = world.get_loaded_block( block_pos );
@@ -700,12 +701,15 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
 
     if ( !BlockStates_equal( new_block_state, affecting_block_state ) ) {
         // pr_debug( "Queueing event1 with old:%d new:%d", affecting_block_state.current_redstone_power, new_block_state.current_redstone_power );
-        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( tick_number + REDSTONE_DELAY, affecting_block_pos, new_block_state, true );
+        // Redstone clock: dust/solids/mechanisms apply on the next game
+        // tick's drain; a torch power change waits MC's 2 gt.
+        const long delay_gt = affecting_block_state.id == REDSTONE_TORCH ? REDSTONE_TORCH_DELAY_GT : 0;
+        schedule_redstone_update<PlayerBlockPlacedEvent>( repGameState, delay_gt, affecting_block_pos, new_block_state, true );
     }
 
     if ( !block_can_survive_at( world, block_pos, updateing_block_state ) ) {
         // Support-loss breaks drop the broken block's items in survival.
-        blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( tick_number, block_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival );
+        schedule_block_update<PlayerBlockPlacedEvent>( repGameState, 0, block_pos, BLOCK_STATE_AIR, false, BreakDrops::Survival );
     }
 
     // Gravity: a falls_with_gravity block over a loaded non-colliding cell
@@ -714,7 +718,7 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
     if ( updateing_block->falls_with_gravity ) {
         const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
         if ( below.id != LAST_BLOCK_ID && !block_definition_get_definition( below.id )->collides_with_player ) {
-            blockUpdateQueue.addBlockUpdate<FallingBlockEvent>( tick_number + 2, block_pos );
+            schedule_block_update<FallingBlockEvent>( repGameState, 2, block_pos );
         }
     }
 }
@@ -723,13 +727,13 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
 // randomness callers can seed, and this stream must stay uncorrelated.
 static uint32_t leaf_decay_rng_state = 0x2545F491u;
 
-void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void BlockNextToChangeEvent::performAction( RepGameState &repGameState ) {
 
-    perform_checks( blockUpdateQueue, repGameState.world, this->tick_number, //
-                    this->block_pos,                                         //
+    perform_checks( repGameState,              //
+                    this->block_pos,           //
                     this->affecting_block_pos );
-    perform_checks( blockUpdateQueue, repGameState.world, this->tick_number, //
-                    this->affecting_block_pos,                               //
+    perform_checks( repGameState,              //
+                    this->affecting_block_pos, //
                     this->block_pos );
 
     // Fluids re-evaluate on any face-neighbor change (a write, a break, a
@@ -762,7 +766,7 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
             leaf_decay_rng_state ^= leaf_decay_rng_state << 5;
             const long delay = LEAF_DECAY_MIN_TICKS +
                                (long)( leaf_decay_rng_state % ( LEAF_DECAY_MAX_TICKS - LEAF_DECAY_MIN_TICKS ) );
-            blockUpdateQueue.addBlockUpdate<LeafDecayEvent>( this->tick_number + delay, pos );
+            schedule_block_update<LeafDecayEvent>( repGameState, delay, pos );
         }
     }
 }

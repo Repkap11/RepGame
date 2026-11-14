@@ -787,7 +787,7 @@ int test_net_bodies( ) {
         rec.fuse_ticks = 10;
         bodies.net_apply_transfer( gs, rec );
         check_bool( "body transfer: spawned owned", bodies.debug_bodies( ).size( ) == 1 && !bodies.debug_bodies( )[ 0 ].net.mirror );
-        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number + 11 );
+        test_run_game_ticks( gs, 12 );
         check_bool( "body transfer: reschedule explodes + consumes body", bodies.debug_bodies( ).empty( ) );
     }
 

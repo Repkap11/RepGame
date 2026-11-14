@@ -13,6 +13,7 @@
 #include "common/structure_gen.hpp"
 #include "common/chunk.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 
 TntExplodeEvent::TntExplodeEvent( long tick_number, const glm::ivec3 &pos, const uint32_t body_id, const bool inverse ) : BlockUpdateEvent( tick_number ), block_pos( pos ), body_id( body_id ), inverse( inverse ) {
     this->name = inverse ? "TntExplodeEvent(inverse)" : "TntExplodeEvent";
@@ -31,7 +32,7 @@ static float frand( ) {
     return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
 }
 
-void tnt_launch( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, const long fuse_ticks, const bool inverse ) {
+void tnt_launch( RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, const long fuse_ticks, const bool inverse ) {
     World &world = repGameState.world;
     const BlockID primed_id = inverse ? INVERSE_TNT : TNT;
     // Callers pass blocks/second; bodies integrate blocks/tick.
@@ -39,10 +40,10 @@ void tnt_launch( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
     // The fallback position covers bodies that vanish before their fuse ends
     // (creeper blasts carry id 0 and always land here).
     const glm::ivec3 explode_pos = glm::ivec3( glm::floor( center ) );
-    blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( repGameState.tick_number + fuse_ticks, explode_pos, body_id, inverse );
+    schedule_block_update<TntExplodeEvent>( repGameState, fuse_ticks, explode_pos, body_id, inverse );
 }
 
-void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, const long fuse_ticks, const bool inverse ) {
+void tnt_ignite( RepGameState &repGameState, const glm::vec3 &center, const glm::vec3 &velocity, const long fuse_ticks, const bool inverse ) {
     World &world = repGameState.world;
     // The block leaves the world immediately — the primed entity replaces it.
     // No break debris: igniting isn't breaking. If the cell is no longer TNT
@@ -55,15 +56,15 @@ void tnt_ignite( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState,
     }
     world.set_loaded_block( cell, BLOCK_STATE_AIR );
     repGameState.multiplayer.set_block( cell, BLOCK_STATE_AIR, NET_BU_FLAG_NO_DEBRIS );
-    queue_neighbor_block_updates( blockUpdateQueue, world, repGameState.tick_number, cell );
+    queue_neighbor_block_updates( repGameState, cell );
     audio_play_sfx( "fuse" );
-    tnt_launch( blockUpdateQueue, repGameState, center, velocity, fuse_ticks, inverse );
+    tnt_launch( repGameState, center, velocity, fuse_ticks, inverse );
 }
 
 // Shared chain launch for both blast flavors: each TNT block the blast
 // collected becomes a primed body flung away from the center with an
 // upward kick and a short fuse, keeping its own normal/inverse flavor.
-static void launch_chained_tnt( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState, const glm::dvec3 &center, const std::vector<glm::ivec3> &chained_tnt, const std::vector<bool> &chained_inverse ) {
+static void launch_chained_tnt( RepGameState &repGameState, const glm::dvec3 &center, const std::vector<glm::ivec3> &chained_tnt, const std::vector<bool> &chained_inverse ) {
     for ( size_t i = 0; i < chained_tnt.size( ); i++ ) {
         const glm::vec3 tnt_center = glm::vec3( chained_tnt[ i ] ) + 0.5f;
         glm::vec3 away = tnt_center - glm::vec3( center );
@@ -77,11 +78,11 @@ static void launch_chained_tnt( BlockUpdateQueue &blockUpdateQueue, RepGameState
         }
         velocity.y = TNT_CHAIN_VEL_UP_MIN + frand( ) * TNT_CHAIN_VEL_UP_SPREAD;
         const long fuse = TNT_CHAIN_FUSE_MIN_TICKS + rand( ) % TNT_CHAIN_FUSE_SPREAD_TICKS;
-        tnt_launch( blockUpdateQueue, repGameState, tnt_center, velocity, fuse, chained_inverse[ i ] );
+        tnt_launch( repGameState, tnt_center, velocity, fuse, chained_inverse[ i ] );
     }
 }
 
-void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void TntExplodeEvent::performAction( RepGameState &repGameState ) {
     World &world = repGameState.world;
     audio_play_sfx( "explode" );
     // The primed body's fuse is up exactly when the blast runs — take it here
@@ -181,7 +182,7 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                     }
                     world.set_loaded_block( pos, gen_state );
                     repGameState.multiplayer.set_block( pos, gen_state, NET_BU_FLAG_NO_DEBRIS );
-                    queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, pos );
+                    queue_neighbor_block_updates( repGameState, pos );
                 }
             }
         }
@@ -191,7 +192,7 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
             delete gc.chunk;
         }
 
-        launch_chained_tnt( blockUpdateQueue, repGameState, center, chained_tnt, chained_inverse );
+        launch_chained_tnt( repGameState, center, chained_tnt, chained_inverse );
         return;
     }
 
@@ -216,7 +217,7 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                 if ( block_definition_get_definition( state.id )->is_tnt ) {
                     world.set_loaded_block( pos, BLOCK_STATE_AIR );
                     repGameState.multiplayer.set_block( pos, BLOCK_STATE_AIR, NET_BU_FLAG_NO_DEBRIS );
-                    queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, pos );
+                    queue_neighbor_block_updates( repGameState, pos );
                     chained_tnt.push_back( pos );
                     chained_inverse.push_back( block_definition_get_definition( state.id )->is_inverse_tnt );
                 }
@@ -246,7 +247,7 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
                 world.set_loaded_block( pos, BLOCK_STATE_AIR );
                 repGameState.multiplayer.set_block( pos, BLOCK_STATE_AIR );
                 world.spawn_block_debris( pos, state, AIR, DEBRIS_PER_EXPLODED_BLOCK );
-                queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, pos );
+                queue_neighbor_block_updates( repGameState, pos );
             }
         }
     }
@@ -260,5 +261,5 @@ void TntExplodeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGame
     // Pass 3: launch the collected TNT. The world now holds only what
     // survives the blast, so the new bodies fly through the final terrain —
     // they can't collide with blocks this explosion removed.
-    launch_chained_tnt( blockUpdateQueue, repGameState, center, chained_tnt, chained_inverse );
+    launch_chained_tnt( repGameState, center, chained_tnt, chained_inverse );
 }

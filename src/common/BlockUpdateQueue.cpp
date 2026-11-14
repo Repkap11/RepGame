@@ -1,5 +1,8 @@
+#include <vector>
+
 #include "common/RepGame.hpp"
 #include "common/BlockUpdateQueue.hpp"
+#include "common/block_update_events/schedule.hpp"
 #include "common/utils/seed_fifo.hpp"
 
 BlockUpdateQueue::BlockUpdateQueue( ) : current_tick( 0 ) {
@@ -47,7 +50,7 @@ void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, const
             break;
         }
         this->pending_events.pop( );
-        event->performAction( *this, repGameState );
+        event->performAction( repGameState );
         num_events++;
         if ( num_events > 100000 ) {
             pr_debug( "Error too many events!!!" );
@@ -56,6 +59,33 @@ void BlockUpdateQueue::processAllBlockUpdates( RepGameState &repGameState, const
         event->~BlockUpdateEvent( );
         this->slot_free( event );
     }
+}
+
+void BlockUpdateQueue::processUpTo( RepGameState &repGameState, const long now ) {
+    // Batch semantics: pop every due event first, then run the batch.
+    // Events queued while it runs — even ones due now — wait for the
+    // next drain, so a delay of 0 can't cascade inside one game tick.
+    std::vector<BlockUpdateEvent *> batch;
+    while ( !this->pending_events.empty( ) && this->pending_events.top( )->tick_number <= now ) {
+        batch.push_back( this->pending_events.top( ) );
+        this->pending_events.pop( );
+    }
+    int num_events = 0;
+    for ( BlockUpdateEvent *event : batch ) {
+        event->performAction( repGameState );
+        num_events++;
+        if ( num_events > 100000 ) {
+            pr_debug( "Error too many events!!!" );
+            repgame_fatal( );
+        }
+        event->~BlockUpdateEvent( );
+        this->slot_free( event );
+    }
+}
+
+void repgame_drain_block_updates( RepGameState &repGameState ) {
+    repGameState.blockUpdateQueue.processAllBlockUpdates( repGameState, repGameState.tick_number );
+    repGameState.redstoneQueue.processUpTo( repGameState, redstone_tick_now( repGameState ) );
 }
 
 bool BlockUpdateOrderCompare::operator( )( const BlockUpdateEvent *a, const BlockUpdateEvent *b ) const {

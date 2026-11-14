@@ -3,7 +3,7 @@
 #include "common/BlockUpdateQueue.hpp"
 
 // Queues a RepeaterEvent for `pos` after the cell's own delay —
-// delay * REDSTONE_TICK_TICKS. No-ops when the cell isn't a repeater,
+// 2 * delay game ticks. No-ops when the cell isn't a repeater,
 // when the input already matches the output (nothing to change), or when
 // an update is already pending (state.pending_repeater_ticks dedupes).
 void repeater_schedule_update( RepGameState &state, const glm::ivec3 &pos );
@@ -19,7 +19,7 @@ void repeater_schedule_update( RepGameState &state, const glm::ivec3 &pos );
 class RepeaterEvent : public BlockUpdateEvent {
   public:
     RepeaterEvent( long tick_number, const glm::ivec3 &pos );
-    void performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) override;
+    void performAction( RepGameState &repGameState ) override;
 
   private:
     glm::ivec3 block_pos;

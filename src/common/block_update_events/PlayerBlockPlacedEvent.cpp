@@ -4,6 +4,7 @@
 #include "common/RepGame.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
+#include "common/block_update_events/schedule.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
@@ -19,7 +20,8 @@ PlayerBlockPlacedEvent::PlayerBlockPlacedEvent( long tick_number, const glm::ive
     this->name = "PlayerBlockPlacedEvent";
 }
 
-void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, const glm::ivec3 &pos ) {
+void queue_neighbor_block_updates( RepGameState &state, const glm::ivec3 &pos ) {
+    World &world = state.world;
     static const glm::ivec3 neighbor_offsets[ 6 ] = {
         glm::ivec3( 0, 1, 0 ),  //
         glm::ivec3( 0, -1, 0 ), //
@@ -29,7 +31,7 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
         glm::ivec3( 0, 0, -1 ), //
     };
     for ( const glm::ivec3 &offset : neighbor_offsets ) {
-        blockUpdateQueue.addBlockUpdate<BlockNextToChangeEvent>( tick_number, pos, offset );
+        schedule_block_update<BlockNextToChangeEvent>( state, 0, pos, offset );
     }
 
     // Also notify the dust cells diagonally away: dust at pos+horiz+up or
@@ -53,10 +55,10 @@ void queue_neighbor_block_updates( BlockUpdateQueue &blockUpdateQueue, World &wo
         }
         const Block *side = block_definition_get_definition( side_state.id );
         if ( corner_above_open ) {
-            blockUpdateQueue.addBlockUpdate<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, 1, 0 ) );
+            schedule_block_update<BlockNextToChangeEvent>( state, 0, pos, horiz + glm::ivec3( 0, 1, 0 ) );
         }
         if ( !side->is_solid ) {
-            blockUpdateQueue.addBlockUpdate<BlockNextToChangeEvent>( tick_number, pos, horiz + glm::ivec3( 0, -1, 0 ) );
+            schedule_block_update<BlockNextToChangeEvent>( state, 0, pos, horiz + glm::ivec3( 0, -1, 0 ) );
         }
     }
 }
@@ -78,7 +80,7 @@ static void repgame_convert_block_impl( RepGameState &state, const glm::ivec3 &p
     // No debris, on the wire or locally: a conversion transforms the cell in
     // place — grazing, tilling or trampling reads as a swap, not a break.
     state.multiplayer.set_block( pos, next, NET_BU_FLAG_NO_DEBRIS );
-    queue_neighbor_block_updates( state.blockUpdateQueue, state.world, state.tick_number, pos );
+    queue_neighbor_block_updates( state, pos );
 }
 
 void repgame_convert_block( RepGameState &state, const glm::ivec3 &pos, const BlockID new_id ) {
@@ -150,7 +152,7 @@ bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockSta
     return block_can_survive_at( world, pos, blockState );
 }
 
-void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, RepGameState &repGameState ) {
+void PlayerBlockPlacedEvent::performAction( RepGameState &repGameState ) {
     BlockState current_block_state = repGameState.world.get_loaded_block( this->block_pos );
     // A door power update takes only the power: the rotation was computed
     // before the update was queued and a toggle since then would be undone
@@ -224,8 +226,8 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         world.set_loaded_block( upper_pos, upper_state );
         repGameState.multiplayer.set_block( upper_pos, upper_state );
         repGameState.world.spawn_block_debris( upper_pos, upper_current, upper_state.id );
-        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, this->block_pos );
-        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, upper_pos );
+        queue_neighbor_block_updates( repGameState, this->block_pos );
+        queue_neighbor_block_updates( repGameState, upper_pos );
         return;
     }
     // Tall plants place as a lower+upper pair, same shape as the door
@@ -249,8 +251,8 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         world.set_loaded_block( upper_pos, upper_state );
         repGameState.multiplayer.set_block( upper_pos, upper_state );
         repGameState.world.spawn_block_debris( upper_pos, upper_current, upper_state.id );
-        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, this->block_pos );
-        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, upper_pos );
+        queue_neighbor_block_updates( repGameState, this->block_pos );
+        queue_neighbor_block_updates( repGameState, upper_pos );
         return;
     }
     // Beds place as a foot+head pair, same shape as the tall-plant branch
@@ -272,8 +274,8 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         world.set_loaded_block( head_pos, head_state );
         repGameState.multiplayer.set_block( head_pos, head_state );
         repGameState.world.spawn_block_debris( head_pos, head_current, head_state.id );
-        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, this->block_pos );
-        queue_neighbor_block_updates( blockUpdateQueue, world, this->tick_number, head_pos );
+        queue_neighbor_block_updates( repGameState, this->block_pos );
+        queue_neighbor_block_updates( repGameState, head_pos );
         return;
     }
     // Don't place a block that can't survive here (e.g. dust above dust, a
@@ -323,12 +325,12 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         repGameState.world.spawn_block_debris( this->block_pos, current_block_state, this->blockState.id );
     }
 
-    queue_neighbor_block_updates( blockUpdateQueue, repGameState.world, this->tick_number, this->block_pos );
+    queue_neighbor_block_updates( repGameState, this->block_pos );
 
     // A door opens/closes on a change to the combined power of both halves —
     // MC edge semantics: rising opens, falling closes, and a hand toggle in
-    // between survives until the next edge. Queued one tick out so the new
-    // power state is visible; the event re-reads live state, so stale
+    // between survives until the next edge. Queued 1 game tick out so the
+    // new power state is visible; the event re-reads live state, so stale
     // triggers are harmless.
     if ( this->state_update && new_block->is_door && this->blockState.id == current_block_state.id ) {
         const glm::ivec3 other_pos = this->block_pos + ( new_block->is_door_upper ? glm::ivec3( 0, -1, 0 ) : glm::ivec3( 0, 1, 0 ) );
@@ -337,14 +339,14 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
         const bool powered_after = this->blockState.current_redstone_power > 0 || other_power > 0;
         if ( powered_before != powered_after ) {
             const glm::ivec3 lower_pos = new_block->is_door_upper ? other_pos : this->block_pos;
-            blockUpdateQueue.addBlockUpdate<DoorEvent>( this->tick_number + 1, lower_pos, DoorEvent::SYNC_POWER );
+            schedule_redstone_update<DoorEvent>( repGameState, DOOR_DELAY_GT, lower_pos, DoorEvent::SYNC_POWER );
         }
     }
-    // A piston extends/retracts on a power edge. Queue it one tick out so the
-    // new power state is visible to the event; the event re-reads live state,
-    // so stale triggers are harmless.
+    // A piston extends/retracts on a power edge. Queue it 1 game tick out so
+    // the new power state is visible to the event; the event re-reads live
+    // state, so stale triggers are harmless.
     if ( new_block->is_piston && ( current_block_state.current_redstone_power > 0 ) != ( this->blockState.current_redstone_power > 0 ) ) {
-        blockUpdateQueue.addBlockUpdate<PistonEvent>( this->tick_number + 1, this->block_pos );
+        schedule_redstone_update<PistonEvent>( repGameState, PISTON_DELAY_GT, this->block_pos );
     }
 
     // TNT ignites on a rising power edge: tnt_ignite removes the block,
@@ -352,6 +354,6 @@ void PlayerBlockPlacedEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     // queues the explosion for when its fuse ends.
     if ( new_block->is_tnt && current_block_state.current_redstone_power == 0 && this->blockState.current_redstone_power > 0 ) {
         const glm::vec3 hop( ( frand( ) - 0.5f ) * 0.6f, 1.5f, ( frand( ) - 0.5f ) * 0.6f );
-        tnt_ignite( blockUpdateQueue, repGameState, glm::vec3( this->block_pos ) + 0.5f, hop, TNT_FUSE_TICKS, new_block->is_inverse_tnt );
+        tnt_ignite( repGameState, glm::vec3( this->block_pos ) + 0.5f, hop, TNT_FUSE_TICKS, new_block->is_inverse_tnt );
     }
 }
