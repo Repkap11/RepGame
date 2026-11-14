@@ -247,6 +247,77 @@ int wall_collision_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] ) {
     return n;
 }
 
+// Post x/z 7..9, y 0..16, always emitted with every face drawn: the post's
+// side faces are MC's noside/cap quads on unconnected sides, and they seal
+// the seam on connected ones — each arm ends at the post surface and skips
+// its post-facing end, which would otherwise sit coplanar with the post's
+// own face. Arms are 2-thick plates from the post face (x/z 9 or 7) out to
+// the cell edge, like MC's iron_bars_side — never merged into one run, so
+// their flat faces only ever tile the post's face planes, never overlap.
+int bars_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] ) {
+    const unsigned conn = mask & ( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X | FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z );
+    int n = 0;
+    out[ n ].scale[ 0 ] = 2;
+    out[ n ].scale[ 1 ] = 16;
+    out[ n ].scale[ 2 ] = 2;
+    out[ n ].offset[ 0 ] = 7;
+    out[ n ].offset[ 1 ] = 0;
+    out[ n ].offset[ 2 ] = 7;
+    out[ n ].skip_faces = 0;
+    n++;
+    // (connect bit, solid bit, axis is x, positive dir): post first, then
+    // arms +x, -x, +z, -z — the wall_boxes order.
+    static const struct {
+        unsigned bit;
+        unsigned solid;
+        bool along_x;
+        bool positive;
+    } arm_dir[ 4 ] = {
+        { FENCE_CONNECT_POS_X, BARS_SOLID_POS_X, true, true },
+        { FENCE_CONNECT_NEG_X, BARS_SOLID_NEG_X, true, false },
+        { FENCE_CONNECT_POS_Z, BARS_SOLID_POS_Z, false, true },
+        { FENCE_CONNECT_NEG_Z, BARS_SOLID_NEG_Z, false, false },
+    };
+    for ( int d = 0; d < 4; d++ ) {
+        if ( !( conn & arm_dir[ d ].bit ) ) {
+            continue;
+        }
+        out[ n ].scale[ 0 ] = arm_dir[ d ].along_x ? 7 : 2;
+        out[ n ].scale[ 1 ] = 16;
+        out[ n ].scale[ 2 ] = arm_dir[ d ].along_x ? 2 : 7;
+        out[ n ].offset[ 0 ] = arm_dir[ d ].along_x ? ( arm_dir[ d ].positive ? 9 : 0 ) : 7;
+        out[ n ].offset[ 1 ] = 0;
+        out[ n ].offset[ 2 ] = arm_dir[ d ].along_x ? 7 : ( arm_dir[ d ].positive ? 9 : 0 );
+        // The buried end (the face touching the post): FACE_LEFT/FRONT are
+        // -x/-z, FACE_RIGHT/BACK +x/+z. The outer end skips only when it is
+        // buried in a full-face block — a bars-to-bars seam keeps its cap,
+        // which reads as a bar end like MC's edge quads.
+        const int buried_face = arm_dir[ d ].along_x ? ( arm_dir[ d ].positive ? FACE_LEFT : FACE_RIGHT )
+                                                   : ( arm_dir[ d ].positive ? FACE_FRONT : FACE_BACK );
+        unsigned char skip = static_cast<unsigned char>( 1u << buried_face );
+        if ( mask & arm_dir[ d ].solid ) {
+            const int outer_face = arm_dir[ d ].along_x ? ( arm_dir[ d ].positive ? FACE_RIGHT : FACE_LEFT )
+                                                      : ( arm_dir[ d ].positive ? FACE_BACK : FACE_FRONT );
+            skip |= static_cast<unsigned char>( 1u << outer_face );
+        }
+        out[ n ].skip_faces = skip;
+        n++;
+    }
+    return n;
+}
+
+int bars_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
+    // A straight z segment — the arm half behind the post emits first and
+    // the half in front last, the back-to-front painter's order
+    // fence_icon_boxes uses. bars_boxes order is post, +z arm, -z arm.
+    BlockBox conn[ FENCE_MAX_BOXES ];
+    bars_boxes( FENCE_CONNECT_POS_Z | FENCE_CONNECT_NEG_Z, conn );
+    out[ 0 ] = conn[ 2 ]; // -z arm half behind the post
+    out[ 1 ] = conn[ 0 ]; // post
+    out[ 2 ] = conn[ 1 ]; // +z arm half in front
+    return 3;
+}
+
 static void block_box_from_shape( const short scale[ 3 ], const short offset[ 3 ], BlockBox *out ) {
     for ( int i = 0; i < 3; i++ ) {
         out->scale[ i ] = static_cast<signed char>( scale[ i ] );
@@ -656,6 +727,9 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     }
     if ( block->is_wall ) {
         return wall_icon_boxes( out );
+    }
+    if ( block->is_bars ) {
+        return bars_icon_boxes( out );
     }
     if ( block->is_button ) {
         return button_icon_boxes( out );

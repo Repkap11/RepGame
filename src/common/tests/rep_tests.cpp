@@ -49,6 +49,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( touch ),           //
     MK_TEST( fences ),          //
     MK_TEST( walls ),           //
+    MK_TEST( bars ),            //
     MK_TEST( stairs ),          //
     MK_TEST( buttons ),         //
     MK_TEST( slabs ),           //

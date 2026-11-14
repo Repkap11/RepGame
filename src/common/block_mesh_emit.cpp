@@ -42,6 +42,12 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
         const unsigned mask = wall_connection_mask( [ & ]( int dx, int dy, int dz ) { return p.nb.at( dx, dy, dz ); } );
         return wall_boxes( mask, boxes );
     }
+    if ( block->is_bars ) {
+        // The 4-neighbor connection gather plus the
+        // full-face bits for arm end culling.
+        const unsigned mask = bars_connection_mask( [ & ]( int dx, int dy, int dz ) { return p.nb.at( dx, dy, dz ); } );
+        return bars_boxes( mask, boxes );
+    }
     if ( block->is_fence_gate ) {
         return fence_gate_boxes( ( blockState.rotation & BLOCK_ROTATE_GATE_OPEN ) != 0, boxes );
     }
@@ -73,7 +79,7 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
 }
 
 bool block_emit_needs_neighbors( const Block *block ) {
-    return block->is_fence || block->is_wall || block->is_stairs || block->is_rail || block->is_redstone_dust || block->spine_shell;
+    return block->is_fence || block->is_wall || block->is_bars || block->is_stairs || block->is_rail || block->is_redstone_dust || block->spine_shell;
 }
 
 // The extra-instance flags the emit count needs — computed once per emit.

@@ -465,6 +465,71 @@ int wall_collision_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] );
 // painter's order like fence_icon_boxes. Returns 3 boxes.
 int wall_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] );
 
+// ---- Bars ------------------------------------------------------------------
+// Iron/copper bars ride the fence multi-box pipeline with pane geometry
+// (MC's iron_bars model): a 2x2 center post plus a 2-thick 16-tall plate
+// arm reaching each connected horizontal side. The mask is the four
+// horizontal FENCE_CONNECT_* bits plus, in bits 4-7, a per-direction "the
+// neighbor face is a full cube" flag — the arm's outer end cap sits inside
+// that face and skips drawing (MC's cullface); the cap on an arm joined to
+// another bars cell stays, so the seam reads as a bar end.
+#define BARS_SOLID_POS_X 16u
+#define BARS_SOLID_NEG_X 32u
+#define BARS_SOLID_POS_Z 64u
+#define BARS_SOLID_NEG_Z 128u
+
+// Whether the neighbor's facing side is a full cube face — bars attach to
+// it (MC's isFaceSturdy: opaque or transparent, just not a partial shape)
+// and the arm's end cap is buried inside it.
+static inline bool bars_full_face_neighbor( const Block *neighbor ) {
+    return neighbor->collides_with_player && !neighbor->non_full_size;
+}
+
+// The bars connection mask: the 4 horizontal FENCE_CONNECT_* bits — any
+// bars cell (MC's BARS tag, so iron and copper join) or a full-face block —
+// plus the BARS_SOLID_* bits for the full-face ones. `neighbor_at(dx,dy,dz)`
+// returns the cell's BlockState; unloaded cells report id >= LAST_BLOCK_ID
+// (they don't connect). Shared by the mesher (halo cells), collision,
+// raycast and the selection outline so a neighbor change re-shapes every
+// consumer at once.
+template <typename F>
+static inline unsigned bars_connection_mask( F neighbor_at ) {
+    static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, solid bit
+        { 1, 0, FENCE_CONNECT_POS_X, BARS_SOLID_POS_X },
+        { -1, 0, FENCE_CONNECT_NEG_X, BARS_SOLID_NEG_X },
+        { 0, 1, FENCE_CONNECT_POS_Z, BARS_SOLID_POS_Z },
+        { 0, -1, FENCE_CONNECT_NEG_Z, BARS_SOLID_NEG_Z },
+    };
+    unsigned mask = 0;
+    for ( int d = 0; d < 4; d++ ) {
+        const BlockState neighbor = neighbor_at( conn_dir[ d ][ 0 ], 0, conn_dir[ d ][ 1 ] );
+        if ( neighbor.id >= LAST_BLOCK_ID ) {
+            continue;
+        }
+        const Block *nb = block_definition_get_definition( neighbor.id );
+        if ( nb->is_bars || bars_full_face_neighbor( nb ) ) {
+            mask |= conn_dir[ d ][ 2 ];
+            if ( bars_full_face_neighbor( nb ) ) {
+                mask |= conn_dir[ d ][ 3 ];
+            }
+        }
+    }
+    return mask;
+}
+
+// Fill `out` with the bars' boxes: box 0 is the post (x/z 7..9, all faces —
+// its side faces are MC's post/cap quads on unconnected sides and cover the
+// arm seam on connected ones), then one plate arm per connected side from
+// the post face to the cell edge. The arm's post-facing end always skips
+// (coplanar with the post's own face); the outer end skips only when the
+// neighbor carries a full face. Render, pick and collision share these
+// boxes (MC's outline is the same shape). Returns the box count.
+int bars_boxes( unsigned mask, BlockBox out[ FENCE_MAX_BOXES ] );
+// Icon/pickup shape: a straight bars segment spanning z — the arm half
+// behind the post emits first and the half in front last, the painter's
+// order fence_icon_boxes uses. Returns 3 boxes.
+int bars_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] );
+
 // ---- Stairs -----------------------------------------------------------------
 // Stairs store the facing in rotation bits 0-1 — the yaw index doubles as the
 // world direction index (0=-z, 1=+x, 2=+z, 3=-x, matching getPlacedRotation's

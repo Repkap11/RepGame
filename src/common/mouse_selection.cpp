@@ -137,6 +137,13 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
             return world.get_loaded_block( pos + glm::ivec3( dx, dy, dz ) );
         } );
         num_boxes = wall_boxes( mask, boxes );
+    } else if ( block->is_bars ) {
+        // The rendered bars boxes (post + arms) — the same boxes the ray
+        // hits, from the same mask gather collision.cpp does.
+        const unsigned mask = bars_connection_mask( [ & ]( int dx, int dy, int dz ) {
+            return world.get_loaded_block( pos + glm::ivec3( dx, dy, dz ) );
+        } );
+        num_boxes = bars_boxes( mask, boxes );
     } else if ( block->is_piston_head || ( block->is_piston && blockState.current_redstone_power > 0 ) ) {
         // The same two boxes the raycast hits and collision blocks with: a
         // head's plate + arm shaft, or an extended base's recessed body +

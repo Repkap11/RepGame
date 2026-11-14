@@ -432,6 +432,175 @@ int test_walls( ) {
     return failures;
 }
 
+// Bars (iron/copper): the pane model — a 2x2 post plus a 2-thick plate arm
+// per connected side (bars_boxes/bars_connection_mask), arm-end culling on
+// full-face neighbors, connection rules, the generated defs, and
+// collision/raycast against the real thin plates.
+int test_bars( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto boxes_in_bounds = [ & ]( const BlockBox *boxes, int n ) {
+        for ( int i = 0; i < n; i++ ) {
+            for ( int a = 0; a < 3; a++ ) {
+                if ( boxes[ i ].offset[ a ] < 0 || boxes[ i ].scale[ a ] <= 0 || boxes[ i ].offset[ a ] + boxes[ i ].scale[ a ] > 16 ) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    // --- bars_boxes ----------------------------------------------------------
+    BlockBox boxes[ FENCE_MAX_BOXES ];
+    check_bool( "bars: no connections gives just the post",
+                bars_boxes( 0, boxes ) == 1 &&                                                            //
+                    boxes[ 0 ].scale[ 0 ] == 2 && boxes[ 0 ].scale[ 1 ] == 16 && boxes[ 0 ].scale[ 2 ] == 2 && //
+                    boxes[ 0 ].offset[ 0 ] == 7 && boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].offset[ 2 ] == 7 );
+    check_bool( "bars: one side gives post + 1 arm", bars_boxes( FENCE_CONNECT_POS_X, boxes ) == 2 );
+    check_bool( "bars: +x arm x 9..16 z 7..9 y 0..16",
+                boxes[ 1 ].offset[ 0 ] == 9 && boxes[ 1 ].scale[ 0 ] == 7 && //
+                    boxes[ 1 ].offset[ 1 ] == 0 && boxes[ 1 ].scale[ 1 ] == 16 && //
+                    boxes[ 1 ].offset[ 2 ] == 7 && boxes[ 1 ].scale[ 2 ] == 2 );
+    check_bool( "bars: +x arm skips only the post-side (-x) face",
+                boxes[ 1 ].skip_faces == ( 1u << FACE_LEFT ) );
+    check_bool( "bars: solid neighbor also skips the outer (+x) end",
+                bars_boxes( FENCE_CONNECT_POS_X | BARS_SOLID_POS_X, boxes ) == 2 && //
+                    boxes[ 1 ].skip_faces == ( ( 1u << FACE_LEFT ) | ( 1u << FACE_RIGHT ) ) );
+    check_bool( "bars: -x arm skips its post-side (+x) face",
+                bars_boxes( FENCE_CONNECT_NEG_X, boxes ) == 2 && boxes[ 1 ].skip_faces == ( 1u << FACE_RIGHT ) );
+    check_bool( "bars: +z arm skips its post-side (-z) face",
+                bars_boxes( FENCE_CONNECT_POS_Z, boxes ) == 2 && boxes[ 1 ].skip_faces == ( 1u << FACE_FRONT ) );
+    check_bool( "bars: -z arm skips its post-side (+z) face",
+                bars_boxes( FENCE_CONNECT_NEG_Z, boxes ) == 2 && boxes[ 1 ].skip_faces == ( 1u << FACE_BACK ) );
+    check_bool( "bars: straight run keeps post + 2 arms",
+                bars_boxes( FENCE_CONNECT_POS_X | FENCE_CONNECT_NEG_X, boxes ) == 3 && //
+                    boxes[ 1 ].offset[ 0 ] == 9 && boxes[ 2 ].offset[ 0 ] == 0 );
+    check_bool( "bars: all four sides give 5 boxes", bars_boxes( 0xF, boxes ) == 5 );
+    bool all_ok = true;
+    for ( unsigned mask = 0; mask < 256; mask++ ) {
+        const int n = bars_boxes( mask, boxes );
+        all_ok &= n <= FENCE_MAX_BOXES && boxes_in_bounds( boxes, n );
+        // No pair of boxes may strictly overlap (arms stop at the post
+        // face so their flat faces only tile the post's planes).
+        for ( int i = 0; i < n; i++ ) {
+            for ( int j = i + 1; j < n; j++ ) {
+                bool overlap = true;
+                for ( int a = 0; a < 3; a++ ) {
+                    overlap &= boxes[ i ].offset[ a ] < boxes[ j ].offset[ a ] + boxes[ j ].scale[ a ] &&
+                               boxes[ i ].offset[ a ] + boxes[ i ].scale[ a ] > boxes[ j ].offset[ a ];
+                }
+                all_ok &= !overlap;
+            }
+        }
+    }
+    check_bool( "bars: every mask in bounds, <= FENCE_MAX_BOXES, no overlaps", all_ok );
+
+    // --- generated definitions + icon -----------------------------------------
+    const Block *iron = block_definition_get_definition( IRON_BARS );
+    check_bool( "def: IRON_BARS is_bars + post box",
+                iron->is_bars && !iron->is_fence && !iron->is_wall &&        //
+                    iron->scale.x == 2 && iron->scale.y == 16 && iron->scale.z == 2 && //
+                    iron->offset.x == 7 && iron->offset.y == 0 && iron->offset.z == 7 );
+    check_bool( "def: bars keep the cutout set", iron->is_seethrough && !iron->casts_shadow );
+    check_bool( "def: bars icon is isometric", iron->icon_is_isometric );
+    check_bool( "icon: bars show a z segment",
+                block_icon_boxes( iron, boxes ) == 3 &&                     //
+                    boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 2 ] == 7 &&    // -z arm half
+                    boxes[ 1 ].scale[ 0 ] == 2 && boxes[ 1 ].scale[ 2 ] == 2 &&     // post
+                    boxes[ 2 ].offset[ 2 ] == 9 && boxes[ 2 ].scale[ 2 ] == 7 );    // +z arm half
+    check_bool( "icon: box count", block_icon_box_count( iron ) == 3 );
+
+    // --- block-world showcase (z<0, y=1) --------------------------------------
+    check_bool( "showcase: iron/copper run joins materials",
+                MapGen::block_world_id( -8, 1, -26 ) == IRON_BARS && MapGen::block_world_id( -7, 1, -26 ) == COPPER_BARS );
+    check_bool( "showcase: solid end", MapGen::block_world_id( -3, 1, -26 ) == STONE );
+    check_bool( "showcase: L corner", MapGen::block_world_id( 0, 1, -27 ) == IRON_BARS );
+    check_bool( "showcase: T junction", MapGen::block_world_id( 4, 1, -27 ) == IRON_BARS && MapGen::block_world_id( 4, 1, -28 ) == IRON_BARS );
+    check_bool( "showcase: lone post", MapGen::block_world_id( 8, 1, -26 ) == IRON_BARS );
+    check_bool( "showcase: pane/glass pair",
+                MapGen::block_world_id( 11, 1, -26 ) == GLASS_PANE && MapGen::block_world_id( 11, 1, -27 ) == GLASS );
+
+    // World-level: the connection mask drives the collision plates.
+    {
+        RepGameState &gs2 = *new RepGameState( );
+        gs2.tick_number = 0;
+        gs2.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs2.world );
+        World &world = gs2.world;
+        const BlockState stone = { STONE, 0, 0, STONE, 0 };
+        const BlockState bars = { IRON_BARS, 0, 0, IRON_BARS, 0 };
+        for ( int x = 19; x <= 22; x++ ) {
+            for ( int z = 19; z <= 22; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+            }
+        }
+        const double eye_y = 11.0 + PLAYER_EYE_HEIGHT;
+        world.set_loaded_block( glm::ivec3( 20, 11, 20 ), bars );
+
+        // Connection rules through the shared mask gather: another bars (any
+        // material) or a full-face block connects; the solid bit marks the
+        // arm's outer end buried in the full face.
+        auto mask_of = [ & ]( const glm::ivec3 &p ) {
+            return bars_connection_mask( [ & ]( int dx, int dy, int dz ) {
+                return world.get_loaded_block( p + glm::ivec3( dx, dy, dz ) );
+            } );
+        };
+        check_bool( "mask: lone bars has no connections", mask_of( glm::ivec3( 20, 11, 20 ) ) == 0 );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), { COPPER_BARS, 0, 0, COPPER_BARS, 0 } );
+        check_bool( "mask: copper bars neighbor connects +x",
+                    ( mask_of( glm::ivec3( 20, 11, 20 ) ) & ( FENCE_CONNECT_POS_X | BARS_SOLID_POS_X ) ) == FENCE_CONNECT_POS_X );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), stone );
+        check_bool( "mask: solid connects +x and marks the end buried",
+                    ( mask_of( glm::ivec3( 20, 11, 20 ) ) & ( FENCE_CONNECT_POS_X | BARS_SOLID_POS_X ) ) == ( FENCE_CONNECT_POS_X | BARS_SOLID_POS_X ) );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), { GLASS, 0, 0, GLASS, 0 } );
+        check_bool( "mask: glass connects like a full face",
+                    ( mask_of( glm::ivec3( 20, 11, 20 ) ) & ( FENCE_CONNECT_POS_X | BARS_SOLID_POS_X ) ) == ( FENCE_CONNECT_POS_X | BARS_SOLID_POS_X ) );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), { GLASS_PANE, 0, 0, GLASS_PANE, 0 } );
+        check_bool( "mask: glass pane does not connect", ( mask_of( glm::ivec3( 20, 11, 20 ) ) & FENCE_CONNECT_POS_X ) == 0 );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), { OAK_FENCE, 0, 0, OAK_FENCE, 0 } );
+        check_bool( "mask: fence does not connect", ( mask_of( glm::ivec3( 20, 11, 20 ) ) & FENCE_CONNECT_POS_X ) == 0 );
+
+        // A lone bars is just the post (x/z 7..9px of the cell): standing in
+        // the cell's middle collides, the open sides don't.
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), BLOCK_STATE_AIR );
+        check_bool( "collision: lone bars post collides",
+                    Collision::collides_at( world, glm::dvec3( 20.5, eye_y, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        check_bool( "collision: lone bars leaves the gap open",
+                    !Collision::collides_at( world, glm::dvec3( 20.9, eye_y, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        // A second bars cell pulls the +x arm out (x 9..16px): the gap
+        // between the two posts is now plated and blocks.
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), bars );
+        check_bool( "collision: connected arm plates the gap",
+                    Collision::collides_at( world, glm::dvec3( 20.9, eye_y, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        // Bars connect to a solid block the same way.
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), stone );
+        check_bool( "collision: arm reaches a solid block too",
+                    Collision::collides_at( world, glm::dvec3( 20.9, eye_y, 20.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), bars );
+
+        // Raycast: the connected +x arm plate is pickable — a ray through
+        // the plate band (x 9..16px, z 7..9px) hits the bars; the
+        // unconnected -x side stays transparent.
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        check_bool( "ray: +z ray hits the connected +x arm",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 20.8, 11.5, 20.2 ), glm::dvec3( 20.8, 11.5, 20.8 ), out, &which_face ) &&
+                        out == glm::ivec3( 20, 11, 20 ) && which_face == FACE_FRONT );
+        check_bool( "ray: the unconnected -x side stays open",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 20.2, 11.5, 20.2 ), glm::dvec3( 20.2, 11.5, 20.8 ), out, &which_face ) );
+        world.set_loaded_block( glm::ivec3( 21, 11, 20 ), BLOCK_STATE_AIR );
+    }
+    return failures;
+}
+
 // Stairs: the MC getStairsShape corner derive, def-space box geometry, the
 // world yaw remap, the top-half bit, generated defs, and world-level
 // collision/raycast including a walk-up-the-staircase sim. stair_rots[]

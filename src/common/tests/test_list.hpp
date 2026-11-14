@@ -36,6 +36,7 @@ int test_ui_layout( );
 int test_touch( );
 int test_fences( );
 int test_walls( );
+int test_bars( );
 int test_doors( );
 int test_block_world( );
 int test_mapgen( );

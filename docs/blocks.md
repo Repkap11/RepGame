@@ -190,9 +190,9 @@ replaces the 4 side faces with generated `<face_tex>__<shape>` tiles — the
 resolved source tile with the mask's `.` pixels cut to transparent black —
 and applies the shared `cutout` property set (see-through, no light
 blocking, no shadow). Top/bottom keep the plain material texture.
-**Model shapes** (fence, fence_gate, wall, stairs) have real multi-box geometry: the
+**Model shapes** (fence, fence_gate, wall, bars, stairs) have real multi-box geometry: the
 importer applies the `cutout` set plus the entry's own properties
-(`is_fence`, `is_wall`, `is_stairs`, `scale`, `offset`, ...) and keeps the block's
+(`is_fence`, `is_wall`, `is_bars`, `is_stairs`, `scale`, `offset`, ...) and keeps the block's
 plain textures; the entry's optional `"icon_mask"` grid cuts a generated
 `<side_tex>__<shape>`
 tile used as the flat inventory icon (`icon_is_isometric=false`) — stairs,
@@ -421,6 +421,26 @@ arms are solid, so there is no pick-merge variant. Icons draw the real
 shape too: `wall_icon_boxes` emits the arm half behind the post, the
 post, then the front half in the same painter's order as the fence icon.
 
+Bars (`is_bars`, e.g. IRON_BARS and every copper variant) ride the same
+multi-box pipeline with Minecraft's thin-plate geometry — `bars_boxes` in
+block.cpp emits a 2x2x16 center post plus one 2-thick, full-height plate
+arm per connected side, up to `FENCE_MAX_BOXES` boxes. The mask is
+`bars_connection_mask` (block.hpp): the four horizontal `FENCE_CONNECT_*`
+bits — any bars cell (iron and copper join, MC's BARS tag) or a block
+whose facing side is a full cube (`bars_full_face_neighbor`:
+`collides_with_player` and not `non_full_size`, so glass attaches but
+panes and fences don't) — plus per-direction `BARS_SOLID_*` bits marking
+the full-face neighbors. The arm's post-facing end always gets
+`NO_LIGHT_NO_DRAW` via `skip_faces` (it sits coplanar with the post's own
+face); the outer end skips only against a `BARS_SOLID` neighbor where it
+is buried inside the cube face, so a bars-to-bars seam keeps its cap and
+reads as a bar end. Render, collision (`block_collision_boxes`), raycast
+and the `MouseSelection` outline all consume `bars_boxes` — the
+full-height rendered shape is MC's collision shape too (unlike the 1.5
+fence/wall stretch), so there is no stretch or pick-merge variant. Icons
+draw a straight z segment via `bars_icon_boxes` in the fence icon's
+back-to-front painter's order.
+
 Stairs render as 2-3 box instances per cell (chunk.cpp phase 2,
 `stairs_boxes` in block.cpp): a full-width half slab plus a full-height
 step half — `rotation` bits 0-1 hold the facing (the yaw index doubles as
@@ -441,8 +461,8 @@ step faces coplanar with the slab surface get `NO_LIGHT_NO_DRAW` via
 `skip_faces`. Collision (`block_collision_boxes`), raycast
 (`contains_block`'s `ray_aabb_hit` loop — nearest box wins, so the
 upper-front void stays walk-through-pickable) and the selection outline
-(`MouseSelection` keeps `FENCE_MAX_BOXES` instances — fences need 5,
-stairs 3 — extras collapsed to zero scale) all consume the same
+(`MouseSelection` keeps `FENCE_MAX_BOXES` instances — fences and bars
+need 5, stairs 3 — extras collapsed to zero scale) all consume the same
 `stairs_collision_boxes`
 world-space list, so a neighbor change re-shapes every consumer at once.
 Half-height steps ride the normal `STEP_HEIGHT` path, so walking up a

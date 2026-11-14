@@ -136,6 +136,17 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
             { -9, -19, STANDING_SIGN }, { -7, -19, SPRUCE_STANDING_SIGN }, { -5, -19, BIRCH_STANDING_SIGN }, { -3, -19, ACACIA_STANDING_SIGN },
             { -9, -21, STONE }, { -7, -21, STONE }, { -5, -21, STONE }, { -3, -21, STONE },
             { -9, -20, WALL_SIGN }, { -7, -20, SPRUCE_WALL_SIGN }, { -5, -20, BIRCH_WALL_SIGN }, { -3, -20, ACACIA_WALL_SIGN },
+            // Iron/copper bars (is_bars): a mixed-material run (all bars
+            // connect to each other), a solid-block end, an L corner, a T
+            // junction, a lone post, and a pair beside a glass pane (no
+            // connection) and a glass block (connects — full-face).
+            { -9, -26, IRON_BARS }, { -8, -26, IRON_BARS }, { -7, -26, COPPER_BARS }, { -6, -26, COPPER_BARS },
+            { -4, -26, IRON_BARS }, { -3, -26, STONE },
+            { 0, -26, IRON_BARS }, { 0, -27, IRON_BARS }, { 1, -27, IRON_BARS },
+            { 3, -27, IRON_BARS }, { 4, -27, IRON_BARS }, { 5, -27, IRON_BARS }, { 4, -28, IRON_BARS },
+            { 8, -26, IRON_BARS },
+            { 10, -26, IRON_BARS }, { 10, -27, IRON_BARS }, { 11, -26, GLASS_PANE }, { 11, -27, GLASS },
+            { 13, -26, IRON_BARS }, { 14, -26, OAK_FENCE },
         };
         for ( const auto &s : showcase ) {
             if ( s.x == x && s.z == z ) {

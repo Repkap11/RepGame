@@ -89,6 +89,21 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
         }
         return num_boxes;
     }
+    if ( block->is_bars ) {
+        // Rendered shape = collision shape (the post plus a 2-thick plate
+        // arm per connected side — MC's outline is the same), from the same
+        // mask gather the mesher does.
+        const unsigned mask = bars_connection_mask( [ & ]( int dx, int dy, int dz ) {
+            return world.get_loaded_block( block_pos + glm::ivec3( dx, dy, dz ) );
+        } );
+        BlockBox boxes[ FENCE_MAX_BOXES ];
+        const int num_boxes = bars_boxes( mask, boxes );
+        for ( int i = 0; i < num_boxes; i++ ) {
+            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
+        }
+        return num_boxes;
+    }
     if ( block->is_stairs ) {
         // Neighbor stair rotations for the corner derive (stair_rots[d] =
         // rotation of the stair in world direction d, -1 = not a stair) —

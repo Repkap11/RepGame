@@ -192,6 +192,12 @@ typedef struct {
     // shows whenever the wall isn't a straight run or carries a block on
     // top (see wall_boxes/wall_connection_mask in block.cpp/block.hpp).
     bool is_wall;
+    // Bars (iron/copper) ride the same multi-box pipeline with pane
+    // geometry: a 2x2 center post plus a 2-thick plate arm reaching each
+    // connected side — MC's iron_bars model. Bars connect to every other
+    // bars material and to full-face block faces (see
+    // bars_boxes/bars_connection_mask in block.cpp/block.hpp).
+    bool is_bars;
     // Stairs draw as 2-3 boxes (a half slab plus step boxes) whose inner /
     // outer corner shape is derived live from the 4 horizontal neighbors
     // (stairs_shape_derive in block.cpp) — MC's getStairsShape. rotation

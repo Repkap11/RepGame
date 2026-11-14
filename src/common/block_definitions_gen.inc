@@ -5156,9 +5156,14 @@ block_definitions[ 333 ].textures[ FACE_BACK ] = TEX_COPPER_BARS;
 block_definitions[ 333 ].icon_texture = TEX_COPPER_BARS;
 block_definitions[ 333 ].casts_shadow = false;
 block_definitions[ 333 ].hardness = 0.35f;
+block_definitions[ 333 ].icon_is_isometric = true;
+block_definitions[ 333 ].is_bars = true;
 block_definitions[ 333 ].is_seethrough = true;
 block_definitions[ 333 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 333 ].no_light = 6815743;
+block_definitions[ 333 ].offset = { 7, 0, 7 };
+block_definitions[ 333 ].scale = { 2, 16, 2 };
+block_definitions[ 333 ].tex_offset = { -7, 0, -7 };
 
 // COPPER_BLOCK (334)
 block_definitions[ 334 ].textures[ FACE_TOP ] = TEX_COPPER_BLOCK;
@@ -8559,9 +8564,14 @@ block_definitions[ 560 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 560 ].icon_texture = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 560 ].casts_shadow = false;
 block_definitions[ 560 ].hardness = 0.35f;
+block_definitions[ 560 ].icon_is_isometric = true;
+block_definitions[ 560 ].is_bars = true;
 block_definitions[ 560 ].is_seethrough = true;
 block_definitions[ 560 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 560 ].no_light = 6815743;
+block_definitions[ 560 ].offset = { 7, 0, 7 };
+block_definitions[ 560 ].scale = { 2, 16, 2 };
+block_definitions[ 560 ].tex_offset = { -7, 0, -7 };
 
 // EXPOSED_COPPER_BULB (561)
 block_definitions[ 561 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_BULB;
@@ -9856,9 +9866,14 @@ block_definitions[ 653 ].textures[ FACE_BACK ] = TEX_IRON_BARS;
 block_definitions[ 653 ].icon_texture = TEX_IRON_BARS;
 block_definitions[ 653 ].casts_shadow = false;
 block_definitions[ 653 ].hardness = 0.35f;
+block_definitions[ 653 ].icon_is_isometric = true;
+block_definitions[ 653 ].is_bars = true;
 block_definitions[ 653 ].is_seethrough = true;
 block_definitions[ 653 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 653 ].no_light = 6815743;
+block_definitions[ 653 ].offset = { 7, 0, 7 };
+block_definitions[ 653 ].scale = { 2, 16, 2 };
+block_definitions[ 653 ].tex_offset = { -7, 0, -7 };
 
 // IRON_TRAPDOOR (654)
 block_definitions[ 654 ].textures[ FACE_TOP ] = TEX_IRON_TRAPDOOR;
@@ -12797,9 +12812,14 @@ block_definitions[ 858 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 858 ].icon_texture = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 858 ].casts_shadow = false;
 block_definitions[ 858 ].hardness = 0.35f;
+block_definitions[ 858 ].icon_is_isometric = true;
+block_definitions[ 858 ].is_bars = true;
 block_definitions[ 858 ].is_seethrough = true;
 block_definitions[ 858 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 858 ].no_light = 6815743;
+block_definitions[ 858 ].offset = { 7, 0, 7 };
+block_definitions[ 858 ].scale = { 2, 16, 2 };
+block_definitions[ 858 ].tex_offset = { -7, 0, -7 };
 
 // OXIDIZED_COPPER_BULB (859)
 block_definitions[ 859 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_BULB;
@@ -19124,9 +19144,14 @@ block_definitions[ 1287 ].textures[ FACE_BACK ] = TEX_COPPER_BARS;
 block_definitions[ 1287 ].icon_texture = TEX_COPPER_BARS;
 block_definitions[ 1287 ].casts_shadow = false;
 block_definitions[ 1287 ].hardness = 0.35f;
+block_definitions[ 1287 ].icon_is_isometric = true;
+block_definitions[ 1287 ].is_bars = true;
 block_definitions[ 1287 ].is_seethrough = true;
 block_definitions[ 1287 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1287 ].no_light = 6815743;
+block_definitions[ 1287 ].offset = { 7, 0, 7 };
+block_definitions[ 1287 ].scale = { 2, 16, 2 };
+block_definitions[ 1287 ].tex_offset = { -7, 0, -7 };
 
 // WAXED_COPPER_BULB (1288)
 block_definitions[ 1288 ].textures[ FACE_TOP ] = TEX_COPPER_BULB;
@@ -19335,9 +19360,14 @@ block_definitions[ 1302 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 1302 ].icon_texture = TEX_EXPOSED_COPPER_BARS;
 block_definitions[ 1302 ].casts_shadow = false;
 block_definitions[ 1302 ].hardness = 0.35f;
+block_definitions[ 1302 ].icon_is_isometric = true;
+block_definitions[ 1302 ].is_bars = true;
 block_definitions[ 1302 ].is_seethrough = true;
 block_definitions[ 1302 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1302 ].no_light = 6815743;
+block_definitions[ 1302 ].offset = { 7, 0, 7 };
+block_definitions[ 1302 ].scale = { 2, 16, 2 };
+block_definitions[ 1302 ].tex_offset = { -7, 0, -7 };
 
 // WAXED_EXPOSED_COPPER_BULB (1303)
 block_definitions[ 1303 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_BULB;
@@ -19574,9 +19604,14 @@ block_definitions[ 1319 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 1319 ].icon_texture = TEX_OXIDIZED_COPPER_BARS;
 block_definitions[ 1319 ].casts_shadow = false;
 block_definitions[ 1319 ].hardness = 0.35f;
+block_definitions[ 1319 ].icon_is_isometric = true;
+block_definitions[ 1319 ].is_bars = true;
 block_definitions[ 1319 ].is_seethrough = true;
 block_definitions[ 1319 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1319 ].no_light = 6815743;
+block_definitions[ 1319 ].offset = { 7, 0, 7 };
+block_definitions[ 1319 ].scale = { 2, 16, 2 };
+block_definitions[ 1319 ].tex_offset = { -7, 0, -7 };
 
 // WAXED_OXIDIZED_COPPER_BULB (1320)
 block_definitions[ 1320 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_BULB;
@@ -19799,9 +19834,14 @@ block_definitions[ 1335 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1335 ].icon_texture = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1335 ].casts_shadow = false;
 block_definitions[ 1335 ].hardness = 0.35f;
+block_definitions[ 1335 ].icon_is_isometric = true;
+block_definitions[ 1335 ].is_bars = true;
 block_definitions[ 1335 ].is_seethrough = true;
 block_definitions[ 1335 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1335 ].no_light = 6815743;
+block_definitions[ 1335 ].offset = { 7, 0, 7 };
+block_definitions[ 1335 ].scale = { 2, 16, 2 };
+block_definitions[ 1335 ].tex_offset = { -7, 0, -7 };
 
 // WAXED_WEATHERED_COPPER_BULB (1336)
 block_definitions[ 1336 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_BULB;
@@ -20024,9 +20064,14 @@ block_definitions[ 1351 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1351 ].icon_texture = TEX_WEATHERED_COPPER_BARS;
 block_definitions[ 1351 ].casts_shadow = false;
 block_definitions[ 1351 ].hardness = 0.35f;
+block_definitions[ 1351 ].icon_is_isometric = true;
+block_definitions[ 1351 ].is_bars = true;
 block_definitions[ 1351 ].is_seethrough = true;
 block_definitions[ 1351 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1351 ].no_light = 6815743;
+block_definitions[ 1351 ].offset = { 7, 0, 7 };
+block_definitions[ 1351 ].scale = { 2, 16, 2 };
+block_definitions[ 1351 ].tex_offset = { -7, 0, -7 };
 
 // WEATHERED_COPPER_BULB (1352)
 block_definitions[ 1352 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_BULB;
