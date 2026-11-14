@@ -343,10 +343,13 @@ void PlayerBlockPlacedEvent::performAction( RepGameState &repGameState ) {
         }
     }
     // A piston starts its move on the power edge's game tick — the slide
-    // itself takes PISTON_MOVE_GT before the blocks land. The event re-reads
-    // live state, so stale triggers are harmless.
+    // itself takes PISTON_MOVE_GT before the blocks land. Runs inline, right
+    // after the new power state was written above: scheduling a delay-0
+    // event instead would leave the base showing its unpowered model for a
+    // drain on retraction. The event re-reads live state, so stale triggers
+    // are harmless.
     if ( new_block->is_piston && ( current_block_state.current_redstone_power > 0 ) != ( this->blockState.current_redstone_power > 0 ) ) {
-        schedule_redstone_update<PistonEvent>( repGameState, 0, this->block_pos );
+        piston_update( repGameState, this->block_pos );
     }
 
     // TNT ignites on a rising power edge: tnt_ignite removes the block,

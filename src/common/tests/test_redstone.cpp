@@ -947,6 +947,35 @@ int test_piston( ) {
     check_bool( "piston: side table drained", gs.piston_moves.empty( ) );
     check_bool( "piston: no orphan MOVING_PISTON cells", moving_count( ) == 0 );
 
+    // --- plain retract: base stays MOVING_PISTON for the slide ----------------
+    // Cutting the power on the extended piston at (5,11,5) makes the base a
+    // moving cell too, so it keeps drawing the extended model until landing.
+    place( glm::ivec3( 5, 11, 4 ), BLOCK_STATE_AIR );
+    // The power-0 write and the MOVING_PISTON swap happen in the same drain:
+    // drain-by-drain the base must never appear as an unpowered piston.
+    bool saw_moving = false;
+    bool saw_unpowered_base = false;
+    for ( int i = 0; i < 16 && !saw_moving; i++ ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+        const BlockState s = world.get_loaded_block( glm::ivec3( 5, 11, 5 ) );
+        saw_moving = s.id == MOVING_PISTON;
+        saw_unpowered_base = saw_unpowered_base || ( s.id == PISTON && s.current_redstone_power == 0 );
+    }
+    check_bool( "piston: base never flashes the retracted model", saw_moving && !saw_unpowered_base );
+    const BlockState mid_base = world.get_loaded_block( glm::ivec3( 5, 11, 5 ) );
+    check_bool( "piston: base is MOVING_PISTON mid-retract", mid_base.id == MOVING_PISTON && mid_base.display_id == PISTON );
+    check_bool( "piston: base mover + head mover mid-retract", piston_body_count( ) == 2 );
+    test_run_redstone_ticks( gs, 3 );
+    const BlockState landed_base = world.get_loaded_block( glm::ivec3( 5, 11, 5 ) );
+    check_bool( "piston: base landed as unpowered piston", landed_base.id == PISTON && landed_base.current_redstone_power == 0 );
+    failures += check_id( world, "piston: retracted head cell is AIR", glm::ivec3( 5, 11, 6 ), AIR );
+    check_bool( "piston: plain retract left no orphans", moving_count( ) == 0 && gs.piston_moves.empty( ) );
+    // Head-slide movers have no table entry and only expire in bodies.tick —
+    // drain them so later body counts aren't polluted.
+    world.bodies.tick( gs );
+    check_bool( "piston: retract movers expired", piston_body_count( ) == 0 );
+
     // --- sticky retract: pull cell AIRs now, pulled block lands at 2 gt ------
     // Sticky piston at (8,11,5) faces +z; its head takes (8,11,6) and pulls
     // the stone at (8,11,7) back to (8,11,6) on release.
@@ -961,7 +990,12 @@ int test_piston( ) {
     failures += check_id( world, "piston: pull cell vacated at once", glm::ivec3( 8, 11, 7 ), AIR );
     const BlockState mid_pull = world.get_loaded_block( glm::ivec3( 8, 11, 6 ) );
     check_bool( "piston: pulled block slides as MOVING_PISTON", mid_pull.id == MOVING_PISTON && mid_pull.display_id == STONE );
+    const BlockState mid_sbase = world.get_loaded_block( glm::ivec3( 8, 11, 5 ) );
+    check_bool( "piston: sticky base is MOVING_PISTON mid-retract", mid_sbase.id == MOVING_PISTON && mid_sbase.display_id == STICKY_PISTON );
+    check_bool( "piston: base + head + pull movers mid-retract", piston_body_count( ) == 3 );
     test_run_redstone_ticks( gs, 3 );
+    const BlockState landed_sbase = world.get_loaded_block( glm::ivec3( 8, 11, 5 ) );
+    check_bool( "piston: sticky base landed unpowered", landed_sbase.id == STICKY_PISTON && landed_sbase.current_redstone_power == 0 );
     failures += check_id( world, "piston: pulled stone landed at head cell", glm::ivec3( 8, 11, 6 ), STONE );
     check_bool( "piston: retract left no orphans", moving_count( ) == 0 && gs.piston_moves.empty( ) );
 
@@ -979,6 +1013,41 @@ int test_piston( ) {
     failures += check_id( world, "piston: reverse finished the push", glm::ivec3( 11, 11, 7 ), STONE );
     failures += check_id( world, "piston: reverse removed the head", glm::ivec3( 11, 11, 6 ), AIR );
     check_bool( "piston: reverse left no orphans", moving_count( ) == 0 && gs.piston_moves.empty( ) );
+
+    // --- re-power mid-retraction: base lands powered, extends again -----------
+    // Piston at (20,11,5) faces +z. The retracting base cell is MOVING_PISTON
+    // and ignores redstone, so the recompute on landing picks the power up.
+    place( glm::ivec3( 20, 11, 5 ), { PISTON, 0, 0, PISTON, 0 } );
+    test_run_redstone_ticks( gs, 2 );
+    place( glm::ivec3( 20, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_redstone_ticks( gs, 4 ); // extended: head at (20,11,6)
+    failures += check_id( world, "piston: repower head extended", glm::ivec3( 20, 11, 6 ), PISTON_ARM_COLLISION );
+    place( glm::ivec3( 20, 11, 4 ), BLOCK_STATE_AIR );
+    test_run_game_ticks( gs, 3 ); // mid-retract: base is MOVING_PISTON
+    check_bool( "piston: repower setup mid-retract", world.get_loaded_block( glm::ivec3( 20, 11, 5 ) ).id == MOVING_PISTON );
+    place( glm::ivec3( 20, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_redstone_ticks( gs, 6 ); // base lands powered, re-extends, lands
+    failures += check_id( world, "piston: repowered base landed", glm::ivec3( 20, 11, 5 ), PISTON );
+    failures += check_id( world, "piston: repowered head back out", glm::ivec3( 20, 11, 6 ), PISTON_ARM_COLLISION );
+    check_bool( "piston: repower left no orphans", moving_count( ) == 0 && gs.piston_moves.empty( ) );
+    place( glm::ivec3( 20, 11, 4 ), BLOCK_STATE_AIR ); // settle: retract finishes
+    test_run_redstone_ticks( gs, 4 );
+
+    // --- attachment: a button mounted on the base survives a retraction -------
+    // A rot-3 button's required solid face maps to its -x neighbour
+    // (FACE_ROTATE_90^3[RIGHT] = FRONT), so the button at (26,11,5) mounts on
+    // the +x face of the base at (25,11,5).
+    place( glm::ivec3( 25, 11, 5 ), { PISTON, 0, 0, PISTON, 0 } );
+    place( glm::ivec3( 26, 11, 5 ), { STONE_BUTTON, 3, 0, STONE_BUTTON, 0 } );
+    test_run_redstone_ticks( gs, 2 );
+    place( glm::ivec3( 25, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    test_run_redstone_ticks( gs, 4 ); // extended
+    place( glm::ivec3( 25, 11, 4 ), BLOCK_STATE_AIR );
+    test_run_game_ticks( gs, 3 ); // mid-retract
+    failures += check_id( world, "piston: button survives mid-retract", glm::ivec3( 26, 11, 5 ), STONE_BUTTON );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_id( world, "piston: button survives the landing", glm::ivec3( 26, 11, 5 ), STONE_BUTTON );
+    check_bool( "piston: button case left no orphans", moving_count( ) == 0 && gs.piston_moves.empty( ) );
 
     // --- repeater delay survives the push -------------------------------------
     // A delay-3 repeater (delay lives in display_id) keeps its full state

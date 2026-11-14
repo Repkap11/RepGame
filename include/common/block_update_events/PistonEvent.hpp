@@ -4,8 +4,9 @@
 #include "common/BlockUpdateQueue.hpp"
 
 // Starts a piston's extend/retract transition when its stored redstone power
-// crosses the zero boundary. Queued by PlayerBlockPlacedEvent on the redstone
-// clock at delay 0; lands any in-flight move of this piston first (MC's
+// crosses the zero boundary. PlayerBlockPlacedEvent runs piston_update
+// inline on the edge's own drain (the scheduled form is kept for the
+// landing re-check); lands any in-flight move of this piston first (MC's
 // finish-on-reverse), then writes MOVING_PISTON cells and kinematic movers —
 // the cells land through per-cell PistonLandEvents PISTON_MOVE_GT later.
 class PistonEvent : public BlockUpdateEvent {
@@ -35,3 +36,8 @@ void piston_finish_moves( RepGameState &state, const glm::ivec3 &base_pos );
 // Single-cell landing: MOVING_PISTON to carried (side table or fallback
 // encoding), then multiplayer relay and a physics-clock neighbour wake.
 void piston_land_cell( RepGameState &state, const glm::ivec3 &pos );
+// The power-edge body of PistonEvent — also run inline by
+// PlayerBlockPlacedEvent on the edge's own drain so the move (and the
+// base's MOVING_PISTON swap on retract) starts that game tick, not one
+// drain later.
+void piston_update( RepGameState &state, const glm::ivec3 &pos );

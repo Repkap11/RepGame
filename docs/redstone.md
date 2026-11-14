@@ -77,7 +77,8 @@ Which events wait on which clock:
 | `FluidUpdateEvent` | physics | `fluid_schedule_update` |
 | `RepeaterEvent` schedule/re-arm | redstone | `2 * delay` |
 | `RepeaterEvent` on/off write | redstone | 0 |
-| `PistonEvent` on a power edge | redstone | 0 |
+| `piston_update` on a power edge | inline | same drain |
+| `PistonEvent` landing re-check | redstone | 0 |
 | `PistonLandEvent` per moved cell | redstone | `PISTON_MOVE_GT` (2) |
 | `DoorEvent(SYNC_POWER)` | redstone | `DOOR_DELAY_GT` (1) |
 | `tnt_ignite` fuse | physics | `TNT_FUSE_TICKS` |
@@ -201,8 +202,10 @@ exactly one chain exists per plate. Both strongly power their
 attachment block.
 
 **Pistons** (`is_piston`/`is_sticky_piston`) move on a power edge:
-`PlayerBlockPlacedEvent` queues `PistonEvent` at redstone delay 0 when a
-piston's power crosses 0 either way. The event first lands every in-flight
+`PlayerBlockPlacedEvent` runs `piston_update` inline on the edge's own drain
+when a piston's power crosses 0 either way (a delay-0 schedule would leave
+the base showing its unpowered model for a drain before the retraction's
+`MOVING_PISTON` swap). The event first lands every in-flight
 move of that base (`piston_finish_moves` — MC's finish-on-reverse), then
 starts the slide. Powered extends: scan up to `PISTON_PUSH_LIMIT` (12) solid
 movable cells until a free cell (air or `can_be_placed_in`) or a destroyable
@@ -225,7 +228,17 @@ land in `cleanup` so `MOVING_PISTON` never persists.
 
 Unpowered retracts: the head slides back into the base and is discarded at
 arrival; sticky pistons pull the block that was in front into the vacated
-head cell as a `MOVING_PISTON` move, and the pull cell relays AIR. The arm
+head cell as a `MOVING_PISTON` move, and the pull cell relays AIR. The base
+cell itself becomes a `MOVING_PISTON` move for the slide (its destination is
+its own cell, carried = the real power-0 base, drawn by a stationary mover
+holding the *extended* state) so the model doesn't snap to the unpowered
+form until the retraction lands. Because the `MOVING_PISTON` cell ignores
+redstone while it slides, `piston_land_cell` recomputes a landed piston's
+power with `mechanism_direct_power` and queues a delay-0 `PistonEvent` when
+it lands powered — covering re-powering mid-retraction and the fallback
+landing path; the recomputed state is what the multiplayer relay sends.
+Attachments survive the swap because `MOVING_PISTON` still
+`collides_with_player`, so every support check keeps passing. The arm
 itself is an `is_piston_head` block
 (`PISTON_ARM_COLLISION`/`STICKY_PISTON_ARM_COLLISION`) kept alive by
 `block_can_survive_at`'s base check. Every touched cell queues a

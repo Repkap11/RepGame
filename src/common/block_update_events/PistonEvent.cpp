@@ -6,6 +6,7 @@
 #include "common/multiplayer.hpp"
 #include "common/block.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/schedule.hpp"
 
 // Max blocks a piston can move in one extension (MC's push limit).
@@ -98,6 +99,23 @@ void piston_land_cell( RepGameState &state, const glm::ivec3 &pos ) {
         const BlockState landed = { cur.display_id, cur.rotation, 0, cur.display_id, 0 };
         world.set_loaded_block( pos, landed );
     }
+    // A landed piston re-reads live power: a retraction's MOVING_PISTON base
+    // cell ignores redstone while it slides, so re-powering during the slide
+    // is picked up here instead (also covers the fallback landing path).
+    {
+        const BlockState settled = world.get_loaded_block( pos );
+        if ( settled.id != LAST_BLOCK_ID && block_definition_get_definition( settled.id )->is_piston ) {
+            const int power = mechanism_direct_power( world, pos );
+            if ( power != settled.current_redstone_power ) {
+                BlockState repowered = settled;
+                repowered.current_redstone_power = power;
+                world.set_loaded_block( pos, repowered );
+            }
+            if ( power > 0 ) {
+                schedule_redstone_update<PistonEvent>( state, 0, pos );
+            }
+        }
+    }
     // Relay what the cell settled to — a carried block, or AIR for a vacated
     // cell — since the start writes never reached the network.
     state.multiplayer.set_block( pos, world.get_loaded_block( pos ), NET_BU_FLAG_NO_DEBRIS );
@@ -118,11 +136,11 @@ void piston_finish_moves( RepGameState &state, const glm::ivec3 &base_pos ) {
     }
 }
 
-void PistonEvent::performAction( RepGameState &repGameState ) {
-    piston_finish_moves( repGameState, this->block_pos );
+void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
+    piston_finish_moves( repGameState, block_pos );
 
     World &world = repGameState.world;
-    const BlockState base_state = world.get_loaded_block( this->block_pos );
+    const BlockState base_state = world.get_loaded_block( block_pos );
     if ( base_state.id == LAST_BLOCK_ID ) {
         return;
     }
@@ -131,7 +149,7 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         return;
     }
     const glm::ivec3 dir = piston_facing_dir( base_state.rotation );
-    const glm::ivec3 head_pos = this->block_pos + dir;
+    const glm::ivec3 head_pos = block_pos + dir;
     const BlockState head_state = world.get_loaded_block( head_pos );
     const bool head_present = head_state.id != LAST_BLOCK_ID &&
         ( block_definition_get_definition( head_state.id )->is_piston_head ||
@@ -155,7 +173,7 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         glm::ivec3 destroy_pos;
         BlockState destroy_state = BLOCK_STATE_AIR;
         for ( int i = 1; i <= PISTON_PUSH_LIMIT + 1; i++ ) {
-            const glm::ivec3 cell = this->block_pos + dir * i;
+            const glm::ivec3 cell = block_pos + dir * i;
             const BlockState cell_state = world.get_loaded_block( cell );
             if ( cell_state.id == LAST_BLOCK_ID ) {
                 return; // never push into an unloaded/loading chunk
@@ -190,18 +208,18 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         // source cell.
         BlockEmitNeighbors snap[ PISTON_PUSH_LIMIT ];
         for ( int i = 2; i <= dest_i; i++ ) {
-            snap[ i - 2 ] = piston_snapshot( world, this->block_pos + dir * ( i - 1 ) );
+            snap[ i - 2 ] = piston_snapshot( world, block_pos + dir * ( i - 1 ) );
         }
         // MOVING_PISTON writes run farthest-first so no cell is read after
         // being overwritten; each carries its block in the side table and
         // lands through its own PistonLandEvent PISTON_MOVE_GT later.
         for ( int i = dest_i; i >= 2; i-- ) {
-            const glm::ivec3 dst = this->block_pos + dir * i;
+            const glm::ivec3 dst = block_pos + dir * i;
             const BlockState carried = chain[ i - 2 ];
             RepGameState::PistonMove move;
             move.carried = carried;
-            move.base = this->block_pos;
-            move.body_id = world.bodies.spawn_piston_mover( carried, this->block_pos + dir * ( i - 1 ), dst, start_gt, PISTON_MOVE_GT, snap[ i - 2 ] );
+            move.base = block_pos;
+            move.body_id = world.bodies.spawn_piston_mover( carried, block_pos + dir * ( i - 1 ), dst, start_gt, PISTON_MOVE_GT, snap[ i - 2 ] );
             repGameState.piston_moves[ dst ] = move;
             const BlockState moving = { MOVING_PISTON, carried.rotation, 0, carried.id, 0 };
             piston_set_local( repGameState, dst, moving );
@@ -210,9 +228,9 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         const BlockState head_block_state = { head_id, base_state.rotation, 0, head_id, 0 };
         RepGameState::PistonMove head_move;
         head_move.carried = head_block_state;
-        head_move.base = this->block_pos;
+        head_move.base = block_pos;
         // The head slides out of the base cell.
-        head_move.body_id = world.bodies.spawn_piston_mover( head_block_state, this->block_pos, head_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( head_block_state ) );
+        head_move.body_id = world.bodies.spawn_piston_mover( head_block_state, block_pos, head_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( head_block_state ) );
         repGameState.piston_moves[ head_pos ] = head_move;
         const BlockState moving_head = { MOVING_PISTON, base_state.rotation, 0, head_id, 0 };
         piston_set_local( repGameState, head_pos, moving_head );
@@ -227,6 +245,19 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         if ( !head_present ) {
             return;
         }
+        // The base keeps drawing its extended model for the slide: the cell
+        // becomes MOVING_PISTON carrying the real (power-0) base state, and a
+        // stationary mover renders the powered (recessed) base until landing.
+        BlockState extended = base_state;
+        extended.current_redstone_power = 1;
+        RepGameState::PistonMove base_move;
+        base_move.carried = base_state;
+        base_move.base = block_pos;
+        base_move.body_id = world.bodies.spawn_piston_mover( extended, block_pos, block_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( extended ) );
+        repGameState.piston_moves[ block_pos ] = base_move;
+        const BlockState moving_base = { MOVING_PISTON, base_state.rotation, 0, base_state.id, 0 };
+        piston_set_local( repGameState, block_pos, moving_base );
+        schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, block_pos );
         // The retracting head slides into the base cell and expires at
         // arrival — no table entry, nothing to land.
         BlockState slide_state = head_state;
@@ -234,7 +265,7 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
             const auto it = repGameState.piston_moves.find( head_pos );
             slide_state = it != repGameState.piston_moves.end( ) ? it->second.carried : BlockState{ head_state.display_id, head_state.rotation, 0, head_state.display_id, 0 };
         }
-        world.bodies.spawn_piston_mover( slide_state, head_pos, this->block_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( slide_state ) );
+        world.bodies.spawn_piston_mover( slide_state, head_pos, block_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( slide_state ) );
         if ( base->is_sticky_piston ) {
             const glm::ivec3 pull_pos = head_pos + dir;
             const BlockState pull_state = world.get_loaded_block( pull_pos );
@@ -245,7 +276,7 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
                 piston_set_local( repGameState, pull_pos, BLOCK_STATE_AIR );
                 RepGameState::PistonMove move;
                 move.carried = pull_state;
-                move.base = this->block_pos;
+                move.base = block_pos;
                 move.body_id = world.bodies.spawn_piston_mover( pull_state, pull_pos, head_pos, start_gt, PISTON_MOVE_GT, pull_nb );
                 repGameState.piston_moves[ head_pos ] = move;
                 const BlockState moving = { MOVING_PISTON, pull_state.rotation, 0, pull_state.id, 0 };
@@ -259,6 +290,10 @@ void PistonEvent::performAction( RepGameState &repGameState ) {
         piston_set_local( repGameState, head_pos, BLOCK_STATE_AIR );
         schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, head_pos );
     }
+}
+
+void PistonEvent::performAction( RepGameState &repGameState ) {
+    piston_update( repGameState, this->block_pos );
 }
 
 void PistonLandEvent::performAction( RepGameState &repGameState ) {

@@ -27,7 +27,9 @@ writes instead — see docs/redstone.md's piston paragraph), doesn't count
 against the cap's eviction, and expires silently at its slide end (a
 retracting head) unless the landing write `take()`s it first — take() parks
 a taken mover in the `landed` list so it keeps drawing until the destination
-chunk remeshes. Physics runs at `UPS_RATE` inside
+chunk remeshes. A retracting piston's *base* cell is also a `BODY_PISTON`
+move — same cell for `from` and `to`, holding the powered (extended) state —
+so the base keeps drawing its extended model until the retraction lands. Physics runs at `UPS_RATE` inside
 `bodies.tick` (called right
 after `mobs.tick`): gravity/drag/terminal velocity (`GRAVITY_STRENGTH`,
 `TERMINAL_VELOCITY`, air drag ~0.9972), water medium (`WATER_GRAVITY_STRENGTH`,
