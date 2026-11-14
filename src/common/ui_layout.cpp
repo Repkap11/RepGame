@@ -218,54 +218,24 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                                                    this->font_->getTextWidth( "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW", chat_t ) ) );
 
     // Touch controls: button unit r = min(w/4, h/2)/2 (UIOverlayView's
-    // lookMaxRadius). The bottom set sits on the screen's bottom edge in
-    // the gutters beside the centered hotbar — the joystick is a 2r
-    // square bottom-left, Break+Place a row bottom-right; Jump/Sneak/
-    // Menu hold the top corners/edge with Chat hanging off the left
-    // edge directly under Sneak, Inv mirroring it under Jump on the
-    // right, and Pick top-aligned immediately right of Menu; the
-    // inventory set mirrors Inv/Jump with the creative page arrows
-    // floating in the margins.
+    // lookMaxRadius), buttons 4:3 (r wide, bh tall). Anchored to fixed
+    // screen positions — the joystick is a 2r square bottom-left,
+    // Break+Place a row bottom-right, Jump/Sneak/Menu on the top
+    // corners/edge with Chat hanging under Sneak on the left and Inv
+    // mirroring under Jump on the right, Pick right of Menu. On
+    // narrow screens the bottom set may cover the hotbar; no lift
+    // fallback. The inventory set mirrors Inv/Jump with the creative
+    // page arrows floating in the margins.
     const float touch_r = fminf( in.screen_w * 0.25f, in.screen_h * 0.5f ) * 0.5f;
-    // The HUD strip is a FIT wrapper around the hotbar slab, so both
-    // rects are known before the pass (centered coords: strip covers the
-    // hotbar's whole span). A bottom control whose corner rect would
-    // land on either is lifted so its bottom sits on the strip's top
-    // edge instead. Inv doesn't join the bottom set — it hangs off the
-    // right edge directly under Jump, and Pick/Chat live up top beside
-    // Menu and under Sneak.
-    const UiRect touch_strip{ -in.hotbar_slab_w * 0.5f, -in.screen_h * 0.5f, in.hotbar_slab_w, strip_h };
-    const UiRect touch_hotbar{ -in.hotbar_slab_w * 0.5f, -in.screen_h * 0.5f, in.hotbar_slab_w, in.hotbar_slab_h };
-    const auto hits = []( const UiRect &a, const UiRect &b ) {
-        return a.left < b.right( ) && a.right( ) > b.left && a.bottom < b.top( ) && a.top( ) > b.bottom;
-    };
-    const auto touch_lift = [ & ]( const UiRect &home ) {
-        // Minimal clearance: just enough to park the bottom on the
-        // strip's top edge (a hit always means home.bottom < strip top).
-        if ( !hits( home, touch_strip ) && !hits( home, touch_hotbar ) ) {
-            return 0.0f;
-        }
-        return fmaxf( 0.0f, touch_strip.top( ) - home.bottom );
-    };
-    const float touch_joy_lift = touch_lift( { -in.screen_w * 0.5f, -in.screen_h * 0.5f, 2.0f * touch_r, 2.0f * touch_r } );
-    const float touch_break_lift = touch_lift( { in.screen_w * 0.5f - 2.0f * touch_r, -in.screen_h * 0.5f, touch_r, touch_r } );
-    const float touch_place_lift = touch_lift( { in.screen_w * 0.5f - touch_r, -in.screen_h * 0.5f, touch_r, touch_r } );
-    // Chat's home is the left edge directly under Sneak; when that
-    // would intersect the (possibly lifted) joystick it moves onto the
-    // top row immediately right of Sneak instead.
-    const UiRect touch_joy_rect{ -in.screen_w * 0.5f, -in.screen_h * 0.5f + touch_joy_lift, 2.0f * touch_r, 2.0f * touch_r };
-    const UiRect touch_chat_home{ -in.screen_w * 0.5f, in.screen_h * 0.5f - 2.0f * touch_r, touch_r, touch_r };
-    const bool touch_chat_beside_sneak = hits( touch_joy_rect, touch_chat_home );
-    const float touch_chat_x = touch_chat_beside_sneak ? touch_r : 0.0f;
-    const float touch_chat_y = touch_chat_beside_sneak ? 0.0f : touch_r;
+    const float touch_bh = touch_r * 0.75f;
     const float touch_margin = fmaxf( 0.0f, ( in.screen_w - in.creative_panel_w ) * 0.5f );
     const float touch_page_s = fmaxf( 0.0f, fminf( in.screen_w * 0.09f, touch_margin - 8.0f ) );
     const float touch_page_off = fmaxf( 0.0f, ( touch_margin - touch_page_s ) * 0.5f );
     // Page arrows: vertically centered on the creative panel when that
-    // already clears Close (Close's bottom edge = h/2 - 2r, it hangs
+    // already clears Close (Close's bottom edge = h/2 - 2*bh, it hangs
     // under Jump on the right edge); otherwise pushed flush below it.
     // Both arrows share the y so the pair stays level.
-    const float touch_close_bottom = in.screen_h * 0.5f - 2.0f * touch_r;
+    const float touch_close_bottom = in.screen_h * 0.5f - 2.0f * touch_bh;
     const float creative_center_y = creative_bottom + in.creative_panel_h * 0.5f;
     const float touch_page_top = fminf( creative_center_y + touch_page_s * 0.5f, touch_close_bottom );
     const float touch_page_center_off = -( touch_page_top - touch_page_s * 0.5f ); // y-down offset from screen center
@@ -421,69 +391,65 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                 .floating = { .offset = { chat_pad, -( strip_h + 2.0f * chat_pad + chat_input_h ) },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
-        // Touch controls float off the root corners; the bottom set sits
-        // on the screen's bottom edge beside the hotbar unless the gutter
-        // is too narrow, in which case the precomputed lifts park them on
-        // the HUD strip's top edge. Declared unconditionally; only the
-        // touch draw decides visibility.
+        // Touch controls float off the root edges at fixed positions;
+        // on narrow screens the bottom set may cover the hotbar.
+        // Declared unconditionally; only the touch draw decides
+        // visibility.
         CLAY( { .id = CLAY_ID( "touch_joystick" ),
                 .layout = { .sizing = { CLAY_SIZING_FIXED( 2.0f * touch_r ), CLAY_SIZING_FIXED( 2.0f * touch_r ) } },
-                .floating = { .offset = { 0, -touch_joy_lift },
-                              .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
+                .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_BOTTOM, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_jump" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
                 .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_sneak" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
                 .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_menu" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
                 .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_TOP, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         // Chat hangs off the left edge directly under Sneak (mirrors
-        // Inv under Jump on the right) — or right of Sneak on the top
-        // row when the lifted joystick would cover its home.
+        // Inv under Jump on the right).
         CLAY( { .id = CLAY_ID( "touch_chat" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
-                .floating = { .offset = { touch_chat_x, touch_chat_y },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
+                .floating = { .offset = { 0, touch_bh },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         // Pick sits top-aligned immediately right of Menu (menu is r
         // wide, centered on CENTER_TOP, so its right edge is +r/2).
         CLAY( { .id = CLAY_ID( "touch_pick" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
                 .floating = { .offset = { touch_r * 0.5f, 0 },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         // Inv hangs off the right edge directly under Jump.
         CLAY( { .id = CLAY_ID( "touch_inventory" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
-                .floating = { .offset = { 0, touch_r },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
+                .floating = { .offset = { 0, touch_bh },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_break" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
-                .floating = { .offset = { -touch_r, -touch_break_lift },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
+                .floating = { .offset = { -touch_r, 0 },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_place" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
-                .floating = { .offset = { 0, -touch_place_lift },
-                              .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
+                .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_BOTTOM, .parent = CLAY_ATTACH_POINT_RIGHT_BOTTOM },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         // Inventory-open set: Close at Inv's spot, mode at Jump's, page
         // arrows vertically centered in the margins beside the creative
         // panel (shrunk to fit when the margin is tight).
         CLAY( { .id = CLAY_ID( "touch_inv_close" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
-                .floating = { .offset = { 0, touch_r },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
+                .floating = { .offset = { 0, touch_bh },
                               .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_inv_mode" ),
-                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_r ) } },
+                .layout = { .sizing = { CLAY_SIZING_FIXED( touch_r ), CLAY_SIZING_FIXED( touch_bh ) } },
                 .floating = { .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
                               .attachTo = CLAY_ATTACH_TO_ROOT } } ) { }
         CLAY( { .id = CLAY_ID( "touch_page_prev" ),

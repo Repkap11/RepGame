@@ -52,8 +52,8 @@ started in the world never moves items.
 The shared touch controls — the C++ port of Android's `UIOverlayView`,
 active while `input.touch_ui` (Android at init, WASM from JS, the pause
 menu's "Touch Controls" button elsewhere). Geometry is the layout pass's
-`UiLayoutRects::touch_*` (docs/ui.md); a `r = min(w/4, h/2)/2` unit
-sizes every button.
+`UiLayoutRects::touch_*` (docs/ui.md); buttons are 4:3 (`r` wide,
+`0.75r` tall with `r = min(w/4, h/2)/2`), the joystick a `2r` square.
 
 | Touch | Action |
 |---|---|
@@ -63,7 +63,7 @@ sizes every button.
 | Break / Place (bottom-right corner row, hold) + Pick (top, right of Menu) | `setButtonState` left / middle / right |
 | Inv (right edge, directly under Jump, tap) | `onInventoryClicked` |
 | Menu (top-center, tap) | `onMenuClicked` (close inventory, else pause menu); opening the menu releases every held control |
-| Chat (left edge, directly under Sneak — or right of Sneak on the top row when the lifted joystick would cover it, tap) | `chat_open_request` → `repgame_open_chat` — chat uses the shared `text_input_active` capture; on Android the box opens but there's no IME bridge yet |
+| Chat (left edge, directly under Sneak, tap) | `chat_open_request` → `repgame_open_chat` — chat uses the shared `text_input_active` capture; on Android the box opens but there's no IME bridge yet |
 | System back (Android) / browser back (WASM) | `Input::backPressed()`: text field → `text_escape`, focused creative search → `search_close`, else `onMenuClicked` |
 | Drag anywhere else | Look — `lookMove(dx, dy)` at `TOUCH_LOOK_SENSITIVITY` (1.25×) per move |
 | Short tap anywhere else | Tap — `screen_tap_pending` at `absPosition`: hotbar slot select with the inventory closed, a UI click when it's open (slop = `TOUCH_TAP_SLOP_FRACTION` × short screen edge) |
@@ -71,10 +71,9 @@ sizes every button.
 | `menu_open` or `text_input_active` | Every touch is a tap: `absPosition` tracks the finger, `screen_tap_pending` on a within-slop release |
 
 Multi-touch tracks one pointer id per control (a second finger on a held
-control is ignored); `TOUCH_CANCEL` releases without a tap. On narrow
-screens where a bottom-corner control would cover the hotbar, it lifts
-so its bottom sits on the HUD strip's top edge (Pick stays aligned with
-the joystick).
+control is ignored); `TOUCH_CANCEL` releases without a tap. Controls sit
+at fixed screen positions — on narrow screens the bottom set may simply
+cover the hotbar.
 
 ## Movement (`RepGame::process_movement`)
 

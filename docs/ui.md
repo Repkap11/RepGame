@@ -281,14 +281,14 @@ matching and the output slot are documented with the item/recipe data in
   `touch_chat` button sits right of Menu and opens chat via
   `input.chat_open_request`), and Close/game-mode/creative-page-arrow
   buttons while `inventory_open`.
-  Geometry comes from the layout pass (`UiLayoutRects::touch_*`: the
-  bottom set sits on the screen's bottom edge beside the hotbar — a `2r`
-  joystick bottom-left, Break+Place bottom-right — `r = min(w/4, h/2)/2`
-  units, Chat hangs off the left edge directly under Sneak, Inv mirrors
-  it under Jump on the right, Pick sits top-aligned right of Menu,
-  page arrows in the margins beside the creative panel; a control whose
-  corner rect would hit the hotbar/HUD strip lifts onto the strip's top
-  edge, and `UI_OVERFLOW_TOUCH` flags any escaping rect. Platform touches enter through `RepGame::touch_event` ->
+  Geometry comes from the layout pass (`UiLayoutRects::touch_*`: fixed
+  screen positions — a `2r` joystick bottom-left, Break+Place
+  bottom-right, Jump/Sneak/Menu on the top corners/edge, Chat under
+  Sneak on the left, Inv under Jump on the right, Pick top-aligned
+  right of Menu; buttons are `r` wide × `0.75r` tall with
+  `r = min(w/4, h/2)/2`, page arrows in the margins beside the
+  creative panel; on narrow screens the bottom set may cover the
+  hotbar, and `UI_OVERFLOW_TOUCH` flags any escaping rect. Platform touches enter through `RepGame::touch_event` ->
   `repgame_touch_event` (window pixels, y down — a no-op unless
   `input.touch_ui`), which builds a `TouchContext` and calls
   `TouchControls::event`; `tick` runs once per frame from `RepGame::tick`

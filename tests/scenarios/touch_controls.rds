@@ -2,33 +2,32 @@
 # screenshot the gameplay controls, drag the joystick to walk, then tap
 # Inv / Close / Menu through the touch rects. Coordinates are window
 # pixels for the headless 1024x768 window (see `uistate` touch rects:
-# r = 128, joystick center (128,455 — lifted onto the strip, the gutter
-# beside the hotbar is 230 < 2r), Inv/Close (960,192 — under Jump on the
-# right edge), Menu (512,64)).
+# r = 128, bh = 96, joystick 2r bottom-left center (128,640), Inv/Close
+# (960,144 — under Jump on the right edge), Menu (512,48)).
 wait_idle 20 6000
 touchui 1
 wait 30
 screenshot touch_hud
 # Joystick drag right -> the player strafes +x, release stops it.
-touch down 1 128 455
-touch move 1 384 455
+touch down 1 128 640
+touch move 1 384 640
 wait 90
 ride_state
-touch up 1 384 455
+touch up 1 384 640
 assert_pos 20 3.5 0.5 10.0
 # Tap Inv -> inventory opens; the inventory touch set draws instead.
-touch down 2 960 192
-touch up 2 960 192
+touch down 2 960 144
+touch up 2 960 144
 assert_ui_open inventory 1
 wait 20
 screenshot touch_inventory
 # Tap Close -> inventory closes again.
-touch down 3 960 192
-touch up 3 960 192
+touch down 3 960 144
+touch up 3 960 144
 assert_ui_open inventory 0
 # Tap Menu -> the pause menu opens and owns the screen.
-touch down 4 512 64
-touch up 4 512 64
+touch down 4 512 48
+touch up 4 512 48
 assert_ui_open menu 1
 wait 20
 screenshot touch_menu

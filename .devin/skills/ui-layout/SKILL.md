@@ -46,7 +46,9 @@ draw code  +  click routing   (both read the same rects)
 
 Existing consumers of the pass include the touch controls
 (`UiLayoutRects::touch_*`, drawn/hit-tested only while
-`input.touch_ui`) — see `docs/ui.md`.
+`input.touch_ui`): fixed screen-edge positions, 4:3 buttons
+(`r` × `0.75r`, joystick `2r` square) that may cover the hotbar on
+narrow screens — there is no lift/fallback step. See `docs/ui.md`.
 
 ## Adding a UI element
 
