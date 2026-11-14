@@ -18,6 +18,7 @@
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/structure_gen.hpp"
 #include "common/rail.hpp"
+#include "common/repeater.hpp"
 #if defined( REPGAME_BUILD_WITH_HIP )
 #include "linux/hip/mesh_gen.hpp"
 #endif
@@ -1626,6 +1627,13 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                             block_can_mesh_y = 0;
                             block_can_mesh_z = 0;
                         }
+                        if ( block->is_repeater ) {
+                            // Every repeater cell emits its own two torch
+                            // sticks below — no merged runs.
+                            block_can_mesh_x = 0;
+                            block_can_mesh_y = 0;
+                            block_can_mesh_z = 0;
+                        }
 
                         int size_x = 1;
                         int size_y = 1;
@@ -1726,7 +1734,8 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                         const bool redstone_orb = blockState.display_id == REDSTONE_TORCH && blockState.current_redstone_power > 0;
                         const bool piston_arm_cell = block->is_piston_head || ( block->is_piston && blockState.current_redstone_power > 0 );
                         const int emit_count = ( num_boxes > 0 ? num_boxes : 1 ) + ( redstone_orb ? 1 : 0 ) + ( block->spine_shell ? 2 : 0 ) +
-                                               ( piston_arm_cell ? size_x * size_y * size_z : 0 );
+                                               ( piston_arm_cell ? size_x * size_y * size_z : 0 ) +
+                                               ( block->is_repeater ? ( blockState.current_redstone_power > 0 ? 4 : 2 ) : 0 );
                         ensure_capacity( block->renderOrder, emit_count );
                         if ( num_instances[ block->renderOrder ] + emit_count > capacity[ block->renderOrder ] ) {
                             continue; // OOM — drop this cell's instances.
@@ -1907,6 +1916,61 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                             orb->tex_offset_z = -13;
                             for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                                 orb->face[ f ] = TEX_REDSTONE_TORCH_GLOW;
+                            }
+                        }
+
+                        // A repeater cell emits two torch-stick instances on
+                        // top of its slab, matching Java's unrotated
+                        // repeater_Ntick model (output toward -z, our rotation
+                        // 0): the fixed torch sits at the output end, the
+                        // movable one slides back with the 1-4 delay. The
+                        // shader yaws the def-space boxes with the cell. The
+                        // sticks sample the torch tiles' top 5 stick rows;
+                        // the bottom cap is skipped and every quad is forced
+                        // lit like the piston arm, since the quads sit inside
+                        // the cell. A powered repeater's torches also get the
+                        // lit-torch glow shell (same inside-out trick as the
+                        // redstone_orb, sized to the stub's top).
+                        if ( block->is_repeater ) {
+                            const bool lit = blockState.current_redstone_power > 0;
+                            const int torch_z[ 2 ] = { 2, 6 + 2 * ( repeater_delay( blockState ) - 1 ) };
+                            for ( int i = 0; i < 2; i++ ) {
+                                BlockCoords *torch = &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
+                                num_instances[ block->renderOrder ] += 1;
+                                *torch = *blockCoord;
+                                torch->scale_x = 2;
+                                torch->scale_y = 5;
+                                torch->scale_z = 2;
+                                torch->offset_x = 7;
+                                torch->offset_y = 2;
+                                torch->offset_z = static_cast<signed char>( torch_z[ i ] );
+                                torch->tex_offset_x = -7;
+                                torch->tex_offset_y = -5;
+                                torch->tex_offset_z = -7;
+                                for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                    torch->packed_lighting[ f ] = NO_LIGHT_BRIGHT;
+                                    torch->face[ f ] = lit ? TEX_REDSTONE_TORCH_ON : TEX_REDSTONE_TORCH_OFF;
+                                }
+                                torch->face[ FACE_TOP ] = lit ? TEX_REDSTONE_TORCH_TOP : TEX_REDSTONE_TORCH_OFF_TOP;
+                                torch->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                                if ( lit ) {
+                                    BlockCoords *orb = &emit_buf[ block->renderOrder ][ num_instances[ block->renderOrder ] ];
+                                    num_instances[ block->renderOrder ] += 1;
+                                    *orb = *torch;
+                                    orb->face_shift = ( torch->face_shift & BLOCK_COORDS_ROTATION_MASK ) | BLOCK_COORDS_INSIDE_OUT | BLOCK_COORDS_HALF_PIXEL;
+                                    orb->scale_x = 6;
+                                    orb->scale_y = 6;
+                                    orb->scale_z = 6;
+                                    orb->offset_x = torch->offset_x * 2 - 1;
+                                    orb->offset_y = 9;
+                                    orb->offset_z = torch->offset_z * 2 - 1;
+                                    orb->tex_offset_x = -13;
+                                    orb->tex_offset_y = -9;
+                                    orb->tex_offset_z = -13;
+                                    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                                        orb->face[ f ] = TEX_REDSTONE_TORCH_GLOW;
+                                    }
+                                }
                             }
                         }
 

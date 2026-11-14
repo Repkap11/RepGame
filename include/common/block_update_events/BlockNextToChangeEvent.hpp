@@ -23,6 +23,12 @@ glm::ivec3 piston_head_base( World &world, const glm::ivec3 &block_pos, const Bl
 // rail loop can't hold itself on.
 int mechanism_direct_power( World &world, const glm::ivec3 &pos );
 
+// Returns true if the given dust display_id points toward the given
+// horizontal direction, i.e. the dust would weakly power a solid block in
+// that direction. dir_from_dust points from the dust toward the block
+// being powered; a dot points nowhere horizontally.
+bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_dust );
+
 class BlockNextToChangeEvent : public BlockUpdateEvent {
   public:
     BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset );

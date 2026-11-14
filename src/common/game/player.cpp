@@ -23,6 +23,7 @@
 #include "common/game/game_internal.hpp"
 #include "common/break_drops.hpp"
 #include "common/rail.hpp"
+#include "common/repeater.hpp"
 #include "common/tree_grow.hpp"
 
 // Left-click damage to a mob in survival (creative kills in one hit).
@@ -720,6 +721,18 @@ void RepGame::process_mouse_events( ) {
             BlockState toggled_state = target_state;
             toggled_state.rotation = fence_gate_toggle_rotation( target_state.rotation, getPlacedRotation( target_state.id ) );
             globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy, toggled_state, true );
+            globalGameState.input.click_delay_right = 30;
+        }
+    }
+    if ( globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && globalGameState.input.click_delay_right == 0 ) {
+        // Right-clicking a repeater cycles its delay 1-4 (the delay lives in
+        // display_id) instead of placing against it. Sneaking skips the
+        // interaction so the block can be placed.
+        const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
+        if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_repeater && !globalGameState.input.movement.sneakPressed ) {
+            globalGameState.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( globalGameState.tick_number, globalGameState.block_selection.pos_destroy,
+                                                                                   repeater_cycle_delay( target_state ), true );
+            audio_play_sfx( audio_block_dig_pool( target_state.id ) );
             globalGameState.input.click_delay_right = 30;
         }
     }

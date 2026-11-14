@@ -260,6 +260,11 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 // Redstone power emitted by a pressed button/pressure plate (same as a torch).
 #define REDSTONE_SOURCE_POWER 15
 
+// Ticks per redstone-tick step of repeater delay (MC's 0.1s): a repeater's
+// 1-4 delay reads as delay * REDSTONE_TICK_TICKS. The hook a global
+// redstone tick would retune together with REDSTONE_DELAY.
+#define REDSTONE_TICK_TICKS ( UPS_RATE / 10 )
+
 // Bounded timeout for the background TCP connect attempt to a multiplayer
 // server. Prevents the OS default (~75s+) from stalling if SYNs are silently
 // dropped by a down/unreachable host.

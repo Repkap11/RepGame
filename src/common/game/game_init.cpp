@@ -52,6 +52,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     globalGameState.block_mining.id = AIR;
     globalGameState.block_mining.progress_ticks = 0.0f;
     globalGameState.watched_pressure_plates.clear( );
+    globalGameState.pending_repeater_ticks.clear( );
     globalGameState.camera.angle_H = 0.0f;
     globalGameState.camera.angle_V = 0.0f;
     globalGameState.vr.active = false;

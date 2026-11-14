@@ -24,6 +24,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( angle_wrap ),       //
     MK_TEST( teleport_parse ),   //
     MK_TEST( redstone ),        //
+    MK_TEST( repeaters ),       //
     MK_TEST( rails ),           //
     MK_TEST( minecarts ),       //
     MK_TEST( torch_pick ),      //

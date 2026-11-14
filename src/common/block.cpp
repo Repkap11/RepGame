@@ -558,6 +558,12 @@ void block_adjust_coord_based_on_state( const Block *block, const BlockState *bl
         blockCoord->face[ FACE_TOP ] = TEX_RAIL_GOLDEN_POWERED;
     }
 
+    // Powered repeaters swap their top tile for the lit variant — the
+    // block-def flag covers REPEATER and the display-id delay variants.
+    if ( block->is_repeater && blockState->current_redstone_power > 0 ) {
+        blockCoord->face[ FACE_TOP ] = TEX_REPEATER_ON;
+    }
+
     REDSTONE_DUST_IF( REDSTONE_WIRE_LINE_1 )
     REDSTONE_DUST_IF( REDSTONE_WIRE_LINE_2 )
     REDSTONE_DUST_IF( REDSTONE_WIRE_CROSS )

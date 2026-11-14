@@ -96,6 +96,11 @@ struct RepGameState {
     // changed (or a random tick rescues a flow frozen by chunk unload),
     // erased by the event when it fires. At most one update per fluid cell.
     std::unordered_set<glm::ivec3> pending_fluid_updates;
+    // Repeater cells with a RepeaterEvent queued: added when a neighbor
+    // change left the input disagreeing with the output (or the event
+    // re-arms itself for pulse extension), erased when the event fires.
+    // At most one pending tick per repeater.
+    std::unordered_set<glm::ivec3> pending_repeater_ticks;
 
     // Local player: input, camera, block interaction, and the player's own
     // inventories (persisted in player.dat; the panels in `ui` render them).

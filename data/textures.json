@@ -2542,8 +2542,15 @@
   "reinforced_deepslate_top": {
     "source": "textures/blocks/reinforced_deepslate_top"
   },
+  "repeater": {
+    "source": "textures/items/repeater"
+  },
   "repeater_off": {
     "source": "textures/blocks/repeater_off"
+  },
+  "repeater_on": {
+    "keep": true,
+    "source": "textures/blocks/repeater_on"
   },
   "repeating_command_block_back_mipmap": {
     "source": "textures/blocks/repeating_command_block_back_mipmap"

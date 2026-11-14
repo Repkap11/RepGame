@@ -48,6 +48,8 @@ The event types live in `src/common/block_update_events/`:
 - `FluidUpdateEvent` — the water/lava flow sim, scheduled by
   `fluid_schedule_update` on face-adjacent wakes and by the random-tick
   rescue. The whole model lives in `docs/fluids.md`.
+- `RepeaterEvent` — delayed power re-emission for repeaters; see
+  "Repeaters" below.
 - `FallingBlockEvent`, `DoorEvent`, `PistonEvent`,
   `PressurePlateEvent`, `TntExplodeEvent` — mechanism-specific; below.
 
@@ -174,6 +176,38 @@ can't hold itself on. Powered rails swap their top tile to
 `rail_golden_powered` in `block_adjust_coord_based_on_state` (same trick
 as the lit lamp). Shape/track rules are in `docs/blocks.md`.
 
+**Repeaters** (`is_repeater`, `REPEATER`) are diodes: they read power
+only from the block *behind* them, wait a configured delay, then emit
+hard power 15 out the front — refreshing the signal and strongly
+powering the cell in front. Facing is `rotation & 3` (0=-z, 1=+x,
+2=+z, 3=-x) with output toward facing; `repeater_output_dir`/
+`repeater_points_into` in `src/common/repeater.cpp` hold the mapping.
+The delay (1–4 redstone ticks) lives in `display_id`, swapped between
+`REPEATER` and the hidden render-only `REPEATER_DELAY_2/3/4` ids — the
+id never changes, only the display. `REDSTONE_TICK_TICKS`
+(`UPS_RATE / 10`) is one redstone tick in game ticks, so delay-4 is
+`4 * REDSTONE_TICK_TICKS` ticks. Right-click cycles 1→2→3→4→1
+(`player.cpp`, skipped while sneaking).
+
+Repeater state changes don't run through `perform_checks` — they need a
+real delay, so `BlockNextToChangeEvent::performAction` schedules a
+`RepeaterEvent` for any repeater at either of its two positions
+(deduped by `RepGameState::pending_repeater_ticks`, one pending event
+per cell). When it fires it re-reads the input side: input still powered
+(or the output already on) writes the matching power level; a powered
+output with input now low writes 0. The one MC diode quirk: an
+*unpowered* repeater turns on even if the input already went away, then
+re-arms itself for another delay — so a 1-tick input pulse still
+produces a full delayed output pulse. `perform_checks` leaves a
+repeater's stored power untouched; only `RepeaterEvent` changes it.
+
+Power reads honour the diode direction: `dust_adjacent_source_power` and
+`block_neighbor_power` treat a repeater as a source *only* when
+`repeater_points_into` the cell being read — a repeater powering its
+output block hard-powers it at 15, while blocks beside or behind it see
+nothing. Dust connects visually to a repeater only along its axis (in
+front or behind), so side dust stays a cross and gets no power.
+
 ## Other event behaviours
 
 `perform_checks` also drives non-redstone reactions: **leaf decay**
@@ -213,6 +247,8 @@ that changed it — matching the "causer simulates" rule for bodies
 `test_redstone` (`src/common/tests/test_redstone.cpp`, `make tests
 TESTS=redstone`) builds a torch/dust/piston/lamp scenario and asserts
 the MC semantics listed at the top of that file — read its header
-comment for the canonical example. `test_doors` (same file) and
+comment for the canonical example. `test_repeaters` (same file,
+`TESTS=repeater`) covers facing, delay cycling, pulse extension and
+hard power. `test_doors` (same file) and
 `test_falling_blocks`/`test_tnt` (`test_blocks.cpp`) exercise the same
 queue.

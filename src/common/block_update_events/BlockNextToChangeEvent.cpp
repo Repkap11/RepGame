@@ -9,7 +9,9 @@
 #include "common/block_update_events/FallingBlockEvent.hpp"
 #include "common/block_update_events/LeafDecayEvent.hpp"
 #include "common/block_update_events/FluidUpdateEvent.hpp"
+#include "common/block_update_events/RepeaterEvent.hpp"
 #include "common/rail.hpp"
+#include "common/repeater.hpp"
 
 BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ivec3 &pos, const glm::ivec3 &offset ) : BlockUpdateEvent( tick_number ), block_pos( pos + offset ), affecting_block_pos( pos ) {
     this->name = "BlockNextToChangeEvent";
@@ -20,7 +22,7 @@ BlockNextToChangeEvent::BlockNextToChangeEvent( long tick_number, const glm::ive
 // dir_from_dust points from the dust toward the block being powered.
 // Mapping: x+1=left, x-1=right, z+1=front, z-1=back (matching the connection naming in perform_checks).
 // A dot (REDSTONE_WIRE_DOT) points nowhere horizontally — it only powers the block below it.
-inline bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_dust ) {
+bool dust_points_toward( BlockID display_id, const glm::ivec3 &dir_from_dust ) {
     if ( dir_from_dust.y != 0 ) {
         return false; // vertical power is handled separately
     }
@@ -85,6 +87,15 @@ static int dust_adjacent_source_power( World &world, const glm::ivec3 &pos ) {
         }
         const Block *neighbor_block = block_definition_get_definition( neighbor.id );
         if ( neighbor_block->is_redstone_dust ) {
+            continue;
+        }
+        // A repeater feeds dust only through its output cell — before the
+        // generic power <= 1 read, because a powered repeater stores 15 and
+        // would otherwise feed dust from every side.
+        if ( neighbor_block->is_repeater ) {
+            if ( repeater_points_into( neighbor, pos + dir, pos ) && neighbor.current_redstone_power > max ) {
+                max = neighbor.current_redstone_power;
+            }
             continue;
         }
         if ( !neighbor_block->transmits_redstone_power && neighbor.current_redstone_power <= 1 ) {
@@ -418,6 +429,10 @@ static int block_neighbor_power( World &world, const glm::ivec3 &pos, bool soft_
                 new_power = REDSTONE_TORCH_POWER;
             }
         }
+        // A powered repeater strongly powers only the cell it points into.
+        if ( neighbor_block->is_repeater && repeater_points_into( neighbor, pos + dir, pos ) && REDSTONE_TORCH_POWER > new_power ) {
+            new_power = REDSTONE_SOURCE_POWER;
+        }
     }
 
     if ( new_power <= 1 && soft_ok ) {
@@ -489,6 +504,20 @@ int mechanism_direct_power( World &world, const glm::ivec3 &pos ) {
     return power > 1 ? 1 : power;
 }
 
+// Whether dust draws a connection to a same-y neighbour: the generic
+// connects_to_redstone_dust flag, restricted for repeaters to the two
+// cells on their facing axis (x_axis = the dust-side direction is +x).
+// Repeater facing bit 0 selects the axis: rotations 0/2 lie on z, 1/3 on x.
+static bool dust_connects_side( const Block *neighbor_def, const BlockState &neighbor, bool x_axis ) {
+    if ( !neighbor_def->connects_to_redstone_dust ) {
+        return false;
+    }
+    if ( neighbor_def->is_repeater ) {
+        return ( neighbor.rotation & 1 ) == ( x_axis ? 1 : 0 );
+    }
+    return true;
+}
+
 void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick_number, //
                      const glm::ivec3 &block_pos,                                        //
                      const glm::ivec3 &affecting_block_pos ) {
@@ -514,10 +543,10 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             if ( connects_left_id == LAST_BLOCK_ID || connects_right_id == LAST_BLOCK_ID || connects_front_id == LAST_BLOCK_ID || connects_back_id == LAST_BLOCK_ID ) {
                 pr_debug( "Not ready" );
             } else {
-                bool connects_left = NEXT_TO_BLOCK( 1, 0, 0 )->connects_to_redstone_dust;
-                bool connects_right = NEXT_TO_BLOCK( -1, 0, 0 )->connects_to_redstone_dust;
-                bool connects_front = NEXT_TO_BLOCK( 0, 0, 1 )->connects_to_redstone_dust;
-                bool connects_back = NEXT_TO_BLOCK( 0, 0, -1 )->connects_to_redstone_dust;
+                bool connects_left = dust_connects_side( NEXT_TO_BLOCK( 1, 0, 0 ), NEXT_TO_STATE( 1, 0, 0 ), true );
+                bool connects_right = dust_connects_side( NEXT_TO_BLOCK( -1, 0, 0 ), NEXT_TO_STATE( -1, 0, 0 ), true );
+                bool connects_front = dust_connects_side( NEXT_TO_BLOCK( 0, 0, 1 ), NEXT_TO_STATE( 0, 0, 1 ), false );
+                bool connects_back = dust_connects_side( NEXT_TO_BLOCK( 0, 0, -1 ), NEXT_TO_STATE( 0, 0, -1 ), false );
 
                 // Vertical diagonal connections are gated by the corner cell
                 // between the two dusts. The edge to pos+dir+up exists iff
@@ -634,6 +663,10 @@ void perform_checks( BlockUpdateQueue &blockUpdateQueue, World &world, long tick
             // Buttons and pressure plates own their power through their press
             // state — neighboring redstone can't change it.
             new_power = affecting_block_state.current_redstone_power;
+        } else if ( affecting_block->is_repeater ) {
+            // Repeaters own their power too: only RepeaterEvent flips it,
+            // after the cell's delay.
+            new_power = affecting_block_state.current_redstone_power;
         } else if ( affecting_block->transmits_redstone_power ) {
             // Dust: power = strongest source reachable through the dust
             // connection graph, minus one per hop.
@@ -708,6 +741,11 @@ void BlockNextToChangeEvent::performAction( BlockUpdateQueue &blockUpdateQueue, 
     if ( wake_delta.x + wake_delta.y + wake_delta.z == 1 ) {
         fluid_schedule_update( repGameState, this->block_pos );
         fluid_schedule_update( repGameState, this->affecting_block_pos );
+        // A repeater's input reads only its face-adjacent back cell, so the
+        // same manhattan-1 wakes cover every input change; the scheduler
+        // no-ops on non-repeaters and dedupes per cell.
+        repeater_schedule_update( repGameState, this->block_pos );
+        repeater_schedule_update( repGameState, this->affecting_block_pos );
     }
 
     // A changed cell may have been a natural leaf's supporting log — queue a

@@ -174,6 +174,13 @@ typedef struct {
     bool connects_to_redstone_dust;
     bool is_redstone_dust;
     bool is_torch;
+    // Repeaters (REPEATER and the render-only REPEATER_DELAY_2/3/4 display
+    // blocks): a 2px slab that passes power one way — out the facing cell
+    // (rotation & 3, shared yaw order) at REDSTONE_SOURCE_POWER after a
+    // RepeaterEvent delay of 1-4 redstone ticks (the delay lives in
+    // display_id, see common/repeater.hpp). RepeaterEvent owns the stored
+    // power; dust connects only along the facing axis.
+    bool is_repeater;
     // Fences draw as a post plus rails that connect to neighbors; gates draw
     // a closed or open multi-box model (see fence_boxes/fence_gate_boxes in
     // block.cpp). Gates store their open state in rotation bit 2

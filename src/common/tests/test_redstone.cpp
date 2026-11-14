@@ -1,6 +1,7 @@
 // Redstone + door mechanics tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
+#include "common/repeater.hpp"
 // Redstone mechanics, focused on the redstone torch:
 //
 //        dust(D2) lamp2  dust(G_d)  y=13
@@ -485,3 +486,194 @@ int test_doors( ) {
     return failures;
 }
 
+
+// Repeaters: the facing/delay encoding, the one-way power pass through
+// RepeaterEvent, per-delay timing and MC's pulse extension, hard power into
+// the front block (mechanism cap included), repeater-to-repeater chains,
+// dust connections along the facing axis only, and the floor-support kill.
+int test_repeaters( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    // --- encoding helpers ----------------------------------------------------
+    check_bool( "repeater: rot 0 outputs -z", repeater_output_dir( 0 ) == glm::ivec3( 0, 0, -1 ) );
+    check_bool( "repeater: rot 1 outputs +x", repeater_output_dir( 1 ) == glm::ivec3( 1, 0, 0 ) );
+    check_bool( "repeater: rot 2 outputs +z", repeater_output_dir( 2 ) == glm::ivec3( 0, 0, 1 ) );
+    check_bool( "repeater: rot 3 outputs -x", repeater_output_dir( 3 ) == glm::ivec3( -1, 0, 0 ) );
+    bool delay_ok = true;
+    const BlockID delay_ids[ 4 ] = { REPEATER, REPEATER_DELAY_2, REPEATER_DELAY_3, REPEATER_DELAY_4 };
+    for ( int d = 1; d <= 4; d++ ) {
+        const BlockState s = repeater_with_delay( { REPEATER, 0, 0, REPEATER, 0 }, d );
+        delay_ok &= repeater_delay( s ) == d && s.display_id == delay_ids[ d - 1 ];
+    }
+    check_bool( "repeater: delay/display_id round-trips 1-4", delay_ok );
+    check_bool( "repeater: cycle wraps 4 back to 1",
+                repeater_delay( repeater_cycle_delay( repeater_with_delay( { REPEATER, 0, 0, REPEATER, 0 }, 4 ) ) ) == 1 );
+    check_bool( "repeater: delay ticks scale by REDSTONE_TICK_TICKS",
+                repeater_delay_ticks( repeater_with_delay( { REPEATER, 0, 0, REPEATER, 0 }, 3 ) ) == 3 * REDSTONE_TICK_TICKS );
+
+    RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_redstone
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    // Repeaters need a solid support: a stone floor under the test area.
+    for ( int x = 0; x < 32; x++ ) {
+        for ( int z = 0; z < 32; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            gs.tick_number++;
+            gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        }
+    };
+    const BlockState rep_x = { REPEATER, 1, 0, REPEATER, 0 }; // facing +x
+
+    // --- power pass ----------------------------------------------------------
+    // block -- dust -- repeater(+x) -- dust, plus dust beside the repeater's
+    // sides that must stay dark.
+    place( glm::ivec3( 4, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    place( glm::ivec3( 5, 11, 4 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+    place( glm::ivec3( 6, 11, 4 ), rep_x );
+    place( glm::ivec3( 7, 11, 4 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+    place( glm::ivec3( 6, 11, 3 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+    place( glm::ivec3( 6, 11, 5 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+
+    // Direction: a source at the repeater's front drives neither the output
+    // nor the dust behind it.
+    place( glm::ivec3( 9, 11, 4 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+    place( glm::ivec3( 10, 11, 4 ), rep_x );
+    place( glm::ivec3( 11, 11, 4 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+
+    run( 60 );
+    failures += check_power( world, "repeater powered through dust", glm::ivec3( 6, 11, 4 ), 15 );
+    failures += check_power( world, "dust in front of powered repeater", glm::ivec3( 7, 11, 4 ), 14 );
+    failures += check_power( world, "dust beside repeater (-z) stays dark", glm::ivec3( 6, 11, 3 ), 0 );
+    failures += check_power( world, "dust beside repeater (+z) stays dark", glm::ivec3( 6, 11, 5 ), 0 );
+    failures += check_power( world, "repeater ignores a source at its front", glm::ivec3( 10, 11, 4 ), 0 );
+    failures += check_power( world, "dust behind front-fed repeater stays dark", glm::ivec3( 9, 11, 4 ), 0 );
+
+    // --- delay timing --------------------------------------------------------
+    // One repeater per delay: the gap between the tick the input first reads
+    // on and the tick the output reaches 15 is the delay in ticks.
+    long input_on[ 5 ] = { 0 };
+    long power_on[ 5 ] = { 0 };
+    for ( int d = 1; d <= 4; d++ ) {
+        place( glm::ivec3( 19, 11, 8 + d ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+        place( glm::ivec3( 20, 11, 8 + d ), repeater_with_delay( rep_x, d ) );
+    }
+    for ( int i = 0; i < 4 * REDSTONE_TICK_TICKS + 20; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        for ( int d = 1; d <= 4; d++ ) {
+            const glm::ivec3 p( 20, 11, 8 + d );
+            const BlockState s = world.get_loaded_block( p );
+            if ( input_on[ d ] == 0 && repeater_input_powered( world, p, s ) ) {
+                input_on[ d ] = gs.tick_number;
+            }
+            if ( power_on[ d ] == 0 && s.current_redstone_power == 15 ) {
+                power_on[ d ] = gs.tick_number;
+            }
+        }
+    }
+    for ( int d = 1; d <= 4; d++ ) {
+        const long gap = ( input_on[ d ] && power_on[ d ] ) ? power_on[ d ] - input_on[ d ] : -1;
+        check_bool( d == 1   ? "repeater delay 1: on within [14,16] ticks" :
+                    d == 2   ? "repeater delay 2: on within [28,30] ticks" :
+                    d == 3   ? "repeater delay 3: on within [42,44] ticks" :
+                               "repeater delay 4: on within [56,58] ticks",
+                    gap >= d * REDSTONE_TICK_TICKS && gap <= d * REDSTONE_TICK_TICKS + 2 );
+    }
+
+    // --- pulse extension -----------------------------------------------------
+    // A 1-tick input pulse on a delay-4 repeater still produces a full-delay
+    // output pulse (the event re-arms when the input is already gone).
+    const glm::ivec3 pulse_rep( 24, 11, 16 );
+    place( glm::ivec3( 23, 11, 16 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    place( pulse_rep, repeater_with_delay( rep_x, 4 ) );
+    run( 8 ); // input on and the tick scheduled, but the delay hasn't elapsed
+    place( glm::ivec3( 23, 11, 16 ), BLOCK_STATE_AIR );
+    long pulse_on = -1;
+    long pulse_off = -1;
+    for ( int i = 0; i < 8 * REDSTONE_TICK_TICKS + 40; i++ ) {
+        gs.tick_number++;
+        gs.blockUpdateQueue.processAllBlockUpdates( gs, gs.tick_number );
+        const int p = world.get_loaded_block( pulse_rep ).current_redstone_power;
+        if ( pulse_on < 0 && p == 15 ) {
+            pulse_on = gs.tick_number;
+        }
+        if ( pulse_on >= 0 && p == 0 ) {
+            pulse_off = gs.tick_number;
+            break;
+        }
+    }
+    check_bool( "pulse: delay-4 repeater still turns on", pulse_on >= 0 );
+    check_bool( "pulse: stays on about the full delay",
+                pulse_on >= 0 && pulse_off > pulse_on && pulse_off - pulse_on >= 4 * REDSTONE_TICK_TICKS - 4 &&
+                    pulse_off - pulse_on <= 4 * REDSTONE_TICK_TICKS + 10 );
+    check_bool( "pulse: no repeater tick left pending", gs.pending_repeater_ticks.empty( ) );
+
+    // --- hard power out the front ---------------------------------------------
+    // repeater -> stone: the stone is hard 15, dust on its far side reads 14,
+    // and a torch on the stone turns off. A lamp in front of a second
+    // repeater is capped to "activated" (1).
+    place( glm::ivec3( 3, 11, 20 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    place( glm::ivec3( 4, 11, 20 ), rep_x );
+    place( glm::ivec3( 5, 11, 20 ), stone );
+    place( glm::ivec3( 6, 11, 20 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+    place( glm::ivec3( 5, 12, 20 ), { REDSTONE_TORCH, 0, 0, REDSTONE_TORCH, 0 } );
+    place( glm::ivec3( 8, 11, 20 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    place( glm::ivec3( 9, 11, 20 ), rep_x );
+    place( glm::ivec3( 10, 11, 20 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );
+
+    // --- chain ---------------------------------------------------------------
+    // rep1 -> rep2: the second fires only after both delays.
+    place( glm::ivec3( 14, 11, 24 ), { REDSTONE_BLOCK, 0, 0, REDSTONE_BLOCK, 0 } );
+    place( glm::ivec3( 15, 11, 24 ), rep_x );
+    place( glm::ivec3( 16, 11, 24 ), repeater_with_delay( rep_x, 2 ) );
+
+    // --- dust shape ----------------------------------------------------------
+    // Lone dust behind the repeater becomes a LINE along its axis; lone dust
+    // at its side stays a CROSS (no connection off-axis).
+    place( glm::ivec3( 20, 11, 28 ), rep_x );
+    place( glm::ivec3( 19, 11, 28 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+    place( glm::ivec3( 20, 11, 29 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } );
+
+    run( 30 );
+    failures += check_power( world, "repeater hard-powers the front block", glm::ivec3( 5, 11, 20 ), 15 );
+    failures += check_power( world, "dust past hard-powered block", glm::ivec3( 6, 11, 20 ), 14 );
+    failures += check_power( world, "torch on powered stone turns off", glm::ivec3( 5, 12, 20 ), 0 );
+    failures += check_power( world, "lamp in front of repeater caps at 1", glm::ivec3( 10, 11, 20 ), 1 );
+    failures += check_power( world, "chain: rep1 on", glm::ivec3( 15, 11, 24 ), 15 );
+    failures += check_power( world, "chain: rep2 still off inside delay 2", glm::ivec3( 16, 11, 24 ), 0 );
+    check_bool( "dust behind repeater is a LINE", world.get_loaded_block( glm::ivec3( 19, 11, 28 ) ).display_id == REDSTONE_WIRE_LINE_1 );
+    check_bool( "dust beside repeater stays a CROSS", world.get_loaded_block( glm::ivec3( 20, 11, 29 ) ).display_id == REDSTONE_WIRE_CROSS );
+
+    run( 80 );
+    failures += check_power( world, "chain: rep2 on after both delays", glm::ivec3( 16, 11, 24 ), 15 );
+
+    // --- support -------------------------------------------------------------
+    // Removing the block under a repeater pops it like a torch.
+    place( glm::ivec3( 26, 11, 28 ), rep_x );
+    run( 4 );
+    place( glm::ivec3( 26, 10, 28 ), BLOCK_STATE_AIR );
+    run( 10 );
+    failures += check_id( world, "repeater pops without its support", glm::ivec3( 26, 11, 28 ), AIR );
+
+    check_bool( "no repeater ticks left pending", gs.pending_repeater_ticks.empty( ) );
+    return failures;
+}

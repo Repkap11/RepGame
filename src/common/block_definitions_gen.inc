@@ -2468,15 +2468,26 @@ block_definitions[ 150 ].hardness = 0.35f;
 block_definitions[ 150 ].is_seethrough = true;
 block_definitions[ 150 ].no_light = 6815743;
 
-// undefined (151)
-block_definitions[ 151 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 151 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 151 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 151 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 151 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 151 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 151 ].icon_texture = TEX_AIR;
+// REPEATER_DELAY_2 (151)
+block_definitions[ 151 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
+block_definitions[ 151 ].textures[ FACE_BOTTOM ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 151 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 151 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 151 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 151 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 151 ].icon_texture = TEX_REPEATER;
+block_definitions[ 151 ].breaks_in_liquid = true;
+block_definitions[ 151 ].casts_shadow = false;
+block_definitions[ 151 ].collides_with_player = true;
+block_definitions[ 151 ].connects_to_redstone_dust = true;
+block_definitions[ 151 ].hardness = 0.0f;
+block_definitions[ 151 ].icon_is_isometric = false;
 block_definitions[ 151 ].is_pickable = false;
+block_definitions[ 151 ].is_repeater = true;
+block_definitions[ 151 ].is_seethrough = true;
+block_definitions[ 151 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 151 ].rotate_on_placement = true;
+block_definitions[ 151 ].scale = { 16, 2, 16 };
 
 // BLACK_CARPET (152)
 block_definitions[ 152 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLACK;
@@ -2865,15 +2876,26 @@ block_definitions[ 179 ].hardness = 0.35f;
 block_definitions[ 179 ].is_seethrough = true;
 block_definitions[ 179 ].no_light = 6815743;
 
-// undefined (180)
-block_definitions[ 180 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 180 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 180 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 180 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 180 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 180 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 180 ].icon_texture = TEX_AIR;
+// REPEATER_DELAY_3 (180)
+block_definitions[ 180 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
+block_definitions[ 180 ].textures[ FACE_BOTTOM ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 180 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 180 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 180 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 180 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 180 ].icon_texture = TEX_REPEATER;
+block_definitions[ 180 ].breaks_in_liquid = true;
+block_definitions[ 180 ].casts_shadow = false;
+block_definitions[ 180 ].collides_with_player = true;
+block_definitions[ 180 ].connects_to_redstone_dust = true;
+block_definitions[ 180 ].hardness = 0.0f;
+block_definitions[ 180 ].icon_is_isometric = false;
 block_definitions[ 180 ].is_pickable = false;
+block_definitions[ 180 ].is_repeater = true;
+block_definitions[ 180 ].is_seethrough = true;
+block_definitions[ 180 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 180 ].rotate_on_placement = true;
+block_definitions[ 180 ].scale = { 16, 2, 16 };
 
 // BLUE_CARPET (181)
 block_definitions[ 181 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BLUE;
@@ -3235,15 +3257,26 @@ block_definitions[ 207 ].hardness = 0.35f;
 block_definitions[ 207 ].is_seethrough = true;
 block_definitions[ 207 ].no_light = 6815743;
 
-// undefined (208)
-block_definitions[ 208 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 208 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 208 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 208 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 208 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 208 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 208 ].icon_texture = TEX_AIR;
+// REPEATER_DELAY_4 (208)
+block_definitions[ 208 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
+block_definitions[ 208 ].textures[ FACE_BOTTOM ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 208 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 208 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 208 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 208 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
+block_definitions[ 208 ].icon_texture = TEX_REPEATER;
+block_definitions[ 208 ].breaks_in_liquid = true;
+block_definitions[ 208 ].casts_shadow = false;
+block_definitions[ 208 ].collides_with_player = true;
+block_definitions[ 208 ].connects_to_redstone_dust = true;
+block_definitions[ 208 ].hardness = 0.0f;
+block_definitions[ 208 ].icon_is_isometric = false;
 block_definitions[ 208 ].is_pickable = false;
+block_definitions[ 208 ].is_repeater = true;
+block_definitions[ 208 ].is_seethrough = true;
+block_definitions[ 208 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 208 ].rotate_on_placement = true;
+block_definitions[ 208 ].scale = { 16, 2, 16 };
 
 // BROWN_CARPET (209)
 block_definitions[ 209 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_BROWN;
@@ -18321,14 +18354,25 @@ block_definitions[ 1258 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1258 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1258 ].icon_texture = TEX_COMPARATOR_OFF;
 
-// UNPOWERED_REPEATER (1259)
+// REPEATER (1259)
 block_definitions[ 1259 ].textures[ FACE_TOP ] = TEX_REPEATER_OFF;
 block_definitions[ 1259 ].textures[ FACE_BOTTOM ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1259 ].textures[ FACE_RIGHT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1259 ].textures[ FACE_FRONT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1259 ].textures[ FACE_LEFT ] = TEX_STONE_SLAB_TOP;
 block_definitions[ 1259 ].textures[ FACE_BACK ] = TEX_STONE_SLAB_TOP;
-block_definitions[ 1259 ].icon_texture = TEX_REPEATER_OFF;
+block_definitions[ 1259 ].icon_texture = TEX_REPEATER;
+block_definitions[ 1259 ].breaks_in_liquid = true;
+block_definitions[ 1259 ].casts_shadow = false;
+block_definitions[ 1259 ].collides_with_player = true;
+block_definitions[ 1259 ].connects_to_redstone_dust = true;
+block_definitions[ 1259 ].hardness = 0.0f;
+block_definitions[ 1259 ].icon_is_isometric = false;
+block_definitions[ 1259 ].is_repeater = true;
+block_definitions[ 1259 ].is_seethrough = true;
+block_definitions[ 1259 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1259 ].rotate_on_placement = true;
+block_definitions[ 1259 ].scale = { 16, 2, 16 };
 
 // VAULT (1260)
 block_definitions[ 1260 ].textures[ FACE_TOP ] = TEX_VAULT_TOP;
