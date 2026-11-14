@@ -1678,8 +1678,12 @@ void World::process_random_ticks( RepGameState &state ) {
             // A MOVING_PISTON outlives its move when its events die with it
             // (a chunk unload drops the queue, or the write raced the
             // slide): cells without a side-table entry land on the spot via
-            // their {display_id, rotation} fallback encoding.
-            if ( cell.id == MOVING_PISTON && state.piston_moves.find( world_pos ) == state.piston_moves.end( ) ) {
+            // their {display_id, rotation} fallback encoding. In multiplayer,
+            // remote clients also have no side-table entry but do hold the
+            // mirror body sliding into the cell — skip those, their sim's
+            // landing write is authoritative.
+            if ( cell.id == MOVING_PISTON && state.piston_moves.find( world_pos ) == state.piston_moves.end() &&
+                 !this->bodies.piston_move_pending( world_pos ) ) {
                 piston_land_cell( state, world_pos );
             }
             const Block *cell_def = cell.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( cell.id );

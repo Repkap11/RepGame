@@ -12,6 +12,7 @@
 #include "common/multiplayer.hpp"
 #include "common/net_entities.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
+#include "common/block_update_events/PistonEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/block_update_events/schedule.hpp"
 #include "common/block_instance_batch.hpp"
@@ -285,10 +286,40 @@ uint32_t BlockBodies::spawn_piston_mover( const BlockState &state, const glm::iv
     b.start_gt = start_gt;
     b.duration_gt = duration_gt;
     b.nb = nb;
+    // Wire encoding (announce_spawn reads the generic fields): vel is the
+    // slide velocity in blocks per physics tick — (to - from) / duration —
+    // and fuse_ticks carries the remaining slide length in physics ticks.
+    // Mirrors reconstruct `to` from the two and replay the same lerp.
+    const double duration_ticks = static_cast<double>( duration_gt ) * UPS_RATE / REDSTONE_UPS;
+    b.vel = ( b.to - b.from ) / duration_ticks;
+    b.fuse_start_tick = this->now_tick;
+    b.fuse_ticks = std::max<long>( 1, std::lround( duration_ticks ) );
     resolve_body_faces( state, b.face );
     this->bodies.push_back( b );
-    // Local-only: no announce_spawn — remote clients see the landing writes.
+    this->announce_spawn( this->bodies.back( ) );
     return b.id;
+}
+
+BlockEmitNeighbors BlockBodies::world_snapshot( const World &world, const glm::ivec3 &cell ) {
+    BlockEmitNeighbors nb;
+    for ( int dy = -1; dy <= 1; dy++ ) {
+        for ( int dz = -1; dz <= 1; dz++ ) {
+            for ( int dx = -1; dx <= 1; dx++ ) {
+                const BlockState s = world.get_loaded_block( cell + glm::ivec3( dx, dy, dz ) );
+                nb.at( dx, dy, dz ) = s.id == LAST_BLOCK_ID ? BLOCK_STATE_AIR : s;
+            }
+        }
+    }
+    return nb;
+}
+
+bool BlockBodies::piston_move_pending( const glm::ivec3 &cell ) const {
+    for ( const Body &b : this->bodies ) {
+        if ( b.kind == BODY_PISTON && glm::ivec3( glm::floor( b.to + glm::dvec3( 0.5 ) ) ) == cell ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
@@ -303,6 +334,7 @@ bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
             if ( this->bodies[ i ].kind == BODY_PISTON ) {
                 // A landing mover keeps drawing at its slide end until the
                 // destination chunk remeshes — avoids a flicker frame.
+                this->send_net_remove( this->bodies[ i ], NET_REMOVE_LANDED );
                 Body &b = this->bodies[ i ];
                 if ( this->render_inited ) {
                     Landed l;
@@ -422,6 +454,43 @@ void BlockBodies::tick( RepGameState &state ) {
             const double now_gt = static_cast<double>( state.tick_number ) * REDSTONE_UPS / UPS_RATE;
             const double p = ( now_gt - static_cast<double>( b.start_gt ) ) / static_cast<double>( b.duration_gt );
             if ( p >= 1.0 ) {
+                if ( b.net.mirror ) {
+                    // Mirrors replay the slide only; ENTITY_REMOVE(LANDED)
+                    // parks it. A lost remove can't leak the body: hold at
+                    // the slide end and expire 2 s (40 gt) past the window.
+                    b.min = b.to;
+                    if ( p > 1.0 + 40.0 / static_cast<double>( b.duration_gt ) ) {
+                        expired_idx.push_back( oi );
+                    }
+                    continue;
+                }
+                // Adopted mover (sim handover): the new owner has no
+                // piston_moves entry, so if its destination cell is still
+                // MOVING_PISTON the slide's landing write died with the old
+                // sim — write the carried state through the shared landing
+                // path, which also recomputes a landed piston's power.
+                const glm::ivec3 to_cell( glm::floor( b.to + glm::dvec3( 0.5 ) ) );
+                if ( world.get_loaded_block( to_cell ).id == MOVING_PISTON && state.piston_moves.find( to_cell ) == state.piston_moves.end( ) ) {
+                    RepGameState::PistonMove move;
+                    move.carried = b.state;
+                    move.base = to_cell;
+                    state.piston_moves[ to_cell ] = move;
+                    piston_land_cell( state, to_cell );
+                    if ( this->render_inited ) {
+                        Landed l;
+                        l.min = b.min;
+                        l.cell = rest_cell( b.min );
+                        l.state = b.state;
+                        l.full_size = true;
+                        l.nb = b.nb;
+                        this->landed.push_back( l );
+                    }
+                }
+                // Movers into cells are consumed by the landing write's
+                // take(); anything still live at the window's end (a
+                // retracting head sliding into the base) simply expires —
+                // mirrors learn of both through this remove.
+                this->send_net_remove( b, NET_REMOVE_LANDED );
                 expired_idx.push_back( oi );
                 continue;
             }
@@ -775,8 +844,8 @@ const NetSync *BlockBodies::find_net_sync( const NetEntityId net_id ) {
     return b == nullptr ? nullptr : &b->net;
 }
 
-bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
-    if ( this->bodies.size( ) >= MAX_BLOCK_BODIES || rec.type > BODY_PRIMED_TNT ) {
+bool BlockBodies::spawn_record( const World &world, const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
+    if ( this->bodies.size( ) >= MAX_BLOCK_BODIES || rec.type > BODY_PISTON ) {
         return false;
     }
     Body b;
@@ -796,14 +865,27 @@ bool BlockBodies::spawn_record( const NetEntityRecord &rec, const bool mirror, c
         b.fuse_start_tick = now_tick;
         b.fuse_ticks = rec.fuse_ticks;
     }
-    b.nb = neighbors_air( b.state );
+    if ( b.kind == BODY_PISTON ) {
+        // The record encodes the slide: pos = from cell, vel = blocks per
+        // physics tick, fuse_ticks = slide length in physics ticks. The
+        // window replays on this client's own redstone clock, anchored now.
+        b.from = glm::dvec3( rec.x, rec.y, rec.z );
+        b.to = glm::dvec3( glm::round( b.from + b.vel * static_cast<double>( rec.fuse_ticks ) ) );
+        b.start_gt = std::lround( static_cast<double>( now_tick ) * REDSTONE_UPS / UPS_RATE );
+        b.duration_gt = std::max<long>( 1, std::lround( static_cast<double>( rec.fuse_ticks ) * REDSTONE_UPS / UPS_RATE ) );
+        // Neighbour snapshot from our own world at receipt — same cells the
+        // sim read before its start writes (it relayed them, so they match).
+        b.nb = world_snapshot( world, glm::ivec3( glm::floor( b.from + glm::dvec3( 0.5 ) ) ) );
+    } else {
+        b.nb = neighbors_air( b.state );
+    }
     resolve_body_faces( b.state, b.face );
     netsync_apply_record( b.net, rec, mirror );
     this->bodies.push_back( b );
     return true;
 }
 
-void BlockBodies::net_apply_spawn( const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
+void BlockBodies::net_apply_spawn( const World &world, const NetEntityRecord &rec, const bool mirror, const long now_tick ) {
     Body *existing = this->find_by_net_id( rec.id );
     if ( existing != nullptr ) {
         if ( existing->net.mirror ) {
@@ -814,12 +896,14 @@ void BlockBodies::net_apply_spawn( const NetEntityRecord &rec, const bool mirror
         }
         return;
     }
-    this->spawn_record( rec, mirror, now_tick );
+    this->spawn_record( world, rec, mirror, now_tick );
 }
 
 void BlockBodies::net_apply_state( const NetEntityStateEntry &e ) {
     Body *b = this->find_by_net_id( e.id );
-    if ( b == nullptr || !b->net.mirror ) {
+    if ( b == nullptr || !b->net.mirror || b->kind == BODY_PISTON ) {
+        // Piston movers are a deterministic lerp — the sim streams no
+        // ENTITY_STATE for them and mirrors ignore any that arrive.
         return;
     }
     if ( e.present & ( NET_SE_POS_ABS | NET_SE_POS_DELTA ) ) {
@@ -832,9 +916,21 @@ void BlockBodies::net_apply_state( const NetEntityStateEntry &e ) {
     }
 }
 
-void BlockBodies::net_apply_remove( const NetEntityId net_id ) {
+void BlockBodies::net_apply_remove( const NetEntityId net_id, const uint8_t reason ) {
     for ( size_t i = 0; i < this->bodies.size( ); i++ ) {
         if ( this->bodies[ i ].net.id == net_id && net_id != 0 ) {
+            // A landed piston mover parks in the landed list like a local
+            // take() — the landing block write remeshes shortly after.
+            if ( this->bodies[ i ].kind == BODY_PISTON && reason == NET_REMOVE_LANDED && this->render_inited ) {
+                const Body &b = this->bodies[ i ];
+                Landed l;
+                l.min = b.min;
+                l.cell = rest_cell( b.min );
+                l.state = b.state;
+                l.full_size = true;
+                l.nb = b.nb;
+                this->landed.push_back( l );
+            }
             remove_body( i );
             return;
         }
@@ -846,7 +942,7 @@ void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord
     // own the body. Mirrors with this id become owned; missing bodies spawn.
     Body *b = this->find_by_net_id( rec.id );
     if ( b == nullptr ) {
-        if ( !this->spawn_record( rec, false, state.tick_number ) ) {
+        if ( !this->spawn_record( state.world, rec, false, state.tick_number ) ) {
             return;
         }
         b = &this->bodies.back( );
@@ -863,7 +959,7 @@ void BlockBodies::net_apply_transfer( RepGameState &state, const NetEntityRecord
     }
 }
 
-void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids ) {
+void BlockBodies::net_apply_chunk_role( const World &world, const glm::ivec3 &chunk, const uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids ) {
     if ( role == NET_ROLE_NONE ) {
         for ( size_t i = 0; i < this->bodies.size( ); ) {
             if ( this->bodies[ i ].net.mirror && this->bodies[ i ].net.chunk == chunk ) {
@@ -904,7 +1000,7 @@ void BlockBodies::net_apply_chunk_role( const glm::ivec3 &chunk, const uint8_t r
                 // floor(pos) != the server's chunk).
                 existing->net.chunk = chunk;
             }
-        } else if ( this->spawn_record( rec, true, this->now_tick ) ) {
+        } else if ( this->spawn_record( world, rec, true, this->now_tick ) ) {
             this->bodies.back( ).net.chunk = chunk;
         }
     }
@@ -924,7 +1020,8 @@ void BlockBodies::net_disconnect( ) {
 
 void BlockBodies::collect_net_state( std::vector<NetEntityStateEntry> &out, const long tick_number ) {
     for ( Body &b : this->bodies ) {
-        if ( b.net.id == 0 || b.net.mirror ) {
+        if ( b.net.id == 0 || b.net.mirror || b.kind == BODY_PISTON ) {
+            // Movers are a deterministic lerp — no ENTITY_STATE streaming.
             continue;
         }
         const bool keyframe = !b.net.sent || netsync_keyframe_due( b.net, b.min, tick_number );

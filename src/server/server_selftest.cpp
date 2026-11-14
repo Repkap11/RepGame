@@ -513,6 +513,7 @@ NetEntityRecord mob_record( NetEntityId id, uint32_t type, uint32_t flags, doubl
 // client-only headers; the server only carries `type` opaquely).
 constexpr uint32_t TEST_BODY_FALLING = 0;
 constexpr uint32_t TEST_BODY_TNT = 1;
+constexpr uint32_t TEST_BODY_PISTON = 2;
 
 NetEntityRecord body_record( NetEntityId id, uint32_t body_kind, BlockID block, int32_t fuse, double x, double y, double z ) {
     NetEntityRecord rec;
@@ -1664,6 +1665,38 @@ int server_selftest( ) {
             const std::vector<ReceivedFrame> fb = drain_client( server, bb );
             check( frames_of_type( fa, NetMsgType::ENTITY_SPAWN ).empty( ), "body: no echo to non-viewer sim" );
             check( frames_of_type( fb, NetMsgType::ENTITY_SPAWN ).size( ) == 1, "body: spawn relayed to viewer" );
+        }
+
+        // A piston mover (type 2) relays the same way: opaque type to the
+        // server, spawn to viewers, sim's remove lands the record.
+        const NetEntityId body_pist = ( static_cast<NetEntityId>( sess_ba ) << 32 ) | 0xB4;
+        send_entity_spawn( server, ba, body_record( body_pist, TEST_BODY_PISTON, PISTON, 14, 131.0, 30.0, 10.0 ) );
+        check( se3.entity_count_of( c2 ) == 2, "body: piston mover spawn recorded" );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            int piston_spawns = 0;
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_SPAWN ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityRecord rec;
+                if ( net_read_entity_record( r, rec ) && rec.id == body_pist && rec.type == TEST_BODY_PISTON ) {
+                    piston_spawns++;
+                }
+            }
+            check( piston_spawns == 1, "body: piston mover relayed to viewer (n=%d)", piston_spawns );
+        }
+        send_entity_remove( server, ba, body_pist, NET_REMOVE_LANDED );
+        check( se3.entity_count_of( c2 ) == 1, "body: piston mover remove drops record" );
+        {
+            const std::vector<ReceivedFrame> fb = drain_client( server, bb );
+            int removes = 0;
+            for ( const ReceivedFrame &f : frames_of_type( fb, NetMsgType::ENTITY_REMOVE ) ) {
+                PacketReader r( f.payload.data( ), f.payload.size( ) );
+                NetEntityRemovePayload p;
+                if ( net_deserialize_entity_remove( r, p ) && p.id == body_pist && p.reason == NET_REMOVE_LANDED ) {
+                    removes++;
+                }
+            }
+            check( removes == 1, "body: piston mover LANDED remove relayed (n=%d)", removes );
         }
 
         // ENTITY_STATE / ENTITY_REMOVE from the chunk owner (not the sim) are

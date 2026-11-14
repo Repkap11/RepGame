@@ -22,12 +22,22 @@ slide, spawned by `PistonEvent` — `spawn_piston_mover(from, to, start_gt,
 duration_gt)` lerps the box between the two cells over a redstone-clock
 window, deriving a fractional game tick from `tick_number` for smooth
 per-physics-tick interpolation). `BODY_PISTON` never integrates, collides or
-impulses, is never announced or mirrored (remote clients see the landing
-writes instead — see docs/redstone.md's piston paragraph), doesn't count
+impulses, doesn't count
 against the cap's eviction, and expires silently at its slide end (a
 retracting head) unless the landing write `take()`s it first — take() parks
 a taken mover in the `landed` list so it keeps drawing until the destination
-chunk remeshes. A retracting piston's *base* cell is also a `BODY_PISTON`
+chunk remeshes. It syncs over multiplayer like any other body:
+`spawn_piston_mover` announces it with the slide encoded in the generic
+record fields (pos = the `from` cell, vel = the slide velocity in blocks per
+physics tick, `fuse_ticks` = the slide length in physics ticks), mirrors
+rebuild `from`/`to` and replay the same lerp on their own redstone clock,
+and `ENTITY_REMOVE`(`NET_REMOVE_LANDED`) — sent on `take()` and on slide-end
+expiry — parks the mirror in its own `landed` list (a mirror that outlives
+its slide window without a remove holds at its end cell, expiring after a
+2 s safety). ENTITY_STATE is never streamed for movers — the lerp is
+deterministic — and an ENTITY_TRANSFER-adopted mover whose destination cell
+is still `MOVING_PISTON` runs `piston_land_cell` at slide end, landing the
+carried state (with the generic landed-piston power recompute). A retracting piston's *base* cell is also a `BODY_PISTON`
 move — same cell for `from` and `to`, holding the powered (extended) state —
 so the base keeps drawing its extended model until the retraction lands. Physics runs at `UPS_RATE` inside
 `bodies.tick` (called right
@@ -522,17 +532,26 @@ spawns and state entries — see `docs/mobs.md` "Shearing"), its rising
 edge playing `sheep_shear` on mirrors, and persists through the
 provenance mask in the `mobs_` sidecars like TOUCHED.
 
-Bodies (falling blocks + primed TNT) and arrows differ: the *causing*
+Bodies (falling blocks + primed TNT + piston movers) and arrows differ:
+the *causing*
 client simulates — ENTITY_SPAWN fixes a sim fd
 (`net_entity_causer_simulated`, the server's `body_sim_fd` table covers
-both kinds), only that client's states and removals count, chunk
+all three kinds), only that client's states and removals count, chunk
 crossings never transfer, and crossing/spawning into uncovered space
 just drops the server record (bodies and arrows are never persisted).
 When the sim disconnects, the entity's chunk owner takes over via
 ENTITY_TRANSFER adopt=1 (primed TNT reschedules its fuse event
-locally); entities in uncovered chunks are erased. Mirrors interpolate
+locally; an adopted piston mover that reaches its slide end with its
+destination cell still `MOVING_PISTON` runs `piston_land_cell` to land
+the carried state — the old sim's landing events died with it);
+entities in uncovered chunks are erased. Mirrors interpolate
 only — no physics, landing, impulses, or collisions — and die on
-ENTITY_REMOVE, CHUNK_ROLE NONE, or disconnect. Blasts send EXPLOSION
+ENTITY_REMOVE, CHUNK_ROLE NONE, or disconnect. Piston movers are the
+exception to position streaming: they emit no ENTITY_STATE at all
+(their slide is a deterministic lerp the mirror replays locally), and
+their removes carry `NET_REMOVE_LANDED` so the mirror parks in its
+landed list instead of vanishing a frame before the landing block
+write. Blasts send EXPLOSION
 after running locally; receivers play the sound and impulse their own
 bodies/items (mirrors skip impulses — their sim applies it), while block
 damage arrives separately through BLOCK_UPDATE.

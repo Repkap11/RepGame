@@ -1109,6 +1109,63 @@ def sc_tnt_explosion(run, A, B):
         raise Fail("B-owned item not impulsed by remote blast")
 
 
+def sc_piston_mover(run, A, B):
+    """Piston slides sync through the generic body path: A powers a piston,
+    B sees MOVING_PISTON cells + a mirror BODY_PISTON mid-slide, then the
+    landed head + stone; on unpower the base itself is MOVING_PISTON
+    mid-retract, then lands as the retracted piston."""
+    gy = settle(run, A, B)
+    base, src, dst, power = (260, gy, 10), (260, gy, 11), (260, gy, 12), (260, gy, 9)
+    A.cmd("setblock %d %d %d PISTON" % base)
+    A.cmd("setblock %d %d %d STONE" % src)
+    wait_block(run, B, *base, "PISTON")
+    wait_block(run, B, *src, "STONE")
+
+    def probe_names(c, x, y, z, secs):
+        """Tight-probe `pos` for `secs`; returns the distinct block names in
+        the order they were observed."""
+        seen = []
+        deadline = time.time() + secs
+        while time.time() < deadline:
+            c.cmd("probe %d %d %d" % (x, y, z))
+            time.sleep(0.03)
+            c.dump.poll()
+            for e in c.dump.events:
+                d = e.get("detail", {})
+                if e.get("name") == "probe" and d.get("pos") == [x, y, z]:
+                    name = d.get("name")
+                    if not seen or seen[-1] != name:
+                        seen.append(name)
+        return seen
+
+    def piston_bodies(c):
+        """kind-2 (BODY_PISTON) entries ever dumped by client c."""
+        c.dump.poll()
+        return [b for st in c.dump.states for b in bodies_of(st) if b.get("kind") == 2]
+
+    # --- extend: the pushed cell and the head slide as MOVING_PISTON ------
+    A.cmd("setblock %d %d %d REDSTONE_BLOCK" % power)
+    seen_dst = probe_names(B, *dst, 2.0)
+    if "MOVING_PISTON" not in seen_dst:
+        raise Fail("B never saw MOVING_PISTON at the pushed cell: %s" % seen_dst)
+    movers = [b for b in piston_bodies(B) if b.get("remote") == 1]
+    if not movers:
+        raise Fail("B saw no mirror BODY_PISTON during the slide")
+    wait_block(run, B, *src, "PISTON_ARM_COLLISION", timeout=90)
+    wait_block(run, B, *dst, "STONE", timeout=30)
+    if "STONE" not in seen_dst or seen_dst[-1] != "STONE":
+        raise Fail("B's pushed cell did not land as STONE: %s" % seen_dst)
+
+    # --- retract: the base cell itself slides as MOVING_PISTON ------------
+    A.cmd("setblock %d %d %d AIR" % power)
+    seen_base = probe_names(B, *base, 2.0)
+    if "MOVING_PISTON" not in seen_base:
+        raise Fail("B never saw the retracting base as MOVING_PISTON: %s" % seen_base)
+    wait_block(run, B, *base, "PISTON", timeout=90)
+    if seen_base[-1] != "PISTON":
+        raise Fail("B's base did not land as PISTON: %s" % seen_base)
+
+
 def sc_tnt_handover(run, A, B):
     gy = settle(run, A, B)
     B.cmd("setblock 260 %d 10 STONE" % gy)
@@ -1640,6 +1697,7 @@ SCENARIOS = [
     ("falling_block", sc_falling_block),
     ("tnt_explosion", sc_tnt_explosion),
     ("tnt_handover", sc_tnt_handover),
+    ("piston_mover", sc_piston_mover),
     ("arrow_shoot", sc_arrow_shoot),
     ("arrow_mob_hit", sc_arrow_mob_hit),
     ("arrow_handover", sc_arrow_handover),

@@ -741,7 +741,7 @@ int test_net_bodies( ) {
         rec.z = 10.0;
         rec.type = BlockBodies::BODY_FALLING;
         rec.block_state = sand;
-        bodies.net_apply_spawn( rec, /*mirror*/ true, gs.tick_number );
+        bodies.net_apply_spawn( gs.world, rec, /*mirror*/ true, gs.tick_number );
         check_bool( "body mirror: spawned", bodies.debug_bodies( ).size( ) == 1 );
         check_bool( "body mirror: flagged mirror", bodies.debug_bodies( )[ 0 ].net.mirror );
         for ( int i = 0; i < 50; i++ ) {
@@ -750,7 +750,7 @@ int test_net_bodies( ) {
         check_bool( "body mirror: no physics (floats)", fabs( bodies.debug_bodies( )[ 0 ].min.y - 40.0 ) < 0.05 );
         bodies.impulse( glm::dvec3( 10.5, 40.5, 10.5 ), 6.0, 0.05 );
         check_bool( "body mirror: impulse ignored", glm::length( bodies.debug_bodies( )[ 0 ].vel ) < 1e-6 );
-        bodies.net_apply_remove( rec.id );
+        bodies.net_apply_remove( rec.id, NET_REMOVE_DESPAWN );
         check_bool( "body mirror: ENTITY_REMOVE removes", bodies.debug_bodies( ).empty( ) );
     }
 
@@ -765,11 +765,11 @@ int test_net_bodies( ) {
         rec.z = 10.0;
         rec.type = BlockBodies::BODY_FALLING;
         rec.block_state = sand;
-        bodies.net_apply_spawn( rec, /*mirror*/ false, gs.tick_number );
+        bodies.net_apply_spawn( gs.world, rec, /*mirror*/ false, gs.tick_number );
         std::vector<NetEntityStateEntry> out;
         bodies.collect_net_state( out, 0 );
         check_bool( "body owned: emits state entry", out.size( ) == 1 && out[ 0 ].id == rec.id );
-        bodies.net_apply_remove( rec.id );
+        bodies.net_apply_remove( rec.id, NET_REMOVE_DESPAWN );
     }
 
     // ENTITY_TRANSFER adopt=1 for a primed TNT body: becomes owned and the
@@ -789,6 +789,72 @@ int test_net_bodies( ) {
         check_bool( "body transfer: spawned owned", bodies.debug_bodies( ).size( ) == 1 && !bodies.debug_bodies( )[ 0 ].net.mirror );
         test_run_game_ticks( gs, 12 );
         check_bool( "body transfer: reschedule explodes + consumes body", bodies.debug_bodies( ).empty( ) );
+    }
+
+    // BODY_PISTON mirror: the record's pos/vel/fuse_ticks encode the slide —
+    // 14 physics ticks from (10,40,10) to (10,40,11). The mirror replays the
+    // same kinematic lerp on its own clock.
+    {
+        NetEntityRecord rec{};
+        rec.id = ( static_cast<NetEntityId>( 7 ) << 32 ) | 4;
+        rec.kind = NetEntityKind::BODY;
+        rec.x = 10.0;
+        rec.y = 40.0;
+        rec.z = 10.0;
+        rec.vz = 1.0f / 14.0f; // blocks/physics-tick
+        rec.type = BlockBodies::BODY_PISTON;
+        rec.block_state = { GOLD_BLOCK, 0, 0, GOLD_BLOCK, 0 };
+        rec.fuse_ticks = 14;
+        bodies.net_apply_spawn( gs.world, rec, /*mirror*/ true, gs.tick_number );
+        check_bool( "piston mirror: spawned", bodies.debug_bodies( ).size( ) == 1 );
+        const BlockBodies::Body pb = bodies.debug_bodies( )[ 0 ];
+        check_bool( "piston mirror: flagged mirror", pb.net.mirror && pb.kind == BlockBodies::BODY_PISTON );
+        check_bool( "piston mirror: from/to rebuilt", glm::length( pb.from - glm::dvec3( 10, 40, 10 ) ) < 0.01 &&
+                        glm::length( pb.to - glm::dvec3( 10, 40, 11 ) ) < 0.01 );
+        for ( int i = 0; i < 7; i++ ) {
+            gs.tick_number++;
+            bodies.tick( gs );
+        }
+        const BlockBodies::Body pm = bodies.debug_bodies( )[ 0 ];
+        check_bool( "piston mirror: kinematic mid-slide", pm.min.z > 10.3 && pm.min.z < 10.7 );
+        check_bool( "piston mirror: pending destination cell", bodies.piston_move_pending( glm::ivec3( 10, 40, 11 ) ) );
+        // Past slide end: holds at the destination until the remove lands
+        // it (safety timeout is 2 s later — not hit here).
+        for ( int i = 0; i < 20; i++ ) {
+            gs.tick_number++;
+            bodies.tick( gs );
+        }
+        check_bool( "piston mirror: holds at slide end", bodies.debug_bodies( ).size( ) == 1 &&
+                        glm::length( bodies.debug_bodies( )[ 0 ].min - glm::dvec3( 10, 40, 11 ) ) < 0.01 );
+        bodies.net_apply_remove( rec.id, NET_REMOVE_LANDED );
+        check_bool( "piston mirror: LANDED remove consumes body", bodies.debug_bodies( ).empty( ) );
+        check_bool( "piston mirror: no longer pending", !bodies.piston_move_pending( glm::ivec3( 10, 40, 11 ) ) );
+    }
+
+    // ENTITY_TRANSFER for a piston mover (previous sim disconnected): the
+    // adopted mover reaches slide end with no piston_moves entry and lands
+    // its carried state into the still-MOVING_PISTON destination cell.
+    {
+        gs.world.set_loaded_block( glm::ivec3( 12, 40, 10 ), { MOVING_PISTON, 0, 0, STONE, 0 } );
+        NetEntityRecord rec{};
+        rec.id = ( static_cast<NetEntityId>( 7 ) << 32 ) | 5;
+        rec.kind = NetEntityKind::BODY;
+        rec.x = 12.0;
+        rec.y = 40.0;
+        rec.z = 9.0;
+        rec.vz = 1.0f / 14.0f;
+        rec.type = BlockBodies::BODY_PISTON;
+        rec.block_state = { GOLD_BLOCK, 0, 0, GOLD_BLOCK, 0 };
+        rec.fuse_ticks = 14;
+        bodies.net_apply_transfer( gs, rec );
+        check_bool( "piston transfer: adopted owned", bodies.debug_bodies( ).size( ) == 1 && !bodies.debug_bodies( )[ 0 ].net.mirror );
+        for ( int i = 0; i < 30; i++ ) {
+            gs.tick_number++;
+            bodies.tick( gs );
+        }
+        const BlockState landed_cell = gs.world.get_loaded_block( glm::ivec3( 12, 40, 10 ) );
+        check_bool( "piston transfer: carried state landed", landed_cell.id == GOLD_BLOCK );
+        check_bool( "piston transfer: body consumed", bodies.debug_bodies( ).empty( ) );
     }
 
     return failures;

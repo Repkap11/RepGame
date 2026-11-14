@@ -220,7 +220,7 @@ void NetEntities::apply_chunk_role( RepGameState &state, const PendingRole &gran
     }
     state.world.items.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
     state.world.mobs.net_apply_chunk_role( state, grant.chunk, grant.role, grant.populated, records, grant.removed_natural, grant.late_ids );
-    state.world.bodies.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
+    state.world.bodies.net_apply_chunk_role( state.world, grant.chunk, grant.role, records, grant.late_ids );
     state.world.arrows.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
     state.world.vehicles.net_apply_chunk_role( grant.chunk, grant.role, records, grant.late_ids );
 }
@@ -302,7 +302,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             } else if ( rec.kind == NetEntityKind::BODY ) {
                 // Bodies are causer-simulated: a relayed spawn is always a
                 // mirror here (unless we already own that net_id).
-                state.world.bodies.net_apply_spawn( rec, true, state.tick_number );
+                state.world.bodies.net_apply_spawn( state.world, rec, true, state.tick_number );
             } else if ( rec.kind == NetEntityKind::ARROW ) {
                 // Same causer-simulated model as bodies.
                 state.world.arrows.net_apply_spawn( rec, true );
@@ -348,7 +348,7 @@ bool NetEntities::handle( RepGameState &state, NetMsgType type, int32_t player_i
             // One kind owns the id; try all five.
             state.world.items.net_apply_remove( p.id );
             state.world.mobs.net_apply_remove( p.id );
-            state.world.bodies.net_apply_remove( p.id );
+            state.world.bodies.net_apply_remove( p.id, p.reason );
             state.world.arrows.net_apply_remove( p.id );
             state.world.vehicles.net_apply_remove( p.id );
             return true;

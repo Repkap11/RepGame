@@ -38,29 +38,15 @@ static bool piston_can_move( const BlockState &block_state ) {
     return true;
 }
 
-// A move's start writes are local-only — remote clients see the landing
-// writes relayed by PistonLandEvent, so they snap to the final state rather
-// than animating the slide. Neighbor updates still queue so redstone and
-// support re-evaluate around every moved block.
-static void piston_set_local( RepGameState &repGameState, const glm::ivec3 &pos, const BlockState &block_state ) {
+// A move's start writes go out with NO_DEBRIS so remote clients see the
+// MOVING_PISTON cells (and the retracting base) while the slide animates —
+// the movers themselves arrive as BODY_PISTON entity spawns. Neighbour
+// updates still queue so redstone and support re-evaluate around every
+// moved block.
+static void piston_set_block( RepGameState &repGameState, const glm::ivec3 &pos, const BlockState &block_state ) {
     repGameState.world.set_loaded_block( pos, block_state );
+    repGameState.multiplayer.set_block( pos, block_state, NET_BU_FLAG_NO_DEBRIS );
     queue_neighbor_block_updates( repGameState, pos );
-}
-
-// The 3x3x3 around `cell`, snapshotted before an event's MOVING_PISTON/AIR
-// writes so a neighbour-dependent model (fence connections, stair corners)
-// keeps the shape it had when the move started. Unloaded cells read as AIR.
-static BlockEmitNeighbors piston_snapshot( World &world, const glm::ivec3 &cell ) {
-    BlockEmitNeighbors nb;
-    for ( int dy = -1; dy <= 1; dy++ ) {
-        for ( int dz = -1; dz <= 1; dz++ ) {
-            for ( int dx = -1; dx <= 1; dx++ ) {
-                const BlockState s = world.get_loaded_block( cell + glm::ivec3( dx, dy, dz ) );
-                nb.at( dx, dy, dz ) = s.id == LAST_BLOCK_ID ? BLOCK_STATE_AIR : s;
-            }
-        }
-    }
-    return nb;
 }
 
 // Piston heads and bases have no neighbour-dependent shape — an all-AIR
@@ -116,8 +102,8 @@ void piston_land_cell( RepGameState &state, const glm::ivec3 &pos ) {
             }
         }
     }
-    // Relay what the cell settled to — a carried block, or AIR for a vacated
-    // cell — since the start writes never reached the network.
+    // Relay what the cell settled to — the carried/fallback state lands the
+    // MOVING_PISTON the start write sent earlier.
     state.multiplayer.set_block( pos, world.get_loaded_block( pos ), NET_BU_FLAG_NO_DEBRIS );
     queue_neighbor_block_updates( state, pos );
 }
@@ -208,7 +194,7 @@ void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
         // source cell.
         BlockEmitNeighbors snap[ PISTON_PUSH_LIMIT ];
         for ( int i = 2; i <= dest_i; i++ ) {
-            snap[ i - 2 ] = piston_snapshot( world, block_pos + dir * ( i - 1 ) );
+            snap[ i - 2 ] = BlockBodies::world_snapshot( world, block_pos + dir * ( i - 1 ) );
         }
         // MOVING_PISTON writes run farthest-first so no cell is read after
         // being overwritten; each carries its block in the side table and
@@ -222,7 +208,7 @@ void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
             move.body_id = world.bodies.spawn_piston_mover( carried, block_pos + dir * ( i - 1 ), dst, start_gt, PISTON_MOVE_GT, snap[ i - 2 ] );
             repGameState.piston_moves[ dst ] = move;
             const BlockState moving = { MOVING_PISTON, carried.rotation, 0, carried.id, 0 };
-            piston_set_local( repGameState, dst, moving );
+            piston_set_block( repGameState, dst, moving );
             schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, dst );
         }
         const BlockState head_block_state = { head_id, base_state.rotation, 0, head_id, 0 };
@@ -233,7 +219,7 @@ void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
         head_move.body_id = world.bodies.spawn_piston_mover( head_block_state, block_pos, head_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( head_block_state ) );
         repGameState.piston_moves[ head_pos ] = head_move;
         const BlockState moving_head = { MOVING_PISTON, base_state.rotation, 0, head_id, 0 };
-        piston_set_local( repGameState, head_pos, moving_head );
+        piston_set_block( repGameState, head_pos, moving_head );
         schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, head_pos );
         if ( destroy ) {
             world.spawn_block_debris( destroy_pos, destroy_state, dest_i >= 2 ? chain[ dest_i - 2 ].id : head_id );
@@ -256,7 +242,7 @@ void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
         base_move.body_id = world.bodies.spawn_piston_mover( extended, block_pos, block_pos, start_gt, PISTON_MOVE_GT, piston_nb_air( extended ) );
         repGameState.piston_moves[ block_pos ] = base_move;
         const BlockState moving_base = { MOVING_PISTON, base_state.rotation, 0, base_state.id, 0 };
-        piston_set_local( repGameState, block_pos, moving_base );
+        piston_set_block( repGameState, block_pos, moving_base );
         schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, block_pos );
         // The retracting head slides into the base cell and expires at
         // arrival — no table entry, nothing to land.
@@ -271,23 +257,23 @@ void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
             const BlockState pull_state = world.get_loaded_block( pull_pos );
             if ( piston_can_move( pull_state ) ) {
                 // Snapshot before the pull cell's AIR write.
-                const BlockEmitNeighbors pull_nb = piston_snapshot( world, pull_pos );
+                const BlockEmitNeighbors pull_nb = BlockBodies::world_snapshot( world, pull_pos );
                 // The pulled block lands where the head was.
-                piston_set_local( repGameState, pull_pos, BLOCK_STATE_AIR );
+                piston_set_block( repGameState, pull_pos, BLOCK_STATE_AIR );
                 RepGameState::PistonMove move;
                 move.carried = pull_state;
                 move.base = block_pos;
                 move.body_id = world.bodies.spawn_piston_mover( pull_state, pull_pos, head_pos, start_gt, PISTON_MOVE_GT, pull_nb );
                 repGameState.piston_moves[ head_pos ] = move;
                 const BlockState moving = { MOVING_PISTON, pull_state.rotation, 0, pull_state.id, 0 };
-                piston_set_local( repGameState, head_pos, moving );
+                piston_set_block( repGameState, head_pos, moving );
                 schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, pull_pos );
                 schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, head_pos );
                 return;
             }
         }
         // Nothing follows: the head cell just vacates.
-        piston_set_local( repGameState, head_pos, BLOCK_STATE_AIR );
+        piston_set_block( repGameState, head_pos, BLOCK_STATE_AIR );
         schedule_redstone_update<PistonLandEvent>( repGameState, PISTON_MOVE_GT, head_pos );
     }
 }

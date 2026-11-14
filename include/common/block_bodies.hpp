@@ -32,9 +32,13 @@ struct RepGameState;
 class BlockBodies {
   public:
     // BODY_PISTON is a kinematic slide: it lerps from->to over a
-    // redstone-clock window, never collides or integrates, is never
-    // announced on the network, and moves to the landed list when the
-    // landing write takes it.
+    // redstone-clock window, never collides or integrates, and moves to the
+    // landed list when the landing write takes it. Multiplayer syncs it like
+    // any other body: spawn encodes the slide in the generic record
+    // (pos = from cell, vel = slide velocity in blocks/physics-tick,
+    // fuse_ticks = remaining slide in physics ticks), mirrors replay the
+    // same lerp locally, and ENTITY_REMOVE(LANDED) parks the mirror in its
+    // own landed list.
     enum BodyKind { BODY_FALLING, BODY_PRIMED_TNT, BODY_PISTON };
 
     // Cube edge length — slightly under a full block like MC's entities.
@@ -86,9 +90,18 @@ class BlockBodies {
     // lands where it is if it can and otherwise breaks into debris.
     uint32_t spawn_primed_tnt( RepGameState &state, const glm::dvec3 &center, const glm::dvec3 &vel, BlockID id, long fuse_ticks, long now_tick );
     // Spawns a BODY_PISTON kinematic sliding `from` cell to `to` cell over
-    // [start_gt, start_gt + duration_gt] on the redstone clock. Local-only:
-    // never announced, never evicts. Returns its id, or 0 at the body cap.
+    // [start_gt, start_gt + duration_gt] on the redstone clock. Announced to
+    // the network like other spawns; never evicts. Returns its id, or 0 at
+    // the body cap.
     uint32_t spawn_piston_mover( const BlockState &state, const glm::ivec3 &from, const glm::ivec3 &to, long start_gt, long duration_gt, const BlockEmitNeighbors &nb );
+    // The 3x3x3 around `cell` read from the live world (unloaded cells read
+    // as AIR): emitter snapshot for piston moves — the sim takes it before
+    // the start writes, a mirror takes it from its own world at receipt.
+    static BlockEmitNeighbors world_snapshot( const World &world, const glm::ivec3 &cell );
+    // True while a BODY_PISTON body (mirror or owned) is sliding into
+    // `cell` — the cell's MOVING_PISTON is in-flight, not orphaned, so the
+    // random-tick rescue must leave it alone.
+    bool piston_move_pending( const glm::ivec3 &cell ) const;
     // Removes the body and returns its current center. A BODY_PISTON taken
     // on landing moves to the landed list so it keeps drawing until the
     // destination chunk remeshes. False when the id is not live (id 0 —
@@ -119,9 +132,9 @@ class BlockBodies {
     // NOT gate body state: whoever spawned the body streams it.
     void set_multiplayer_mode( bool mp_mode, NetEntities *net );
     bool multiplayer_mode( ) const { return this->mp_mode; }
-    void net_apply_spawn( const NetEntityRecord &rec, bool mirror, long now_tick );
+    void net_apply_spawn( const World &world, const NetEntityRecord &rec, bool mirror, long now_tick );
     void net_apply_state( const NetEntityStateEntry &e );
-    void net_apply_remove( NetEntityId net_id );
+    void net_apply_remove( NetEntityId net_id, uint8_t reason );
     // ENTITY_TRANSFER adopt=1 (sim handover after a disconnect): become the
     // simulating client. For PRIMED_TNT also schedules the explode event the
     // previous sim's queue carried.
@@ -129,7 +142,7 @@ class BlockBodies {
     // CHUNK_ROLE: NONE drops mirror bodies of that chunk; VIEWER/OWNER
     // resync mirrors against the records (owned bodies untouched — roles
     // don't transfer body ownership).
-    void net_apply_chunk_role( const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids );
+    void net_apply_chunk_role( const World &world, const glm::ivec3 &chunk, uint8_t role, const std::vector<NetEntityRecord> &records, const std::set<NetEntityId> &keep_ids );
     // Multiplayer dropped: mirror bodies would freeze mid-air — remove them.
     void net_disconnect( );
     // ENTITY_STATE entries for bodies we simulate (ownership = !net_mirror).
@@ -158,7 +171,7 @@ class BlockBodies {
     void send_net_remove( Body &b, uint8_t reason );
     Body *find_by_net_id( NetEntityId net_id );
     // Spawn one body from a wire record (mirror or freshly adopted).
-    bool spawn_record( const NetEntityRecord &rec, bool mirror, long now_tick );
+    bool spawn_record( const World &world, const NetEntityRecord &rec, bool mirror, long now_tick );
 
     NetEntities *net = nullptr;
     bool mp_mode = false;

@@ -217,13 +217,19 @@ invisible, `piston_immovable` block whose `display_id`/`rotation` encode the
 carried block as a fallback — while the full carried `BlockState` (so a
 pushed repeater keeps its delay) sits in `RepGameState::piston_moves` beside
 a `BODY_PISTON` kinematic body that slides source→destination over
-`PISTON_MOVE_GT` (2 gt) on the redstone clock. The start writes are
-local-only (`piston_set_local`: world write + neighbour wake, no relay);
-`PistonLandEvent` per touched cell lands the carried state and relays then,
-so remote clients snap straight to the final cells. A land event on an
+`PISTON_MOVE_GT` (2 gt) on the redstone clock. The start writes relay too
+(`piston_set_block`: world write + `multiplayer.set_block` with
+`NET_BU_FLAG_NO_DEBRIS` + neighbour wake) so remote clients see the
+`MOVING_PISTON` cells while the announced `BODY_PISTON` mirrors animate the
+same slide; `PistonLandEvent` per touched cell lands the carried state and
+relays the final cells, which is also what consumes the mirror movers.
+A land event on an
 unloaded cell just drops its table entry. Stale `MOVING_PISTON` cells (lost
 queue on unload, or a write that raced the slide) are rescued by the random
-tick in `world.cpp` through the fallback encoding, and all in-flight moves
+tick in `world.cpp` through the fallback encoding — remote cells whose
+`MOVING_PISTON` has no local side-table entry are skipped while a mirror
+mover is still sliding into them (`bodies.piston_move_pending`), since the
+sim's landing write is authoritative — and all in-flight moves
 land in `cleanup` so `MOVING_PISTON` never persists.
 
 Unpowered retracts: the head slides back into the base and is discarded at
