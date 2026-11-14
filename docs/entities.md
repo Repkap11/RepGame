@@ -153,30 +153,53 @@ disconnect hands the sim to the arrow's chunk owner via ENTITY_TRANSFER
 adopt=1, and arrows in uncovered chunks are dropped rather than
 persisted. Remote mob hits still go through ENTITY_ACTION.
 
-## Minecarts
+## Vehicles
 
-`Minecarts` (`include/common/minecarts.hpp`, `src/common/minecarts.cpp`,
-owned by `World` as `world.carts`) is the rail-cart sim — a headless CPU
-tick in the same shape as `ItemEntities`/`BlockBodies` (`MAX_CARTS` = 128;
-frozen in capture mode and while the cart's chunk isn't `CHUNK_LIVE`).
-Carts spawn via right-clicking a rail while holding `MINECART`
-(`spawn_on_rail` centres on the cell and faces the rail axis nearest the
-look yaw) or via the `cart` script command. `MAX_CARTS` counts owned
-carts and mirrors alike. Local cart file IO stays off while
-`multiplayer_mode()` is on (the server owns `carts_*` persistence).
+`Vehicles` (`include/common/vehicles.hpp`, `src/common/vehicles.cpp`,
+owned by `World` as `world.vehicles`) is the rideable-entity sim — a
+headless CPU tick in the same shape as `ItemEntities`/`BlockBodies`
+(`MAX_VEHICLES` = 128; frozen in capture mode and while the vehicle's
+chunk isn't `CHUNK_LIVE`). It is type-generic: every per-type constant
+lives in a `VehicleTypeDef` row (`include/common/vehicle_types.hpp`,
+table in `src/common/vehicle_types.cpp`) — the `name` spelling used by
+scripts/mp-test/inspect, the drop item, the `MobModel` + skin, the
+`width`/`height` box, the seat/eye offsets, and `physics`, which picks
+the per-type sim the generic `Vehicles::tick` dispatches to
+(`vehicle_physics.hpp` is the seam: `vehicle_tick_rail`,
+`vehicle_rail_mirror_pitch`, `vehicle_rail_spawn_pose` for RAIL and
+`vehicle_tick_boat` for `VehiclePhysics::WATER`). The enum is
+append-only — `VehicleType` values persist in `carts_*` files and ride
+the wire. Generic code always goes through
+`vehicle_type_def( v.type )`; pair collisions sum the two vehicles'
+half-widths.
+
+`NetEntityRecord::type` carries the `VehicleType` on the wire —
+`spawn_record` drops records that fail `vehicle_type_valid`. Mount and
+rider routing keys off `net_entity_rideable( kind )` (packet.hpp) — the
+seam a future rideable mob kind plugs into.
+
+### Minecarts
+
+`VEHICLE_MINECART` (`VehiclePhysics::RAIL`, sim in
+`src/common/vehicle_rail.cpp`) is the rail cart. Minecarts spawn via
+right-clicking a rail while holding `MINECART` (`spawn_on_rail` centres
+on the cell and faces the rail axis nearest the look yaw) or via the
+`cart` script command. `MAX_VEHICLES` counts owned vehicles and mirrors
+alike. Local cart file IO stays off while `multiplayer_mode()` is on
+(the server owns `carts_*` persistence).
 
 Rail following projects the cart onto a per-cell path — the straight
 segment between the shape's two `rail_endpoints` edge midpoints (the
 ascending end sits a block up; a curve is the diagonal between its two
 edge mids, like MC). Signed speed `s` along the path gets, per tick
 (constants are MC 20-TPS values converted to `UPS_RATE`, all named in
-`minecarts.cpp`): downhill gravity `CART_SLOPE_ACCEL`, powered
+`vehicle_rail.cpp`): downhill gravity `CART_SLOPE_ACCEL`, powered
 `POWERED_RAIL` boost `CART_POWERED_BOOST` toward `CART_MAX_SPEED` (12 b/s),
 a `CART_LAUNCH_KICK` off a rest cart whose powered-rail end faces a solid
 block, unpowered `CART_POWERED_BRAKE`/`CART_POWERED_SNAP`, friction
 `CART_FRICTION_RIDDEN`/`CART_FRICTION_EMPTY`, rider push
 `CART_PUSH_ACCEL` capped at `CART_PUSH_MAX` (fed by
-`CartTickInput::rider_*` while the player rides — see below), and
+`VehicleTickInput::rider_*` while the player rides — see below), and
 `CART_PLAYER_PUSH` when
 the player's box overlaps an empty cart. The same overlap shove works
 off-rail (`CART_PLAYER_PUSH_GROUND` — ground drag is much heavier than
@@ -187,89 +210,137 @@ the next rail cell (same level, one up when the exit end climbs, or one
 down onto a rail ascending back); a solid next cell stops the cart at
 the endpoint and no rail at all derails it — derailed carts run gravity/
 drag through `Collision::move_box` and re-snap onto any rail their
-bottom-centre enters (including one the player shoves them into). `raycast` picks carts for clicks — the
+bottom-centre enters (including one the player shoves them into). `raycast` picks vehicles for clicks — the
 block-vs-entity compare in `resolve_target` uses the pick ray's shape
 hit distance (`block_selection.block_hit_dist`), so a cart wins over the
 rail under it even though it sits inside the rail's cell; overlapping
-carts separate and swap along-rail speeds (equal mass).
+vehicles separate and swap along-normal speeds (equal mass).
 
-Left-click a cart: creative removes it (no drop); survival accumulates
-`CART_DAMAGE_PER_HIT` that decays (`CART_DAMAGE_DECAY`) so three quick
-hits break it into a dropped `MINECART` item — `hurt_ticks` drives the
-render wobble.
+Left-click a vehicle: creative removes it (no drop); survival
+accumulates `CART_DAMAGE_PER_HIT` that decays (`CART_DAMAGE_DECAY`) so
+three quick hits break it into a dropped item — the def's `item`
+(`MINECART` for a minecart). `hurt_ticks` drives the render wobble.
 
-Riding lives in `src/common/game/minecart_ride.cpp`: right-click a cart
-to mount (`repgame_cart_mount` — sneak-click skips it, like other
-interactions), sneak to dismount (`repgame_cart_dismount`). While
-`camera.riding_cart` is set, `process_movement` skips all body physics
-and turns W/S intent into `CartTickInput::rider_push` (a sneak press is
-edge-gated so one held through the mount click doesn't eject
-instantly), and `repgame_cart_ride_follow` seats the camera at
-`cart.pos + CART_RIDER_EYE_OFFSET` every tick right after `carts.tick`,
+Riding lives in `src/common/game/vehicle_ride.cpp`: right-click a
+vehicle to mount (`repgame_vehicle_mount` — sneak-click skips it, like
+other interactions), sneak to dismount (`repgame_vehicle_dismount`).
+While `camera.riding_vehicle` is set, `process_movement` skips all body
+physics and turns W/S intent into `VehicleTickInput::rider_push` (a
+sneak press is edge-gated so one held through the mount click doesn't
+eject instantly), and `repgame_vehicle_ride_follow` seats the camera at
+`v.pos + def.rider_eye_offset` every tick right after `vehicles.tick`,
 keeping `y_speed`/`horizontal_vel`/`fall_dist` zeroed — no fall damage
-while riding. The ridden cart isn't targetable (`resolve_target_mob`
+while riding. The ridden vehicle isn't targetable (`resolve_target_mob`
 excludes it), can't be punched, and the player body doesn't shove
-carts. Dismount picks the first player-box-free cell perpendicular to
-the cart's yaw, then forward/back, then on top of the cart. Breaking
-or losing the ridden cart clears `riding_cart`; `RepGame::cleanup`
+vehicles. Dismount picks the first player-box-free cell perpendicular to
+the vehicle's yaw, then forward/back, then on top of it. Breaking
+or losing the ridden vehicle clears `riding_vehicle`; `RepGame::cleanup`
 dismounts before `player.dat` is written.
 
-Rendering rides the mob-model pipeline: `MOB_MODEL_MINECART`/
-`MOB_SKIN_MINECART` (a manifest model with no `MobType` — `docs/mobs.md`),
-one `MobPartInstance` per cube under `mob_shader`/`mobsTexture`, transform
-= interpolated pos × yaw × slope pitch × hurt-wobble roll × 1/16 × the
-shared `mob_bone_worlds`/`mob_cube_matrix` model matrices.
+Rendering rides the mob-model pipeline: the def's `model`/`skin`
+(a manifest model with no `MobType` — `docs/mobs.md`), one
+`MobPartInstance` per cube under `mob_shader`/`mobsTexture`, transform
+= interpolated pos × yaw × slope pitch × hurt-wobble roll ×
+`def.model_scale`/16 × the shared `mob_bone_worlds`/`mob_cube_matrix`
+model matrices.
 
-Multiplayer (`NetEntityKind::CART`, protocol 16+) follows the
+Multiplayer (`NetEntityKind::VEHICLE`, protocol 17+) follows the
 owner-simulated items model: the chunk OWNER simulates, streams
-position/velocity/yaw plus `NET_CART_FLAG_HURT` in `flags`, and sends
+position/velocity/yaw plus `NET_VEHICLE_FLAG_HURT` in `flags`, and sends
 removals; every other covering client holds an easing/dead-reckoned
-mirror that runs no physics, collisions, pushes or rail stepping (its
-slope pitch is re-derived locally from the rail cell under it — pitch
-isn't streamed). A left-click on a mirror sends ENTITY_ACTION /
+mirror that runs no physics, collisions or pushes (its pitch is
+re-derived locally per physics — the rail cell under it for minecarts —
+pitch isn't streamed). A left-click on a mirror sends ENTITY_ACTION /
 NET_ACTION_HIT instead of local damage; the owner applies it through
 the same `hurt` path, so three quick survival hits still break the cart
 and drop one `MINECART` item through the ordinary item-sync spawn.
-CART `count` is the rider session id — server-authoritative; clients
-never set NET_SE_COUNT on cart entries and the server strips it before
-applying/relaying client-sent state. Remote players push nearby empty
-carts through `CartTickInput::extra_pushers` (remote avatar feet) on
-whoever simulates.
+VEHICLE `count` is the rider session id — server-authoritative; clients
+never set NET_SE_COUNT on vehicle entries and the server strips it
+before applying/relaying client-sent state. Remote players push nearby
+empty vehicles through `VehicleTickInput::extra_pushers` (remote avatar
+feet) on whoever simulates.
 
-Riding sync: right-clicking a cart sends ENTITY_ACTION /
+Riding sync: right-clicking a vehicle sends ENTITY_ACTION /
 NET_ACTION_MOUNT (client `pending_mount`, 3 s timeout) — never a local
-mount, even when the client owns the cart's chunk. The server accepts
+mount, even when the client owns the vehicle's chunk. The server accepts
 only while `count == 0` and the requester views the chunk, then writes
 `count` to the rider's session, broadcasts a server-originated
 POS_ABS|VEL|COUNT state to all viewers (incl. the requester) and, when
 the rider isn't the chunk owner, ENTITY_TRANSFERs the record to the
-rider. From then on the RIDER simulates (`Minecarts::sim_here` —
-`rider_session == my session`, else the chunk owner for empty carts) and
-streams state; the chunk owner's state is ignored and ENTITY_ACTION
-routing (e.g. HIT) goes to the rider. A ridden cart crossing chunk
+rider. From then on the RIDER simulates (`Vehicles::sim_here` —
+`rider_session == my session`, else the chunk owner for empty vehicles)
+and streams state; the chunk owner's state is ignored and ENTITY_ACTION
+routing (e.g. HIT) goes to the rider. A ridden vehicle crossing chunk
 boundaries moves the record but sends NO transfer — simulation stays
 with the rider. NET_ACTION_DISMOUNT (sent after the dismount's immediate
 POS_ABS flush) broadcasts `count = 0` and hands the record back to the
 chunk owner; the ex-rider keeps simulating until that COUNT=0 state
-arrives so the cart doesn't stall mid-handoff. Rider disconnect clears
-the rider on every cart record before view teardown — an owned chunk
+arrives so the vehicle doesn't stall mid-handoff. Rider disconnect clears
+the rider on every rideable record before view teardown — an owned chunk
 gets an adopt=1 transfer plus the COUNT=0 broadcast, an uncovered one is
 persisted via `persist_stray_entity` with `count` already 0. Riders see
 themselves through the single-player path; other clients seat the remote
-avatar via `NetPlayerPayload::riding_cart` + `apply_cart_seats` after
-`carts.tick` (feet at `Minecarts::seat_pos`, body yaw = cart yaw, head
-keeps the streamed look; seated mobs skip gait/crouch and fold their
-legs in `mobs.cpp`). Avatars riding a cart are excluded from
-`extra_pushers` and ridden carts are never pushed or rider-targeted. Server-side, carts persist in
-`carts_*` sidecars exactly like items (uncover/empty rewrite, stray
-persist, reload as minted records with count=0).
+avatar via `NetPlayerPayload::riding_vehicle` + `apply_vehicle_seats`
+after `vehicles.tick` (feet at `Vehicles::seat_pos`, body yaw = vehicle
+yaw, head keeps the streamed look; seated mobs skip gait/crouch and fold
+their legs in `mobs.cpp`). Avatars riding a vehicle are excluded from
+`extra_pushers` and ridden vehicles are never pushed or rider-targeted.
+Server-side, vehicles persist in `carts_*` sidecars exactly like items
+(uncover/empty rewrite, stray persist, reload as minted records with
+count=0).
 
-Persistence is the items-style sidecar flow: `CartFileRecord`
-(`x,y,z` + `vx,vy,vz,yaw`) in `carts_x_y_z` files staged per-chunk on
-the worker, adopted in `World::render` next to `items.adopt_chunk`,
-persisted on window exit and `persist_all`, non-finite records dropped.
-Local cart IO is off in multiplayer and capture mode, same gates as
+Persistence is the items-style sidecar flow: `VehicleFileRecord`
+(`x,y,z` + `vx,vy,vz,yaw` + `type` — the on-disk `carts_x_y_z` name is
+unchanged) staged per-chunk on the worker, adopted in `World::render`
+next to `items.adopt_chunk`, persisted on window exit and
+`persist_all`, non-finite and invalid-type records dropped (pre-`type`
+40-byte files zero-fill the tail and load as `VEHICLE_MINECART`).
+Local vehicle IO is off in multiplayer and capture mode, same gates as
 item entities.
+
+### Boats
+
+`VEHICLE_OAK_BOAT` … `VEHICLE_POPLAR_BOAT` (ten wood variants, all
+`VehiclePhysics::WATER`, sim in `src/common/vehicle_boat.cpp`) share one
+`MOB_MODEL_BOAT` with the variant picked by the def's `skin`. The box is
+MC's 1.375 × 0.5625; `vehicle_type_for_item` maps each `*_BOAT` item.
+
+Placement (`repgame_vehicle_place` in `vehicle_ride.cpp`): the water ray
+(`pick_water` in `game_tick.cpp`) runs whenever the held item maps to a
+WATER-physics type, so right-clicking water with a `*_BOAT` item spawns
+the boat centred on the hit cell with its bottom at
+`surface − VEHICLE_BOAT_DRAFT` and yaw = `camera.angle_H`; with a solid
+block selected instead it spawns on top when the box fits. Survival
+consumes one item, `click_delay_right` 30 ticks; MP spawn goes through
+the generic `spawn()` announcement.
+
+The medium is decided per tick from fluid samples over the hull
+footprint (4 corners + centre, `fluid_in_cell` — waterlogged counts,
+lava doesn't; the surface is the max `fluid_surface_height`):
+`UNDER_WATER` (water above the box top — rises via `BOAT_RISE_ACCEL`
+capped at `BOAT_RISE_MAX`), `IN_WATER` (a damped spring on `vel.y`,
+`BOAT_BUOY_ACCEL` × `BOAT_VERTICAL_DAMP`, settles the bottom at
+`surface − BOAT_DRAFT`), `ON_LAND` (rests through `Collision::move_box`),
+`IN_AIR` (gravity like the derailed cart).
+
+Ridden boats take `VehicleTickInput::rider_forward`/`rider_turn`
+(`process_movement`'s riding branch maps W/S to forward/back paddle,
+A/D to steer — the camera stays free-look): `BOAT_FORWARD_ACCEL`,
+`BOAT_BACK_ACCEL` (⅛), `BOAT_TURN_ACCEL` × `BOAT_TURN_DAMP` (MC's
+≈180°/s steady rate), friction `BOAT_FRICTION_WATER`/`_AIR` vs the much
+stronger `BOAT_FRICTION_LAND` — all MC 20-TPS values converted to
+`UPS_RATE` like the rail constants. `repgame_vehicle_ride_follow` adds
+the hull's yaw delta to `camera.angle_H` for water vehicles so the view
+turns with the boat. Walls stop the blocked axis through `move_box`
+(no tunnelling, stays afloat); empty boats are shoved by player overlap
+(`BOAT_PLAYER_PUSH`), ridden ones never are. Dismount prefers adjacent
+land cells and falls back to the water beside the boat. No step-up and
+no water-current push yet — follow-ups. Mirrors run no physics and hold
+`pitch = 0`; the paddle bones row by `paddle_phase` (advanced by
+horizontal speed while any rider is aboard — render-only, not
+streamed). Everything else — hurt/drop of the variant item, mount
+routing, remote seats, persistence, pair collisions — is the generic
+vehicle path.
 
 ## Multiplayer entity sync
 
@@ -355,7 +426,7 @@ from a record, chunk tracking via `net_entity_next_chunk`, removal, and
 dead-reckoned send-throttle. Entity-specific payload (item count/pickup, mob
 yaw/health/variant/flags, body kind/fuse/transfer) stays per-type.
 
-Items, mobs and minecarts are chunk-owner simulated: the OWNER spawns,
+Items, mobs and vehicles are chunk-owner simulated: the OWNER spawns,
 streams
 states, and sends removals (LANDED/DIED/DESPAWN/PICKED_UP/EXPLODED);
 everyone else holds easing mirrors. The server persists items,

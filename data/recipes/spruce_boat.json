@@ -1,0 +1,11 @@
+{
+    "pattern": [
+        "# #",
+        "###"
+    ],
+    "key": {
+        "#": "SPRUCE_PLANKS"
+    },
+    "result": "SPRUCE_BOAT",
+    "count": 1
+}

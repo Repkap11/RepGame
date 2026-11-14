@@ -28,7 +28,7 @@ MK_SHADER( block_object_vertex );
 MK_SHADER( mob_vertex );
 MK_SHADER( item_sprite_vertex );
 
-MK_TEXTURE( mobs, 64, 64 * MOB_SKIN_COUNT, 64, 64 );
+MK_TEXTURE( mobs, 128, 64 * MOB_SKIN_COUNT, 128, 64 );
 
 bool hasError( ) {
     if ( ( glGetError( ) ) != GL_NO_ERROR ) {
@@ -139,9 +139,9 @@ void World::init( const glm::dvec3 &camera_pos, int width, int height, MapStorag
     this->mobs.init( this->vbl_object_vertex, this->vbl_mob_instance, this->vbl_block_object_instance, this->vbl_item_instance );
     this->mobs.init_storage( &map_storage );
     this->items.init_storage( &map_storage );
-    // Minecarts share the mob model pipeline (part instances + skin).
-    this->carts.init( this->vbl_object_vertex, this->vbl_mob_instance );
-    this->carts.init_storage( &map_storage );
+    // Vehicles share the mob model pipeline (part instances + skin).
+    this->vehicles.init( this->vbl_object_vertex, this->vbl_mob_instance );
+    this->vehicles.init_storage( &map_storage );
     this->mouseSelection.init( this->vbl_block, this->vbl_coords );
 
     // Mob skins: NEAREST like the block atlas but no mipmaps — face UV
@@ -250,8 +250,8 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
     this->bodies.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     // Arrows follow the same causer-simulated model.
     this->arrows.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
-    // Minecarts: owner-simulated like items; local carts_* IO stays off.
-    this->carts.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
+    // Vehicles: owner-simulated like items; local carts_* IO stays off.
+    this->vehicles.set_multiplayer_mode( multiplayer.multiplayer_mode( ), &multiplayer.entities );
     // Chunk + container files too: in multiplayer all of that state lives
     // on the server, so local chunk_*/chest_*/furnace_* IO stays off.
     if ( this->map_storage != nullptr ) {
@@ -264,7 +264,7 @@ void World::render( Multiplayer &multiplayer, const glm::dvec3 &camera_pos, cons
         for ( Chunk *chunk : this->chunkLoader.just_finalized ) {
             this->mobs.adopt_chunk( *this, *chunk );
             this->items.adopt_chunk( *chunk );
-            this->carts.adopt_chunk( *chunk );
+            this->vehicles.adopt_chunk( *chunk );
         }
         this->chunkLoader.just_finalized.clear( );
     }
@@ -617,13 +617,13 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // Rebuild the arrow transforms (velocity-aligned extruded sprites).
     this->arrows.update_render( alpha, this->chunkLoader );
     // Rebuild the minecart part transforms (mob model cubes).
-    this->carts.update_render( alpha, this->chunkLoader );
+    this->vehicles.update_render( alpha, this->chunkLoader );
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles
     this->bodies.draw( this->renderer, this->block_object_shader, this->primed_tnt_shader ); // Falling blocks + ignited TNT
     this->items.draw( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Dropped items
     this->arrows.draw( this->renderer, this->item_sprite_shader );              // Arrows in flight/stuck
     this->mobs.draw( this->renderer, this->mob_shader );                        // Mob parts
-    this->carts.draw( this->renderer, this->mob_shader );                       // Minecarts (mob skin/model)
+    this->vehicles.draw( this->renderer, this->mob_shader );                       // Vehicles (mob skin/model)
     this->mobs.draw_held( this->renderer, this->block_object_shader, this->item_sprite_shader ); // Avatar held items
     this->heartParticles.draw( this->renderer, this->heart_shader, time_s );    // Breeding hearts
 
@@ -962,7 +962,7 @@ void World::cleanup( MapStorage &map_storage ) {
     // tears down.
     this->mobs.persist_all( );
     this->items.persist_all( );
-    this->carts.persist_all( );
+    this->vehicles.persist_all( );
     this->chunkLoader.cleanup( map_storage );
     this->skyBox.destroy( );
     this->multiplayer_avatars.cleanup( );
@@ -970,7 +970,7 @@ void World::cleanup( MapStorage &map_storage ) {
     this->bodies.cleanup( );
     this->items.cleanup( );
     this->arrows.cleanup( );
-    this->carts.cleanup( );
+    this->vehicles.cleanup( );
     this->mobs.cleanup( );
     this->heartParticles.cleanup( );
     this->mouseSelection.destroy( );
@@ -1723,6 +1723,6 @@ bool World::avatar_position_of( const int player_id, glm::dvec3 &feet ) const {
     return this->multiplayer_avatars.position_of( player_id, feet );
 }
 
-uint64_t World::avatar_riding_cart_of_uid( const uint32_t uid ) const {
-    return this->multiplayer_avatars.riding_cart_of_uid( uid );
+uint64_t World::avatar_riding_vehicle_of_uid( const uint32_t uid ) const {
+    return this->multiplayer_avatars.riding_vehicle_of_uid( uid );
 }

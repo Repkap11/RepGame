@@ -427,12 +427,14 @@ no length limit:
 | `container chest\|furnace\|table x y z`, `container none` | open the container UI at the block as a right-click would (offline path; the block must be placed already — `setblock` lands on the next tick), or close any open container screen |
 | `uistate` | emit a `uistate` event: the pass's `overflow` mask (`UI_OVERFLOW_*` — screens exceeding the viewport), layout rects + each container panel's applied items-slab position (centered y-up UI coords) |
 | `goto x y z`, `drop`, `mob`, `fall`, `tnt` | same args as the mp-test commands (shared `dbgcmd::` implementations) |
-| `cart x y z [vx vz]` | spawn a minecart at the position (snaps onto a rail if the cell has one); optional initial velocity in blocks/tick |
-| `carts` | emit a `cart_state` event per cart: `id`, `pos`, `vel`, `on_rail`, `rider` |
-| `ride` | mount the nearest cart within 4 blocks of the player (error when none) |
-| `dismount` | leave the ridden cart (no-op when not riding) |
-| `ride_state` | emit a `ride_state` event: `riding_cart` (0 = not riding) and the camera `pos` |
-| `fake_rider` | spawn a remote-player avatar (`MobManager::spawn_any` — the multiplayer path) and seat it in the cart nearest the camera through the same `set_remote_seated` code remote riders use; emits a `fake_rider` event `{uid,cart_id}` |
+| `cart x y z [vx vz]` | spawn a minecart at the position (snaps onto a rail if the cell has one); optional initial velocity in blocks/tick — alias for `vehicle minecart` |
+| `vehicle <type> x y z [vx vz]` | spawn any vehicle by `VehicleTypeDef::name` (`minecart`, `oak_boat`, …) |
+| `carts` | emit a `cart_state` event per vehicle: `id`, `type`, `pos`, `vel`, `on_rail`, `rider` |
+| `ride` | mount the nearest vehicle within 4 blocks of the player (error when none) |
+| `dismount` | leave the ridden vehicle (no-op when not riding) |
+| `ride_state` | emit a `ride_state` event: `riding_vehicle` (0 = not riding) and the camera `pos` |
+| `move sizeH angleH` | pin the movement input like held WASD keys (`0 0` releases); paddles a ridden boat while a camera pin is active (the pin would otherwise zero the input — the latch rides `camera.move_pin_*`) |
+| `fake_rider` | spawn a remote-player avatar (`MobManager::spawn_any` — the multiplayer path) and seat it in the vehicle nearest the camera through the same `set_remote_seated` code remote riders use (any vehicle type); emits a `fake_rider` event `{uid,cart_id}` |
 | `feed x y z [item]` | feeds the mob nearest the point (default: the type's first breed food); mirrors route ENTITY_ACTION like a right-click |
 | `shear x y z` | shears the shearable mob nearest the point (as if holding shears); mirrors route ENTITY_ACTION like a right-click |
 | `probe x y z`, `probe_light x y z` | emit a results `probe` record (name + sky/block light) |

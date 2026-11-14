@@ -1,0 +1,67 @@
+{
+    "format_version": "1.12.0",
+    "minecraft:geometry": [
+        {
+            "description": {
+                "identifier": "geometry.boat",
+                "texture_width": 128,
+                "texture_height": 64
+            },
+            "bones": [
+                {
+                    "name": "bottom",
+                    "pivot": [0, 0, 0],
+                    "cubes": [
+                        { "origin": [-14, -6.5, -1.5], "size": [28, 16, 3], "uv": [0, 0], "rotation": [90, 0, 0] }
+                    ]
+                },
+                {
+                    "name": "back",
+                    "pivot": [0, 0, 0],
+                    "cubes": [
+                        { "origin": [14, 3, -9], "size": [2, 6, 18], "uv": [0, 19] }
+                    ]
+                },
+                {
+                    "name": "front",
+                    "pivot": [0, 0, 0],
+                    "cubes": [
+                        { "origin": [-16, 3, -8], "size": [2, 6, 16], "uv": [0, 27] }
+                    ]
+                },
+                {
+                    "name": "right",
+                    "pivot": [0, 0, 0],
+                    "cubes": [
+                        { "origin": [-14, 3, -10], "size": [28, 6, 2], "uv": [0, 35] }
+                    ]
+                },
+                {
+                    "name": "left",
+                    "pivot": [0, 0, 0],
+                    "cubes": [
+                        { "origin": [-14, 3, 8], "size": [28, 6, 2], "uv": [0, 43] }
+                    ]
+                },
+                {
+                    "name": "paddle_left",
+                    "pivot": [-3, 11, 9],
+                    "rotation": [45, 20, 0],
+                    "cubes": [
+                        { "origin": [-4, 9, 4], "size": [2, 2, 18], "uv": [62, 16] },
+                        { "origin": [-3, 8, 17], "size": [1, 6, 7], "uv": [62, 0] }
+                    ]
+                },
+                {
+                    "name": "paddle_right",
+                    "pivot": [-3, 11, -9],
+                    "rotation": [-45, -20, 0],
+                    "cubes": [
+                        { "origin": [-4, 9, -22], "size": [2, 2, 18], "uv": [62, 16] },
+                        { "origin": [-3, 8, -24], "size": [1, 6, 7], "uv": [62, 0] }
+                    ]
+                }
+            ]
+        }
+    ]
+}

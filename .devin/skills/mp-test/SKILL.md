@@ -53,9 +53,11 @@ Artifacts land in `/tmp/repgame/mptest_<scenario>_*` and contain `server.log` pl
 | `drop <item> <count> x y z [vx vy vz]` | spawn a dropped-item entity via the normal spawn path |
 | `mob <type> x y z` | spawn a mob via `MobManager::spawn` |
 | `hit <net_id>` | player melee hit on that mob (local damage on owned, feedback + ENTITY_ACTION on a mirror) |
-| `cart x y z [vx vz]` | spawn a minecart via the normal spawn path, with optional horizontal velocity |
+| `cart x y z [vx vz]` | spawn a minecart via the normal spawn path, with optional horizontal velocity — alias for `vehicle minecart` |
+| `vehicle <type> x y z [vx vz]` | spawn any vehicle by `VehicleTypeDef::name` (`oak_boat` …) via the same path |
+| `move sizeH angleH` | pin the movement input like held WASD keys (`0 0` releases); paddles a ridden boat — latched through `camera.move_pin_*` so the fly pin doesn't zero it |
 | `carthit` | left-click the cart nearest the camera — ENTITY_ACTION on a mirror, local hit on an owned cart (emits a `carthit` event) |
-| `ride` | mount the cart nearest the camera through the real right-click path (emits `ride {sent,dist}`; refused mounts produce no `cart_mounted`) |
+| `ride` | mount the cart nearest the camera through the real right-click path (emits `ride {sent,dist}`; refused mounts produce no `vehicle_mounted`) |
 | `dismount` | leave the ridden cart (emits `dismount`; `cmd_error` when not riding) |
 | `feed x y z [item]` | feed the mob nearest the point (default: its first breed food); mirrors send NET_ACTION_FEED for the owner to validate |
 | `shear x y z` | shear the shearable mob nearest the point (as if shears held); mirrors send NET_ACTION_SHEAR for the owner to validate |
@@ -107,13 +109,14 @@ Two line types:
     net_flags}`.
   - `bodies`: `{net_id, remote, kind, block, pos, vel, grounded,
     fuse_left}`.
-  - `carts`: `{net_id, remote, on_rail, hurt_ticks, yaw, rider, pos,
-    vel}` — `remote` is the mirror flag (1 = not simulated locally),
-    `rider` is the rider session id (0 = empty).
-  - top level also carries `riding_cart` (net-id string of the cart the
+  - `vehicles`: `{net_id, remote, type, on_rail, hurt_ticks, yaw, rider,
+    pos, vel}` — `type` is the `VehicleTypeDef` name, `remote` is the
+    mirror flag (1 = not simulated locally), `rider` is the rider
+    session id (0 = empty).
+  - top level also carries `riding_vehicle` (net-id string of the vehicle the
     local player rides); remote avatars appear in `mobs` with `uid` and
-    extra `seated`/`riding_cart` fields — `seated` = posed in their
-    riding_cart.
+    extra `seated`/`riding_vehicle` fields — `seated` = posed in their
+    riding_vehicle.
   - Net ids are **decimal strings** (64-bit, JSON numbers lose precision).
   - Mobs with `uid != 0` are remote-player avatars — they legitimately
     have no net_id; `mobs_of()` in the driver filters them out.

@@ -1,0 +1,11 @@
+{
+    "pattern": [
+        "# #",
+        "###"
+    ],
+    "key": {
+        "#": "OAK_PLANKS"
+    },
+    "result": "OAK_BOAT",
+    "count": 1
+}

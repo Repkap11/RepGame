@@ -57,7 +57,11 @@ send-throttling, and a 12-tick batch cadence. Protocol 13 added
 `CHAT` + `PLAYER_NAME` (see "Chat"); protocol 16 added
 `NetEntityKind::CART` (minecarts — see `docs/entities.md`) plus the
 mount/dismount `ENTITY_ACTION` values and the `riding_cart`
-`NetPlayerPayload` field for riding sync.
+`NetPlayerPayload` field for riding sync; protocol 17 renamed the kind
+to `NetEntityKind::VEHICLE` (wire value 4 unchanged), gave
+`NetEntityRecord::type` meaning for vehicles (it carries `VehicleType`,
+invalid types are dropped), and renamed the payload field to
+`riding_vehicle` (layout unchanged).
 
 ## Transports
 
@@ -121,9 +125,10 @@ The client's side after that is driven by data it already produces:
   `block_icon_box_count` shape boxes (see `docs/mobs.md`). The server
   also stores the last health and held item in `PacketType_DataPlayer`
   so `CLIENT_INIT` replays them to late joiners. A final optional
-  `uint64_t riding_cart` (protocol 16) carries the net id of the
-  minecart the sender rides — receivers seat that avatar in the cart
-  (`docs/entities.md`, "Minecarts"); absent on old peers = 0 (standing).
+  `uint64_t riding_vehicle` (protocol 16 added it as `riding_cart`,
+  17 renamed it) carries the net id of the vehicle the sender rides —
+  receivers seat that avatar in the vehicle (`docs/entities.md`,
+  "Vehicles"); absent on old peers = 0 (standing).
 - `VIEW` — sent by `NetEntities::send_view` once welcomed: the view
   center chunk plus radius (clamped to `NET_ENTITY_RADIUS_XZ`/`_Y`).
   The server answers with `CHUNK_ROLE` grants — see `docs/entities.md`.

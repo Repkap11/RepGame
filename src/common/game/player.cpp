@@ -26,6 +26,7 @@
 #include "common/rail.hpp"
 #include "common/repeater.hpp"
 #include "common/tree_grow.hpp"
+#include "common/vehicle_physics.hpp" // VEHICLE_BOAT_DRAFT
 
 // Left-click damage to a mob in survival (creative kills in one hit).
 #define HIT_DAMAGE 4.0f
@@ -532,41 +533,41 @@ void RepGame::process_mouse_events( ) {
             }
         }
     }
-    // Minecart hits pre-empt mining the same way mob hits do — recomputed
-    // fresh (carts.tick may have removed carts since the selection pass).
+    // Vehicle hits pre-empt mining the same way mob hits do — recomputed
+    // fresh (vehicles.tick may have removed vehicles since the selection pass).
     // Survival builds decaying damage so three quick hits break and drop
-    // the cart item; creative removes it outright with no drop.
-    int hit_cart = -1;
+    // the vehicle's item; creative removes it outright with no drop.
+    int hit_vehicle = -1;
     if ( hit_mob < 0 && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_left == 0 ) {
-        hit_cart = globalGameState.world.carts.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
+        hit_vehicle = globalGameState.world.vehicles.resolve_target( globalGameState.block_selection.ray_origin, globalGameState.block_selection.ray_dir, REACH_DISTANCE,
                                                              globalGameState.block_selection.block_hit_dist, nullptr );
-        // The cart being ridden can't be hit — it fills the view.
-        if ( hit_cart >= 0 && globalGameState.camera.riding_cart != 0 &&
-             globalGameState.world.carts.id_at( hit_cart ) == globalGameState.camera.riding_cart ) {
-            hit_cart = -1;
+        // The vehicle being ridden can't be hit — it fills the view.
+        if ( hit_vehicle >= 0 && globalGameState.camera.riding_vehicle != 0 &&
+             globalGameState.world.vehicles.id_at( hit_vehicle ) == globalGameState.camera.riding_vehicle ) {
+            hit_vehicle = -1;
         }
     }
-    if ( hit_cart >= 0 ) {
+    if ( hit_vehicle >= 0 ) {
         globalGameState.input.click_delay_left = 30;
         globalGameState.block_mining.progress_ticks = 0.0f;
         globalGameState.vr.haptic_pending = true;
-        // Owned cart: local hurt (drop + remove handled inside); a mirror
+        // Owned vehicle: local hurt (drop + remove handled inside); a mirror
         // sends ENTITY_ACTION to its owner instead.
-        globalGameState.world.carts.hit_interact( globalGameState, hit_cart, globalGameState.game_mode == GameMode_Survival,
+        globalGameState.world.vehicles.hit_interact( globalGameState, hit_vehicle, globalGameState.game_mode == GameMode_Survival,
                                                   globalGameState.camera.pos );
     }
-    // Right-clicking a cart mounts it — before item use, rail placement and
-    // the minecart spawn path. Sneaking skips the mount so a sneak-click
-    // still reaches the use/place paths.
-    if ( globalGameState.block_selection.target_cart >= 0 && globalGameState.input.mouse.buttons.right &&
+    // Right-clicking a vehicle mounts it — before item use, rail placement
+    // and the boat/minecart spawn paths. Sneaking skips the mount so a
+    // sneak-click still reaches the use/place paths.
+    if ( globalGameState.block_selection.target_vehicle >= 0 && globalGameState.input.mouse.buttons.right &&
          !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open &&
          !globalGameState.input.movement.sneakPressed && globalGameState.input.click_delay_right == 0 ) {
-        const uint32_t cart_id = globalGameState.world.carts.id_at( globalGameState.block_selection.target_cart );
+        const uint32_t vehicle_id = globalGameState.world.vehicles.id_at( globalGameState.block_selection.target_vehicle );
         // Multiplayer mounts go through the server (ENTITY_ACTION MOUNT +
         // pending); single player mounts immediately.
-        if ( globalGameState.world.carts.multiplayer_mode( )
-                 ? globalGameState.world.carts.request_mount( globalGameState, globalGameState.block_selection.target_cart )
-                 : repgame_cart_mount( globalGameState, cart_id ) ) {
+        if ( globalGameState.world.vehicles.multiplayer_mode( )
+                 ? globalGameState.world.vehicles.request_mount( globalGameState, globalGameState.block_selection.target_vehicle )
+                 : repgame_vehicle_mount( globalGameState, vehicle_id ) ) {
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -616,7 +617,7 @@ void RepGame::process_mouse_events( ) {
             globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
         }
     }
-    const bool holding_break = hit_mob < 0 && hit_cart < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
+    const bool holding_break = hit_mob < 0 && hit_vehicle < 0 && globalGameState.block_selection.selectionInBounds && globalGameState.input.mouse.buttons.left && !globalGameState.input.mouse.buttons.left_pressed_in_ui;
     if ( holding_break && globalGameState.input.click_delay_left == 0 ) {
         // Mining a block
         if ( globalGameState.game_mode == GameMode_Survival ) {
@@ -851,12 +852,12 @@ void RepGame::process_mouse_events( ) {
         }
         // Right-clicking a rail while holding a minecart sets one on the
         // track — same interaction slot as the spawn egg. In multiplayer
-        // spawn() announces the cart through ENTITY_SPAWN (and refuses
+        // spawn() announces the vehicle through ENTITY_SPAWN (and refuses
         // before WELCOME, returning 0).
         if ( globalGameState.hotbar.getSelectedItem( ) == MINECART ) {
             const BlockState target_state = globalGameState.world.get_loaded_block( globalGameState.block_selection.pos_destroy );
             if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_rail ) {
-                if ( globalGameState.world.carts.spawn_on_rail( globalGameState.world, globalGameState.block_selection.pos_destroy, globalGameState.camera.angle_H ) != 0 ) {
+                if ( globalGameState.world.vehicles.spawn_on_rail( globalGameState.world, globalGameState.block_selection.pos_destroy, globalGameState.camera.angle_H ) != 0 ) {
                     if ( globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
                         globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
@@ -865,6 +866,13 @@ void RepGame::process_mouse_events( ) {
                 }
             }
         }
+    }
+    if ( ( globalGameState.block_selection.selectionInBounds || globalGameState.block_selection.floatSelectionInBounds ) && globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
+        // Right-click with a boat item: floats on the water pick cell or
+        // tops a solid block — same interaction slot as the minecart spawn
+        // path. The body lives in repgame_vehicle_place so tests can
+        // drive it.
+        repgame_vehicle_place( globalGameState, vehicle_type_for_item( globalGameState.hotbar.getSelectedItem( ) ) );
     }
     if ( globalGameState.input.mouse.buttons.right && !globalGameState.input.mouse.buttons.right_pressed_in_ui && !globalGameState.input.inventory_open && globalGameState.input.click_delay_right == 0 ) {
         // Right-click with the bow held releases an arrow along the look
@@ -1050,25 +1058,42 @@ void RepGame::process_camera_angle( ) {
 void RepGame::process_movement( ) {
     PROFILE_SCOPE( "player_movement" );
 
-    if ( globalGameState.camera.riding_cart != 0 ) {
-        // Riding a minecart: no walk/swim/climb body physics — the seat
-        // comes from repgame_cart_ride_follow after the cart tick. W/S
+    if ( globalGameState.camera.riding_vehicle != 0 ) {
+        // Riding a vehicle: no walk/swim/climb body physics — the seat
+        // comes from repgame_vehicle_ride_follow after the vehicle tick. W/S
         // intent rides along as rider_push; a sneak press dismounts,
         // edge-gated so a sneak held through the mount click doesn't
         // eject instantly.
         if ( !globalGameState.input.movement.sneakPressed ) {
             globalGameState.camera.ride_sneak_seen_up = 1;
         } else if ( globalGameState.camera.ride_sneak_seen_up ) {
-            repgame_cart_dismount( globalGameState );
+            repgame_vehicle_dismount( globalGameState );
             globalGameState.camera.rider_push = glm::dvec2( 0.0 );
+            globalGameState.camera.rider_forward = 0.0;
+            globalGameState.camera.rider_turn = 0.0;
             return;
         }
-        globalGameState.camera.rider_push = glm::dvec2( globalGameState.camera.movement.x, globalGameState.camera.movement.z ) *
-                                            static_cast<double>( globalGameState.input.movement.sizeH );
+        const Vehicles::Vehicle *riding = globalGameState.world.vehicles.find( globalGameState.camera.riding_vehicle );
+        if ( riding != nullptr && vehicle_type_def( riding->type ).physics == VehiclePhysics::WATER ) {
+            // Boat controls (MC-style): W/S paddle along the boat's own
+            // yaw, A/D steer — the camera stays free-look. angleH is the
+            // movement direction (W=0, D=+90, S=180, A=-90).
+            const double ah = glm::radians( static_cast<double>( globalGameState.input.movement.angleH ) );
+            globalGameState.camera.rider_forward = cos( ah ) * globalGameState.input.movement.sizeH;
+            globalGameState.camera.rider_turn = sin( ah ) * globalGameState.input.movement.sizeH;
+            globalGameState.camera.rider_push = glm::dvec2( 0.0 );
+        } else {
+            globalGameState.camera.rider_push = glm::dvec2( globalGameState.camera.movement.x, globalGameState.camera.movement.z ) *
+                                                static_cast<double>( globalGameState.input.movement.sizeH );
+            globalGameState.camera.rider_forward = 0.0;
+            globalGameState.camera.rider_turn = 0.0;
+        }
         globalGameState.camera.standing_on_solid = 1;
         return;
     }
     globalGameState.camera.rider_push = glm::dvec2( 0.0 );
+    globalGameState.camera.rider_forward = 0.0;
+    globalGameState.camera.rider_turn = 0.0;
 
     bool player_flying = globalGameState.input.player_flying;
     bool player_sprinting = globalGameState.input.player_sprinting;

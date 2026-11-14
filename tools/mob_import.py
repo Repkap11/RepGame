@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Imports the Bedrock geo.json models + skins listed in mobs_manifest.txt and
 # writes include/common/mob_models_gen.hpp (static model tables) and
-# bitmaps/mobs.png (one 64x64 layer per skin, 64x32 skins padded at the top).
+# bitmaps/mobs.png (one 128x64 layer per skin, 64x32 skins padded at the top).
 # Run by hand via `make mobs-import`; the outputs are committed so normal
 # builds never need bedrock-samples. Both outputs are deterministic.
 
@@ -19,6 +19,9 @@ GEN_HPP = os.path.join(ROOT, "include", "common", "mob_models_gen.hpp")
 OUT_PNG = os.path.join(ROOT, "bitmaps", "mobs.png")
 
 LAYER_SIZE = 64
+# Skins live on 128-pixel-wide layers (the boat skin is 128x64); 64-wide
+# skins keep working since the loader mirrors each tile horizontally.
+LAYER_W = 128
 
 
 def fail(msg):
@@ -229,6 +232,15 @@ def fmt_vec(v):
     return "{ %s }" % ", ".join(fmt_f(x) for x in v)
 
 
+def resolve_path(p):
+    # Manifest paths resolve under $BEDROCK_SAMPLES; a "repo:" prefix
+    # resolves against the repository root instead (repo-authored
+    # geometry that bedrock-samples doesn't carry, like the boat's).
+    if p.startswith("repo:"):
+        return os.path.join(ROOT, p[5:])
+    return os.path.join(BEDROCK_SAMPLES, p)
+
+
 def parse_manifest():
     entries = []
     with open(MANIFEST, "r") as f:
@@ -282,7 +294,7 @@ def main():
     models = []
     skins = []
     for e in entries:
-        path = os.path.join(BEDROCK_SAMPLES, e["geo_file"])
+        path = resolve_path(e["geo_file"])
         if not os.path.isfile(path):
             fail("missing geo file %s" % path)
         geo = resolve_geometry(load_geometries(path), e["geo_id"])
@@ -340,16 +352,16 @@ def main():
             base = os.path.splitext(os.path.basename(s))[0]
             skins.append(e["name"] if base == e["name"] else "%s_%s" % (e["name"], base))
 
-    # --- bitmaps/mobs.png: 64x64 cell per skin, manifest order from the top.
-    atlas = Image.new("RGBA", (LAYER_SIZE, LAYER_SIZE * len(skins)), (0, 0, 0, 0))
+    # --- bitmaps/mobs.png: 128x64 cell per skin, manifest order from the top.
+    atlas = Image.new("RGBA", (LAYER_W, LAYER_SIZE * len(skins)), (0, 0, 0, 0))
     for i, e in enumerate(entries):
         for s in e["skins"]:
-            skin_path = os.path.join(BEDROCK_SAMPLES, s)
+            skin_path = resolve_path(s)
             if not os.path.isfile(skin_path):
                 fail("missing skin %s" % skin_path)
             img = Image.open(skin_path).convert("RGBA")
-            if img.width > LAYER_SIZE or img.height > LAYER_SIZE:
-                fail("skin %s is %dx%d, max is 64x64" % (s, img.width, img.height))
+            if img.width > LAYER_W or img.height > LAYER_SIZE:
+                fail("skin %s is %dx%d, max is %dx%d" % (s, img.width, img.height, LAYER_W, LAYER_SIZE))
             # Bedrock renders entity skins with an opaque material: nonzero
             # alpha bytes are authoring layer markers (sheep.tga stores its
             # undercoat/face texels as a=3), not real transparency. Promote

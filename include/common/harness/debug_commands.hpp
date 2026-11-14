@@ -32,6 +32,9 @@ void goto_( RepGameState &state, const glm::dvec3 &pos );
 bool drop( RepGameState &state, const char *item, int count, const glm::dvec3 &pos, const glm::dvec3 &vel, std::string *err );
 bool mob( RepGameState &state, const char *type, const glm::dvec3 &pos, std::string *err );
 bool cart( RepGameState &state, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, std::string *err );
+// Spawn a vehicle of the named type ("minecart", "oak_boat", ...) — the
+// generic form of `cart`.
+bool vehicle( RepGameState &state, const char *type_name, const glm::dvec3 &pos, const glm::dvec2 &vel_xz, std::string *err );
 // Mount the nearest cart within `max_dist` of the player, or dismount.
 bool ride( RepGameState &state, double max_dist, std::string *err );
 bool dismount( RepGameState &state, std::string *err );

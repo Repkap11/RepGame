@@ -283,7 +283,7 @@ class MobManager {
     // drawn in the avatar's right hand when the model has arm bones.
     void set_remote_held_item( uint32_t uid, ItemID item );
     // Seat/unseat a remote avatar in a minecart: seated=true pins its feet
-    // to `seat_pos` (Minecarts::seat_pos — a leg-length below the cart's
+    // to `seat_pos` (Vehicles::seat_pos — a leg-length below the cart's
     // seat so the hips rest inside the cart), faces the body along
     // `cart_yaw` and folds the legs forward; seated=false returns to the
     // streamed pose. While seated, set_remote_pose only steers the head.

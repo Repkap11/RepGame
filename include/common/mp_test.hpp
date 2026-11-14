@@ -26,8 +26,8 @@
 //   ride                           mount the cart nearest the camera through
 //                                  the real click path — MP sends ENTITY_ACTION
 //                                  MOUNT and the pending request completes on
-//                                  the server's COUNT state (cart_mounted
-//                                  event); occupied carts are refused
+//                                  the server's COUNT state (vehicle_mounted
+//                                  event); occupied vehicles are refused
 //   dismount                       step off the ridden cart — the camera moves
 //                                  immediately, then the parked state and
 //                                  ENTITY_ACTION DISMOUNT go out
@@ -80,14 +80,15 @@
 // cmd_error, explosion_received, pickup_result, player_hit_received,
 // entity_transfer, probe, role, cprobe, signprobe, damage_result,
 // eat_result, respawn_result, chat_received {kind,from,target,text},
-// carthit, ride, dismount, cart_mount_sent, cart_mounted,
-// cart_mount_timeout, cart_dismount_sent, cart_action_hit, quit.
+// carthit, ride, dismount, vehicle_mount_sent, vehicle_mounted,
+// vehicle_mount_timeout, vehicle_dismount_sent, cart_action_hit, quit.
 //
 // State lines additionally carry: health (half-hearts), dead, air_ticks,
 // name (the requested display name), players (the PLAYER_NAME table —
-// the server's effective, deduped spellings), riding_cart (net id of the
-// cart the local player rides), per-cart "rider" (rider session id) and
-// per-mob "seated"/"riding_cart" (remote avatars).
+// the server's effective, deduped spellings), riding_vehicle (net id of
+// the vehicle the local player rides), per-vehicle "type"/"rider" (vehicle
+// type name / rider session id) and per-mob "seated"/"riding_vehicle"
+// (remote avatars).
 //
 // The world-action implementations (setblock/drop/mob/hit/fall/tnt/mode/
 // time/goto/probe + name lookups) live in common/harness/debug_commands

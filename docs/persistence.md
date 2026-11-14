@@ -158,10 +158,10 @@ is `ChunkContainers.signs` keyed by in-chunk block index; the map is
 converted to/from world positions at the file boundary. Server-side the
 same files are driven by `ServerSigns` (`docs/multiplayer.md` "Signs").
 
-## Mob / item / cart sidecars (`mobs_*`, `items_*`, `carts_*`)
+## Mob / item / vehicle sidecars (`mobs_*`, `items_*`, `carts_*`)
 
 ```
-u32 record_size              // sizeof(MobFileRecord|ItemFileRecord|CartFileRecord)
+u32 record_size              // sizeof(MobFileRecord|ItemFileRecord|VehicleFileRecord)
 u32 count
 packed records...
 // mobs only, after the records:
@@ -169,13 +169,20 @@ u32 removed_count
 u8 removed[removed_count]    // tombstoned natural-roll indices
 ```
 
-`CartFileRecord` (`map_storage.hpp`) is a packed
-`{ double x, y, z; float vx, vy, vz, yaw; }` per minecart — position,
-velocity and facing; records with non-finite positions are dropped on
-read. In multiplayer the client-side cart IO is off and the server owns
-`carts_*` persistence: `ServerEntities` loads and writes these files on
-chunk cover/uncover exactly like the item sidecars (a chunk that empties
-still rewrites, clearing the stale file) — see `docs/entities.md`.
+`VehicleFileRecord` (`map_storage.hpp`) is a packed
+`{ double x, y, z; float vx, vy, vz, yaw; uint32_t type; }` per vehicle —
+position, velocity, facing and the `VehicleType` (`VEHICLE_MINECART`,
+the `VEHICLE_*_BOAT` family — the enum is append-only; protocol/table
+in `docs/entities.md`); records with non-finite positions or an
+out-of-range `type` are dropped on read. The trailing `type` field was
+appended for vehicles — files written with the old 40-byte record
+zero-fill it on prefix-copy load and read back as `VEHICLE_MINECART`.
+The on-disk `carts_x_y_z` filename is kept for compatibility (no
+migration). In multiplayer the client-side vehicle IO is off and the
+server owns `carts_*` persistence: `ServerEntities` loads and writes
+these files on chunk cover/uncover exactly like the item sidecars (a
+chunk that empties still rewrites, clearing the stale file) — see
+`docs/entities.md`.
 
 `MobFileRecord`/`ItemFileRecord` are `__attribute__((packed))` structs
 with the shared-prefix read convention (a larger saved record still

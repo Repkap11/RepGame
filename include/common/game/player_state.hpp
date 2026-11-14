@@ -40,11 +40,23 @@ struct CameraState {
     // process_movement skips all body physics — the seat position comes
     // from the cart's follow pass and rider_push carries the W/S intent
     // fed to the cart tick.
-    uint32_t riding_cart = 0;
+    uint32_t riding_vehicle = 0;
     glm::dvec2 rider_push;
+    // WATER-physics riding input: forward/backward paddle along the
+    // boat's yaw and the A/D turn request, each -1..1, fed to the
+    // vehicle tick like rider_push (unused by RAIL physics).
+    double rider_forward = 0.0;
+    double rider_turn = 0.0;
     // Sneak dismount edge: set once sneak has been released after
     // mounting, so a sneak held through the mount click doesn't eject.
     int ride_sneak_seen_up = 0;
+    // Scripted movement latch (`move` command in .rds scripts and the
+    // mp-test ctl): while set, harness camera pins apply these values to
+    // input.movement instead of clearing it, so a scripted rider can
+    // paddle a boat under a pinned camera.
+    int move_pin_set = 0;
+    float move_pin_sizeH = 0.0f;
+    float move_pin_angleH = 0.0f;
     glm::dvec3 prev_pos;
     double prev_eye_height = PLAYER_EYE_HEIGHT;
     float prev_angle_H;
@@ -95,6 +107,7 @@ struct BlockSelection {
     // Second raycast that can hit water — only run while holding a
     // can_float_on_water block, and only used to place it.
     int floatSelectionInBounds;
+    glm::ivec3 pos_destroy_water;
     glm::ivec3 pos_create_water;
     // Third raycast that hits any fluid — only run while holding a bucket:
     // pos_fluid is the hit fluid cell, pos_fluid_create the face-adjacent
@@ -114,8 +127,8 @@ struct BlockSelection {
     double target_mob_dist;
     // Same for a minecart under the crosshair: the cart raycast winner
     // when nearer than the selected block (and than target_mob), else -1.
-    int target_cart;
-    double target_cart_dist;
+    int target_vehicle;
+    double target_vehicle_dist;
 };
 
 // Survival-mode mining: while the left button is held on the same block,

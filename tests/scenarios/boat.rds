@@ -1,0 +1,44 @@
+# Boat staging: a walled 5x5 pool (water two deep) on the flat floor.
+# The player mounts the oak boat, paddles forward and steers with the
+# `move` input pin, then screenshots come from the seat and standing.
+# Flat floor is SANDSTONE at y=0; AIR starts at y=1.
+wait_idle 20 6000
+# Stone rim at y=1..3 around the pool at x,z in [10..14].
+fill 9 1 9 9 3 15 STONE
+fill 15 1 9 15 3 15 STONE
+fill 10 1 9 14 3 9 STONE
+fill 10 1 15 14 3 15 STONE
+wait 10
+fill 10 1 10 14 2 14 WATER
+wait 40
+assert_block 12 1 12 WATER
+# Put the player beside the pool and float an oak boat on it.
+goto 12.5 3.62 9.8
+vehicle oak_boat 12.5 3.0 12.5 0 0
+wait 60
+carts
+# Mount and look at the seat.
+ride
+wait 10
+ride_state
+camera 0 0 0 0 20
+wait 20
+screenshot boat_seated
+# Paddle forward (W) toward the far rim, then steer right (D).
+move 1 0
+wait 60
+move 0.5 90
+wait 60
+move 0 0
+ride_state
+carts
+screenshot boat_paddled
+# Dismount onto the rim shore, standing shot of the boat.
+release
+dismount
+wait 10
+ride_state
+camera 12.5 5.0 6.0 180 25
+wait 20
+screenshot boat_standing
+echo boat done

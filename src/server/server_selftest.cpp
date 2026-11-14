@@ -30,6 +30,7 @@
 #include "common/furnace.hpp"
 #include "common/net/packet.hpp"
 #include "common/mob_types.hpp"
+#include "common/vehicle_types.hpp"
 #include "common/chunk.hpp"
 #include "common/utils/file_utils.hpp"
 #include "common/utils/map_storage.hpp"
@@ -458,19 +459,21 @@ NetEntityRecord item_record( NetEntityId id, uint32_t item, int32_t count, doubl
     return rec;
 }
 
-NetEntityRecord cart_record( NetEntityId id, double x, double y, double z, float yaw ) {
+NetEntityRecord cart_record( NetEntityId id, double x, double y, double z, float yaw,
+                             VehicleType type = VEHICLE_MINECART ) {
     NetEntityRecord rec;
     rec.id = id;
-    rec.kind = NetEntityKind::CART;
+    rec.kind = NetEntityKind::VEHICLE;
     rec.x = x;
     rec.y = y;
     rec.z = z;
     rec.yaw = yaw;
+    rec.type = type;
     rec.count = 0; // rider session id — empty cart
     return rec;
 }
 
-// A CART state send: pos + vel + yaw, plus a caller-controlled COUNT so the
+// A VEHICLE state send: pos + vel + yaw, plus a caller-controlled COUNT so the
 // strip can be exercised (clients must never set it, but a hostile one
 // might).
 void send_cart_state( Server &server, SimClient &c, NetEntityId id, double x, double y, double z,
@@ -478,7 +481,7 @@ void send_cart_state( Server &server, SimClient &c, NetEntityId id, double x, do
     NetEntityStatePayload p;
     NetEntityStateEntry e = { };
     e.id = id;
-    e.kind = static_cast<uint8_t>( NetEntityKind::CART );
+    e.kind = static_cast<uint8_t>( NetEntityKind::VEHICLE );
     e.present = NET_SE_POS_ABS | NET_SE_VEL | NET_SE_YAW | NET_SE_COUNT;
     e.x = x;
     e.y = y;
@@ -1108,9 +1111,9 @@ int server_selftest( ) {
             check( reloaded, "entity: re-covered chunk reloads persisted item records" );
         }
 
-        // --- CART entities: owner-simulated like items -------------------
+        // --- VEHICLE entities: owner-simulated like items -------------------
         // B owns chunk 1 here (the flip test above) — B drives the cart.
-        // COUNT strip: a CART's count is the server-authoritative rider
+        // COUNT strip: a VEHICLE's count is the server-authoritative rider
         // session id — a client-sent COUNT must be dropped before the
         // entry is applied or relayed.
         const NetEntityId cart1 = ( static_cast<NetEntityId>( sess_b ) << 32 ) | 20;
@@ -1168,11 +1171,15 @@ int server_selftest( ) {
         drain_client( server, eb );
 
         // Persistence: uncover writes the carts_ sidecar with pos/vel/yaw;
-        // re-cover reloads it as a minted CART record with count reset.
+        // re-cover reloads it as a minted VEHICLE record with count reset.
         // (yaw 45.0 survives the 360/256 wire quantization exactly.)
         const NetEntityId cart2 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 21;
         send_entity_spawn( server, ea, cart_record( cart2, -180.0, 30.0, 10.0, 45.0f ) ); // chunk -3, only A covers
         send_cart_state( server, ea, cart2, -180.5, 30.5, 10.5, 0.25f, -0.5f, 0.75f, 45.0f, 0 );
+        // A boat in the same chunk — its type must persist and reload too.
+        const NetEntityId boat1 = ( static_cast<NetEntityId>( sess_a ) << 32 ) | 23;
+        send_entity_spawn( server, ea, cart_record( boat1, -182.0, 30.0, 12.0, 90.0f, VEHICLE_CHERRY_BOAT ) );
+        send_cart_state( server, ea, boat1, -182.5, 30.5, 12.5, 0.0f, 0.0f, 0.0f, 90.0f, 0 );
         drain_client( server, ea );
         drain_client( server, eb );
         send_view( server, ea, glm::ivec3( -1, 0, 0 ), 0, 1 ); // uncover c_n3
@@ -1180,16 +1187,17 @@ int server_selftest( ) {
         {
             MapStorage check_storage;
             check_storage.init( TEST_WORLD );
-            std::vector<CartFileRecord> persisted;
-            const int existed = check_storage.load_carts( c_n3, persisted );
-            check( existed == 1 && persisted.size( ) == 1 && persisted[ 0 ].x == -180.5 && persisted[ 0 ].y == 30.5 &&
-                       persisted[ 0 ].vx == 0.25f && persisted[ 0 ].yaw == 45.0f,
-                   "cart: uncovered chunk persists carts file (existed=%d n=%zu)", existed, persisted.size( ) );
+            std::vector<VehicleFileRecord> persisted;
+            const int existed = check_storage.load_vehicles( c_n3, persisted );
+            check( existed == 1 && persisted.size( ) == 2 && persisted[ 0 ].x == -180.5 && persisted[ 0 ].y == 30.5 &&
+                       persisted[ 0 ].vx == 0.25f && persisted[ 0 ].yaw == 45.0f && persisted[ 0 ].type == VEHICLE_MINECART &&
+                       persisted[ 1 ].x == -182.5 && persisted[ 1 ].type == VEHICLE_CHERRY_BOAT,
+                   "cart: uncovered chunk persists vehicles file (existed=%d n=%zu)", existed, persisted.size( ) );
         }
         send_view( server, ea, glm::ivec3( -1, 0, 0 ), 2, 1 ); // re-cover
         {
             const std::vector<ReceivedFrame> fa = drain_client( server, ea );
-            bool reloaded = false;
+            bool reloaded = false, boat_reloaded = false;
             for ( const ReceivedFrame &f : frames_of_type( fa, NetMsgType::CHUNK_ROLE ) ) {
                 PacketReader r( f.payload.data( ), f.payload.size( ) );
                 NetChunkRolePayload p;
@@ -1198,12 +1206,17 @@ int server_selftest( ) {
                     continue;
                 }
                 for ( const NetEntityRecord &rec : p.records ) {
-                    if ( rec.kind == NetEntityKind::CART && rec.x == -180.5 && rec.yaw == 45.0f && rec.count == 0 ) {
+                    if ( rec.kind == NetEntityKind::VEHICLE && rec.x == -180.5 && rec.yaw == 45.0f && rec.count == 0 &&
+                         rec.type == VEHICLE_MINECART ) {
                         reloaded = true;
+                    }
+                    if ( rec.kind == NetEntityKind::VEHICLE && rec.x == -182.5 && rec.type == VEHICLE_CHERRY_BOAT ) {
+                        boat_reloaded = true;
                     }
                 }
             }
             check( reloaded, "cart: re-covered chunk reloads persisted records" );
+            check( boat_reloaded, "boat: re-covered chunk reloads the boat with its type" );
         }
 
         // --- Riding: the rider simulates its cart -------------------------
@@ -1389,10 +1402,10 @@ int server_selftest( ) {
             // it, so the disconnect persists it as a stray carts_ record.
             MapStorage check_storage;
             check_storage.init( TEST_WORLD );
-            std::vector<CartFileRecord> stray;
-            const int existed = check_storage.load_carts( c1, stray );
+            std::vector<VehicleFileRecord> stray;
+            const int existed = check_storage.load_vehicles( c1, stray );
             bool persisted = false;
-            for ( const CartFileRecord &rec : stray ) {
+            for ( const VehicleFileRecord &rec : stray ) {
                 if ( rec.x == 70.0 && rec.yaw == 45.0f ) {
                     persisted = true;
                 }

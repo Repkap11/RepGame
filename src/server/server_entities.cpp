@@ -181,12 +181,12 @@ void ServerEntities::load_chunk_entities( ServerChunkEntities &ce, const glm::iv
         e.age_ticks = rec.grow_ticks;
         ce.entities[ e.id ] = e;
     }
-    std::vector<CartFileRecord> carts;
-    this->storage->load_carts( chunk, carts );
-    for ( const CartFileRecord &rec : carts ) {
+    std::vector<VehicleFileRecord> vehicles;
+    this->storage->load_vehicles( chunk, vehicles );
+    for ( const VehicleFileRecord &rec : vehicles ) {
         NetEntityRecord e;
         e.id = this->mint_server_id( );
-        e.kind = NetEntityKind::CART;
+        e.kind = NetEntityKind::VEHICLE;
         e.x = rec.x;
         e.y = rec.y;
         e.z = rec.z;
@@ -194,6 +194,7 @@ void ServerEntities::load_chunk_entities( ServerChunkEntities &ce, const glm::iv
         e.vy = rec.vy;
         e.vz = rec.vz;
         e.yaw = rec.yaw;
+        e.type = rec.type;
         e.count = 0; // rider session id — always empty on load
         ce.entities[ e.id ] = e;
     }
@@ -204,8 +205,8 @@ void ServerEntities::mark_dirty( ServerChunkEntities &ce, NetEntityKind kind ) {
         ce.items_dirty = true;
     } else if ( kind == NetEntityKind::MOB ) {
         ce.mobs_dirty = true;
-    } else if ( kind == NetEntityKind::CART ) {
-        ce.carts_dirty = true;
+    } else if ( kind == NetEntityKind::VEHICLE ) {
+        ce.vehicles_dirty = true;
     }
     // BODY records are never persisted.
 }
@@ -214,7 +215,7 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
     if ( this->storage == nullptr ) {
         ce.items_dirty = false;
         ce.mobs_dirty = false;
-        ce.carts_dirty = false;
+        ce.vehicles_dirty = false;
         return;
     }
     if ( ce.items_dirty ) {
@@ -277,20 +278,20 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
         }
         ce.mobs_dirty = false;
     }
-    if ( ce.carts_dirty ) {
+    if ( ce.vehicles_dirty ) {
         // Same convention as the items sidecar: an emptied chunk still
         // writes, clearing the stale file.
-        std::vector<CartFileRecord> out;
+        std::vector<VehicleFileRecord> out;
         for ( const auto &pair : ce.entities ) {
             const NetEntityRecord &e = pair.second;
-            if ( e.kind != NetEntityKind::CART ) {
+            if ( e.kind != NetEntityKind::VEHICLE ) {
                 continue;
             }
-            CartFileRecord rec = { e.x, e.y, e.z, e.vx, e.vy, e.vz, e.yaw };
+            VehicleFileRecord rec = { e.x, e.y, e.z, e.vx, e.vy, e.vz, e.yaw, e.type };
             out.push_back( rec );
         }
-        this->storage->persist_carts( chunk, out );
-        ce.carts_dirty = false;
+        this->storage->persist_vehicles( chunk, out );
+        ce.vehicles_dirty = false;
     }
 }
 
@@ -302,7 +303,7 @@ void ServerEntities::uncover_chunk( const glm::ivec3 &chunk ) {
     for ( const auto &pair : it->second.entities ) {
         this->entity_chunk.erase( pair.first );
         this->body_sim_fd.erase( pair.first );
-        this->cart_rider_fd.erase( pair.first );
+        this->vehicle_rider_fd.erase( pair.first );
     }
     this->persist_chunk_entities( it->second, chunk );
     for ( int fd : it->second.viewers ) {
@@ -329,7 +330,7 @@ void ServerEntities::persist_stray_entity( const NetEntityRecord &rec, const glm
     tmp.entities[ rec.id ] = rec;
     tmp.items_dirty = true;
     tmp.mobs_dirty = true;
-    tmp.carts_dirty = true;
+    tmp.vehicles_dirty = true;
     this->persist_chunk_entities( tmp, chunk );
 }
 
@@ -445,13 +446,13 @@ void ServerEntities::on_client_disconnected( Server &server, int client_fd ) {
     // can persist the record with a stale rider. The chunk owner takes
     // over (adopt=1 + COUNT=0 broadcast); a cart in an uncovered chunk (or
     // one the leaver owned) persists as a stray.
-    for ( auto it = this->cart_rider_fd.begin( ); it != this->cart_rider_fd.end( ); ) {
+    for ( auto it = this->vehicle_rider_fd.begin( ); it != this->vehicle_rider_fd.end( ); ) {
         if ( it->second != client_fd ) {
             ++it;
             continue;
         }
         const NetEntityId id = it->first;
-        it = this->cart_rider_fd.erase( it );
+        it = this->vehicle_rider_fd.erase( it );
         glm::ivec3 chunk;
         ServerChunkEntities *ce = find_entity_chunk( id, &chunk );
         if ( ce == nullptr ) {
@@ -459,13 +460,13 @@ void ServerEntities::on_client_disconnected( Server &server, int client_fd ) {
         }
         NetEntityRecord &rec = ce->entities[ id ];
         rec.count = 0;
-        this->mark_dirty( *ce, NetEntityKind::CART );
+        this->mark_dirty( *ce, NetEntityKind::VEHICLE );
         if ( ce->owner_fd >= 0 && ce->owner_fd != client_fd ) {
             NetEntityTransferPayload adopt{ rec, 1 };
             PacketWriter wa;
             net_serialize_entity_transfer( wa, adopt );
             server.queue_message( ce->owner_fd, NetMsgType::ENTITY_TRANSFER, 0, wa.take_buf( ) );
-            this->broadcast_cart_count( server, *ce, rec );
+            this->broadcast_rider_count( server, *ce, rec );
         } else {
             this->persist_stray_entity( rec, chunk );
             ce->entities.erase( id );
@@ -537,9 +538,9 @@ int ServerEntities::sim_fd_of( const ServerChunkEntities &ce, const NetEntityRec
         const auto it = this->body_sim_fd.find( rec.id );
         return it == this->body_sim_fd.end( ) ? -1 : it->second;
     }
-    if ( rec.kind == NetEntityKind::CART ) {
-        const auto it = this->cart_rider_fd.find( rec.id );
-        if ( it != this->cart_rider_fd.end( ) ) {
+    if ( net_entity_rideable( rec.kind ) ) {
+        const auto it = this->vehicle_rider_fd.find( rec.id );
+        if ( it != this->vehicle_rider_fd.end( ) ) {
             return it->second;
         }
     }
@@ -548,7 +549,7 @@ int ServerEntities::sim_fd_of( const ServerChunkEntities &ce, const NetEntityRec
 
 // The rider field reaches every client as a server-originated ENTITY_STATE
 // (header player 0) — same mechanism as a partial-pickup count update.
-void ServerEntities::broadcast_cart_count( Server &server, ServerChunkEntities &ce, const NetEntityRecord &rec ) {
+void ServerEntities::broadcast_rider_count( Server &server, ServerChunkEntities &ce, const NetEntityRecord &rec ) {
     NetEntityStatePayload sp;
     NetEntityStateEntry e;
     e.id = rec.id;
@@ -567,25 +568,25 @@ void ServerEntities::broadcast_cart_count( Server &server, ServerChunkEntities &
     server.broadcast_to( ce.viewers, NetMsgType::ENTITY_STATE, 0, w.buf( ) );
 }
 
-void ServerEntities::apply_cart_mount( Server &server, const int client_fd, const NetEntityActionPayload &p ) {
+void ServerEntities::apply_vehicle_mount( Server &server, const int client_fd, const NetEntityActionPayload &p ) {
     glm::ivec3 chunk;
     ServerChunkEntities *ce = find_entity_chunk( p.id, &chunk );
     if ( ce == nullptr ) {
         return;
     }
     const auto rit = ce->entities.find( p.id );
-    // Empty carts only, and only from a client viewing the cart's chunk.
-    if ( rit == ce->entities.end( ) || rit->second.kind != NetEntityKind::CART || rit->second.count != 0 ||
+    // Empty vehicles only, and only from a client viewing the cart's chunk.
+    if ( rit == ce->entities.end( ) || !net_entity_rideable( rit->second.kind ) || rit->second.count != 0 ||
          !ce->viewers.count( client_fd ) ) {
         return;
     }
     NetEntityRecord &rec = rit->second;
     rec.count = static_cast<int32_t>( this->session_ids[ client_fd ] );
-    this->cart_rider_fd[ p.id ] = client_fd;
-    this->mark_dirty( *ce, NetEntityKind::CART );
+    this->vehicle_rider_fd[ p.id ] = client_fd;
+    this->mark_dirty( *ce, NetEntityKind::VEHICLE );
     se_pr_debug( "cart mount id=%llu rider=%d session=%u owner=%d", (unsigned long long)p.id, client_fd,
                  this->session_ids[ client_fd ], ce->owner_fd );
-    this->broadcast_cart_count( server, *ce, rec );
+    this->broadcast_rider_count( server, *ce, rec );
     if ( ce->owner_fd != client_fd ) {
         // Sim moves to the rider: the chunk owner demotes to mirror, the
         // rider adopts (the record carries count).
@@ -602,25 +603,25 @@ void ServerEntities::apply_cart_mount( Server &server, const int client_fd, cons
     }
 }
 
-void ServerEntities::apply_cart_dismount( Server &server, const int client_fd, const NetEntityActionPayload &p ) {
+void ServerEntities::apply_vehicle_dismount( Server &server, const int client_fd, const NetEntityActionPayload &p ) {
     glm::ivec3 chunk;
     ServerChunkEntities *ce = find_entity_chunk( p.id, &chunk );
     if ( ce == nullptr ) {
         return;
     }
     const auto rit = ce->entities.find( p.id );
-    const auto rider = this->cart_rider_fd.find( p.id );
+    const auto rider = this->vehicle_rider_fd.find( p.id );
     // Only the current rider may dismount.
-    if ( rit == ce->entities.end( ) || rit->second.kind != NetEntityKind::CART || rider == this->cart_rider_fd.end( ) ||
+    if ( rit == ce->entities.end( ) || !net_entity_rideable( rit->second.kind ) || rider == this->vehicle_rider_fd.end( ) ||
          rider->second != client_fd ) {
         return;
     }
     NetEntityRecord &rec = rit->second;
     rec.count = 0;
-    this->cart_rider_fd.erase( p.id );
-    this->mark_dirty( *ce, NetEntityKind::CART );
+    this->vehicle_rider_fd.erase( p.id );
+    this->mark_dirty( *ce, NetEntityKind::VEHICLE );
     se_pr_debug( "cart dismount id=%llu rider=%d owner=%d", (unsigned long long)p.id, client_fd, ce->owner_fd );
-    this->broadcast_cart_count( server, *ce, rec );
+    this->broadcast_rider_count( server, *ce, rec );
     if ( ce->owner_fd != client_fd ) {
         // Sim returns to the chunk owner (the rider always covers the
         // cart's chunk, so owner_fd == -1 can't happen — guard anyway by
@@ -784,14 +785,14 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             const bool is_causer_sim = net_entity_causer_simulated( ce->entities[ e.id ].kind );
             // Whoever simulates may stream: the causer (bodies/arrows),
             // the rider (a ridden cart), else the chunk owner.
-            const bool ridden = !is_causer_sim && this->cart_rider_fd.count( e.id ) != 0;
+            const bool ridden = !is_causer_sim && this->vehicle_rider_fd.count( e.id ) != 0;
             if ( this->sim_fd_of( *ce, ce->entities[ e.id ] ) != client_fd ) {
                 continue;
             }
             NetEntityRecord &rec = ce->entities[ e.id ];
-            // A CART's count is the rider session id — server-authoritative:
+            // A VEHICLE's count is the rider session id — server-authoritative:
             // strip any client-sent COUNT before applying or relaying it.
-            if ( rec.kind == NetEntityKind::CART ) {
+            if ( net_entity_rideable( rec.kind ) ) {
                 e.present &= static_cast<uint8_t>( ~NET_SE_COUNT );
             }
             const uint32_t prev_flags = rec.flags;
@@ -851,7 +852,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
                         // as an empty one — the rider is gone with it.
                         if ( ridden ) {
                             moved.count = 0;
-                            this->cart_rider_fd.erase( e.id );
+                            this->vehicle_rider_fd.erase( e.id );
                         }
                         this->persist_stray_entity( moved, new_chunk );
                         NetEntityRemovePayload rem{ e.id, NET_REMOVE_LEFT_VIEW };
@@ -938,7 +939,7 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
         ce->entities.erase( p.id );
         this->entity_chunk.erase( p.id );
         this->body_sim_fd.erase( p.id );
-        this->cart_rider_fd.erase( p.id );
+        this->vehicle_rider_fd.erase( p.id );
         this->mark_dirty( *ce, kind );
         PacketWriter w;
         net_serialize_entity_remove( w, p );
@@ -1035,14 +1036,14 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
             return true;
         }
         const auto rit = ce->entities.find( p.id );
-        if ( rit != ce->entities.end( ) && rit->second.kind == NetEntityKind::CART ) {
-            // Cart mount/dismount are server-arbitrated, not forwarded.
+        if ( rit != ce->entities.end( ) && net_entity_rideable( rit->second.kind ) ) {
+            // Vehicle mount/dismount are server-arbitrated, not forwarded.
             if ( p.action == NET_ACTION_MOUNT ) {
-                this->apply_cart_mount( server, client_fd, p );
+                this->apply_vehicle_mount( server, client_fd, p );
                 return true;
             }
             if ( p.action == NET_ACTION_DISMOUNT ) {
-                this->apply_cart_dismount( server, client_fd, p );
+                this->apply_vehicle_dismount( server, client_fd, p );
                 return true;
             }
         }

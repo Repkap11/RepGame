@@ -11,7 +11,7 @@ struct RepGameState;
 #include "common/arrows.hpp"
 #include "common/block_bodies.hpp"
 #include "common/item_entities.hpp"
-#include "common/minecarts.hpp"
+#include "common/vehicles.hpp"
 #include "common/mobs.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 #include "common/world_text.hpp"
@@ -186,9 +186,9 @@ class World {
     // Arrow projectiles: causer-simulated like bodies, ticked right after
     // items; rendered as velocity-aligned extruded sprites.
     ArrowEntities arrows;
-    // Minecarts: local rail-following entities, ticked right after bodies;
+    // Vehicles: local rail-following entities, ticked right after bodies;
     // rendered as model cubes through the mob shader/texture.
-    Minecarts carts;
+    Vehicles vehicles;
     // void overlay_blocks( const glm::ivec3 &block_pos, BlockState *blockStates, int numBlockStates );
 
     static BlockState get_block_from_chunk( const Chunk &chunk, const glm::ivec3 &block );
@@ -213,7 +213,7 @@ class World {
     // A remote player's feet position (last entity-sync location), false
     // when no update has arrived for player_id — /tp <player> uses this.
     bool avatar_position_of( int player_id, glm::dvec3 &feet ) const;
-    // Cart net id ridden by the remote avatar behind `uid` (0 = standing)
+    // Vehicle net id ridden by the remote avatar behind `uid` (0 = standing)
     // — the mp_test dump reads this without friend access.
-    uint64_t avatar_riding_cart_of_uid( uint32_t uid ) const;
+    uint64_t avatar_riding_vehicle_of_uid( uint32_t uid ) const;
 };

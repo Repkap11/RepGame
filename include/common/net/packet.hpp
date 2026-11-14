@@ -38,12 +38,12 @@ static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-end
 // bit, and mismatched builds fail the per-frame version check on both
 // ends — a new-terrain client is dropped by a legacy server on the
 // first frame (and vice versa), while matched builds still peer.
-// Bump the low bits (14) on layout changes as usual; 0x80 stays
+// Bump the low bits (17) on layout changes as usual; 0x80 stays
 // reserved for the generator bit.
 #if REPGAME_MAP_GEN_LEGACY
-static constexpr uint8_t NET_PROTOCOL_VERSION = 16;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 17;
 #else
-static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 16;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 17;
 #endif
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
@@ -121,7 +121,7 @@ enum class NetEntityKind : uint8_t {
     ITEM = 1,
     BODY = 2,
     ARROW = 3,
-    CART = 4,
+    VEHICLE = 4,
 };
 
 // Kinds simulated by their causing client rather than the chunk owner:
@@ -130,6 +130,13 @@ enum class NetEntityKind : uint8_t {
 // the sim hands over to the chunk owner only when the causer disconnects.
 inline bool net_entity_causer_simulated( NetEntityKind kind ) {
     return kind == NetEntityKind::BODY || kind == NetEntityKind::ARROW;
+}
+
+// Kinds a player can ride: the server arbitrates mount/dismount and the
+// rider's session (record `count`) becomes the sim fd. A future rideable
+// mob kind plugs in here.
+inline bool net_entity_rideable( NetEntityKind kind ) {
+    return kind == NetEntityKind::VEHICLE;
 }
 
 // Entity sync window (half-extent in chunks, chebyshev). The client clamps
@@ -186,8 +193,8 @@ static constexpr uint32_t NET_MOB_FLAG_TOUCHED = 1u << 10;    // player interact
 static constexpr uint32_t NET_MOB_FLAG_BABY = 1u << 11;       // age_ticks < 0: half-scale juvenile
 static constexpr uint32_t NET_MOB_FLAG_SHEARED = 1u << 12;    // sheared sheep: wool model off until it grazes
 
-// NetEntityRecord.flags / NetEntityStateEntry.flags bits for CART entities.
-static constexpr uint32_t NET_CART_FLAG_HURT = 1u << 0; // hurt wobble running
+// NetEntityRecord.flags / NetEntityStateEntry.flags bits for VEHICLE entities.
+static constexpr uint32_t NET_VEHICLE_FLAG_HURT = 1u << 0; // hurt wobble running
 
 // Deterministic id for a natural-spawn roll product: top byte 0xFF keeps it
 // out of the client (session<<32, session >= 1) and server (session 0) id
@@ -333,9 +340,9 @@ struct NetPlayerPayload {
     // held-item draw.
     uint32_t held_item;
     // Optional trailing field (absent on old peers reads as 0): the
-    // NetEntityId of the cart the sender rides, 0 = not riding — remote
-    // avatars seat themselves in that cart's mirror.
-    uint64_t riding_cart;
+    // NetEntityId of the vehicle the sender rides, 0 = not riding — remote
+    // avatars seat themselves in that vehicle's mirror.
+    uint64_t riding_vehicle;
 };
 void net_serialize_player( PacketWriter &w, const NetPlayerPayload &p );
 bool net_deserialize_player( PacketReader &r, NetPlayerPayload &p );
@@ -437,13 +444,14 @@ bool net_deserialize_world_time( PacketReader &r, NetWorldTimePayload &p );
 // ---------------------------------------------------------------------------
 
 // One record shape for all entity kinds; unused per-kind fields are 0.
-//   pos       MOB: feet, ITEM/CART: box bottom-center, BODY: min corner
-//   type      MOB: MobType, ITEM: ItemID, BODY: BodyKind
-//   count     ITEM: stack count, MOB: variant, CART: rider session id
+//   pos       MOB: feet, ITEM/VEHICLE: box bottom-center, BODY: min corner
+//   type      MOB: MobType, ITEM: ItemID, BODY: BodyKind,
+//             VEHICLE: VehicleType (invalid types are dropped on read)
+//   count     ITEM: stack count, MOB: variant, VEHICLE: rider session id
 //             (server-authoritative; clients never stream NET_SE_COUNT on
-//             a CART entry — the server strips it)
+//             a VEHICLE entry — the server strips it)
 //   flags     MOB: MobFileRecord.flags + anim bits, BODY: unused,
-//             CART: NET_CART_FLAG_*
+//             VEHICLE: NET_VEHICLE_FLAG_*
 //   age_ticks ITEM: despawn timing; MOB: breed/age state — negative is a
 //             baby's remaining growth, positive the parent's re-breed
 //             cooldown (same encoding as MobFileRecord::grow_ticks)

@@ -16,6 +16,7 @@ int test_redstone_clock( );
 int test_piston( );
 int test_rails( );
 int test_minecarts( );
+int test_boats( );
 int test_torch_pick( );
 int test_ray_face_neighbor( );
 int test_player_placement_valid( );

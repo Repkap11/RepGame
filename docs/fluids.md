@@ -151,6 +151,13 @@ for a waterlogged cell at the top of a water column.
 check, underwater-render check) — 1.0 under a fluid column, else the
 level height.
 
+Boats float on water (`docs/entities.md` Boats): the water-physics sim
+in `src/common/vehicle_boat.cpp` samples `fluid_in_cell` +
+`fluid_surface_height` across the hull footprint each tick and springs
+the hull bottom to `surface − VEHICLE_BOAT_DRAFT`. Right-clicking water
+with a `*_BOAT` item places a boat through the same fluid ray the
+bucket uses (`pick_water`).
+
 ## Multiplayer
 
 Fluids follow the causer-simulates rule (`docs/redstone.md`): the

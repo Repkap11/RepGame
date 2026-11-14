@@ -1,7 +1,9 @@
 # One line per mob model:
 # name|geo_file|geometry_id|skin1,skin2,...[|bone=rx,ry,rz;...]
 # Paths are relative to $BEDROCK_SAMPLES (default
-# bedrock-samples/resource_pack in this repo). The optional last field
+# bedrock-samples/resource_pack in this repo); a "repo:" prefix resolves
+# against the repository root instead — for repo-authored geometry the
+# samples don't carry (the boat's model is engine-hardcoded upstream). The optional last field
 # overrides bone rest rotations (degrees) where the rest pose comes from an
 # animation file rather than the geo (the pig body's 90° setup rotation).
 # `bone.cubes=` instead stores the rotation on the bone's own cubes only —
@@ -32,3 +34,5 @@ creeper|models/entity/creeper.geo.json|geometry.creeper.v1.8|textures/entity/cre
 bee|models/entity/bee.geo.json|geometry.bee|textures/entity/bee/bee.png
 cat|models/entity/cat.geo.json|geometry.cat|textures/entity/cat/tabby.png,textures/entity/cat/tuxedo.png,textures/entity/cat/red.png,textures/entity/cat/siamesecat.png|body.cubes=-90,0,0;tail1=-51.57,0,0;tail2.move=0,-3,-16;tail2=-90,0,0;frontLegL.move=-0.3,-0.4,0;frontLegR.move=0.3,-0.4,0;backLegL.move=-0.3,0,0;backLegR.move=0.3,0,0
 minecart|models/entity/minecart.geo.json|geometry.minecart.v1.8|textures/entity/minecart.png|cube_rot
+# Boats share one model with a skin per wood variant, in VehicleType order.
+boat|repo:data/models/boat.geo.json|geometry.boat|textures/entity/boat/boat_oak.png,textures/entity/boat/boat_spruce.png,textures/entity/boat/boat_birch.png,textures/entity/boat/boat_jungle.png,textures/entity/boat/boat_acacia.png,textures/entity/boat/boat_darkoak.png,textures/entity/boat/mangrove_boat.png,textures/entity/boat/cherry_boat.png,textures/entity/boat/pale_oak_boat.png,textures/entity/boat/poplar_boat.png|cube_rot

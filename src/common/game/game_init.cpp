@@ -387,8 +387,8 @@ void RepGame::cleanup( ) {
     repgame_crafting_return_grid( globalGameState );
     // Dismount before the player.dat write so the saved pos is a free
     // spot, not the cart seat.
-    if ( globalGameState.camera.riding_cart != 0 ) {
-        repgame_cart_dismount( globalGameState );
+    if ( globalGameState.camera.riding_vehicle != 0 ) {
+        repgame_vehicle_dismount( globalGameState );
     }
     // Capture/fly/script mode never writes player.dat — it would store the
     // teleported view over the user's save.

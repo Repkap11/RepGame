@@ -55,7 +55,12 @@ advances a crop one `crop_next` stage, consuming one in survival.
 (`textures/items/spawn_eggs/` icons) hatch their mob on right-click —
 see `docs/mobs.md`. `MINECART` (`minecart_normal` icon, `max_stack` 1,
 recipe five iron ingots `"# #"/"###"`) places a minecart on a rail on
-right-click (`docs/entities.md`). Rails themselves are block items:
+right-click (`docs/entities.md`). The ten boats — `OAK_BOAT` …
+`POPLAR_BOAT` (`boat_*`/`cherry_boat`/`mangrove_boat`/`pale_oak_boat`/
+`poplar_boat` icons, `max_stack` 1) — craft one each from five of the
+variant's planks in the same `"# #"/"###"` shape and place a boat on
+water (or on top of a selected block) on right-click
+(`docs/entities.md` Boats). Rails themselves are block items:
 `RAIL` crafts 16 from six iron + a stick (`"# #"/"#S#"/"# #"`) and
 `POWERED_RAIL` crafts 6 from six gold + stick + redstone dust
 (`"# #"/"#S#"/"#R#"`, `REDSTONE_WIRE_CROSS` — see `docs/blocks.md`).

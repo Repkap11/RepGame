@@ -245,7 +245,12 @@ void RepGame::update_block_selection( ) {
     sel.ray_origin = ray_origin;
     sel.ray_dir = glm::normalize( pos_with_reach - ray_origin );
     const ItemID selected_block = globalGameState.hotbar.getSelectedItem( );
-    const bool pick_water = item_is_block( selected_block ) && block_definition_get_definition( static_cast<BlockID>( selected_block ) )->can_float_on_water;
+    // The water pick ray also runs for boat items, which place on water
+    // like can_float_on_water blocks.
+    const VehicleType held_vehicle_type = vehicle_type_for_item( selected_block );
+    const bool pick_water =
+        ( item_is_block( selected_block ) && block_definition_get_definition( static_cast<BlockID>( selected_block ) )->can_float_on_water ) ||
+        ( held_vehicle_type != VEHICLE_TYPE_COUNT && vehicle_type_def( held_vehicle_type ).physics == VehiclePhysics::WATER );
     double hit_t = 0.0;
     sel.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy, &whichFace, 0, &hit_t );
 
@@ -262,9 +267,8 @@ void RepGame::update_block_selection( ) {
 
     if ( pick_water ) {
         int whichFace_water = 0;
-        glm::ivec3 pos_destroy_water;
-        sel.floatSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, pos_destroy_water, &whichFace_water, 1 );
-        sel.pos_create_water = RayTraversal::placement_cell( pos_destroy_water, whichFace_water );
+        sel.floatSelectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy_water, &whichFace_water, 1 );
+        sel.pos_create_water = RayTraversal::placement_cell( sel.pos_destroy_water, whichFace_water );
     } else {
         sel.floatSelectionInBounds = 0;
     }
@@ -363,25 +367,27 @@ void RepGame::tick_entities( ) {
     }
     // Falling blocks + primed TNT bodies integrate on the same cadence.
     gs.world.bodies.tick( gs );
-    // Minecarts: rail following, derailment and pushing. A riding player
+    // Vehicles: rail following, derailment and pushing. A riding player
     // feeds the cart their forward intent and is never counted as a
     // shoving body; the seat follow runs right after the cart tick.
-    Minecarts::CartTickInput cart_in;
-    cart_in.rider_cart = gs.camera.riding_cart;
-    cart_in.rider_push = gs.camera.rider_push;
-    cart_in.player_feet = gs.camera.pos - glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
-    cart_in.player_width = PLAYER_WIDTH;
-    cart_in.player_height = PLAYER_HEIGHT;
-    cart_in.player_no_clip = gs.input.no_clip || gs.camera.riding_cart != 0;
-    // Remote players shove owned empty carts with the same overlap rule.
+    Vehicles::VehicleTickInput vehicle_in;
+    vehicle_in.rider_vehicle = gs.camera.riding_vehicle;
+    vehicle_in.rider_push = gs.camera.rider_push;
+    vehicle_in.rider_forward = gs.camera.rider_forward;
+    vehicle_in.rider_turn = gs.camera.rider_turn;
+    vehicle_in.player_feet = gs.camera.pos - glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+    vehicle_in.player_width = PLAYER_WIDTH;
+    vehicle_in.player_height = PLAYER_HEIGHT;
+    vehicle_in.player_no_clip = gs.input.no_clip || gs.camera.riding_vehicle != 0;
+    // Remote players shove owned empty vehicles with the same overlap rule.
     if ( gs.multiplayer.multiplayer_mode( ) ) {
-        gs.world.multiplayer_avatars.fill_remote_feet( cart_in.extra_pushers );
+        gs.world.multiplayer_avatars.fill_remote_feet( vehicle_in.extra_pushers );
     }
-    gs.world.carts.tick( gs, cart_in );
-    repgame_cart_ride_follow( gs );
+    gs.world.vehicles.tick( gs, vehicle_in );
+    repgame_vehicle_ride_follow( gs );
     // Remote riders: seat each avatar in its cart's eased position.
     if ( gs.multiplayer.multiplayer_mode( ) ) {
-        gs.world.multiplayer_avatars.apply_cart_seats( gs.world.carts );
+        gs.world.multiplayer_avatars.apply_vehicle_seats( gs.world.vehicles );
     }
     // Dropped item entities: physics, merge, magnet/pickup, despawn.
     gs.world.items.tick( gs );

@@ -378,20 +378,20 @@ int test_net_entities( ) {
         report( "net entities: player flags+health round trip",
                 net_deserialize_player( r, in ) && in.flags == NET_PLAYER_FLAG_TARGETABLE && in.health == 13.5f );
     }
-    { // Trailing riding_cart (ridden cart net id) round trips, and an old
+    { // Trailing riding_vehicle (ridden cart net id) round trips, and an old
       // payload without it decodes to 0.
         NetPlayerPayload out;
         memset( &out, 0, sizeof( out ) );
         out.x = 4.0f;
         out.held_item = STICK;
-        out.riding_cart = 0x1BADC0FFEEull;
+        out.riding_vehicle = 0x1BADC0FFEEull;
         PacketWriter w;
         net_serialize_player( w, out );
         PacketReader r( w.buf( ).data( ), w.buf( ).size( ) );
         NetPlayerPayload in;
         memset( &in, 0, sizeof( in ) );
-        report( "net entities: player riding_cart round trip",
-                net_deserialize_player( r, in ) && in.riding_cart == 0x1BADC0FFEEull );
+        report( "net entities: player riding_vehicle round trip",
+                net_deserialize_player( r, in ) && in.riding_vehicle == 0x1BADC0FFEEull );
         NetPlayerPayload old_out;
         memset( &old_out, 0, sizeof( old_out ) );
         old_out.x = 4.0f;
@@ -402,9 +402,9 @@ int test_net_entities( ) {
         PacketReader ro( old_buf.data( ), old_buf.size( ) );
         NetPlayerPayload old_in;
         memset( &old_in, 0, sizeof( old_in ) );
-        old_in.riding_cart = 7;
-        report( "net entities: player absent riding_cart defaults 0",
-                net_deserialize_player( ro, old_in ) && old_in.riding_cart == 0 && old_in.x == 4.0f );
+        old_in.riding_vehicle = 7;
+        report( "net entities: player absent riding_vehicle defaults 0",
+                net_deserialize_player( ro, old_in ) && old_in.riding_vehicle == 0 && old_in.x == 4.0f );
     }
     { // CHUNK_POPULATED
         NetChunkPopulatedPayload out{ -3, 0, 7 };

@@ -1,0 +1,11 @@
+{
+    "pattern": [
+        "# #",
+        "###"
+    ],
+    "key": {
+        "#": "POPLAR_PLANKS"
+    },
+    "result": "POPLAR_BOAT",
+    "count": 1
+}

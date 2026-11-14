@@ -71,12 +71,16 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   eases `y_speed` toward jump/sink targets under `PLAYER_WATER_ACCEL`
   with `WATER_VERTICAL_DRAG` when idle.
 - **Riding a minecart.** Right-click a cart to mount
-  (`camera.riding_cart`); sneak dismounts. All body physics above is
+  (`camera.riding_vehicle`); sneak dismounts. All body physics above is
   skipped while riding — the seat comes from
-  `repgame_cart_ride_follow` (`src/common/game/minecart_ride.cpp`),
+  `repgame_vehicle_ride_follow` (`src/common/game/vehicle_ride.cpp`),
   W/S intent pushes the cart along the rail, `fall_dist` stays 0
   (no fall damage), and the player's box doesn't shove carts. See
-  `docs/entities.md` Minecarts for mount/dismount/targeting details.
+  `docs/entities.md` Vehicles for mount/dismount/targeting details.
+- **Riding a boat.** Same mount/dismount, but the controls are
+  Minecraft-style: W/S paddle the boat forward/backward along its own
+  hull yaw and A/D steer (≈180°/s) — the camera stays free-look and
+  turns with the hull's yaw. A boat on land barely crawls.
 - **Swim vs wade.** Swimming requires the *standing* body center below
   the liquid's surface — `fluid_surface_height`, so a shallow flowing
   cell wades rather than swims (`WATER_HEIGHT` when the body cell

@@ -239,14 +239,19 @@ bool repgame_try_sleep( RepGameState &state, const glm::ivec3 &bed_pos );
 // drive it.
 void repgame_resolve_pending_spawn( RepGameState &state );
 
-// Minecart riding (src/common/game/minecart_ride.cpp): mount the cart by
+// Vehicle riding (src/common/game/vehicle_ride.cpp): mount the vehicle by
 // id (fails when it's gone or already ridden), dismount to the first
-// free spot beside/on the cart, and the per-tick follow that seats the
-// camera on the ridden cart (or clears riding_cart when it's gone).
+// free spot beside/on it, and the per-tick follow that seats the
+// camera on the ridden vehicle (or clears riding_vehicle when it's gone).
 // Free functions so rep_tests and the harness can drive them.
-bool repgame_cart_mount( RepGameState &gs, uint32_t cart_id );
-void repgame_cart_dismount( RepGameState &gs );
-void repgame_cart_ride_follow( RepGameState &gs );
+bool repgame_vehicle_mount( RepGameState &gs, uint32_t vehicle_id );
+void repgame_vehicle_dismount( RepGameState &gs );
+void repgame_vehicle_ride_follow( RepGameState &gs );
+// Right-click placement of a WATER-physics vehicle item: floats on the
+// water pick cell at surface - draft, or tops a solid block when the
+// hull fits. Consumes the held item in survival and sets the right-click
+// delay on success (returns false otherwise).
+bool repgame_vehicle_place( RepGameState &gs, VehicleType type );
 
 // Sign editor (src/common/game/sign_edit.cpp): modal four-line text box
 // opened by right-clicking a standing/wall sign. Free functions

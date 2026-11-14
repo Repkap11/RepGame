@@ -66,16 +66,18 @@ void main( ) {
     float py = rect.y + fv * rect.w;
     // Loader mapping: decode flips the image vertically and loadTexture
     // mirrors each tile in X, so skin pixel (px, py) samples at
-    // (1 - px/64, 1 - py/64).
-    v_tex_coords = vec2( 1.0 - px / 64.0, 1.0 - py / 64.0 );
+    // (1 - px/128, 1 - py/64). Layers are 128x64; 64-wide skins occupy the
+    // left half and their mirrored copies land in the right half, which is
+    // exactly where px < 64 samples after the horizontal flip.
+    v_tex_coords = vec2( 1.0 - px / 128.0, 1.0 - py / 64.0 );
 
     // Face rect bounds in texture space (same flip as above), inset by half
     // a texel: MSAA evaluates edge fragments off-triangle, and without the
     // clamp their extrapolated v_tex_coords sample neighbouring skin texels.
-    vec2 tex_lo = vec2( 1.0 - ( rect.x + rect.z ) / 64.0, 1.0 - ( rect.y + rect.w ) / 64.0 );
-    vec2 tex_hi = vec2( 1.0 - rect.x / 64.0, 1.0 - rect.y / 64.0 );
-    tex_lo += vec2( 0.5 / 64.0 );
-    tex_hi = max( tex_hi - vec2( 0.5 / 64.0 ), tex_lo );
+    vec2 tex_lo = vec2( 1.0 - ( rect.x + rect.z ) / 128.0, 1.0 - ( rect.y + rect.w ) / 64.0 );
+    vec2 tex_hi = vec2( 1.0 - rect.x / 128.0, 1.0 - rect.y / 64.0 );
+    tex_lo += vec2( 0.5 / 128.0, 0.5 / 64.0 );
+    tex_hi = max( tex_hi - vec2( 0.5 / 128.0, 0.5 / 64.0 ), tex_lo );
     v_tex_bounds = vec4( tex_lo, tex_hi );
 
     float face_light;

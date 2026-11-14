@@ -47,7 +47,7 @@ struct ServerChunkEntities {
     bool mobs_file_present = false;
     bool items_dirty = false;
     bool mobs_dirty = false;
-    bool carts_dirty = false;
+    bool vehicles_dirty = false;
     std::map<NetEntityId, NetEntityRecord> entities;
     // Clients whose view box covers this chunk (owner included).
     std::set<int> viewers;
@@ -73,7 +73,7 @@ class ServerEntities {
     // NET_ACTION_MOUNT, cleared by DISMOUNT, record removal, an uncovered
     // crossing, or the rider's disconnect. The rider session id lives in
     // the record's `count` (server-authoritative — clients never set it).
-    std::map<NetEntityId, int> cart_rider_fd;
+    std::map<NetEntityId, int> vehicle_rider_fd;
     std::map<int, EntityClientView> clients;
     std::map<int, uint32_t> session_ids;
     // Per-client current role per chunk, for CHUNK_ROLE deltas.
@@ -112,16 +112,16 @@ class ServerEntities {
     // O(1) entity -> owning chunk lookup via entity_chunk.
     ServerChunkEntities *find_entity_chunk( NetEntityId id, glm::ivec3 *out_chunk );
     // The fd allowed to stream ENTITY_STATE/REMOVE for this record: a
-    // causer sim for BODY/ARROW, the rider for a ridden CART, else the
+    // causer sim for BODY/ARROW, the rider for a ridden VEHICLE, else the
     // chunk owner.
     int sim_fd_of( const ServerChunkEntities &ce, const NetEntityRecord &rec ) const;
     // NET_ACTION_MOUNT / NET_ACTION_DISMOUNT server arbitration.
-    void apply_cart_mount( Server &server, int client_fd, const NetEntityActionPayload &p );
-    void apply_cart_dismount( Server &server, int client_fd, const NetEntityActionPayload &p );
+    void apply_vehicle_mount( Server &server, int client_fd, const NetEntityActionPayload &p );
+    void apply_vehicle_dismount( Server &server, int client_fd, const NetEntityActionPayload &p );
     // Push a server-originated ENTITY_STATE (header player 0) carrying
     // POS_ABS|VEL|COUNT to every viewer of the cart's chunk — how the
     // rider field reaches all clients, the requester included.
-    void broadcast_cart_count( Server &server, ServerChunkEntities &ce, const NetEntityRecord &rec );
+    void broadcast_rider_count( Server &server, ServerChunkEntities &ce, const NetEntityRecord &rec );
 
   public:
     void init( MapStorage *storage );
@@ -163,8 +163,8 @@ class ServerEntities {
     }
     // Selftest hook: fd riding this cart (-1 = none).
     int rider_of( const NetEntityId id ) const {
-        const auto it = this->cart_rider_fd.find( id );
-        return it == this->cart_rider_fd.end( ) ? -1 : it->second;
+        const auto it = this->vehicle_rider_fd.find( id );
+        return it == this->vehicle_rider_fd.end( ) ? -1 : it->second;
     }
     size_t removed_natural_of( const glm::ivec3 &chunk ) const {
         const auto it = this->chunks.find( chunk );

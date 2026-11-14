@@ -23,7 +23,10 @@ static void pin_harness_flight( Input &in, CameraState &cam ) {
     in.player_flying = true;
     in.no_clip = true;
     cam.y_speed = 0.0;
-    in.movement.sizeH = 0.0f;
+    in.movement.sizeH = cam.move_pin_set ? cam.move_pin_sizeH : 0.0f;
+    if ( cam.move_pin_set ) {
+        in.movement.angleH = cam.move_pin_angleH;
+    }
     in.movement.jumpPressed = false;
     in.movement.sneakPressed = false;
 }
@@ -53,7 +56,7 @@ void RepGame::apply_harness_camera_pins( ) {
         // already copied whatever pos we set here into prev_pos, so a
         // pinned pos would render the view from an origin→seat blend.
         // Angles still pin, which is how a script steers the seat view.
-        if ( cam.riding_cart == 0 ) {
+        if ( cam.riding_vehicle == 0 ) {
             cam.pos = glm::dvec3( sc.cam_x, sc.cam_y, sc.cam_z );
         }
         cam.angle_H = sc.cam_yaw;

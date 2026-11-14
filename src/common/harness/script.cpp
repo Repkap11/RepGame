@@ -381,40 +381,50 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         return false;
     }
     // cart x y z [vx vz] — spawn a minecart (snaps onto a rail under it);
-    // carts — emit a cart_state results event per live cart.
+    // vehicle <type> x y z [vx vz] — spawn any vehicle type by name.
     if ( strcmp( cmd, "cart" ) == 0 && ( argc == 4 || argc == 6 ) ) {
         const glm::dvec3 pos( farg( 1 ), farg( 2 ), farg( 3 ) );
         const glm::dvec2 vel = argc == 6 ? glm::dvec2( farg( 4 ), farg( 5 ) ) : glm::dvec2( 0.0 );
-        if ( !dbgcmd::cart( state, pos, vel, &err ) ) {
+        if ( !dbgcmd::vehicle( state, "minecart", pos, vel, &err ) ) {
             cmd_error( state, line, err.c_str( ) );
         }
         return false;
     }
+    if ( strcmp( cmd, "vehicle" ) == 0 && ( argc == 5 || argc == 7 ) ) {
+        const glm::dvec3 pos( farg( 2 ), farg( 3 ), farg( 4 ) );
+        const glm::dvec2 vel = argc == 7 ? glm::dvec2( farg( 5 ), farg( 6 ) ) : glm::dvec2( 0.0 );
+        if ( !dbgcmd::vehicle( state, argv[ 1 ].c_str( ), pos, vel, &err ) ) {
+            cmd_error( state, line, err.c_str( ) );
+        }
+        return false;
+    }
+    // carts — emit a cart_state results event per live vehicle.
     if ( strcmp( cmd, "carts" ) == 0 && argc == 1 ) {
-        for ( const Minecarts::Cart &c : state.world.carts.debug_carts( ) ) {
+        for ( const Vehicles::Vehicle &c : state.world.vehicles.debug_vehicles( ) ) {
             results::event( state.tick_number, "cart_state",
-                            "\"id\":%u,\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.6f,%.6f,%.6f],\"on_rail\":%d,\"rider\":%d",
-                            c.id, c.pos.x, c.pos.y, c.pos.z, c.vel.x, c.vel.y, c.vel.z, c.on_rail ? 1 : 0, c.rider ? 1 : 0 );
+                            "\"id\":%u,\"type\":\"%s\",\"pos\":[%.4f,%.4f,%.4f],\"vel\":[%.6f,%.6f,%.6f],\"on_rail\":%d,\"rider\":%d",
+                            c.id, vehicle_type_def( c.type ).name, c.pos.x, c.pos.y, c.pos.z, c.vel.x, c.vel.y, c.vel.z, c.on_rail ? 1 : 0, c.rider ? 1 : 0 );
         }
         return false;
     }
     // fake_rider — spawn a remote-player avatar through the same
-    // spawn_remote path MultiplayerAvatars uses and seat it in the cart
-    // nearest the camera (same seat pose as a real remote rider). The seat
-    // flag sticks in single player — nothing unseats it without MP.
+    // spawn_remote path MultiplayerAvatars uses and seat it in the
+    // vehicle nearest the camera (same seat pose as a real remote
+    // rider, any vehicle type). The seat flag sticks in single player —
+    // nothing unseats it without MP.
     if ( strcmp( cmd, "fake_rider" ) == 0 && argc == 1 ) {
-        const std::vector<Minecarts::Cart> carts = state.world.carts.debug_carts( );
+        const std::vector<Vehicles::Vehicle> vehicles = state.world.vehicles.debug_vehicles( );
         int best = -1;
         double best_dist = 1e9;
-        for ( size_t i = 0; i < carts.size( ); i++ ) {
-            const double d = glm::length( carts[ i ].pos - state.camera.pos );
+        for ( size_t i = 0; i < vehicles.size( ); i++ ) {
+            const double d = glm::length( vehicles[ i ].pos - state.camera.pos );
             if ( d < best_dist ) {
                 best_dist = d;
                 best = static_cast<int>( i );
             }
         }
         if ( best < 0 ) {
-            cmd_error( state, line, "fake_rider: no cart" );
+            cmd_error( state, line, "fake_rider: no vehicle" );
             return false;
         }
         const uint32_t uid = state.world.mobs.spawn_remote( MOB_PLAYER );
@@ -422,8 +432,8 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
             cmd_error( state, line, "fake_rider: spawn failed" );
             return false;
         }
-        state.world.mobs.set_remote_seated( uid, Minecarts::seat_pos( carts[ best ] ), carts[ best ].yaw );
-        results::event( state.tick_number, "fake_rider", "\"uid\":%u,\"cart_id\":%u", uid, carts[ best ].id );
+        state.world.mobs.set_remote_seated( uid, Vehicles::seat_pos( vehicles[ best ] ), vehicles[ best ].yaw );
+        results::event( state.tick_number, "fake_rider", "\"uid\":%u,\"cart_id\":%u", uid, vehicles[ best ].id );
         return false;
     }
     // ride — mount the nearest cart within 4 blocks of the player;
@@ -441,10 +451,20 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    // move sizeH angleH — pin the movement input like held WASD keys
+    // (0 0 releases); paddles ridden boats from scripts.
+    if ( strcmp( cmd, "move" ) == 0 && argc == 3 ) {
+        state.input.movement.sizeH = farg( 1 );
+        state.input.movement.angleH = farg( 2 );
+        state.camera.move_pin_set = 1;
+        state.camera.move_pin_sizeH = farg( 1 );
+        state.camera.move_pin_angleH = farg( 2 );
+        return false;
+    }
     if ( strcmp( cmd, "ride_state" ) == 0 && argc == 1 ) {
         results::event( state.tick_number, "ride_state",
-                        "\"riding_cart\":%u,\"pos\":[%.4f,%.4f,%.4f]",
-                        state.camera.riding_cart, state.camera.pos.x, state.camera.pos.y, state.camera.pos.z );
+                        "\"riding_vehicle\":%u,\"pos\":[%.4f,%.4f,%.4f]",
+                        state.camera.riding_vehicle, state.camera.pos.x, state.camera.pos.y, state.camera.pos.z );
         return false;
     }
     if ( strcmp( cmd, "feed" ) == 0 && ( argc == 4 || argc == 5 ) ) {

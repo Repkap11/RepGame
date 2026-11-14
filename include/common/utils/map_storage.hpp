@@ -69,14 +69,16 @@ struct __attribute__( ( packed ) ) ItemFileRecord {
     int32_t age_ticks;
 };
 
-// Per-minecart save record (persist_carts/load_carts). Packed on disk;
-// readers copy only the shared prefix so records from a build with a
-// different size still parse. Records with a non-finite position are
-// skipped by the loader.
-struct __attribute__( ( packed ) ) CartFileRecord {
+// Per-vehicle save record (persist_vehicles/load_vehicles). Packed on
+// disk; readers copy only the shared prefix so records from a build with
+// a different size still parse — a shorter on-disk record zero-fills the
+// tail, so pre-`type` files load as VEHICLE_MINECART. Records with a
+// non-finite position or an invalid type are skipped by the loader.
+struct __attribute__( ( packed ) ) VehicleFileRecord {
     double x, y, z;
     float vx, vy, vz;
     float yaw;
+    uint32_t type; // VehicleType — last field, appended in protocol 17
 };
 
 struct PlayerData;
@@ -206,9 +208,9 @@ class MapStorage {
     int load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out );
     // Writes the chunk's minecart records. An empty list still writes the
     // file, same convention as items (keeps stale records from reviving).
-    void persist_carts( const glm::ivec3 &chunk_offset, const std::vector<CartFileRecord> &carts );
+    void persist_vehicles( const glm::ivec3 &chunk_offset, const std::vector<VehicleFileRecord> &vehicles );
     // Loads minecart records into `out`. Returns 1 when the file existed.
-    int load_carts( const glm::ivec3 &chunk_offset, std::vector<CartFileRecord> &out );
+    int load_vehicles( const glm::ivec3 &chunk_offset, std::vector<VehicleFileRecord> &out );
     int read_player_data( PlayerData &player_data );
     void write_player_data( const PlayerData &player_data );
     // Server-side world clock (world.dat). Returns 1 if the file existed and

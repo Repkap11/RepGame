@@ -284,7 +284,7 @@ def arrows_of(st):
 
 
 def carts_of(st):
-    return st.get("carts", []) if st else []
+    return st.get("vehicles", []) if st else []
 
 
 def find_cart(st, net_id=None):
@@ -926,7 +926,7 @@ def sc_cart_ride(run, A, B):
     # B mounts through the real click path: ENTITY_ACTION MOUNT, then the
     # server's COUNT state names B's session and completes the ride.
     B.cmd("ride")
-    run.wait("B mounted", lambda: B.dump.last_state().get("riding_cart") == nid, timeout=60)
+    run.wait("B mounted", lambda: B.dump.last_state().get("riding_vehicle") == nid, timeout=60)
     # Sim handover: B simulates (remote=0), A mirrors (remote=1); both know
     # the rider session.
     run.wait("rider owns the sim", lambda: (
@@ -946,7 +946,7 @@ def sc_cart_ride(run, A, B):
              find_cart(B.dump.last_state(), nid)["pos"]) < 1.5), timeout=120)
     # A sees B's avatar flagged seated at the cart.
     run.wait("B avatar seated on A", lambda: any(
-        m.get("seated") == 1 and m.get("riding_cart") == nid and
+        m.get("seated") == 1 and m.get("riding_vehicle") == nid and
         find_cart(A.dump.last_state(), nid) is not None and
         dist(m["pos"], find_cart(A.dump.last_state(), nid)["pos"]) < 1.5
         for m in avatar_mobs_of(A.dump.last_state())), timeout=60)
@@ -955,13 +955,13 @@ def sc_cart_ride(run, A, B):
     A.goto(21.5, gy + 1.7, 15.5)
     A.cmd("ride")
     run.sleep_ticks(30)
-    if A.dump.last_state().get("riding_cart") != "0":
+    if A.dump.last_state().get("riding_vehicle") != "0":
         raise Fail("A mounted an already-ridden cart")
     if find_cart(A.dump.last_state(), nid) is None or find_cart(A.dump.last_state(), nid)["rider"] == 0:
         raise Fail("A's refused mount cleared the rider")
     # B dismounts: COUNT=0 everywhere and the sim returns to chunk owner A.
     B.cmd("dismount")
-    run.wait("B dismounted", lambda: B.dump.last_state().get("riding_cart") == "0", timeout=60)
+    run.wait("B dismounted", lambda: B.dump.last_state().get("riding_vehicle") == "0", timeout=60)
     run.wait("cart riderless on both", lambda: (
         find_cart(A.dump.last_state(), nid) is not None and
         find_cart(B.dump.last_state(), nid) is not None and
@@ -975,6 +975,79 @@ def sc_cart_ride(run, A, B):
     # A's avatar for B stands again.
     run.wait("B avatar standing on A", lambda: all(
         m.get("seated", 0) == 0 for m in avatar_mobs_of(A.dump.last_state())), timeout=60)
+
+
+def sc_boat_ride(run, A, B):
+    """Ridden oak boat: A builds a walled pool, spawns and mounts an
+    oak_boat, then paddles it with pinned movement input — B sees the
+    boat type, the streamed motion and A's avatar seated in it."""
+    gy = settle(run, A, B)
+    # 5x5 walled pool just east of A's pad: stone floor at gy-1, rim at
+    # gy..gy+1, water two cells deep. setblock goes through the normal
+    # player edit path (BLOCK_UPDATE), so order floor -> rim -> water.
+    for dx in range(-2, 3):
+        for dz in range(-2, 3):
+            A.cmd("setblock %d %d %d STONE" % (18 + dx, gy - 1, 10 + dz))
+    for d in range(-3, 4):
+        for y in (gy, gy + 1):
+            A.cmd("setblock %d %d %d STONE" % (18 + d, y, 7))
+            A.cmd("setblock %d %d %d STONE" % (18 + d, y, 13))
+            A.cmd("setblock %d %d %d STONE" % (15, y, 10 + d))
+            A.cmd("setblock %d %d %d STONE" % (21, y, 10 + d))
+    for dx in range(-2, 3):
+        for dz in range(-2, 3):
+            for y in (gy, gy + 1):
+                A.cmd("setblock %d %d %d WATER" % (18 + dx, y, 10 + dz))
+    run.sleep_ticks(30)
+    B.goto(18.5, gy + 2.7, 14.5)  # sees the pool, covers A's chunk
+    A.goto(18.5, gy + 2.7, 14.5)
+    A.cmd("vehicle oak_boat 18.5 %g 10.5" % (gy + 2.2))
+    run.wait("boat on A", lambda: find_cart(A.dump.last_state()) is not None, timeout=60)
+    nid = find_cart(A.dump.last_state())["net_id"]
+    run.wait("boat mirror on B", lambda: find_cart(B.dump.last_state(), nid) is not None, timeout=60)
+    if find_cart(B.dump.last_state(), nid)["type"] != "oak_boat":
+        raise Fail("boat type mismatch on B: %s" % find_cart(B.dump.last_state(), nid)["type"])
+    # Wait for the boat to settle afloat before mounting.
+    run.wait("boat settled", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        abs(find_cart(A.dump.last_state(), nid)["vel"][1]) < 0.01), timeout=60)
+    # A mounts through the real click path, then paddles forward with the
+    # movement pin — the ridden boat simulates on the rider's client.
+    A.cmd("ride")
+    run.wait("A mounted", lambda: A.dump.last_state().get("riding_vehicle") == nid, timeout=60)
+    run.wait("rider owns the sim", lambda: (
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid)["rider"] != 0), timeout=60)
+    p0 = find_cart(A.dump.last_state(), nid)["pos"]
+    yaw0 = find_cart(A.dump.last_state(), nid)["yaw"]
+    A.cmd("move 1 0")
+    run.wait("boat paddles on both", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid) is not None and
+        dist(find_cart(A.dump.last_state(), nid)["pos"], p0) > 0.5 and
+        dist(find_cart(A.dump.last_state(), nid)["pos"],
+             find_cart(B.dump.last_state(), nid)["pos"]) < 1.5), timeout=120)
+    # Steering: move's angleH maps to A/D (turn), the hull yaw must change.
+    A.cmd("move 0.5 90")
+    run.wait("boat turns on A", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        abs(find_cart(A.dump.last_state(), nid)["yaw"] - yaw0) > 15), timeout=120)
+    A.cmd("move 0 0")
+    # B sees A's avatar flagged seated at the boat.
+    run.wait("A avatar seated on B", lambda: any(
+        m.get("seated") == 1 and m.get("riding_vehicle") == nid and
+        find_cart(B.dump.last_state(), nid) is not None and
+        dist(m["pos"], find_cart(B.dump.last_state(), nid)["pos"]) < 1.5
+        for m in avatar_mobs_of(B.dump.last_state())), timeout=60)
+    # A dismounts: rider clears everywhere and the sim returns to the
+    # chunk owner.
+    A.cmd("dismount")
+    run.wait("A dismounted", lambda: A.dump.last_state().get("riding_vehicle") == "0", timeout=60)
+    run.wait("boat riderless on both", lambda: (
+        find_cart(A.dump.last_state(), nid) is not None and
+        find_cart(B.dump.last_state(), nid) is not None and
+        find_cart(A.dump.last_state(), nid)["rider"] == 0 and
+        find_cart(B.dump.last_state(), nid)["rider"] == 0), timeout=60)
 
 
 def sc_hostile_targets_remote(run, A, B):
@@ -1559,6 +1632,7 @@ SCENARIOS = [
     ("mob_hit_kill", sc_mob_hit_kill),
     ("cart_sync", sc_cart_sync),
     ("cart_ride", sc_cart_ride),
+    ("boat_ride", sc_boat_ride),
     ("hostile_targets_remote", sc_hostile_targets_remote),
     ("health", sc_health),
     ("falling_block", sc_falling_block),

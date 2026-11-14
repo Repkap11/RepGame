@@ -117,8 +117,8 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                                                     : static_cast<float>( globalGameState.camera.eye_height_render );
     const uint8_t send_flags = RepGame::player_targetable( globalGameState ) ? NET_PLAYER_FLAG_TARGETABLE : 0;
     if ( !globalGameState.spawn_pending ) {
-        const Minecarts::Cart *ridden =
-            globalGameState.camera.riding_cart != 0 ? globalGameState.world.carts.find( globalGameState.camera.riding_cart ) : nullptr;
+        const Vehicles::Vehicle *ridden =
+            globalGameState.camera.riding_vehicle != 0 ? globalGameState.world.vehicles.find( globalGameState.camera.riding_vehicle ) : nullptr;
         globalGameState.multiplayer.update_players_position( glm::vec3( render_pos ), render_rotation, send_eye_height, send_flags, globalGameState.vitals.health,
                                                            globalGameState.hotbar.getSelectedItem( ), ridden != nullptr ? ridden->net.id : 0 );
     }

@@ -29,6 +29,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( piston ),          //
     MK_TEST( rails ),           //
     MK_TEST( minecarts ),       //
+    MK_TEST( boats ),           //
     MK_TEST( torch_pick ),      //
     MK_TEST( ray_face_neighbor ), //
     MK_TEST( player_placement_valid ), //

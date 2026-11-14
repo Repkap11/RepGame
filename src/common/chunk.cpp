@@ -362,8 +362,8 @@ void Chunk::release_terrain( ) {
     this->sidecars.player_edited = 0;
     this->sidecars.items.clear( );
     this->sidecars.items_file_present = 0;
-    this->sidecars.carts.clear( );
-    this->sidecars.carts_file_present = 0;
+    this->sidecars.vehicles.clear( );
+    this->sidecars.vehicles_file_present = 0;
     // Every owned buffer was dropped — invalidate any async mesh snapshot
     // taken before this release.
     this->cell_version.fetch_add( 1u, std::memory_order_relaxed );
@@ -1107,8 +1107,8 @@ apply_edits:
     this->sidecars.mobs_removed.clear( );
     this->sidecars.items.clear( );
     this->sidecars.items_file_present = 0;
-    this->sidecars.carts.clear( );
-    this->sidecars.carts_file_present = 0;
+    this->sidecars.vehicles.clear( );
+    this->sidecars.vehicles_file_present = 0;
     this->sidecars.player_edited = this->edited != nullptr ? 1 : 0;
     if ( !no_mobs ) {
         this->sidecars.mobs_file_present = map_storage.load_mobs( this->chunk_pos, this->sidecars.mobs, &this->sidecars.mobs_removed ) ? 1 : 0;
@@ -1122,8 +1122,8 @@ apply_edits:
         // Dropped items follow the same test-mode rules as mobs: no file
         // reads (or writes) under REPGAME_MOBS=0 / REPGAME_MOB_TEST.
         this->sidecars.items_file_present = map_storage.load_items( this->chunk_pos, this->sidecars.items ) ? 1 : 0;
-        // Minecarts follow the same test-mode rules.
-        this->sidecars.carts_file_present = map_storage.load_carts( this->chunk_pos, this->sidecars.carts ) ? 1 : 0;
+        // Vehicles follow the same test-mode rules.
+        this->sidecars.vehicles_file_present = map_storage.load_vehicles( this->chunk_pos, this->sidecars.vehicles ) ? 1 : 0;
     }
     // Flood-fill emitters + column_open flags on the worker. Skylight is
     // resolved on the lighting thread by ChunkLoader::light_finalize_chunk.

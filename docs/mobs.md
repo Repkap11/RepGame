@@ -271,13 +271,21 @@ Adding a mob:
 
 A manifest entry with no `MobTypeDef`/`MOB_*` enum is a model-only import:
 it still yields `MOB_MODEL_*`/`MOB_SKIN_*` + `mob_cubes_*`/`mob_bones_*`
-for anything else that wants the Bedrock pipeline (the minecart —
-`docs/entities.md` — renders this way, driven by `Minecarts` rather than
-`MobManager`).
+for anything else that wants the Bedrock pipeline (the minecart and the
+boats — `docs/entities.md` — render this way, driven by `Vehicles`
+rather than `MobManager`; `MOB_MODEL_BOAT` carries ten wood-variant
+skins).
+
+Manifest geometry paths prefixed `repo:` resolve against the repo root
+instead of the Bedrock resource-pack samples — that's how
+`data/models/boat.geo.json` (authored, no upstream `geometry.boat`
+exists) is imported.
 
 Skin atlas convention: each skin is one 64x64 layer (`MOB_SKIN_*` is the
-layer index into `mobs.png`, `MK_TEXTURE(mobs, 64, 64*MOB_SKIN_COUNT,
-64, 64)`, NEAREST + no mipmaps via `Texture::init(..., mipmaps=false)`).
+layer index into `mobs.png`, `MK_TEXTURE(mobs, 128, 64*MOB_SKIN_COUNT,
+128, 64)` — the atlas widened to 128 so boat skins keep their native
+128×64 layout; NEAREST + no mipmaps via
+`Texture::init(..., mipmaps=false)`).
 The loader maps skin pixel `(px, py)` to UV `(1 - px/64, 1 - py/64)` —
 vertical flip from the texture load plus a per-tile X mirror; mirrored
 cubes also swap left/right face rects (`mob_face_rect` in

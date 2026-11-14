@@ -12,6 +12,7 @@
 #include "common/Logging.hpp"
 #include "common/chunk.hpp"
 #include "common/mob_types.hpp" // MOB_TYPE_COUNT
+#include "common/vehicle_types.hpp" // vehicle_type_valid
 #include "common/player_data.hpp"
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
@@ -1104,9 +1105,10 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
     return 1;
 }
 
-// Cart file layout: u32 record_size, u32 count, then `count`
-// CartFileRecords. Same conventions as the items file.
-void MapStorage::persist_carts( const glm::ivec3 &chunk_offset, const std::vector<CartFileRecord> &carts ) {
+// Vehicle file layout: u32 record_size, u32 count, then `count`
+// VehicleFileRecords. Same conventions as the items file. The on-disk
+// name stays carts_x_y_z (no migration).
+void MapStorage::persist_vehicles( const glm::ivec3 &chunk_offset, const std::vector<VehicleFileRecord> &vehicles ) {
     if ( repgame_block_world( ) ) {
         return;
     }
@@ -1118,12 +1120,12 @@ void MapStorage::persist_carts( const glm::ivec3 &chunk_offset, const std::vecto
         return;
     }
     this->index_insert( MAP_FILE_CARTS, chunk_offset );
-    uint32_t record_size = sizeof( CartFileRecord );
+    uint32_t record_size = sizeof( VehicleFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    uint32_t num_carts = static_cast<uint32_t>( carts.size( ) );
-    fwrite( &num_carts, sizeof( uint32_t ), 1, write_ptr );
-    for ( const CartFileRecord &record : carts ) {
-        fwrite( &record, sizeof( CartFileRecord ), 1, write_ptr );
+    uint32_t num_vehicles = static_cast<uint32_t>( vehicles.size( ) );
+    fwrite( &num_vehicles, sizeof( uint32_t ), 1, write_ptr );
+    for ( const VehicleFileRecord &record : vehicles ) {
+        fwrite( &record, sizeof( VehicleFileRecord ), 1, write_ptr );
     }
 #if defined( REPGAME_WASM )
     fdatasync( fileno( write_ptr ) );
@@ -1131,7 +1133,7 @@ void MapStorage::persist_carts( const glm::ivec3 &chunk_offset, const std::vecto
     fclose( write_ptr );
 }
 
-int MapStorage::load_carts( const glm::ivec3 &chunk_offset, std::vector<CartFileRecord> &out ) {
+int MapStorage::load_vehicles( const glm::ivec3 &chunk_offset, std::vector<VehicleFileRecord> &out ) {
     if ( repgame_block_world( ) ) {
         return 0;
     }
@@ -1150,23 +1152,23 @@ int MapStorage::load_carts( const glm::ivec3 &chunk_offset, std::vector<CartFile
         fclose( read_ptr );
         return 1;
     }
-    uint32_t num_carts = 0;
-    if ( fread( &num_carts, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_carts > 65535 ) {
+    uint32_t num_vehicles = 0;
+    if ( fread( &num_vehicles, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_vehicles > 65535 ) {
         fclose( read_ptr );
         return 1;
     }
-    char *raw = static_cast<char *>( calloc( num_carts, record_size ) );
-    size_t num_read = fread( raw, record_size, num_carts, read_ptr );
+    char *raw = static_cast<char *>( calloc( num_vehicles, record_size ) );
+    size_t num_read = fread( raw, record_size, num_vehicles, read_ptr );
     fclose( read_ptr );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
-        CartFileRecord cart = { 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0.0f };
-        const size_t prefix = sizeof( CartFileRecord ) <= (size_t)record_size ? sizeof( CartFileRecord ) : (size_t)record_size;
-        memcpy( &cart, record, prefix );
-        if ( !std::isfinite( cart.x ) || !std::isfinite( cart.y ) || !std::isfinite( cart.z ) ) {
+        VehicleFileRecord vehicle = { 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0.0f, 0u };
+        const size_t prefix = sizeof( VehicleFileRecord ) <= (size_t)record_size ? sizeof( VehicleFileRecord ) : (size_t)record_size;
+        memcpy( &vehicle, record, prefix );
+        if ( !std::isfinite( vehicle.x ) || !std::isfinite( vehicle.y ) || !std::isfinite( vehicle.z ) || !vehicle_type_valid( vehicle.type ) ) {
             continue;
         }
-        out.push_back( cart );
+        out.push_back( vehicle );
     }
     free( raw );
     return 1;
