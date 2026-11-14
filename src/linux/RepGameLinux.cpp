@@ -22,10 +22,11 @@ int main( int argc, char **argv ) {
         test_argc = argc - 2;
         test_argv = argv + 2;
     } else if ( argc == 1 ) {
+        // No-arg launch joins the public server on World1.
         world_path = "World1";
-        connect_multi = false;
-        host = "";
+        host = "www.repkap11.com";
     } else if ( argc == 2 ) {
+        // A world alone is single-player.
         world_path = argv[ 1 ];
         connect_multi = false;
         host = "";

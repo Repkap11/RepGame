@@ -919,10 +919,6 @@ int test_net_item_mirror_visuals( ) {
     return failures;
 }
 
-#if defined( __unix__ ) || defined( __APPLE__ )
-#include <unistd.h>
-#endif
-
 // multiplayer_mode() gates local entity-file persistence. It must report
 // multiplayer only while the session is (or was) actually connected: a
 // hostname whose connect fails outright leaves a purely local session, and
@@ -962,17 +958,15 @@ int test_net_multiplayer_mode( ) {
         report( "mode: dropped stays mp", mp.multiplayer_mode( ) && !mp.is_active( ) );
     }
 
-#if defined( __unix__ ) || defined( __APPLE__ )
     { // Real refused connect resolves to a local session.
         Multiplayer mp;
         mp.init( "127.0.0.1", 1 ); // port 1: nothing listens.
         for ( int i = 0; i < 10000 && mp.is_connecting( ); i++ ) {
-            usleep( 1000 );
+            std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
         }
         report( "mode: refused connect resolves", !mp.is_connecting( ) );
         report( "mode: refused connect is local", !mp.multiplayer_mode( ) && !mp.is_active( ) );
         mp.cleanup( );
     }
-#endif
     return failures;
 }

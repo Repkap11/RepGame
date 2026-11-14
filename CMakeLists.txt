@@ -343,6 +343,9 @@ if(REPGAME_BUILD_CLIENT)
 		file(GLOB platform_srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/wasm/*.cpp)
 	elseif(REPGAME_PLATFORM STREQUAL "windows")
 		file(GLOB platform_srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/windows/*.cpp)
+		# The Windows client shares the Linux native socket transport via
+		# the socket_compat shim (winsock2).
+		list(APPEND platform_srcs ${CMAKE_SOURCE_DIR}/src/linux/multiplayer.cpp)
 	else()
 		file(GLOB platform_srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/linux/*.cpp)
 	endif()
@@ -428,7 +431,7 @@ if(REPGAME_BUILD_CLIENT)
 			${CMAKE_SOURCE_DIR}/windows_build/sdl3/x86_64-w64-mingw32/lib/libSDL3.dll.a
 			-Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va
 			-lm -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
-			-lsetupapi -lversion -luuid
+			-lsetupapi -lversion -luuid -lws2_32
 			-lopengl32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic
 			-static-libgcc -static-libstdc++)
 		# SDL3 is dynamically linked on Windows, so ship SDL3.dll next to the exe.

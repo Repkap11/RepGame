@@ -69,7 +69,9 @@ invalid types are dropped), and renamed the payload field to
 dispatch/sender core (`src/common/multiplayer_common.cpp`) and
 per-platform transport files:
 
-- **Linux/POSIX** (`src/linux/multiplayer.cpp`): `init` spawns
+- **Linux/POSIX + Windows** (`src/linux/multiplayer.cpp`): shared by the
+  Linux/ARM/SteamFrame builds and the mingw Windows client through
+  `include/common/net/socket_compat.hpp` (winsock2 on Windows). `init` spawns
   `connect_async` — DNS + nonblocking `connect` + `poll` on a background
   thread with `MULTIPLAYER_CONNECT_TIMEOUT_MS`, so an unreachable host
   can't stall startup. `process_events` (called each tick) drains

@@ -5,7 +5,7 @@
 //
 // The frame codec is transport-agnostic. Two transports are supported:
 //   - fd:  adopt() a connected nonblocking socket, then flush() writes and
-//          recv_message() reads (POSIX only: Linux, Android, server).
+//          recv_message() reads (Linux, Android, Windows, server).
 //   - manual: adopt_manual(), feed inbound bytes via push_recv_bytes() and
 //          drain outbound frames via pop_send_frame() (WASM WebSocket).
 //
@@ -23,9 +23,9 @@ class FramedSocket {
   public:
     FramedSocket( ) = default;
 
-    // Adopt an already-connected, nonblocking fd. Does not take ownership of
-    // the fd's lifecycle (caller still closes it); FramedSocket only uses it
-    // for send/recv. POSIX only.
+    // Adopt an already-connected, nonblocking fd (a SOCKET cast to int on
+    // Windows). Does not take ownership of the fd's lifecycle (caller still
+    // closes it); FramedSocket only uses it for send/recv.
     void adopt( int fd );
 
     // Open in manual-transport mode (no fd). Used on WASM, where the caller

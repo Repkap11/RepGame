@@ -3,7 +3,7 @@
 # this file is the task runner. Release only.
 #
 #   make windows        — builds out/windows/RepGame.exe + SDL3.dll
-#   make windows-run    — run it under Wine
+#   make windows-run    — run it under Wine, WORLD on www.repkap11.com
 #   make windows-deploy — rsync the exe to repkap11.com
 #   make windows_build  — download SDL3 + GLEW dev packages
 
@@ -32,7 +32,7 @@ out/windows/RepGame.exe : $(SOUND_OGGS) windows_build FORCE
 	$(call cmake_build,windows,out/windows/cmake,$(CMAKE_WINDOWS_DFLAGS))
 
 windows-run : out/windows/RepGame.exe
-	wine out/windows/RepGame.exe "$(WORLD_DEBUG)"
+	wine out/windows/RepGame.exe "$(WORLD)" www.repkap11.com
 
 windows-deploy : out/windows/RepGame.exe
 	rsync $< paul@repkap11.com:/home/paul/website/${TARGET_LOWER}

@@ -25,7 +25,9 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
   a locally built Monado simulated HMD (`docs/vr.md`)
 - `make server` / `make server-run` — build / run the dedicated server
 - Run: `./out/linux/release/RepGame <WorldName> <host>`
-  (e.g. `RepGame World1 localhost`); server: `RepGameServer [port|--selftest]`
+  (e.g. `RepGame World1 localhost`); no args defaults to World1 on
+  www.repkap11.com, a world alone is single-player.
+  Server: `RepGameServer [port|--selftest]`
 - Other platforms (ARM, Steam Frame, WASM, Windows, Android, Docker,
   AppImage, flatpak) and all deploy targets: `docs/platforms.md`.
 

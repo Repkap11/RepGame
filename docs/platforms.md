@@ -122,7 +122,12 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   `REPGAME_PLATFORM=windows`, mingw toolchain
   `cmake/toolchains/windows-mingw.cmake`); `SDL3.dll` is copied next to the
   exe post-build.
-- `make windows-run` — run the exe under wine (single-player `WORLD_DEBUG`).
+- `make windows-run` — run the exe under wine against www.repkap11.com
+  (`WORLD`), like `linux-run`. Multiplayer works: the client shares the Linux socket
+  transport (`src/linux/multiplayer.cpp` over
+  `include/common/net/socket_compat.hpp`, ws2_32).
+- Launch: `RepGame.exe <World> <host>` (host optional); with no args it
+  defaults to World1 on www.repkap11.com, a world alone is single-player.
 - `make windows-deploy` — rsync the exe to repkap11.com.
 
 ## Android

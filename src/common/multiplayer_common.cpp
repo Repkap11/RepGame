@@ -1,7 +1,7 @@
 // Transport-independent parts of Multiplayer: frame dispatch and the
-// send-side helpers. The platform files (linux/, wasm/, windows/) provide
-// init/process_events/cleanup plus the flush_outbound()/disconnect() hooks
-// these functions call.
+// send-side helpers. The platform files (linux/ — also used by Windows — and
+// wasm/) provide init/process_events/cleanup plus the
+// flush_outbound()/disconnect() hooks these functions call.
 
 #include <stdio.h>
 #include <string.h>

@@ -1,15 +1,9 @@
+// Native socket multiplayer transport, shared by Linux/ARM/SteamFrame and
+// (via the socket_compat shim) the mingw Windows client.
+
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <netdb.h>
 #include <string.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <fcntl.h>
-#include <poll.h>
 
 #include "common/RepGame.hpp"
 #include "common/block_definitions.hpp"
@@ -18,9 +12,15 @@
 #include "common/multiplayer.hpp"
 #include "common/net/mpload_trace.hpp"
 #include "common/net/packet.hpp"
+#include "common/net/socket_compat.hpp"
 
 void Multiplayer::init( const char *hostname, const int port ) {
     pr_debug( "using server %s:%i", hostname, port );
+
+    if ( !net_startup( ) ) {
+        pr_debug( "Unable to initialize networking" );
+        return;
+    }
 
     this->active = false;
     this->portno = port;
@@ -31,8 +31,8 @@ void Multiplayer::init( const char *hostname, const int port ) {
 
     // Create the socket on the main thread so we own its lifecycle. The
     // background connect thread uses this->sockfd but never closes it; on
-    // shutdown cleanup() closes it to interrupt any pending poll().
-    this->sockfd = socket( AF_INET, SOCK_STREAM, 0 );
+    // shutdown cleanup() closes it to interrupt any pending wait.
+    this->sockfd = net_socket_tcp( );
     if ( this->sockfd < 0 ) {
         pr_debug( "Unable to allocate socket" );
         this->sockfd = -1;
@@ -40,8 +40,8 @@ void Multiplayer::init( const char *hostname, const int port ) {
     }
     // Diff/block updates are latency-sensitive — skip Nagle.
     int opt = 1;
-    if ( setsockopt( this->sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof( opt ) ) < 0 ) {
-        pr_debug( "setsockopt TCP_NODELAY: %s", strerror( errno ) );
+    if ( setsockopt( this->sockfd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>( &opt ), sizeof( opt ) ) < 0 ) {
+        pr_debug( "setsockopt TCP_NODELAY: %s", net_strerror( net_last_error( ) ) );
     }
 
     // Perform DNS + nonblocking connect + poll on a background thread so a
@@ -79,12 +79,7 @@ void Multiplayer::connect_async( const std::string &hostname ) {
     freeaddrinfo( result );
 
     // Make the socket nonblocking before connect so we can bound the wait.
-    int flags = fcntl( this->sockfd, F_GETFL );
-    if ( flags < 0 ) {
-        pr_debug( "Unable to get socket flags" );
-        return;
-    }
-    if ( fcntl( this->sockfd, F_SETFL, flags | O_NONBLOCK ) < 0 ) {
+    if ( !net_set_nonblocking( this->sockfd ) ) {
         pr_debug( "Unable to set non-blocking" );
         return;
     }
@@ -97,21 +92,18 @@ void Multiplayer::connect_async( const std::string &hostname ) {
         this->ever_connected = true;
         return;
     }
-    if ( rc < 0 && errno != EINPROGRESS ) {
-        pr_debug( "Multiplayer failed to connect: %s", strerror( errno ) );
+    if ( rc < 0 && !net_err_connect_in_progress( net_last_error( ) ) ) {
+        pr_debug( "Multiplayer failed to connect: %s", net_strerror( net_last_error( ) ) );
         return;
     }
 
-    // Wait for the socket to become writable, with a bounded timeout.
-    struct pollfd pfd;
-    pfd.fd = this->sockfd;
-    pfd.events = POLLOUT;
-    int pr = poll( &pfd, 1, MULTIPLAYER_CONNECT_TIMEOUT_MS );
+    // Wait for the connect to complete, with a bounded timeout.
+    int pr = net_wait_connect( this->sockfd, MULTIPLAYER_CONNECT_TIMEOUT_MS );
     if ( pr <= 0 ) {
         if ( pr == 0 ) {
             pr_debug( "Multiplayer failed to connect: timed out after %d ms", MULTIPLAYER_CONNECT_TIMEOUT_MS );
         } else {
-            pr_debug( "Multiplayer failed to connect: poll error: %s", strerror( errno ) );
+            pr_debug( "Multiplayer failed to connect: wait error: %s", net_strerror( net_last_error( ) ) );
         }
         return;
     }
@@ -119,12 +111,12 @@ void Multiplayer::connect_async( const std::string &hostname ) {
     // Check whether the async connect actually succeeded.
     int so_error = 0;
     socklen_t so_len = sizeof( so_error );
-    if ( getsockopt( this->sockfd, SOL_SOCKET, SO_ERROR, &so_error, &so_len ) < 0 ) {
-        pr_debug( "Multiplayer failed to connect: getsockopt error: %s", strerror( errno ) );
+    if ( getsockopt( this->sockfd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>( &so_error ), &so_len ) < 0 ) {
+        pr_debug( "Multiplayer failed to connect: getsockopt error: %s", net_strerror( net_last_error( ) ) );
         return;
     }
     if ( so_error != 0 ) {
-        pr_debug( "Multiplayer failed to connect: %s", strerror( so_error ) );
+        pr_debug( "Multiplayer failed to connect: %s", net_strerror( so_error ) );
         return;
     }
 
@@ -145,7 +137,7 @@ void Multiplayer::disconnect( ) {
     this->connect_pending = false;
     this->framed_socket.mark_closed( );
     if ( this->sockfd >= 0 ) {
-        close( this->sockfd );
+        net_close( this->sockfd );
         this->sockfd = -1;
     }
 }
@@ -207,18 +199,18 @@ void Multiplayer::process_events( RepGameState &state ) {
 
 void Multiplayer::cleanup( ) {
     pr_debug( "closing multiplayer" );
-    // If the connect thread is still running (server unreachable, poll in
-    // progress), close the fd to interrupt its poll(), then join. The connect
+    // If the connect thread is still running (server unreachable, wait in
+    // progress), close the fd to interrupt its wait, then join. The connect
     // thread never closes the fd, so this is safe.
     if ( this->connect_thread.joinable( ) ) {
         if ( !this->active.load( ) && this->sockfd >= 0 ) {
-            close( this->sockfd );
+            net_close( this->sockfd );
             this->sockfd = -1;
         }
         this->connect_thread.join( );
     }
     if ( this->active.load( ) && this->sockfd >= 0 ) {
-        close( this->sockfd );
+        net_close( this->sockfd );
         this->sockfd = -1;
         this->active = false;
     }

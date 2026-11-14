@@ -1,19 +1,9 @@
 #include "common/net/framed_socket.hpp"
 
-#include <cerrno>
 #include <cstdio>
 #include <cstring>
 
-#if !defined( REPGAME_WINDOWS )
-#include <unistd.h>
-#include <sys/socket.h>
-#endif
-
-// Keep send() from raising SIGPIPE on POSIX (kills the whole process when a
-// peer vanishes mid-write); Windows/WASM has neither the flag nor the signal.
-#ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL 0
-#endif
+#include "common/net/socket_compat.hpp"
 
 #define fs_pr_debug( fmt, ... ) fprintf( stderr, "framed_socket:%s:%d:%s():" fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__ )
 
@@ -25,13 +15,11 @@ void FramedSocket::reset_buffers( ) {
     recv_consume_ = 0;
 }
 
-#if !defined( REPGAME_WINDOWS )
 void FramedSocket::adopt( int fd ) {
     fd_ = fd;
     open_ = true;
     reset_buffers( );
 }
-#endif
 
 void FramedSocket::adopt_manual( ) {
     fd_ = -1;
@@ -159,42 +147,36 @@ std::optional<std::vector<uint8_t>> FramedSocket::pop_send_frame( ) {
     return frame;
 }
 
-#if !defined( REPGAME_WINDOWS )
 int FramedSocket::flush( ) {
-    // Batched writes: one sendmsg gathers up to 64 queued frames. On a
+    // Batched writes: one vectored send gathers up to 64 queued frames. On a
     // short send, send_offset_ records how far into the front frame the
     // kernel got so the next flush resumes mid-frame. Frame order on the
     // wire is exactly queue order.
     static constexpr int MAX_IOV = 64;
     while ( !send_queue_.empty( ) ) {
-        struct iovec iov[ MAX_IOV ];
+        net_iovec iov[ MAX_IOV ];
         int iov_cnt = 0;
         bool first = true;
         for ( const std::vector<uint8_t> &frame : send_queue_ ) {
             if ( iov_cnt == MAX_IOV ) {
                 break;
             }
-            iov[ iov_cnt ].iov_base = const_cast<uint8_t *>( frame.data( ) );
-            iov[ iov_cnt ].iov_len = frame.size( );
             if ( first ) {
                 // The front frame may be part-sent already.
-                iov[ iov_cnt ].iov_base = const_cast<uint8_t *>( frame.data( ) ) + send_offset_;
-                iov[ iov_cnt ].iov_len = frame.size( ) - send_offset_;
+                net_iov_set( iov[ iov_cnt ], frame.data( ) + send_offset_, frame.size( ) - send_offset_ );
                 first = false;
+            } else {
+                net_iov_set( iov[ iov_cnt ], frame.data( ), frame.size( ) );
             }
             iov_cnt++;
         }
-        struct msghdr msg;
-        memset( &msg, 0, sizeof( msg ) );
-        msg.msg_iov = iov;
-        msg.msg_iovlen = static_cast<size_t>( iov_cnt );
-        const ssize_t nsent = sendmsg( fd_, &msg, MSG_NOSIGNAL );
+        const long nsent = net_sendv( fd_, iov, iov_cnt );
         if ( nsent < 0 ) {
-            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+            if ( net_err_would_block( net_last_error( ) ) ) {
                 // Socket buffer full; try again next flush.
                 return static_cast<int>( send_queue_.size( ) );
             }
-            fs_pr_debug( "sendmsg error: %s", strerror( errno ) );
+            fs_pr_debug( "sendv error: %s", net_strerror( net_last_error( ) ) );
             had_error_ = true;
             return -1;
         }
@@ -242,13 +224,14 @@ std::optional<std::vector<uint8_t>> FramedSocket::recv_message( ) {
             recv_buf_.reserve( old_size + 65536 );
         }
         recv_buf_.resize( old_size + 65536 );
-        ssize_t n = recv( fd_, recv_buf_.data( ) + old_size, 65536, 0 );
+        const long n = recv( fd_, reinterpret_cast<char *>( recv_buf_.data( ) + old_size ), 65536, 0 );
         recv_buf_.resize( old_size + ( n > 0 ? n : 0 ) );
         if ( n < 0 ) {
-            if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
+            const int err = net_last_error( );
+            if ( net_err_would_block( err ) ) {
                 return std::nullopt; // no more data right now
             }
-            fs_pr_debug( "recv error: %s", strerror( errno ) );
+            fs_pr_debug( "recv error: %s", net_strerror( err ) );
             had_error_ = true;
             return std::nullopt;
         }
@@ -261,4 +244,3 @@ std::optional<std::vector<uint8_t>> FramedSocket::recv_message( ) {
         // Loop back to try parsing again with the new bytes.
     }
 }
-#endif
