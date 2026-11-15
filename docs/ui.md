@@ -321,4 +321,8 @@ matching and the output slot are documented with the item/recipe data in
 `RepGame::draw_ui_pass` (`src/common/game/game_render.cpp`) renders all
 of it into the platform UI pass after the world draw; VR substitutes its
 own quad-layer path (crosshair/in-hand are skipped there —
-`docs/vr.md`).
+`docs/vr.md`). Two switches suppress the HUD layer (everything between
+the ImGui draw and the pause menu: hotbar, vitals, crosshair, chat,
+held item, inventory panels, touch controls): `capture.enabled` for
+scripted shots, and `input.ui_hidden` toggled by F1 at runtime — the
+ImGui overlay, pause menu and sign editor draw regardless.

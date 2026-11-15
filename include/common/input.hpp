@@ -92,6 +92,11 @@ class Input {
     // Set by the 'g' key; consumed by imgui_overlay_draw to show/hide the
     // debug overlay at runtime.
     bool toggle_imgui;
+    // F1 toggle: hides the whole HUD layer in draw_ui_pass (hotbar, vitals,
+    // crosshair, chat, held item, inventory panels, touch controls) for
+    // screenshots. The ImGui overlay and the modal screens (pause menu,
+    // sign editor) still draw.
+    bool ui_hidden = false;
     // Set by the 'n' key (debug); consumed by RepGame::tick to spawn a mob
     // in front of the player.
     bool spawn_mob;

@@ -114,6 +114,8 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             // The inventory key also resumes (on WASM it's the only key that
             // can, since it grants the activation pointer lock needs).
             this->onMenuClicked( );
+        } else if ( key == SDLK_F1 ) {
+            this->ui_hidden = !this->ui_hidden;
         } else if ( key == SDLK_F12 ) {
             this->screenshot_requested = true;
         } else if ( key == 'c' && this->ctrl_held ) {
@@ -306,6 +308,11 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
 #endif
             if ( pressed ) {
                 this->toggle_game_mode = true;
+            }
+            break;
+        case SDLK_F1:
+            if ( pressed ) {
+                this->ui_hidden = !this->ui_hidden;
             }
             break;
         case SDLK_F12:

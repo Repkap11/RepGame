@@ -501,7 +501,12 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
     // under the pause menu, menu text on top).
     globalGameState.ui.font.text_begin( );
 
-    if ( !run_policy().capture.enabled ) {
+    // F1 (input.ui_hidden) suppresses the same HUD/inventory/touch layer
+    // capture mode does — the ImGui overlay above and the modal pause
+    // menu / sign editor below still draw.
+    const bool draw_hud = !run_policy().capture.enabled && !globalGameState.input.ui_hidden;
+
+    if ( draw_hud ) {
         const ChestContents *chest_contents = nullptr;
         if ( globalGameState.ui.chest.open ) {
             chest_contents = globalGameState.world.get_chest_contents( globalGameState.ui.chest.pos );
@@ -689,7 +694,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             repgame_draw_chat( globalGameState, globalGameState.world.renderer, globalGameState.ui.font, globalGameState.screen.ortho_center );
         }
     }
-    if ( !run_policy().capture.enabled && globalGameState.ui.holding_slot ) {
+    if ( draw_hud && globalGameState.ui.holding_slot ) {
         int block_size, cell_size;
         globalGameState.survival_inventory.inventory_renderer.getBlockMetrics( block_size, cell_size );
         globalGameState.ui.overlay.draw_held_inventory_item( globalGameState.ui.held_slot, globalGameState.ui.holding_slot, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, block_size, cell_size, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center );
@@ -697,7 +702,7 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
     // The touch controls ride the HUD layer: they self-hide while the
     // menu is up (or input.touch_ui is off), and their labels flush with
     // the HUD text below.
-    if ( !run_policy().capture.enabled ) {
+    if ( draw_hud ) {
         globalGameState.ui.touch.draw( globalGameState.world.renderer, globalGameState.ui.overlay.get_shader( ), globalGameState.blocksTexture, globalGameState.ui.font, globalGameState.screen.ortho_center, globalGameState );
     }
     // Flush the HUD/inventory text layer before the pause menu: glyphs in

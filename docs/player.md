@@ -35,6 +35,7 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 | `G` | ImGui debug overlay |
 | `V` | Toggle vsync |
 | `N` | Spawn a mob (debug) |
+| `F1` | Hide/show the HUD layer (`input.ui_hidden`) for screenshots — hotbar, vitals, crosshair, chat, held item, inventory panels, touch controls. ImGui overlay and pause menu still draw |
 | `F12` | Screenshot (`./screenshots/screenshot_<n>_*.tga`, first unused `n` — earlier sessions' shots are kept) |
 | Left click | Mine / attack mob |
 | Right click | Place / interact; `Shift`+right-click places past interactables |
@@ -42,7 +43,7 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 | Wheel | Hotbar slot; creative-inventory page while inventory is open |
 
 While `menu_open`, key *presses* are swallowed except Esc/inventory
-(resume), F12, Ctrl+C; releases still flow so held-key flags stay
+(resume), F1, F12, Ctrl+C; releases still flow so held-key flags stay
 consistent. Mouse presses record where they began
 (`*_pressed_in_ui`) so a drag started over the UI never mines and a drag
 started in the world never moves items.
