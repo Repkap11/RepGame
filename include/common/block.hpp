@@ -706,7 +706,9 @@ static inline glm::vec3 block_icon_tex_offset( const Block *block, const BlockBo
 // stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),
 // gates the closed leaf spanning z (fence_gate_icon_boxes), buttons the
 // centered button_inventory box (button_icon_boxes), panes the def plate
-// yawed 90 (block_icon_yaw). Returns the
+// yawed 90 (block_icon_yaw), scaffolding the frame without the base
+// plate (scaffolding_boxes with the covered-below nmask bit, plate
+// ordered last since icons draw in box order). Returns the
 // box count — 0 for blocks whose icon is their single def box
 // (Block::scale/offset/tex_offset), which callers draw through the
 // non-box path.

@@ -905,9 +905,18 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
         return end_rod_boxes( out );
     }
     if ( block->is_scaffolding ) {
-        // Plate + legs + bottom lattice — the whole frame reads as the
-        // item.
-        return scaffolding_boxes( 0, out );
+        // Plate + legs — the item is the bare frame; the bottom lattice
+        // only exists against a supporting cell, so the icon passes the
+        // covered-below bit to drop it. The plate is moved last: icon
+        // paths draw in box order, and the back legs' coplanar top caps
+        // and side strips must lose to the plate's faces.
+        const int n = scaffolding_boxes( 1u << FACE_BOTTOM, out );
+        const BlockBox plate = out[ 0 ];
+        for ( int i = 1; i < n; i++ ) {
+            out[ i - 1 ] = out[ i ];
+        }
+        out[ n - 1 ] = plate;
+        return n;
     }
     if ( block_icon_yaw( block ) != 0 ) {
         // Panes: the def plate yawed 90 — thin in x so the broad face lands

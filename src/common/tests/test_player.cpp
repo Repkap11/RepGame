@@ -501,7 +501,7 @@ int test_scaffolding( ) {
         const Block *def = block_definition_get_definition( SCAFFOLDING );
         check_bool( "def: climbable + is_scaffolding", def->climbable && def->is_scaffolding );
         BlockBox icon_boxes[ ICON_MAX_BOXES ];
-        check_bool( "icon: frame is 6 boxes", block_icon_boxes( def, icon_boxes ) == SCAFFOLDING_MAX_BOXES );
+        check_bool( "icon: frame is 5 boxes (no base plate)", block_icon_boxes( def, icon_boxes ) == SCAFFOLDING_MAX_BOXES - 1 );
     }
 
     // --- support rule (scaffolding_supported via block_can_survive_at) ------

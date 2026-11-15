@@ -1082,8 +1082,9 @@ void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_lo
                         data.second.face[ f ] = it.face[ f ];
                     }
                     // Scaffolding's platform underside samples the woven top
-                    // tile, like the placed block (block_mesh_emit.cpp).
-                    if ( block->is_scaffolding && i == 0 ) {
+                    // tile, like the placed block (block_mesh_emit.cpp). The
+                    // icon orders the plate last so it draws over the legs.
+                    if ( block->is_scaffolding && i == nboxes - 1 ) {
                         data.second.face[ FACE_BOTTOM ] = data.second.face[ FACE_TOP ];
                     }
                     // The block's shape recentred on the spin axis: a slab rests
@@ -1149,8 +1150,9 @@ void ItemEntities::set_held_item( ItemID item ) {
                 data.second.face[ f ] = block->textures[ block_icon_face( block, f ) ];
             }
             // Scaffolding's platform underside samples the woven top
-            // tile, like the placed block (block_mesh_emit.cpp).
-            if ( block->is_scaffolding && i == 0 ) {
+            // tile, like the placed block (block_mesh_emit.cpp). The
+            // icon orders the plate last so it draws over the legs.
+            if ( block->is_scaffolding && i == nboxes - 1 ) {
                 data.second.face[ FACE_BOTTOM ] = data.second.face[ FACE_TOP ];
             }
             block_item_shape( block, true, i, data.second );

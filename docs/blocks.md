@@ -188,7 +188,9 @@ frames are dropped through
 `skip_faces`/`nmask` like the fence rail culls; the block is excluded
 from merged-run meshing like fences/bamboo). The same nmask feeds ray
 picking — the frame boxes are the pick shape, so rays through the
-interior reach the blocks behind. Collision is the MC model:
+interior reach the blocks behind. The item icon (`block_icon_boxes`)
+passes the covered-below bit so it draws the bare frame — plate and
+legs without the base lattice. Collision is the MC model:
 `block_collision_boxes_for_state`
 returns only the 2px platform lip at the cell top, and the move scans skip
 it for a mover whose feet are below the lip top or while sneaking
