@@ -10,6 +10,12 @@
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
+#include "common/map_gen_nether.hpp"
+
+// "No surface" sentinel: can't be a real y (seabeds legitimately sit at
+// negative y — a -1 sentinel there would silently reject every underwater
+// column, which is exactly what happened before this existed).
+#define SG_NO_SURFACE -1000000
 
 #if !REPGAME_MAP_GEN_LEGACY
 // The reworked generator only — under legacy builds every function below is
@@ -217,11 +223,6 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
     *out_tz = tz;
     return true;
 }
-
-// "No surface" sentinel: can't be a real y (seabeds legitimately sit at
-// negative y — a -1 sentinel there would silently reject every underwater
-// column, which is exactly what happened before this existed).
-#define SG_NO_SURFACE -1000000
 
 // Real surface of a column, derived from pure map gen (not this chunk's block
 // array) so every chunk agrees even when the ground lives in a different
@@ -997,9 +998,101 @@ void StructureGen::place_formations( Chunk &chunk, const int cox, const int coy,
 
 #endif // !REPGAME_MAP_GEN_LEGACY
 
+// ---------------------------------------------------------------------------
+// Nether fungal trees (crimson/warped huge fungi), stamped under both
+// generators — the nether picker is generator-independent. There's no
+// heightmap to scan around, so the surface is probed straight out of the
+// pure generator: the first solid cell scanning down from the cavern top is
+// the up-facing surface, and only a nylium crust cell roots a fungus — the
+// species then follows the painted fungal-forest patches for free while
+// shelf tops, pillar flanks and carved pit floors reject themselves.
+// ---------------------------------------------------------------------------
+
+#define SGN_TREE_CELL 20  // world grid cell holding at most one fungus
+#define SGN_CANOPY_REACH 8 // canopy radius + margin a fungus can reach past its anchor
+
+static int sgn_find_surface( const int wx, const int wz, BlockID *ground ) {
+    int top = (int)mgn_roof_base( wx, wz ) - 6;
+    if ( top > DIM_BLOCK_SPAN - 4 ) {
+        top = DIM_BLOCK_SPAN - 4;
+    }
+    for ( int ly = top; ly > MGN_LAVA_SEA; ly-- ) {
+        const BlockID b = MapGen::gen_block_id( wx, DIM_BY_MIN_N + ly, wz );
+        if ( b == AIR || b == LAVA || b == FIRE || b == SOUL_FIRE ) {
+            continue;
+        }
+        *ground = b;
+        return DIM_BY_MIN_N + ly;
+    }
+    return SG_NO_SURFACE;
+}
+
+void StructureGen::place_nether_trees( Chunk &chunk, const int cox, const int coy, const int coz ) {
+    const int reach = SGN_TREE_CELL + SGN_CANOPY_REACH;
+    const int cx0 = ( cox - reach ) / SGN_TREE_CELL - 1;
+    const int cx1 = ( cox + CHUNK_SIZE_X + reach ) / SGN_TREE_CELL + 1;
+    const int cz0 = ( coz - reach ) / SGN_TREE_CELL - 1;
+    const int cz1 = ( coz + CHUNK_SIZE_Z + reach ) / SGN_TREE_CELL + 1;
+    for ( int cx = cx0; cx <= cx1; cx++ ) {
+        for ( int cz = cz0; cz <= cz1; cz++ ) {
+            const int tx = cx * SGN_TREE_CELL + (int)( sg_roll( cx, cz, 81 ) * SGN_TREE_CELL );
+            const int tz = cz * SGN_TREE_CELL + (int)( sg_roll( cx, cz, 82 ) * SGN_TREE_CELL );
+            // Dense stands inside the nylium patches, nothing elsewhere —
+            // the ground probe below does the real biome gating.
+            if ( sg_roll( cx, cz, 83 ) > 0.55f ) {
+                continue;
+            }
+            BlockID ground;
+            const int gy = sgn_find_surface( tx, tz, &ground );
+            if ( gy == SG_NO_SURFACE ) {
+                continue;
+            }
+            const float hr = sg_roll( cx, cz, 84 );
+            const float sr = sg_roll( cx, cz, 85 );
+            TreeSpec spec;
+            spec.shape = SHAPE_FUNGUS;
+            spec.lean_x = 0;
+            spec.lean_z = 0;
+            spec.giant = 0;
+            spec.hanger = AIR;
+            spec.hanger_len = 0;
+            spec.hanger_mask = 0;
+            spec.canopy_r = 4 + ( sr > 0.5f ? 1 : 0 );
+            if ( ground == CRIMSON_NYLIUM ) {
+                spec.log = CRIMSON_STEM;
+                spec.leaf = NETHER_WART_BLOCK;
+                spec.trunk_h = 8 + (int)( hr * 9.0f );
+                spec.hanger = WEEPING_VINES;
+                spec.hanger_len = 4;
+                spec.hanger_mask = 3u;
+            } else if ( ground == WARPED_NYLIUM ) {
+                spec.log = WARPED_STEM;
+                spec.leaf = WARPED_WART_BLOCK;
+                spec.trunk_h = 11 + (int)( hr * 10.0f );
+            } else {
+                continue;
+            }
+            // Skip trees that can't touch this chunk's y range (+/-1 border).
+            const int top = gy + spec.trunk_h + SGN_CANOPY_REACH;
+            if ( top < coy - 1 || gy - 1 > coy + CHUNK_SIZE_Y ) {
+                continue;
+            }
+            sg_place_tree( chunk, spec, tx - cox, gy + 1 - coy, tz - coz, glm::ivec3( cox, coy, coz ) );
+        }
+    }
+}
+
 void StructureGen::place( Chunk &chunk ) {
-    if ( dimension_of_chunk( chunk.chunk_pos ) != DIM_OVERWORLD ) {
-        // Structures are overworld-only for now; the nether's terrain
+    const DimensionId dim = dimension_of_chunk( chunk.chunk_pos );
+    if ( dim == DIM_NETHER ) {
+        const int cox = chunk.chunk_pos.x * CHUNK_SIZE_X;
+        const int coy = chunk.chunk_pos.y * CHUNK_SIZE_Y;
+        const int coz = chunk.chunk_pos.z * CHUNK_SIZE_Z;
+        place_nether_trees( chunk, cox, coy, coz );
+        return;
+    }
+    if ( dim != DIM_OVERWORLD ) {
+        // Spare bands generate no structures; the nether's other terrain
         // features (lava sea, glowstone clusters, biome patches) are baked
         // into mgn_pick_block.
         return;

@@ -113,8 +113,10 @@ picker, `mgn_pick_block` in `include/common/map_gen_nether.hpp`
 (netherrack caverns, floor/roof height fields converged into pillar
 masses, floating mid-cavern shelf ledges, bounded roof mass + jittered
 bedrock cap, lava sea, nether ores, glowstone), dispatched in
-`map_gen.cpp` so every backend shares it; `StructureGen::place` is
-overworld-only.
+`map_gen.cpp` so every backend shares it. Nether chunks also get a
+`StructureGen` pass — `place_nether_trees` stamps `SHAPE_FUNGUS` huge
+fungi where the column's top solid cell is crimson/warped nylium
+(docs/dimensions.md); the other `StructureGen` passes are overworld-only.
 
 ## World layout
 

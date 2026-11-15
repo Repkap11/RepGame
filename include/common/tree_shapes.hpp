@@ -121,6 +121,7 @@ typedef enum {
     SHAPE_ACACIA,   // leaning trunk, flat top
     SHAPE_MUSHROOM, // giant mushroom: stem + stepped cap discs
     SHAPE_MANGROVE, // stilt-rooted mangrove
+    SHAPE_FUNGUS,   // nether huge fungus: tall stem + wart cap + shroomlights
 } TreeShape;
 
 typedef struct {
@@ -290,7 +291,7 @@ inline void sg_place_tree( Target &chunk, const TreeSpec &spec, const int bx, co
             sg_write_trunk( chunk, bx + 1, by + i, bz + 1, log_state, spec.leaf );
         }
     } else {
-        if ( spec.shape != SHAPE_MUSHROOM && spec.shape != SHAPE_MANGROVE ) {
+        if ( spec.shape != SHAPE_MUSHROOM && spec.shape != SHAPE_MANGROVE && spec.shape != SHAPE_FUNGUS ) {
             sg_write_ground( chunk, bx, by - 1, bz, dirt_state );
         }
         for ( int i = 0; i < spec.trunk_h; i++ ) {
@@ -343,6 +344,27 @@ inline void sg_place_tree( Target &chunk, const TreeSpec &spec, const int bx, co
         case SHAPE_MANGROVE:
             sg_canopy_blob( chunk, bx, top_y - 1, bz, spec.canopy_r, 2, spec.canopy_r, leaf_state, 18, co );
             break;
+        case SHAPE_FUNGUS: {
+            // Huge-fungus cap: a fat edge-eaten dome swallowing the stem tip,
+            // a smaller crown bump on top, and shroomlight flecks embedded
+            // in the wart mass so the canopy glows in the dark cavern.
+            sg_canopy_blob( chunk, bx, top_y - 2, bz, spec.canopy_r, 2, spec.canopy_r, leaf_state, 21, co );
+            sg_canopy_blob( chunk, bx, top_y + 1, bz, spec.canopy_r - 2, 1, spec.canopy_r - 2, leaf_state, 22, co );
+            for ( int dy = -4; dy <= 2; dy++ ) {
+                for ( int dx = -spec.canopy_r; dx <= spec.canopy_r; dx++ ) {
+                    for ( int dz = -spec.canopy_r; dz <= spec.canopy_r; dz++ ) {
+                        if ( chunk.get_block( glm::ivec3( bx + dx, top_y + dy, bz + dz ) ).id != spec.leaf ) {
+                            continue;
+                        }
+                        if ( ( sg_hash( co.x + bx + dx, co.y + top_y + dy, co.z + bz + dz, 23 ) & 31u ) != 0u ) {
+                            continue;
+                        }
+                        sg_write_block( chunk, bx + dx, top_y + dy, bz + dz, SHROOMLIGHT );
+                    }
+                }
+            }
+            break;
+        }
     }
 
     if ( spec.hanger != AIR ) {
