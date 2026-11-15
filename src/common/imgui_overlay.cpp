@@ -291,6 +291,13 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
             pose_dirty |= ImGui::DragFloat( "A-Pitch", &debug_vars.avatar_held_rot.x, 0.5f );
             pose_dirty |= ImGui::DragFloat( "A-Roll", &debug_vars.avatar_held_rot.z, 0.5f );
             pose_dirty |= ImGui::DragFloat( "A-Scale", &debug_vars.avatar_held_scale, 0.1f, 0.5f, 32.0f );
+            ImGui::SeparatorText( "Avatar Bow" );
+            pose_dirty |= ImGui::DragFloat3( "ABow-Position", &debug_vars.avatar_bow_pos.x, 0.25f );
+            pose_dirty |= ImGui::DragFloat( "ABow-Yaw", &debug_vars.avatar_bow_rot.y, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "ABow-Pitch", &debug_vars.avatar_bow_rot.x, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "ABow-Roll", &debug_vars.avatar_bow_rot.z, 0.5f );
+            pose_dirty |= ImGui::DragFloat( "ABow-Scale", &debug_vars.avatar_bow_scale, 0.1f, 0.5f, 32.0f );
+            pose_dirty |= ImGui::DragFloat( "ABow-Spin", &debug_vars.avatar_bow_spin, 0.5f );
             ImGui::SeparatorText( "Avatar Held Block" );
             pose_dirty |= ImGui::DragFloat3( "AB-Position", &debug_vars.avatar_held_block_pos.x, 0.25f );
             pose_dirty |= ImGui::DragFloat( "AB-Yaw", &debug_vars.avatar_held_block_rot.y, 0.5f );
@@ -305,6 +312,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
             pr_debug( "held pose: pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f | "
                       "bow pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f spin=%.2f | "
                       "avatar pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f | "
+                      "avatar bow pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f spin=%.2f | "
                       "avatar block pos=(%.4f %.4f %.4f) rot=(%.3f %.3f %.3f) scale=%.4f",
                       debug_vars.held_pos.x, debug_vars.held_pos.y, debug_vars.held_pos.z,
                       debug_vars.held_rot.x, debug_vars.held_rot.y, debug_vars.held_rot.z, debug_vars.held_scale,
@@ -313,6 +321,9 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
                       debug_vars.bow_scale, debug_vars.bow_spin,
                       debug_vars.avatar_held_pos.x, debug_vars.avatar_held_pos.y, debug_vars.avatar_held_pos.z,
                       debug_vars.avatar_held_rot.x, debug_vars.avatar_held_rot.y, debug_vars.avatar_held_rot.z, debug_vars.avatar_held_scale,
+                      debug_vars.avatar_bow_pos.x, debug_vars.avatar_bow_pos.y, debug_vars.avatar_bow_pos.z,
+                      debug_vars.avatar_bow_rot.x, debug_vars.avatar_bow_rot.y, debug_vars.avatar_bow_rot.z,
+                      debug_vars.avatar_bow_scale, debug_vars.avatar_bow_spin,
                       debug_vars.avatar_held_block_pos.x, debug_vars.avatar_held_block_pos.y, debug_vars.avatar_held_block_pos.z,
                       debug_vars.avatar_held_block_rot.x, debug_vars.avatar_held_block_rot.y, debug_vars.avatar_held_block_rot.z, debug_vars.avatar_held_block_scale );
         }

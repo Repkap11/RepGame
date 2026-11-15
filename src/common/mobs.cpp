@@ -1930,9 +1930,13 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
                 // bottom-front, icon face diagonal so it reads from the
                 // character's front-right, top tipped forward.
                 const ImGuiDebugVars &dv = imgui_overlay_get_imgui_debug_vars( );
-                const glm::vec3 &grip_pos = mob.held_cube ? dv.avatar_held_block_pos : dv.avatar_held_pos;
-                const glm::vec3 &grip_rot = mob.held_cube ? dv.avatar_held_block_rot : dv.avatar_held_rot;
-                const float grip_scale = mob.held_cube ? dv.avatar_held_block_scale : dv.avatar_held_scale;
+                // The bow gets its own grip (like the first-person bow_*
+                // override): avatar_bow_spin rotates the icon in-plane about
+                // the sprite center so its diagonal reads as the limbs.
+                const bool bow_held = !mob.held_cube && mob.held_item == BOW;
+                const glm::vec3 &grip_pos = mob.held_cube ? dv.avatar_held_block_pos : ( bow_held ? dv.avatar_bow_pos : dv.avatar_held_pos );
+                const glm::vec3 &grip_rot = mob.held_cube ? dv.avatar_held_block_rot : ( bow_held ? dv.avatar_bow_rot : dv.avatar_held_rot );
+                const float grip_scale = mob.held_cube ? dv.avatar_held_block_scale : ( bow_held ? dv.avatar_bow_scale : dv.avatar_held_scale );
                 glm::mat4 grip = glm::translate( glm::mat4( 1.0f ), grip_pos );
                 grip = glm::rotate( grip, glm::radians( grip_rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
                 grip = glm::rotate( grip, glm::radians( grip_rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
@@ -1947,7 +1951,11 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
                         inst.light = light;
                     }
                 } else {
-                    const glm::mat4 m = held_m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f, -0.5f, -0.5f / 16.0f ) );
+                    glm::mat4 m = held_m;
+                    if ( bow_held ) {
+                        m = m * glm::rotate( glm::mat4( 1.0f ), glm::radians( dv.avatar_bow_spin ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+                    }
+                    m = m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f, -0.5f, -0.5f / 16.0f ) );
                     ItemSpriteInstance &inst = this->render_held_sprite.get_instance( mob.held_parts[ 0 ] );
                     inst.transform = m;
                     inst.light = light;
