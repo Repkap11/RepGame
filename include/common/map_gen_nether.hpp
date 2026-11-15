@@ -85,8 +85,15 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
         pull = 1.0f;
     }
     MG_LET( float, gap, roof_base - floor_h )
-    MG_LET( float, mid, floor_h + gap * 0.5f )
-    MG_LET( float, half_t, gap * 0.80f )
+    // The band's mid height wanders per-column (0.2..0.8 of the gap) so
+    // fused masses don't all pinch at the same level — no visible mid line.
+    MG_LET( float, mid_w, MAP_GEN_PERLIN2D( x, z, 0.012f, 2, MAP_SEED + 62 ) )
+    MG_LET( float, mid, floor_h + gap * ( 0.5f + ( mid_w - 0.5f ) * 0.6f ) )
+    // The fused band's own thickness wobbles per-column — merged masses
+    // mound and lobe where they cross the mid level instead of keeping a
+    // uniform slab cross-section.
+    MG_LET( float, mid_bw, MAP_GEN_PERLIN2D( x, z, 0.05f, 2, MAP_SEED + 68 ) )
+    MG_LET( float, half_t, gap * 0.80f * ( 0.65f + mid_bw * 0.7f ) )
     // The 2D pull shapes the pillar's footprint; a 3D high-frequency term
     // modulates it per-cell so the fused boundary undulates vertically too —
     // big connecting walls come out knobby and pocketed rather than smooth
@@ -111,6 +118,22 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     MG_VAR( int, solid, 0 )
     if ( MG_F32( ly ) <= floor_h || MG_F32( ly ) >= roof_base ) {
         solid = 1;
+    }
+    // Floating shelves fill the mid-cavern: a masked band whose height
+    // wanders and whose thickness ramps with the mask plus its own
+    // high-frequency term — chunky mounded land with sloped undersides,
+    // not flat ribbons. Where a shelf meets a fused pillar it merges into
+    // semi-supported mass; elsewhere it floats, and carving bores windows
+    // and tunnels through it.
+    MG_LET( float, shelf, MAP_GEN_PERLIN2D( x, z, 0.008f, 2, MAP_SEED + 64 ) )
+    if ( shelf > 0.60f ) {
+        MG_LET( float, shelf_h, mid + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 2, MAP_SEED + 63 ) - 0.5f ) * 100.0f )
+        MG_LET( float, shelf_th,
+                4.0f + ( shelf - 0.60f ) * 38.0f + ( MAP_GEN_PERLIN2D( x, z, 0.05f, 2, MAP_SEED + 66 ) - 0.5f ) * 10.0f +
+                    ( MAP_GEN_PERLIN2D( x, z, 0.13f, 2, MAP_SEED + 67 ) - 0.5f ) * 7.0f )
+        if ( MG_F32( ly ) > shelf_h - shelf_th && MG_F32( ly ) < shelf_h + shelf_th ) {
+            solid = 1;
+        }
     }
     // Cave worms chew through the floor and roof masses — but always stop
     // short of either bedrock: a rock skin over the floor keeps caverns off

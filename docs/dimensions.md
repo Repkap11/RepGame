@@ -39,11 +39,13 @@ checks. The spare slots are inert voids (no sky, no spawns).
 nether generator in the multi-backend dialect — bedrock floor,
 netherrack caverns, lava sea, quartz/gold ore, glowstone ceiling clusters,
 soul sand/soil, basalt veins, and pillars that fuse the cavern floor to
-the roof — a sparse 2D field pulls `floor_h` up and `roof_base` down
-toward each other, so a pillar is terrain deformed into a mountain
-reaching the ceiling (or a pinched stalagmite/stalactite waist at the
-field's edge), not a stamped column; carving thresholds fade with the
-same field so fused cores can't be severed. The roof mass is a bounded
+the roof — a sparse 2D field converges `floor_h`/`roof_base` onto a
+vertically-wandering mid-band (no fixed "mid line"), so pillars are
+terrain deformed into mountains fused into the ceiling with hourglass
+pinches, not stamped columns; a separate masked field lays floating
+shelf ledges through the mid-cavern that merge into pillars where they
+touch, and carving bores windows and tunnels through both. The roof mass
+is a bounded
 `MGN_ROOF_THICK` layer over `roof_base` with carving held a few blocks
 below the jittered bedrock cap, so the ceiling always keeps a netherrack
 skin; past the cap the rest of the band is solid bedrock filler, so

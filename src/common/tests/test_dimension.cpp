@@ -191,6 +191,28 @@ int test_dimension( ) {
         check_bool( "nether pillars connect floor to roof", pillar_cols > 100 );
     }
 
+    // ---- Ledges: mid-cavern cells solid with air directly above and below
+    // are floating shelf rock, distinct from fused pillar mass. ----
+    {
+        int ledge_cols = 0;
+        for ( int x = -192; x < 192; x += 2 ) {
+            for ( int z = -192; z < 192; z += 2 ) {
+                const float fh = mgn_floor_height( x, z );
+                const float rb = mgn_roof_base( x, z );
+                for ( float ly = fh + 12.0f; ly < rb - 12.0f; ly += 3.0f ) {
+                    const int y = DIM_BY_MIN_N + static_cast<int>( ly );
+                    if ( MapGen::gen_block_id( x, y, z ) != AIR &&
+                         MapGen::gen_block_id( x, y - 4, z ) == AIR &&
+                         MapGen::gen_block_id( x, y + 4, z ) == AIR ) {
+                        ledge_cols++;
+                        break;
+                    }
+                }
+            }
+        }
+        check_bool( "nether has floating mid-cavern ledges", ledge_cols > 400 );
+    }
+
     // ---- Overworld band still generates overworld terrain ----
     {
         int overworld_blocks = 0, nether_leaks = 0;
