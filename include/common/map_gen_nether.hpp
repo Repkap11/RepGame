@@ -159,6 +159,24 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
         solid = 0;
     }
     if ( solid == 0 ) {
+        // Glowstone crystal clusters hang from the roof underside: a 2D
+        // placement field picks cluster columns, a 3D shape field with a
+        // depth ramp tapers each blob to a point a couple dozen blocks
+        // down — attached at the roof, narrowing like a stalactite.
+        MG_LET( float, gdepth, roof_base - MG_F32( ly ) )
+        if ( pull < 0.5f && gdepth > 1.0f && gdepth < 24.0f ) {
+            MG_LET( float, gcl, MAP_GEN_PERLIN2D( x, z, 0.045f, 2, MAP_SEED + 52 ) )
+            if ( gcl > 0.78f ) {
+                MG_LET( float, gshape, MAP_GEN_PERLIN3D( x, y, z, 0.09f, 3, MAP_SEED + 70 ) )
+                // The same test must pass 4 blocks higher (at its easier
+                // threshold) — blobs chain upward into the roof instead of
+                // shedding detached fragments.
+                if ( gshape > 0.45f + gdepth * 0.015f &&
+                     MAP_GEN_PERLIN3D( x, y + 4, z, 0.09f, 3, MAP_SEED + 70 ) > 0.45f + ( gdepth - 4.0f ) * 0.015f ) {
+                    return GLOWSTONE;
+                }
+            }
+        }
         return MG_TERN( ly <= MGN_LAVA_SEA, LAVA, AIR );
     }
 
@@ -204,27 +222,33 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
         id = BLACKSTONE;
     }
 
-    // Ore pockets (squared noise keeps them clustered and sparse).
-    MG_LET( float, quartz, MAP_GEN_PERLIN3D( x, y, z, 0.25f, 4, MAP_SEED + 49 ) )
-    if ( quartz * quartz < 0.03f ) {
-        id = QUARTZ_ORE;
-    }
-    MG_LET( float, gold, MAP_GEN_PERLIN3D( x, y, z, 0.25f, 4, MAP_SEED + 50 ) )
-    if ( gold * gold < 0.025f ) {
-        id = NETHER_GOLD_ORE;
-    }
-    if ( ly < 60 ) {
-        MG_LET( float, debris, MAP_GEN_PERLIN3D( x, y, z, 0.30f, 4, MAP_SEED + 51 ) )
-        if ( debris * debris < 0.003f ) {
-            id = ANCIENT_DEBRIS;
+    // Ore veins — low-frequency fields give chunky ~10-20-block veins
+    // (squared noise keeps them clustered and sparse). These are all
+    // netherrack-family ores: red-background textures only make sense
+    // embedded in netherrack, never in basalt/blackstone/soul rock.
+    if ( id == NETHERRACK ) {
+        MG_LET( float, quartz, MAP_GEN_PERLIN3D( x, y, z, 0.09f, 3, MAP_SEED + 49 ) )
+        if ( quartz * quartz < 0.035f ) {
+            id = QUARTZ_ORE;
+        }
+        MG_LET( float, gold, MAP_GEN_PERLIN3D( x, y, z, 0.11f, 3, MAP_SEED + 50 ) )
+        if ( gold * gold < 0.06f ) {
+            id = NETHER_GOLD_ORE;
+        }
+        if ( ly < 60 ) {
+            MG_LET( float, debris, MAP_GEN_PERLIN3D( x, y, z, 0.30f, 4, MAP_SEED + 51 ) )
+            if ( debris * debris < 0.003f ) {
+                id = ANCIENT_DEBRIS;
+            }
         }
     }
 
-    // Glowstone clusters embedded around the roof base — carving exposes them
-    // as lit ceiling blobs above the cavern.
-    if ( surf_open > 0.5f && MG_F32( ly ) > roof_base - 10.0f && MG_F32( ly ) < roof_base + 30.0f ) {
-        MG_LET( float, glow, MAP_GEN_PERLIN3D( x, y, z, 0.35f, 4, MAP_SEED + 52 ) )
-        if ( glow * glow < 0.02f ) {
+    // Glowstone veins embedded in the roof mass — carving exposes them as
+    // lit ceiling blobs above the cavern (the hanging clusters are in the
+    // air path above).
+    if ( surf_open > 0.5f && MG_F32( ly ) > roof_base - 6.0f && MG_F32( ly ) < roof_base + 30.0f ) {
+        MG_LET( float, glow, MAP_GEN_PERLIN3D( x, y, z, 0.13f, 3, MAP_SEED + 71 ) )
+        if ( glow * glow < 0.06f ) {
             id = GLOWSTONE;
         }
     }

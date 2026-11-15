@@ -37,7 +37,8 @@ checks. The spare slots are inert voids (no sky, no spawns).
 
 `include/common/map_gen_nether.hpp` (`mgn_pick_block`) is the shared
 nether generator in the multi-backend dialect — bedrock floor,
-netherrack caverns, lava sea, quartz/gold ore, glowstone ceiling clusters,
+netherrack caverns, lava sea, quartz/gold veins, glowstone veins plus
+crystal clusters hanging from the cavern ceiling,
 soul sand/soil, basalt veins, and pillars that fuse the cavern floor to
 the roof — a sparse 2D field converges `floor_h`/`roof_base` onto a
 vertically-wandering mid-band (no fixed "mid line"), so pillars are
