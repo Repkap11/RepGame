@@ -267,9 +267,9 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
             // boxes; axisymmetric — def space is world space.
             num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : lightning_rod_boxes( boxes );
         } else if ( block_is_fire( blockID ) ) {
-            // MC's fire outline — a 16x1x16 slab on the cell floor, not the
-            // render box (a full cell for FIRE, 6x11x6 for SOUL_FIRE).
-            num_boxes = fire_pick_boxes( boxes );
+            // The drawn flame region — 16x13x16 for FIRE (fire_0's opaque
+            // rows end 3px below the top), the def box for soul fire.
+            num_boxes = fire_pick_boxes( block, boxes );
         } else if ( block->is_stairs ) {
             static const glm::ivec3 stair_dirs[ 4 ] = {
                 glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),

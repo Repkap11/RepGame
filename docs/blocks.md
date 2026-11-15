@@ -305,9 +305,11 @@ shaft y 0-12 plus the 4x4 head y 12-16, shaft top cap skipped; the def's
 the same box pair draws the isometric item icon via `block_icon_boxes`.
 
 Fire blocks (FIRE, SOUL_FIRE — `block_is_fire`) render as crossed quads,
-so neither the def box nor the render box is the pick shape: raycast and
-the selection outline share `fire_pick_boxes`, MC's single 16x1x16 slab
-on the cell floor. Collision is unaffected — fire has
+and raycast/selection outline pick against the region the fire texture
+actually draws (`fire_pick_boxes`): FIRE's quads span the full cell but
+fire_0 frame 0's opaque rows end 3px below the top, giving a 16x13x16
+box; soul fire draws inside its def box (6x11x6 at 5,0,5), which is the
+pick shape. Collision is unaffected — fire has
 `collides_with_player: false`.
 
 `"spine_shell": true` (cactus) replaces the block's mesh with Java's
