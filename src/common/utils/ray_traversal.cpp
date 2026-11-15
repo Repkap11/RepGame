@@ -242,7 +242,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                                              : false;
     const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || block->is_bed || fluid_pick;
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
-    if ( result && ( block->is_stairs || block->is_fence || block->is_wall || block->is_bars || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign || block->is_lantern || block->is_lightning_rod ) ) {
+    if ( result && ( block->is_stairs || block->is_fence || block->is_wall || block->is_bars || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign || block->is_lantern || block->is_lightning_rod || block_is_fire( blockID ) ) ) {
         // Pick against the block's real boxes — stairs use their collision
         // boxes (slab + step, with the neighbor-derived corner shape),
         // fences the post + merged rail bars (the two rendered rails merged
@@ -266,6 +266,10 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
             // Lantern's pick model (body + lid/bail union), rod's rendered
             // boxes; axisymmetric — def space is world space.
             num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : lightning_rod_boxes( boxes );
+        } else if ( block_is_fire( blockID ) ) {
+            // MC's fire outline — a 16x1x16 slab on the cell floor, not the
+            // render box (a full cell for FIRE, 6x11x6 for SOUL_FIRE).
+            num_boxes = fire_pick_boxes( boxes );
         } else if ( block->is_stairs ) {
             static const glm::ivec3 stair_dirs[ 4 ] = {
                 glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),

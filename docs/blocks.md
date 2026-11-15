@@ -304,6 +304,12 @@ shaft y 0-12 plus the 4x4 head y 12-16, shaft top cap skipped; the def's
 4x16x4 column stays the pick/collision shape (MC's own voxel shape) and
 the same box pair draws the isometric item icon via `block_icon_boxes`.
 
+Fire blocks (FIRE, SOUL_FIRE — `block_is_fire`) render as crossed quads,
+so neither the def box nor the render box is the pick shape: raycast and
+the selection outline share `fire_pick_boxes`, MC's single 16x1x16 slab
+on the cell floor. Collision is unaffected — fire has
+`collides_with_player: false`.
+
 `"spine_shell": true` (cactus) replaces the block's mesh with Java's
 three-element cactus model: a full-cell box drawing only top/bottom, plus
 two 14-wide boxes drawing only their side quads, which sit 1px inside each

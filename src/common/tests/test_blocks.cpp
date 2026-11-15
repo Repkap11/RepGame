@@ -2004,6 +2004,36 @@ int test_support_drops( ) {
                     rod_bx[ 0 ].scale[ 0 ] == 2 && rod_bx[ 0 ].scale[ 1 ] == 12 && rod_bx[ 0 ].offset[ 0 ] == 7 &&
                     rod_bx[ 1 ].scale[ 0 ] == 4 && rod_bx[ 1 ].offset[ 1 ] == 12 &&
                     ( rod_bx[ 0 ].skip_faces & ( 1u << FACE_TOP ) ) != 0 );
+    // Fire picks/outlines as MC's shape — a 16x1x16 slab on the cell
+    // floor — not the render cell (FIRE has no scale, SOUL_FIRE 6x11x6).
+    BlockBox fire_bx[ FENCE_MAX_BOXES ];
+    check_bool( "fire: pick box is a 16x1x16 floor slab",
+                fire_pick_boxes( fire_bx ) == 1 && fire_bx[ 0 ].scale[ 0 ] == 16 && fire_bx[ 0 ].scale[ 1 ] == 1 &&
+                    fire_bx[ 0 ].scale[ 2 ] == 16 && fire_bx[ 0 ].offset[ 0 ] == 0 && fire_bx[ 0 ].offset[ 1 ] == 0 &&
+                    fire_bx[ 0 ].offset[ 2 ] == 0 && fire_bx[ 0 ].skip_faces == 0 );
+    check_bool( "fire: FIRE and SOUL_FIRE share the slab, campfires don't",
+                block_is_fire( FIRE ) && block_is_fire( SOUL_FIRE ) && !block_is_fire( CAMPFIRE ) && !block_is_fire( SOUL_CAMPFIRE ) );
+    {
+        // Raycast: a horizontal ray through the flame quads' height passes
+        // the cell untouched, while a downward ray stops on the slab's top
+        // face 1/16 up (hit_t 1.4375 of the 2-block drop).
+        world.set_loaded_block( glm::ivec3( 30, 10, 40 ), stone );
+        world.set_loaded_block( glm::ivec3( 30, 11, 40 ), { FIRE, 0, 0, FIRE, 0 } );
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        double hit_t = -1.0;
+        check_bool( "fire ray: horizontal ray above the slab misses",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.5, 40.5 ), glm::dvec3( 32.5, 11.5, 40.5 ), out, &which_face ) );
+        check_bool( "fire ray: downward ray hits the slab top",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 30.5, 12.5, 40.5 ), glm::dvec3( 30.5, 10.5, 40.5 ), out, &which_face, 0, &hit_t ) &&
+                        out == glm::ivec3( 30, 11, 40 ) && which_face == FACE_TOP && fabs( hit_t - 1.4375 ) < 0.001 );
+        world.set_loaded_block( glm::ivec3( 30, 11, 40 ), { SOUL_FIRE, 0, 0, SOUL_FIRE, 0 } );
+        check_bool( "fire ray: soul fire picks the same slab",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 30.5, 12.5, 40.5 ), glm::dvec3( 30.5, 10.5, 40.5 ), out, &which_face, 0, &hit_t ) &&
+                        out == glm::ivec3( 30, 11, 40 ) && which_face == FACE_TOP && fabs( hit_t - 1.4375 ) < 0.001 );
+        world.set_loaded_block( glm::ivec3( 30, 11, 40 ), BLOCK_STATE_AIR );
+    }
+
     // The emit must not let a box inherit a previous box's skip_faces:
     // the rod head keeps its top/bottom caps despite the shaft's
     // buried-cap skips.

@@ -642,6 +642,12 @@ int lantern_pick_boxes( BlockBox out[ LANTERN_MAX_BOXES ] );
 #define ROD_MAX_BOXES 2
 int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 
+// ---- Fire -------------------------------------------------------------------
+// MC's fire outline: a single 16x1x16 slab on the cell floor — the flames
+// render as crossed quads, so the pick/outline box is a floor sliver rather
+// than the full-height render cell. Returns 1.
+int fire_pick_boxes( BlockBox out[ FENCE_MAX_BOXES ] );
+
 // ---- Item icons -------------------------------------------------------------
 // The model-space boxes a block's item icon draws: stairs their
 // stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),
@@ -703,6 +709,12 @@ static inline bool block_is_natural_leaf( const Block *b ) {
 // Player-placed (persistent) leaves point back at the natural variant.
 static inline bool block_is_persistent_leaf( const Block *b ) {
     return b->natural_variant != LAST_BLOCK_ID;
+}
+
+// Fire blocks (regular and soul) — they pick/outline through the shared
+// 16x1x16 floor slab (fire_pick_boxes), not their render box.
+static inline bool block_is_fire( BlockID id ) {
+    return id == FIRE || id == SOUL_FIRE;
 }
 
 // Any leaf, natural or persistent.

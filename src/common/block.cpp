@@ -775,6 +775,18 @@ int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] ) {
     return 2;
 }
 
+int fire_pick_boxes( BlockBox out[ FENCE_MAX_BOXES ] ) {
+    // MC's fire selection shape: a 16x1x16 slab on the cell floor.
+    out[ 0 ].scale[ 0 ] = 16;
+    out[ 0 ].scale[ 1 ] = 1;
+    out[ 0 ].scale[ 2 ] = 16;
+    out[ 0 ].offset[ 0 ] = 0;
+    out[ 0 ].offset[ 1 ] = 0;
+    out[ 0 ].offset[ 2 ] = 0;
+    out[ 0 ].skip_faces = 0;
+    return 1;
+}
+
 int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     if ( block->is_stairs ) {
         return stairs_icon_boxes( out );
