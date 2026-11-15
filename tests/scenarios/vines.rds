@@ -1,0 +1,51 @@
+# Weeping/twisting vine support rules: both mount on the bottom face of a
+# solid or another vine cell and on top of one (needs_place_on_solid top +
+# bottom + stack_on_self). Flat floor is SANDSTONE at y=0; AIR starts at y=1.
+# Columns are staged one cell per tick like bamboo — same-tick placement
+# events have no order guarantee.
+wait_idle 20 6000
+
+# --- Hanging weeping column under a stone ceiling (anchor at y=6) ---
+setblock 4 6 8 STONE 0
+wait 2
+setblock 4 5 8 WEEPING_VINES 0
+wait 2
+setblock 4 4 8 WEEPING_VINES 0
+wait 2
+setblock 4 3 8 WEEPING_VINES 0
+wait 30
+assert_block 4 5 8 WEEPING_VINES
+assert_block 4 4 8 WEEPING_VINES
+assert_block 4 3 8 WEEPING_VINES
+# Cut the middle cell: the piece below loses both neighbours and pops, the
+# anchor piece above keeps its ceiling support.
+setblock 4 4 8 AIR 0
+wait 30
+assert_block 4 3 8 AIR
+assert_block 4 5 8 WEEPING_VINES
+
+# --- Standing twisting column on the floor ---
+setblock 8 1 8 TWISTING_VINES 0
+wait 2
+setblock 8 2 8 TWISTING_VINES 0
+wait 2
+setblock 8 3 8 TWISTING_VINES 0
+wait 30
+assert_block 8 1 8 TWISTING_VINES
+assert_block 8 2 8 TWISTING_VINES
+assert_block 8 3 8 TWISTING_VINES
+# Cut the middle cell: the top piece pops, the rooted piece stays.
+setblock 8 2 8 AIR 0
+wait 30
+assert_block 8 3 8 AIR
+assert_block 8 1 8 TWISTING_VINES
+
+# --- Weeping vines also stand on the floor / stack upward ---
+setblock 12 1 8 WEEPING_VINES 0
+wait 2
+setblock 12 2 8 WEEPING_VINES 0
+wait 30
+assert_block 12 1 8 WEEPING_VINES
+assert_block 12 2 8 WEEPING_VINES
+
+echo vines done

@@ -9,8 +9,10 @@
   "is_seethrough": true,
   "name": "WEEPING_VINES",
   "needs_place_on_any_solid": {
+    "bottom": true,
     "top": true
   },
+  "needs_place_on_solid_but_can_stack_on_self": true,
   "no_light": 0,
   "offset": [
     5,
