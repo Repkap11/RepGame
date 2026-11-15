@@ -262,6 +262,21 @@ accumulates `CART_DAMAGE_PER_HIT` that decays (`CART_DAMAGE_DECAY`) so
 three quick hits break it into a dropped item — the def's `item`
 (`MINECART` for a minecart). `hurt_ticks` drives the render wobble.
 
+Rolling SFX live in `vehicle_rail_sfx` (vehicles.cpp): a RAIL-physics
+vehicle on a rail moving faster than ~0.1 blocks/s re-triggers the
+`minecart_base` one-shot every ~1.9 s (the loop clip's length) with
+gain following a sqrt ramp of horizontal speed, a `CART_SFX_VOLUME`
+cap (on top of the
+convert-time loudness normalization in convert_sounds.sh) and the
+shared distance falloff; the cart the local player rides adds the
+`minecart_inside` loop on a ~5.7 s retrigger. The plays are tracked
+(`audio_play_sfx_handle`) and `audio_sfx_stop` cuts them short when the
+cart derails, stops, loses its rider or is removed — otherwise a
+clip's tail would outlive the movement. Mirrors run the same logic off their
+streamed velocity; the countdowns and play handles live on `Vehicle`
+(`roll_sfx_ticks`/`inside_sfx_ticks`/`roll_sfx`/`inside_sfx`) —
+client-local like `paddle_phase`, never streamed.
+
 Riding lives in `src/common/game/vehicle_ride.cpp`: right-click a
 vehicle to mount (`repgame_vehicle_mount` — sneak-click skips it, like
 other interactions), sneak to dismount (`repgame_vehicle_dismount`).

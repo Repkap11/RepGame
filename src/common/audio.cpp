@@ -306,6 +306,11 @@ struct SfxPcm {
 };
 std::vector<SfxPcm> sfx_cache;
 
+// Tracked plays get a nonzero id the caller can cut early with
+// audio_sfx_stop (long loop clips). Ids are monotonic, never reused —
+// a handle that outlives its play goes stale and stops harmlessly.
+uint64_t tracked_next_id = 1;
+
 // Gain knobs clamp to [0,1] — unlike the generic env_float helper.
 static float env_gain( const char *name, float fallback ) {
     const char *env = env_get( name );
@@ -337,6 +342,8 @@ struct SfxVoice {
     int frames = 0;
     int pos = 0;
     float gain = 1.0f;
+    uint64_t tracked_id = 0; // nonzero while a tracked play owns the voice
+    bool stopping = false;   // audio_sfx_stop'd: fade out, then free
 };
 SfxVoice voices[ 32 ];
 
@@ -484,8 +491,17 @@ static void SDLCALL audio_mix_cb( void *userdata, Uint8 *stream, int len ) {
             out[ i ] += src[ i ] * g;
         }
         v.pos += n_frames;
+        if ( v.stopping ) {
+            // ~80 ms of tail at the usual ~10 ms callback cadence.
+            v.gain *= 0.7f;
+            if ( v.gain < 0.01f ) {
+                v.pos = v.frames;
+            }
+        }
         if ( v.pos >= v.frames ) {
             v.data = nullptr;
+            v.tracked_id = 0;
+            v.stopping = false;
         }
     }
 }
@@ -541,7 +557,17 @@ static bool sfx_decode( int idx, SfxPcm *out ) {
 #else
 
 SDL_AudioStream *music_stream = nullptr;
-std::vector<SDL_AudioStream *> active_sfx;
+
+// A bound one-shot stream. `fade` runs 1→0 while `stopping`; the stream
+// is released when the fade hits 0 or the clip drains naturally.
+struct TrackedSfx {
+    uint64_t id;
+    SDL_AudioStream *s;
+    float gain; // gain set at play time (sfx_gain * play gain)
+    float fade;
+    bool stopping;
+};
+std::vector<TrackedSfx> tracked_sfx;
 
 // audio thread: open the next queued blob as the current vorbis stream.
 static void music_open_track( int idx ) {
@@ -619,6 +645,30 @@ static bool sfx_decode( int idx, SfxPcm *out ) {
 }
 
 #endif
+
+// Picks a random pool variant and returns its decoded PCM, or nullptr
+// when the pool is unknown or fails to decode.
+static const SfxPcm *sfx_pool_pcm( const char *base_name ) {
+    int variants[ 16 ];
+    int num_variants = 0;
+    const int num_sfx = ( int )sfx_cache.size( );
+    for ( int i = 0; i < num_sfx && num_variants < 16; i++ ) {
+        if ( strcmp( SFX_SOUNDS[ i ].base, base_name ) == 0 ) {
+            variants[ num_variants++ ] = i;
+        }
+    }
+    if ( num_variants == 0 ) {
+        pr_debug( "audio: no sfx variants for '%s'", base_name );
+        return nullptr;
+    }
+    const int idx = variants[ rand( ) % num_variants ];
+    SfxPcm &pcm = sfx_cache[ idx ];
+    if ( !pcm.decoded && !sfx_decode( idx, &pcm ) ) {
+        pr_debug( "audio: decode failed for sfx '%s'", SFX_SOUNDS[ idx ].base );
+        return nullptr;
+    }
+    return &pcm;
+}
 
 } // namespace
 
@@ -741,15 +791,28 @@ void audio_tick( long tick_number, const int music_set ) {
         }
     }
 #if !defined( REPGAME_WASM )
-    // Reap finished one-shots: once a flushed stream has no queued input and
+    // Reap finished plays: once a flushed stream has no queued input and
     // no converted output left, the device already consumed every sample.
+    // Stopped plays fade their gain to 0 first — a hard unbind clicks.
     // (WASM voices free themselves in the mix callback — nothing to reap.)
-    for ( size_t i = 0; i < active_sfx.size( ); ) {
-        if ( SDL_GetAudioStreamQueued( active_sfx[ i ] ) == 0 && SDL_GetAudioStreamAvailable( active_sfx[ i ] ) == 0 ) {
-            SDL_UnbindAudioStream( active_sfx[ i ] );
-            SDL_DestroyAudioStream( active_sfx[ i ] );
-            active_sfx[ i ] = active_sfx.back( );
-            active_sfx.pop_back( );
+    for ( size_t i = 0; i < tracked_sfx.size( ); ) {
+        TrackedSfx &t = tracked_sfx[ i ];
+        bool dead = false;
+        if ( t.stopping ) {
+            t.fade -= 0.15f; // ~50 ms at UPS_RATE
+            if ( t.fade <= 0.0f ) {
+                dead = true;
+            } else {
+                SDL_SetAudioStreamGain( t.s, t.gain * t.fade );
+            }
+        } else if ( SDL_GetAudioStreamQueued( t.s ) == 0 && SDL_GetAudioStreamAvailable( t.s ) == 0 ) {
+            dead = true;
+        }
+        if ( dead ) {
+            SDL_UnbindAudioStream( t.s );
+            SDL_DestroyAudioStream( t.s );
+            tracked_sfx[ i ] = tracked_sfx.back( );
+            tracked_sfx.pop_back( );
         } else {
             i++;
         }
@@ -758,66 +821,82 @@ void audio_tick( long tick_number, const int music_set ) {
 }
 
 void audio_play_sfx( const char *base_name ) {
-    audio_play_sfx_gain( base_name, 1.0f );
+    audio_play_sfx_handle( base_name, 1.0f );
 }
 
 void audio_play_sfx_gain( const char *base_name, float gain ) {
+    audio_play_sfx_handle( base_name, gain );
+}
+
+uint64_t audio_play_sfx_handle( const char *base_name, float gain ) {
     // gain <= 0 is a silenced distant play (audio_distance_gain cutoff) —
     // don't burn a stream/voice on it.
     if ( !audio_enabled || gain <= 0.0f ) {
-        return;
+        return 0;
     }
-    int variants[ 16 ];
-    int num_variants = 0;
-    const int num_sfx = ( int )sfx_cache.size( );
-    for ( int i = 0; i < num_sfx && num_variants < 16; i++ ) {
-        if ( strcmp( SFX_SOUNDS[ i ].base, base_name ) == 0 ) {
-            variants[ num_variants++ ] = i;
-        }
-    }
-    if ( num_variants == 0 ) {
-        pr_debug( "audio: no sfx variants for '%s'", base_name );
-        return;
-    }
-    const int idx = variants[ rand( ) % num_variants ];
-    SfxPcm &pcm = sfx_cache[ idx ];
-    if ( !pcm.decoded && !sfx_decode( idx, &pcm ) ) {
-        pr_debug( "audio: decode failed for sfx '%s'", SFX_SOUNDS[ idx ].base );
-        return;
+    const SfxPcm *pcm = sfx_pool_pcm( base_name );
+    if ( pcm == nullptr ) {
+        return 0;
     }
 #if defined( REPGAME_WASM )
     // Claim a free voice slot; the mix callback plays the (already
     // device-format) PCM. Voices point into the cache — no copy.
     for ( SfxVoice &v : voices ) {
         if ( !v.data ) {
-            v.data = pcm.data;
-            v.frames = pcm.frames;
+            const uint64_t id = tracked_next_id++;
+            v.data = pcm->data;
+            v.frames = pcm->frames;
             v.pos = 0;
             v.gain = gain;
-            return;
+            v.tracked_id = id;
+            v.stopping = false;
+            return id;
         }
     }
-    pr_debug( "audio: no free voice for sfx '%s'", SFX_SOUNDS[ idx ].base );
+    pr_debug( "audio: no free voice for sfx '%s'", base_name );
+    return 0;
 #else
-    const SDL_AudioSpec src = { SDL_AUDIO_F32, ( Uint8 )pcm.channels, pcm.rate };
+    const SDL_AudioSpec src = { SDL_AUDIO_F32, ( Uint8 )pcm->channels, pcm->rate };
     SDL_AudioStream *s = SDL_CreateAudioStream( &src, &device_spec );
     if ( !s ) {
         pr_debug( "audio: stream create failed: %s", SDL_GetError( ) );
-        return;
+        return 0;
     }
-    SDL_SetAudioStreamGain( s, sfx_gain * gain );
-    if ( !SDL_PutAudioStreamData( s, pcm.data, pcm.frames * pcm.channels * ( int )sizeof( float ) ) ) {
-        pr_debug( "audio: put failed for sfx '%s': %s", SFX_SOUNDS[ idx ].base, SDL_GetError( ) );
+    const float full_gain = sfx_gain * gain;
+    SDL_SetAudioStreamGain( s, full_gain );
+    if ( !SDL_PutAudioStreamData( s, pcm->data, pcm->frames * pcm->channels * ( int )sizeof( float ) ) ) {
+        pr_debug( "audio: put failed for sfx '%s': %s", base_name, SDL_GetError( ) );
         SDL_DestroyAudioStream( s );
-        return;
+        return 0;
     }
     SDL_FlushAudioStream( s );
     if ( !SDL_BindAudioStream( audio_device, s ) ) {
-        pr_debug( "audio: bind failed for sfx '%s': %s", SFX_SOUNDS[ idx ].base, SDL_GetError( ) );
+        pr_debug( "audio: bind failed for sfx '%s': %s", base_name, SDL_GetError( ) );
         SDL_DestroyAudioStream( s );
+        return 0;
+    }
+    const uint64_t id = tracked_next_id++;
+    tracked_sfx.push_back( TrackedSfx{ id, s, full_gain, 1.0f, false } );
+    return id;
+#endif
+}
+
+void audio_sfx_stop( const uint64_t handle ) {
+    if ( handle == 0 ) {
         return;
     }
-    active_sfx.push_back( s );
+#if defined( REPGAME_WASM )
+    for ( SfxVoice &v : voices ) {
+        if ( v.tracked_id == handle ) {
+            v.stopping = true;
+        }
+    }
+#else
+    for ( TrackedSfx &t : tracked_sfx ) {
+        if ( t.id == handle ) {
+            t.stopping = true;
+        }
+    }
 #endif
 }
 
@@ -848,13 +927,14 @@ void audio_cleanup( ) {
     music_close_track( );
     for ( SfxVoice &v : voices ) {
         v.data = nullptr;
+        v.tracked_id = 0;
     }
 #else
-    for ( SDL_AudioStream *s : active_sfx ) {
-        SDL_UnbindAudioStream( s );
-        SDL_DestroyAudioStream( s );
+    for ( TrackedSfx &t : tracked_sfx ) {
+        SDL_UnbindAudioStream( t.s );
+        SDL_DestroyAudioStream( t.s );
     }
-    active_sfx.clear( );
+    tracked_sfx.clear( );
     if ( music_stream ) {
         SDL_UnbindAudioStream( music_stream );
         SDL_DestroyAudioStream( music_stream );

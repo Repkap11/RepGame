@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/block.hpp"
 #include "common/block_definitions.hpp"
 #include "common/chunk.hpp"
@@ -28,6 +29,64 @@
 static constexpr float CART_DAMAGE_PER_HIT = 1.0f;
 static constexpr float CART_DAMAGE_DECAY = 2.0f / static_cast<float>( UPS_RATE );
 static constexpr int CART_HURT_WOBBLE_TICKS = UPS_RATE / 2;
+
+// Rolling SFX for RAIL-physics vehicles (the minecart): the audio layer
+// has only one-shots, so the loop clips re-trigger once their length has
+// elapsed — retriggered a touch early, successive plays overlap the
+// boundary instead of gapping (clip lengths ≈1.94s / ≈5.77s at UPS_RATE).
+static constexpr int CART_ROLL_SFX_TICKS = static_cast<int>( 1.9 * UPS_RATE );
+static constexpr int CART_INSIDE_SFX_TICKS = static_cast<int>( 5.7 * UPS_RATE );
+// Below this horizontal speed (blocks/s) a cart stays silent; above it
+// the gain follows a sqrt ramp to full at 8 (push speed is ~4, powered-
+// rail cruise ~12) — sqrt keeps creeping carts faint-but-audible where
+// a linear ramp would still be silent. The loop clips are already
+// normalized at convert time (convert_sounds.sh) — CART_SFX_VOLUME is
+// the coarse in-code loudness knob on top.
+static constexpr double CART_ROLL_MIN_SPEED = 0.1;
+static constexpr double CART_ROLL_FULL_SPEED = 8.0;
+static constexpr float CART_SFX_VOLUME = 0.5f;
+
+// Stop a tracked play if it's still in flight and clear the handle —
+// audio_sfx_stop on a stale/0 handle is a no-op.
+static void cart_sfx_cut( uint64_t *handle ) {
+    audio_sfx_stop( *handle );
+    *handle = 0;
+}
+
+// One tick of rolling/riding sound for a RAIL-physics vehicle. Runs for
+// owned carts (velocity just simulated) and mirrors alike (streamed
+// velocity), so a remote-owned cart is heard the same way; the
+// distance falloff is the shared audio_distance_gain. The ridden cart
+// additionally gets the "inside" loop, and its roll plays at full
+// distance gain since the listener sits in it.
+static void vehicle_rail_sfx( const RepGameState &state, Vehicles::Vehicle &c ) {
+    const double speed = std::sqrt( c.vel.x * c.vel.x + c.vel.z * c.vel.z ) * UPS_RATE;
+    // Off the rails a cart makes no rolling sound even while it still
+    // carries speed — a derailed cart goes silent as it leaves the track.
+    if ( !c.on_rail || speed <= CART_ROLL_MIN_SPEED ) {
+        // Stopped: cut the in-flight plays instead of letting the clips
+        // tail out (the inside clip alone runs ~5.7 s).
+        cart_sfx_cut( &c.roll_sfx );
+        cart_sfx_cut( &c.inside_sfx );
+        c.roll_sfx_ticks = c.inside_sfx_ticks = 0;
+        return;
+    }
+    const float speed_gain = CART_SFX_VOLUME * static_cast<float>( std::sqrt( std::min( 1.0, speed / CART_ROLL_FULL_SPEED ) ) );
+    if ( c.roll_sfx_ticks-- <= 0 ) {
+        // Fade the previous loop's tail — its end is ~40 ms out.
+        cart_sfx_cut( &c.roll_sfx );
+        c.roll_sfx = audio_play_sfx_handle( "minecart_base", audio_distance_gain( glm::distance( state.camera.pos, c.pos ) ) * speed_gain );
+        c.roll_sfx_ticks = CART_ROLL_SFX_TICKS;
+    }
+    if ( !c.rider ) {
+        cart_sfx_cut( &c.inside_sfx );
+        c.inside_sfx_ticks = 0;
+    } else if ( c.inside_sfx_ticks-- <= 0 ) {
+        cart_sfx_cut( &c.inside_sfx );
+        c.inside_sfx = audio_play_sfx_handle( "minecart_inside", speed_gain );
+        c.inside_sfx_ticks = CART_INSIDE_SFX_TICKS;
+    }
+}
 
 void Vehicles::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance ) {
     this->render_chain.init( vbl_object_vertex, vbl_mob_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
@@ -121,6 +180,10 @@ void Vehicles::tick( RepGameState &state, const VehicleTickInput &in ) {
         c.prev_yaw = c.yaw;
         c.prev_pitch = c.pitch;
         if ( freeze || !vehicle_chunk_live( world, c ) ) {
+            // The sim is paused — cut any in-flight loop plays rather
+            // than letting them tail out.
+            cart_sfx_cut( &c.roll_sfx );
+            cart_sfx_cut( &c.inside_sfx );
             continue;
         }
         // The local rider flag only applies while we simulate the
@@ -174,6 +237,11 @@ void Vehicles::tick( RepGameState &state, const VehicleTickInput &in ) {
             if ( ( c.rider || c.rider_session != 0 ) && speed > 0.05 ) {
                 c.paddle_phase += static_cast<float>( speed * 0.9 / UPS_RATE );
             }
+        }
+        // Rolling sound for rail vehicles — owned carts use the velocity
+        // the sim just wrote, mirrors the streamed one.
+        if ( vehicle_type_def( c.type ).physics == VehiclePhysics::RAIL ) {
+            vehicle_rail_sfx( state, c );
         }
     }
 
@@ -273,6 +341,8 @@ int Vehicles::resolve_target( const glm::dvec3 &origin, const glm::dvec3 &dir, d
 }
 
 void Vehicles::remove_vehicle( size_t i ) {
+    cart_sfx_cut( &this->vehicles[ i ].roll_sfx );
+    cart_sfx_cut( &this->vehicles[ i ].inside_sfx );
     this->drop_render_parts( this->vehicles[ i ] );
     this->vehicles.erase( this->vehicles.begin( ) + static_cast<long>( i ) );
 }
@@ -993,6 +1063,8 @@ void Vehicles::draw( const Renderer &renderer, const Shader &shader ) {
 
 void Vehicles::cleanup( ) {
     for ( Vehicle &c : this->vehicles ) {
+        cart_sfx_cut( &c.roll_sfx );
+        cart_sfx_cut( &c.inside_sfx );
         this->drop_render_parts( c );
     }
     this->vehicles.clear( );

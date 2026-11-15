@@ -38,7 +38,23 @@ variant. `audio_block_dig_pool(block_id)` maps BlockID → break pool
 glass-type blocks → dig_stone (the pack's `random/glass*` is the shatter
 only — there is no glass place "tink"); `audio_block_step_pool(block_id)`
 is the same map for footsteps (step_* pools, glass → step_stone). For the
-currently wired SFX hooks see the `audio_play_sfx` call sites. Positional
+currently wired SFX hooks see the `audio_play_sfx` call sites.
+Looping clips (there is no looped-playback API) are emulated by
+re-triggering the one-shot once its clip length has elapsed — a
+retriggered clip is the loop. Plays that need to end before their clip
+does are tracked: `audio_play_sfx_handle` returns an id and
+`audio_sfx_stop` fades the stream out over ~50 ms (stale/zero handles
+are safe no-ops). Minecarts do this in
+`vehicle_rail_sfx` (vehicles.cpp): a RAIL-physics vehicle on a rail
+moving faster than ~0.1 blocks/s plays
+`minecart_base` every ~1.9 s with gain following a sqrt ramp of
+horizontal speed, and
+the cart the local player rides adds the `minecart_inside` loop on a
+~5.7 s retrigger. The clips are mastered ~20dB hotter than the rest of
+the pack, so convert_sounds.sh normalizes them to -34/-38dB mean and
+`CART_SFX_VOLUME` applies a further in-code cap; stopping, derailing,
+dismounting or removing the vehicle stops the
+in-flight plays instead of letting them tail out. Positional
 SFX share `audio_distance_gain(dist)` (audio.hpp): an inverse-distance
 falloff — full gain within 4 blocks, 0.5 at 8, 0.25 at 16, 0.125 at 32 —
 silent past `AUDIO_SFX_RANGE` (64); `audio_play_sfx_gain` drops gain<=0

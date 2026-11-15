@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 // Maps a BlockID to the SFX pool name for breaking that block. Returns
 // "dig_stone" for anything unrecognized. Compiled on every platform (pure
 // id lookup, no audio state) so game code can call it unconditionally.
@@ -44,6 +46,14 @@ void audio_tick( long tick_number, int music_set );
 void audio_play_sfx( const char *base_name );
 // Same, scaled by an extra per-play gain (mob distance falloff).
 void audio_play_sfx_gain( const char *base_name, float gain );
+// Same, but returns a nonzero handle while the play is in flight — for
+// loop clips the caller may need to cut short (vehicle roll/inside).
+// The handle goes stale when the clip ends; audio_sfx_stop on a stale
+// handle is a no-op. 0 = audio off, gain <= 0, or the pool is unknown.
+uint64_t audio_play_sfx_handle( const char *base_name, float gain );
+// Cuts an in-flight tracked play short with a ~50 ms fade (no click).
+// 0/stale handle = no-op.
+void audio_sfx_stop( uint64_t handle );
 void audio_set_music_gain( float gain );
 void audio_set_sfx_gain( float gain );
 // Title of the track currently playing, or nullptr during gaps/silence.
@@ -59,6 +69,11 @@ static inline void audio_tick( long tick_number, int music_set ) {
 static inline void audio_play_sfx( const char *base_name ) {
 }
 static inline void audio_play_sfx_gain( const char *base_name, float gain ) {
+}
+static inline uint64_t audio_play_sfx_handle( const char *base_name, float gain ) {
+    return 0;
+}
+static inline void audio_sfx_stop( uint64_t handle ) {
 }
 static inline void audio_set_music_gain( float gain ) {
 }

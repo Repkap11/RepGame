@@ -49,6 +49,11 @@ case "${1:-}" in
             dig_*) target=-30 ;;
             swim_*) target=-36 ;;
             splash_* | heavy_splash) target=-30 ;;
+            # The minecart clips are mastered ~20dB hotter than the rest of
+            # the pack (mean -12/-15dB vs -30..-40) — they're continuous
+            # loops, so normalize them well under the event sounds.
+            minecart_base) target=-34 ;;
+            minecart_inside) target=-38 ;;
         esac
         if [ -n "$target" ]; then
             stats=$(ffmpeg -v info -i "$src" -af volumedetect -f null - 2>&1 || true)

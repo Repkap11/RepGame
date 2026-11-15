@@ -253,3 +253,5 @@ arrow_hit_1|mc_pack/random/bowhit1.wav|sfx|Arrow hit
 arrow_hit_2|mc_pack/random/bowhit2.wav|sfx|Arrow hit
 arrow_hit_3|mc_pack/random/bowhit3.wav|sfx|Arrow hit
 arrow_hit_4|mc_pack/random/bowhit4.wav|sfx|Arrow hit
+minecart_base|mc_pack/minecart/base.wav|sfx|Minecart rolling
+minecart_inside|mc_pack/minecart/inside.wav|sfx|Minecart inside

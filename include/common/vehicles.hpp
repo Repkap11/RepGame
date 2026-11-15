@@ -79,6 +79,14 @@ class Vehicles {
         // WATER-physics angular velocity, degrees/s (boat steering is a
         // damped turn-rate model; mirrors take the streamed yaw instead).
         float yaw_rate = 0.0f;
+        // Rolling/inside SFX: countdowns until the loop clip re-triggers
+        // plus the tracked-play handles (audio_sfx_stop cuts the tail
+        // when the cart stops). Client-local like paddle_phase (mirrors
+        // run the same logic off their streamed velocity), never streamed.
+        int roll_sfx_ticks = 0;
+        int inside_sfx_ticks = 0;
+        uint64_t roll_sfx = 0;
+        uint64_t inside_sfx = 0;
     };
 
     // Per-tick input from the game loop; player_feet/width/height drive
