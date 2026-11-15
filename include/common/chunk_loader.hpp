@@ -74,6 +74,7 @@ struct LoaderDebugStats {
 class ChunkLoader {
     friend class World;
     friend void test_setup_world( World &world );
+    friend int test_dimension( );
     friend int test_lighting( );
     friend int test_light_stale( );
     friend int test_falling_blocks( );
@@ -400,6 +401,14 @@ class ChunkLoader {
     // the second eye so both eyes share one verdict generation.
     void set_occlusion_probe_pass( bool probe ) { this->occl_probe_pass = probe; }
     Chunk *get_chunk( const glm::ivec3 &pointed ) const;
+    // chunk_pos lies inside the ACTIVE load window: render_radius on x/z,
+    // CHUNK_RADIUS_Y on y, both relative to the current chunk_center.
+    bool in_active_window( const glm::ivec3 &chunk_pos ) const {
+        const glm::ivec3 d = chunk_pos - this->chunk_center;
+        return d.x >= -this->render_radius && d.x <= this->render_radius &&
+               d.z >= -this->render_radius && d.z <= this->render_radius &&
+               d.y >= -CHUNK_RADIUS_Y && d.y <= CHUNK_RADIUS_Y;
+    }
     // Block-body model instances drawn after each render order's terrain
     // (block_instance_batch.hpp); World fills it in BlockBodies::update_render.
     class BlockInstanceBatch *body_batch = nullptr;

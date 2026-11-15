@@ -37,6 +37,7 @@ assert_block 20 72 30 OBSIDIAN
 # feet and body cells both land on PORTAL cells.
 goto 21.5 73 30.5
 wait 120
+wait_idle 10 6000
 chatopen /
 type dimension
 wait 2
@@ -45,8 +46,81 @@ wait 2
 assert_chat Dimension: nether
 # The destination portal materializes around the drop point; the camera
 # sits inside or beside it — red fog, no skybox, plate in view.
-wait 60
 screenshot nether_portal
+
+# Step out of the plate (must_exit releases on non-portal loaded ground),
+# then walk back in: the same nether portal must send us home — back
+# inside the ORIGINAL overworld ring, still lit. The destination frame is
+# materialized by mapgen at these nether-band coords (interior x 22-23,
+# y -5905..-5903, z 29).
+goto 22.5 -5904 33.5
+wait_idle 10 6000
+goto 22.5 -5903 29.5
+wait 240
+wait_idle 10 6000
+chatopen /
+type dimension
+wait 2
+signkey enter
+wait 2
+assert_chat Dimension: overworld
+assert_pos 22.0 72.6 30.5 2
+assert_block 21 72 30 PORTAL
+
+# Third leg: step out of the overworld plate and re-enter — the nether
+# side must reuse the portal it already built (no second frame).
+goto 24.5 73 30.5
+wait 15
+goto 21.5 73 30.5
+wait 240
+wait_idle 10 6000
+chatopen /
+type dimension
+wait 2
+signkey enter
+wait 2
+assert_chat Dimension: nether
+# Reuses the same nether portal built on the first hop — no second frame.
+assert_pos 23.0 -5903.4 29.5 2
+assert_block 22 -5904 29 PORTAL
+
+# Fourth leg: a nether portal far outside the search radius (x ~200 vs
+# the overworld ring at x ~21) — the destination search misses and the
+# frame is BUILT on loaded overworld terrain. The site scan must skip
+# rows outside the loaded window, so the frame lands on the real surface,
+# not the WATER_LEVEL+2 ledge embedded in rock.
+rd 2
+goto 200.5 -5904 40.5
+wait 300
+wait_idle 10 6000
+# Placement only writes replaceable cells — clear the solid netherrack
+# volume to AIR before staging the ring.
+fill 198 -5907 31 203 -5899 33 AIR
+wait 5
+fill 199 -5905 32 202 -5901 32 OBSIDIAN
+wait 5
+fill 200 -5904 32 201 -5902 32 AIR
+wait 5
+ignite 200 -5904 32
+wait 5
+assert_block 200 -5903 32 PORTAL
+# Drop straight onto the sill — an eye-height goto would let the fall
+# tunnel through the 1-block row into the cleared pocket below.
+goto 200.5 -5902 32.5
+wait 240
+# The new overworld frame must sit on the terrain surface: sill obsidian on
+# the grass at y5, portal interior above it — not the y2 ledge and not buried.
+assert_block 200 5 31 OBSIDIAN
+assert_block 200 6 31 PORTAL
+assert_block 200 7 31 PORTAL
+assert_block 200 9 31 OBSIDIAN
+wait_idle 10 6000
+chatopen /
+type dimension
+wait 2
+signkey enter
+wait 2
+assert_chat Dimension: overworld
 
 # Return through the command path: same landing-column search, no frame.
 chatopen /

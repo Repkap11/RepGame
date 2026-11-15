@@ -93,15 +93,32 @@ dimension name (`dim_name`, `dim_local_block_y`).
   horizontal directions and vertically — breaking any frame block pops
   the adjacent cell, cascading through the whole interior.
 - **Travel**: `repgame_portal_tick` counts `PORTAL_TRAVEL_TICKS` (80)
-  inside a portal, drops the player at the same x/z in the other band,
-  then `portal_find_nearest`/`portal_build_frame` materialize a lit
-  destination once its chunks load (`pending_build`). A found portal is
-  entered on the sill inside its plate (`portal_arrive_inside`); a built
-  one copies the source frame's axis and interior size via
-  `pending_axis/w/h`. Landing inside the portal sets `must_exit` +
-  `PORTAL_COOLDOWN_TICKS` so you don't bounce straight back — `must_exit`
-  is only released on loaded non-portal ground, so a slow-loading
-  destination can't drop the guard before the frame lands.
+  inside a portal, then `portal_travel` records the source frame's
+  interior centre (`src_center`), drops the player on generated ground
+  in the other band (`hold_feet`), and freezes them there — each
+  pending tick re-snaps position and zeroes velocity until the
+  destination resolves.
+- **Readiness** (`portal_destination_ready`): the resolve waits for
+  (1) the loader window to reach the hold chunk, (2) every chunk
+  overlapping the search box (src_center x/z ± `PORTAL_SEARCH_R`, full
+  destination y band) inside the *active* window to be `CHUNK_LIVE`, and
+  (3) in multiplayer, `CHUNK_DIFF_DONE` confirmation of every diff box
+  sent when the gate first passed (a snapshot — new requests can't
+  extend the wait). `PORTAL_RESOLVE_TIMEOUT_TICKS` unsticks it with
+  whatever is loaded.
+- **Resolve**: `portal_find_nearest` scans the box's live chunks for the
+  closest existing PORTAL cell (horizontal distance to src_center, |dy|
+  tie-break) and the player is stood inside its plate; otherwise the
+  build site is picked from the *loaded* world (spiral from src_center,
+  not the hold point) and any candidate whose clearance volume —
+  u in [-2, w+1], v in [-3, 3], y in [0, h+2] — holds PORTAL/OBSIDIAN/
+  BEDROCK is vetoed, so a new frame never overlaps or carves into an
+  existing one. A built frame copies the source's axis and interior
+  size; landing inside any portal sets `must_exit` +
+  `PORTAL_COOLDOWN_TICKS` so you don't bounce straight back —
+  `must_exit` is only released on loaded non-portal ground.
+- **Carve**: `portal_carve_pocket` still opens a pocket around embedded
+  sites, but never writes over PORTAL, OBSIDIAN or BEDROCK.
 - `/dimension [overworld|nether]` (`chat_commands.cpp`) is the portal-less
   debug path: same landing-column search, no frame built. Spare slots and
   same-dimension travel are refused.
@@ -115,10 +132,11 @@ mob spawning is off (`chunk.cpp` spawn gate), and the music set switches
 
 ## Multiplayer
 
-`NET_PROTOCOL_VERSION` is 19 — packet layouts are unchanged, but the
-base-terrain contract differs: an old client would generate a different
-"unmodified" base in the nether band (v18 introduced the band; v19
-dropped the floor heightfield's mid-frequency octave).
+`NET_PROTOCOL_VERSION` is 20 — v18 introduced the dimension band and
+v19 dropped the floor heightfield's mid-frequency octave (base-terrain
+contract changes); v20 added `CHUNK_DIFF_DONE` so clients can tell when
+a request box's edits have all been applied (portal travel's
+readiness gate).
 
 Remote avatars are dimension-filtered in `multiplayer_avatars.cpp`:
 `update_position` despawns the mob when a position packet lands in a

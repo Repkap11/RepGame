@@ -21,6 +21,7 @@ struct RepGameState;
 class World;
 #include "common/block_types.hpp"
 #include "common/dimension.hpp"
+#include "common/constants.hpp" // UPS_RATE
 
 // Interior size limits (frame ring is +2 in each axis).
 #define PORTAL_MAX_INTERIOR_W 16
@@ -30,6 +31,13 @@ class World;
 // Ticks after a travel where portal contact doesn't count — keeps a player
 // who lands inside the destination portal from bouncing straight back.
 #define PORTAL_COOLDOWN_TICKS 60
+// Horizontal half-extent of the existing-portal search box around the
+// SOURCE portal's interior centre (not the drop point — the drop can land
+// far off the source x/z and at a wildly different y).
+#define PORTAL_SEARCH_R 64
+// Give up waiting on the readiness gate after this many ticks (~10 s at
+// UPS_RATE) and resolve with whatever is loaded.
+#define PORTAL_RESOLVE_TIMEOUT_TICKS ( 10 * UPS_RATE )
 
 // A detected empty obsidian ring ready for ignition.
 struct PortalFrame {
@@ -40,15 +48,20 @@ struct PortalFrame {
 
 // Per-player portal state on RepGameState.
 struct PortalState {
-    int ticks_inside = 0;   // consecutive ticks standing in a PORTAL cell
-    int cooldown = 0;       // ticks before a portal can trigger again
-    int must_exit = 0;      // just arrived: no travel until the player steps out
-    int pending_build = 0;  // destination portal still needs finding/building
-    int pending_carve = 0;  // embedded drop: carve the pocket around the site
-    int pending_axis = 0;   // frame to build: source portal's axis (PortalFrame::axis)
-    int pending_w = 2;      // frame to build: interior width along the axis
-    int pending_h = 3;      // frame to build: interior height
-    glm::dvec3 pending_pos; // where the player was dropped (frame search centre)
+    int ticks_inside = 0;          // consecutive ticks standing in a PORTAL cell
+    int cooldown = 0;              // ticks before a portal can trigger again
+    int must_exit = 0;             // just arrived: no travel until the player steps out
+    int pending_build = 0;         // destination portal still needs finding/building
+    int pending_carve = 0;         // embedded drop: carve the pocket around the site
+    int pending_axis = 0;          // frame to build: source portal's axis (PortalFrame::axis)
+    int pending_w = 2;             // frame to build: interior width along the axis
+    int pending_h = 3;             // frame to build: interior height
+    int pending_dim = 0;           // destination DimensionId (site scan + search band)
+    glm::dvec3 hold_feet;          // frozen drop position the player is re-snapped to
+    glm::ivec3 src_center;         // source portal interior centre (search/build origin x/z)
+    long pending_start_tick = 0;   // tick_number when the travel began (timeout clock)
+    uint32_t pending_diff_target = 0; // MP gate: diff_boxes_sent snapshot to wait for
+    int pending_diff_snap = 0;     // MP gate: the snapshot above has been taken
 };
 
 // Detect a complete empty obsidian ring containing `seed` (an interior-able
@@ -75,12 +88,23 @@ void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis
 // Clear an air pocket around a destination frame site (same `center` and
 // w/h as portal_build_frame): a room over the frame's open faces so a
 // portal embedded in solid rock isn't an immediate entombment. Solid and
-// fluid cells become AIR; call BEFORE portal_build_frame.
+// fluid cells become AIR; PORTAL, OBSIDIAN and BEDROCK are never
+// overwritten (an existing portal or unbreakable ground survives a new
+// frame landing next to it). Call BEFORE portal_build_frame.
 void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h );
 
-// Nearest loaded PORTAL cell to `center` inside a (rx, ry) box — the
-// destination-portal search half of travel.
-bool portal_find_nearest( World &world, const glm::ivec3 &center, int rx, int ry, glm::ivec3 &out );
+// Nearest PORTAL cell to `center`'s x/z inside the box x/z +- PORTAL_SEARCH_R,
+// y in [y_min, y_max] — the destination-portal search half of travel. Only
+// CHUNK_LIVE chunks contribute (the pending-travel gate promises everything
+// overlapping the box inside the active window is live). Ranking: horizontal
+// distance^2 to center.x/z, tie-break |dy| to center.y.
+bool portal_find_nearest( World &world, const glm::ivec3 &center, int y_min, int y_max, glm::ivec3 &out );
+
+// The pending-travel readiness gate (portal_travel.cpp): false while the
+// loader window hasn't reached the hold chunk, a search-box chunk inside
+// the active window isn't CHUNK_LIVE, or (multiplayer) a CHUNK_DIFF box
+// sent so far hasn't been DONE-confirmed. `unmet` gets the failing step.
+bool portal_destination_ready( RepGameState &state, int &unmet );
 
 // Per-tick portal contact/travel driver — called from the game tick right
 // after vitals. Counts dwell time inside a PORTAL cell, runs the travel, and

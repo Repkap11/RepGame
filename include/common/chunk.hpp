@@ -343,6 +343,7 @@ class Chunk {
     friend int test_chunk_edits( );
     friend int test_async_remesh( );
     friend int test_terrain_queue( );
+    friend int test_dimension( );
     friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, bool full_prefix, std::vector<ChunkSortKey> &scratch );
 
     int load_state;
@@ -527,6 +528,12 @@ class Chunk {
         return this->edited != nullptr;
     }
     BlockState get_block( const glm::ivec3 &pos ) const;
+    // Read-only status probes for box scanners that aren't Chunk friends
+    // (portal destination search). cells == nullptr means the whole chunk
+    // is AIR (is_empty_chunk).
+    bool is_live( ) const { return this->load_state == CHUNK_LIVE; }
+    bool has_cells( ) const { return this->cells != nullptr; }
+    const glm::ivec3 &get_chunk_pos( ) const { return this->chunk_pos; }
     // Assemble the stored BlockState for `index`. Requires cells != nullptr;
     // index space is the usual get_index_from_coords (halo included).
     inline BlockState state_at( const int index ) const {

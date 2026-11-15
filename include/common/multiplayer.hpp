@@ -19,6 +19,7 @@ struct RepGameState;
 
 class Multiplayer {
     friend int test_net_multiplayer_mode( );
+    friend int test_dimension( );
     FramedSocket framed_socket;
     glm::vec3 prev_player_pos;
     glm::mat4 prev_rotation;
@@ -73,6 +74,16 @@ class Multiplayer {
     std::map<glm::ivec3, std::vector<NetSignTextPayload>, Compare_I_Vec3> pending_signs;
 
     void connect_async( const std::string &hostname );
+
+    // CHUNK_DIFF_DONE bookkeeping: request_chunks_box counts the boxes it
+    // actually sent; handle_frame counts the DONE frames. The server serves
+    // boxes synchronously and in order over TCP, so done >= the sent count
+    // at some past snapshot means every box up to that point has been fully
+    // applied (portal travel's destination-search gate). Atomics: the send
+    // side can run while process_events is draining on the same logical
+    // thread, but transports don't guarantee that on every platform.
+    std::atomic<uint32_t> diff_boxes_sent{ 0 };
+    std::atomic<uint32_t> diff_boxes_done{ 0 };
 
     // Dispatch one complete frame payload (version|type|player_id|body).
     // Shared by the POSIX and WASM transports. Takes RepGameState (not just
@@ -152,6 +163,9 @@ class Multiplayer {
         this->send_payload( type, player_id, w.take_buf( ) );
     }
     bool is_active( ) const { return this->active.load( ); }
+    // CHUNK_DIFF box send/DONE counters (see the member comments).
+    uint32_t diff_boxes_sent_count( ) const { return this->diff_boxes_sent.load( ); }
+    uint32_t diff_boxes_done_count( ) const { return this->diff_boxes_done.load( ); }
     bool is_connecting( ) const { return this->connect_pending.load( ); }
     // The server's protocol version if we disconnected over a mismatch, -1 otherwise.
     int protocol_mismatch_version( ) const { return this->mismatched_server_version; }

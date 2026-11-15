@@ -1174,6 +1174,7 @@ const NetCodecEntry kCodecTable[] = {
     NET_EMPTY_ROW( NetMsgType::HEARTBEAT ),
     NET_ROW( NetMsgType::CHAT, NetChatPayload ),
     NET_ROW( NetMsgType::PLAYER_NAME, NetPlayerNamePayload ),
+    NET_EMPTY_ROW( NetMsgType::CHUNK_DIFF_DONE ),
 };
 } // namespace
 

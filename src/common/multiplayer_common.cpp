@@ -88,6 +88,12 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             }
             break;
         }
+        case NetMsgType::CHUNK_DIFF_DONE:
+            // The server finished a request box — handled here, on the same
+            // dispatch point that applies CHUNK_DIFF_RESULT, so ordering
+            // with the diffs holds for the portal-travel gate.
+            this->diff_boxes_done.fetch_add( 1 );
+            break;
         case NetMsgType::BLOCK_UPDATE: {
             NetBlockUpdatePayload bu;
             if ( !net_deserialize_block_update( r, bu ) ) {
@@ -241,6 +247,7 @@ bool Multiplayer::request_chunks_box( const glm::ivec3 &min, uint8_t sx, uint8_t
     p.size_x = sx;
     p.size_y = sy;
     p.size_z = sz;
+    this->diff_boxes_sent.fetch_add( 1 );
     this->send( NetMsgType::CHUNK_DIFF_REQUEST, p );
     if ( mpload_trace_enabled( ) ) {
         mpload_tracef( "req min=%d,%d,%d size=%d,%d,%d initial=%d",

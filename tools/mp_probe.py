@@ -29,6 +29,7 @@ WORLD_TIME = 11
 WELCOME = 12
 VIEW = 13
 CHUNK_ROLE = 14
+CHUNK_DIFF_DONE = 37
 
 TYPE_NAMES = {
     CHUNK_DIFF_REQUEST: "CHUNK_DIFF_REQUEST",
@@ -37,6 +38,7 @@ TYPE_NAMES = {
     WELCOME: "WELCOME",
     VIEW: "VIEW",
     CHUNK_ROLE: "CHUNK_ROLE",
+    CHUNK_DIFF_DONE: "CHUNK_DIFF_DONE",
 }
 # Frame types timed in the report (everything else still counts in bytes).
 TIMED_TYPES = (CHUNK_DIFF_RESULT, CHUNK_ROLE)

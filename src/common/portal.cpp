@@ -193,7 +193,10 @@ void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, const i
             for ( int y = 1; y <= h + 2; y++ ) {
                 const glm::ivec3 pos = center + du * u + dn * v + glm::ivec3( 0, y, 0 );
                 const BlockState cur = state.world.get_loaded_block( pos );
-                if ( cur.id == LAST_BLOCK_ID || cur.id == AIR || cur.id == OBSIDIAN ) {
+                // Never write over an existing portal, an old frame's ring,
+                // or unbreakable ground — a new frame landing beside one can
+                // carve into its footprint, but must leave those cells intact.
+                if ( cur.id == LAST_BLOCK_ID || cur.id == AIR || cur.id == PORTAL || cur.id == OBSIDIAN || cur.id == BEDROCK ) {
                     continue;
                 }
                 portal_write_cell( state, pos, air );
@@ -202,24 +205,51 @@ void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, const i
     }
 }
 
-// Nearest PORTAL cell to `center` within a (rx, ry) box of loaded blocks —
-// the "find an existing destination portal" half of travel. Spiral-free:
-// iterate the box, keep the best manhattan distance. One-shot per travel.
-bool portal_find_nearest( World &world, const glm::ivec3 &center, const int rx, const int ry, glm::ivec3 &out ) {
+// Nearest PORTAL cell to `center`'s x/z inside (x/z +- PORTAL_SEARCH_R,
+// y in [y_min, y_max]), scanned per live chunk — the "find an existing
+// destination portal" half of travel. Reads cells through the Chunk rather
+// than get_loaded_block per cell: one pass over each chunk's array, no
+// per-cell chunk lookup. Ranking: horizontal distance^2, tie-break |dy|
+// to center.y. One-shot per resolve; the pending gate already promised
+// every in-window box chunk is CHUNK_LIVE.
+bool portal_find_nearest( World &world, const glm::ivec3 &center, const int y_min, const int y_max, glm::ivec3 &out ) {
+    const int x_min = center.x - PORTAL_SEARCH_R, x_max = center.x + PORTAL_SEARCH_R;
+    const int z_min = center.z - PORTAL_SEARCH_R, z_max = center.z + PORTAL_SEARCH_R;
+    const glm::ivec3 cs( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    const glm::ivec3 cmin = glm::floor( glm::vec3( x_min, y_min, z_min ) / glm::vec3( cs ) );
+    const glm::ivec3 cmax = glm::floor( glm::vec3( x_max, y_max, z_max ) / glm::vec3( cs ) );
     bool found = false;
-    int best = 0;
-    for ( int dy = -ry; dy <= ry; dy++ ) {
-        for ( int dx = -rx; dx <= rx; dx++ ) {
-            for ( int dz = -rx; dz <= rx; dz++ ) {
-                const glm::ivec3 pos( center.x + dx, center.y + dy, center.z + dz );
-                if ( world.get_loaded_block( pos ).id != PORTAL ) {
+    long best_h2 = 0;
+    int best_dy = 0;
+    for ( int cy = cmin.y; cy <= cmax.y; cy++ ) {
+        for ( int cx = cmin.x; cx <= cmax.x; cx++ ) {
+            for ( int cz = cmin.z; cz <= cmax.z; cz++ ) {
+                const Chunk *chunk = world.get_loaded_chunk( glm::ivec3( cx, cy, cz ) * cs );
+                if ( chunk == nullptr || !chunk->is_live( ) || !chunk->has_cells( ) ) {
                     continue;
                 }
-                const int dist = abs( dx ) + abs( dy ) + abs( dz );
-                if ( !found || dist < best ) {
-                    found = true;
-                    best = dist;
-                    out = pos;
+                const glm::ivec3 base = chunk->get_chunk_pos( ) * cs;
+                const int lx0 = glm::max( x_min - base.x, 0 ), lx1 = glm::min( x_max - base.x, CHUNK_SIZE_X - 1 );
+                const int ly0 = glm::max( y_min - base.y, 0 ), ly1 = glm::min( y_max - base.y, CHUNK_SIZE_Y - 1 );
+                const int lz0 = glm::max( z_min - base.z, 0 ), lz1 = glm::min( z_max - base.z, CHUNK_SIZE_Z - 1 );
+                for ( int ly = ly0; ly <= ly1; ly++ ) {
+                    for ( int lx = lx0; lx <= lx1; lx++ ) {
+                        for ( int lz = lz0; lz <= lz1; lz++ ) {
+                            if ( chunk->id_at( Chunk::get_index_from_coords( lx, ly, lz ) ) != PORTAL ) {
+                                continue;
+                            }
+                            const int dx = base.x + lx - center.x;
+                            const int dz = base.z + lz - center.z;
+                            const long h2 = static_cast<long>( dx ) * dx + static_cast<long>( dz ) * dz;
+                            const int dy = abs( base.y + ly - center.y );
+                            if ( !found || h2 < best_h2 || ( h2 == best_h2 && dy < best_dy ) ) {
+                                found = true;
+                                best_h2 = h2;
+                                best_dy = dy;
+                                out = glm::ivec3( base.x + lx, base.y + ly, base.z + lz );
+                            }
+                        }
+                    }
                 }
             }
         }

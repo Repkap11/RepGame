@@ -2483,6 +2483,54 @@ int server_selftest( ) {
         disconnect_client( server, c );
     }
 
+    // === CHUNK_DIFF_DONE: exactly one frame per request box, queued after
+    // all of that box's CHUNK_DIFF_RESULT frames — for a box with edits, an
+    // all-clean box (which emits no RESULTs at all), and an oversized box
+    // (rejected, but still closed so client counters stay aligned). ===
+    {
+        const glm::ivec3 edit_chunk( 60, 0, 60 );
+        SimClient c = connect_client( server );
+        drain_client( server, c );
+        place( server, c, edit_chunk * CHUNK_SIZE_I + glm::ivec3( 10, 40, 10 ), stone );
+        disconnect_client( server, c ); // flush the edit so the next request serves it
+
+        c = connect_client( server );
+        drain_client( server, c );
+        // Box with one edited chunk: RESULT(s) then exactly one DONE, last.
+        send_diff_request( server, c, edit_chunk, 2, 1, 2 );
+        int results = 0, dones = 0, done_after_results = 0, last_was_done = 0;
+        for ( const ReceivedFrame &f : drain_client( server, c ) ) {
+            if ( f.type == NetMsgType::CHUNK_DIFF_RESULT ) {
+                results++;
+            } else if ( f.type == NetMsgType::CHUNK_DIFF_DONE ) {
+                dones++;
+                done_after_results = results > 0;
+            }
+            last_was_done = f.type == NetMsgType::CHUNK_DIFF_DONE;
+        }
+        check( results == 1 && dones == 1 && done_after_results && last_was_done,
+               "diff_done: edited box emits RESULTs then one DONE (results=%d dones=%d)", results, dones );
+        // All-clean box: no RESULT frames, still exactly one DONE.
+        send_diff_request( server, c, glm::ivec3( -70, 0, -70 ), 2, 1, 2 );
+        results = dones = 0;
+        for ( const ReceivedFrame &f : drain_client( server, c ) ) {
+            results += f.type == NetMsgType::CHUNK_DIFF_RESULT;
+            dones += f.type == NetMsgType::CHUNK_DIFF_DONE;
+        }
+        check( results == 0 && dones == 1,
+               "diff_done: clean box emits only DONE (results=%d dones=%d)", results, dones );
+        // Oversized box: rejected, still closed with one DONE.
+        send_diff_request( server, c, glm::ivec3( 0, 0, 0 ), NET_MAX_BOX_DIM + 1, 1, 1 );
+        results = dones = 0;
+        for ( const ReceivedFrame &f : drain_client( server, c ) ) {
+            results += f.type == NetMsgType::CHUNK_DIFF_RESULT;
+            dones += f.type == NetMsgType::CHUNK_DIFF_DONE;
+        }
+        check( results == 0 && dones == 1,
+               "diff_done: oversized box still closed (results=%d dones=%d)", results, dones );
+        disconnect_client( server, c );
+    }
+
     // === Env caps: parsed once at init; with the variables unset the
     // documented defaults apply (16 MB, 65536 entries, 200K dirty cells).
     {

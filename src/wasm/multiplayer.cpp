@@ -24,6 +24,8 @@ struct WasmMultiplayerHooks {
         Multiplayer *mp = static_cast<Multiplayer *>( userData );
         pr_debug( "Multiplayer websocket connected" );
         mp->framed_socket.adopt_manual( );
+        mp->diff_boxes_sent = 0;
+        mp->diff_boxes_done = 0;
         mp->active = true;
         mp->ever_connected = true;
         mp->connect_pending = false;

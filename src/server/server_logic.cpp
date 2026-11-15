@@ -541,6 +541,9 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
         // Validate box dimensions.
         if ( req.size_x > NET_MAX_BOX_DIM || req.size_y > NET_MAX_BOX_DIM || req.size_z > NET_MAX_BOX_DIM ) {
             pr_debug( "CHUNK_DIFF_REQUEST box too large: %u x %u x %u from:%d", req.size_x, req.size_y, req.size_z, client_fd );
+            // Still close the box: the client's diff-box counter pairs one
+            // DONE per sent request, oversized or not.
+            server.queue_empty( client_fd, NetMsgType::CHUNK_DIFF_DONE, 0 );
             return;
         }
         // Respond for each chunk in the box.
@@ -589,6 +592,10 @@ void ServerLogic::on_client_message( Server &server, int client_fd, NetMsgType t
             // need sign text without ever opening anything).
             this->signs.respondToChunkRequest( server, client_fd, chunk_pos );
         }
+        // The box is fully served: clean chunks emitted no frame, so an
+        // explicit DONE is the client's "every diff for this box applied"
+        // signal (portal travel gates its destination search on it).
+        server.queue_empty( client_fd, NetMsgType::CHUNK_DIFF_DONE, 0 );
         if ( trace ) {
             mpload_tracef( "srv_served fd=%d chunks=%d frames=%d bytes=%zu us=%lld",
                            client_fd, ( int )req.size_x * ( int )req.size_y * ( int )req.size_z,

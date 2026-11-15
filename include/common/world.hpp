@@ -35,11 +35,15 @@ class World {
     friend int test_grass_persist( );
     friend int test_cake( );
     friend void test_setup_world( World &world );
+    friend int test_dimension( );
 
     friend int test_lighting( );
     friend int test_async_remesh( );
     friend int test_falling_blocks( );
     friend int test_arrows( );
+    // Portal travel's readiness gate (portal_travel.cpp) — needs the
+    // private ChunkLoader handle for the active-window/live-chunk check.
+    friend bool portal_destination_ready( RepGameState &state, int &unmet );
 
     ChunkLoader chunkLoader;
     // World-owned xorshift state for random ticks — kept off rand() so debug

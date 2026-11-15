@@ -28,6 +28,8 @@ void Multiplayer::init( const char *hostname, const int port ) {
     this->prev_player_pos = glm::vec3( 0.0f );
     this->prev_rotation = glm::mat4( 1.0f );
     this->mismatched_server_version = -1;
+    this->diff_boxes_sent = 0;
+    this->diff_boxes_done = 0;
 
     // Create the socket on the main thread so we own its lifecycle. The
     // background connect thread uses this->sockfd but never closes it; on
@@ -88,6 +90,8 @@ void Multiplayer::connect_async( const std::string &hostname ) {
     if ( rc == 0 ) {
         // Immediate success (e.g. localhost).
         this->framed_socket.adopt( this->sockfd );
+        this->diff_boxes_sent = 0;
+        this->diff_boxes_done = 0;
         this->active = true;
         this->ever_connected = true;
         return;
@@ -124,6 +128,8 @@ void Multiplayer::connect_async( const std::string &hostname ) {
     // atomic with release ordering so the game thread, on observing
     // active==true, also sees the initialized socket.
     this->framed_socket.adopt( this->sockfd );
+    this->diff_boxes_sent = 0;
+    this->diff_boxes_done = 0;
     this->active = true;
     this->ever_connected = true;
 }

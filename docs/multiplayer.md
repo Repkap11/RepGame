@@ -64,7 +64,10 @@ invalid types are dropped), and renamed the payload field to
 `riding_vehicle` (layout unchanged). Protocol 18 changed no wire layout:
 it fences off the dimension-aware terrain contract — old clients would
 generate bedrock where new clients generate the nether band
-(`docs/dimensions.md`).
+(`docs/dimensions.md`); protocol 19 dropped the nether floor
+heightfield's mid-frequency octave; protocol 20 added `CHUNK_DIFF_DONE`
+— one empty frame closing each `CHUNK_DIFF_REQUEST` box (see "Chunk
+diffs").
 
 ## Transports
 
@@ -186,6 +189,18 @@ travels is the per-chunk edit set:
   workers with all-or-nothing per-component publish — see "Async
   server-diff remesh" in docs/chunks.md (`REPGAME_ASYNC_REMESH=0`
   restores the synchronous path).
+- `CHUNK_DIFF_DONE` (protocol 20) is one empty frame the server queues
+  after all per-chunk responses to a request box — and the only frame
+  an all-clean box produces, since edited chunks are the only ones that
+  emit `CHUNK_DIFF_RESULT`. It's also sent for a rejected oversized
+  request so the client's bookkeeping stays paired. `Multiplayer`
+  counts sent boxes (`diff_boxes_sent`, incremented only when a request
+  actually went out) and received DONEs (`diff_boxes_done`, incremented
+  in `handle_frame` on the same dispatch point that applies diffs);
+  because boxes are served synchronously and in order over TCP,
+  `done >= N` means every one of the first N boxes' diffs is applied —
+  portal travel's destination-search gate waits on that (see
+  `docs/dimensions.md` "Portals").
 
 Diffs routinely beat terrain gen to the client, so a result for a
 non-live chunk goes into `Multiplayer::pending_diffs` and lands during

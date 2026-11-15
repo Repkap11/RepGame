@@ -38,16 +38,19 @@ static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-end
 // bit, and mismatched builds fail the per-frame version check on both
 // ends — a new-terrain client is dropped by a legacy server on the
 // first frame (and vice versa), while matched builds still peer.
-// Bump the low bits (19) on layout changes as usual; 0x80 stays
+// Bump the low bits (20) on layout changes as usual; 0x80 stays
 // reserved for the generator bit. v18 = dimension bands (dimension.hpp):
 // nether-band chunk-y values generate nether terrain, so v17 peers would
 // produce a different "unmodified" base in those chunks. v19 = nether
 // floor height lost its mid-frequency octave (map_gen_nether.hpp) —
 // same-band peers would generate a different base under the same diffs.
+// v20 = CHUNK_DIFF_DONE: one empty frame closing each CHUNK_DIFF_REQUEST
+// box — a v19 server never sends it, so clients would wait on a signal
+// that never comes.
 #if REPGAME_MAP_GEN_LEGACY
-static constexpr uint8_t NET_PROTOCOL_VERSION = 19;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 20;
 #else
-static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 19;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 20;
 #endif
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
@@ -99,10 +102,14 @@ enum class NetMsgType : uint8_t {
     HEARTBEAT = 34,
     CHAT = 35,
     PLAYER_NAME = 36,
+    // Sent once per CHUNK_DIFF_REQUEST box after every per-chunk response
+    // (also for a rejected oversized box) — the client's "edits complete"
+    // signal, since clean chunks emit no CHUNK_DIFF_RESULT.
+    CHUNK_DIFF_DONE = 37,
 };
 // One past the highest NetMsgType value; the codec table (below) has exactly
 // this many rows, one per wire id.
-static constexpr int NET_MSG_TYPE_COUNT = 37;
+static constexpr int NET_MSG_TYPE_COUNT = 38;
 
 // NetCodec<P>: compile-time map from a payload struct to its wire codec.
 // Specializations are declared next to the registry at the bottom of this
