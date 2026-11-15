@@ -1179,14 +1179,17 @@ def resolve_image(name, meta):
         # side profile on the left flank (its u runs opposite the right
         # face's) or a top tile authored with its length axis on u when the
         # top face samples u along x. "x"/"y" mirror, "transpose" swaps the
-        # axes; the names describe the sampled result, which coincides with
-        # the same-named PIL op here because the GL upload's X mirror
-        # cancels itself out for x, and y/transpose are unaffected by it.
+        # axes, "180" rotates half a turn; the names describe the sampled
+        # result, which coincides with the same-named PIL op here because
+        # the GL upload's X mirror cancels itself out for x, and
+        # y/transpose/180 are unaffected by it (x-mirror + y-mirror is a
+        # half turn in either space).
         ops = {"x": Image.Transpose.FLIP_LEFT_RIGHT,
                "y": Image.Transpose.FLIP_TOP_BOTTOM,
-               "transpose": Image.Transpose.TRANSPOSE}
+               "transpose": Image.Transpose.TRANSPOSE,
+               "180": Image.Transpose.ROTATE_180}
         if flip not in ops:
-            fail("texture %r: flip must be x, y or transpose" % name)
+            fail("texture %r: flip must be x, y, transpose or 180" % name)
         img = img.transpose(ops[flip])
     return img
 

@@ -93,7 +93,10 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
 - `random_rotate` — tile participates in per-block random rotation. Used by
   dirt, grass top, snow and all leaf tiles.
 - `flip` — whole-tile transform applied last: `"x"` mirrors left-right,
-  `"y"` flips top-bottom, `"transpose"` swaps the axes. Use when a face's
+  `"y"` flips top-bottom, `"transpose"` swaps the axes, `"180"` rotates a
+  half turn (the repeater top tiles use it — Bedrock's groove runs toward
+  the fixed-torch end while ours must run under the movable torch). Use
+  when a face's
   baked quad winding samples a directional tile backwards or on the wrong
   axis — the left flank's u runs opposite the right's (`vd_data_solid`),
   so the bed's side profile needs a `flip:"x"` variant on `left`, and its
