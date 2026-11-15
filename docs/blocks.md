@@ -215,9 +215,10 @@ keys override the template but not the block's own JSON. Textures always
 stay the block's own. Button and pressure-plate icons are isometric like
 the models: `button_icon_boxes` draws a centered 6x4x4 box (MC's
 button_inventory model — the def box sits against the mount face, wrong
-for the item), while plates fall back to their own 14x2x14 def box.
-Carpets and trapdoors template off SPRUCE_PRESSURE_PLATE too but keep flat
-icons through the entries' `"icon_is_isometric": false` override.
+for the item), while plates and trapdoors fall back to their own def
+boxes (14x2x14 and 16x3x16). Carpets template off SPRUCE_PRESSURE_PLATE
+too but keep a flat icon through the entry's `"icon_is_isometric": false`
+override.
 
 Signs are thin boxes whose faces sample the Bedrock entity/item sprites.
 A `*_STANDING_SIGN` (`is_standing_sign`) renders as two boxes
