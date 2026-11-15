@@ -1467,9 +1467,19 @@ int test_mobs( ) {
             started = mobs.mobs[ 0 ].graze_ticks > 0;
         }
         check_bool( "graze: sheared sheep starts grazing on grass", started );
-        // Woolly sheep on stone never start (the stone floor stays stone).
+        // Wool regrew — a woolly sheep on grass never starts again, so the
+        // one graze per shearing is all the grass a sheep ever eats.
         mobs.mobs[ 0 ].sheared = 0;
         mobs.mobs[ 0 ].graze_ticks = 0;
+        mobs.mobs[ 0 ].pos = glm::dvec3( 10.5, 11.0, 10.5 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        for ( int i = 0; i < 500; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "graze: woolly sheep never grazes", mobs.mobs[ 0 ].graze_ticks == 0 );
+        // A shorn sheep on stone never starts either (the floor isn't grass).
+        mobs.mobs[ 0 ].sheared = 1;
         mobs.mobs[ 0 ].pos = glm::dvec3( 20.5, 11.0, 10.5 );
         mobs.mobs[ 0 ].ai_state = 0;
         mobs.mobs[ 0 ].ai_ticks = 100000;

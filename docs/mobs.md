@@ -147,14 +147,16 @@ on mirrors — and `MobFileRecord::flags` on disk; right-click shearing a
 mirrored mob goes through `ENTITY_ACTION`/`NET_ACTION_SHEAR` like a feed
 (the owner validates the claimed `item` against `SHEARS`).
 
-Wool regrows by grazing: an idle sheep standing on `GRASS` starts a ~2 s
-`graze_ticks` graze (eager ~1/(2.5 s·UPS) while shorn, ambient
-~1/(50 s·UPS) woolly — `MobManager::tick_mob`) that pins the AI and dips
-the head instead of the player look-at. Finishing over still-`GRASS`
-ground pushes the cell to `MobTickOutput::grazes`, clears `sheared`, and
-sheds ~10% of a baby's remaining growth; `RepGame::tick` converts the
-cell to `DIRT` (no drop, no debris, same `repgame_convert_block`
-hand-off as tramples). Panic or losing the ground aborts a started graze.
+Wool regrows by grazing: a shorn sheep idling on `GRASS` starts a ~2 s
+`graze_ticks` graze (~1/(2.5 s·UPS) — `MobManager::tick_mob`) that pins
+the AI and dips the head instead of the player look-at; a woolly sheep
+never starts (Java's ambient graze is deliberately skipped — grass out
+of tick range can't spread back, so remote pastures would end as dirt).
+Finishing over still-`GRASS` ground pushes the cell to
+`MobTickOutput::grazes`, clears `sheared`, and sheds ~10% of a baby's
+remaining growth; `RepGame::tick` converts the cell to `DIRT` (no drop,
+no debris, same `repgame_convert_block` hand-off as tramples). Panic or
+losing the ground aborts a started graze.
 
 The night spawner runs inside `MobManager::tick` (off under
 `REPGAME_MOB_TEST`, capture mode, fly mode, `REPGAME_MOB_SPAWNER=0` and

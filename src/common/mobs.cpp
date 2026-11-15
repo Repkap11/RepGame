@@ -45,10 +45,11 @@
 #define HEART_PERIOD_SPREAD 0.5f
 #define HEART_BORN_COUNT 7
 #define HEART_BABY_FEED_COUNT 2
-// Grazing (sheep): a woolly sheep idling on grass starts a ~2 s graze about
-// once a minute (Java's 1/1000 chance per 20 Hz tick ≈ 1/(50 s)); a shorn
-// one goes for it eagerly (~2.5 s) to get its wool back. graze_ticks pins
-// the AI while the head dips.
+// Grazing (sheep): only a shorn sheep eats — idling on grass it starts a
+// ~2 s graze about every 2.5 s until the wool regrows, then stops for good
+// (Java's woolly ambient graze is skipped on purpose: grass out of tick
+// range can't spread back, so remote pastures would degrade to dirt).
+// graze_ticks pins the AI while the head dips.
 #define MOB_GRAZE_TICKS ( 2 * UPS_RATE )
 #define MOB_GRAZE_PITCH -80.0f // head-down animator pitch while grazing, degrees
 // Ranged hostiles (the skeleton): they hold a strafing stand-off band
@@ -635,8 +636,8 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         }
     }
 
-    // Grazing (shearable types — the sheep): a mob standing on grass dips
-    // its head for ~2 s (graze_ticks) then eats the block underfoot; the
+    // Grazing (shearable types — the sheep): a shorn mob standing on grass
+    // dips its head for ~2 s (graze_ticks) then eats the block underfoot;
     // grazed cell lands in MobTickOutput::grazes and the caller converts it
     // to dirt — same hand-off as tramples. A started graze pins the AI and
     // the look-at below; panic or losing the ground aborts it. The finish
@@ -664,10 +665,10 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                 mob.graze_ticks = 0;
             }
         }
-        if ( !grazing && mob.standing && mob.panic_ticks <= 0 && mob.love_ticks <= 0 && mob.ai_state == 0 &&
+        if ( !grazing && mob.sheared && mob.standing && mob.panic_ticks <= 0 && mob.love_ticks <= 0 && mob.ai_state == 0 &&
              world.get_loaded_block( under ).id == GRASS ) {
             std::uniform_real_distribution<double> roll( 0.0, 1.0 );
-            const double p = mob.sheared ? 1.0 / ( 2.5 * UPS_RATE ) : 1.0 / ( 50.0 * UPS_RATE );
+            const double p = 1.0 / ( 2.5 * UPS_RATE );
             if ( roll( this->rng ) < p ) {
                 mob.graze_ticks = MOB_GRAZE_TICKS;
                 grazing = true;
