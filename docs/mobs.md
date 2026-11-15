@@ -193,6 +193,11 @@ always fit, and the live count can exceed the cap.
   a warning and hold nothing.
 - Capture mode (`REPGAME_CAPTURE`) freezes mob AI and physics — spawn
   poses are as authored, no falls or wandering mid-capture.
+- `Mob::no_ai` is the per-mob variant of that freeze (used by the block
+  world's `spawn_block_world_showcase` line-up): `tick_mob` returns right
+  after the hurt/death bookkeeping, skipping targeting, daylight burn,
+  grazing, look-at, wander/panic, physics, knockback and ambient sounds.
+  The mob can still be hit (hurt flash + tip-over death) but never moves.
 - `n` — debug spawn key: drops a mob three blocks in front of the
   player, cycling pig → cow → chicken → sheep → zombie → creeper → bee →
   cat → skeleton on successive presses (`MobManager::spawn_in_front`; edge-triggered

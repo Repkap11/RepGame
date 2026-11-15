@@ -126,6 +126,7 @@ class MobManager {
         float head_yaw;  // eased look-at offsets on the head bone, degrees
         float head_pitch;
         int persistent;   // REPGAME_MOB_TEST spawns are non-persistent
+        int no_ai = 0;    // block-world showcase: no AI/physics/sounds, only hurt flash + death
         int say_ticks;    // ambient "say" countdown
         float step_acc;   // horizontal distance since the last step sound
         glm::dvec3 kb;    // knockback impulse, decays ~x0.85/tick
@@ -284,6 +285,11 @@ class MobManager {
     // (spawn eggs, `n`, dbgcmd) always go through; the cap only bounds
     // emergent population sources (natural roll, spawner, roll restores).
     bool spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent = 1, bool capped = true );
+    // Block world (REPGAME_BLOCK_WORLD): one of each mob type in a column at
+    // x=-3 (z = 2,5,8,...), facing the block grid with `no_ai` set — they
+    // stand still but can still be hit and killed. Called once from init()
+    // unless REPGAME_MOB_TEST overrides it.
+    void spawn_block_world_showcase( );
     // Network-driven mobs (remote players): spawned/posed/removed by the
     // multiplayer layer via a stable uid. persistent=0, invisible to the
     // raycast and the mob count, immune to the chunk-live freeze. Works even

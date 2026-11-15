@@ -1570,6 +1570,90 @@ int test_mobs( ) {
         }
     }
 
+    // --- 28: no_ai mobs stand still (block-world showcase flag) ------------
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_ZOMBIE, glm::dvec3( 10.5, 11.0, 10.5 ), 90.0f, 1 );
+        mobs.spawn( MOB_PIG, glm::dvec3( 12.5, 11.0, 10.5 ), 45.0f, 1 );
+        mobs.mobs[ 0 ].no_ai = 1;
+        mobs.mobs[ 1 ].no_ai = 1;
+        const glm::dvec3 ppos( 13.0, 11.0, 10.5 ); // eye-level, ~3 blocks away
+        MobTickInput in = { true, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
+        in.held_item = CARROT; // tempting must not move the pig either
+        MobTickOutput out;
+        const glm::dvec3 z0 = mobs.mobs[ 0 ].pos, p0 = mobs.mobs[ 1 ].pos;
+        const float zyaw0 = mobs.mobs[ 0 ].yaw, pyaw0 = mobs.mobs[ 1 ].yaw;
+        const float zhealth0 = mobs.mobs[ 0 ].health;
+        for ( int i = 0; i < 5 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in, &out );
+        }
+        check_bool( "no_ai: zombie pos unchanged", mobs.mobs[ 0 ].pos == z0 && mobs.mobs[ 0 ].yaw == zyaw0 );
+        check_bool( "no_ai: pig pos unchanged", mobs.mobs[ 1 ].pos == p0 && mobs.mobs[ 1 ].yaw == pyaw0 );
+        check_bool( "no_ai: zombie never burns or hits", mobs.mobs[ 0 ].health == zhealth0 && out.player_hits.empty( ) );
+        check_bool( "no_ai: no arrows/fuses/grazes", out.arrow_shots.empty( ) && out.explosions.empty( ) && out.grazes.empty( ) );
+    }
+
+    // --- 28b: no_ai still takes hurt flash + dies; knockback is ignored ----
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        const glm::dvec3 attacker( 8.5, 11.5, 10.5 );
+        // Non-lethal hit: red flash runs, the mob never budges.
+        mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].no_ai = 1;
+        check_bool( "no_ai hurt: survives a small hit", !mobs.hurt( 0, 1.0f, attacker, attacker ) );
+        check_bool( "no_ai hurt: hurt flash set", mobs.mobs[ 0 ].hurt_ticks > 0 );
+        const glm::dvec3 p0 = mobs.mobs[ 0 ].pos;
+        for ( int i = 0; i < UPS_RATE; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "no_ai hurt: knockback ignored, never moved", mobs.mobs.size( ) == 1 && mobs.mobs[ 0 ].pos == p0 );
+
+        // Lethal hit: the tip-over plays and the mob is removed (~0.5 s).
+        check_bool( "no_ai kill: lethal hit starts death", mobs.hurt( 0, mob_types[ MOB_PIG ].max_health, attacker, attacker ) );
+        const glm::dvec3 d0 = mobs.mobs[ 0 ].pos;
+        bool moved_xz = false;
+        for ( int i = 0; i < UPS_RATE && !mobs.mobs.empty( ); i++ ) {
+            mobs.tick( world, player_pos );
+            if ( !mobs.mobs.empty( ) ) {
+                moved_xz |= mobs.mobs[ 0 ].pos.x != d0.x || mobs.mobs[ 0 ].pos.z != d0.z;
+            }
+        }
+        check_bool( "no_ai kill: removed after the tip-over", mobs.mobs.empty( ) );
+        check_bool( "no_ai kill: never moved horizontally", !moved_xz );
+    }
+
+    // --- 28c: block-world showcase spawns one of each type -----------------
+    {
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn_block_world_showcase( );
+        check_bool( "showcase: one mob per type", mobs.mobs.size( ) == MOB_TYPE_COUNT );
+        int seen[ MOB_TYPE_COUNT ] = { 0 };
+        bool flags_ok = true, cells_ok = true;
+        for ( const MobManager::Mob &mob : mobs.mobs ) {
+            seen[ mob.type ]++;
+            if ( mob.uid != 0 ) {
+                // The remote player avatar: spawned at the spawn point, posed
+                // via set_remote_pose (converges on its first tick).
+                flags_ok &= mob.type == MOB_PLAYER;
+                continue;
+            }
+            flags_ok &= mob.no_ai == 1;
+            const glm::ivec3 cell( glm::floor( mob.pos ) );
+            cells_ok &= MapGen::block_world_id( cell.x, 1, cell.z ) == AIR &&
+                        MapGen::block_world_id( cell.x, 0, cell.z ) == SANDSTONE;
+        }
+        bool each_once = true;
+        for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+            each_once &= seen[ t ] == 1;
+        }
+        check_bool( "showcase: each type exactly once", each_once );
+        check_bool( "showcase: no_ai on locals, remote avatar spawned", flags_ok );
+        check_bool( "showcase: AIR cells over SANDSTONE floor", cells_ok );
+    }
+
     return failures;
 }
 

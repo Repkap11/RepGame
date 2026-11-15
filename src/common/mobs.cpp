@@ -65,7 +65,7 @@
 
 MobManager::MobManager( ) {
     this->enabled = env_bool( "REPGAME_MOBS", true );
-    this->spawner_enabled = env_bool( "REPGAME_MOB_SPAWNER", true );
+    this->spawner_enabled = env_bool( "REPGAME_MOB_SPAWNER", true ) && !repgame_block_world( );
     this->test_mode = env_is_set( "REPGAME_MOB_TEST" );
     this->render_inited = false;
     this->storage = nullptr;
@@ -135,6 +135,11 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
             this->spawn( type, glm::dvec3( x, y, z ), yaw, 0, false );
         }
     }
+    // Block world: a static mob line-up next to the block grid (MOB_TEST
+    // wins when both are set — its fixtures are the authored showcase).
+    if ( repgame_block_world( ) && this->enabled && spec == NULL ) {
+        this->spawn_block_world_showcase( );
+    }
 }
 
 bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent, bool capped ) {
@@ -193,6 +198,7 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.prev_sneak = 0.0f;
     mob.sneak_target = 0.0f;
     mob.persistent = persistent;
+    mob.no_ai = 0;
     std::uniform_int_distribution<int> say( 10 * UPS_RATE, 30 * UPS_RATE );
     mob.say_ticks = say( this->rng );
     mob.step_acc = 0.0f;
@@ -336,6 +342,26 @@ bool MobManager::spawn_in_front( MobType type, const glm::dvec3 &camera_pos, con
     const double ground = ground_top_at( world, bx, bz, static_cast<int>( floor( at.y ) ), 30, &found );
     // Explicit player spawn: uncapped like an egg.
     return this->spawn( type, glm::dvec3( at.x, found ? ground : at.y, at.z ), 0.0f, 1, false );
+}
+
+// Block world: one of each mob type in a column at x=-3, spaced 3 apart in
+// z on the empty y=1 plane west of the block grid, all facing +x toward it.
+// Local types get `no_ai` so they just stand there (still hittable and
+// killable); the MOB_AI_REMOTE player avatar is spawned and posed like a
+// REPGAME_MOB_TEST remote entry.
+void MobManager::spawn_block_world_showcase( ) {
+    for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+        const MobType type = static_cast<MobType>( t );
+        const glm::dvec3 pos( -2.5, 1.0, 2.5 + 3.0 * t );
+        if ( mob_types[ t ].ai == MOB_AI_REMOTE ) {
+            const uint32_t uid = this->spawn_remote( type );
+            this->set_remote_pose( uid, pos + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 ), 90.0f, 0.0f );
+            continue;
+        }
+        if ( this->spawn( type, pos, 90.0f, 0, false ) ) {
+            this->mobs.back( ).no_ai = 1;
+        }
+    }
 }
 
 uint32_t MobManager::spawn_remote( MobType type ) {
@@ -508,6 +534,14 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         if ( Collision::unstick( world, eye, def.hitbox_h, def.hitbox_h, def.hitbox_w / 2.0 ) ) {
             mob.pos = eye - glm::dvec3( 0.0, def.hitbox_h, 0.0 );
         }
+    }
+
+    // Block-world showcase mobs: the snapshot, hurt countdown and death
+    // tip-over above still run; everything below (targeting, daylight burn,
+    // grazing, look-at, wander/panic, physics, knockback, ambient sounds) is
+    // skipped so they simply stand where they were placed.
+    if ( mob.no_ai ) {
+        return;
     }
 
     const glm::ivec3 feet = glm::ivec3( glm::floor( mob.pos ) );
