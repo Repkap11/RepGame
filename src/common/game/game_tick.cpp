@@ -401,7 +401,7 @@ void RepGame::tick_entities( ) {
     gs.world.items.tick( gs );
     // Arrow projectiles: ballistic flight, block sticking, mob hits.
     ArrowEntities::ArrowTickOutput arrow_out;
-    gs.world.arrows.tick( gs, &arrow_out );
+    gs.world.arrows.tick( gs, &arrow_out, &mob_in.remote_targets );
     // Arrow mob hits reuse the melee path: a local mob takes hurt + drops;
     // a remote-owned mob gets the ENTITY_ACTION forwarded to its owner.
     for ( const ArrowEntities::ArrowMobHit &hit : arrow_out.mob_hits ) {
@@ -433,6 +433,19 @@ void RepGame::tick_entities( ) {
         } else {
             // An owned hostile connected on a remote player — forward it.
             gs.multiplayer.entities.send_player_hit( hit.target_player_id, hit.from, hit.damage );
+        }
+    }
+    // Ranged hostiles' released shots become mob-fired arrows — they target
+    // player hitboxes, not mobs.
+    for ( const MobArrowShot &shot : mob_out.arrow_shots ) {
+        gs.world.arrows.spawn( shot.pos, shot.vel, shot.damage, 1, true );
+    }
+    for ( const ArrowEntities::ArrowPlayerHit &hit : arrow_out.player_hits ) {
+        if ( hit.player_id < 0 ) {
+            RepGame::player_hurt( gs, hit.pos, hit.damage );
+        } else {
+            // A mob-fired arrow owned by this client hit a remote player.
+            gs.multiplayer.entities.send_player_hit( hit.player_id, hit.pos, hit.damage );
         }
     }
     for ( const glm::dvec3 &pos : mob_out.explosions ) {

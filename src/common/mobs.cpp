@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "common/RepGame.hpp"
+#include "common/arrows.hpp"
 #include "common/audio.hpp"
 #include "common/chunk.hpp"
 #include "common/heart_particles.hpp"
@@ -50,6 +51,14 @@
 // the AI while the head dips.
 #define MOB_GRAZE_TICKS ( 2 * UPS_RATE )
 #define MOB_GRAZE_PITCH -80.0f // head-down animator pitch while grazing, degrees
+// Ranged hostiles (the skeleton): they hold a strafing stand-off band
+// instead of closing to melee — chase beyond FAR, circle sideways inside
+// the band, drift back under NEAR — and loose a mob-fired arrow about
+// every 2 s, only on a clear pick-ray line to the target's chest.
+#define MOB_RANGED_NEAR 5.0
+#define MOB_RANGED_FAR 14.0
+#define MOB_RANGED_SHOT_RANGE 16.0
+#define MOB_ARROW_SPEED 0.35 // slower than a full player draw (ARROW_SPEED)
 // HeartParticles::now wraps with u_Time (3600 s) — wrapped-diff for the
 // per-mob emission cadence.
 #define HEART_TIME_WRAP 3600.0f
@@ -191,6 +200,8 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.despawnable = 0;
     mob.targeting = 0;
     mob.attack_ticks = 0;
+    mob.strafe_ticks = 0;
+    mob.strafe_dir = 1;
     mob.fuse_ticks = 0;
     mob.burn_acc = 0;
     std::uniform_real_distribution<float> phase_pick( 0.0f, 6.2832f );
@@ -498,7 +509,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
 
     const glm::ivec3 feet = glm::ivec3( glm::floor( mob.pos ) );
     const bool in_water = world.get_loaded_block( feet ).id == WATER || world.get_loaded_block( feet + glm::ivec3( 0, 1, 0 ) ).id == WATER;
-    const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER;
+    const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER || def.ai == MOB_AI_HOSTILE_RANGED;
     // in==nullptr defaults: not targetable, noon (no burn), standing eye height.
     static const MobTickInput fallback_input = { false, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
     if ( in == nullptr ) {
@@ -511,7 +522,8 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     // targets (multiplayer): hostiles chase whoever that is.
     glm::dvec3 target_feet = player_feet;
     double target_dist_xz = player_dist_xz;
-    int32_t target_player_id = -1; // -1 = the local player
+    int32_t target_player_id = -1;               // -1 = the local player
+    double target_eye_h = in->player_eye_height; // the ranged AI's aim point
     if ( !in->player_targetable ) {
         target_dist_xz = 1e30;
     }
@@ -525,6 +537,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             target_dist_xz = d;
             target_feet = remote_feet;
             target_player_id = remote.player_id;
+            target_eye_h = remote.eye_height;
         }
     }
     const bool any_targetable = target_dist_xz < 1e29;
@@ -541,9 +554,9 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
         }
     }
 
-    // Zombies burn in daylight under open sky: 1 damage per second with the
-    // hurt flash, but no knockback and no panic.
-    if ( hostile && def.ai == MOB_AI_HOSTILE_MELEE && !in_water ) {
+    // Zombies and skeletons burn in daylight under open sky: 1 damage per
+    // second with the hurt flash, but no knockback and no panic.
+    if ( hostile && def.ai != MOB_AI_HOSTILE_CREEPER && !in_water ) {
         const glm::dvec3 head = mob.pos + glm::dvec3( 0.0, def.hitbox_h, 0.0 );
         const float sky = world.chunkLoader.light_sample( glm::vec3( head ) ).x;
         if ( mob_burns_in_daylight( light_daylight_factor( in->world_time ), sky ) ) {
@@ -633,32 +646,80 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 
     float speed = 0.0f;
+    // The walk direction: mob.yaw normally, but a strafing ranged hostile
+    // slides sideways on strafe_yaw while its body stays on the target.
+    bool strafing = false;
+    float strafe_yaw = 0.0f;
     if ( hostile && mob.targeting ) {
         // Chase: face the target's feet, turning at most 10°/tick.
         const glm::dvec2 to_player( target_feet.x - mob.pos.x, target_feet.z - mob.pos.z );
         const float want_yaw = static_cast<float>( atan2( to_player.x, -to_player.y ) * ( 180.0 / M_PI ) );
-        mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -10.0f, 10.0f );
-        speed = def.chase_speed;
-        if ( def.ai == MOB_AI_HOSTILE_MELEE ) {
-            // Melee reach: just past the hitbox edge, with a 1 s cooldown.
+        if ( def.ai == MOB_AI_HOSTILE_RANGED ) {
+            mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -10.0f, 10.0f );
+            // Stand-off strafe: approach beyond FAR, circle at ±65° inside
+            // the band, drift back diagonally under NEAR. strafe_dir flips
+            // on a timer so the orbit reads as circling, not jitter.
+            if ( --mob.strafe_ticks <= 0 ) {
+                std::uniform_int_distribution<int> span( UPS_RATE, 3 * UPS_RATE );
+                mob.strafe_ticks = span( this->rng );
+                mob.strafe_dir = ( this->rng( ) & 1 ) ? 1 : -1;
+            }
+            strafing = true;
+            strafe_yaw = want_yaw;
+            if ( target_dist_xz < MOB_RANGED_NEAR ) {
+                strafe_yaw += mob.strafe_dir * 135.0f;
+            } else if ( target_dist_xz < MOB_RANGED_FAR ) {
+                strafe_yaw += mob.strafe_dir * 65.0f;
+            }
+            speed = def.chase_speed;
+            // Bow: ~2 s between shots, and only with a clear pick-ray line
+            // to the target's chest — a walled-off skeleton keeps circling
+            // instead of plinking the wall between them.
             if ( mob.attack_ticks > 0 ) {
                 mob.attack_ticks--;
             }
-            if ( mob.attack_ticks <= 0 && target_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( target_feet.y - mob.pos.y ) < 1.5 ) {
-                mob.attack_ticks = UPS_RATE;
-                if ( out != nullptr ) {
-                    out->player_hits.push_back( { mob.pos, def.attack_damage, target_player_id } );
+            if ( mob.attack_ticks <= 0 && target_dist_xz < MOB_RANGED_SHOT_RANGE ) {
+                const glm::dvec3 aim = target_feet + glm::dvec3( 0.0, target_eye_h * 0.75, 0.0 );
+                glm::ivec3 los_cell;
+                int los_face = 0;
+                if ( !RayTraversal::find_block_from_to( world, mob_eye, aim, los_cell, &los_face ) ) {
+                    // Aim jitter grows with range — a laser-locked skeleton
+                    // would be undodgeable.
+                    std::uniform_real_distribution<double> spread( -0.2 - target_dist_xz * 0.04, 0.2 + target_dist_xz * 0.04 );
+                    const glm::dvec3 aim_at = aim + glm::dvec3( spread( this->rng ), 0.0, spread( this->rng ) );
+                    const glm::dvec3 vel = arrow_aim_vel( mob_eye, aim_at, MOB_ARROW_SPEED );
+                    if ( out != nullptr ) {
+                        out->arrow_shots.push_back( { mob_eye + glm::normalize( vel ) * 0.5, vel, def.attack_damage } );
+                    }
+                    audio_play_sfx_gain( "bow_shoot", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
+                    std::uniform_real_distribution<double> cooldown( 1.6, 2.4 );
+                    mob.attack_ticks = static_cast<int>( cooldown( this->rng ) * UPS_RATE );
                 }
             }
         } else {
-            // Creeper fuse: lit inside 3 blocks; the mob stands still while
-            // fusing and defuses (counts back down) past 7 blocks. The tick
-            // loop explodes it at the end of the fuse.
-            if ( mob.fuse_ticks > 0 || target_dist_xz < 3.0 ) {
-                speed = 0.0f;
-                if ( mob.fuse_ticks == 0 ) {
-                    mob.fuse_ticks = 1;
-                    audio_play_sfx_gain( "fuse", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
+            mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -10.0f, 10.0f );
+            speed = def.chase_speed;
+            if ( def.ai == MOB_AI_HOSTILE_MELEE ) {
+                // Melee reach: just past the hitbox edge, with a 1 s cooldown.
+                if ( mob.attack_ticks > 0 ) {
+                    mob.attack_ticks--;
+                }
+                if ( mob.attack_ticks <= 0 && target_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( target_feet.y - mob.pos.y ) < 1.5 ) {
+                    mob.attack_ticks = UPS_RATE;
+                    if ( out != nullptr ) {
+                        out->player_hits.push_back( { mob.pos, def.attack_damage, target_player_id } );
+                    }
+                }
+            } else {
+                // Creeper fuse: lit inside 3 blocks; the mob stands still while
+                // fusing and defuses (counts back down) past 7 blocks. The tick
+                // loop explodes it at the end of the fuse.
+                if ( mob.fuse_ticks > 0 || target_dist_xz < 3.0 ) {
+                    speed = 0.0f;
+                    if ( mob.fuse_ticks == 0 ) {
+                        mob.fuse_ticks = 1;
+                        audio_play_sfx_gain( "fuse", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
+                    }
                 }
             }
         }
@@ -788,7 +849,9 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 
     if ( speed > 0.0f ) {
-        const float rad = mob.yaw * static_cast<float>( M_PI / 180.0 );
+        // Strafing ranged hostiles move on strafe_yaw while the body faces
+        // the target; everything else walks where it looks.
+        const float rad = ( strafing ? strafe_yaw : mob.yaw ) * static_cast<float>( M_PI / 180.0 );
         mob.vel.x = sinf( rad ) * speed;
         mob.vel.z = -cosf( rad ) * speed;
     } else {
@@ -1144,7 +1207,7 @@ bool MobManager::hostiles_within( const glm::dvec3 &pos, const double radius ) c
             continue;
         }
         const MobAI ai = mob_types[ mob.type ].ai;
-        if ( ai != MOB_AI_HOSTILE_MELEE && ai != MOB_AI_HOSTILE_CREEPER ) {
+        if ( ai != MOB_AI_HOSTILE_MELEE && ai != MOB_AI_HOSTILE_CREEPER && ai != MOB_AI_HOSTILE_RANGED ) {
             continue;
         }
         if ( glm::distance( mob.pos, pos ) <= radius ) {
@@ -1537,7 +1600,8 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         if ( !hostile_spawn_light_ok( light.x, light.y, daylight ) ) {
             continue;
         }
-        const MobType type = type_roll( this->rng ) < 0.6 ? MOB_ZOMBIE : MOB_CREEPER;
+        const double roll = type_roll( this->rng );
+        const MobType type = roll < 0.4 ? MOB_ZOMBIE : ( roll < 0.7 ? MOB_SKELETON : MOB_CREEPER );
         if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {
             Mob &mob = this->mobs.back( );
             mob.despawnable = 1;

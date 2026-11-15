@@ -1068,6 +1068,7 @@
     "spawn_egg_creeper",
     "spawn_egg_pig",
     "spawn_egg_sheep",
+    "spawn_egg_skeleton",
     "spawn_egg_zombie",
     "sponge",
     "sponge_wet",

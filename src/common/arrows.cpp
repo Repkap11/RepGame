@@ -110,6 +110,7 @@ static glm::ivec3 arrow_overlap_anchor( World &world, const glm::dvec3 &amin, co
 static void arrow_apply_net_flags( ArrowEntities::Arrow &a, const uint32_t flags, const glm::dvec3 &pos, const glm::dvec3 &vel ) {
     a.stuck = ( flags & NET_ARROW_FLAG_STUCK ) ? 1 : 0;
     a.attacker_survival = ( flags & NET_ARROW_FLAG_ATTACKER_SURVIVAL ) ? 1 : 0;
+    a.mob_fired = ( flags & NET_ARROW_FLAG_MOB_FIRED ) ? 1 : 0;
     if ( a.stuck ) {
         const glm::dvec3 dir = glm::length( vel ) > 1e-6 ? glm::normalize( vel ) : a.orient;
         a.stuck_cell = glm::ivec3( glm::floor( pos + dir * ( ARROW_LEN * 0.5 ) ) );
@@ -121,9 +122,63 @@ static void arrow_hit_sfx( const RepGameState &state, const glm::dvec3 &pos ) {
     audio_play_sfx_gain( "arrow_hit", audio_distance_gain( glm::length( pos - state.camera.pos ) ) );
 }
 
+glm::dvec3 arrow_aim_vel( const glm::dvec3 &from, const glm::dvec3 &to, const double speed ) {
+    const glm::dvec3 d = to - from;
+    const double dh = std::hypot( d.x, d.z );
+    if ( dh < 0.5 ) {
+        // Point blank: a straight shot, gravity is negligible this close.
+        return ( glm::length( d ) > 1e-6 ? glm::normalize( d ) : glm::dvec3( 0.0, 1.0, 0.0 ) ) * speed;
+    }
+    // Launch-angle solve: dy = dh·tanθ − g·dh²/(2·s²·cos²θ). With u = tanθ
+    // and A = g·dh²/(2·s²) that's A·u² − dh·u + (dy + A) = 0; the low root
+    // is the flat fast shot. A negative discriminant means the target is
+    // out of range at this speed — the max-range angle (u at the vertex)
+    // is the best effort.
+    const double A = ARROW_GRAVITY * dh * dh / ( 2.0 * speed * speed );
+    const double disc = dh * dh - 4.0 * A * ( d.y + A );
+    const double u = disc >= 0.0 ? ( dh - std::sqrt( disc ) ) / ( 2.0 * A ) : dh / ( 2.0 * A );
+    const double inv = 1.0 / std::sqrt( 1.0 + u * u );
+    return glm::dvec3( d.x / dh * speed * inv, speed * u * inv, d.z / dh * speed * inv );
+}
+
 bool ArrowEntities::arrow_chunk_live( World &world, const Arrow &a ) const {
     const Chunk *chunk = world.get_loaded_chunk( glm::ivec3( glm::floor( a.pos ) ) );
     return chunk != nullptr && chunk->load_state == CHUNK_LIVE;
+}
+
+// Slab test of the arrow segment against every targetable player hitbox —
+// the local player (camera pos is the eye) plus the remote targets the
+// hostile AI chases. Returns the player_id (-1 = local) or -2 on a miss.
+int32_t ArrowEntities::raycast_players( const RepGameState &state, const std::vector<MobRemoteTarget> *remote_targets, const glm::dvec3 &origin,
+                                        const glm::dvec3 &dir, const double max_dist, double *out_t ) const {
+    const double hw = PLAYER_WIDTH * 0.5;
+    double best_t = max_dist;
+    int32_t best = -2;
+    if ( RepGame::player_targetable( state ) ) {
+        const glm::dvec3 bmin = state.camera.pos - glm::dvec3( hw, state.camera.eye_height, hw );
+        const glm::dvec3 bmax = bmin + glm::dvec3( hw * 2.0, state.camera.player_height, hw * 2.0 );
+        if ( RayTraversal::ray_aabb_entry( origin, dir, bmin, bmax, best_t, &best_t ) ) {
+            best = -1;
+        }
+    }
+    if ( remote_targets != nullptr ) {
+        for ( const MobRemoteTarget &t : *remote_targets ) {
+            if ( !t.targetable ) {
+                continue;
+            }
+            const glm::dvec3 bmin = t.eye_pos - glm::dvec3( hw, t.eye_height, hw );
+            const glm::dvec3 bmax = bmin + glm::dvec3( hw * 2.0, PLAYER_HEIGHT, hw * 2.0 );
+            double t0 = 0.0;
+            if ( RayTraversal::ray_aabb_entry( origin, dir, bmin, bmax, best_t, &t0 ) ) {
+                best_t = t0;
+                best = t.player_id;
+            }
+        }
+    }
+    if ( best != -2 && out_t != nullptr ) {
+        *out_t = best_t;
+    }
+    return best;
 }
 
 void ArrowEntities::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_item_instance ) {
@@ -134,7 +189,7 @@ void ArrowEntities::init( const VertexBufferLayout &vbl_object_vertex, const Ver
     this->render_inited = true;
 }
 
-uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, const float damage, const int attacker_survival, const bool from_net ) {
+uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, const float damage, const int attacker_survival, const bool mob_fired, const bool from_net ) {
     if ( this->arrows.size( ) >= MAX_ARROWS ) {
         // Evict the oldest arrow (lowest id).
         size_t oldest = 0;
@@ -156,6 +211,7 @@ uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, con
     a.orient = glm::length( vel ) > 1e-9 ? glm::normalize( vel ) : glm::dvec3( 0.0, 1.0, 0.0 );
     a.damage = damage;
     a.attacker_survival = attacker_survival;
+    a.mob_fired = mob_fired ? 1 : 0;
     this->arrows.push_back( a );
     Arrow &back = this->arrows.back( );
     back.net.chunk = net_entity_chunk_of( pos );
@@ -174,7 +230,7 @@ void ArrowEntities::remove_arrow( const size_t i ) {
     this->arrows.erase( this->arrows.begin( ) + i );
 }
 
-void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
+void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::vector<MobRemoteTarget> *remote_targets ) {
     World &world = state.world;
     // Bind the sync hub while multiplayer is on; entities with net.id 0
     // behave exactly like single player.
@@ -234,7 +290,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
                 // little). A full inventory leaves the arrow in place.
                 const glm::dvec3 amin = a.pos - glm::dvec3( ARROW_LEN * 0.5 );
                 const glm::dvec3 amax = a.pos + glm::dvec3( ARROW_LEN * 0.5 );
-                if ( a.pickup_delay == 0 && //
+                if ( !a.mob_fired && a.pickup_delay == 0 && //
                      amax.x > state.camera.pos.x - half_w - ARROW_PICKUP_EXPAND_XZ && amin.x < state.camera.pos.x + half_w + ARROW_PICKUP_EXPAND_XZ && //
                      amax.z > state.camera.pos.z - half_w - ARROW_PICKUP_EXPAND_XZ && amin.z < state.camera.pos.z + half_w + ARROW_PICKUP_EXPAND_XZ && //
                      amax.y > feet_y - ARROW_PICKUP_EXPAND_Y && amin.y < feet_y + state.camera.player_height + ARROW_PICKUP_EXPAND_Y ) {
@@ -298,9 +354,13 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
         }
 
         // First mob hitbox along the full intended segment — resolved
-        // against the block hit below so a nearer wall wins.
+        // against the block hit below so a nearer wall wins. A mob-fired
+        // arrow tests player hitboxes instead (it can't hit mobs — the
+        // skeleton would shoot itself on release).
         double mob_t = 0.0;
-        const int mob = world.mobs.raycast( a.pos, dir, seg_len, &mob_t );
+        const int mob = a.mob_fired ? -1 : world.mobs.raycast( a.pos, dir, seg_len, &mob_t );
+        double player_t = 0.0;
+        const int32_t player = a.mob_fired ? this->raycast_players( state, remote_targets, a.pos, dir, seg_len, &player_t ) : -2;
 
         // Move a tiny box at the arrow center: stops flush on the first
         // colliding face (plants/torches don't collide), so the tip reads
@@ -342,6 +402,17 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out ) {
             a.pos = a.pos + dir * mob_t;
             if ( out != nullptr ) {
                 out->mob_hits.push_back( { mob, a.pos, a.damage, a.attacker_survival } );
+            }
+            arrow_hit_sfx( state, a.pos );
+            this->send_net_remove( a, NET_REMOVE_DIED );
+            dead.push_back( i );
+            continue;
+        }
+        if ( player != -2 && player_t <= traveled + 1e-4 ) {
+            // Same resolution for a mob-fired arrow vs a player hitbox.
+            a.pos = a.pos + dir * player_t;
+            if ( out != nullptr ) {
+                out->player_hits.push_back( { a.pos, a.damage, player } );
             }
             arrow_hit_sfx( state, a.pos );
             this->send_net_remove( a, NET_REMOVE_DIED );
@@ -468,7 +539,8 @@ void ArrowEntities::announce_spawn( Arrow &a ) {
     rec.vz = static_cast<float>( a.vel.z );
     rec.health = a.damage;
     rec.age_ticks = a.age_ticks;
-    rec.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u );
+    rec.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u ) |
+                ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u );
     this->net->send_spawn( rec );
 }
 
@@ -661,7 +733,8 @@ void ArrowEntities::collect_net_state( std::vector<NetEntityStateEntry> &out, co
         e.vx = static_cast<float>( wire_vel.x );
         e.vy = static_cast<float>( wire_vel.y );
         e.vz = static_cast<float>( wire_vel.z );
-        e.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u );
+        e.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u ) |
+                  ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u );
         out.push_back( e );
         // The server now applies its boundary hysteresis to this pos. The
         // receiver's prediction runs on eff_vel (0 while stuck).

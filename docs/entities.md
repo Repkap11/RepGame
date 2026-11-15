@@ -155,6 +155,24 @@ one-shot 1000.0) + `spawn_mob_drops` on kill, or ENTITY_ACTION/
 NET_ACTION_HIT to the owner of a mirrored mob — so knockback, hurt
 flash, panic and baby-drop rules all match melee.
 
+Hostile mobs fire through the same sim (`mob_fired` on `Arrow`, set by
+the `spawn` flag — `MobTickOutput::arrow_shots` from the skeleton's
+ranged AI lands in `RepGame::tick_entities` which calls `arrows.spawn`;
+`arrow_aim_vel` solves the no-drag ballistic lob for a target point,
+drag costs a fraction of a block at skeleton ranges). A mob-fired
+arrow swaps the hit set: it skips `mobs.raycast` entirely — no
+friendly fire between mobs — and instead raycasts the local player's
+hitbox plus the `MobRemoteTarget` list handed in by `tick_entities`
+(same remote targets the hostile AI chases, so arrows only test
+players in the mob's targeting dimension context). A hit emits
+`ArrowEntities::ArrowPlayerHit` and removes the arrow: the local hit
+goes through `RepGame::player_hurt` exactly like a melee
+`MobPlayerHit`, a remote hit is forwarded to that player with
+`NetEntities::send_player_hit` — the owning client simulates and the
+victim applies its own damage, matching the melee path. Mob-fired
+arrows skip player pickup (a stuck one isn't ammo) and only the local
+client's own shots can hurt the local player.
+
 Rendering reuses the dropped-item extruded-sprite mesh/shader
 (`ItemSpriteInstance` over the shared `item_sprite_vertices` buffers,
 `item_sprite_shader`): the `arrow` icon's diagonal is rotated in-plane

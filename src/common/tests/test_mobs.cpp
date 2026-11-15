@@ -1051,6 +1051,60 @@ int test_mobs( ) {
         check_bool( "creeper: defused past 7 blocks", out2.explosions.empty( ) && !mobs2.mobs.empty( ) && mobs2.mobs[ 0 ].fuse_ticks == 0 );
     }
 
+    // --- 17b: skeleton stand-off strafe + bow shots --------------------------
+    {
+        const long midnight = 3 * DAY_LENGTH_TICKS / 4;
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.spawn( MOB_SKELETON, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].ai_state = 0;
+        mobs.mobs[ 0 ].ai_ticks = 100000;
+        const glm::dvec3 pfeet( 20.5, 11.0, 10.5 ); // 10 blocks: inside the strafe band
+        const glm::dvec3 ppos = pfeet + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        MobTickInput in = { true, midnight, PLAYER_EYE_HEIGHT };
+        MobTickOutput out;
+        int shot_tick = -1;
+        for ( int i = 0; i < 4 * UPS_RATE; i++ ) {
+            mobs.tick( world, ppos, &in, &out );
+            if ( !out.arrow_shots.empty( ) && shot_tick < 0 ) {
+                shot_tick = i;
+            }
+        }
+        check_bool( "skeleton: targeting acquired", mobs.mobs[ 0 ].targeting == 1 );
+        check_bool( "skeleton: loosed an arrow within ~4 s", shot_tick >= 0 );
+        check_bool( "skeleton: held the stand-off", fabs( mobs.mobs[ 0 ].pos.x - pfeet.x ) > 4.0 );
+        if ( shot_tick >= 0 ) {
+            const MobArrowShot &shot = out.arrow_shots[ 0 ];
+            check_near( "skeleton: arrow speed", glm::length( shot.vel ), 0.35, 0.02 );
+            check_bool( "skeleton: arrow damage is the type's", shot.damage == mob_types[ MOB_SKELETON ].attack_damage );
+            // Sealing the player in a stone box blocks every sight line, so
+            // the strafing skeleton can never loose through it.
+            for ( int x = 19; x <= 21; x++ ) {
+                for ( int z = 9; z <= 11; z++ ) {
+                    for ( int y = 11; y <= 14; y++ ) {
+                        if ( x == 19 || x == 21 || z == 9 || z == 11 || y == 14 ) {
+                            world.set_loaded_block( glm::ivec3( x, y, z ), stone );
+                        }
+                    }
+                }
+            }
+            out.arrow_shots.clear( );
+            for ( int i = 0; i < 4 * UPS_RATE; i++ ) {
+                mobs.tick( world, ppos, &in, &out );
+            }
+            check_bool( "skeleton: no shots into a sealed box", out.arrow_shots.empty( ) );
+            for ( int x = 19; x <= 21; x++ ) {
+                for ( int z = 9; z <= 11; z++ ) {
+                    for ( int y = 11; y <= 14; y++ ) {
+                        if ( x == 19 || x == 21 || z == 9 || z == 11 || y == 14 ) {
+                            world.set_loaded_block( glm::ivec3( x, y, z ), BLOCK_STATE_AIR );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // --- 18: despawnable mobs are never persisted ----------------------------
     {
         ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );

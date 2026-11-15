@@ -5271,6 +5271,9 @@
   "spawn_egg_sheep": {
     "source": "textures/items/spawn_eggs/spawn_egg_sheep"
   },
+  "spawn_egg_skeleton": {
+    "source": "textures/items/spawn_eggs/spawn_egg_skeleton"
+  },
   "spawn_egg_zombie": {
     "source": "textures/items/spawn_eggs/spawn_egg_zombie"
   },

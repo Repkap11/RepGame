@@ -58,11 +58,21 @@ struct MobPlayerHit {
     int32_t target_player_id = -1; // -1 = local player; else PLAYER_HIT target
 };
 
-// Per-tick results for RepGame: melee hits to apply, creeper explosions to
-// turn into TntExplodeEvents, and farmland cells a mob trampled (the caller
-// owns the world write).
+// A ranged hostile's bow shot: the caller spawns a mob-fired ArrowEntities
+// arrow with this launch state (the mob owns the sound + cooldown).
+struct MobArrowShot {
+    glm::dvec3 pos;
+    glm::dvec3 vel;
+    float damage;
+};
+
+// Per-tick results for RepGame: melee hits to apply, ranged bow shots to
+// spawn as mob-fired arrows, creeper explosions to turn into
+// TntExplodeEvents, and farmland cells a mob trampled (the caller owns the
+// world write).
 struct MobTickOutput {
     std::vector<MobPlayerHit> player_hits;
+    std::vector<MobArrowShot> arrow_shots;
     std::vector<glm::dvec3> explosions;
     std::vector<glm::ivec3> tramples;
     // Grass cells a grazing sheep finished eating (converted to dirt by the
@@ -130,7 +140,9 @@ class MobManager {
         // Hostile AI state.
         int despawnable;    // night-spawner mobs: removed on distance/unload, never persisted
         int targeting;      // currently chasing the player
-        int attack_ticks;   // melee cooldown (zombie: 1 s)
+        int attack_ticks;   // melee cooldown (zombie: 1 s); bow cooldown (skeleton ~2 s)
+        int strafe_ticks;   // ranged strafe: ticks left on the current side
+        int strafe_dir;     // ranged strafe: +1/-1 side the mob is circling
         int fuse_ticks;     // creeper fuse; >0 while lit, counts down to defuse
         int burn_acc;       // daylight-burn damage accumulator ticks
         float wing_phase;   // wing-flap oscillator

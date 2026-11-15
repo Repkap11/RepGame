@@ -256,6 +256,67 @@ int test_arrows( ) {
         }
     }
 
+    // --- aim solver: the ballistic lob lands on the target under the real sim ---
+    {
+        ArrowEntities arrows;
+        ArrowEntities::ArrowTickOutput out;
+        const glm::dvec3 from( 24.5, 26.0, 10.5 );
+        const glm::dvec3 to( 24.5, 25.0, 18.5 ); // 8 blocks out, 1 down
+        arrows.spawn( from, arrow_aim_vel( from, to, 0.35 ), ArrowEntities::ARROW_DAMAGE, 1 );
+        double best = 1e30;
+        for ( int i = 0; i < 100 && arrows.count( ) == 1; i++ ) {
+            gs.tick_number++;
+            arrows.tick( gs, &out );
+            best = glm::min( best, glm::distance( arrows.debug_arrows( )[ 0 ].pos, to ) );
+        }
+        // Ignoring air drag in the solve costs a fraction of a block.
+        check_bool( "aim: passes within a block of the target", best < 1.0 );
+    }
+
+    // --- mob-fired arrows hit the player, not mobs -----------------------------
+    {
+        // Player standing at (22.5, ~23.4, 10.5): eye at camera pos.
+        gs.camera.pos = glm::dvec3( 22.5, 25.0, 10.5 );
+        MobManager &mobs = world.mobs;
+        check_bool( "mob-fired: spawn pig on the flight path", mobs.spawn( MOB_PIG, glm::dvec3( 20.5, 24.0, 10.5 ), 0.0f, 1 ) );
+        ArrowEntities arrows;
+        ArrowEntities::ArrowTickOutput out;
+        arrows.spawn( glm::dvec3( 18.5, 24.5, 10.5 ), glm::dvec3( 0.35, 0.0, 0.0 ), 4.0f, 1, /*mob_fired*/ true );
+        for ( int i = 0; i < 60 && out.player_hits.empty( ); i++ ) {
+            gs.tick_number++;
+            arrows.tick( gs, &out );
+        }
+        check_bool( "mob-fired: hit the player", out.player_hits.size( ) == 1 );
+        check_bool( "mob-fired: local player id -1", !out.player_hits.empty( ) && out.player_hits[ 0 ].player_id == -1 );
+        check_bool( "mob-fired: ignored the pig on the way", out.mob_hits.empty( ) );
+        check_bool( "mob-fired: arrow consumed", arrows.count( ) == 0 );
+
+        // A player-fired arrow on the same line stops on the pig instead —
+        // the two shot kinds test disjoint hit sets.
+        ArrowEntities arrows2;
+        ArrowEntities::ArrowTickOutput out2;
+        arrows2.spawn( glm::dvec3( 18.5, 24.5, 10.5 ), glm::dvec3( 0.35, 0.0, 0.0 ), ArrowEntities::ARROW_DAMAGE, 1 );
+        for ( int i = 0; i < 60 && out2.mob_hits.empty( ); i++ ) {
+            gs.tick_number++;
+            arrows2.tick( gs, &out2 );
+        }
+        check_bool( "player-fired: pig on the path takes the hit", !out2.mob_hits.empty( ) );
+        check_bool( "player-fired: no player hit", out2.player_hits.empty( ) );
+
+        // An untargetable player (peaceful) is invisible to mob arrows.
+        gs.peaceful = true;
+        ArrowEntities arrows3;
+        ArrowEntities::ArrowTickOutput out3;
+        arrows3.spawn( glm::dvec3( 18.5, 24.5, 10.5 ), glm::dvec3( 0.35, 0.0, 0.0 ), 4.0f, 1, true );
+        for ( int i = 0; i < 60; i++ ) {
+            gs.tick_number++;
+            arrows3.tick( gs, &out3 );
+        }
+        check_bool( "mob-fired: peaceful player not hit", out3.player_hits.empty( ) );
+        gs.peaceful = false;
+        gs.camera.pos = glm::dvec3( 1.5, 60.0, 1.5 ); // back out of range
+    }
+
     // --- water slows the arrow -------------------------------------------------
     {
         world.set_loaded_block( glm::ivec3( 10, 20, 10 ), water );

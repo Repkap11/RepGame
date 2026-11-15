@@ -1,10 +1,10 @@
 # Mobs
 
 Client-local mobs — passive pig, cow, chicken, sheep, bee and cat plus
-hostile zombie and creeper — and network-driven remote players (`MOB_PLAYER`),
+hostile zombie, creeper and skeleton — and network-driven remote players (`MOB_PLAYER`),
 driven by a type table and models imported from Bedrock
 `geo.json`. Simulation (gravity, collision,
-auto-jump, buoyancy, idle/wander/panic AI, hostile chase/fuse AI, hit
+auto-jump, buoyancy, idle/wander/panic AI, hostile chase/fuse/ranged AI, hit
 flash, death tip-over) runs
 in `MobManager::tick` (`src/common/mobs.cpp`); rendering rebuilds one
 instanced `RenderChain<ParticleVertex, MobPartInstance>` per frame from
@@ -47,14 +47,29 @@ Zombies melee in reach (mob half-width + 0.3 + 0.5, |dy| < 1.5) with a
 (knockback away from the hit + a hop off the ground + the `player_hurt`
 sound pool, then `damage` half-hearts through the `player_damage` funnel
 — docs/player.md). In daylight (`light_daylight_factor > 0.5`, head sky
-light ≥ 0.95, not in water — see `mob_burns_in_daylight`) zombies burn at
+light ≥ 0.95, not in water — see `mob_burns_in_daylight`) zombies and
+skeletons burn at
 1 hp/s with hurt flash/sound and no knockback. Creepers chase like
 zombies, stop within 3 blocks, hiss for ~1.5 s (the `fuse` sfx +
 `MOB_ANIM_SWELL` growing/white-flash render), and defuse if the player
 gets > 7 away; at fuse end they push their position to
 `out->explosions` and are removed — `RepGame::tick` turns each entry
 into a `TntExplodeEvent` with a null `primed_entity` (null is a safe
-no-op in `World::despawn_primed_tnt`/`PrimedTnt::despawn`). A
+no-op in `World::despawn_primed_tnt`/`PrimedTnt::despawn`).
+Skeletons (`MOB_AI_HOSTILE_RANGED`) are archers: they face the target
+but never close to melee — they approach past `MOB_RANGED_FAR` (14),
+strafe on a ±65° orbit inside the band (re-rolling the strafe direction
+every 1–3 s), and backpedal diagonally under `MOB_RANGED_NEAR` (5),
+walking on a `strafe_yaw` separate from the body `yaw` so they slide
+sideways while aimed. Every ~2 s (randomized 1.6–2.4 `attack_ticks`),
+with the target inside `MOB_RANGED_SHOT_RANGE` (16) and a clear
+`RayTraversal::find_block_from_to` pick line from eye to chest, they
+push a `MobArrowShot` — `arrow_aim_vel` ballistic velocity at the
+slower `MOB_ARROW_SPEED` (0.35) plus range-scaled horizontal jitter —
+to `out->arrow_shots`, and `RepGame::tick_entities` spawns it as a
+`mob_fired` `ArrowEntities` arrow (docs/entities.md): those shots test
+the player hitboxes instead of `mobs.raycast`, so a skeleton can't
+friendly-fire another mob and can't be hit by its own arrow. A
 `fall_cap` per type limits downward speed (chickens and bees glide at 0.02).
 `hover_h` > 0 swaps gravity for a spring easing the feet to `hover_h`
 above the highest ground found in the mob's own column and a look-ahead
@@ -149,7 +164,7 @@ attempts pick a random ring 24–44 blocks out, scan down from
 player_y + 16 (40 cells) for a colliding top block with 2 air cells
 above inside a `CHUNK_LIVE` chunk, and spawn where
 `hostile_spawn_light_ok` (`max(sky * daylight, block) < 7/15`) holds —
-60% zombie / 40% creeper, `persistent=0` + `despawnable=1`.
+40% zombie / 30% skeleton / 30% creeper, `persistent=0` + `despawnable=1`.
 Despawnables are removed > 64 blocks out, randomly at
 1/(8·UPS_RATE)/tick past 40, or when their feet chunk leaves
 `CHUNK_LIVE`, and are never persisted.
@@ -180,7 +195,7 @@ always fit, and the live count can exceed the cap.
   poses are as authored, no falls or wandering mid-capture.
 - `n` — debug spawn key: drops a mob three blocks in front of the
   player, cycling pig → cow → chicken → sheep → zombie → creeper → bee →
-  cat on successive presses (`MobManager::spawn_in_front`; edge-triggered
+  cat → skeleton on successive presses (`MobManager::spawn_in_front`; edge-triggered
   through `Input`, handled in `RepGame::tick`, persistent, uncapped).
   The ImGui overlay shows `Mobs: <n> (players <m>)` — remote players
   count separately.
@@ -262,7 +277,8 @@ Adding a mob:
    `mob_types.hpp`): model/skin bindings, hitbox, health,
    walk/panic/chase speeds, `fall_cap`, `hover_h`, `attack_damage`, drops, sound
    pool names, natural-spawn data, AI profile (`MOB_AI_PASSIVE`,
-   `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`, `MOB_AI_REMOTE`),
+   `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`,
+   `MOB_AI_HOSTILE_RANGED`, `MOB_AI_REMOTE`),
    animation mask (`MOB_ANIM_*` — quadruped/humanoid walk, head look,
    death tip, sneak, wing flap, creeper swell) and the head/leg/arm/
    body/wing bone names the animators bind to (NULL = unused).
@@ -350,7 +366,8 @@ Hitting: left click raycasts mobs (`MobManager::raycast`, AABB slab test)
 against `block_selection.ray_origin/ray_dir`; a mob nearer than the
 selected block takes `HIT_DAMAGE` (4.0, creative kills in one hit), gets
 knockback + a 0.3 s red flash + 5 s panic, and rolls `MobTypeDef::drops`
-in survival when killed (zombies: rotten flesh 0-2 plus bones 0-2 — the
+in survival when killed (zombies: rotten flesh 0-2 plus bones 0-2,
+skeletons: bones 0-2 plus arrows 0-2 — the
 bone feeds the bone-meal recipe). Babies (`is_baby_at`) drop nothing.
 Bow arrows reach the same `MobManager::raycast` during `arrows.tick` —
 `ArrowTickOutput::mob_hits` are applied in `RepGame::tick_entities`

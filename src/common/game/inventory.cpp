@@ -1241,7 +1241,7 @@ void RepGame::process_inventory_events( ) {
     if ( globalGameState.input.spawn_mob ) {
         globalGameState.input.spawn_mob = false;
         // Debug spawn cycles the non-remote types one per press.
-        static const MobType debug_spawn_types[] = { MOB_PIG, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT };
+        static const MobType debug_spawn_types[] = { MOB_PIG, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT, MOB_SKELETON };
         static int debug_spawn_idx = 0;
         const MobType type = debug_spawn_types[ debug_spawn_idx ];
         debug_spawn_idx = ( debug_spawn_idx + 1 ) % static_cast<int>( sizeof( debug_spawn_types ) / sizeof( debug_spawn_types[ 0 ] ) );

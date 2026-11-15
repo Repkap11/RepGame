@@ -34,8 +34,8 @@ typedef struct {
     int tex_h;
 } MobModelDef;
 
-enum MobModel { MOB_MODEL_PIG, MOB_MODEL_PLAYER, MOB_MODEL_COW, MOB_MODEL_CHICKEN, MOB_MODEL_SHEEP, MOB_MODEL_SHEEP_SHEARED, MOB_MODEL_ZOMBIE, MOB_MODEL_CREEPER, MOB_MODEL_BEE, MOB_MODEL_CAT, MOB_MODEL_MINECART, MOB_MODEL_BOAT, MOB_MODEL_COUNT };
-enum MobSkin { MOB_SKIN_PIG, MOB_SKIN_PLAYER_STEVE, MOB_SKIN_COW, MOB_SKIN_CHICKEN, MOB_SKIN_SHEEP, MOB_SKIN_SHEEP_SHEARED_SHEEP, MOB_SKIN_ZOMBIE, MOB_SKIN_CREEPER, MOB_SKIN_BEE, MOB_SKIN_CAT_TABBY, MOB_SKIN_CAT_TUXEDO, MOB_SKIN_CAT_RED, MOB_SKIN_CAT_SIAMESECAT, MOB_SKIN_MINECART, MOB_SKIN_BOAT_BOAT_OAK, MOB_SKIN_BOAT_BOAT_SPRUCE, MOB_SKIN_BOAT_BOAT_BIRCH, MOB_SKIN_BOAT_BOAT_JUNGLE, MOB_SKIN_BOAT_BOAT_ACACIA, MOB_SKIN_BOAT_BOAT_DARKOAK, MOB_SKIN_BOAT_MANGROVE_BOAT, MOB_SKIN_BOAT_CHERRY_BOAT, MOB_SKIN_BOAT_PALE_OAK_BOAT, MOB_SKIN_BOAT_POPLAR_BOAT, MOB_SKIN_COUNT };
+enum MobModel { MOB_MODEL_PIG, MOB_MODEL_PLAYER, MOB_MODEL_COW, MOB_MODEL_CHICKEN, MOB_MODEL_SHEEP, MOB_MODEL_SHEEP_SHEARED, MOB_MODEL_ZOMBIE, MOB_MODEL_SKELETON, MOB_MODEL_CREEPER, MOB_MODEL_BEE, MOB_MODEL_CAT, MOB_MODEL_MINECART, MOB_MODEL_BOAT, MOB_MODEL_COUNT };
+enum MobSkin { MOB_SKIN_PIG, MOB_SKIN_PLAYER_STEVE, MOB_SKIN_COW, MOB_SKIN_CHICKEN, MOB_SKIN_SHEEP, MOB_SKIN_SHEEP_SHEARED_SHEEP, MOB_SKIN_ZOMBIE, MOB_SKIN_SKELETON, MOB_SKIN_CREEPER, MOB_SKIN_BEE, MOB_SKIN_CAT_TABBY, MOB_SKIN_CAT_TUXEDO, MOB_SKIN_CAT_RED, MOB_SKIN_CAT_SIAMESECAT, MOB_SKIN_MINECART, MOB_SKIN_BOAT_BOAT_OAK, MOB_SKIN_BOAT_BOAT_SPRUCE, MOB_SKIN_BOAT_BOAT_BIRCH, MOB_SKIN_BOAT_BOAT_JUNGLE, MOB_SKIN_BOAT_BOAT_ACACIA, MOB_SKIN_BOAT_BOAT_DARKOAK, MOB_SKIN_BOAT_MANGROVE_BOAT, MOB_SKIN_BOAT_CHERRY_BOAT, MOB_SKIN_BOAT_PALE_OAK_BOAT, MOB_SKIN_BOAT_POPLAR_BOAT, MOB_SKIN_COUNT };
 
 static const MobCubeDef mob_cubes_pig[] = {
     { { -5.0f, 7.0f, -5.0f }, { 10.0f, 16.0f, 8.0f }, { 28.0f, 8.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 0 },
@@ -182,6 +182,24 @@ static const MobBoneDef mob_bones_zombie[] = {
     { "leftLeg", 0, { 1.9f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1, 5, 1 },
 };
 
+static const MobCubeDef mob_cubes_skeleton[] = {
+    { { -4.0f, 12.0f, -2.0f }, { 8.0f, 12.0f, 4.0f }, { 16.0f, 16.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 0 },
+    { { -4.0f, 24.0f, -4.0f }, { 8.0f, 8.0f, 8.0f }, { 0.0f, 0.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 0 },
+    { { -6.0f, 12.0f, -1.0f }, { 2.0f, 12.0f, 2.0f }, { 40.0f, 16.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 0 },
+    { { 4.0f, 12.0f, -1.0f }, { 2.0f, 12.0f, 2.0f }, { 40.0f, 16.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 1 },
+    { { -3.0f, 0.0f, -1.0f }, { 2.0f, 12.0f, 2.0f }, { 0.0f, 16.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 0 },
+    { { 1.0f, 0.0f, -1.0f }, { 2.0f, 12.0f, 2.0f }, { 0.0f, 16.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 1 },
+};
+static const MobBoneDef mob_bones_skeleton[] = {
+    { "waist", -1, { 0.0f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 0, 0 },
+    { "body", 0, { 0.0f, 24.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 0, 1 },
+    { "head", 1, { 0.0f, 24.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 1, 1 },
+    { "rightArm", 1, { -5.0f, 22.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 2, 1 },
+    { "leftArm", 1, { 5.0f, 22.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1, 3, 1 },
+    { "rightLeg", 1, { -2.0f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0, 4, 1 },
+    { "leftLeg", 1, { 2.0f, 12.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1, 5, 1 },
+};
+
 static const MobCubeDef mob_cubes_creeper[] = {
     { { -4.0f, 6.0f, -2.0f }, { 8.0f, 12.0f, 4.0f }, { 16.0f, 16.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 0 },
     { { -4.0f, 18.0f, -4.0f }, { 8.0f, 8.0f, 8.0f }, { 0.0f, 0.0f }, 0.0f, { 0.0f, 0.0f, 0.0f }, 0 },
@@ -288,6 +306,7 @@ static const MobModelDef mob_models[ MOB_MODEL_COUNT ] = {
     { mob_bones_sheep, mob_cubes_sheep, 6, 11, 64, 64 },
     { mob_bones_sheep_sheared, mob_cubes_sheep_sheared, 6, 6, 64, 64 },
     { mob_bones_zombie, mob_cubes_zombie, 6, 6, 64, 32 },
+    { mob_bones_skeleton, mob_cubes_skeleton, 7, 6, 64, 32 },
     { mob_bones_creeper, mob_cubes_creeper, 6, 6, 64, 32 },
     { mob_bones_bee, mob_cubes_bee, 7, 9, 64, 64 },
     { mob_bones_cat, mob_cubes_cat, 8, 11, 64, 32 },

@@ -11,7 +11,7 @@ typedef struct {
     int max;
 } MobDrop;
 
-enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT, MOB_TYPE_COUNT };
+enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT, MOB_SKELETON, MOB_TYPE_COUNT };
 
 // AI profiles — the extension point for future hostile or flying mobs.
 enum MobAI {
@@ -19,6 +19,7 @@ enum MobAI {
     MOB_AI_REMOTE, // pose driven by the network (remote players)
     MOB_AI_HOSTILE_MELEE,   // chase + melee the player (zombie)
     MOB_AI_HOSTILE_CREEPER, // chase + fuse explosion (creeper)
+    MOB_AI_HOSTILE_RANGED,  // strafe at stand-off + fire arrows (skeleton)
 };
 
 // Procedural animators; MobTypeDef::anims is a bitmask of these.

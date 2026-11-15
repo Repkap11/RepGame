@@ -15,11 +15,13 @@ class ChunkLoader;
 class World;
 class NetEntities;
 struct RepGameState;
+struct MobRemoteTarget; // mobs.hpp — remote-player target info
 
 // Arrow record/state flag bits (NetEntityRecord::flags /
 // NetEntityStateEntry::flags).
 #define NET_ARROW_FLAG_STUCK ( 1u << 0 )            // parked in a block
 #define NET_ARROW_FLAG_ATTACKER_SURVIVAL ( 1u << 1 ) // shooter's mode at fire
+#define NET_ARROW_FLAG_MOB_FIRED ( 1u << 2 )        // mob-fired: hits players, not mob hitboxes
 
 // Tick-driven arrow projectiles, modelled on ItemEntities/BlockBodies: a
 // headless CPU simulation (rep_tests run it without GL) with a render chain
@@ -55,6 +57,7 @@ class ArrowEntities {
         glm::dvec3 orient = glm::dvec3( 0.0, 1.0, 0.0 ); // last nonzero flight direction (render)
         float damage = ARROW_DAMAGE;
         int attacker_survival = 1; // shooter's mode at fire: gates kill drops
+        int mob_fired = 0;         // mob-shot arrow: targets players, not mob hitboxes
         int stuck = 0;             // parked in a block: no integration
         glm::ivec3 stuck_cell = glm::ivec3( 0 ); // cell the embedded tip rests in
         int age_ticks = 0;
@@ -74,20 +77,33 @@ class ArrowEntities {
         float damage;
         int attacker_survival;
     };
+    // A mob-fired arrow connecting with a player hitbox (mob_fired arrows
+    // never test mobs — the shooter would hit itself). player_id routes
+    // the damage like MobPlayerHit: -1 = local player, else PLAYER_HIT.
+    struct ArrowPlayerHit {
+        glm::dvec3 pos;
+        float damage;
+        int32_t player_id = -1;
+    };
     struct ArrowTickOutput {
         std::vector<ArrowMobHit> mob_hits;
+        std::vector<ArrowPlayerHit> player_hits;
     };
 
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_item_instance );
 
     // Per-game-tick simulation. Frozen in capture mode, and per arrow while
     // the chunk at its center is not CHUNK_LIVE. Mob hits are reported via
-    // `out` for the caller to apply.
-    void tick( RepGameState &state, ArrowTickOutput *out );
+    // `out` for the caller to apply. `remote_targets` carries the remote
+    // players (MobTickInput's list — same-dimension filtered) so mob-fired
+    // arrows can hit them; nullptr in single player.
+    void tick( RepGameState &state, ArrowTickOutput *out, const std::vector<MobRemoteTarget> *remote_targets = nullptr );
 
     // Spawns an arrow centered on `pos` flying at `vel` (blocks/tick).
     // Returns its id (never 0): at the cap the oldest arrow is evicted.
-    uint32_t spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, float damage, int attacker_survival, bool from_net = false );
+    // mob_fired arrows (skeleton shots) collide with player hitboxes instead
+    // of mobs; the flag rides the wire for mirrors/adoption.
+    uint32_t spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, float damage, int attacker_survival, bool mob_fired = false, bool from_net = false );
 
     // Rebuilds the instance buffer for this frame. alpha interpolates
     // prev_pos -> pos; camera_pos rolls each sprite's plane toward the eye.
@@ -131,6 +147,12 @@ class ArrowEntities {
     // Spawn one arrow from a wire record (mirror or freshly adopted).
     bool spawn_record( const NetEntityRecord &rec, bool mirror );
 
+    // One player hitbox along a mob-fired arrow's segment: the nearer of the
+    // local player and the remote targets wins. Returns the player_id (-1 =
+    // local) or -2 for no hit; *out_t gets the box entry distance.
+    int32_t raycast_players( const RepGameState &state, const std::vector<MobRemoteTarget> *remote_targets, const glm::dvec3 &origin,
+                             const glm::dvec3 &dir, double max_dist, double *out_t ) const;
+
     NetEntities *net = nullptr;
     bool mp_mode = false;
 
@@ -143,3 +165,11 @@ class ArrowEntities {
     // velocity-aligned and rolled toward the camera.
     RenderChain<ParticleVertex, ItemSpriteInstance> render_chain;
 };
+
+// Ballistic solve for a mob-fired arrow: the launch velocity (magnitude
+// `speed`, blocks/tick) out of `from` that lands on `to` under arrow
+// gravity. The low flat arc wins when solvable; an out-of-range target gets
+// the max-range lob. Air drag is ignored — at bow distances it moves the
+// landing by a few centimeters, under the intentional aim spread. Pure
+// helper for rep_tests.
+glm::dvec3 arrow_aim_vel( const glm::dvec3 &from, const glm::dvec3 &to, double speed );

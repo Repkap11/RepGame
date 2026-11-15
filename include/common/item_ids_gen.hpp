@@ -87,14 +87,15 @@ typedef enum {
     PALE_OAK_BOAT = 2130,
     POPLAR_BOAT = 2131,
     FLINT_AND_STEEL = 2132,
+    SKELETON_SPAWN_EGG = 2133,
 
     ITEM_ID_BASE = 2048,
-    ITEM_ID_END = 2133,
+    ITEM_ID_END = 2134,
 } ItemEnum;
 
 #define ITEM_DEFINED_BITS_LEN 11
 static const unsigned char ITEM_DEFINED_BITS[ITEM_DEFINED_BITS_LEN] = {
-0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x1f,
+0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x3f,
 };
 static inline int item_id_defined( unsigned int id ) {
     return id >= (unsigned int)ITEM_ID_BASE && id < (unsigned int)ITEM_ID_END && ( ITEM_DEFINED_BITS[ ( id - ITEM_ID_BASE ) >> 3 ] & ( 1u << ( ( id - ITEM_ID_BASE ) & 7 ) ) ) != 0;
