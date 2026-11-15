@@ -125,7 +125,19 @@ void main( ) {
             finalColor.rgb = mix(finalColor.rgb, dynamicFogColor, colorFog);
             if(u_OpaqueFog == 1) {
                 fogFactor = vec4(colorFog, 0.0, 0.0, alphaFog);
-                finalColor.a = 1.0;
+                // Opaque fragments pin alpha to 1 — the fog attachment owns
+                // the distance fade. Translucent texels (held/dropped stained
+                // glass) keep their coverage alpha so draw-time blending
+                // still shows through, matching the chunk shader's
+                // translucent pass: halved underwater so alpha>0 validity
+                // checks keep working, fog-faded otherwise.
+                if(finalColor.a >= 1.0f) {
+                    finalColor.a = 1.0;
+                } else if(belowWater) {
+                    finalColor.a *= 0.5f;
+                } else {
+                    finalColor.a *= (1.0f - alphaFog);
+                }
             } else {
                 // Skip the alpha fade underwater — see the chunk shader: it
                 // reveals the untinted sky and breaks alpha>0 validity checks.
