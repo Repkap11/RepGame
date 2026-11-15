@@ -180,11 +180,16 @@ movement physics and `Collision::on_climbable`. Independent of
 
 `"is_scaffolding": true` (scaffolding) bundles the scaffold mechanics.
 Rendering emits the frame model per cell — `scaffolding_boxes`: a 16x2x16
-platform plate at the cell top, four 2x16x2 corner legs, and a bottom
-lattice plate only where the cell below isn't scaffolding (seams between
-adjacent frames are dropped through `skip_faces`/`nmask` like the fence
-rail culls; the block is excluded from merged-run meshing like
-fences/bamboo). Collision is the MC model: `block_collision_boxes_for_state`
+platform plate at the cell top (its underside samples the woven top tile
+too — the interior looks up at mesh, not the sparse bottom rim), four
+2x16x2 corner legs, and a bottom lattice plate only where the cell below
+is neither scaffolding nor a face-covering block (seams between adjacent
+frames are dropped through
+`skip_faces`/`nmask` like the fence rail culls; the block is excluded
+from merged-run meshing like fences/bamboo). The same nmask feeds ray
+picking — the frame boxes are the pick shape, so rays through the
+interior reach the blocks behind. Collision is the MC model:
+`block_collision_boxes_for_state`
 returns only the 2px platform lip at the cell top, and the move scans skip
 it for a mover whose feet are below the lip top or while sneaking
 (`scaffold_box_active` in collision.cpp) — so the frame interior is

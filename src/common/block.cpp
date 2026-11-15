@@ -836,8 +836,8 @@ int scaffolding_boxes( unsigned nmask, BlockBox out[ SCAFFOLDING_MAX_BOXES ] ) {
     int n = 5;
     if ( ( nmask & ( 1u << FACE_BOTTOM ) ) == 0 ) {
         // Bottom lattice plate — drawn only where the frame doesn't
-        // continue below: the column base, freestanding cells, and the
-        // exposed underside of horizontal arms.
+        // continue below and no support face covers it: freestanding
+        // cells and the exposed underside of horizontal arms.
         out[ n ].scale[ 0 ] = 16;
         out[ n ].scale[ 1 ] = 2;
         out[ n ].scale[ 2 ] = 16;

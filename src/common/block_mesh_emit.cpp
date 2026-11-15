@@ -88,10 +88,9 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
         // The four lateral bits mark a boundary face buried under a
         // scaffold neighbor's mirrored plate/leg, or covered by an
         // opaque neighbor outright (the same covering-face test as the
-        // per-box culls below). FACE_BOTTOM means the cell below is
-        // scaffolding — scaffolding_boxes then drops the bottom plate;
-        // an opaque support only culls the plate's bottom quad at emit
-        // time, like the lantern's.
+        // per-box culls below). FACE_BOTTOM drops the bottom plate —
+        // both between stacked frames and on any solid support, where
+        // the lattice would sit buried in the support's face.
         static const int side_dir[ 4 ][ 3 ] = { // dx, dz, face
             { 1, 0, FACE_RIGHT },
             { -1, 0, FACE_LEFT },
@@ -110,7 +109,11 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
                 nmask |= 1u << side_dir[ d ][ 2 ];
             }
         }
-        if ( block_definition_get_definition( p.nb.at( 0, -1, 0 ).id )->is_scaffolding ) {
+        const BlockState &below_cell = p.nb.at( 0, -1, 0 );
+        if ( block_definition_get_definition( below_cell.id )->is_scaffolding ||
+             ( p.cull_against_neighbors &&
+               !mesh_face_seethrough( mesh_defs[ below_cell.id ], below_cell.current_redstone_power != 0, below_cell.rotation,
+                                      mesh_rotated_face( FACE_TOP, below_cell.rotation ) ) ) ) {
             nmask |= 1u << FACE_BOTTOM;
         }
         return scaffolding_boxes( nmask, boxes );
@@ -763,24 +766,19 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
                     boxCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
                 }
             }
-            // Scaffolding's horizontal plates sit coplanar with a covering
-            // neighbor face: the platform's top quad under an opaque cell,
-            // and the base plate's bottom quad on an opaque support. The
-            // plate-vs-scaffold seams are already skipped via nmask.
-            if ( block->is_scaffolding && p.cull_against_neighbors ) {
-                if ( i == 0 ) {
+            // Scaffolding's platform plate samples the woven top tile on
+            // its underside too — inside the frame you look up at mesh,
+            // not the sparse rim of scaffolding_bottom — and its top quad
+            // is culled when a cell above covers it. (The base plate is
+            // already dropped entirely over a covering support by nmask.)
+            if ( block->is_scaffolding && i == 0 ) {
+                boxCoord->face[ FACE_BOTTOM ] = boxCoord->face[ FACE_TOP ];
+                if ( p.cull_against_neighbors ) {
                     const BlockState &above_cell = p.nb.at( 0, 1, 0 );
                     const int above_rot = above_cell.rotation;
                     const int above_face = mesh_rotated_face( FACE_BOTTOM, above_rot );
                     if ( !mesh_face_seethrough( mesh_def_table( )[ above_cell.id ], above_cell.current_redstone_power != 0, above_rot, above_face ) ) {
                         boxCoord->packed_lighting[ FACE_TOP ] = NO_LIGHT_NO_DRAW;
-                    }
-                } else if ( i == num_boxes - 1 && num_boxes == SCAFFOLDING_MAX_BOXES ) {
-                    const BlockState &below_cell = p.nb.at( 0, -1, 0 );
-                    const int below_rot = below_cell.rotation;
-                    const int below_face = mesh_rotated_face( FACE_TOP, below_rot );
-                    if ( !mesh_face_seethrough( mesh_def_table( )[ below_cell.id ], below_cell.current_redstone_power != 0, below_rot, below_face ) ) {
-                        boxCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
                     }
                 }
             }

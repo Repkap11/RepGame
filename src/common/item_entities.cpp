@@ -1081,6 +1081,11 @@ void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_lo
                     for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                         data.second.face[ f ] = it.face[ f ];
                     }
+                    // Scaffolding's platform underside samples the woven top
+                    // tile, like the placed block (block_mesh_emit.cpp).
+                    if ( block->is_scaffolding && i == 0 ) {
+                        data.second.face[ FACE_BOTTOM ] = data.second.face[ FACE_TOP ];
+                    }
                     // The block's shape recentred on the spin axis: a slab rests
                     // on the ground, a chest keeps its proportions centered.
                     block_item_shape( block, true, i, data.second );
@@ -1142,6 +1147,11 @@ void ItemEntities::set_held_item( ItemID item ) {
             this->held_block_entities[ i ] = data.first;
             for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                 data.second.face[ f ] = block->textures[ block_icon_face( block, f ) ];
+            }
+            // Scaffolding's platform underside samples the woven top
+            // tile, like the placed block (block_mesh_emit.cpp).
+            if ( block->is_scaffolding && i == 0 ) {
+                data.second.face[ FACE_BOTTOM ] = data.second.face[ FACE_TOP ];
             }
             block_item_shape( block, true, i, data.second );
             data.second.transform = glm::mat4( 0.0f ); // hidden until update_held

@@ -581,6 +581,31 @@ int test_scaffolding( ) {
     check_bool( "frame cell reads climbable", Collision::on_climbable( world, glm::dvec3( 11.5, 10.5 + PLAYER_EYE_HEIGHT, 10.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, PLAYER_WIDTH / 2.0, &found ) &&
                                                   found == SCAFFOLDING );
 
+    // --- picking: the frame boxes, not the whole cell ----------------------
+    // The scaffold at (11,10,10) sits on the stone floor, so its base plate
+    // is dropped — legs + platform are the pick shape.
+    {
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        check_bool( "pick: ray through the interior misses",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 10.3, 10.5, 10.5 ), glm::dvec3( 12.7, 10.5, 10.5 ), out, &which_face ) );
+        check_bool( "pick: ray at a corner leg hits",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 10.3, 10.5, 10.05 ), glm::dvec3( 12.7, 10.5, 10.05 ), out, &which_face ) &&
+                        out == glm::ivec3( 11, 10, 10 ) );
+        check_bool( "pick: ray down at the platform hits the top face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 11.5, 11.5, 10.5 ), glm::dvec3( 11.5, 9.5, 10.5 ), out, &which_face ) &&
+                        out == glm::ivec3( 11, 10, 10 ) && which_face == FACE_TOP );
+    }
+    // The nmask rule the mesher and picker share: a scaffold below or a
+    // covering support both drop the base plate.
+    {
+        BlockBox boxes[ SCAFFOLDING_MAX_BOXES ];
+        check_bool( "model: base plate dropped when below is covered",
+                    scaffolding_boxes( 1u << FACE_BOTTOM, boxes ) == SCAFFOLDING_MAX_BOXES - 1 );
+        check_bool( "model: base plate drawn over air",
+                    scaffolding_boxes( 0, boxes ) == SCAFFOLDING_MAX_BOXES );
+    }
+
     return failures;
 }
 

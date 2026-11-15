@@ -2,6 +2,9 @@
 
 #include "common/RepGame.hpp"
 #include "common/fluid.hpp"
+#include "common/mesh_gen.hpp"
+#define MG_QUAL static inline
+#include "common/mesh_gen_fns.hpp"
 #include "common/rail.hpp"
 #include "common/world.hpp"
 #include "common/utils/ray_traversal.hpp"
@@ -242,15 +245,17 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                                              : false;
     const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || block->is_bed || fluid_pick;
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
-    if ( result && ( block->is_stairs || block->is_fence || block->is_wall || block->is_bars || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign || block->is_lantern || block->is_lightning_rod || block->is_end_rod || block_is_fire( blockID ) ) ) {
+    if ( result && ( block->is_stairs || block->is_fence || block->is_wall || block->is_bars || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign || block->is_lantern || block->is_lightning_rod || block->is_end_rod || block->is_scaffolding || block_is_fire( blockID ) ) ) {
         // Pick against the block's real boxes — stairs use their collision
         // boxes (slab + step, with the neighbor-derived corner shape),
         // fences the post + merged rail bars (the two rendered rails merged
         // so the gap between them isn't click-through), piston cells the
         // rendered pair (plate + arm shaft on a head, recessed body +
         // throat stub on an extended base, so the arm can't be clicked
-        // through) — the nearest box hit wins.
-        BlockBox boxes[ FENCE_MAX_BOXES ];
+        // through), scaffolding the frame (legs + platform + drawn base
+        // plate, so the interior is click-through) — the nearest box hit
+        // wins.
+        BlockBox boxes[ FENCE_GATE_MAX_BOXES ];
         int num_boxes;
         if ( block->is_piston_head || piston_extended ) {
             num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
@@ -270,6 +275,20 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
             // The drawn flame region — 16x13x16 for FIRE (fire_0's opaque
             // rows end 3px below the top), the def box for soul fire.
             num_boxes = fire_pick_boxes( block, boxes );
+        } else if ( block->is_scaffolding ) {
+            // The rendered frame is the pick shape — legs, platform and,
+            // where drawn, the base plate — so rays through the interior
+            // reach the blocks behind. The plate's nmask rule matches the
+            // mesher's: absent below a scaffold cell or a covering face.
+            const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
+            unsigned nmask = 0;
+            if ( below.id != LAST_BLOCK_ID &&
+                 ( block_definition_get_definition( below.id )->is_scaffolding ||
+                   !mesh_face_seethrough( mesh_def_table( )[ below.id ], below.current_redstone_power != 0, below.rotation,
+                                          mesh_rotated_face( FACE_TOP, below.rotation ) ) ) ) {
+                nmask = 1u << FACE_BOTTOM;
+            }
+            num_boxes = scaffolding_boxes( nmask, boxes );
         } else if ( block->is_stairs ) {
             static const glm::ivec3 stair_dirs[ 4 ] = {
                 glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),

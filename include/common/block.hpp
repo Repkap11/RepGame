@@ -664,7 +664,9 @@ int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] );
 // direction whose boundary faces are buried: the four lateral bits mean
 // "neighbor is scaffolding or covers the shared face" (gathered by the
 // mesher, since the halo read is needed); FACE_BOTTOM means "the cell
-// below is scaffolding", which drops the bottom plate. Leg caps are
+// below is scaffolding or covers the shared face", which drops the
+// bottom plate. The same nmask feeds ray picking — the frame boxes are
+// the pick shape, so the interior is click-through. Leg caps are
 // always skipped — the top is buried in the platform plate and the bottom
 // in the base plate or the next leg cap down.
 // The collision model is unrelated: a single lip box at the cell top with
