@@ -187,8 +187,10 @@ is neither scaffolding nor a face-covering block (seams between adjacent
 frames are dropped through
 `skip_faces`/`nmask` like the fence rail culls; the block is excluded
 from merged-run meshing like fences/bamboo). The same nmask feeds ray
-picking — the frame boxes are the pick shape, so rays through the
-interior reach the blocks behind. The item icon (`block_icon_boxes`)
+picking (`scaffolding_pick_boxes`) — the frame boxes are the pick shape,
+so rays through the interior reach the blocks behind; while holding
+scaffolding, four zero-thickness pick panels cover the lateral cell
+faces so the whole side is clickable. The item icon (`block_icon_boxes`)
 passes the covered-below bit so it draws the bare frame — plate and
 legs without the base lattice. Collision is the MC model:
 `block_collision_boxes_for_state`
@@ -203,8 +205,11 @@ a column resting on a colliding non-scaffold block is reachable within
 `SCAFFOLDING_MAX_DISTANCE` (6) steps; the generic neighbor-update kill
 path then cascades the pop through the structure. Scaffolding is also
 `climbable`, with its own hang/descend feel (docs/player.md), and clicking
-a scaffold while holding scaffolding towers onto the column top unless
-sneaking (RepGame::change_block).
+a scaffold while holding scaffolding redirects by the face hit
+(RepGame::change_block — MC's use-on redirect): a side face towers onto
+the clicked column's top, the top face steps one cell in the player's
+facing direction and towers that column; sneaking places against the
+exact face hit.
 
 `blocks_light_down` (derived, no JSON key): bottom-aligned partial blocks —
 casts_shadow, opaque, scale.x/z=16, offset 0, scale.y<16, e.g. bottom slabs

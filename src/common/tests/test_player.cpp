@@ -596,14 +596,42 @@ int test_scaffolding( ) {
                     RayTraversal::find_block_from_to( world, glm::dvec3( 11.5, 11.5, 10.5 ), glm::dvec3( 11.5, 9.5, 10.5 ), out, &which_face ) &&
                         out == glm::ivec3( 11, 10, 10 ) && which_face == FACE_TOP );
     }
-    // The nmask rule the mesher and picker share: a scaffold below or a
-    // covering support both drop the base plate.
+    // scaffold_sides (holding scaffolding) adds a pick panel per lateral
+    // face: mid-face interior rays hit and report the clicked cell face.
     {
-        BlockBox boxes[ SCAFFOLDING_MAX_BOXES ];
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        check_bool( "pick sides: interior ray -x hits the LEFT face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 10.3, 10.5, 10.5 ), glm::dvec3( 12.7, 10.5, 10.5 ), out, &which_face, 0, nullptr, true ) &&
+                        out == glm::ivec3( 11, 10, 10 ) && which_face == FACE_LEFT );
+        check_bool( "pick sides: interior ray +x hits the RIGHT face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 12.7, 10.5, 10.5 ), glm::dvec3( 10.3, 10.5, 10.5 ), out, &which_face, 0, nullptr, true ) &&
+                        out == glm::ivec3( 11, 10, 10 ) && which_face == FACE_RIGHT );
+        check_bool( "pick sides: interior ray -z hits the FRONT face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 11.5, 10.5, 9.3 ), glm::dvec3( 11.5, 10.5, 12.7 ), out, &which_face, 0, nullptr, true ) &&
+                        out == glm::ivec3( 11, 10, 10 ) && which_face == FACE_FRONT );
+        check_bool( "pick sides: interior ray +z hits the BACK face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 11.5, 10.5, 12.7 ), glm::dvec3( 11.5, 10.5, 9.3 ), out, &which_face, 0, nullptr, true ) &&
+                        out == glm::ivec3( 11, 10, 10 ) && which_face == FACE_BACK );
+        // An eye inside the cell (climbing) reports the face on the side
+        // the ray is heading out through — placement lands on that side.
+        check_bool( "pick sides: inside-origin ray reports the exit face",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 11.5, 10.5, 10.5 ), glm::dvec3( 9.5, 10.5, 10.5 ), out, &which_face, 0, nullptr, true ) &&
+                        out == glm::ivec3( 11, 10, 10 ) && which_face == FACE_LEFT );
+    }
+    // The nmask rule the mesher and picker share: a scaffold below or a
+    // covering support both drop the base plate. The pick shape appends
+    // the four side panels only while holding scaffolding.
+    {
+        BlockBox boxes[ SCAFFOLDING_PICK_MAX_BOXES ];
         check_bool( "model: base plate dropped when below is covered",
                     scaffolding_boxes( 1u << FACE_BOTTOM, boxes ) == SCAFFOLDING_MAX_BOXES - 1 );
         check_bool( "model: base plate drawn over air",
                     scaffolding_boxes( 0, boxes ) == SCAFFOLDING_MAX_BOXES );
+        check_bool( "pick: no side panels without the flag",
+                    scaffolding_pick_boxes( 0, false, boxes ) == SCAFFOLDING_MAX_BOXES );
+        check_bool( "pick: frame + side panels with the flag",
+                    scaffolding_pick_boxes( 1u << FACE_BOTTOM, true, boxes ) == SCAFFOLDING_PICK_MAX_BOXES - 1 );
     }
 
     return failures;

@@ -666,13 +666,25 @@ int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] );
 // mesher, since the halo read is needed); FACE_BOTTOM means "the cell
 // below is scaffolding or covers the shared face", which drops the
 // bottom plate. The same nmask feeds ray picking — the frame boxes are
-// the pick shape, so the interior is click-through. Leg caps are
+// the pick shape (scaffolding_pick_boxes adds lateral panels while
+// holding scaffolding), so the interior is click-through. Leg caps are
 // always skipped — the top is buried in the platform plate and the bottom
 // in the base plate or the next leg cap down.
 // The collision model is unrelated: a single lip box at the cell top with
 // agent-aware filtering (collision.cpp, scaffold_box_active).
 #define SCAFFOLDING_MAX_BOXES 6
 int scaffolding_boxes( unsigned nmask, BlockBox out[ SCAFFOLDING_MAX_BOXES ] );
+// Pick shape: the frame boxes plus, while `side_panels`, four
+// zero-thickness panels covering the lateral cell faces — appended last,
+// in x=0, x=16, z=0, z=16 plane order. The panels make the whole side
+// face clickable while holding scaffolding (change_block reads the hit
+// face to tell a side click from a top click); without them mid-face
+// interior rays pass through to the blocks behind. Pick-only — never
+// drawn. A panel hit must report the cell face it stands for, not the
+// slab-test entry face.
+#define SCAFFOLDING_PICK_PANEL_BOXES 4
+#define SCAFFOLDING_PICK_MAX_BOXES ( SCAFFOLDING_MAX_BOXES + SCAFFOLDING_PICK_PANEL_BOXES )
+int scaffolding_pick_boxes( unsigned nmask, bool side_panels, BlockBox out[ SCAFFOLDING_PICK_MAX_BOXES ] );
 
 // ---- Item icons -------------------------------------------------------------
 // Icon-space yaw for the item/pickup model: panes (hides_self_same_rot —

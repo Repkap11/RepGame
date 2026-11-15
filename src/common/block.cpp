@@ -850,6 +850,37 @@ int scaffolding_boxes( unsigned nmask, BlockBox out[ SCAFFOLDING_MAX_BOXES ] ) {
     return n;
 }
 
+int scaffolding_pick_boxes( unsigned nmask, bool side_panels, BlockBox out[ SCAFFOLDING_PICK_MAX_BOXES ] ) {
+    const int n = scaffolding_boxes( nmask, out );
+    if ( !side_panels ) {
+        return n;
+    }
+    // Zero-thickness panels on the four lateral cell faces, in x=0, x=16,
+    // z=0, z=16 plane order — ray_traversal maps that order onto its own
+    // face names (its FRONT/BACK z labels are opposite the mesh FACE_*
+    // table's). Degenerate boxes still slab-test fine: the thin axis
+    // contributes an equal entry/exit t and the other two bound the hit
+    // to the face square.
+    static const signed char panel_off[ SCAFFOLDING_PICK_PANEL_BOXES ][ 3 ] = {
+        { 0, 0, 0 },  // x=0 plane
+        { 16, 0, 0 }, // x=16 plane
+        { 0, 0, 0 },  // z=0 plane
+        { 0, 0, 16 }, // z=16 plane
+    };
+    static const signed char panel_scale[ SCAFFOLDING_PICK_PANEL_BOXES ][ 3 ] = {
+        { 0, 16, 16 }, { 0, 16, 16 }, { 16, 16, 0 }, { 16, 16, 0 },
+    };
+    for ( int i = 0; i < SCAFFOLDING_PICK_PANEL_BOXES; i++ ) {
+        BlockBox &panel = out[ n + i ];
+        for ( int a = 0; a < 3; a++ ) {
+            panel.scale[ a ] = panel_scale[ i ][ a ];
+            panel.offset[ a ] = panel_off[ i ][ a ];
+        }
+        panel.skip_faces = 0;
+    }
+    return n + SCAFFOLDING_PICK_PANEL_BOXES;
+}
+
 int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] ) {
     if ( block->id == FIRE ) {
         // The crossed quads span the full cell; fire_0 frame 0's opaque

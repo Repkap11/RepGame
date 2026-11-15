@@ -228,7 +228,8 @@ static int contains_pixel( Block *pixel_block, BlockState &block_state, const gl
     return true;
 }
 
-static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int pick_mode, int *which_face, double *out_t, double max_t ) {
+static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3 &initial, const glm::ivec3 &block_pos, int pick_mode, bool scaffold_sides, int *which_face, double *out_t,
+                           double max_t ) {
     BlockState blockState = world.get_loaded_block( block_pos );
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
@@ -253,9 +254,9 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
         // rendered pair (plate + arm shaft on a head, recessed body +
         // throat stub on an extended base, so the arm can't be clicked
         // through), scaffolding the frame (legs + platform + drawn base
-        // plate, so the interior is click-through) — the nearest box hit
-        // wins.
-        BlockBox boxes[ FENCE_GATE_MAX_BOXES ];
+        // plate, so the interior is click-through — plus lateral pick
+        // panels while scaffold_sides) — the nearest box hit wins.
+        BlockBox boxes[ SCAFFOLDING_PICK_MAX_BOXES ];
         int num_boxes;
         if ( block->is_piston_head || piston_extended ) {
             num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
@@ -278,8 +279,11 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
         } else if ( block->is_scaffolding ) {
             // The rendered frame is the pick shape — legs, platform and,
             // where drawn, the base plate — so rays through the interior
-            // reach the blocks behind. The plate's nmask rule matches the
-            // mesher's: absent below a scaffold cell or a covering face.
+            // reach the blocks behind; while scaffold_sides (holding
+            // scaffolding) the four lateral faces get zero-thickness
+            // panels so the whole side is clickable. The plate's nmask
+            // rule matches the mesher's: absent below a scaffold cell or
+            // a covering face.
             const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
             unsigned nmask = 0;
             if ( below.id != LAST_BLOCK_ID &&
@@ -288,7 +292,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                                           mesh_rotated_face( FACE_TOP, below.rotation ) ) ) ) {
                 nmask = 1u << FACE_BOTTOM;
             }
-            num_boxes = scaffolding_boxes( nmask, boxes );
+            num_boxes = scaffolding_pick_boxes( nmask, scaffold_sides, boxes );
         } else if ( block->is_stairs ) {
             static const glm::ivec3 stair_dirs[ 4 ] = {
                 glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),
@@ -332,6 +336,14 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
         }
         double best_t = 1e30;
         int best_face = -1;
+        // Scaffolding's trailing pick panels stand for the cell's lateral
+        // faces (x=0, x=16, z=0, z=16 plane order — z=0 is this file's
+        // FRONT, z=16 its BACK). The slab test on a degenerate box can't
+        // name that face — it reports the lo face on the thin axis for
+        // either direction, and an origin inside the cell needs the
+        // exit-side face — so panel hits take the face from the table.
+        const int panel0 = block->is_scaffolding && scaffold_sides ? num_boxes - SCAFFOLDING_PICK_PANEL_BOXES : num_boxes;
+        static const int panel_face[ SCAFFOLDING_PICK_PANEL_BOXES ] = { FACE_LEFT, FACE_RIGHT, FACE_FRONT, FACE_BACK };
         for ( int i = 0; i < num_boxes; i++ ) {
             const glm::dvec3 bmin = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
             const glm::dvec3 bmax = bmin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
@@ -339,7 +351,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
             double t = 0.0;
             if ( ray_aabb_hit( initial, dir, bmin, bmax, &face, &t ) && t <= max_t && t < best_t ) {
                 best_t = t;
-                best_face = face;
+                best_face = i < panel0 ? face : panel_face[ i - panel0 ];
             }
         }
         if ( best_face < 0 ) {
@@ -412,7 +424,7 @@ static double boundary_entry_t( int face, const glm::ivec3 &cell, const glm::dve
     return t < 0.0 ? 0.0 : t;
 }
 
-bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, int pick_mode, double *out_hit_t ) {
+bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, int pick_mode, double *out_hit_t, bool scaffold_sides ) {
 
     glm::dvec3 dir = to - from;
     // dir = glm::normalize(dir);
@@ -471,7 +483,7 @@ bool RayTraversal::find_block_from_to( World &world, const glm::dvec3 &from, con
     for ( ;; ) {
         int which_face = -1;
         double box_t = -1.0;
-        int hit_block = contains_block( world, dir, from, offset, pick_mode, &which_face, &box_t, length );
+        int hit_block = contains_block( world, dir, from, offset, pick_mode, scaffold_sides, &which_face, &box_t, length );
         if ( which_face != -1 ) {
             face = which_face;
         }

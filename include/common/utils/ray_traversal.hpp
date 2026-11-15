@@ -13,7 +13,12 @@ class RayTraversal {
     // `out_face` the entry face; `out_hit_t`, when given, gets the hit
     // distance along the normalized (to - from) direction — the box entry
     // for sub-block shapes, the cell boundary crossing for full cubes.
-    static bool find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, int pick_mode = 0, double *out_hit_t = nullptr );
+    // `scaffold_sides` gives scaffolding cells zero-thickness panels on
+    // their lateral faces (set while holding scaffolding): the whole side
+    // becomes clickable and a panel hit reports the cell face it stands
+    // for, so side clicks can be told apart from top/bottom clicks.
+    static bool find_block_from_to( World &world, const glm::dvec3 &from, const glm::dvec3 &to, glm::ivec3 &out, int *out_face, int pick_mode = 0, double *out_hit_t = nullptr,
+                                    bool scaffold_sides = false );
     // Cell on the other side of `face` from `hit` — the placement position
     // for a ray hit.
     static glm::ivec3 placement_cell( const glm::ivec3 &hit, int face );

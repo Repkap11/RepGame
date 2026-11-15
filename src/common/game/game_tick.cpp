@@ -272,8 +272,13 @@ void RepGame::update_block_selection( ) {
     const bool pick_water =
         ( item_is_block( selected_block ) && block_definition_get_definition( static_cast<BlockID>( selected_block ) )->can_float_on_water ) ||
         ( held_vehicle_type != VEHICLE_TYPE_COUNT && vehicle_type_def( held_vehicle_type ).physics == VehiclePhysics::WATER );
+    // Holding scaffolding turns scaffold cells' lateral faces into pick
+    // panels so change_block can tell a side click from a top click;
+    // other holds keep the frame-only pick and its interior click-through.
+    const bool scaffold_sides =
+        item_is_block( selected_block ) && block_definition_get_definition( static_cast<BlockID>( selected_block ) )->is_scaffolding;
     double hit_t = 0.0;
-    sel.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy, &whichFace, 0, &hit_t );
+    sel.selectionInBounds = RayTraversal::find_block_from_to( globalGameState.world, ray_origin, pos_with_reach, sel.pos_destroy, &whichFace, 0, &hit_t, scaffold_sides );
 
     sel.face = whichFace;
     sel.pos_create = RayTraversal::placement_cell( sel.pos_destroy, whichFace );

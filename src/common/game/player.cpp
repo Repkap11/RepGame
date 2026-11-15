@@ -44,20 +44,31 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
         block = globalGameState.block_selection.pos_create;
         const Block *placed_def = block_definition_get_definition( blockState.id );
         if ( placed_def->is_scaffolding && !globalGameState.input.movement.sneakPressed ) {
-            // Tower-building: clicking a scaffold while holding scaffolding
-            // places on top of its column regardless of the face hit (MC's
-            // use-on redirect). Sneaking bypasses it to place against the
-            // clicked face — how horizontal arms get started.
+            // MC's use-on redirect: clicking a scaffold's top face steps
+            // one cell in the player's facing direction (bridge-building);
+            // clicking a side face steps up onto the clicked column's
+            // top (tower-building). The offset cell then climbs while it's
+            // scaffolding, so a top click beside a taller column lands on
+            // that column instead of inside it. Sneaking bypasses the
+            // redirect to place against the exact face hit.
             const glm::ivec3 clicked = globalGameState.block_selection.pos_destroy;
             const BlockState clicked_state = globalGameState.world.get_loaded_block( clicked );
             if ( clicked_state.id != LAST_BLOCK_ID && block_definition_get_definition( clicked_state.id )->is_scaffolding ) {
-                glm::ivec3 top = clicked;
-                BlockState above;
-                do {
-                    top.y += 1;
-                    above = globalGameState.world.get_loaded_block( top );
-                } while ( above.id != LAST_BLOCK_ID && block_definition_get_definition( above.id )->is_scaffolding );
-                block = top;
+                glm::ivec3 dir( 0, 1, 0 );
+                if ( globalGameState.block_selection.face == FACE_TOP ) {
+                    // Player facing: the dominant horizontal axis of the
+                    // look vector (look.xz keeps the angle_H ratio even at
+                    // straight-up/down pitch).
+                    const glm::vec3 look = globalGameState.camera.look;
+                    dir = fabsf( look.x ) > fabsf( look.z ) ? glm::ivec3( look.x > 0.0f ? 1 : -1, 0, 0 ) : glm::ivec3( 0, 0, look.z > 0.0f ? 1 : -1 );
+                }
+                glm::ivec3 end = clicked + dir;
+                BlockState at = globalGameState.world.get_loaded_block( end );
+                while ( at.id != LAST_BLOCK_ID && block_definition_get_definition( at.id )->is_scaffolding ) {
+                    end.y += 1;
+                    at = globalGameState.world.get_loaded_block( end );
+                }
+                block = end;
             }
         }
         if ( placed_def->collides_with_player ) {
