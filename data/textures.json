@@ -1278,7 +1278,7 @@
         ]
       }
     ],
-    "source": "textures/blocks/end_rod"
+    "source": "end_rod_purple"
   },
   "end_rod_bottom": {
     "extract": {
@@ -1295,7 +1295,7 @@
         6
       ]
     },
-    "source": "textures/blocks/end_rod"
+    "source": "end_rod_purple"
   },
   "end_rod_top": {
     "extract": [
@@ -1328,7 +1328,7 @@
         ]
       }
     ],
-    "source": "textures/blocks/end_rod"
+    "source": "end_rod_purple"
   },
   "end_stone": {
     "source": "textures/blocks/end_stone"
