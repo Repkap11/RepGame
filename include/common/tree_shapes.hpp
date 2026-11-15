@@ -345,11 +345,28 @@ inline void sg_place_tree( Target &chunk, const TreeSpec &spec, const int bx, co
             sg_canopy_blob( chunk, bx, top_y - 1, bz, spec.canopy_r, 2, spec.canopy_r, leaf_state, 18, co );
             break;
         case SHAPE_FUNGUS: {
-            // Huge-fungus cap: a fat edge-eaten dome swallowing the stem tip,
-            // a smaller crown bump on top, and shroomlight flecks embedded
-            // in the wart mass so the canopy glows in the dark cavern.
-            sg_canopy_blob( chunk, bx, top_y - 2, bz, spec.canopy_r, 2, spec.canopy_r, leaf_state, 21, co );
-            sg_canopy_blob( chunk, bx, top_y + 1, bz, spec.canopy_r - 2, 1, spec.canopy_r - 2, leaf_state, 22, co );
+            // Huge-fungus cap: a fat edge-eaten dome swallowing the stem
+            // tip, a sparse skirt hanging below the rim so the canopy droops
+            // over the short stem, a small crown bump on top, and
+            // shroomlight flecks in the wart mass so it glows in the cavern.
+            const int fr = spec.canopy_r;
+            sg_canopy_blob( chunk, bx, top_y - 2, bz, fr, 2, fr, leaf_state, 21, co );
+            sg_canopy_blob( chunk, bx, top_y + 1, bz, fr - 2, 1, fr - 2, leaf_state, 22, co );
+            for ( int dx = -fr - 1; dx <= fr + 1; dx++ ) {
+                for ( int dz = -fr - 1; dz <= fr + 1; dz++ ) {
+                    const float fd = (float)( dx * dx + dz * dz ) / (float)( fr * fr );
+                    if ( fd < 0.30f || fd > 1.30f ) {
+                        continue;
+                    }
+                    const unsigned int fh = sg_hash( co.x + bx + dx, co.y + top_y - 3, co.z + bz + dz, 24 );
+                    if ( ( fh & 3u ) < 2u ) {
+                        sg_write_leaf( chunk, bx + dx, top_y - 3, bz + dz, leaf_state );
+                    }
+                    if ( fd > 0.50f && ( fh & 7u ) < 2u ) {
+                        sg_write_leaf( chunk, bx + dx, top_y - 4, bz + dz, leaf_state );
+                    }
+                }
+            }
             for ( int dy = -4; dy <= 2; dy++ ) {
                 for ( int dx = -spec.canopy_r; dx <= spec.canopy_r; dx++ ) {
                     for ( int dz = -spec.canopy_r; dz <= spec.canopy_r; dz++ ) {

@@ -251,12 +251,12 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
         id = MG_TERN( surf_open > 0.5f && MG_F32( ly ) > floor_h - 3.0f, SOUL_SAND, SOUL_SOIL );
     }
     // Fungal forests live on the surface crust only — big contiguous
-    // forests, warped nested inside crimson.
+    // forests covering ~40% of the floor, warped nested inside crimson.
     if ( surf_open > 0.5f && MG_F32( ly ) > floor_h - 2.5f && MG_F32( ly ) <= floor_h ) {
         MG_LET( float, fungi, MAP_GEN_PERLIN2D( x, z, 0.008f, 2, MAP_SEED + 48 ) )
-        if ( fungi > 0.70f && fungi <= 0.80f ) {
+        if ( fungi > 0.58f && fungi <= 0.74f ) {
             id = CRIMSON_NYLIUM;
-        } else if ( fungi > 0.80f ) {
+        } else if ( fungi > 0.74f ) {
             id = WARPED_NYLIUM;
         }
     }

@@ -1008,7 +1008,7 @@ void StructureGen::place_formations( Chunk &chunk, const int cox, const int coy,
 // shelf tops, pillar flanks and carved pit floors reject themselves.
 // ---------------------------------------------------------------------------
 
-#define SGN_TREE_CELL 20  // world grid cell holding at most one fungus
+#define SGN_TREE_CELL 14  // world grid cell holding at most one fungus
 #define SGN_CANOPY_REACH 8 // canopy radius + margin a fungus can reach past its anchor
 
 static int sgn_find_surface( const int wx, const int wz, BlockID *ground ) {
@@ -1039,7 +1039,7 @@ void StructureGen::place_nether_trees( Chunk &chunk, const int cox, const int co
             const int tz = cz * SGN_TREE_CELL + (int)( sg_roll( cx, cz, 82 ) * SGN_TREE_CELL );
             // Dense stands inside the nylium patches, nothing elsewhere —
             // the ground probe below does the real biome gating.
-            if ( sg_roll( cx, cz, 83 ) > 0.55f ) {
+            if ( sg_roll( cx, cz, 83 ) > 0.72f ) {
                 continue;
             }
             BlockID ground;
@@ -1057,18 +1057,18 @@ void StructureGen::place_nether_trees( Chunk &chunk, const int cox, const int co
             spec.hanger = AIR;
             spec.hanger_len = 0;
             spec.hanger_mask = 0;
-            spec.canopy_r = 4 + ( sr > 0.5f ? 1 : 0 );
+            spec.canopy_r = 5 + ( sr > 0.5f ? 1 : 0 );
             if ( ground == CRIMSON_NYLIUM ) {
                 spec.log = CRIMSON_STEM;
                 spec.leaf = NETHER_WART_BLOCK;
-                spec.trunk_h = 8 + (int)( hr * 9.0f );
+                spec.trunk_h = 7 + (int)( hr * 4.0f );
                 spec.hanger = WEEPING_VINES;
                 spec.hanger_len = 4;
                 spec.hanger_mask = 3u;
             } else if ( ground == WARPED_NYLIUM ) {
                 spec.log = WARPED_STEM;
                 spec.leaf = WARPED_WART_BLOCK;
-                spec.trunk_h = 11 + (int)( hr * 10.0f );
+                spec.trunk_h = 8 + (int)( hr * 5.0f );
             } else {
                 continue;
             }
