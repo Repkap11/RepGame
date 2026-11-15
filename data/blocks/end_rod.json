@@ -1,21 +1,34 @@
 {
-  "affected_by_redstone_power": false,
   "breaks_in_liquid": true,
   "casts_shadow": false,
-  "collides_with_player": false,
   "hardness": 0,
-  "icon_is_isometric": false,
+  "icon_is_isometric": true,
   "id": 376,
+  "is_end_rod": true,
   "is_seethrough": true,
   "name": "END_ROD",
   "needs_place_on_any_solid": {
     "top": true
   },
   "no_light": 0,
-  "render_order": "Flowers",
+  "offset": [
+    6,
+    0,
+    6
+  ],
+  "scale": [
+    4,
+    16,
+    4
+  ],
+  "tex_offset": [
+    -6,
+    0,
+    -6
+  ],
   "textures": {
-    "bottom": "air",
-    "side": "legacy_end_rod",
-    "top": "air"
+    "bottom": "end_rod_bottom",
+    "side": "end_rod",
+    "top": "end_rod_top"
   }
 }

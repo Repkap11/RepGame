@@ -81,12 +81,15 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
     if ( block->is_lightning_rod ) {
         return lightning_rod_boxes( boxes );
     }
+    if ( block->is_end_rod ) {
+        return end_rod_boxes( boxes );
+    }
     return 0;
 }
 
 bool block_emit_needs_neighbors( const Block *block ) {
     return block->is_fence || block->is_wall || block->is_bars || block->is_stairs || block->is_rail || block->is_redstone_dust || block->spine_shell ||
-           block->is_lantern || block->is_lightning_rod;
+           block->is_lantern || block->is_lightning_rod || block->is_end_rod;
 }
 
 // The extra-instance flags the emit count needs — computed once per emit.
@@ -721,7 +724,7 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
             // the support's top face — cull it only when that face is
             // opaque; through glass the underside must draw (the same
             // boundary-cover test the rail underside uses).
-            if ( i == 0 && ( block->is_lantern || block->is_lightning_rod ) && p.cull_against_neighbors ) {
+            if ( i == 0 && ( block->is_lantern || block->is_lightning_rod || block->is_end_rod ) && p.cull_against_neighbors ) {
                 const BlockState &below_cell = p.nb.at( 0, -1, 0 );
                 const int below_rot = below_cell.rotation;
                 const int below_face = OPPOSITE_FACE[ mesh_rotated_face( FACE_BOTTOM, below_rot ) ];

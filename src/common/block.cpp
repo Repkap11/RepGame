@@ -775,6 +775,28 @@ int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] ) {
     return 2;
 }
 
+int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] ) {
+    // Bulb: the 4x4x4 glowing base (y 0..4). Its top face draws — the
+    // ring around the shaft's footprint is visible.
+    out[ 0 ].scale[ 0 ] = 4;
+    out[ 0 ].scale[ 1 ] = 4;
+    out[ 0 ].scale[ 2 ] = 4;
+    out[ 0 ].offset[ 0 ] = 6;
+    out[ 0 ].offset[ 1 ] = 0;
+    out[ 0 ].offset[ 2 ] = 6;
+    out[ 0 ].skip_faces = 0;
+    // Shaft: 2x12 column on the bulb (y 4..16); the bottom cap is
+    // coplanar with the bulb's top face and inside it.
+    out[ 1 ].scale[ 0 ] = 2;
+    out[ 1 ].scale[ 1 ] = 12;
+    out[ 1 ].scale[ 2 ] = 2;
+    out[ 1 ].offset[ 0 ] = 7;
+    out[ 1 ].offset[ 1 ] = 4;
+    out[ 1 ].offset[ 2 ] = 7;
+    out[ 1 ].skip_faces = 1u << FACE_BOTTOM;
+    return 2;
+}
+
 int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] ) {
     if ( block->id == FIRE ) {
         // The crossed quads span the full cell; fire_0 frame 0's opaque
@@ -824,6 +846,10 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
         // The real shaft + head pair — the iso icon reads as a rod, not a
         // fat column.
         return lightning_rod_boxes( out );
+    }
+    if ( block->is_end_rod ) {
+        // Bulb + shaft — the iso icon reads as a rod, not a cross sprite.
+        return end_rod_boxes( out );
     }
     if ( block_icon_yaw( block ) != 0 ) {
         // Panes: the def plate yawed 90 — thin in x so the broad face lands

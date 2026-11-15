@@ -319,6 +319,10 @@ convention; `*_lantern_cap` tiles the top/bottom windows. Lightning rods
 shaft y 0-12 plus the 4x4 head y 12-16, shaft top cap skipped; the def's
 4x16x4 column stays the pick/collision shape (MC's own voxel shape) and
 the same box pair draws the isometric item icon via `block_icon_boxes`.
+End rods (`is_end_rod`) are the mirror image (`end_rod_boxes`): the 4x4x4
+bulb base y 0-4 plus the 2-wide shaft y 4-16, shaft bottom cap skipped;
+the 4x16x4 def column is the collision hull while the rendered pair is
+the pick model and iso icon.
 
 Fire blocks (FIRE, SOUL_FIRE — `block_is_fire`) render as crossed quads,
 and raycast/selection outline pick against the region the fire texture

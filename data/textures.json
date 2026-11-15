@@ -1248,6 +1248,86 @@
     "source": "textures/blocks/end_portal"
   },
   "end_rod": {
+    "extract": [
+      {
+        "from": [
+          2,
+          3
+        ],
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          12
+        ]
+      },
+      {
+        "from": [
+          0,
+          2
+        ],
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          0
+        ]
+      }
+    ],
+    "source": "textures/blocks/end_rod"
+  },
+  "end_rod_bottom": {
+    "extract": {
+      "from": [
+        2,
+        3
+      ],
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
+    "source": "textures/blocks/end_rod"
+  },
+  "end_rod_top": {
+    "extract": [
+      {
+        "from": [
+          2,
+          3
+        ],
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          6
+        ]
+      },
+      {
+        "from": [
+          0,
+          0
+        ],
+        "size": [
+          2,
+          2
+        ],
+        "to": [
+          7,
+          7
+        ]
+      }
+    ],
     "source": "textures/blocks/end_rod"
   },
   "end_stone": {
@@ -1410,41 +1490,6 @@
   },
   "exposed_cut_copper": {
     "source": "textures/blocks/exposed_cut_copper"
-  },
-  "exposed_lightning_rod": {
-    "extract": [
-      {
-        "from": [
-          0,
-          0
-        ],
-        "mirror": true,
-        "size": [
-          4,
-          4
-        ],
-        "to": [
-          6,
-          0
-        ]
-      },
-      {
-        "from": [
-          0,
-          4
-        ],
-        "mirror": true,
-        "size": [
-          2,
-          12
-        ],
-        "to": [
-          7,
-          4
-        ]
-      }
-    ],
-    "source": "textures/blocks/exposed_lightning_rod"
   },
   "exposed_lightning_rod": {
     "extract": [
@@ -2152,41 +2197,6 @@
     ],
     "source": "textures/blocks/lightning_rod"
   },
-  "lightning_rod": {
-    "extract": [
-      {
-        "from": [
-          0,
-          0
-        ],
-        "mirror": true,
-        "size": [
-          4,
-          4
-        ],
-        "to": [
-          6,
-          0
-        ]
-      },
-      {
-        "from": [
-          0,
-          4
-        ],
-        "mirror": true,
-        "size": [
-          2,
-          12
-        ],
-        "to": [
-          7,
-          4
-        ]
-      }
-    ],
-    "source": "textures/blocks/lightning_rod"
-  },
   "lightning_rod_bottom": {
     "extract":     {
       "from": [
@@ -2574,41 +2584,6 @@
   },
   "oxidized_cut_copper": {
     "source": "textures/blocks/oxidized_cut_copper"
-  },
-  "oxidized_lightning_rod": {
-    "extract": [
-      {
-        "from": [
-          0,
-          0
-        ],
-        "mirror": true,
-        "size": [
-          4,
-          4
-        ],
-        "to": [
-          6,
-          0
-        ]
-      },
-      {
-        "from": [
-          0,
-          4
-        ],
-        "mirror": true,
-        "size": [
-          2,
-          12
-        ],
-        "to": [
-          7,
-          4
-        ]
-      }
-    ],
-    "source": "textures/blocks/oxidized_lightning_rod"
   },
   "oxidized_lightning_rod": {
     "extract": [
@@ -5793,41 +5768,6 @@
   },
   "weathered_cut_copper": {
     "source": "textures/blocks/weathered_cut_copper"
-  },
-  "weathered_lightning_rod": {
-    "extract": [
-      {
-        "from": [
-          0,
-          0
-        ],
-        "mirror": true,
-        "size": [
-          4,
-          4
-        ],
-        "to": [
-          6,
-          0
-        ]
-      },
-      {
-        "from": [
-          0,
-          4
-        ],
-        "mirror": true,
-        "size": [
-          2,
-          12
-        ],
-        "to": [
-          7,
-          4
-        ]
-      }
-    ],
-    "source": "textures/blocks/weathered_lightning_rod"
   },
   "weathered_lightning_rod": {
     "extract": [

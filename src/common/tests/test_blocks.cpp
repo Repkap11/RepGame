@@ -2026,6 +2026,21 @@ int test_support_drops( ) {
                     rod_bx[ 0 ].scale[ 0 ] == 2 && rod_bx[ 0 ].scale[ 1 ] == 12 && rod_bx[ 0 ].offset[ 0 ] == 7 &&
                     rod_bx[ 1 ].scale[ 0 ] == 4 && rod_bx[ 1 ].offset[ 1 ] == 12 &&
                     ( rod_bx[ 0 ].skip_faces & ( 1u << FACE_TOP ) ) != 0 );
+    // End rod: 4x4x4 bulb base + 2x12 shaft (end_rod_boxes) — the reverse
+    // of the lightning rod's shaft + head; also the iso icon pair and the
+    // pick model. The def box is the 4x16x4 collision column.
+    const Block *end_rod_def = block_definition_get_definition( END_ROD );
+    BlockBox end_bx[ ROD_MAX_BOXES ];
+    check_bool( "end rod def: renders bulb + shaft",
+                end_rod_def->is_end_rod && end_rod_boxes( end_bx ) == 2 &&
+                    end_bx[ 0 ].scale[ 0 ] == 4 && end_bx[ 0 ].scale[ 1 ] == 4 && end_bx[ 0 ].offset[ 0 ] == 6 &&
+                    end_bx[ 1 ].scale[ 0 ] == 2 && end_bx[ 1 ].scale[ 1 ] == 12 && end_bx[ 1 ].offset[ 1 ] == 4 &&
+                    ( end_bx[ 1 ].skip_faces & ( 1u << FACE_BOTTOM ) ) != 0 );
+    check_bool( "end rod def: icon is the rod pair",
+                block_icon_boxes( end_rod_def, end_bx ) == 2 && end_bx[ 0 ].scale[ 0 ] == 4 && end_bx[ 1 ].scale[ 0 ] == 2 );
+    check_bool( "end rod def: solid 4x16x4 hitbox",
+                end_rod_def->collides_with_player && end_rod_def->scale.x == 4 && end_rod_def->scale.y == 16 &&
+                    end_rod_def->offset.x == 6 );
     // Fire picks/outlines cover the region the fire texture draws: FIRE's
     // crossed quads span the full cell but fire_0 frame 0's opaque rows
     // end 3px below the top (16x13x16); soul fire draws inside its def

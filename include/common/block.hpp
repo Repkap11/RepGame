@@ -641,6 +641,12 @@ int lantern_pick_boxes( BlockBox out[ LANTERN_MAX_BOXES ] );
 // pair is the isometric item icon.
 #define ROD_MAX_BOXES 2
 int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
+// The two definition-space boxes of an end rod: the 4x4x4 bulb base
+// (y 0..4) and the 2-wide shaft on it (y 4..16). The shaft's bottom cap
+// is skipped (buried in the bulb); the bulb's bottom cap is culled at
+// emit time only against opaque supports. The same pair is the
+// isometric item icon.
+int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 
 // ---- Fire -------------------------------------------------------------------
 // The pick/outline box covering the region the fire texture actually

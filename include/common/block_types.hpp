@@ -241,6 +241,12 @@ typedef struct {
     // the 2-wide shaft plus the 4x4 head on top. The def box stays the
     // pick/collision column and the boxes are also the isometric icon.
     bool is_lightning_rod;
+    // End rods draw as two boxes (end_rod_boxes in block.cpp): the 4x4
+    // bulb base plus the 2-wide shaft above it — the same pair the
+    // lightning rod uses, bulb at the bottom instead of a head. The def
+    // box stays the pick/collision column and the boxes are also the
+    // isometric icon.
+    bool is_end_rod;
     // Bamboo draws its def box (a thin stalk) into its own render order
     // plus, when BlockState::rotation is a leaf tier (0 none, 1 small,
     // 2 large — MC's leaves property, kept by bamboo_grow_try), a leaf

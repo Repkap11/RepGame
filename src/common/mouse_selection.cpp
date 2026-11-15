@@ -157,10 +157,10 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         for ( int i = 0; i < num_boxes; i++ ) {
             block_rotate_box( block_yaw( block, blockState.rotation ), boxes[ i ].scale, boxes[ i ].offset );
         }
-    } else if ( block->is_lantern || block->is_lightning_rod ) {
-        // Lantern: body + lid/bail union; rod: shaft + head — the pick
+    } else if ( block->is_lantern || block->is_lightning_rod || block->is_end_rod ) {
+        // Lantern: body + lid/bail union; rods: rendered pair — the pick
         // model; axisymmetric, so no yaw remap.
-        num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : lightning_rod_boxes( boxes );
+        num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : block->is_lightning_rod ? lightning_rod_boxes( boxes ) : end_rod_boxes( boxes );
     } else if ( block_is_fire( blockState.id ) ) {
         // The drawn flame region — the same box the raycast hits.
         num_boxes = fire_pick_boxes( block, boxes );

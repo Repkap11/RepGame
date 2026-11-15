@@ -5846,23 +5846,24 @@ block_definitions[ 375 ].icon_texture = TEX_CRAFTER_TOP;
 block_definitions[ 375 ].mineable = MINEABLE_PICKAXE;
 
 // END_ROD (376)
-block_definitions[ 376 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 376 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 376 ].textures[ FACE_RIGHT ] = TEX_LEGACY_END_ROD;
-block_definitions[ 376 ].textures[ FACE_FRONT ] = TEX_LEGACY_END_ROD;
-block_definitions[ 376 ].textures[ FACE_LEFT ] = TEX_LEGACY_END_ROD;
-block_definitions[ 376 ].textures[ FACE_BACK ] = TEX_LEGACY_END_ROD;
-block_definitions[ 376 ].icon_texture = TEX_LEGACY_END_ROD;
-block_definitions[ 376 ].affected_by_redstone_power = false;
+block_definitions[ 376 ].textures[ FACE_TOP ] = TEX_END_ROD_TOP;
+block_definitions[ 376 ].textures[ FACE_BOTTOM ] = TEX_END_ROD_BOTTOM;
+block_definitions[ 376 ].textures[ FACE_RIGHT ] = TEX_END_ROD;
+block_definitions[ 376 ].textures[ FACE_FRONT ] = TEX_END_ROD;
+block_definitions[ 376 ].textures[ FACE_LEFT ] = TEX_END_ROD;
+block_definitions[ 376 ].textures[ FACE_BACK ] = TEX_END_ROD;
+block_definitions[ 376 ].icon_texture = TEX_END_ROD_TOP;
 block_definitions[ 376 ].breaks_in_liquid = true;
 block_definitions[ 376 ].casts_shadow = false;
-block_definitions[ 376 ].collides_with_player = false;
 block_definitions[ 376 ].hardness = 0.0f;
-block_definitions[ 376 ].icon_is_isometric = false;
+block_definitions[ 376 ].icon_is_isometric = true;
+block_definitions[ 376 ].is_end_rod = true;
 block_definitions[ 376 ].is_seethrough = true;
 block_definitions[ 376 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 376 ].no_light = 0;
-block_definitions[ 376 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 376 ].offset = { 6, 0, 6 };
+block_definitions[ 376 ].scale = { 4, 16, 4 };
+block_definitions[ 376 ].tex_offset = { -6, 0, -6 };
 
 // CREAKING_HEART (377)
 block_definitions[ 377 ].textures[ FACE_TOP ] = TEX_CREAKING_HEART_TOP_INACTIVE;
