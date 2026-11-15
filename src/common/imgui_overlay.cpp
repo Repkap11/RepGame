@@ -8,13 +8,6 @@
 #include "common/map_gen.hpp"
 #include "common/utils/frame_stats.hpp"
 
-// REPGAME_IMGUI_TUNE=1 makes the overlay interactive while the cursor is
-// free (inventory/menu open) and shows the held-pose tuning controls.
-static bool imgui_live_tune( ) {
-    static const bool enabled = env_bool( "REPGAME_IMGUI_TUNE", false );
-    return enabled;
-}
-
 ImGuiDebugVars debug_vars;
 
 ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
@@ -68,6 +61,13 @@ float min_ambient_step( const float current, const int dir ) {
 #define ImGui_ImplSDL_NewFrame ImGui_ImplSDL3_NewFrame
 #define ImGui_ImplSDL_Shutdown ImGui_ImplSDL3_Shutdown
 #endif
+
+// REPGAME_IMGUI_TUNE=1 makes the overlay interactive while the cursor is
+// free (inventory/menu open) and shows the held-pose tuning controls.
+static bool imgui_live_tune( ) {
+    static const bool enabled = env_bool( "REPGAME_IMGUI_TUNE", false );
+    return enabled;
+}
 
 // Compact counts for the HUD (max 4 chars): raw under 10k, scaled above so
 // a fixed-width column never overflows and the text stops reflowing.
