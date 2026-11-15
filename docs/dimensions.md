@@ -111,9 +111,10 @@ mob spawning is off (`chunk.cpp` spawn gate), and the music set switches
 
 ## Multiplayer
 
-`NET_PROTOCOL_VERSION` bumped to 18 — packet layouts are unchanged, but
-the base-terrain contract differs: an old client would generate bedrock
-where a new one generates the nether.
+`NET_PROTOCOL_VERSION` is 19 — packet layouts are unchanged, but the
+base-terrain contract differs: an old client would generate a different
+"unmodified" base in the nether band (v18 introduced the band; v19
+dropped the floor heightfield's mid-frequency octave).
 
 Remote avatars are dimension-filtered in `multiplayer_avatars.cpp`:
 `update_position` despawns the mob when a position packet lands in a

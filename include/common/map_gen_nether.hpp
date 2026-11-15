@@ -41,11 +41,11 @@
 // Band layout constants (MGN_LAVA_SEA/MGN_FLOOR_MID/MGN_ROOF_MID) live in
 // map_gen_consts.hpp so plain host code can see them too.
 
-// 2D floor height: rolling wastes with ridges plus a craggy high-frequency
-// detail layer, local-y ~[15, 95].
+// 2D floor height: broad rolling shape plus a craggy high-frequency detail
+// layer, local-y ~[20, 90]. No mid-frequency octave — the ~20-block-scale
+// hills made the open floor tiring to navigate.
 MG_FN2( float, mgn_floor_height, int, x, int, z ) {
     return MGN_FLOOR_MID + ( MAP_GEN_PERLIN2D( x, z, 0.01f, 3, MAP_SEED + 42 ) - 0.5f ) * 60.0f +
-           ( MAP_GEN_PERLIN2D( x, z, 0.05f, 2, MAP_SEED + 43 ) - 0.5f ) * 20.0f +
            ( MAP_GEN_PERLIN2D( x, z, 0.16f, 2, MAP_SEED + 57 ) - 0.5f ) * 9.0f;
 }
 
