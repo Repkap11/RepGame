@@ -18710,7 +18710,7 @@ block_definitions[ 1256 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1256 ].no_light = 0;
 block_definitions[ 1256 ].offset = { 5, 0, 5 };
 block_definitions[ 1256 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 1256 ].scale = { 6, 11, 6 };
+block_definitions[ 1256 ].scale = { 6, 16, 6 };
 block_definitions[ 1256 ].tex_offset = { -5, 0, -5 };
 
 // UNDYED_SHULKER_BOX (1257)
@@ -20410,7 +20410,7 @@ block_definitions[ 1365 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1365 ].no_light = 0;
 block_definitions[ 1365 ].offset = { 5, 0, 5 };
 block_definitions[ 1365 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 1365 ].scale = { 6, 11, 6 };
+block_definitions[ 1365 ].scale = { 6, 16, 6 };
 block_definitions[ 1365 ].tex_offset = { -5, 0, -5 };
 
 // WET_SPONGE (1366)
