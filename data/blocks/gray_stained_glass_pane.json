@@ -2,17 +2,35 @@
   "affected_by_redstone_power": false,
   "casts_shadow": false,
   "hardness": 0.449999988,
+  "icon": "glass_pane_top_gray",
+  "icon_is_isometric": true,
   "id": 612,
   "is_seethrough": true,
   "name": "GRAY_STAINED_GLASS_PANE",
+  "offset": [
+    0,
+    0,
+    7
+  ],
   "render_order": "Translucent",
+  "rotate_on_placement": true,
+  "scale": [
+    16,
+    16,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    0
+  ],
   "textures": {
     "back": "glass_gray",
-    "bottom": "glass_gray",
+    "bottom": "glass_pane_top_gray",
     "front": "glass_gray",
-    "left": "glass_gray",
+    "left": "glass_pane_top_gray",
     "right": "glass_pane_top_gray",
-    "top": "glass_gray"
+    "top": "glass_pane_top_gray"
   },
   "drops": []
 }

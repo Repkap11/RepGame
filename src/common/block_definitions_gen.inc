@@ -2643,18 +2643,23 @@ block_definitions[ 161 ].icon_texture = TEX_SHULKER_TOP_BLACK;
 block_definitions[ 161 ].mineable = MINEABLE_PICKAXE;
 
 // BLACK_STAINED_GLASS_PANE (162)
-block_definitions[ 162 ].textures[ FACE_TOP ] = TEX_GLASS_BLACK;
-block_definitions[ 162 ].textures[ FACE_BOTTOM ] = TEX_GLASS_BLACK;
+block_definitions[ 162 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_BLACK;
+block_definitions[ 162 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_BLACK;
 block_definitions[ 162 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_BLACK;
 block_definitions[ 162 ].textures[ FACE_FRONT ] = TEX_GLASS_BLACK;
-block_definitions[ 162 ].textures[ FACE_LEFT ] = TEX_GLASS_BLACK;
+block_definitions[ 162 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_BLACK;
 block_definitions[ 162 ].textures[ FACE_BACK ] = TEX_GLASS_BLACK;
-block_definitions[ 162 ].icon_texture = TEX_GLASS_BLACK;
+block_definitions[ 162 ].icon_texture = TEX_GLASS_PANE_TOP_BLACK;
 block_definitions[ 162 ].affected_by_redstone_power = false;
 block_definitions[ 162 ].casts_shadow = false;
 block_definitions[ 162 ].hardness = 0.449999988f;
+block_definitions[ 162 ].icon_is_isometric = true;
 block_definitions[ 162 ].is_seethrough = true;
+block_definitions[ 162 ].offset = { 0, 0, 7 };
 block_definitions[ 162 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 162 ].rotate_on_placement = true;
+block_definitions[ 162 ].scale = { 16, 16, 2 };
+block_definitions[ 162 ].tex_offset = { -7, 0, 0 };
 
 // BLACK_TERRACOTTA (163)
 block_definitions[ 163 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_BLACK;
@@ -3044,18 +3049,23 @@ block_definitions[ 189 ].icon_texture = TEX_SHULKER_TOP_BLUE;
 block_definitions[ 189 ].mineable = MINEABLE_PICKAXE;
 
 // BLUE_STAINED_GLASS_PANE (190)
-block_definitions[ 190 ].textures[ FACE_TOP ] = TEX_GLASS_BLUE;
-block_definitions[ 190 ].textures[ FACE_BOTTOM ] = TEX_GLASS_BLUE;
+block_definitions[ 190 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_BLUE;
+block_definitions[ 190 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_BLUE;
 block_definitions[ 190 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_BLUE;
 block_definitions[ 190 ].textures[ FACE_FRONT ] = TEX_GLASS_BLUE;
-block_definitions[ 190 ].textures[ FACE_LEFT ] = TEX_GLASS_BLUE;
+block_definitions[ 190 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_BLUE;
 block_definitions[ 190 ].textures[ FACE_BACK ] = TEX_GLASS_BLUE;
-block_definitions[ 190 ].icon_texture = TEX_GLASS_BLUE;
+block_definitions[ 190 ].icon_texture = TEX_GLASS_PANE_TOP_BLUE;
 block_definitions[ 190 ].affected_by_redstone_power = false;
 block_definitions[ 190 ].casts_shadow = false;
 block_definitions[ 190 ].hardness = 0.449999988f;
+block_definitions[ 190 ].icon_is_isometric = true;
 block_definitions[ 190 ].is_seethrough = true;
+block_definitions[ 190 ].offset = { 0, 0, 7 };
 block_definitions[ 190 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 190 ].rotate_on_placement = true;
+block_definitions[ 190 ].scale = { 16, 16, 2 };
+block_definitions[ 190 ].tex_offset = { -7, 0, 0 };
 
 // BLUE_TERRACOTTA (191)
 block_definitions[ 191 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_BLUE;
@@ -3461,18 +3471,23 @@ block_definitions[ 218 ].icon_texture = TEX_SHULKER_TOP_BROWN;
 block_definitions[ 218 ].mineable = MINEABLE_PICKAXE;
 
 // BROWN_STAINED_GLASS_PANE (219)
-block_definitions[ 219 ].textures[ FACE_TOP ] = TEX_GLASS_BROWN;
-block_definitions[ 219 ].textures[ FACE_BOTTOM ] = TEX_GLASS_BROWN;
+block_definitions[ 219 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_BROWN;
+block_definitions[ 219 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_BROWN;
 block_definitions[ 219 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_BROWN;
 block_definitions[ 219 ].textures[ FACE_FRONT ] = TEX_GLASS_BROWN;
-block_definitions[ 219 ].textures[ FACE_LEFT ] = TEX_GLASS_BROWN;
+block_definitions[ 219 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_BROWN;
 block_definitions[ 219 ].textures[ FACE_BACK ] = TEX_GLASS_BROWN;
-block_definitions[ 219 ].icon_texture = TEX_GLASS_BROWN;
+block_definitions[ 219 ].icon_texture = TEX_GLASS_PANE_TOP_BROWN;
 block_definitions[ 219 ].affected_by_redstone_power = false;
 block_definitions[ 219 ].casts_shadow = false;
 block_definitions[ 219 ].hardness = 0.449999988f;
+block_definitions[ 219 ].icon_is_isometric = true;
 block_definitions[ 219 ].is_seethrough = true;
+block_definitions[ 219 ].offset = { 0, 0, 7 };
 block_definitions[ 219 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 219 ].rotate_on_placement = true;
+block_definitions[ 219 ].scale = { 16, 16, 2 };
+block_definitions[ 219 ].tex_offset = { -7, 0, 0 };
 
 // BROWN_TERRACOTTA (220)
 block_definitions[ 220 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_BROWN;
@@ -6841,18 +6856,23 @@ block_definitions[ 439 ].is_seethrough = true;
 block_definitions[ 439 ].renderOrder = RenderOrder_Translucent;
 
 // CYAN_STAINED_GLASS_PANE (440)
-block_definitions[ 440 ].textures[ FACE_TOP ] = TEX_GLASS_CYAN;
-block_definitions[ 440 ].textures[ FACE_BOTTOM ] = TEX_GLASS_CYAN;
+block_definitions[ 440 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_CYAN;
+block_definitions[ 440 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_CYAN;
 block_definitions[ 440 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_CYAN;
 block_definitions[ 440 ].textures[ FACE_FRONT ] = TEX_GLASS_CYAN;
-block_definitions[ 440 ].textures[ FACE_LEFT ] = TEX_GLASS_CYAN;
+block_definitions[ 440 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_CYAN;
 block_definitions[ 440 ].textures[ FACE_BACK ] = TEX_GLASS_CYAN;
-block_definitions[ 440 ].icon_texture = TEX_GLASS_CYAN;
+block_definitions[ 440 ].icon_texture = TEX_GLASS_PANE_TOP_CYAN;
 block_definitions[ 440 ].affected_by_redstone_power = false;
 block_definitions[ 440 ].casts_shadow = false;
 block_definitions[ 440 ].hardness = 0.449999988f;
+block_definitions[ 440 ].icon_is_isometric = true;
 block_definitions[ 440 ].is_seethrough = true;
+block_definitions[ 440 ].offset = { 0, 0, 7 };
 block_definitions[ 440 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 440 ].rotate_on_placement = true;
+block_definitions[ 440 ].scale = { 16, 16, 2 };
+block_definitions[ 440 ].tex_offset = { -7, 0, 0 };
 
 // CYAN_TERRACOTTA (441)
 block_definitions[ 441 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_CYAN;
@@ -9361,18 +9381,23 @@ block_definitions[ 611 ].icon_texture = TEX_SHULKER_TOP_GRAY;
 block_definitions[ 611 ].mineable = MINEABLE_PICKAXE;
 
 // GRAY_STAINED_GLASS_PANE (612)
-block_definitions[ 612 ].textures[ FACE_TOP ] = TEX_GLASS_GRAY;
-block_definitions[ 612 ].textures[ FACE_BOTTOM ] = TEX_GLASS_GRAY;
+block_definitions[ 612 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_GRAY;
+block_definitions[ 612 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_GRAY;
 block_definitions[ 612 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_GRAY;
 block_definitions[ 612 ].textures[ FACE_FRONT ] = TEX_GLASS_GRAY;
-block_definitions[ 612 ].textures[ FACE_LEFT ] = TEX_GLASS_GRAY;
+block_definitions[ 612 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_GRAY;
 block_definitions[ 612 ].textures[ FACE_BACK ] = TEX_GLASS_GRAY;
-block_definitions[ 612 ].icon_texture = TEX_GLASS_GRAY;
+block_definitions[ 612 ].icon_texture = TEX_GLASS_PANE_TOP_GRAY;
 block_definitions[ 612 ].affected_by_redstone_power = false;
 block_definitions[ 612 ].casts_shadow = false;
 block_definitions[ 612 ].hardness = 0.449999988f;
+block_definitions[ 612 ].icon_is_isometric = true;
 block_definitions[ 612 ].is_seethrough = true;
+block_definitions[ 612 ].offset = { 0, 0, 7 };
 block_definitions[ 612 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 612 ].rotate_on_placement = true;
+block_definitions[ 612 ].scale = { 16, 16, 2 };
+block_definitions[ 612 ].tex_offset = { -7, 0, 0 };
 
 // GRAY_TERRACOTTA (613)
 block_definitions[ 613 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_GRAY;
@@ -9569,18 +9594,23 @@ block_definitions[ 627 ].icon_texture = TEX_SHULKER_TOP_GREEN;
 block_definitions[ 627 ].mineable = MINEABLE_PICKAXE;
 
 // GREEN_STAINED_GLASS_PANE (628)
-block_definitions[ 628 ].textures[ FACE_TOP ] = TEX_GLASS_GREEN;
-block_definitions[ 628 ].textures[ FACE_BOTTOM ] = TEX_GLASS_GREEN;
+block_definitions[ 628 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_GREEN;
+block_definitions[ 628 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_GREEN;
 block_definitions[ 628 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_GREEN;
 block_definitions[ 628 ].textures[ FACE_FRONT ] = TEX_GLASS_GREEN;
-block_definitions[ 628 ].textures[ FACE_LEFT ] = TEX_GLASS_GREEN;
+block_definitions[ 628 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_GREEN;
 block_definitions[ 628 ].textures[ FACE_BACK ] = TEX_GLASS_GREEN;
-block_definitions[ 628 ].icon_texture = TEX_GLASS_GREEN;
+block_definitions[ 628 ].icon_texture = TEX_GLASS_PANE_TOP_GREEN;
 block_definitions[ 628 ].affected_by_redstone_power = false;
 block_definitions[ 628 ].casts_shadow = false;
 block_definitions[ 628 ].hardness = 0.449999988f;
+block_definitions[ 628 ].icon_is_isometric = true;
 block_definitions[ 628 ].is_seethrough = true;
+block_definitions[ 628 ].offset = { 0, 0, 7 };
 block_definitions[ 628 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 628 ].rotate_on_placement = true;
+block_definitions[ 628 ].scale = { 16, 16, 2 };
+block_definitions[ 628 ].tex_offset = { -7, 0, 0 };
 
 // GREEN_TERRACOTTA (629)
 block_definitions[ 629 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_GREEN;
@@ -10416,18 +10446,23 @@ block_definitions[ 687 ].icon_texture = TEX_SHULKER_TOP_LIGHT_BLUE;
 block_definitions[ 687 ].mineable = MINEABLE_PICKAXE;
 
 // LIGHT_BLUE_STAINED_GLASS_PANE (688)
-block_definitions[ 688 ].textures[ FACE_TOP ] = TEX_GLASS_LIGHT_BLUE;
-block_definitions[ 688 ].textures[ FACE_BOTTOM ] = TEX_GLASS_LIGHT_BLUE;
+block_definitions[ 688 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_LIGHT_BLUE;
+block_definitions[ 688 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_LIGHT_BLUE;
 block_definitions[ 688 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_LIGHT_BLUE;
 block_definitions[ 688 ].textures[ FACE_FRONT ] = TEX_GLASS_LIGHT_BLUE;
-block_definitions[ 688 ].textures[ FACE_LEFT ] = TEX_GLASS_LIGHT_BLUE;
+block_definitions[ 688 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_LIGHT_BLUE;
 block_definitions[ 688 ].textures[ FACE_BACK ] = TEX_GLASS_LIGHT_BLUE;
-block_definitions[ 688 ].icon_texture = TEX_GLASS_LIGHT_BLUE;
+block_definitions[ 688 ].icon_texture = TEX_GLASS_PANE_TOP_LIGHT_BLUE;
 block_definitions[ 688 ].affected_by_redstone_power = false;
 block_definitions[ 688 ].casts_shadow = false;
 block_definitions[ 688 ].hardness = 0.449999988f;
+block_definitions[ 688 ].icon_is_isometric = true;
 block_definitions[ 688 ].is_seethrough = true;
+block_definitions[ 688 ].offset = { 0, 0, 7 };
 block_definitions[ 688 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 688 ].rotate_on_placement = true;
+block_definitions[ 688 ].scale = { 16, 16, 2 };
+block_definitions[ 688 ].tex_offset = { -7, 0, 0 };
 
 // LIGHT_BLUE_TERRACOTTA (689)
 block_definitions[ 689 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_LIGHT_BLUE;
@@ -10628,18 +10663,23 @@ block_definitions[ 703 ].is_seethrough = true;
 block_definitions[ 703 ].renderOrder = RenderOrder_Translucent;
 
 // LIGHT_GRAY_STAINED_GLASS_PANE (704)
-block_definitions[ 704 ].textures[ FACE_TOP ] = TEX_GLASS_SILVER;
-block_definitions[ 704 ].textures[ FACE_BOTTOM ] = TEX_GLASS_SILVER;
+block_definitions[ 704 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_SILVER;
+block_definitions[ 704 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_SILVER;
 block_definitions[ 704 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_SILVER;
 block_definitions[ 704 ].textures[ FACE_FRONT ] = TEX_GLASS_SILVER;
-block_definitions[ 704 ].textures[ FACE_LEFT ] = TEX_GLASS_SILVER;
+block_definitions[ 704 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_SILVER;
 block_definitions[ 704 ].textures[ FACE_BACK ] = TEX_GLASS_SILVER;
-block_definitions[ 704 ].icon_texture = TEX_GLASS_SILVER;
+block_definitions[ 704 ].icon_texture = TEX_GLASS_PANE_TOP_SILVER;
 block_definitions[ 704 ].affected_by_redstone_power = false;
 block_definitions[ 704 ].casts_shadow = false;
 block_definitions[ 704 ].hardness = 0.449999988f;
+block_definitions[ 704 ].icon_is_isometric = true;
 block_definitions[ 704 ].is_seethrough = true;
+block_definitions[ 704 ].offset = { 0, 0, 7 };
 block_definitions[ 704 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 704 ].rotate_on_placement = true;
+block_definitions[ 704 ].scale = { 16, 16, 2 };
+block_definitions[ 704 ].tex_offset = { -7, 0, 0 };
 
 // LIGHT_GRAY_TERRACOTTA (705)
 block_definitions[ 705 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_SILVER;
@@ -10899,18 +10939,23 @@ block_definitions[ 722 ].icon_texture = TEX_SHULKER_TOP_LIME;
 block_definitions[ 722 ].mineable = MINEABLE_PICKAXE;
 
 // LIME_STAINED_GLASS_PANE (723)
-block_definitions[ 723 ].textures[ FACE_TOP ] = TEX_GLASS_LIME;
-block_definitions[ 723 ].textures[ FACE_BOTTOM ] = TEX_GLASS_LIME;
+block_definitions[ 723 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_LIME;
+block_definitions[ 723 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_LIME;
 block_definitions[ 723 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_LIME;
 block_definitions[ 723 ].textures[ FACE_FRONT ] = TEX_GLASS_LIME;
-block_definitions[ 723 ].textures[ FACE_LEFT ] = TEX_GLASS_LIME;
+block_definitions[ 723 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_LIME;
 block_definitions[ 723 ].textures[ FACE_BACK ] = TEX_GLASS_LIME;
-block_definitions[ 723 ].icon_texture = TEX_GLASS_LIME;
+block_definitions[ 723 ].icon_texture = TEX_GLASS_PANE_TOP_LIME;
 block_definitions[ 723 ].affected_by_redstone_power = false;
 block_definitions[ 723 ].casts_shadow = false;
 block_definitions[ 723 ].hardness = 0.449999988f;
+block_definitions[ 723 ].icon_is_isometric = true;
 block_definitions[ 723 ].is_seethrough = true;
+block_definitions[ 723 ].offset = { 0, 0, 7 };
 block_definitions[ 723 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 723 ].rotate_on_placement = true;
+block_definitions[ 723 ].scale = { 16, 16, 2 };
+block_definitions[ 723 ].tex_offset = { -7, 0, 0 };
 
 // LIME_TERRACOTTA (724)
 block_definitions[ 724 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_LIME;
@@ -11216,18 +11261,23 @@ block_definitions[ 748 ].is_seethrough = true;
 block_definitions[ 748 ].renderOrder = RenderOrder_Translucent;
 
 // MAGENTA_STAINED_GLASS_PANE (749)
-block_definitions[ 749 ].textures[ FACE_TOP ] = TEX_GLASS_MAGENTA;
-block_definitions[ 749 ].textures[ FACE_BOTTOM ] = TEX_GLASS_MAGENTA;
+block_definitions[ 749 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_MAGENTA;
+block_definitions[ 749 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_MAGENTA;
 block_definitions[ 749 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_MAGENTA;
 block_definitions[ 749 ].textures[ FACE_FRONT ] = TEX_GLASS_MAGENTA;
-block_definitions[ 749 ].textures[ FACE_LEFT ] = TEX_GLASS_MAGENTA;
+block_definitions[ 749 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_MAGENTA;
 block_definitions[ 749 ].textures[ FACE_BACK ] = TEX_GLASS_MAGENTA;
-block_definitions[ 749 ].icon_texture = TEX_GLASS_MAGENTA;
+block_definitions[ 749 ].icon_texture = TEX_GLASS_PANE_TOP_MAGENTA;
 block_definitions[ 749 ].affected_by_redstone_power = false;
 block_definitions[ 749 ].casts_shadow = false;
 block_definitions[ 749 ].hardness = 0.449999988f;
+block_definitions[ 749 ].icon_is_isometric = true;
 block_definitions[ 749 ].is_seethrough = true;
+block_definitions[ 749 ].offset = { 0, 0, 7 };
 block_definitions[ 749 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 749 ].rotate_on_placement = true;
+block_definitions[ 749 ].scale = { 16, 16, 2 };
+block_definitions[ 749 ].tex_offset = { -7, 0, 0 };
 
 // MAGENTA_TERRACOTTA (750)
 block_definitions[ 750 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_MAGENTA;
@@ -12643,18 +12693,23 @@ block_definitions[ 844 ].is_seethrough = true;
 block_definitions[ 844 ].renderOrder = RenderOrder_Translucent;
 
 // ORANGE_STAINED_GLASS_PANE (845)
-block_definitions[ 845 ].textures[ FACE_TOP ] = TEX_GLASS_ORANGE;
-block_definitions[ 845 ].textures[ FACE_BOTTOM ] = TEX_GLASS_ORANGE;
+block_definitions[ 845 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_ORANGE;
+block_definitions[ 845 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_ORANGE;
 block_definitions[ 845 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_ORANGE;
 block_definitions[ 845 ].textures[ FACE_FRONT ] = TEX_GLASS_ORANGE;
-block_definitions[ 845 ].textures[ FACE_LEFT ] = TEX_GLASS_ORANGE;
+block_definitions[ 845 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_ORANGE;
 block_definitions[ 845 ].textures[ FACE_BACK ] = TEX_GLASS_ORANGE;
-block_definitions[ 845 ].icon_texture = TEX_GLASS_ORANGE;
+block_definitions[ 845 ].icon_texture = TEX_GLASS_PANE_TOP_ORANGE;
 block_definitions[ 845 ].affected_by_redstone_power = false;
 block_definitions[ 845 ].casts_shadow = false;
 block_definitions[ 845 ].hardness = 0.449999988f;
+block_definitions[ 845 ].icon_is_isometric = true;
 block_definitions[ 845 ].is_seethrough = true;
+block_definitions[ 845 ].offset = { 0, 0, 7 };
 block_definitions[ 845 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 845 ].rotate_on_placement = true;
+block_definitions[ 845 ].scale = { 16, 16, 2 };
+block_definitions[ 845 ].tex_offset = { -7, 0, 0 };
 
 // ORANGE_TERRACOTTA (846)
 block_definitions[ 846 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_ORANGE;
@@ -13732,18 +13787,23 @@ block_definitions[ 913 ].is_seethrough = true;
 block_definitions[ 913 ].renderOrder = RenderOrder_Translucent;
 
 // PINK_STAINED_GLASS_PANE (914)
-block_definitions[ 914 ].textures[ FACE_TOP ] = TEX_GLASS_PINK;
-block_definitions[ 914 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PINK;
+block_definitions[ 914 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_PINK;
+block_definitions[ 914 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_PINK;
 block_definitions[ 914 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_PINK;
 block_definitions[ 914 ].textures[ FACE_FRONT ] = TEX_GLASS_PINK;
-block_definitions[ 914 ].textures[ FACE_LEFT ] = TEX_GLASS_PINK;
+block_definitions[ 914 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_PINK;
 block_definitions[ 914 ].textures[ FACE_BACK ] = TEX_GLASS_PINK;
-block_definitions[ 914 ].icon_texture = TEX_GLASS_PINK;
+block_definitions[ 914 ].icon_texture = TEX_GLASS_PANE_TOP_PINK;
 block_definitions[ 914 ].affected_by_redstone_power = false;
 block_definitions[ 914 ].casts_shadow = false;
 block_definitions[ 914 ].hardness = 0.449999988f;
+block_definitions[ 914 ].icon_is_isometric = true;
 block_definitions[ 914 ].is_seethrough = true;
+block_definitions[ 914 ].offset = { 0, 0, 7 };
 block_definitions[ 914 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 914 ].rotate_on_placement = true;
+block_definitions[ 914 ].scale = { 16, 16, 2 };
+block_definitions[ 914 ].tex_offset = { -7, 0, 0 };
 
 // PINK_TERRACOTTA (915)
 block_definitions[ 915 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_PINK;
@@ -15374,18 +15434,23 @@ block_definitions[ 1022 ].is_seethrough = true;
 block_definitions[ 1022 ].renderOrder = RenderOrder_Translucent;
 
 // PURPLE_STAINED_GLASS_PANE (1023)
-block_definitions[ 1023 ].textures[ FACE_TOP ] = TEX_GLASS_PURPLE;
-block_definitions[ 1023 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PURPLE;
+block_definitions[ 1023 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_PURPLE;
+block_definitions[ 1023 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_PURPLE;
 block_definitions[ 1023 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_PURPLE;
 block_definitions[ 1023 ].textures[ FACE_FRONT ] = TEX_GLASS_PURPLE;
-block_definitions[ 1023 ].textures[ FACE_LEFT ] = TEX_GLASS_PURPLE;
+block_definitions[ 1023 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_PURPLE;
 block_definitions[ 1023 ].textures[ FACE_BACK ] = TEX_GLASS_PURPLE;
-block_definitions[ 1023 ].icon_texture = TEX_GLASS_PURPLE;
+block_definitions[ 1023 ].icon_texture = TEX_GLASS_PANE_TOP_PURPLE;
 block_definitions[ 1023 ].affected_by_redstone_power = false;
 block_definitions[ 1023 ].casts_shadow = false;
 block_definitions[ 1023 ].hardness = 0.449999988f;
+block_definitions[ 1023 ].icon_is_isometric = true;
 block_definitions[ 1023 ].is_seethrough = true;
+block_definitions[ 1023 ].offset = { 0, 0, 7 };
 block_definitions[ 1023 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 1023 ].rotate_on_placement = true;
+block_definitions[ 1023 ].scale = { 16, 16, 2 };
+block_definitions[ 1023 ].tex_offset = { -7, 0, 0 };
 
 // PURPLE_TERRACOTTA (1024)
 block_definitions[ 1024 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_PURPLE;
@@ -16202,18 +16267,23 @@ block_definitions[ 1079 ].is_seethrough = true;
 block_definitions[ 1079 ].renderOrder = RenderOrder_Translucent;
 
 // RED_STAINED_GLASS_PANE (1080)
-block_definitions[ 1080 ].textures[ FACE_TOP ] = TEX_GLASS_RED;
-block_definitions[ 1080 ].textures[ FACE_BOTTOM ] = TEX_GLASS_RED;
+block_definitions[ 1080 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_RED;
+block_definitions[ 1080 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_RED;
 block_definitions[ 1080 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_RED;
 block_definitions[ 1080 ].textures[ FACE_FRONT ] = TEX_GLASS_RED;
-block_definitions[ 1080 ].textures[ FACE_LEFT ] = TEX_GLASS_RED;
+block_definitions[ 1080 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_RED;
 block_definitions[ 1080 ].textures[ FACE_BACK ] = TEX_GLASS_RED;
-block_definitions[ 1080 ].icon_texture = TEX_GLASS_RED;
+block_definitions[ 1080 ].icon_texture = TEX_GLASS_PANE_TOP_RED;
 block_definitions[ 1080 ].affected_by_redstone_power = false;
 block_definitions[ 1080 ].casts_shadow = false;
 block_definitions[ 1080 ].hardness = 0.449999988f;
+block_definitions[ 1080 ].icon_is_isometric = true;
 block_definitions[ 1080 ].is_seethrough = true;
+block_definitions[ 1080 ].offset = { 0, 0, 7 };
 block_definitions[ 1080 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 1080 ].rotate_on_placement = true;
+block_definitions[ 1080 ].scale = { 16, 16, 2 };
+block_definitions[ 1080 ].tex_offset = { -7, 0, 0 };
 
 // RED_TERRACOTTA (1081)
 block_definitions[ 1081 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_RED;
@@ -17302,18 +17372,23 @@ block_definitions[ 1157 ].is_seethrough = true;
 block_definitions[ 1157 ].renderOrder = RenderOrder_Translucent;
 
 // STAINED_GLASS_PANE (1158)
-block_definitions[ 1158 ].textures[ FACE_TOP ] = TEX_GLASS_WHITE;
-block_definitions[ 1158 ].textures[ FACE_BOTTOM ] = TEX_GLASS_WHITE;
+block_definitions[ 1158 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_WHITE;
+block_definitions[ 1158 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1158 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1158 ].textures[ FACE_FRONT ] = TEX_GLASS_WHITE;
-block_definitions[ 1158 ].textures[ FACE_LEFT ] = TEX_GLASS_WHITE;
+block_definitions[ 1158 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1158 ].textures[ FACE_BACK ] = TEX_GLASS_WHITE;
-block_definitions[ 1158 ].icon_texture = TEX_GLASS_WHITE;
+block_definitions[ 1158 ].icon_texture = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1158 ].affected_by_redstone_power = false;
 block_definitions[ 1158 ].casts_shadow = false;
 block_definitions[ 1158 ].hardness = 0.449999988f;
+block_definitions[ 1158 ].icon_is_isometric = true;
 block_definitions[ 1158 ].is_seethrough = true;
+block_definitions[ 1158 ].offset = { 0, 0, 7 };
 block_definitions[ 1158 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 1158 ].rotate_on_placement = true;
+block_definitions[ 1158 ].scale = { 16, 16, 2 };
+block_definitions[ 1158 ].tex_offset = { -7, 0, 0 };
 
 // STAINED_HARDENED_CLAY (1159)
 block_definitions[ 1159 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_WHITE;
@@ -20560,18 +20635,23 @@ block_definitions[ 1376 ].icon_texture = TEX_SHULKER_TOP_WHITE;
 block_definitions[ 1376 ].mineable = MINEABLE_PICKAXE;
 
 // WHITE_STAINED_GLASS_PANE (1377)
-block_definitions[ 1377 ].textures[ FACE_TOP ] = TEX_GLASS_WHITE;
-block_definitions[ 1377 ].textures[ FACE_BOTTOM ] = TEX_GLASS_WHITE;
+block_definitions[ 1377 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_WHITE;
+block_definitions[ 1377 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1377 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1377 ].textures[ FACE_FRONT ] = TEX_GLASS_WHITE;
-block_definitions[ 1377 ].textures[ FACE_LEFT ] = TEX_GLASS_WHITE;
+block_definitions[ 1377 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1377 ].textures[ FACE_BACK ] = TEX_GLASS_WHITE;
-block_definitions[ 1377 ].icon_texture = TEX_GLASS_WHITE;
+block_definitions[ 1377 ].icon_texture = TEX_GLASS_PANE_TOP_WHITE;
 block_definitions[ 1377 ].affected_by_redstone_power = false;
 block_definitions[ 1377 ].casts_shadow = false;
 block_definitions[ 1377 ].hardness = 0.449999988f;
+block_definitions[ 1377 ].icon_is_isometric = true;
 block_definitions[ 1377 ].is_seethrough = true;
+block_definitions[ 1377 ].offset = { 0, 0, 7 };
 block_definitions[ 1377 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 1377 ].rotate_on_placement = true;
+block_definitions[ 1377 ].scale = { 16, 16, 2 };
+block_definitions[ 1377 ].tex_offset = { -7, 0, 0 };
 
 // WHITE_TERRACOTTA (1378)
 block_definitions[ 1378 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_WHITE;
@@ -20873,18 +20953,23 @@ block_definitions[ 1399 ].is_seethrough = true;
 block_definitions[ 1399 ].renderOrder = RenderOrder_Translucent;
 
 // YELLOW_STAINED_GLASS_PANE (1400)
-block_definitions[ 1400 ].textures[ FACE_TOP ] = TEX_GLASS_YELLOW;
-block_definitions[ 1400 ].textures[ FACE_BOTTOM ] = TEX_GLASS_YELLOW;
+block_definitions[ 1400 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP_YELLOW;
+block_definitions[ 1400 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP_YELLOW;
 block_definitions[ 1400 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP_YELLOW;
 block_definitions[ 1400 ].textures[ FACE_FRONT ] = TEX_GLASS_YELLOW;
-block_definitions[ 1400 ].textures[ FACE_LEFT ] = TEX_GLASS_YELLOW;
+block_definitions[ 1400 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP_YELLOW;
 block_definitions[ 1400 ].textures[ FACE_BACK ] = TEX_GLASS_YELLOW;
-block_definitions[ 1400 ].icon_texture = TEX_GLASS_YELLOW;
+block_definitions[ 1400 ].icon_texture = TEX_GLASS_PANE_TOP_YELLOW;
 block_definitions[ 1400 ].affected_by_redstone_power = false;
 block_definitions[ 1400 ].casts_shadow = false;
 block_definitions[ 1400 ].hardness = 0.449999988f;
+block_definitions[ 1400 ].icon_is_isometric = true;
 block_definitions[ 1400 ].is_seethrough = true;
+block_definitions[ 1400 ].offset = { 0, 0, 7 };
 block_definitions[ 1400 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 1400 ].rotate_on_placement = true;
+block_definitions[ 1400 ].scale = { 16, 16, 2 };
+block_definitions[ 1400 ].tex_offset = { -7, 0, 0 };
 
 // YELLOW_TERRACOTTA (1401)
 block_definitions[ 1401 ].textures[ FACE_TOP ] = TEX_HARDENED_CLAY_STAINED_YELLOW;

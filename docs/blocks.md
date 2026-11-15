@@ -138,9 +138,12 @@ block rather than hand-tuned: opaque cubes use the defaults; binary-cutout
 tiles copy `GLASS`/leaves (see-through, `should_draw_*` off);
 partial-alpha tiles copy a translucent template like `GLASS_LIGHT_BLUE`;
 cross-quad plants copy the `Flowers` render template. Unrenderable shapes
-(banners, rails, panes...) are placeholder full cubes
+(banners, rails...) are placeholder full cubes
 until a render class exists for them — see `data/shapes.json` below for the
-workaround. Default
+workaround. Panes (`GLASS_PANE`, every `*_STAINED_GLASS_PANE`) sidestep a
+shape entry with the `scale [16,16,2]`/`offset [0,0,7]` thin plate plus
+`rotate_on_placement` — no neighbour connection, the wide front/back
+faces take the `glass*` tile and the four edges take `glass_pane_top*`. Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
 flags (`no_light`, `casts_shadow:false`); see existing `data/blocks/*.json`
 for the emitted levels.

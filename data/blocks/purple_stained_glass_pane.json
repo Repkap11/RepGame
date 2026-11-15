@@ -2,17 +2,35 @@
   "affected_by_redstone_power": false,
   "casts_shadow": false,
   "hardness": 0.449999988,
+  "icon": "glass_pane_top_purple",
+  "icon_is_isometric": true,
   "id": 1023,
   "is_seethrough": true,
   "name": "PURPLE_STAINED_GLASS_PANE",
+  "offset": [
+    0,
+    0,
+    7
+  ],
   "render_order": "Translucent",
+  "rotate_on_placement": true,
+  "scale": [
+    16,
+    16,
+    2
+  ],
+  "tex_offset": [
+    -7,
+    0,
+    0
+  ],
   "textures": {
     "back": "glass_purple",
-    "bottom": "glass_purple",
+    "bottom": "glass_pane_top_purple",
     "front": "glass_purple",
-    "left": "glass_purple",
+    "left": "glass_pane_top_purple",
     "right": "glass_pane_top_purple",
-    "top": "glass_purple"
+    "top": "glass_pane_top_purple"
   },
   "drops": []
 }
