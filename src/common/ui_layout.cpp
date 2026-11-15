@@ -294,7 +294,10 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                               .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
                             CLAY( { .id = CLAY_ID( "chest_items2" ),
                                     .layout = { .sizing = { CLAY_SIZING_FIXED( in.chest_slab_w ), CLAY_SIZING_FIXED( in.chest_slab_h ) } },
-                                    .floating = { .offset = { 0, 0 },
+                                    // Overlaps chest_items's top border by
+                                    // one cell margin so the seam between
+                                    // halves matches the row dividers.
+                                    .floating = { .offset = { 0, in.chest_cell_offset },
                                                   .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                                                   .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
                         }
@@ -663,10 +666,10 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     // bug (not a fit problem). Each pair gets a bit so warnings fire once
     // per newly-overlapping pair, not per resize event.
     uint64_t overlap_mask = 0;
-    const auto overlap = [ & ]( uint64_t bit, const char *name, const UiRect &a, const UiRect &b ) {
+    const auto overlap = [ & ]( uint64_t bit, const char *name, const UiRect &a, const UiRect &b, float allow_v = 0.0f ) {
         if ( !( finite( a ) && finite( b ) &&
                 a.left < b.right( ) - eps && a.right( ) > b.left + eps &&
-                a.bottom < b.top( ) - eps && a.top( ) > b.bottom + eps ) ) {
+                a.bottom < b.top( ) - eps - allow_v && a.top( ) > b.bottom + eps + allow_v ) ) {
             return;
         }
         overlap_mask |= bit;
@@ -676,22 +679,28 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
         }
     };
     // Container screens stack above the survival slab — never inside it.
-    overlap( 1ull << 0, "chest_items/survival_items", r.chest_items, r.survival_items );
-    overlap( 1ull << 50, "chest_items2/chest_items", r.chest_items2, r.chest_items );
-    overlap( 1ull << 51, "chest_items2/survival_items", r.chest_items2, r.survival_items );
-    overlap( 1ull << 1, "crafting_grid2/survival_items", r.crafting_grid2, r.survival_items );
-    overlap( 1ull << 2, "crafting_grid3/survival_items", r.crafting_grid3, r.survival_items );
-    overlap( 1ull << 3, "furnace_input/survival_items", r.furnace_input, r.survival_items );
-    overlap( 1ull << 4, "furnace_fuel/survival_items", r.furnace_fuel, r.survival_items );
-    // Crafting row: grid | gap | output are disjoint.
-    overlap( 1ull << 5, "crafting_grid2/gap", r.crafting_grid2, r.crafting_gap2 );
-    overlap( 1ull << 6, "crafting_gap2/out", r.crafting_gap2, r.crafting_out2 );
-    overlap( 1ull << 7, "crafting_grid3/gap", r.crafting_grid3, r.crafting_gap3 );
-    overlap( 1ull << 8, "crafting_gap3/out", r.crafting_gap3, r.crafting_out3 );
-    // Furnace trio are disjoint.
-    overlap( 1ull << 9, "furnace_input/fuel", r.furnace_input, r.furnace_fuel );
-    overlap( 1ull << 10, "furnace_output/fuel", r.furnace_output, r.furnace_fuel );
-    overlap( 1ull << 11, "furnace_input/output", r.furnace_input, r.furnace_output );
+    // chest_items2 overlaps chest_items by exactly one cell border (the
+    // seam between the double chest's halves) — more than that is a bug.
+    // Only checked when the group was declared this pass: undeclared ids
+    // return Clay's previous-layout rects, which legitimately overlap.
+    if ( in.surv_slab_w > 0.0f ) {
+        overlap( 1ull << 0, "chest_items/survival_items", r.chest_items, r.survival_items );
+        overlap( 1ull << 50, "chest_items2/chest_items", r.chest_items2, r.chest_items, in.chest_cell_offset );
+        overlap( 1ull << 51, "chest_items2/survival_items", r.chest_items2, r.survival_items );
+        overlap( 1ull << 1, "crafting_grid2/survival_items", r.crafting_grid2, r.survival_items );
+        overlap( 1ull << 2, "crafting_grid3/survival_items", r.crafting_grid3, r.survival_items );
+        overlap( 1ull << 3, "furnace_input/survival_items", r.furnace_input, r.survival_items );
+        overlap( 1ull << 4, "furnace_fuel/survival_items", r.furnace_fuel, r.survival_items );
+        // Crafting row: grid | gap | output are disjoint.
+        overlap( 1ull << 5, "crafting_grid2/gap", r.crafting_grid2, r.crafting_gap2 );
+        overlap( 1ull << 6, "crafting_gap2/out", r.crafting_gap2, r.crafting_out2 );
+        overlap( 1ull << 7, "crafting_grid3/gap", r.crafting_grid3, r.crafting_gap3 );
+        overlap( 1ull << 8, "crafting_gap3/out", r.crafting_gap3, r.crafting_out3 );
+        // Furnace trio are disjoint.
+        overlap( 1ull << 9, "furnace_input/fuel", r.furnace_input, r.furnace_fuel );
+        overlap( 1ull << 10, "furnace_output/fuel", r.furnace_output, r.furnace_fuel );
+        overlap( 1ull << 11, "furnace_input/output", r.furnace_input, r.furnace_output );
+    }
     // Search bar floats above the panel's items slab, never inside it.
     overlap( 1ull << 12, "search_box/creative_items", r.search_box, r.creative_items );
     // Pause rows are disjoint. Each adjacent pair takes a bit past the
@@ -736,6 +745,7 @@ UiLayoutInput ui_layout_input( const RepGameState &state ) {
     const InventoryRenderer &chest = state.ui.chest.inventory_renderer;
     in.chest_slab_w = slab_w( chest );
     in.chest_slab_h = static_cast<float>( chest.getItemsTop( ) - chest.getItemsBottom( ) );
+    in.chest_cell_offset = static_cast<float>( chest.getCellOffset( ) );
     in.craft_grid2_slab = slab_w( state.ui.crafting.grid2 );
     in.craft_grid3_slab = slab_w( state.ui.crafting.grid3 );
     in.craft_out_slab = slab_w( state.ui.crafting.output );

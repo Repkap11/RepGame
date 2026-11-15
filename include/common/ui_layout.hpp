@@ -74,6 +74,10 @@ struct UiLayoutInput {
     // re-derived here, so the border math stays renderer-owned.
     float chest_slab_w = 0;
     float chest_slab_h = 0;
+    // The chest slab's inner cell border (renderer cell offset): the
+    // second double-chest slab overlaps the first by this much so the
+    // seam between halves matches the inter-row dividers.
+    float chest_cell_offset = 0;
     // Square slabs at the survival stride: the 2x2/3x3 crafting grids and
     // output cell, and the furnace cells (input/output/fuel are all 1x1).
     float craft_grid2_slab = 0;

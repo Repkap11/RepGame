@@ -152,8 +152,10 @@ three rows), sets `pos2`/`paired`, and opens a second
 `CONTAINER_OPEN` subscription for the right half; `close_chest` drops
 both. `ui.chest.inventory_renderer2` draws the right half on the lower
 slab (`chest_items`), the left half's renderer moves up to the new
-`chest_items2` slab stacked on top, and `chest_backdrop2` frames both
-slabs plus survival. `ui.chest.drawn[]` is a combined 54-slot snapshot:
+`chest_items2` slab stacked on top — overlapping the lower slab by one
+cell border (`in.chest_cell_offset`) so the seam between halves matches
+the row dividers — and `chest_backdrop2` frames both slabs plus
+survival. `ui.chest.drawn[]` is a combined 54-slot snapshot:
 indices 0–26 map to `pos`, 27–53 to `pos2` — `chest_slot_parts`
 translates a combined index to its owning position + local slot so
 every click path (swap, half-pickup, shift-move, middle-move) writes

@@ -27,6 +27,7 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     // produce (stride*dim + a 0.1-stride border).
     in.chest_slab_w = 9.1f * stride;
     in.chest_slab_h = 3.1f * stride;
+    in.chest_cell_offset = 0.1f * stride;
     in.craft_grid2_slab = 2.1f * stride;
     in.craft_grid3_slab = 3.1f * stride;
     in.craft_out_slab = 1.1f * stride;
@@ -144,10 +145,11 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     snprintf( what, sizeof( what ), "%s: chest slab is 9x3 at stride", name );
     near_to( what, r.chest_items.width, 9.1f * s2 );
     near_to( what, r.chest_items.height, 3.1f * s2 );
-    // The double-chest variant stacks a second identical slab directly on
-    // the first (its left half's slots fill the upper panel).
-    snprintf( what, sizeof( what ), "%s: chest2 slab stacks on chest", name );
-    near_to( what, r.chest_items2.bottom, r.chest_items.top( ) );
+    // The double-chest variant stacks a second identical slab on the
+    // first, overlapping its top cell border so the seam between halves
+    // matches the row dividers (its left half fills the upper panel).
+    snprintf( what, sizeof( what ), "%s: chest2 slab overlaps chest border", name );
+    near_to( what, r.chest_items2.bottom, r.chest_items.top( ) - 0.1f * s2 );
     snprintf( what, sizeof( what ), "%s: chest2 slab mirrors chest", name );
     near_to( what, r.chest_items2.width, r.chest_items.width );
     near_to( what, r.chest_items2.height, r.chest_items.height );

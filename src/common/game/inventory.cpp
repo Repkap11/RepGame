@@ -740,8 +740,9 @@ void repgame_layout_containers( RepGameState &state ) {
         const UiSurvPin pin = ui_layout_surv_pin( in );
         const float headroom = in.screen_h - in.surv_slab_h - pin.strip_h - pin.pin_gap;
         // Reserve the 0.25-stride slab gap, the backdrop's 0.35-stride top
-        // pad, and a 0.15-stride edge margin.
-        const float fit = ( headroom - 0.75f * stride ) / ( 2.0f * in.chest_slab_h );
+        // pad, and a 0.15-stride edge margin; the second slab overlaps the
+        // first by its cell border (chest_cell_offset).
+        const float fit = ( headroom - 0.75f * stride + in.chest_cell_offset ) / ( 2.0f * in.chest_slab_h );
         if ( fit < 1.0f ) {
             const float chest_stride = stride * fmaxf( 0.3f, fit );
             for ( InventoryRenderer *r : { &state.ui.chest.inventory_renderer, &state.ui.chest.inventory_renderer2 } ) {
