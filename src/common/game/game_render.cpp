@@ -610,18 +610,21 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             cube_shader.set_uniform3f( "u_CameraPos", 0.0f, 0.0f, 0.0f );
             items.draw_held( globalGameState.world.renderer, sprite_shader, cube_shader );
         }
-        // The floating group's window backdrop frames the survival
-        // inventory too, so it paints first — the survival slab and the
-        // floating panels composite inside it. The container screens are
-        // mutually exclusive.
+        // The window is two overlapping frames — the shared frame around
+        // the survival inventory plus one hugging the floating panel
+        // group — so both paint before the slabs composite inside. The
+        // container screens are mutually exclusive.
         const UiLayoutRects &ui_rects = globalGameState.ui.layout.rects( );
         if ( repgame_crafting_grid_visible( globalGameState ) ) {
             const UiRect &backdrop = repgame_crafting_dim( globalGameState ) == 3 ? ui_rects.crafting_backdrop3 : ui_rects.crafting_backdrop2;
+            globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.surv_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
             globalGameState.ui.overlay.draw_panel_backdrop( backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         } else if ( globalGameState.ui.chest.open ) {
+            globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.surv_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
             globalGameState.ui.overlay.draw_panel_backdrop( globalGameState.ui.chest.paired ? ui_rects.chest_backdrop2 : ui_rects.chest_backdrop,
                                                           globalGameState.world.renderer, globalGameState.screen.ortho_center );
         } else if ( globalGameState.ui.furnace.open && globalGameState.world.get_furnace_contents( globalGameState.ui.furnace.pos ) != nullptr ) {
+            globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.surv_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
             globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.furnace_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         }
         globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );

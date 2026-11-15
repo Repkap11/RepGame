@@ -134,12 +134,13 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     near_to( what, r.search_box.left, r.creative_panel.left );
     near_to( what, r.search_box.width, r.creative_panel.width );
 
-    // Container screens float off the survival slab's top edge, all drawn
-    // at the survival stride (slab = stride*dim + 0.1*stride border).
+    // Container screens float a stack_gap (0.1 stride) off the survival
+    // slab's top edge, all drawn at the survival stride (slab =
+    // stride*dim + 0.1*stride border).
     const float s2 = in.surv_stride;
     const float surv_top = r.survival_items.top( );
     snprintf( what, sizeof( what ), "%s: chest bottom pins above survival", name );
-    near_to( what, r.chest_items.bottom, surv_top + 0.25f * s2 );
+    near_to( what, r.chest_items.bottom, surv_top + 0.1f * s2 );
     snprintf( what, sizeof( what ), "%s: chest slab centered", name );
     near_to( what, r.chest_items.center_x( ), r.survival_items.center_x( ) );
     snprintf( what, sizeof( what ), "%s: chest slab is 9x3 at stride", name );
@@ -164,7 +165,7 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
         snprintf( what, sizeof( what ), "%s: crafting %dx%d row centered", name, dim, dim );
         near_to( what, g.left, -group_w * 0.5f );
         snprintf( what, sizeof( what ), "%s: crafting %dx%d row above survival", name, dim, dim );
-        near_to( what, g.bottom, surv_top + 0.25f * s2 );
+        near_to( what, g.bottom, surv_top + 0.1f * s2 );
         snprintf( what, sizeof( what ), "%s: crafting %dx%d gap is one stride", name, dim, dim );
         near_to( what, gap.width, s2 );
         near_to( what, gap.left, g.right( ) );
@@ -173,34 +174,45 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
         snprintf( what, sizeof( what ), "%s: crafting %dx%d output centers on grid", name, dim, dim );
         near_to( what, out.center_y( ), g.center_y( ) );
     }
-    // Furnace: input | mid | output row with fuel centered below.
+    // Furnace: input | mid | output row with fuel centered below, the
+    // fuel cell's bottom at stack_gap like the other screens.
     snprintf( what, sizeof( what ), "%s: furnace fuel centered below", name );
     near_to( what, r.furnace_fuel.center_x( ), 0.0f );
-    near_to( what, r.furnace_fuel.bottom, surv_top + 1.15f * s2 );
+    near_to( what, r.furnace_fuel.bottom, surv_top + 0.1f * s2 );
     snprintf( what, sizeof( what ), "%s: furnace in/out row above fuel", name );
-    near_to( what, r.furnace_input.bottom, surv_top + 2.45f * s2 );
-    near_to( what, r.furnace_output.bottom, surv_top + 2.45f * s2 );
+    near_to( what, r.furnace_input.bottom, surv_top + 1.4f * s2 );
+    near_to( what, r.furnace_output.bottom, surv_top + 1.4f * s2 );
     snprintf( what, sizeof( what ), "%s: furnace input/output mirrored", name );
     near_to( what, r.furnace_input.center_x( ), -1.45f * s2 );
     near_to( what, r.furnace_output.center_x( ), 1.45f * s2 );
     snprintf( what, sizeof( what ), "%s: furnace mid spans the gap", name );
     near_to( what, r.furnace_mid.left, r.furnace_input.right( ) );
     near_to( what, r.furnace_mid.right( ), r.furnace_output.left );
-    // Backdrops: padded unions of each screen's panels + the survival slab.
-    const float bp = 0.35f * s2;
-    snprintf( what, sizeof( what ), "%s: chest backdrop unions + pads", name );
-    near_to( what, r.chest_backdrop.bottom, r.survival_items.bottom - bp );
+    // Backdrops: the shared survival-slab frame plus a per-screen frame
+    // hugging the floating panel group, each padded by bpad on all edges.
+    const float bp = 0.2f * s2;
+    snprintf( what, sizeof( what ), "%s: survival frame pads the slab", name );
+    near_to( what, r.surv_backdrop.bottom, r.survival_items.bottom - bp );
+    near_to( what, r.surv_backdrop.top( ), r.survival_items.top( ) + bp );
+    near_to( what, r.surv_backdrop.left, r.survival_items.left - bp );
+    near_to( what, r.surv_backdrop.right( ), r.survival_items.right( ) + bp );
+    snprintf( what, sizeof( what ), "%s: chest frame pads the chest slab", name );
+    near_to( what, r.chest_backdrop.bottom, r.chest_items.bottom - bp );
     near_to( what, r.chest_backdrop.top( ), r.chest_items.top( ) + bp );
-    near_to( what, r.chest_backdrop.left, fminf( r.chest_items.left, r.survival_items.left ) - bp );
-    snprintf( what, sizeof( what ), "%s: chest2 backdrop tops the second slab", name );
-    near_to( what, r.chest_backdrop2.bottom, r.survival_items.bottom - bp );
+    near_to( what, r.chest_backdrop.left, r.chest_items.left - bp );
+    snprintf( what, sizeof( what ), "%s: chest2 frame tops the second slab", name );
+    near_to( what, r.chest_backdrop2.bottom, r.chest_items.bottom - bp );
     near_to( what, r.chest_backdrop2.top( ), r.chest_items2.top( ) + bp );
-    near_to( what, r.chest_backdrop2.left, fminf( r.chest_items.left, r.survival_items.left ) - bp );
-    snprintf( what, sizeof( what ), "%s: crafting3 backdrop tops grid", name );
+    near_to( what, r.chest_backdrop2.left, r.chest_items.left - bp );
+    snprintf( what, sizeof( what ), "%s: crafting3 frame tops grid, spans row", name );
     near_to( what, r.crafting_backdrop3.top( ), r.crafting_grid3.top( ) + bp );
-    snprintf( what, sizeof( what ), "%s: furnace backdrop tops in/out row", name );
+    near_to( what, r.crafting_backdrop3.left, r.crafting_grid3.left - bp );
+    near_to( what, r.crafting_backdrop3.right( ), r.crafting_out3.right( ) + bp );
+    snprintf( what, sizeof( what ), "%s: furnace frame tops in/out row", name );
     near_to( what, r.furnace_backdrop.top( ), r.furnace_input.top( ) + bp );
-    snprintf( what, sizeof( what ), "%s: furnace backdrop covers fuel", name );
+    near_to( what, r.furnace_backdrop.left, r.furnace_input.left - bp );
+    near_to( what, r.furnace_backdrop.right( ), r.furnace_output.right( ) + bp );
+    snprintf( what, sizeof( what ), "%s: furnace frame covers fuel", name );
     is_true( what, r.furnace_backdrop.left <= r.furnace_fuel.left && r.furnace_backdrop.bottom <= r.furnace_fuel.bottom );
 
     // Touch controls: fixed screen positions — buttons are 4:3

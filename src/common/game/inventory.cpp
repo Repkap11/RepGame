@@ -739,10 +739,10 @@ void repgame_layout_containers( RepGameState &state ) {
     if ( in.chest_slab_h > 0.0f && in.surv_slab_h > 0.0f ) {
         const UiSurvPin pin = ui_layout_surv_pin( in );
         const float headroom = in.screen_h - in.surv_slab_h - pin.strip_h - pin.pin_gap;
-        // Reserve the 0.25-stride slab gap, the backdrop's 0.35-stride top
+        // Reserve the 0.1-stride slab gap, the backdrop's 0.2-stride top
         // pad, and a 0.15-stride edge margin; the second slab overlaps the
         // first by its cell border (chest_cell_offset).
-        const float fit = ( headroom - 0.75f * stride + in.chest_cell_offset ) / ( 2.0f * in.chest_slab_h );
+        const float fit = ( headroom - 0.45f * stride + in.chest_cell_offset ) / ( 2.0f * in.chest_slab_h );
         if ( fit < 1.0f ) {
             const float chest_stride = stride * fmaxf( 0.3f, fit );
             for ( InventoryRenderer *r : { &state.ui.chest.inventory_renderer, &state.ui.chest.inventory_renderer2 } ) {
@@ -1179,23 +1179,27 @@ static bool off_inventory_panels( RepGameState &state ) {
     const int cx = x - static_cast<int>( state.screen.width ) / 2;
     const int cy = -( y - static_cast<int>( state.screen.height ) / 2 );
     // Hit tests run against the visible items slabs (containsItemsPoint)
-    // or the window backdrop rects — the panel rects are laid out far
-    // wider than the slabs they frame, which would swallow clicks that are
-    // clearly outside the window.
+    // or the two window backdrop frames (survival frame + the screen's
+    // panel-group frame) — the dead areas between them count as
+    // inside-the-window where the frames overlap, but the shoulders
+    // beside a narrow upper group are outside and drop the held stack.
     const UiLayoutRects &ui_rects = state.ui.layout.rects( );
     if ( state.ui.chest.open &&
          ( state.ui.chest.inventory_renderer.containsItemsPoint( x, y ) ||
            ( state.ui.chest.paired && state.ui.chest.inventory_renderer2.containsItemsPoint( x, y ) ) ||
+           ui_rects.surv_backdrop.contains( cx, cy ) ||
            ( state.ui.chest.paired ? ui_rects.chest_backdrop2 : ui_rects.chest_backdrop ).contains( cx, cy ) ) ) {
         return false;
     }
     if ( state.ui.furnace.open &&
          ( state.ui.furnace.input.containsItemsPoint( x, y ) || state.ui.furnace.fuel.containsItemsPoint( x, y ) ||
-           state.ui.furnace.output.containsItemsPoint( x, y ) || ui_rects.furnace_backdrop.contains( cx, cy ) ) ) {
+           state.ui.furnace.output.containsItemsPoint( x, y ) || ui_rects.surv_backdrop.contains( cx, cy ) ||
+           ui_rects.furnace_backdrop.contains( cx, cy ) ) ) {
         return false;
     }
     if ( repgame_crafting_grid_visible( state ) &&
          ( repgame_crafting_grid( state ).containsItemsPoint( x, y ) || state.ui.crafting.output.containsItemsPoint( x, y ) ||
+           ui_rects.surv_backdrop.contains( cx, cy ) ||
            ( repgame_crafting_dim( state ) == 3 ? ui_rects.crafting_backdrop3 : ui_rects.crafting_backdrop2 ).contains( cx, cy ) ) ) {
         return false;
     }

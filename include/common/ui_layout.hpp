@@ -155,9 +155,14 @@ struct UiLayoutRects {
     // Furnace: input + output on the top row (furnace_mid is the text
     // gap between them), fuel centered below.
     UiRect furnace_input, furnace_mid, furnace_output, furnace_fuel;
-    // Window backdrops: each frames its screen's panels plus the survival
-    // slab with a 0.35-stride pad — one unified window. chest_backdrop2
-    // is the paired (54-slot) chest variant covering both slabs.
+    // Window backdrops: each container screen draws two frames — the
+    // shared surv_backdrop hugging the survival slab, plus the screen's
+    // own rect hugging its floating panel group — each padded by the
+    // same 0.2-stride frame on every edge, so the window reads uniform
+    // even where the upper group is narrower than the survival slab.
+    // chest_backdrop2 is the paired (54-slot) variant covering both
+    // chest slabs.
+    UiRect surv_backdrop;
     UiRect chest_backdrop;
     UiRect chest_backdrop2;
     UiRect crafting_backdrop2, crafting_backdrop3;

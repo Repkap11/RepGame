@@ -278,18 +278,23 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                     // The container screens float off the survival slab's
                     // top edge at the survival grid's stride — every screen
                     // is declared unconditionally so its rect is always
-                    // fresh (only the open one draws).
+                    // fresh (only the open one draws). stack_gap is the
+                    // slab-edge gap under each floating group: with the two
+                    // cell borders it makes the divider between a screen's
+                    // panels and the player inventory the same width as the
+                    // window's outer frame.
                     const float s2 = in.surv_stride;
+                    const float stack_gap = 0.1f * s2;
                     if ( s2 > 0.0f ) {
                         // Slab sizes are the panels' measured items dims —
                         // the renderer owns the stride+border math.
-                        // Chest: 9x3 slab, bottom edge a quarter stride
-                        // above the survival slab. A double chest stacks a
-                        // second identical slab directly on top — declared
+                        // Chest: 9x3 slab, bottom edge stack_gap above the
+                        // survival slab. A double chest stacks a second
+                        // identical slab directly on top — declared
                         // unconditionally like every panel.
                         CLAY( { .id = CLAY_ID( "chest_items" ),
                                 .layout = { .sizing = { CLAY_SIZING_FIXED( in.chest_slab_w ), CLAY_SIZING_FIXED( in.chest_slab_h ) } },
-                                .floating = { .offset = { 0, -0.25f * s2 },
+                                .floating = { .offset = { 0, -stack_gap },
                                               .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                                               .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
                             CLAY( { .id = CLAY_ID( "chest_items2" ),
@@ -310,7 +315,7 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                                     .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
                                                 .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
                                                 .layoutDirection = CLAY_LEFT_TO_RIGHT },
-                                    .floating = { .offset = { 0, -0.25f * s2 },
+                                    .floating = { .offset = { 0, -stack_gap },
                                                   .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                                                   .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
                                 CLAY( { .id = CLAY_IDI( "crafting_grid", dim ),
@@ -323,12 +328,13 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                         }
                         // Furnace: input | mid gap | output on the top
                         // row, fuel centered below with a 0.2-stride gap;
-                        // the fuel cell's bottom pins at 1.15 strides.
+                        // the fuel cell's bottom pins at stack_gap like
+                        // the other screens.
                         CLAY( { .id = CLAY_ID( "furnace_group" ),
                                 .layout = { .sizing = { CLAY_SIZING_FIT( ), CLAY_SIZING_FIT( ) },
                                             .childAlignment = { .x = CLAY_ALIGN_X_CENTER },
                                             .layoutDirection = CLAY_TOP_TO_BOTTOM },
-                                .floating = { .offset = { 0, -1.15f * s2 },
+                                .floating = { .offset = { 0, -stack_gap },
                                               .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
                                               .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
                             CLAY( { .id = CLAY_ID( "furnace_top" ),
@@ -535,9 +541,14 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_.furnace_output = rect_of( CLAY_ID( "furnace_output" ) );
     this->rects_.furnace_fuel = rect_of( CLAY_ID( "furnace_fuel" ) );
 
-    // Window backdrops: the padded union of the screen's panels and the
-    // survival slab — the gap between them clicks as inside-the-window.
-    const float bpad = 0.35f * in.surv_stride;
+    // Window backdrops: every container screen draws two frames — a
+    // shared one hugging the survival slab and one hugging the screen's
+    // floating panel group — each padded by bpad on all four edges. The
+    // upper group is narrower than the survival slab on the crafting and
+    // furnace screens, so a single union rect would leave a wide empty
+    // side pad; two padded unions keep the frame thickness uniform, and
+    // the pad overlap across the stack_gap bridge keeps the pair joined.
+    const float bpad = 0.2f * in.surv_stride;
     const auto uni = []( UiRect a, const UiRect &b ) {
         const float l = fminf( a.left, b.left ), r = fmaxf( a.right( ), b.right( ) );
         const float bt = fminf( a.bottom, b.bottom ), t = fmaxf( a.top( ), b.top( ) );
@@ -554,11 +565,12 @@ void UiLayout::compute( const UiLayoutInput &in ) {
         r.height += 2.0f * bpad;
         return r;
     };
-    this->rects_.chest_backdrop = inflate( uni( this->rects_.chest_items, this->rects_.survival_items ) );
-    this->rects_.chest_backdrop2 = inflate( uni( uni( this->rects_.chest_items2, this->rects_.chest_items ), this->rects_.survival_items ) );
-    this->rects_.crafting_backdrop2 = inflate( uni( uni( this->rects_.crafting_grid2, this->rects_.crafting_out2 ), this->rects_.survival_items ) );
-    this->rects_.crafting_backdrop3 = inflate( uni( uni( this->rects_.crafting_grid3, this->rects_.crafting_out3 ), this->rects_.survival_items ) );
-    this->rects_.furnace_backdrop = inflate( uni( uni( uni( this->rects_.furnace_input, this->rects_.furnace_output ), this->rects_.furnace_fuel ), this->rects_.survival_items ) );
+    this->rects_.surv_backdrop = inflate( this->rects_.survival_items );
+    this->rects_.chest_backdrop = inflate( this->rects_.chest_items );
+    this->rects_.chest_backdrop2 = inflate( uni( this->rects_.chest_items2, this->rects_.chest_items ) );
+    this->rects_.crafting_backdrop2 = inflate( uni( this->rects_.crafting_grid2, this->rects_.crafting_out2 ) );
+    this->rects_.crafting_backdrop3 = inflate( uni( this->rects_.crafting_grid3, this->rects_.crafting_out3 ) );
+    this->rects_.furnace_backdrop = inflate( uni( uni( this->rects_.furnace_input, this->rects_.furnace_output ), this->rects_.furnace_fuel ) );
 
     this->rects_.sign_panel = rect_of( CLAY_ID( "sign_panel" ) );
     this->rects_.sign_title = rect_of( CLAY_ID( "sign_title" ) );
@@ -635,6 +647,7 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     };
     screen( UI_OVERFLOW_HUD, "hud_strip", r.hud_strip );
     screen( UI_OVERFLOW_SURVIVAL, "survival_items", r.survival_items );
+    screen( UI_OVERFLOW_SURVIVAL, "surv_backdrop", r.surv_backdrop );
     // The creative screen's drawn parts: items slab + floating search bar
     // (the panel is undrawn bounds and may legitimately be screen-tall).
     screen( UI_OVERFLOW_CREATIVE, "creative_items", r.creative_items );

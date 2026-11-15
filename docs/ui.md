@@ -59,13 +59,17 @@ resize time rather than as a visual bug.
 Container screens — chest, the furnace trio, and the crafting grid +
 output (both 2x2 and 3x3 variants declared, so `table_open` toggles just
 re-apply) — get a window backdrop that unifies them with the player
-inventory: the layout pass computes each `*_backdrop` rect as the padded
-union of the screen's panels and the survival items slab,
-`UIOverlay::draw_panel_backdrop` paints one flat quad through the shared
-ui_overlay shader *before* the panels and inventory slab composite inside
-it, and `off_inventory_panels` treats the rect's dead areas (the gap
-included) as inside-the-window rather than "outside every panel".
-Outside a backdrop, clicks hit-test the visible items slab
+inventory: the layout pass computes the shared `surv_backdrop` framing
+the survival items slab plus a per-screen `*_backdrop` rect framing the
+screen's floating panel group, each padded by the same 0.2-stride frame
+on all four edges (the two frames overlap across the stack_gap bridge,
+so the window reads as one shape that hugs narrow upper groups instead
+of spanning the survival slab's width).
+`UIOverlay::draw_panel_backdrop` paints both flat quads through the
+shared ui_overlay shader *before* the panels and inventory slab
+composite inside them, and `off_inventory_panels` treats the union of
+the two frames as inside-the-window rather than "outside every panel".
+Outside the frames, clicks hit-test the visible items slab
 (`containsItemsPoint`) — the layout panel rect is laid out far wider than
 the slab, so the items rect is what "outside the window" means for
 held-stack drops.
@@ -111,8 +115,8 @@ in-chunk index, `chests_loaded` flag, persisted per chunk —
 in multiplayer — sends `CONTAINER_OPEN` through
 `state.multiplayer.containers`. The layout pass places the chest slab
 where the crafting grid sits — survival-stride cells, bottom edge
-floating just above the survival items slab — inside the
-`chest_backdrop` window framing chest + survival slabs. Inbound
+floating just above the survival items slab — framed by the
+`chest_backdrop` + `surv_backdrop` window frames. Inbound
 `CONTAINER_*` frames only write World state (`NetContainers` never
 touches `ui`); the open panel
 repaints by pulling each tick — `repgame_chest_sync_icons` diffs
@@ -154,8 +158,8 @@ both. `ui.chest.inventory_renderer2` draws the right half on the lower
 slab (`chest_items`), the left half's renderer moves up to the new
 `chest_items2` slab stacked on top — overlapping the lower slab by one
 cell border (`in.chest_cell_offset`) so the seam between halves matches
-the row dividers — and `chest_backdrop2` frames both slabs plus
-survival. `ui.chest.drawn[]` is a combined 54-slot snapshot:
+the row dividers — and `chest_backdrop2` frames both chest slabs
+(`surv_backdrop` frames the survival slab as usual). `ui.chest.drawn[]` is a combined 54-slot snapshot:
 indices 0–26 map to `pos`, 27–53 to `pos2` — `chest_slot_parts`
 translates a combined index to its owning position + local slot so
 every click path (swap, half-pickup, shift-move, middle-move) writes
@@ -191,8 +195,8 @@ tick (slots via `ui.furnace.drawn[]`, aux into `cook_progress`/
 (world write + repaint + `CONTAINER_SET_SLOT`). Furnace panels are
 three 1x1 `InventoryRenderer`s placed by the layout pass — input and
 output on the top row, fuel centered below, all floating above the
-survival inventory. The draw pass adds a window backdrop
-(`furnace_backdrop`) unifying the group with the player inventory, plus
+survival inventory. The draw pass adds the window backdrop frames
+(`surv_backdrop` + `furnace_backdrop`), plus
 a cook-progress percent and remaining burn seconds in the `furnace_mid`
 gap between the input/output panels. `World::tick_furnaces`
 advances every loaded furnace each tick in singleplayer (fuel burn →
