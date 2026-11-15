@@ -79,7 +79,11 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    which chunk faces can be seen from the current center →
    `calculate_sides`), apply queued network diffs
    (`apply_pending_diffs`), `light_submit_finalize`
-   (`docs/lighting.md`), upload the worker-built mesh
+   (`docs/lighting.md`), a whole-volume dirty mark when the slot's
+   `light.texture` survived a recycle (only `release_terrain` frees it —
+   `load_terrain` flags it `tex_stale` so `Chunk::draw` binds the sky
+   fallback, and the mark makes the next upload pass refresh it in place),
+   upload the worker-built mesh
    (`program_terrain`), eager `light_ensure_texture`, then push
    to `just_finalized` for `MobManager`/`ItemManager` adoption
    (`World::render`). When pending diffs changed cells after the worker

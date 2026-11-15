@@ -383,6 +383,12 @@ int test_chunk_edits( ) {
         slot->load_terrain( storage );
         check_bool( "reuse: sky slot cells freed", slot->cells == nullptr && slot->is_empty_chunk );
         check_bool( "reuse: sky slot edits cleared", !slot->has_edits( ) );
+        // The slot's GL light texture survives a recycle (only
+        // release_terrain frees it): the field it mirrors was just
+        // replaced, so it must be flagged stale — draw binds the sky
+        // fallback until a full-volume upload clears it.
+        check_bool( "reuse: sky slot light tex flagged stale",
+                    slot->light.tex_stale.load( std::memory_order_relaxed ) == 1 );
 
         Chunk *pristine2 = gen_chunk( storage, ground2 );
         const std::vector<BlockState> nat2 = snapshot_states( *pristine2 );
@@ -391,6 +397,8 @@ int test_chunk_edits( ) {
         slot->chunk_mod = ground2;
         slot->load_terrain( storage );
         check_bool( "reuse: second ground edits cleared", !slot->has_edits( ) );
+        check_bool( "reuse: second ground light tex flagged stale",
+                    slot->light.tex_stale.load( std::memory_order_relaxed ) == 1 );
         int drift = 0;
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; i++ ) {
             const BlockState now = slot->cells != nullptr ? slot->state_at( i ) : BLOCK_STATE_AIR;

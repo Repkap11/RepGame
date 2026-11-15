@@ -3958,6 +3958,9 @@ void Chunk::light_ensure_texture( ChunkLoader *loader ) {
     // smoother during streaming. Raw bytes differ from the smoothed result
     // by a few LSB at most, invisible for the frames it takes to land.
     this->light.tex_mode = 1;
+    // Whole volume now holds this position's field — the texture can be
+    // bound again (see Chunk::draw's tex_stale fallback).
+    this->light.tex_stale.store( 0, std::memory_order_relaxed );
     if ( loader != nullptr && self_smooth ) {
         // Claim the flip so repeated ensures don't re-mark while the staged
         // full-volume fill is in flight.
@@ -4195,6 +4198,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads, const long long bud
                 if ( chunk.light.tex_flip == stage_mode ) {
                     chunk.light.tex_flip = 0;
                 }
+                chunk.light.tex_stale.store( 0, std::memory_order_relaxed );
             }
             light_stage_pool_give( buf );
             continue;
@@ -4241,6 +4245,7 @@ void ChunkLoader::light_upload_dirty( const int max_uploads, const long long bud
             if ( chunk.light.tex_flip == want_mode ) {
                 chunk.light.tex_flip = 0;
             }
+            chunk.light.tex_stale.store( 0, std::memory_order_relaxed );
         }
     }
     // Re-queue whatever the budget left behind: staged buffers stay READY on

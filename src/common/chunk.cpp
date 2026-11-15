@@ -389,7 +389,7 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shad
         const long long t_bind = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
         this->light_ensure_texture( );
-        if ( this->light.texture != 0 ) {
+        if ( this->light.texture != 0 && !this->light.tex_stale.load( std::memory_order_relaxed ) ) {
             // The light unit's glActiveTexture is hoisted to
             // ChunkLoader::draw — nothing between chunk draws reselects it.
             glBindTexture( GL_TEXTURE_3D, this->light.texture );
@@ -399,9 +399,10 @@ void Chunk::draw( const Renderer &renderer, const Texture &texture, Shader &shad
             // render pass (~6000 lookups/frame).
             glUniform3f( light_base_loc, light_base.x, light_base.y, light_base.z );
         } else {
-            // Texture create deferred by the per-frame budget — draw the
-            // shared full-sky stand-in instead of whatever volume the
-            // previous chunk left bound.
+            // No texture yet (create deferred by the per-frame budget) or
+            // the texture holds a previous position's field (tex_stale) —
+            // draw the shared full-sky stand-in instead of whatever volume
+            // the previous chunk left bound.
             glBindTexture( GL_TEXTURE_3D, light_fallback_texture( ) );
         }
         light_dbg_us_bind += std::chrono::duration_cast<std::chrono::microseconds>(
@@ -773,6 +774,12 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     this->light.write_tick.store( 0, std::memory_order_relaxed );
     this->light.upload_defers = 0;
     this->light.uploaded_once = 0;
+    // The light texture survives a slot reuse (only release_terrain frees
+    // it, and parked re-entry can beat the deferred release) while this
+    // load just replaced the field it mirrors — flag the GPU copy stale so
+    // draw falls back to the sky volume until a full upload lands. Can't
+    // glDeleteTextures here: this runs on a terrain worker.
+    this->light.tex_stale.store( 1, std::memory_order_relaxed );
     // See release_terrain — invalidates any staged upload claimed by a
     // worker before this slot was reassigned.
     light_reset_staging( this );

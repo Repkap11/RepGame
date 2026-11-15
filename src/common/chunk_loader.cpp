@@ -356,6 +356,17 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     const long long t_lfin = now_us( );
     this->light_submit_finalize( chunk );
     light_dbg_us_light_fin += now_us( ) - t_lfin;
+    // A recycled slot keeps its previous position's light texture (only
+    // release_terrain frees it, and a fast park re-entry beats the deferred
+    // release) while load_terrain flagged it tex_stale — draw shows the sky
+    // fallback, but nothing would refresh the volume until the queued light
+    // finalize happened to re-mark it. The field was just rewritten
+    // wholesale, so mark it all: with uploaded_once reset the chunk counts
+    // as fresh and the upload lands on the next pass (clearing tex_stale),
+    // same as a first-draw create fill.
+    if ( chunk.light.texture != 0 ) {
+        this->light_mark_dirty_all( chunk );
+    }
     if ( this->async_remesh_enabled( ) && chunk.needs_repopulation ) {
         // Pending diffs rewrote cells after the worker meshed — don't upload
         // the stale mesh. The chunk stays LIVE but undrawn until its async
@@ -1868,7 +1879,8 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                     if ( light_chunk != nullptr ) {
                         light_chunk->light_ensure_texture( this );
                     }
-                    if ( light_chunk != nullptr && light_chunk->light.texture != 0 ) {
+                    if ( light_chunk != nullptr && light_chunk->light.texture != 0 &&
+                         !light_chunk->light.tex_stale.load( std::memory_order_relaxed ) ) {
                         glBindTexture( GL_TEXTURE_3D, light_chunk->light.texture );
                         const glm::vec3 light_base = glm::vec3( key.chunk_pos * CHUNK_SIZE_I ) - render_origin;
                         glUniform3f( light_base_loc, light_base.x, light_base.y, light_base.z );

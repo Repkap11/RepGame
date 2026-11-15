@@ -197,7 +197,12 @@ finalize for drawable chunks so the cost isn't bunched into the first
 camera pan. Creation is capped per frame (`LIGHT_ENSURE_MAX_PER_FRAME`,
 reset by `light_frame_begin`); chunks waiting on the cap draw the shared
 full-sky stand-in (`light_fallback_texture`) instead of a neighbor's
-volume.
+volume. A recycled slot keeps its texture object across repositioning
+(only `release_terrain` frees it, and a fast park re-entry can beat the
+deferred release): `load_terrain` flags it `tex_stale` so it keeps
+drawing the stand-in until the full-volume re-upload that
+`finalize_loaded_chunk` queues lands — without it a portal hop binds the
+previous position's field (nether sky=0 terrain in the overworld).
 
 The smoothed presentation fill is ~25x the raw expand per texel, so under
 "Smoother" it runs on the light workers instead of synchronously in the

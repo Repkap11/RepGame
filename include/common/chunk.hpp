@@ -234,6 +234,14 @@ struct ChunkLight {
     // fill is mostly correct and beats showing a black hole while seeds
     // are still pending. Render thread only; reset when the slot is reused.
     int uploaded_once = 0;
+    // The GPU volume's contents predate this slot's current position:
+    // load_terrain sets it (terrain thread — it can't delete GL objects)
+    // when the field is replaced; a full-volume upload (ensure's creation
+    // fill or a 34^3 dirty/staged upload) clears it. Chunk::draw binds the
+    // shared sky fallback while a stale texture exists — a recycled slot's
+    // previous-position field (nether sky=0 after a portal hop) must never
+    // reach the screen.
+    std::atomic<int> tex_stale{ 0 };
     // Presentation mode the texture was last fully filled under:
     // 0 = never filled, 1 = raw expand, 2 = smoothed. A mismatch vs the
     // current desired mode (Shadows toggle, or the chunk crossing
