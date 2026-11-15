@@ -71,6 +71,7 @@ int test_dimension( ) {
         p.src_center = src_center;
         p.pending_start_tick = gs.tick_number;
         p.pending_diff_snap = 0;
+        p.pending_wait_logged = 0;
     };
     auto feet_of = [ & ]( const RepGameState &gs ) {
         return glm::dvec3( gs.camera.pos.x, gs.camera.pos.y - gs.camera.eye_height, gs.camera.pos.z );
@@ -578,9 +579,10 @@ int test_dimension( ) {
 
     // ---- Window-edge site scan: unloaded rows don't veto the column ----
     // The overworld build-site scan range (300..-90) is wider than the
-    // loaded chunk window — a timeout resolve scans it with most rows
-    // absent. LAST_BLOCK_ID must skip the row, not poison the column, or
-    // every overworld build falls through to the WATER_LEVEL+2 ledge.
+    // loaded chunk window — the gate passes because every in-window
+    // search-box chunk is live, but most scan rows are still absent.
+    // LAST_BLOCK_ID must skip the row, not poison the column, or every
+    // overworld build falls through to the WATER_LEVEL+2 ledge.
     {
         RepGameState &gs = *new RepGameState( );
         gs.tick_number = 0;
@@ -595,10 +597,9 @@ int test_dimension( ) {
             }
         }
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 11.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        // The search box is mostly absent -> gate fails, timeout resolves.
-        gs.portal.pending_start_tick = gs.tick_number - PORTAL_RESOLVE_TIMEOUT_TICKS - 1;
+        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
         repgame_portal_tick( gs );
-        check_bool( "surface scan: resolved on timeout", gs.portal.pending_build == 0 );
+        check_bool( "surface scan: resolved once box is live", gs.portal.pending_build == 0 );
         // Pass A must land on the loaded floor: sill row at y=10, portal
         // interior y 11..13 — NOT the y=2 ledge fallback.
         check_bool( "surface scan: sill on the loaded floor", world.get_loaded_block( glm::ivec3( 9, 10, 10 ) ).id == OBSIDIAN &&
@@ -627,13 +628,18 @@ int test_dimension( ) {
         repgame_portal_tick( gs );
         check_bool( "mp gate: snapshot latched", gs.portal.pending_diff_snap == 1 &&
                                                 gs.portal.pending_diff_target == 5 );
+        // Past the soft timeout an unconfirmed box still holds the resolve.
+        gs.portal.pending_start_tick = gs.tick_number - PORTAL_RESOLVE_TIMEOUT_TICKS - 1;
+        repgame_portal_tick( gs );
+        check_bool( "mp gate: pending past soft timeout", gs.portal.pending_build == 1 &&
+                                                        gs.portal.pending_wait_logged == 1 );
         gs.multiplayer.diff_boxes_done = 5;
         repgame_portal_tick( gs );
         check_bool( "mp gate: done catches up -> resolves", gs.portal.pending_build == 0 );
         gs.multiplayer.active = false;
     }
 
-    // ---- Timeout: resolve with whatever is loaded ----
+    // ---- MP gate: disconnect resolves; reconnect re-snapshots ----
     {
         RepGameState &gs = *new RepGameState( );
         gs.tick_number = 0;
@@ -643,10 +649,100 @@ int test_dimension( ) {
         gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
         world.set_loaded_block( glm::ivec3( 10, 7, 10 ), { STONE, 0, 0, STONE, 0 } );
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        // Leave the whole box non-live but pretend the wait already ran out.
+        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        gs.multiplayer.active = true;
+        gs.multiplayer.diff_boxes_sent = 5;
+        gs.multiplayer.diff_boxes_done = 3;
+        repgame_portal_tick( gs );
+        check_bool( "mp drop: pending while connected", gs.portal.pending_build == 1 );
+        gs.multiplayer.active = false;
+        repgame_portal_tick( gs );
+        check_bool( "mp drop: disconnect resolves", gs.portal.pending_build == 0 );
+        // Reconnect resets both counters — sent below the old target must
+        // re-snapshot or the gate could never pass.
+        stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
+        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        gs.multiplayer.active = true;
+        gs.multiplayer.diff_boxes_sent = 9;
+        gs.multiplayer.diff_boxes_done = 6;
+        repgame_portal_tick( gs );
+        check_bool( "mp reconn: snapshot taken", gs.portal.pending_diff_target == 9 );
+        // "Reconnect": counters restart from a smaller epoch.
+        gs.multiplayer.diff_boxes_sent = 2;
+        gs.multiplayer.diff_boxes_done = 2;
+        repgame_portal_tick( gs );
+        check_bool( "mp reconn: target re-snapshotted + resolves", gs.portal.pending_diff_target == 2 &&
+                                                                 gs.portal.pending_build == 0 );
+        gs.multiplayer.active = false;
+    }
+
+    // ---- Give-up: soft timeout logs; the hard cap never builds ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
+        world.set_loaded_block( glm::ivec3( 10, 7, 10 ), { STONE, 0, 0, STONE, 0 } );
+        stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
+        // The whole search box stays non-live: the gate never passes.
+        // Soft timeout only logs — the travel stays pending and builds nothing.
         gs.portal.pending_start_tick = gs.tick_number - PORTAL_RESOLVE_TIMEOUT_TICKS - 1;
         repgame_portal_tick( gs );
-        check_bool( "timeout: resolves anyway", gs.portal.pending_build == 0 );
+        check_bool( "give-up: still pending past soft timeout", gs.portal.pending_build == 1 );
+        check_bool( "give-up: wait logged once", gs.portal.pending_wait_logged == 1 );
+        check_bool( "give-up: feet still at hold", glm::distance( feet_of( gs ), glm::dvec3( 10.5, 8.0, 10.5 ) ) < 0.001 );
+        // Hard cap: pending clears, nothing is built, the player is left at
+        // the hold feet.
+        gs.portal.pending_start_tick = gs.tick_number - PORTAL_RESOLVE_GIVEUP_TICKS - 1;
+        repgame_portal_tick( gs );
+        check_bool( "give-up: pending cleared", gs.portal.pending_build == 0 );
+        check_bool( "give-up: feet at hold", glm::distance( feet_of( gs ), glm::dvec3( 10.5, 8.0, 10.5 ) ) < 0.001 );
+        // A wrongly-built frame would land inside the ±24 site spiral of
+        // src_center or on the ledge — all covered by this window.
+        bool stray = false;
+        for ( int x = -20; x <= 40 && !stray; x++ ) {
+            for ( int y = -5; y <= 25 && !stray; y++ ) {
+                for ( int z = -20; z <= 40 && !stray; z++ ) {
+                    const BlockID id = world.get_loaded_block( glm::ivec3( x, y, z ) ).id;
+                    stray = id == PORTAL || id == OBSIDIAN;
+                }
+            }
+        }
+        check_bool( "give-up: no frame written in the box", !stray );
+    }
+
+    // ---- Give-up adopts an already-loaded portal ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
+        // Lit 2x3 x-facing frame, same shape as the far-portal case.
+        for ( int dx = 53; dx <= 56; dx++ ) {
+            for ( int dy = 55; dy <= 59; dy++ ) {
+                const bool edge = dx == 53 || dx == 56 || dy == 55 || dy == 59;
+                world.set_loaded_block( glm::ivec3( dx, dy, 10 ),
+                                        edge ? BlockState{ OBSIDIAN, 0, 0, OBSIDIAN, 0 } : BlockState{ PORTAL, 0, 0, PORTAL, 0 } );
+            }
+        }
+        stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 5, 10, 5 ) );
+        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        // MP diffs outstanding keep the gate unmet until the hard cap.
+        gs.multiplayer.active = true;
+        gs.multiplayer.diff_boxes_sent = 4;
+        gs.multiplayer.diff_boxes_done = 1;
+        gs.portal.pending_start_tick = gs.tick_number - PORTAL_RESOLVE_GIVEUP_TICKS - 1;
+        repgame_portal_tick( gs );
+        const glm::dvec3 feet = feet_of( gs );
+        check_bool( "give-up adopt: resolved", gs.portal.pending_build == 0 );
+        check_bool( "give-up adopt: inside the loaded plate", floor( feet.z ) == 10 && feet.y == 56.0 &&
+                                                              feet.x >= 54.0 && feet.x <= 56.0 );
+        check_bool( "give-up adopt: must_exit set", gs.portal.must_exit == 1 );
+        gs.multiplayer.active = false;
     }
 
     return failures;

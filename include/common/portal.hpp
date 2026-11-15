@@ -35,9 +35,14 @@ class World;
 // SOURCE portal's interior centre (not the drop point — the drop can land
 // far off the source x/z and at a wildly different y).
 #define PORTAL_SEARCH_R 64
-// Give up waiting on the readiness gate after this many ticks (~10 s at
-// UPS_RATE) and resolve with whatever is loaded.
+// Soft timeout (~10 s at UPS_RATE): the readiness gate keeps the player
+// frozen past this — it only logs that the wait is taking a while.
 #define PORTAL_RESOLVE_TIMEOUT_TICKS ( 10 * UPS_RATE )
+// Hard cap (~60 s): stop waiting entirely. The resolve may adopt an
+// existing portal that's already loaded, but never builds a new frame —
+// building on unconfirmed chunks is what planted frames beside existing
+// portals.
+#define PORTAL_RESOLVE_GIVEUP_TICKS ( 60 * UPS_RATE )
 
 // A detected empty obsidian ring ready for ignition.
 struct PortalFrame {
@@ -62,6 +67,7 @@ struct PortalState {
     long pending_start_tick = 0;   // tick_number when the travel began (timeout clock)
     uint32_t pending_diff_target = 0; // MP gate: diff_boxes_sent snapshot to wait for
     int pending_diff_snap = 0;     // MP gate: the snapshot above has been taken
+    int pending_wait_logged = 0;   // soft-timeout "still waiting" line already logged
 };
 
 // Detect a complete empty obsidian ring containing `seed` (an interior-able

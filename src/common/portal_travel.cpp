@@ -290,6 +290,7 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
     p.src_center = src_center;
     p.pending_start_tick = state.tick_number;
     p.pending_diff_snap = 0;
+    p.pending_wait_logged = 0;
 }
 
 // The readiness gate for resolving a pending destination portal. False
@@ -331,8 +332,10 @@ bool portal_destination_ready( RepGameState &state, int &unmet ) {
     if ( state.multiplayer.is_active( ) ) {
         // First ready pass: remember how many diff boxes were in flight;
         // resolve once the server has confirmed all of them (in-order TCP
-        // serving means DONE for box N covers boxes 1..N).
-        if ( !p.pending_diff_snap ) {
+        // serving means DONE for box N covers boxes 1..N). A reconnect
+        // resets both counters to zero — if sent dropped below the target,
+        // re-snapshot against the new epoch or the gate could never pass.
+        if ( !p.pending_diff_snap || static_cast<int32_t>( state.multiplayer.diff_boxes_sent_count( ) - p.pending_diff_target ) < 0 ) {
             p.pending_diff_target = state.multiplayer.diff_boxes_sent_count( );
             p.pending_diff_snap = 1;
         }
@@ -345,10 +348,38 @@ bool portal_destination_ready( RepGameState &state, int &unmet ) {
     return true;
 }
 
-// Once the readiness gate passes (or the timeout fires): adopt the nearest
-// existing PORTAL cell as the exit (stand inside its plate), else pick a
-// build site from the LOADED world, carve the pocket (embedded drops) and
-// build the frame there.
+// The resolve's existing-portal half: scan the destination band's box for a
+// PORTAL cell and, on a hit, stand the player inside that plate. Shared by
+// the ready path and the give-up path — adopting a loaded portal is always
+// safe; only building needs confirmed chunks.
+static bool portal_resolve_adopt( RepGameState &state ) {
+    PortalState &p = state.portal;
+    int y_min, y_max;
+    portal_band_span( static_cast<DimensionId>( p.pending_dim ), y_min, y_max );
+    const glm::ivec3 search_center( p.src_center.x, static_cast<int>( floor( p.hold_feet.y ) ), p.src_center.z );
+    const auto t0 = std::chrono::steady_clock::now( );
+    glm::ivec3 found;
+    const bool have_portal = portal_find_nearest( state.world, search_center, y_min, y_max, found );
+    const long long search_us = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now( ) - t0 ).count( );
+    pr_debug( "portal search: %lld us (%s)", search_us, have_portal ? "found" : "missed" );
+    if ( !have_portal ) {
+        return false;
+    }
+    PortalFrame frame;
+    if ( portal_find_frame( state.world, found, frame ) ) {
+        portal_arrive_frame( state, frame );
+    } else {
+        portal_arrive_inside( state, found );
+    }
+    p.must_exit = 1;
+    return true;
+}
+
+// Once the readiness gate passes: adopt the nearest existing PORTAL cell as
+// the exit, else pick a build site from the LOADED world, carve the pocket
+// (embedded drops) and build the frame there. A gate that never passes can
+// still adopt a found portal at the give-up cap — but never builds: a build
+// on unconfirmed chunks is what planted frames beside real portals.
 static void portal_pending_tick( RepGameState &state ) {
     PortalState &p = state.portal;
     const glm::ivec3 hold_cell( glm::floor( p.hold_feet ) );
@@ -374,13 +405,27 @@ static void portal_pending_tick( RepGameState &state ) {
 
     int unmet = 0;
     const bool ready = portal_destination_ready( state, unmet );
-    if ( !ready && state.tick_number - p.pending_start_tick < PORTAL_RESOLVE_TIMEOUT_TICKS ) {
-        return;
-    }
+    const long elapsed = state.tick_number - p.pending_start_tick;
     if ( !ready ) {
         static const char *why[] = { "none", "chunk_center not at hold", "search-box chunk not live", "diff boxes pending" };
-        pr_debug( "portal resolve timed out after %d ticks (unmet: %s)",
-                  PORTAL_RESOLVE_TIMEOUT_TICKS, why[ unmet >= 0 && unmet <= 3 ? unmet : 0 ] );
+        const char *why_s = why[ unmet >= 0 && unmet <= 3 ? unmet : 0 ];
+        if ( elapsed < PORTAL_RESOLVE_GIVEUP_TICKS ) {
+            if ( elapsed >= PORTAL_RESOLVE_TIMEOUT_TICKS && !p.pending_wait_logged ) {
+                p.pending_wait_logged = 1;
+                pr_debug( "portal resolve still waiting after %d ticks (unmet: %s)", PORTAL_RESOLVE_TIMEOUT_TICKS, why_s );
+            }
+            return;
+        }
+        pr_debug( "portal resolve gave up after %d ticks (unmet: %s): not building", PORTAL_RESOLVE_GIVEUP_TICKS, why_s );
+        // Adopt a loaded portal if the search finds one, else leave the
+        // player frozen at the hold — anything already visible is safe to
+        // enter, but no new frame may be written off unconfirmed chunks.
+        p.pending_build = 0;
+        p.pending_carve = 0;
+        if ( !portal_resolve_adopt( state ) ) {
+            p.must_exit = 1;
+        }
+        return;
     }
 
     const int want_carve = p.pending_carve;
@@ -390,23 +435,7 @@ static void portal_pending_tick( RepGameState &state ) {
     p.pending_build = 0;
     p.pending_carve = 0;
 
-    int y_min, y_max;
-    portal_band_span( dst, y_min, y_max );
-    const glm::ivec3 search_center( p.src_center.x, static_cast<int>( floor( p.hold_feet.y ) ), p.src_center.z );
-    const auto t0 = std::chrono::steady_clock::now( );
-    glm::ivec3 found;
-    const bool have_portal = portal_find_nearest( state.world, search_center, y_min, y_max, found );
-    const long long search_us = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now( ) - t0 ).count( );
-    pr_debug( "portal search: %lld us (%s)", search_us, have_portal ? "found" : "missed" );
-
-    if ( have_portal ) {
-        PortalFrame frame;
-        if ( portal_find_frame( state.world, found, frame ) ) {
-            portal_arrive_frame( state, frame );
-        } else {
-            portal_arrive_inside( state, found );
-        }
-        p.must_exit = 1;
+    if ( portal_resolve_adopt( state ) ) {
         return;
     }
 

@@ -104,8 +104,16 @@ dimension name (`dim_name`, `dim_local_block_y`).
   destination y band) inside the *active* window to be `CHUNK_LIVE`, and
   (3) in multiplayer, `CHUNK_DIFF_DONE` confirmation of every diff box
   sent when the gate first passed (a snapshot — new requests can't
-  extend the wait). `PORTAL_RESOLVE_TIMEOUT_TICKS` unsticks it with
-  whatever is loaded.
+  extend the wait; if a reconnect resets the counters so sent drops
+  below the target, `portal_destination_ready` re-snapshots). The gate
+  never gives up early anymore: `PORTAL_RESOLVE_TIMEOUT_TICKS` is a
+  soft timeout that only logs "still waiting" once, and the hard cap
+  `PORTAL_RESOLVE_GIVEUP_TICKS` (60 s) resolves without building —
+  `portal_find_nearest` may still adopt an already-loaded portal, but
+  if none is found the player is simply left at `hold_feet`. Building
+  on chunks whose diffs never landed is what planted a new frame
+  beside the real portal, so the give-up path clears `pending_build`/
+  `pending_carve` and writes nothing.
 - **Resolve**: `portal_find_nearest` scans the box's live chunks for the
   closest existing PORTAL cell (horizontal distance to src_center, |dy|
   tie-break) and the player is stood inside its plate; otherwise the
