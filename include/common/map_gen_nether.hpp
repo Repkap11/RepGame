@@ -171,25 +171,36 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     // per-cell, so this is a column-level decision).
     MG_LET( float, surf_open, MG_TERN( pull < 0.5f, 1.0f, 0.0f ) )
 
-    // Biome patches: basalt deltas are basalt through the whole column; soul
-    // sand valleys swap the surface band to soul sand over soul soil.
-    MG_LET( float, biome, MAP_GEN_PERLIN2D( x, z, 0.004f, 2, MAP_SEED + 47 ) )
-    if ( biome >= 0.80f ) {
-        id = BASALT;
-    } else if ( biome >= 0.60f && biome < 0.70f ) {
+    // Biome provinces — the field runs at low frequency so each material
+    // covers hundreds of blocks instead of peppering. Basalt deltas are
+    // basalt shot through with blackstone blobs; blackstone flats are their
+    // own province; soul valleys swap the surface band to soul sand over
+    // soul soil. Provinces apply through the whole column, so fused masses
+    // and shelves inside them are made of the province rock.
+    MG_LET( float, biome, MAP_GEN_PERLIN2D( x, z, 0.0012f, 2, MAP_SEED + 47 ) )
+    if ( biome >= 0.72f ) {
+        MG_LET( float, bst, MAP_GEN_PERLIN3D( x, y, z, 0.05f, 3, MAP_SEED + 69 ) )
+        id = MG_TERN( bst > 0.60f, BLACKSTONE, BASALT );
+    } else if ( biome >= 0.66f && biome < 0.70f ) {
+        id = BLACKSTONE;
+    } else if ( biome >= 0.60f && biome < 0.63f ) {
         id = MG_TERN( surf_open > 0.5f && MG_F32( ly ) > floor_h - 3.0f, SOUL_SAND, SOUL_SOIL );
     }
-    // Fungal forests live on the surface crust only.
+    // Fungal forests live on the surface crust only — big contiguous
+    // forests, warped nested inside crimson.
     if ( surf_open > 0.5f && MG_F32( ly ) > floor_h - 2.5f && MG_F32( ly ) <= floor_h ) {
-        MG_LET( float, fungi, MAP_GEN_PERLIN2D( x, z, 0.03f, 2, MAP_SEED + 48 ) )
-        if ( fungi > 0.70f && fungi <= 0.78f ) {
+        MG_LET( float, fungi, MAP_GEN_PERLIN2D( x, z, 0.008f, 2, MAP_SEED + 48 ) )
+        if ( fungi > 0.70f && fungi <= 0.80f ) {
             id = CRIMSON_NYLIUM;
-        } else if ( fungi > 0.78f ) {
+        } else if ( fungi > 0.80f ) {
             id = WARPED_NYLIUM;
         }
     }
-    // Blackstone seams in the deep floor rock.
-    if ( surf_open > 0.5f && MG_F32( ly ) < floor_h - 30.0f && biome > 0.35f && biome < 0.45f ) {
+    // Blackstone seams show through in carved walls near the surface in
+    // ordinary netherrack provinces — players see it on cave faces without
+    // needing a dedicated flats province.
+    if ( surf_open > 0.5f && MG_F32( ly ) < floor_h - 8.0f && MG_F32( ly ) > floor_h - 26.0f && biome > 0.28f &&
+         biome < 0.34f ) {
         id = BLACKSTONE;
     }
 
