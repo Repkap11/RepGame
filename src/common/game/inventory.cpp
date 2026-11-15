@@ -15,6 +15,7 @@
 #include "common/light.hpp"
 #include "common/furnace.hpp"
 #include "common/smelting.hpp"
+#include "common/ui_layout.hpp"
 #include "common/game/game_internal.hpp"
 
 void RepGame::add_to_hotbar( const bool alsoSelect, const ItemID itemId ) {
@@ -29,27 +30,19 @@ void RepGame::add_to_hotbar( const bool alsoSelect, const ItemID itemId ) {
     }
 }
 
-// Moves every non-empty container slot into the player inventories
-// (survival first, hotbar for overflow). Items that fit nowhere vanish —
-// there are no dropped-item entities, consistent with the inventory-
-// close/drop paths. Used for break looting and the multiplayer
-// CONTAINER_CONTENTS loot snapshot.
-void repgame_loot_container( RepGameState &state, const InventorySlot *slots, int count ) {
+// Drops every non-empty container slot as an item entity at the
+// container's position — the same scatter as block drops, so contents
+// spill on the ground for anyone to grab. Used for break looting and the
+// multiplayer CONTAINER_CONTENTS loot snapshot.
+void repgame_loot_container( RepGameState &state, const glm::ivec3 &pos, const InventorySlot *slots, int count ) {
+    const glm::dvec3 drop_pos = glm::dvec3( pos ) + glm::dvec3( 0.5 );
     for ( int i = 0; i < count; i++ ) {
         const InventorySlot &slot = slots[ i ];
         if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
             continue;
         }
-        int leftover = state.survival_inventory.addItem( slot.item_id, slot.quantity );
-        if ( leftover > 0 ) {
-            const int hotbar_space = state.hotbar.spaceFor( slot.item_id );
-            const int to_hotbar = leftover < hotbar_space ? leftover : hotbar_space;
-            if ( to_hotbar > 0 ) {
-                state.hotbar.addItemWithQuantity( slot.item_id, to_hotbar, false );
-            }
-        }
+        state.world.items.spawn( slot.item_id, slot.quantity, drop_pos, repgame_item_drop_hop( ), 10 );
     }
-    state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
 void RepGame::open_chest( RepGameState &state, const glm::ivec3 &pos ) {
@@ -733,6 +726,27 @@ void repgame_layout_containers( RepGameState &state ) {
                                    &state.ui.furnace.output } ) {
         r->options.fixed_cell_stride = stride;
         r->compute_layout( w, h );
+    }
+
+    // A paired chest stacks a second 9x3 slab over the survival slab —
+    // the tallest container screen. When the two slabs plus the
+    // inter-slab gap can't fit in the space above the HUD strip, shrink
+    // the chest cells below the shared stride so both halves stay on
+    // screen (fixed-stride slab dims are linear in stride).
+    const UiLayoutInput in = ui_layout_input( state );
+    if ( in.chest_slab_h > 0.0f && in.surv_slab_h > 0.0f ) {
+        const UiSurvPin pin = ui_layout_surv_pin( in );
+        const float headroom = in.screen_h - in.surv_slab_h - pin.strip_h - pin.pin_gap;
+        // Reserve the 0.25-stride slab gap, the backdrop's 0.35-stride top
+        // pad, and a 0.15-stride edge margin.
+        const float fit = ( headroom - 0.75f * stride ) / ( 2.0f * in.chest_slab_h );
+        if ( fit < 1.0f ) {
+            const float chest_stride = stride * fmaxf( 0.3f, fit );
+            for ( InventoryRenderer *r : { &state.ui.chest.inventory_renderer, &state.ui.chest.inventory_renderer2 } ) {
+                r->options.fixed_cell_stride = chest_stride;
+                r->compute_layout( w, h );
+            }
+        }
     }
 }
 

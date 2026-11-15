@@ -118,9 +118,13 @@ slots that changed. Every local mutation funnels through
 `chest_sync_slot`: write the chunk, repaint the slot, send
 `CONTAINER_SET_SLOT` (optimistic — the server relays it to other
 viewers or pushes a correcting `CONTAINER_CONTENTS` back).
-Breaking an open chest loots it (`repgame_loot_container` locally, or
-`pending_container_loot` + a server snapshot in MP —
-`docs/multiplayer.md`).
+Breaking a chest spills its contents as item entities at the block
+(`repgame_loot_container` locally, or `pending_container_loot` + a
+server snapshot in MP — `docs/multiplayer.md`) — same scatter as block
+drops, for anyone to pick up. TNT loots the same way:
+`TntExplodeEvent` drops every container cell it destroys (and the
+inverse-blast terrain restore), so exploded chests spill like mined
+ones.
 
 ### Double chests
 
@@ -153,6 +157,14 @@ every click path (swap, half-pickup, shift-move, middle-move) writes
 and syncs the correct half, and `close_out_of_reach_containers` shuts
 the panel if the pair breaks up or either half leaves reach.
 
+The two-slab stack is the tallest container screen — on short windows
+it can overflow the top edge. `repgame_layout_containers` solves for
+that at resize: when two slabs plus the gap and backdrop pad can't fit
+in `screen_h - surv_slab_h - strip_h - pin_gap` (the pin math is shared
+via `ui_layout_surv_pin`), both chest renderers get a shrunken
+`fixed_cell_stride` so the pair stays on screen — chest cells draw a
+fraction below the survival stride at those sizes.
+
 ## Furnaces
 
 A placed `FURNACE`/`LIT_FURNACE` block is a 3-slot container
@@ -182,8 +194,9 @@ advances every loaded furnace each tick in singleplayer (fuel burn →
 cook progress → output, lit-block swap via `set_loaded_block`); in
 multiplayer the server ticks them instead (`docs/multiplayer.md`).
 Smelt/fuel tables are data-driven — `docs/items-crafting.md` "Smelting".
-Breaking a furnace loots all three slots (`repgame_loot_container`, or
-`pending_container_loot` + a server snapshot in MP).
+Breaking a furnace spills all three slots as item entities
+(`repgame_loot_container`, or `pending_container_loot` + a server
+snapshot in MP).
 
 ## Signs
 

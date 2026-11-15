@@ -166,6 +166,15 @@ static void declare_sign( const UiLayoutInput &in, const FontRenderer &font, con
     }
 }
 
+UiSurvPin ui_layout_surv_pin( const UiLayoutInput &in ) {
+    UiSurvPin p;
+    p.strip_h = 1.1f * in.cell_stride + in.hotbar_slab_h + in.label_h + 4.0f;
+    const float strip_top = -in.screen_h * 0.5f + p.strip_h; // centered coords
+    p.creative_bottom = in.creative_panel_h > 0.0f ? fmaxf( -in.creative_panel_h * 0.5f, in.creative_floor ) : -1.0e30f;
+    p.pin_gap = fmaxf( 0.0f, p.creative_bottom - strip_top );
+    return p;
+}
+
 void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_ = { };
     if ( this->context == nullptr || in.screen_w <= 0.0f || in.screen_h <= 0.0f || in.cell_stride <= 0.0f ) {
@@ -180,13 +189,13 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     // lift can be solved here instead of read back. Distances and the
     // centered-coords edges below are pixel values either way; only the
     // sign convention differs.
-    const float strip_h = 1.1f * s + in.hotbar_slab_h + in.label_h + 4.0f;
-    const float strip_top = -in.screen_h * 0.5f + strip_h; // centered coords
+    const UiSurvPin surv_pin = ui_layout_surv_pin( in );
+    const float strip_h = surv_pin.strip_h;
     // Survival slab bottom: the higher of the creative panel's bottom or
     // the HUD strip's top (the old surv_pin rule, expressed as dead space
     // under the inventory group).
-    const float creative_bottom = in.creative_panel_h > 0.0f ? fmaxf( -in.creative_panel_h * 0.5f, in.creative_floor ) : -1.0e30f;
-    const float pin_gap = fmaxf( 0.0f, creative_bottom - strip_top );
+    const float creative_bottom = surv_pin.creative_bottom;
+    const float pin_gap = surv_pin.pin_gap;
     // The creative panel is screen-centered, lifted off its bottom floor.
     const float creative_lift = fmaxf( 0.0f, in.creative_floor + in.creative_panel_h * 0.5f );
     const float search_h = 0.55f * in.creative_stride;

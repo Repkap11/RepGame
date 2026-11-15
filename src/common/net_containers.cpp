@@ -58,7 +58,7 @@ bool NetContainers::handle( RepGameState &state, NetMsgType type, int32_t player
             // loot a future container placed at the same position.
             if ( state.pending_container_loot.erase( pos ) ) {
                 if ( !def->block_is( world.get_loaded_block( pos ).id ) ) {
-                    repgame_loot_container( state, p.slots.data( ), static_cast<int>( p.slots.size( ) ) );
+                    repgame_loot_container( state, pos, p.slots.data( ), static_cast<int>( p.slots.size( ) ) );
                 }
             } else if ( def->block_is( world.get_loaded_block( pos ).id ) ) {
                 ContainerContents c;

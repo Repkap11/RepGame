@@ -183,8 +183,9 @@ class RepGame {
 // Moves every non-empty slot of a container into the player's inventories
 // (survival first, hotbar for the overflow). Used for container-break
 // looting; the multiplayer CONTAINER_CONTENTS loot path calls this with
-// the server's authoritative snapshot.
-void repgame_loot_container( RepGameState &state, const InventorySlot *slots, int count );
+// the server's authoritative snapshot. Contents drop as item entities at
+// the container's position for anyone to pick up.
+void repgame_loot_container( RepGameState &state, const glm::ivec3 &pos, const InventorySlot *slots, int count );
 
 // Right-click use of a bucket item (BUCKET/WATER_BUCKET/LAVA_BUCKET) on the
 // current block selection: an empty bucket scoops the fluid source under

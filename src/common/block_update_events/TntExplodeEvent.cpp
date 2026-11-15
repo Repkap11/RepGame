@@ -180,6 +180,18 @@ void TntExplodeEvent::performAction( RepGameState &repGameState ) {
                     if ( BlockStates_equal( state, gen_state ) ) {
                         continue; // already natural
                     }
+                    // Restoring terrain over a container is destruction
+                    // too — loot it like the destroy pass below.
+                    if ( const NetContainerKindDef *def = net_container_kind_of_block( state.id ) ) {
+                        if ( repGameState.multiplayer.is_active( ) ) {
+                            repGameState.pending_container_loot.insert( pos );
+                        } else {
+                            ContainerContents contents;
+                            if ( world.get_container_contents( def->kind, pos, contents ) ) {
+                                repgame_loot_container( repGameState, pos, contents.slots.data( ), static_cast<int>( contents.slots.size( ) ) );
+                            }
+                        }
+                    }
                     world.set_loaded_block( pos, gen_state );
                     repGameState.multiplayer.set_block( pos, gen_state, NET_BU_FLAG_NO_DEBRIS );
                     queue_neighbor_block_updates( repGameState, pos );
@@ -243,6 +255,20 @@ void TntExplodeEvent::performAction( RepGameState &repGameState ) {
                 const Block *block = block_definition_get_definition( state.id );
                 if ( block->hardness < 0.0f ) {
                     continue; // bedrock, barriers, portal frames survive
+                }
+                // A destroyed container drops its contents — same split as
+                // break_selected_block: a local loot in singleplayer, or a
+                // pending flag the server's CONTAINER_CONTENTS snapshot
+                // consumes in multiplayer.
+                if ( const NetContainerKindDef *def = net_container_kind_of_block( state.id ) ) {
+                    if ( repGameState.multiplayer.is_active( ) ) {
+                        repGameState.pending_container_loot.insert( pos );
+                    } else {
+                        ContainerContents contents;
+                        if ( world.get_container_contents( def->kind, pos, contents ) ) {
+                            repgame_loot_container( repGameState, pos, contents.slots.data( ), static_cast<int>( contents.slots.size( ) ) );
+                        }
+                    }
                 }
                 world.set_loaded_block( pos, BLOCK_STATE_AIR );
                 repGameState.multiplayer.set_block( pos, BLOCK_STATE_AIR );

@@ -185,7 +185,7 @@ void RepGame::break_selected_block( ) {
         } else {
             ContainerContents contents;
             if ( globalGameState.world.get_container_contents( def->kind, pos, contents ) ) {
-                repgame_loot_container( globalGameState, contents.slots.data( ), static_cast<int>( contents.slots.size( ) ) );
+                repgame_loot_container( globalGameState, pos, contents.slots.data( ), static_cast<int>( contents.slots.size( ) ) );
             }
             // The chunk erases the map entry when the block write lands.
         }

@@ -913,6 +913,7 @@ int test_chest_pair( ) {
     gs.tick_number = 0;
     gs.camera.pos = glm::dvec3( 0, 0, 0 );
     test_setup_world( gs.world );
+    test_setup_inventories( gs );
     World &world = gs.world;
 
     int failures = 0;
@@ -1041,6 +1042,40 @@ int test_chest_pair( ) {
     // block_item_id: a latch half drops/picks the plain chest item.
     check_bool( "latch halves map to the chest item",
                 block_item_id( DOUBLE_CHEST_LEFT_LATCH ) == CHEST && block_item_id( DOUBLE_CHEST_RIGHT_LATCH ) == CHEST );
+
+    // --- A blast destroys a merged half: its contents loot into the player
+    // inventory and the survivor reverts to a plain chest, contents kept ---
+    const glm::ivec3 p( 60, 30, 60 );
+    const glm::ivec3 q = p + chest_pair_left_dir( 0 );
+    place( p, chest0 );
+    place( q, chest0 );
+    run( 2 );
+    if ( ChestContents *contents = world.get_or_create_chest_contents( q ) ) {
+        contents->slots[ 0 ].item_id = STONE;
+        contents->slots[ 0 ].quantity = 12;
+    }
+    if ( ChestContents *contents = world.get_or_create_chest_contents( p ) ) {
+        contents->slots[ 0 ].item_id = DIRT;
+        contents->slots[ 0 ].quantity = 7;
+    }
+    // Blast centre four cells past the left half: q is inside the radius-4
+    // sphere, p sits one cell beyond it and survives.
+    gs.blockUpdateQueue.addBlockUpdate<TntExplodeEvent>( gs.tick_number, q + chest_pair_left_dir( 0 ) * 4, 0, false );
+    run( 4 );
+    failures += check_id( world, "blast destroys the left half", q, AIR );
+    failures += check_id( world, "blast: survivor reverts to CHEST", p, CHEST );
+    int looted_stone = 0;
+    for ( const ItemEntities::ItemEntity &it : world.items.debug_items( ) ) {
+        if ( it.item == STONE ) {
+            looted_stone += it.count;
+        }
+    }
+    check_bool( "blast drops the destroyed half's contents", looted_stone >= 12 );
+    {
+        const ChestContents *contents = world.get_chest_contents( p );
+        check_bool( "blast: survivor keeps its contents",
+                    contents != nullptr && contents->slots[ 0 ].item_id == DIRT && contents->slots[ 0 ].quantity == 7 );
+    }
 
     return failures;
 }

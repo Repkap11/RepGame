@@ -322,6 +322,16 @@ def inv_count(st, name):
     return (st.get("inventory", {}) or {}).get(name, 0) if st else 0
 
 
+def item_count(st, name):
+    return sum(i.get("count", 0) for i in items_of(st) if i.get("item_name") == name)
+
+
+def loot_count(st, name):
+    # Inventory stacks plus ground drops: break loot spawns as item
+    # entities, then gets collected — the total rides out the pickup race.
+    return inv_count(st, name) + item_count(st, name)
+
+
 def dist(a, b):
     return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
 
@@ -1108,6 +1118,23 @@ def sc_tnt_explosion(run, A, B):
     if item1 is not None and dist(item0["pos"], item1["pos"]) < 0.1:
         raise Fail("B-owned item not impulsed by remote blast")
 
+    # A container destroyed by a blast drops its contents as item entities —
+    # the writing client is A or B, so the combined loot count is what must
+    # grow (ground items plus whatever gets collected).
+    A.cmd("setblock 268 %d 10 CHEST" % gy)
+    wait_block(run, A, 268, gy, 10, "CHEST")
+    A.cmd("copen chest 268 %d 10" % gy)
+    run.sleep_ticks(10)
+    A.cmd("cset chest 268 %d 10 0 DIAMOND 5" % gy)
+    wait_cslot(run, A, "chest", (268, gy, 10), 0, "DIAMOND", 5, desc="blast chest stocked")
+
+    def diamonds():
+        return loot_count(A.dump.last_state(), "DIAMOND") + loot_count(B.dump.last_state(), "DIAMOND")
+    before = diamonds()
+    A.cmd("tnt 268.5 %d 10.5" % (gy + 1))
+    run.wait("blast loots the chest", lambda: diamonds() >= before + 5, timeout=120)
+    wait_block(run, A, 268, gy, 10, "AIR")
+
 
 def sc_piston_mover(run, A, B):
     """Piston slides sync through the generic body path: A powers a piston,
@@ -1427,12 +1454,12 @@ def sc_containers(run, A, B):
     C.cmd("cset chest %d %d %d 0 GOLD_BLOCK 99" % (fx, fy, fz))
     wait_cslot(run, C, "chest", (fx, fy, fz), 0, None, desc="unauthorized write corrected")
 
-    # Loot-on-break: A breaks the chest; the CONTENTS loot snapshot credits
-    # the breaker through the pending_container_loot marker.
-    before = inv_count(A.dump.last_state(), "STONE")
+    # Loot-on-break: A breaks the chest; the CONTENTS loot snapshot spills
+    # the contents as item entities (collected by whoever's nearby).
+    before = loot_count(A.dump.last_state(), "STONE") + loot_count(B.dump.last_state(), "STONE")
     A.cmd("setblock %d %d %d AIR" % (cx, cy, cz))
-    run.wait("loot snapshot credited",
-             lambda: inv_count(A.dump.last_state(), "STONE") >= before + 7, timeout=60)
+    run.wait("loot snapshot drops the contents",
+             lambda: loot_count(A.dump.last_state(), "STONE") + loot_count(B.dump.last_state(), "STONE") >= before + 7, timeout=60)
 
     # Double chest: two same-yaw CHESTs placed side by side merge into a
     # latch pair — at yaw 0 the cell at -x is the pair's LEFT half. Each
@@ -1457,10 +1484,10 @@ def sc_containers(run, A, B):
     B.cmd("cset chest %d %d %d 1 EMERALD 4" % (dx + 1, dy, dz))
     wait_cslot(run, A, "chest", (dx + 1, dy, dz), 1, "EMERALD", 4, desc="right half relays")
 
-    before = inv_count(A.dump.last_state(), "EMERALD")
+    before = loot_count(A.dump.last_state(), "EMERALD") + loot_count(B.dump.last_state(), "EMERALD")
     A.cmd("setblock %d %d %d AIR" % (dx + 1, dy, dz))
     run.wait("half break loots only its own slots",
-             lambda: inv_count(A.dump.last_state(), "EMERALD") >= before + 4, timeout=60)
+             lambda: loot_count(A.dump.last_state(), "EMERALD") + loot_count(B.dump.last_state(), "EMERALD") >= before + 4, timeout=60)
     wait_block(run, A, dx, dy, dz, "CHEST")
     wait_block(run, B, dx, dy, dz, "CHEST")
     wait_cslot(run, A, "chest", (dx, dy, dz), 0, "DIAMOND", 2, desc="survivor keeps contents")

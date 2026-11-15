@@ -95,6 +95,18 @@ struct UiLayoutInput {
     bool pause_dead = false;
 };
 
+// The survival slab's vertical pin, solved from the input alone: the HUD
+// strip height, the dead space under the inventory group, and the
+// creative panel's bottom edge (the pin's other candidate). compute()
+// places the group with these; the container sizing code uses
+// strip_h + pin_gap to fit the stacked chest slabs above the slab.
+struct UiSurvPin {
+    float strip_h = 0;
+    float pin_gap = 0;
+    float creative_bottom = 0;
+};
+UiSurvPin ui_layout_surv_pin( const UiLayoutInput &in );
+
 // Named regions draw/input code reads instead of re-deriving positions.
 struct UiLayoutRects {
     // Hotbar items slab (slot cells, border and all).
