@@ -78,7 +78,10 @@ fixed order — crafting grid/output, chest panel, survival grid, hotbar,
 creative palette — via each panel's `whichSlotClicked`. Pickup semantics
 are shared with chests (`chest_pickup_or_swap`/`chest_right_click`):
 left click picks up / merges / swaps, right click picks half or places
-one. `ui.held_slot` + `holding_slot` is the dragged stack;
+one. Shift-moves fill the destination in top-left-first reading order —
+`SurvivalInventory::addItem` and `chest_add` both walk rows top-down
+because renderer slot 0 is the bottom-left cell (`crafting_grid_add`
+does the same for the 3x3 grid). `ui.held_slot` + `holding_slot` is the dragged stack;
 `ui.crafting.drag` snapshots the grid so a button-drag re-splits from
 scratch across each new target cell. Mouse presses remember where they
 began (`input.mouse.buttons.*_pressed_in_ui`) so drags crossing the

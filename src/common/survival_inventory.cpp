@@ -44,8 +44,11 @@ int SurvivalInventory::addItem( ItemID itemId, int quantity ) {
 
     int remaining = quantity;
 
+    // Both passes visit slots in top-left-first reading order (renderer slot
+    // 0 is the bottom-left cell), so new items land in the panel's top row.
     // First, try to add to existing stacks of the same block.
-    for ( int i = 0; i < this->num_slots && remaining > 0; i++ ) {
+    for ( int j = 0; j < this->num_slots && remaining > 0; j++ ) {
+        const int i = ( this->height - 1 - j / this->width ) * this->width + j % this->width;
         InventorySlot &slot = this->slots[ i ];
         if ( slot.item_id == itemId && slot.quantity > 0 && slot.quantity < item_max_stack( itemId ) ) {
             int space = item_max_stack( itemId ) - slot.quantity;
@@ -57,7 +60,8 @@ int SurvivalInventory::addItem( ItemID itemId, int quantity ) {
     }
 
     // Then, try to fill empty slots.
-    for ( int i = 0; i < this->num_slots && remaining > 0; i++ ) {
+    for ( int j = 0; j < this->num_slots && remaining > 0; j++ ) {
+        const int i = ( this->height - 1 - j / this->width ) * this->width + j % this->width;
         InventorySlot &slot = this->slots[ i ];
         if ( slot.item_id == LAST_BLOCK_ID || slot.quantity == 0 ) {
             int to_add = ( remaining < item_max_stack( itemId ) ) ? remaining : item_max_stack( itemId );

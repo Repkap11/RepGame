@@ -268,7 +268,8 @@ static void chest_right_click( RepGameState &state, int slot_index ) {
 
 // Merge a stack into the chest (shift-click from a player inventory). Returns
 // the leftover count that didn't fit. A paired chest tops up both halves'
-// stacks before filling empty cells; each pass scans the left half first.
+// stacks before filling empty cells; each pass scans the left half first in
+// top-left-first reading order (renderer slot 0 is the bottom-left cell).
 static int chest_add( RepGameState &state, ItemID item_id, int quantity ) {
     int remaining = quantity;
     const int halves = state.ui.chest.paired ? 2 : 1;
@@ -278,7 +279,8 @@ static int chest_add( RepGameState &state, ItemID item_id, int quantity ) {
             if ( contents == nullptr ) {
                 continue;
             }
-            for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
+            for ( int j = 0; j < CHEST_SLOTS && remaining > 0; j++ ) {
+                const int i = ( CHEST_INVENTORY_HEIGHT - 1 - j / CHEST_INVENTORY_WIDTH ) * CHEST_INVENTORY_WIDTH + j % CHEST_INVENTORY_WIDTH;
                 InventorySlot &slot = contents->slots[ i ];
                 if ( fill_pass == 0 ) {
                     if ( slot.item_id == item_id && slot.quantity > 0 && slot.quantity < item_max_stack( item_id ) ) {

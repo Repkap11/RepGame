@@ -474,7 +474,7 @@ int test_fluids( ) {
         failures += check_id( world, "bucket: full-hotbar scoop drains", glm::ivec3( 38, 11, 38 ), AIR );
         const InventorySlot slot = gs.hotbar.getSlotContents( 0 );
         check_bool( "bucket: consumed one of the stack", slot.item_id == BUCKET && slot.quantity == 15 );
-        const InventorySlot inv_slot = gs.survival_inventory.getSlots( )[ 0 ];
+        const InventorySlot inv_slot = gs.survival_inventory.getSlots( )[ ( SURVIVAL_INVENTORY_HEIGHT - 1 ) * SURVIVAL_INVENTORY_WIDTH ];
         check_bool( "bucket: filled bucket lands in the inventory", inv_slot.item_id == WATER_BUCKET && inv_slot.quantity == 1 );
         check_bool( "bucket: nothing dropped", gs.world.items.count( ) == items_before );
         check_drained( "bucket: full-hotbar pending drained", gs );
