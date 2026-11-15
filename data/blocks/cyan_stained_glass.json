@@ -2,6 +2,11 @@
   "affected_by_redstone_power": false,
   "casts_shadow": false,
   "hardness": 0.449999988,
+  "hides_self": [
+    true,
+    true,
+    true
+  ],
   "id": 439,
   "is_seethrough": true,
   "name": "CYAN_STAINED_GLASS",

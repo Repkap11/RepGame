@@ -5655,6 +5655,7 @@ block_definitions[ 361 ].icon_texture = TEX_GLASS_BLACK;
 block_definitions[ 361 ].affected_by_redstone_power = false;
 block_definitions[ 361 ].casts_shadow = false;
 block_definitions[ 361 ].hardness = 0.449999988f;
+block_definitions[ 361 ].hides_self = { true, true, true };
 block_definitions[ 361 ].is_seethrough = true;
 block_definitions[ 361 ].renderOrder = RenderOrder_Translucent;
 
@@ -5669,6 +5670,7 @@ block_definitions[ 362 ].icon_texture = TEX_GLASS_BLUE;
 block_definitions[ 362 ].affected_by_redstone_power = false;
 block_definitions[ 362 ].casts_shadow = false;
 block_definitions[ 362 ].hardness = 0.449999988f;
+block_definitions[ 362 ].hides_self = { true, true, true };
 block_definitions[ 362 ].is_seethrough = true;
 block_definitions[ 362 ].renderOrder = RenderOrder_Translucent;
 
@@ -5683,6 +5685,7 @@ block_definitions[ 363 ].icon_texture = TEX_GLASS_BROWN;
 block_definitions[ 363 ].affected_by_redstone_power = false;
 block_definitions[ 363 ].casts_shadow = false;
 block_definitions[ 363 ].hardness = 0.449999988f;
+block_definitions[ 363 ].hides_self = { true, true, true };
 block_definitions[ 363 ].is_seethrough = true;
 block_definitions[ 363 ].renderOrder = RenderOrder_Translucent;
 
@@ -5697,6 +5700,7 @@ block_definitions[ 364 ].icon_texture = TEX_GLASS_LIGHT_BLUE;
 block_definitions[ 364 ].affected_by_redstone_power = false;
 block_definitions[ 364 ].casts_shadow = false;
 block_definitions[ 364 ].hardness = 0.449999988f;
+block_definitions[ 364 ].hides_self = { true, true, true };
 block_definitions[ 364 ].is_seethrough = true;
 block_definitions[ 364 ].renderOrder = RenderOrder_Translucent;
 
@@ -5711,6 +5715,7 @@ block_definitions[ 365 ].icon_texture = TEX_GLASS_GRAY;
 block_definitions[ 365 ].affected_by_redstone_power = false;
 block_definitions[ 365 ].casts_shadow = false;
 block_definitions[ 365 ].hardness = 0.449999988f;
+block_definitions[ 365 ].hides_self = { true, true, true };
 block_definitions[ 365 ].is_seethrough = true;
 block_definitions[ 365 ].renderOrder = RenderOrder_Translucent;
 
@@ -5725,6 +5730,7 @@ block_definitions[ 366 ].icon_texture = TEX_GLASS_GREEN;
 block_definitions[ 366 ].affected_by_redstone_power = false;
 block_definitions[ 366 ].casts_shadow = false;
 block_definitions[ 366 ].hardness = 0.449999988f;
+block_definitions[ 366 ].hides_self = { true, true, true };
 block_definitions[ 366 ].is_seethrough = true;
 block_definitions[ 366 ].renderOrder = RenderOrder_Translucent;
 
@@ -5739,6 +5745,7 @@ block_definitions[ 367 ].icon_texture = TEX_GLASS_LIME;
 block_definitions[ 367 ].affected_by_redstone_power = false;
 block_definitions[ 367 ].casts_shadow = false;
 block_definitions[ 367 ].hardness = 0.449999988f;
+block_definitions[ 367 ].hides_self = { true, true, true };
 block_definitions[ 367 ].is_seethrough = true;
 block_definitions[ 367 ].renderOrder = RenderOrder_Translucent;
 
@@ -5781,6 +5788,7 @@ block_definitions[ 370 ].icon_texture = TEX_GLASS_WHITE;
 block_definitions[ 370 ].affected_by_redstone_power = false;
 block_definitions[ 370 ].casts_shadow = false;
 block_definitions[ 370 ].hardness = 0.449999988f;
+block_definitions[ 370 ].hides_self = { true, true, true };
 block_definitions[ 370 ].is_seethrough = true;
 block_definitions[ 370 ].renderOrder = RenderOrder_Translucent;
 
@@ -6852,6 +6860,7 @@ block_definitions[ 439 ].icon_texture = TEX_GLASS_CYAN;
 block_definitions[ 439 ].affected_by_redstone_power = false;
 block_definitions[ 439 ].casts_shadow = false;
 block_definitions[ 439 ].hardness = 0.449999988f;
+block_definitions[ 439 ].hides_self = { true, true, true };
 block_definitions[ 439 ].is_seethrough = true;
 block_definitions[ 439 ].renderOrder = RenderOrder_Translucent;
 
@@ -10659,6 +10668,7 @@ block_definitions[ 703 ].icon_texture = TEX_GLASS_SILVER;
 block_definitions[ 703 ].affected_by_redstone_power = false;
 block_definitions[ 703 ].casts_shadow = false;
 block_definitions[ 703 ].hardness = 0.449999988f;
+block_definitions[ 703 ].hides_self = { true, true, true };
 block_definitions[ 703 ].is_seethrough = true;
 block_definitions[ 703 ].renderOrder = RenderOrder_Translucent;
 
@@ -11257,6 +11267,7 @@ block_definitions[ 748 ].icon_texture = TEX_GLASS_MAGENTA;
 block_definitions[ 748 ].affected_by_redstone_power = false;
 block_definitions[ 748 ].casts_shadow = false;
 block_definitions[ 748 ].hardness = 0.449999988f;
+block_definitions[ 748 ].hides_self = { true, true, true };
 block_definitions[ 748 ].is_seethrough = true;
 block_definitions[ 748 ].renderOrder = RenderOrder_Translucent;
 
@@ -12689,6 +12700,7 @@ block_definitions[ 844 ].icon_texture = TEX_GLASS_ORANGE;
 block_definitions[ 844 ].affected_by_redstone_power = false;
 block_definitions[ 844 ].casts_shadow = false;
 block_definitions[ 844 ].hardness = 0.449999988f;
+block_definitions[ 844 ].hides_self = { true, true, true };
 block_definitions[ 844 ].is_seethrough = true;
 block_definitions[ 844 ].renderOrder = RenderOrder_Translucent;
 
@@ -13783,6 +13795,7 @@ block_definitions[ 913 ].icon_texture = TEX_GLASS_PINK;
 block_definitions[ 913 ].affected_by_redstone_power = false;
 block_definitions[ 913 ].casts_shadow = false;
 block_definitions[ 913 ].hardness = 0.449999988f;
+block_definitions[ 913 ].hides_self = { true, true, true };
 block_definitions[ 913 ].is_seethrough = true;
 block_definitions[ 913 ].renderOrder = RenderOrder_Translucent;
 
@@ -15430,6 +15443,7 @@ block_definitions[ 1022 ].icon_texture = TEX_GLASS_PURPLE;
 block_definitions[ 1022 ].affected_by_redstone_power = false;
 block_definitions[ 1022 ].casts_shadow = false;
 block_definitions[ 1022 ].hardness = 0.449999988f;
+block_definitions[ 1022 ].hides_self = { true, true, true };
 block_definitions[ 1022 ].is_seethrough = true;
 block_definitions[ 1022 ].renderOrder = RenderOrder_Translucent;
 
@@ -16263,6 +16277,7 @@ block_definitions[ 1079 ].icon_texture = TEX_GLASS_RED;
 block_definitions[ 1079 ].affected_by_redstone_power = false;
 block_definitions[ 1079 ].casts_shadow = false;
 block_definitions[ 1079 ].hardness = 0.449999988f;
+block_definitions[ 1079 ].hides_self = { true, true, true };
 block_definitions[ 1079 ].is_seethrough = true;
 block_definitions[ 1079 ].renderOrder = RenderOrder_Translucent;
 
@@ -17368,6 +17383,7 @@ block_definitions[ 1157 ].icon_texture = TEX_GLASS_WHITE;
 block_definitions[ 1157 ].affected_by_redstone_power = false;
 block_definitions[ 1157 ].casts_shadow = false;
 block_definitions[ 1157 ].hardness = 0.449999988f;
+block_definitions[ 1157 ].hides_self = { true, true, true };
 block_definitions[ 1157 ].is_seethrough = true;
 block_definitions[ 1157 ].renderOrder = RenderOrder_Translucent;
 
@@ -20949,6 +20965,7 @@ block_definitions[ 1399 ].icon_texture = TEX_GLASS_YELLOW;
 block_definitions[ 1399 ].affected_by_redstone_power = false;
 block_definitions[ 1399 ].casts_shadow = false;
 block_definitions[ 1399 ].hardness = 0.449999988f;
+block_definitions[ 1399 ].hides_self = { true, true, true };
 block_definitions[ 1399 ].is_seethrough = true;
 block_definitions[ 1399 ].renderOrder = RenderOrder_Translucent;
 
