@@ -221,6 +221,15 @@ Water (`RenderOrder_Water`) still writes depth in every mode: the depth
 snapshot taken after the water pass feeds the X_HIGH water composite/SSR in
 `full_screen_quad_fragment.glsl`, which reconstructs the surface from it.
 
+The block-selection outline draws twice in `World::draw`: once between the
+opaque pass and water (so a selection behind the surface keeps a
+water-dimmed outline) and once after the water + translucent passes (so the
+glass tint can't wash out the band — glass writes no depth and never
+occludes the second draw). Both draws run under `glDepthMask(GL_FALSE)`:
+the outline box is pulled toward the camera, so any depth it left would
+punch see-through holes in the translucent/water passes and in the SSR
+depth snapshot that follows.
+
 ### Sloped fluids
 
 Water and lava render as variable-height surfaces (Minecraft's corner

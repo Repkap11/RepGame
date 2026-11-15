@@ -711,7 +711,16 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
     if ( draw_mouse_selection ) {
+        // First of two outline draws (the second is after the translucent
+        // pass below). Depth-test but no depth write: the outline box is
+        // pulled toward the camera, and the water/translucent passes draw
+        // after this — outline-band fragments would punch see-through holes
+        // in them if they left depth. Water composites over this draw, so
+        // for a selection behind the surface this is the water-dimmed
+        // version the second draw's depth test can't provide.
+        glDepthMask( GL_FALSE );
         this->mouseSelection.draw( this->renderer, mvp, renderOriginF );
+        glDepthMask( GL_TRUE );
     }
 
     // Per-attachment blend is already set correctly: color uses normal alpha
@@ -759,6 +768,20 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Translucent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Translucent after water
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
+    }
+
+    if ( draw_mouse_selection ) {
+        // Second outline draw, composited over water + translucent so the
+        // glass tint can't wash out the band. Glass writes no depth, so it
+        // never occludes this draw; water does, so band pixels behind the
+        // surface keep the dimmed first draw instead. No depth write — the
+        // SSR depth snapshot right below must not see the outline box.
+        // Stencil writes stay off so the band can't mark water pixels for
+        // the reflection composite (Before order left op=REPLACE).
+        glDepthMask( GL_FALSE );
+        glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+        this->mouseSelection.draw( this->renderer, mvp, renderOriginF );
+        glDepthMask( GL_TRUE );
     }
 
     if ( usingReflections ) {
