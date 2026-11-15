@@ -5855,6 +5855,7 @@ block_definitions[ 376 ].textures[ FACE_BACK ] = TEX_END_ROD;
 block_definitions[ 376 ].icon_texture = TEX_END_ROD_TOP;
 block_definitions[ 376 ].breaks_in_liquid = true;
 block_definitions[ 376 ].casts_shadow = false;
+block_definitions[ 376 ].emits_light = 14;
 block_definitions[ 376 ].hardness = 0.0f;
 block_definitions[ 376 ].icon_is_isometric = true;
 block_definitions[ 376 ].is_end_rod = true;
