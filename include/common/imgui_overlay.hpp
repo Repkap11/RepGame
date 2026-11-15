@@ -65,8 +65,8 @@ struct ImGuiDebugVars {
     // Bow-only override for the avatar grip (same fields, plus spin — the
     // in-plane icon rotation the first-person bow_spin also applies, so
     // the icon's diagonal reads as the bow's limbs instead of a slash).
-    glm::vec3 avatar_bow_pos = glm::vec3( 6.0f, 15.0f, -5.5f );
-    glm::vec3 avatar_bow_rot = glm::vec3( 0.0f, -90.0f, 55.0f ); // pitch, yaw, roll
+    glm::vec3 avatar_bow_pos = glm::vec3( 6.0f, 15.0f, -2.5f );
+    glm::vec3 avatar_bow_rot = glm::vec3( 0.0f, -90.0f, 65.0f ); // pitch, yaw, roll
     float avatar_bow_scale = 10.0f;
     float avatar_bow_spin = 90.0f;
     glm::vec3 avatar_held_block_pos = glm::vec3( 6.0f, 12.5f, -5.0f );
