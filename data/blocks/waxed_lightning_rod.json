@@ -2,10 +2,32 @@
  "casts_shadow": false,
  "hardness": 0.35,
  "id": 1316,
+ "is_lightning_rod": true,
  "is_seethrough": true,
  "name": "WAXED_LIGHTNING_ROD",
- "no_light": 6815743,
+ "needs_place_on_any_solid": {
+  "top": true
+ },
+ "no_light": 0,
+ "offset": [
+  6,
+  0,
+  6
+ ],
+ "scale": [
+  4,
+  16,
+  4
+ ],
+ "tex_offset": [
+  -6,
+  0,
+  -6
+ ],
  "textures": {
-  "all": "lightning_rod"
- }
+  "bottom": "lightning_rod_bottom",
+  "side": "lightning_rod",
+  "top": "lightning_rod_top"
+ },
+ "waterloggable": true
 }

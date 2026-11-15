@@ -229,6 +229,14 @@ typedef struct {
     // 3-wide chain strands rising to the support block overhead. The
     // block's own scale/offset is the board plate — the pick fallback.
     bool is_hanging_sign;
+    // Lanterns draw as four boxes (lantern_boxes in block.cpp): the 6x7x6
+    // body, the 4x2x4 lid and two thin crossing slivers for the bail
+    // handle. The def box stays the pick/collision shape.
+    bool is_lantern;
+    // Lightning rods draw as two boxes (lightning_rod_boxes in block.cpp):
+    // the 2-wide shaft plus the 4x4 head on top. The def box stays the
+    // pick/collision column and the boxes are also the isometric icon.
+    bool is_lightning_rod;
     // Bamboo draws its def box (a thin stalk) into its own render order
     // plus, when BlockState::rotation is a leaf tier (0 none, 1 small,
     // 2 large — MC's leaves property, kept by bamboo_grow_try), a leaf

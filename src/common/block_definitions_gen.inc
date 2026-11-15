@@ -5334,18 +5334,26 @@ block_definitions[ 344 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 344 ].no_light = 6815743;
 
 // COPPER_LANTERN (345)
-block_definitions[ 345 ].textures[ FACE_TOP ] = TEX_COPPER_LANTERN;
-block_definitions[ 345 ].textures[ FACE_BOTTOM ] = TEX_COPPER_LANTERN;
-block_definitions[ 345 ].textures[ FACE_RIGHT ] = TEX_COPPER_LANTERN;
-block_definitions[ 345 ].textures[ FACE_FRONT ] = TEX_COPPER_LANTERN;
-block_definitions[ 345 ].textures[ FACE_LEFT ] = TEX_COPPER_LANTERN;
-block_definitions[ 345 ].textures[ FACE_BACK ] = TEX_COPPER_LANTERN;
+block_definitions[ 345 ].textures[ FACE_TOP ] = TEX_COPPER_LANTERN_CAP;
+block_definitions[ 345 ].textures[ FACE_BOTTOM ] = TEX_COPPER_LANTERN_CAP;
+block_definitions[ 345 ].textures[ FACE_RIGHT ] = TEX_COPPER_LANTERN_SIDE;
+block_definitions[ 345 ].textures[ FACE_FRONT ] = TEX_COPPER_LANTERN_SIDE;
+block_definitions[ 345 ].textures[ FACE_LEFT ] = TEX_COPPER_LANTERN_SIDE;
+block_definitions[ 345 ].textures[ FACE_BACK ] = TEX_COPPER_LANTERN_SIDE;
 block_definitions[ 345 ].icon_texture = TEX_COPPER_LANTERN;
 block_definitions[ 345 ].casts_shadow = false;
+block_definitions[ 345 ].emits_light = 15;
 block_definitions[ 345 ].hardness = 0.35f;
+block_definitions[ 345 ].icon_is_isometric = false;
+block_definitions[ 345 ].is_lantern = true;
 block_definitions[ 345 ].is_seethrough = true;
 block_definitions[ 345 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 345 ].no_light = 6815743;
+block_definitions[ 345 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 345 ].no_light = 0;
+block_definitions[ 345 ].offset = { 5, 0, 5 };
+block_definitions[ 345 ].scale = { 6, 9, 6 };
+block_definitions[ 345 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 345 ].waterloggable = true;
 
 // COPPER_ORE (346)
 block_definitions[ 346 ].textures[ FACE_TOP ] = TEX_COPPER_ORE;
@@ -8663,18 +8671,26 @@ block_definitions[ 566 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 566 ].no_light = 6815743;
 
 // EXPOSED_COPPER_LANTERN (567)
-block_definitions[ 567 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 567 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 567 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 567 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 567 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 567 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_LANTERN;
+block_definitions[ 567 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_LANTERN_CAP;
+block_definitions[ 567 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_COPPER_LANTERN_CAP;
+block_definitions[ 567 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
+block_definitions[ 567 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
+block_definitions[ 567 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
+block_definitions[ 567 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
 block_definitions[ 567 ].icon_texture = TEX_EXPOSED_COPPER_LANTERN;
 block_definitions[ 567 ].casts_shadow = false;
+block_definitions[ 567 ].emits_light = 15;
 block_definitions[ 567 ].hardness = 0.35f;
+block_definitions[ 567 ].icon_is_isometric = false;
+block_definitions[ 567 ].is_lantern = true;
 block_definitions[ 567 ].is_seethrough = true;
 block_definitions[ 567 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 567 ].no_light = 6815743;
+block_definitions[ 567 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 567 ].no_light = 0;
+block_definitions[ 567 ].offset = { 5, 0, 5 };
+block_definitions[ 567 ].scale = { 6, 9, 6 };
+block_definitions[ 567 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 567 ].waterloggable = true;
 
 // EXPOSED_COPPER_TRAPDOOR (568)
 block_definitions[ 568 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_TRAPDOOR;
@@ -8812,18 +8828,24 @@ block_definitions[ 575 ].renderOrder = RenderOrder_Flowers;
 block_definitions[ 575 ].waterloggable = true;
 
 // EXPOSED_LIGHTNING_ROD (576)
-block_definitions[ 576 ].textures[ FACE_TOP ] = TEX_EXPOSED_LIGHTNING_ROD;
-block_definitions[ 576 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_LIGHTNING_ROD;
+block_definitions[ 576 ].textures[ FACE_TOP ] = TEX_EXPOSED_LIGHTNING_ROD_TOP;
+block_definitions[ 576 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 576 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 576 ].textures[ FACE_FRONT ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 576 ].textures[ FACE_LEFT ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 576 ].textures[ FACE_BACK ] = TEX_EXPOSED_LIGHTNING_ROD;
-block_definitions[ 576 ].icon_texture = TEX_EXPOSED_LIGHTNING_ROD;
+block_definitions[ 576 ].icon_texture = TEX_EXPOSED_LIGHTNING_ROD_TOP;
 block_definitions[ 576 ].casts_shadow = false;
 block_definitions[ 576 ].hardness = 0.35f;
+block_definitions[ 576 ].is_lightning_rod = true;
 block_definitions[ 576 ].is_seethrough = true;
 block_definitions[ 576 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 576 ].no_light = 6815743;
+block_definitions[ 576 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 576 ].no_light = 0;
+block_definitions[ 576 ].offset = { 6, 0, 6 };
+block_definitions[ 576 ].scale = { 4, 16, 4 };
+block_definitions[ 576 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 576 ].waterloggable = true;
 
 // FIRE_CORAL_FAN (577)
 block_definitions[ 577 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -10092,19 +10114,26 @@ block_definitions[ 666 ].icon_texture = TEX_LOG_JUNGLE;
 block_definitions[ 666 ].mineable = MINEABLE_AXE;
 
 // LANTERN (667)
-block_definitions[ 667 ].textures[ FACE_TOP ] = TEX_LANTERN;
-block_definitions[ 667 ].textures[ FACE_BOTTOM ] = TEX_LANTERN;
-block_definitions[ 667 ].textures[ FACE_RIGHT ] = TEX_LANTERN;
-block_definitions[ 667 ].textures[ FACE_FRONT ] = TEX_LANTERN;
-block_definitions[ 667 ].textures[ FACE_LEFT ] = TEX_LANTERN;
-block_definitions[ 667 ].textures[ FACE_BACK ] = TEX_LANTERN;
+block_definitions[ 667 ].textures[ FACE_TOP ] = TEX_LANTERN_CAP;
+block_definitions[ 667 ].textures[ FACE_BOTTOM ] = TEX_LANTERN_CAP;
+block_definitions[ 667 ].textures[ FACE_RIGHT ] = TEX_LANTERN_SIDE;
+block_definitions[ 667 ].textures[ FACE_FRONT ] = TEX_LANTERN_SIDE;
+block_definitions[ 667 ].textures[ FACE_LEFT ] = TEX_LANTERN_SIDE;
+block_definitions[ 667 ].textures[ FACE_BACK ] = TEX_LANTERN_SIDE;
 block_definitions[ 667 ].icon_texture = TEX_LANTERN;
 block_definitions[ 667 ].casts_shadow = false;
 block_definitions[ 667 ].emits_light = 15;
 block_definitions[ 667 ].hardness = 0.35f;
+block_definitions[ 667 ].icon_is_isometric = false;
+block_definitions[ 667 ].is_lantern = true;
 block_definitions[ 667 ].is_seethrough = true;
 block_definitions[ 667 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 667 ].no_light = 6815743;
+block_definitions[ 667 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 667 ].no_light = 0;
+block_definitions[ 667 ].offset = { 5, 0, 5 };
+block_definitions[ 667 ].scale = { 6, 9, 6 };
+block_definitions[ 667 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 667 ].waterloggable = true;
 
 // LAPIS_BLOCK (668)
 block_definitions[ 668 ].textures[ FACE_TOP ] = TEX_LAPIS_BLOCK;
@@ -10694,18 +10723,24 @@ block_definitions[ 710 ].scale = { 14, 2, 14 };
 block_definitions[ 710 ].tex_offset = { -1, 0, -1 };
 
 // LIGHTNING_ROD (711)
-block_definitions[ 711 ].textures[ FACE_TOP ] = TEX_LIGHTNING_ROD;
-block_definitions[ 711 ].textures[ FACE_BOTTOM ] = TEX_LIGHTNING_ROD;
+block_definitions[ 711 ].textures[ FACE_TOP ] = TEX_LIGHTNING_ROD_TOP;
+block_definitions[ 711 ].textures[ FACE_BOTTOM ] = TEX_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 711 ].textures[ FACE_RIGHT ] = TEX_LIGHTNING_ROD;
 block_definitions[ 711 ].textures[ FACE_FRONT ] = TEX_LIGHTNING_ROD;
 block_definitions[ 711 ].textures[ FACE_LEFT ] = TEX_LIGHTNING_ROD;
 block_definitions[ 711 ].textures[ FACE_BACK ] = TEX_LIGHTNING_ROD;
-block_definitions[ 711 ].icon_texture = TEX_LIGHTNING_ROD;
+block_definitions[ 711 ].icon_texture = TEX_LIGHTNING_ROD_TOP;
 block_definitions[ 711 ].casts_shadow = false;
 block_definitions[ 711 ].hardness = 0.35f;
+block_definitions[ 711 ].is_lightning_rod = true;
 block_definitions[ 711 ].is_seethrough = true;
 block_definitions[ 711 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 711 ].no_light = 6815743;
+block_definitions[ 711 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 711 ].no_light = 0;
+block_definitions[ 711 ].offset = { 6, 0, 6 };
+block_definitions[ 711 ].scale = { 4, 16, 4 };
+block_definitions[ 711 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 711 ].waterloggable = true;
 
 // LILAC (712)
 block_definitions[ 712 ].textures[ FACE_TOP ] = TEX_AIR;
@@ -12931,18 +12966,26 @@ block_definitions[ 865 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 865 ].no_light = 6815743;
 
 // OXIDIZED_COPPER_LANTERN (866)
-block_definitions[ 866 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 866 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 866 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 866 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 866 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 866 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_LANTERN;
+block_definitions[ 866 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_LANTERN_CAP;
+block_definitions[ 866 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_COPPER_LANTERN_CAP;
+block_definitions[ 866 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
+block_definitions[ 866 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
+block_definitions[ 866 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
+block_definitions[ 866 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
 block_definitions[ 866 ].icon_texture = TEX_OXIDIZED_COPPER_LANTERN;
 block_definitions[ 866 ].casts_shadow = false;
+block_definitions[ 866 ].emits_light = 15;
 block_definitions[ 866 ].hardness = 0.35f;
+block_definitions[ 866 ].icon_is_isometric = false;
+block_definitions[ 866 ].is_lantern = true;
 block_definitions[ 866 ].is_seethrough = true;
 block_definitions[ 866 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 866 ].no_light = 6815743;
+block_definitions[ 866 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 866 ].no_light = 0;
+block_definitions[ 866 ].offset = { 5, 0, 5 };
+block_definitions[ 866 ].scale = { 6, 9, 6 };
+block_definitions[ 866 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 866 ].waterloggable = true;
 
 // OXIDIZED_COPPER_TRAPDOOR (867)
 block_definitions[ 867 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_TRAPDOOR;
@@ -13019,18 +13062,24 @@ block_definitions[ 871 ].scale = { 16, 8, 16 };
 block_definitions[ 871 ].tex_offset = { 0, -4, 0 };
 
 // OXIDIZED_LIGHTNING_ROD (872)
-block_definitions[ 872 ].textures[ FACE_TOP ] = TEX_OXIDIZED_LIGHTNING_ROD;
-block_definitions[ 872 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_LIGHTNING_ROD;
+block_definitions[ 872 ].textures[ FACE_TOP ] = TEX_OXIDIZED_LIGHTNING_ROD_TOP;
+block_definitions[ 872 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 872 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 872 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 872 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 872 ].textures[ FACE_BACK ] = TEX_OXIDIZED_LIGHTNING_ROD;
-block_definitions[ 872 ].icon_texture = TEX_OXIDIZED_LIGHTNING_ROD;
+block_definitions[ 872 ].icon_texture = TEX_OXIDIZED_LIGHTNING_ROD_TOP;
 block_definitions[ 872 ].casts_shadow = false;
 block_definitions[ 872 ].hardness = 0.35f;
+block_definitions[ 872 ].is_lightning_rod = true;
 block_definitions[ 872 ].is_seethrough = true;
 block_definitions[ 872 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 872 ].no_light = 6815743;
+block_definitions[ 872 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 872 ].no_light = 0;
+block_definitions[ 872 ].offset = { 6, 0, 6 };
+block_definitions[ 872 ].scale = { 4, 16, 4 };
+block_definitions[ 872 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 872 ].waterloggable = true;
 
 // PACKED_ICE (873)
 block_definitions[ 873 ].textures[ FACE_TOP ] = TEX_ICE_PACKED;
@@ -16935,19 +16984,26 @@ block_definitions[ 1138 ].scale = { 6, 11, 6 };
 block_definitions[ 1138 ].tex_offset = { -5, 0, -5 };
 
 // SOUL_LANTERN (1139)
-block_definitions[ 1139 ].textures[ FACE_TOP ] = TEX_SOUL_LANTERN;
-block_definitions[ 1139 ].textures[ FACE_BOTTOM ] = TEX_SOUL_LANTERN;
-block_definitions[ 1139 ].textures[ FACE_RIGHT ] = TEX_SOUL_LANTERN;
-block_definitions[ 1139 ].textures[ FACE_FRONT ] = TEX_SOUL_LANTERN;
-block_definitions[ 1139 ].textures[ FACE_LEFT ] = TEX_SOUL_LANTERN;
-block_definitions[ 1139 ].textures[ FACE_BACK ] = TEX_SOUL_LANTERN;
+block_definitions[ 1139 ].textures[ FACE_TOP ] = TEX_SOUL_LANTERN_CAP;
+block_definitions[ 1139 ].textures[ FACE_BOTTOM ] = TEX_SOUL_LANTERN_CAP;
+block_definitions[ 1139 ].textures[ FACE_RIGHT ] = TEX_SOUL_LANTERN_SIDE;
+block_definitions[ 1139 ].textures[ FACE_FRONT ] = TEX_SOUL_LANTERN_SIDE;
+block_definitions[ 1139 ].textures[ FACE_LEFT ] = TEX_SOUL_LANTERN_SIDE;
+block_definitions[ 1139 ].textures[ FACE_BACK ] = TEX_SOUL_LANTERN_SIDE;
 block_definitions[ 1139 ].icon_texture = TEX_SOUL_LANTERN;
 block_definitions[ 1139 ].casts_shadow = false;
 block_definitions[ 1139 ].emits_light = 10;
 block_definitions[ 1139 ].hardness = 0.35f;
+block_definitions[ 1139 ].icon_is_isometric = false;
+block_definitions[ 1139 ].is_lantern = true;
 block_definitions[ 1139 ].is_seethrough = true;
 block_definitions[ 1139 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1139 ].no_light = 6815743;
+block_definitions[ 1139 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1139 ].no_light = 0;
+block_definitions[ 1139 ].offset = { 5, 0, 5 };
+block_definitions[ 1139 ].scale = { 6, 9, 6 };
+block_definitions[ 1139 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1139 ].waterloggable = true;
 
 // SOUL_SAND (1140)
 block_definitions[ 1140 ].textures[ FACE_TOP ] = TEX_SOUL_SAND;
@@ -19243,18 +19299,26 @@ block_definitions[ 1293 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1293 ].no_light = 6815743;
 
 // WAXED_COPPER_LANTERN (1294)
-block_definitions[ 1294 ].textures[ FACE_TOP ] = TEX_COPPER_LANTERN;
-block_definitions[ 1294 ].textures[ FACE_BOTTOM ] = TEX_COPPER_LANTERN;
-block_definitions[ 1294 ].textures[ FACE_RIGHT ] = TEX_COPPER_LANTERN;
-block_definitions[ 1294 ].textures[ FACE_FRONT ] = TEX_COPPER_LANTERN;
-block_definitions[ 1294 ].textures[ FACE_LEFT ] = TEX_COPPER_LANTERN;
-block_definitions[ 1294 ].textures[ FACE_BACK ] = TEX_COPPER_LANTERN;
+block_definitions[ 1294 ].textures[ FACE_TOP ] = TEX_COPPER_LANTERN_CAP;
+block_definitions[ 1294 ].textures[ FACE_BOTTOM ] = TEX_COPPER_LANTERN_CAP;
+block_definitions[ 1294 ].textures[ FACE_RIGHT ] = TEX_COPPER_LANTERN_SIDE;
+block_definitions[ 1294 ].textures[ FACE_FRONT ] = TEX_COPPER_LANTERN_SIDE;
+block_definitions[ 1294 ].textures[ FACE_LEFT ] = TEX_COPPER_LANTERN_SIDE;
+block_definitions[ 1294 ].textures[ FACE_BACK ] = TEX_COPPER_LANTERN_SIDE;
 block_definitions[ 1294 ].icon_texture = TEX_COPPER_LANTERN;
 block_definitions[ 1294 ].casts_shadow = false;
+block_definitions[ 1294 ].emits_light = 15;
 block_definitions[ 1294 ].hardness = 0.35f;
+block_definitions[ 1294 ].icon_is_isometric = false;
+block_definitions[ 1294 ].is_lantern = true;
 block_definitions[ 1294 ].is_seethrough = true;
 block_definitions[ 1294 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1294 ].no_light = 6815743;
+block_definitions[ 1294 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1294 ].no_light = 0;
+block_definitions[ 1294 ].offset = { 5, 0, 5 };
+block_definitions[ 1294 ].scale = { 6, 9, 6 };
+block_definitions[ 1294 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1294 ].waterloggable = true;
 
 // WAXED_COPPER_TRAPDOOR (1295)
 block_definitions[ 1295 ].textures[ FACE_TOP ] = TEX_COPPER_TRAPDOOR;
@@ -19459,18 +19523,26 @@ block_definitions[ 1308 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1308 ].no_light = 6815743;
 
 // WAXED_EXPOSED_COPPER_LANTERN (1309)
-block_definitions[ 1309 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 1309 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 1309 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 1309 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 1309 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_LANTERN;
-block_definitions[ 1309 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_LANTERN;
+block_definitions[ 1309 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_LANTERN_CAP;
+block_definitions[ 1309 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_COPPER_LANTERN_CAP;
+block_definitions[ 1309 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
+block_definitions[ 1309 ].textures[ FACE_FRONT ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
+block_definitions[ 1309 ].textures[ FACE_LEFT ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
+block_definitions[ 1309 ].textures[ FACE_BACK ] = TEX_EXPOSED_COPPER_LANTERN_SIDE;
 block_definitions[ 1309 ].icon_texture = TEX_EXPOSED_COPPER_LANTERN;
 block_definitions[ 1309 ].casts_shadow = false;
+block_definitions[ 1309 ].emits_light = 15;
 block_definitions[ 1309 ].hardness = 0.35f;
+block_definitions[ 1309 ].icon_is_isometric = false;
+block_definitions[ 1309 ].is_lantern = true;
 block_definitions[ 1309 ].is_seethrough = true;
 block_definitions[ 1309 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1309 ].no_light = 6815743;
+block_definitions[ 1309 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1309 ].no_light = 0;
+block_definitions[ 1309 ].offset = { 5, 0, 5 };
+block_definitions[ 1309 ].scale = { 6, 9, 6 };
+block_definitions[ 1309 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1309 ].waterloggable = true;
 
 // WAXED_EXPOSED_COPPER_TRAPDOOR (1310)
 block_definitions[ 1310 ].textures[ FACE_TOP ] = TEX_EXPOSED_COPPER_TRAPDOOR;
@@ -19547,32 +19619,44 @@ block_definitions[ 1314 ].scale = { 16, 8, 16 };
 block_definitions[ 1314 ].tex_offset = { 0, -4, 0 };
 
 // WAXED_EXPOSED_LIGHTNING_ROD (1315)
-block_definitions[ 1315 ].textures[ FACE_TOP ] = TEX_EXPOSED_LIGHTNING_ROD;
-block_definitions[ 1315 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_LIGHTNING_ROD;
+block_definitions[ 1315 ].textures[ FACE_TOP ] = TEX_EXPOSED_LIGHTNING_ROD_TOP;
+block_definitions[ 1315 ].textures[ FACE_BOTTOM ] = TEX_EXPOSED_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 1315 ].textures[ FACE_RIGHT ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 1315 ].textures[ FACE_FRONT ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 1315 ].textures[ FACE_LEFT ] = TEX_EXPOSED_LIGHTNING_ROD;
 block_definitions[ 1315 ].textures[ FACE_BACK ] = TEX_EXPOSED_LIGHTNING_ROD;
-block_definitions[ 1315 ].icon_texture = TEX_EXPOSED_LIGHTNING_ROD;
+block_definitions[ 1315 ].icon_texture = TEX_EXPOSED_LIGHTNING_ROD_TOP;
 block_definitions[ 1315 ].casts_shadow = false;
 block_definitions[ 1315 ].hardness = 0.35f;
+block_definitions[ 1315 ].is_lightning_rod = true;
 block_definitions[ 1315 ].is_seethrough = true;
 block_definitions[ 1315 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1315 ].no_light = 6815743;
+block_definitions[ 1315 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1315 ].no_light = 0;
+block_definitions[ 1315 ].offset = { 6, 0, 6 };
+block_definitions[ 1315 ].scale = { 4, 16, 4 };
+block_definitions[ 1315 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1315 ].waterloggable = true;
 
 // WAXED_LIGHTNING_ROD (1316)
-block_definitions[ 1316 ].textures[ FACE_TOP ] = TEX_LIGHTNING_ROD;
-block_definitions[ 1316 ].textures[ FACE_BOTTOM ] = TEX_LIGHTNING_ROD;
+block_definitions[ 1316 ].textures[ FACE_TOP ] = TEX_LIGHTNING_ROD_TOP;
+block_definitions[ 1316 ].textures[ FACE_BOTTOM ] = TEX_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 1316 ].textures[ FACE_RIGHT ] = TEX_LIGHTNING_ROD;
 block_definitions[ 1316 ].textures[ FACE_FRONT ] = TEX_LIGHTNING_ROD;
 block_definitions[ 1316 ].textures[ FACE_LEFT ] = TEX_LIGHTNING_ROD;
 block_definitions[ 1316 ].textures[ FACE_BACK ] = TEX_LIGHTNING_ROD;
-block_definitions[ 1316 ].icon_texture = TEX_LIGHTNING_ROD;
+block_definitions[ 1316 ].icon_texture = TEX_LIGHTNING_ROD_TOP;
 block_definitions[ 1316 ].casts_shadow = false;
 block_definitions[ 1316 ].hardness = 0.35f;
+block_definitions[ 1316 ].is_lightning_rod = true;
 block_definitions[ 1316 ].is_seethrough = true;
 block_definitions[ 1316 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1316 ].no_light = 6815743;
+block_definitions[ 1316 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1316 ].no_light = 0;
+block_definitions[ 1316 ].offset = { 6, 0, 6 };
+block_definitions[ 1316 ].scale = { 4, 16, 4 };
+block_definitions[ 1316 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1316 ].waterloggable = true;
 
 // WAXED_OXIDIZED_CHISELED_COPPER (1317)
 block_definitions[ 1317 ].textures[ FACE_TOP ] = TEX_OXIDIZED_CHISELED_COPPER;
@@ -19703,18 +19787,26 @@ block_definitions[ 1325 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1325 ].no_light = 6815743;
 
 // WAXED_OXIDIZED_COPPER_LANTERN (1326)
-block_definitions[ 1326 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 1326 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 1326 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 1326 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 1326 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_LANTERN;
-block_definitions[ 1326 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_LANTERN;
+block_definitions[ 1326 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_LANTERN_CAP;
+block_definitions[ 1326 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_COPPER_LANTERN_CAP;
+block_definitions[ 1326 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
+block_definitions[ 1326 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
+block_definitions[ 1326 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
+block_definitions[ 1326 ].textures[ FACE_BACK ] = TEX_OXIDIZED_COPPER_LANTERN_SIDE;
 block_definitions[ 1326 ].icon_texture = TEX_OXIDIZED_COPPER_LANTERN;
 block_definitions[ 1326 ].casts_shadow = false;
+block_definitions[ 1326 ].emits_light = 15;
 block_definitions[ 1326 ].hardness = 0.35f;
+block_definitions[ 1326 ].icon_is_isometric = false;
+block_definitions[ 1326 ].is_lantern = true;
 block_definitions[ 1326 ].is_seethrough = true;
 block_definitions[ 1326 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1326 ].no_light = 6815743;
+block_definitions[ 1326 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1326 ].no_light = 0;
+block_definitions[ 1326 ].offset = { 5, 0, 5 };
+block_definitions[ 1326 ].scale = { 6, 9, 6 };
+block_definitions[ 1326 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1326 ].waterloggable = true;
 
 // WAXED_OXIDIZED_COPPER_TRAPDOOR (1327)
 block_definitions[ 1327 ].textures[ FACE_TOP ] = TEX_OXIDIZED_COPPER_TRAPDOOR;
@@ -19791,18 +19883,24 @@ block_definitions[ 1331 ].scale = { 16, 8, 16 };
 block_definitions[ 1331 ].tex_offset = { 0, -4, 0 };
 
 // WAXED_OXIDIZED_LIGHTNING_ROD (1332)
-block_definitions[ 1332 ].textures[ FACE_TOP ] = TEX_OXIDIZED_LIGHTNING_ROD;
-block_definitions[ 1332 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_LIGHTNING_ROD;
+block_definitions[ 1332 ].textures[ FACE_TOP ] = TEX_OXIDIZED_LIGHTNING_ROD_TOP;
+block_definitions[ 1332 ].textures[ FACE_BOTTOM ] = TEX_OXIDIZED_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 1332 ].textures[ FACE_RIGHT ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 1332 ].textures[ FACE_FRONT ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 1332 ].textures[ FACE_LEFT ] = TEX_OXIDIZED_LIGHTNING_ROD;
 block_definitions[ 1332 ].textures[ FACE_BACK ] = TEX_OXIDIZED_LIGHTNING_ROD;
-block_definitions[ 1332 ].icon_texture = TEX_OXIDIZED_LIGHTNING_ROD;
+block_definitions[ 1332 ].icon_texture = TEX_OXIDIZED_LIGHTNING_ROD_TOP;
 block_definitions[ 1332 ].casts_shadow = false;
 block_definitions[ 1332 ].hardness = 0.35f;
+block_definitions[ 1332 ].is_lightning_rod = true;
 block_definitions[ 1332 ].is_seethrough = true;
 block_definitions[ 1332 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1332 ].no_light = 6815743;
+block_definitions[ 1332 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1332 ].no_light = 0;
+block_definitions[ 1332 ].offset = { 6, 0, 6 };
+block_definitions[ 1332 ].scale = { 4, 16, 4 };
+block_definitions[ 1332 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1332 ].waterloggable = true;
 
 // WAXED_WEATHERED_CHISELED_COPPER (1333)
 block_definitions[ 1333 ].textures[ FACE_TOP ] = TEX_WEATHERED_CHISELED_COPPER;
@@ -19933,18 +20031,26 @@ block_definitions[ 1341 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1341 ].no_light = 6815743;
 
 // WAXED_WEATHERED_COPPER_LANTERN (1342)
-block_definitions[ 1342 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1342 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1342 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1342 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1342 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1342 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_LANTERN;
+block_definitions[ 1342 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_LANTERN_CAP;
+block_definitions[ 1342 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_COPPER_LANTERN_CAP;
+block_definitions[ 1342 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
+block_definitions[ 1342 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
+block_definitions[ 1342 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
+block_definitions[ 1342 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
 block_definitions[ 1342 ].icon_texture = TEX_WEATHERED_COPPER_LANTERN;
 block_definitions[ 1342 ].casts_shadow = false;
+block_definitions[ 1342 ].emits_light = 15;
 block_definitions[ 1342 ].hardness = 0.35f;
+block_definitions[ 1342 ].icon_is_isometric = false;
+block_definitions[ 1342 ].is_lantern = true;
 block_definitions[ 1342 ].is_seethrough = true;
 block_definitions[ 1342 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1342 ].no_light = 6815743;
+block_definitions[ 1342 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1342 ].no_light = 0;
+block_definitions[ 1342 ].offset = { 5, 0, 5 };
+block_definitions[ 1342 ].scale = { 6, 9, 6 };
+block_definitions[ 1342 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1342 ].waterloggable = true;
 
 // WAXED_WEATHERED_COPPER_TRAPDOOR (1343)
 block_definitions[ 1343 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_TRAPDOOR;
@@ -20021,18 +20127,24 @@ block_definitions[ 1347 ].scale = { 16, 8, 16 };
 block_definitions[ 1347 ].tex_offset = { 0, -4, 0 };
 
 // WAXED_WEATHERED_LIGHTNING_ROD (1348)
-block_definitions[ 1348 ].textures[ FACE_TOP ] = TEX_WEATHERED_LIGHTNING_ROD;
-block_definitions[ 1348 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_LIGHTNING_ROD;
+block_definitions[ 1348 ].textures[ FACE_TOP ] = TEX_WEATHERED_LIGHTNING_ROD_TOP;
+block_definitions[ 1348 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 1348 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1348 ].textures[ FACE_FRONT ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1348 ].textures[ FACE_LEFT ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1348 ].textures[ FACE_BACK ] = TEX_WEATHERED_LIGHTNING_ROD;
-block_definitions[ 1348 ].icon_texture = TEX_WEATHERED_LIGHTNING_ROD;
+block_definitions[ 1348 ].icon_texture = TEX_WEATHERED_LIGHTNING_ROD_TOP;
 block_definitions[ 1348 ].casts_shadow = false;
 block_definitions[ 1348 ].hardness = 0.35f;
+block_definitions[ 1348 ].is_lightning_rod = true;
 block_definitions[ 1348 ].is_seethrough = true;
 block_definitions[ 1348 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1348 ].no_light = 6815743;
+block_definitions[ 1348 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1348 ].no_light = 0;
+block_definitions[ 1348 ].offset = { 6, 0, 6 };
+block_definitions[ 1348 ].scale = { 4, 16, 4 };
+block_definitions[ 1348 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1348 ].waterloggable = true;
 
 // WEATHERED_CHISELED_COPPER (1349)
 block_definitions[ 1349 ].textures[ FACE_TOP ] = TEX_WEATHERED_CHISELED_COPPER;
@@ -20163,18 +20275,26 @@ block_definitions[ 1357 ].mineable = MINEABLE_PICKAXE;
 block_definitions[ 1357 ].no_light = 6815743;
 
 // WEATHERED_COPPER_LANTERN (1358)
-block_definitions[ 1358 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1358 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1358 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1358 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1358 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_LANTERN;
-block_definitions[ 1358 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_LANTERN;
+block_definitions[ 1358 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_LANTERN_CAP;
+block_definitions[ 1358 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_COPPER_LANTERN_CAP;
+block_definitions[ 1358 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
+block_definitions[ 1358 ].textures[ FACE_FRONT ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
+block_definitions[ 1358 ].textures[ FACE_LEFT ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
+block_definitions[ 1358 ].textures[ FACE_BACK ] = TEX_WEATHERED_COPPER_LANTERN_SIDE;
 block_definitions[ 1358 ].icon_texture = TEX_WEATHERED_COPPER_LANTERN;
 block_definitions[ 1358 ].casts_shadow = false;
+block_definitions[ 1358 ].emits_light = 15;
 block_definitions[ 1358 ].hardness = 0.35f;
+block_definitions[ 1358 ].icon_is_isometric = false;
+block_definitions[ 1358 ].is_lantern = true;
 block_definitions[ 1358 ].is_seethrough = true;
 block_definitions[ 1358 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1358 ].no_light = 6815743;
+block_definitions[ 1358 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1358 ].no_light = 0;
+block_definitions[ 1358 ].offset = { 5, 0, 5 };
+block_definitions[ 1358 ].scale = { 6, 9, 6 };
+block_definitions[ 1358 ].tex_offset = { -5, 0, -5 };
+block_definitions[ 1358 ].waterloggable = true;
 
 // WEATHERED_COPPER_TRAPDOOR (1359)
 block_definitions[ 1359 ].textures[ FACE_TOP ] = TEX_WEATHERED_COPPER_TRAPDOOR;
@@ -20251,18 +20371,24 @@ block_definitions[ 1363 ].scale = { 16, 8, 16 };
 block_definitions[ 1363 ].tex_offset = { 0, -4, 0 };
 
 // WEATHERED_LIGHTNING_ROD (1364)
-block_definitions[ 1364 ].textures[ FACE_TOP ] = TEX_WEATHERED_LIGHTNING_ROD;
-block_definitions[ 1364 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_LIGHTNING_ROD;
+block_definitions[ 1364 ].textures[ FACE_TOP ] = TEX_WEATHERED_LIGHTNING_ROD_TOP;
+block_definitions[ 1364 ].textures[ FACE_BOTTOM ] = TEX_WEATHERED_LIGHTNING_ROD_BOTTOM;
 block_definitions[ 1364 ].textures[ FACE_RIGHT ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1364 ].textures[ FACE_FRONT ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1364 ].textures[ FACE_LEFT ] = TEX_WEATHERED_LIGHTNING_ROD;
 block_definitions[ 1364 ].textures[ FACE_BACK ] = TEX_WEATHERED_LIGHTNING_ROD;
-block_definitions[ 1364 ].icon_texture = TEX_WEATHERED_LIGHTNING_ROD;
+block_definitions[ 1364 ].icon_texture = TEX_WEATHERED_LIGHTNING_ROD_TOP;
 block_definitions[ 1364 ].casts_shadow = false;
 block_definitions[ 1364 ].hardness = 0.35f;
+block_definitions[ 1364 ].is_lightning_rod = true;
 block_definitions[ 1364 ].is_seethrough = true;
 block_definitions[ 1364 ].mineable = MINEABLE_PICKAXE;
-block_definitions[ 1364 ].no_light = 6815743;
+block_definitions[ 1364 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1364 ].no_light = 0;
+block_definitions[ 1364 ].offset = { 6, 0, 6 };
+block_definitions[ 1364 ].scale = { 4, 16, 4 };
+block_definitions[ 1364 ].tex_offset = { -6, 0, -6 };
+block_definitions[ 1364 ].waterloggable = true;
 
 // WEEPING_VINES (1365)
 block_definitions[ 1365 ].textures[ FACE_TOP ] = TEX_AIR;

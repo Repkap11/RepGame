@@ -54,6 +54,8 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->spine_shell = false;
         block->is_standing_sign = false;
         block->is_hanging_sign = false;
+        block->is_lantern = false;
+        block->is_lightning_rod = false;
         block->is_bamboo = false;
         block->is_door = false;
         block->is_door_upper = false;

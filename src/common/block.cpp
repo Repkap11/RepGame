@@ -715,6 +715,66 @@ int hanging_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] ) {
     return 3;
 }
 
+int lantern_boxes( BlockBox out[ LANTERN_MAX_BOXES ] ) {
+    // Body: 6x7x6 on the cell floor; bottom cap coplanar with the support.
+    out[ 0 ].scale[ 0 ] = 6;
+    out[ 0 ].scale[ 1 ] = 7;
+    out[ 0 ].scale[ 2 ] = 6;
+    out[ 0 ].offset[ 0 ] = 5;
+    out[ 0 ].offset[ 1 ] = 0;
+    out[ 0 ].offset[ 2 ] = 5;
+    // Bottom cap is culled only when the support's top face covers it —
+    // through glass the underside must draw (emit-time check).
+    out[ 0 ].skip_faces = 0;
+    // Lid: 4x2x4 on the body's top; bottom cap buried in the body's top
+    // quad.
+    out[ 1 ].scale[ 0 ] = 4;
+    out[ 1 ].scale[ 1 ] = 2;
+    out[ 1 ].scale[ 2 ] = 4;
+    out[ 1 ].offset[ 0 ] = 6;
+    out[ 1 ].offset[ 1 ] = 7;
+    out[ 1 ].offset[ 2 ] = 6;
+    out[ 1 ].skip_faces = 1u << FACE_BOTTOM;
+    // MC's third element — the bail handle's pair of 3x2 quads crossing
+    // at 45 degrees — is emitted separately as a diagonal cross on the
+    // Flowers channel (block_mesh_emit.cpp), not from this list.
+    return 2;
+}
+
+int lantern_pick_boxes( BlockBox out[ LANTERN_MAX_BOXES ] ) {
+    // The selection/raycast model: body plus the union of lid and bail.
+    // The bail's crossed quads span ~4px on the diagonal — the top box
+    // covers y 7..11 rather than just the lid's 7..9.
+    lantern_boxes( out );
+    out[ 1 ].scale[ 1 ] = 4;
+    out[ 1 ].skip_faces = 0;
+    return 2;
+}
+
+int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] ) {
+    // Shaft: 2x12 column; top cap buried in the head's bottom quad, bottom
+    // cap coplanar with the support.
+    out[ 0 ].scale[ 0 ] = 2;
+    out[ 0 ].scale[ 1 ] = 12;
+    out[ 0 ].scale[ 2 ] = 2;
+    out[ 0 ].offset[ 0 ] = 7;
+    out[ 0 ].offset[ 1 ] = 0;
+    out[ 0 ].offset[ 2 ] = 7;
+    // Top cap buried in the head's bottom quad; the bottom cap is culled
+    // only when the support's top face covers it — through glass the
+    // underside must draw (emit-time check).
+    out[ 0 ].skip_faces = 1u << FACE_TOP;
+    // Head: the 4x4x4 cap on the shaft's top (y 12..16).
+    out[ 1 ].scale[ 0 ] = 4;
+    out[ 1 ].scale[ 1 ] = 4;
+    out[ 1 ].scale[ 2 ] = 4;
+    out[ 1 ].offset[ 0 ] = 6;
+    out[ 1 ].offset[ 1 ] = 12;
+    out[ 1 ].offset[ 2 ] = 6;
+    out[ 1 ].skip_faces = 0;
+    return 2;
+}
+
 int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     if ( block->is_stairs ) {
         return stairs_icon_boxes( out );
@@ -733,6 +793,11 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     }
     if ( block->is_button ) {
         return button_icon_boxes( out );
+    }
+    if ( block->is_lightning_rod ) {
+        // The real shaft + head pair — the iso icon reads as a rod, not a
+        // fat column.
+        return lightning_rod_boxes( out );
     }
     return 0;
 }

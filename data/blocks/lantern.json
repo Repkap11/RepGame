@@ -2,11 +2,34 @@
  "casts_shadow": false,
  "emits_light": 15,
  "hardness": 0.35,
+ "icon": "lantern",
  "id": 667,
+ "is_lantern": true,
  "is_seethrough": true,
  "name": "LANTERN",
- "no_light": 6815743,
+ "needs_place_on_any_solid": {
+  "top": true
+ },
+ "no_light": 0,
+ "offset": [
+  5,
+  0,
+  5
+ ],
+ "scale": [
+  6,
+  9,
+  6
+ ],
+ "tex_offset": [
+  -5,
+  0,
+  -5
+ ],
  "textures": {
-  "all": "lantern"
- }
+  "bottom": "lantern_cap",
+  "side": "lantern_side",
+  "top": "lantern_cap"
+ },
+ "waterloggable": true
 }

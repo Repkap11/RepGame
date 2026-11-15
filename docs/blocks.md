@@ -280,6 +280,30 @@ wall block back to the standing block, so drops, pick-block and the
 survival inventory all yield the shared item; wall signs also carry
 `creative: false` so the creative list shows one sign entry per species.
 
+Lanterns (`is_lantern`) render as two boxes (`lantern_boxes` in
+block.cpp, the same multi-box path): the 6x7x6 body and the 4x2x4 lid —
+plus the bail handle, emitted separately as a diagonal cross on the
+Flowers channel (like the bamboo leaf tier), the stand-in for MC's pair
+of 45-degree handle quads, at half-pixel bounds `[6.5,9,6.5]`-
+`[9.5,11,9.5]` via `BLOCK_COORDS_HALF_PIXEL` so the quads centre on the
+block axis; coplanar caps are skipped (lid bottom on the body top) and
+the ground-contact bottoms — lantern body, rod shaft — are culled only
+when the support's top face is opaque, so their undersides still draw
+over glass (the rail-underside rule). Pick/outline and raycast use
+`lantern_pick_boxes`: the body plus the 4x4x4 union of lid and bail,
+since the crossed quads span ~4px on the diagonal. The
+def box `[6,9,6]`/`offset [5,0,5]` is only the collision shape and
+the item icon is the flat `textures/items/*_lantern` sprite
+(`"icon_is_isometric": false` via `"icon"`). All six side tiles are
+composed `extract` lists in the block-pixel window each box covers —
+body band at rows 9-15, lid nub at 7-8, bail strip at 5-6 — so every
+box's faces read the right art through the shared `tex_offset = -offset`
+convention; `*_lantern_cap` tiles the top/bottom windows. Lightning rods
+(`is_lightning_rod`) are two boxes (`lightning_rod_boxes`): the 2-wide
+shaft y 0-12 plus the 4x4 head y 12-16, shaft top cap skipped; the def's
+4x16x4 column stays the pick/collision shape (MC's own voxel shape) and
+the same box pair draws the isometric item icon via `block_icon_boxes`.
+
 `"spine_shell": true` (cactus) replaces the block's mesh with Java's
 three-element cactus model: a full-cell box drawing only top/bottom, plus
 two 14-wide boxes drawing only their side quads, which sit 1px inside each

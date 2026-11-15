@@ -620,6 +620,28 @@ int standing_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] );
 // the standing pair.
 int hanging_sign_boxes( BlockBox out[ SIGN_MAX_BOXES ] );
 
+// ---- Lanterns ---------------------------------------------------------------
+// The two rendered definition-space boxes of a standing lantern (MC's
+// template_lantern): the 6x7x6 body on the cell floor and the 4x2x4 lid on
+// its top — the bail handle is emitted separately as a diagonal cross on
+// the Flowers channel, not a solid box. The lid's bottom cap is skipped
+// (buried in the body's top quad); the body's bottom cap is culled at
+// emit time only against opaque supports.
+#define LANTERN_MAX_BOXES 2
+int lantern_boxes( BlockBox out[ LANTERN_MAX_BOXES ] );
+// The pick/outline model: the body plus the 4x4x4 union of lid + bail —
+// the bail's crossed quads span ~4px, wider than the lid's own box.
+int lantern_pick_boxes( BlockBox out[ LANTERN_MAX_BOXES ] );
+
+// ---- Lightning rods ---------------------------------------------------------
+// The two definition-space boxes of a lightning rod: the 2-wide shaft
+// (y 0..12) and the 4x4 head (y 12..16). The shaft's top cap is skipped
+// (buried in the head); its bottom cap is culled at emit time only
+// against opaque supports — over glass the underside draws. The same
+// pair is the isometric item icon.
+#define ROD_MAX_BOXES 2
+int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
+
 // ---- Item icons -------------------------------------------------------------
 // The model-space boxes a block's item icon draws: stairs their
 // stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),

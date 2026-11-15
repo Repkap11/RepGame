@@ -157,6 +157,10 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         for ( int i = 0; i < num_boxes; i++ ) {
             block_rotate_box( block_yaw( block, blockState.rotation ), boxes[ i ].scale, boxes[ i ].offset );
         }
+    } else if ( block->is_lantern || block->is_lightning_rod ) {
+        // Lantern: body + lid/bail union; rod: shaft + head — the pick
+        // model; axisymmetric, so no yaw remap.
+        num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : lightning_rod_boxes( boxes );
     }
     if ( num_boxes > 0 ) {
         for ( int i = 0; i < FENCE_MAX_BOXES; i++ ) {

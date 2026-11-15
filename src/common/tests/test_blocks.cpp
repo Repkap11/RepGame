@@ -1981,6 +1981,94 @@ int test_support_drops( ) {
     block_rotate_box( BLOCK_ROTATE_90, sign_boxes[ 0 ].scale, sign_boxes[ 0 ].offset );
     check_bool( "sign def: pick box yaws with the board",
                 sign_boxes[ 0 ].scale[ 0 ] == 2 && sign_boxes[ 0 ].scale[ 2 ] == 16 && sign_boxes[ 0 ].offset[ 2 ] == 0 );
+
+    // Lantern renders as body + lid + a bail cross (lantern_boxes — the
+    // bail emits as a Flowers-channel cross, not a box); pick/outline
+    // uses the lid+bail union (lantern_pick_boxes) since the cross quads
+    // span ~4px on the diagonal. Lightning rod is shaft + head
+    // (lightning_rod_boxes) — all axisymmetric.
+    const Block *lantern_def = block_definition_get_definition( LANTERN );
+    BlockBox lantern_bx[ LANTERN_MAX_BOXES ], lantern_pk[ LANTERN_MAX_BOXES ];
+    check_bool( "lantern def: renders body + lid",
+                lantern_def->is_lantern && lantern_boxes( lantern_bx ) == 2 &&
+                    lantern_bx[ 0 ].scale[ 0 ] == 6 && lantern_bx[ 0 ].scale[ 1 ] == 7 && lantern_bx[ 0 ].offset[ 0 ] == 5 &&
+                    lantern_bx[ 1 ].scale[ 0 ] == 4 && lantern_bx[ 1 ].scale[ 1 ] == 2 && lantern_bx[ 1 ].offset[ 1 ] == 7 &&
+                    ( lantern_bx[ 1 ].skip_faces & ( 1u << FACE_BOTTOM ) ) != 0 );
+    check_bool( "lantern def: pick box covers lid + bail",
+                lantern_pick_boxes( lantern_pk ) == 2 && lantern_pk[ 1 ].scale[ 0 ] == 4 && lantern_pk[ 1 ].scale[ 1 ] == 4 &&
+                    lantern_pk[ 1 ].scale[ 2 ] == 4 && lantern_pk[ 1 ].offset[ 1 ] == 7 );
+    const Block *rod_def = block_definition_get_definition( LIGHTNING_ROD );
+    BlockBox rod_bx[ ROD_MAX_BOXES ];
+    check_bool( "rod def: renders shaft + head",
+                rod_def->is_lightning_rod && lightning_rod_boxes( rod_bx ) == 2 &&
+                    rod_bx[ 0 ].scale[ 0 ] == 2 && rod_bx[ 0 ].scale[ 1 ] == 12 && rod_bx[ 0 ].offset[ 0 ] == 7 &&
+                    rod_bx[ 1 ].scale[ 0 ] == 4 && rod_bx[ 1 ].offset[ 1 ] == 12 &&
+                    ( rod_bx[ 0 ].skip_faces & ( 1u << FACE_TOP ) ) != 0 );
+    // The emit must not let a box inherit a previous box's skip_faces:
+    // the rod head keeps its top/bottom caps despite the shaft's
+    // buried-cap skips.
+    {
+        BlockState rod_state = { LIGHTNING_ROD, 0, 0, LIGHTNING_ROD, 0 };
+        BlockEmitParams emit = {};
+        emit.block = rod_def;
+        emit.state = &rod_state;
+        emit.mesh_x = emit.mesh_y = emit.mesh_z = 1;
+        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+            emit.packed_lighting[ f ] = NO_LIGHT_BRIGHT;
+        }
+        emit.cull_against_neighbors = false;
+        struct EmitBuf {
+            BlockCoords buf[ 4 ];
+            int n = 0;
+        } own_out, cross_out;
+        auto buf_alloc = []( void *ctx ) -> BlockCoords * {
+            EmitBuf &b = *static_cast<EmitBuf *>( ctx );
+            return b.n < 4 ? &b.buf[ b.n++ ] : nullptr;
+        };
+        const BlockEmitSink sink = { &own_out, buf_alloc, &cross_out, buf_alloc };
+        int extra = -1;
+        const int count = block_emit_count( emit, &extra );
+        check_bool( "rod emit: two channel-1 instances, no cross", count == 2 && extra == 0 );
+        block_emit_cell( emit, sink );
+        check_bool( "rod emit: head keeps its caps",
+                    own_out.n == 2 && own_out.buf[ 1 ].packed_lighting[ FACE_TOP ] != NO_LIGHT_NO_DRAW &&
+                        own_out.buf[ 1 ].packed_lighting[ FACE_BOTTOM ] != NO_LIGHT_NO_DRAW );
+        check_bool( "rod emit: shaft top cap skipped",
+                    own_out.buf[ 0 ].packed_lighting[ FACE_TOP ] == NO_LIGHT_NO_DRAW );
+        check_bool( "rod emit: shaft bottom drawn without support cull",
+                    own_out.buf[ 0 ].packed_lighting[ FACE_BOTTOM ] != NO_LIGHT_NO_DRAW );
+        // The shaft's bottom sits coplanar on the support: cull it only
+        // when the block below's top face is opaque — through glass the
+        // underside must draw (same rule as the rail underside).
+        emit.cull_against_neighbors = true;
+        emit.nb.at( 0, -1, 0 ) = { STONE, 0, 0, STONE, 0 };
+        own_out.n = cross_out.n = 0;
+        block_emit_cell( emit, sink );
+        check_bool( "rod emit: shaft bottom culled on opaque support",
+                    own_out.n == 2 && own_out.buf[ 0 ].packed_lighting[ FACE_BOTTOM ] == NO_LIGHT_NO_DRAW );
+        emit.nb.at( 0, -1, 0 ) = { GLASS, 0, 0, GLASS, 0 };
+        own_out.n = cross_out.n = 0;
+        block_emit_cell( emit, sink );
+        check_bool( "rod emit: shaft bottom drawn over glass",
+                    own_out.n == 2 && own_out.buf[ 0 ].packed_lighting[ FACE_BOTTOM ] != NO_LIGHT_NO_DRAW );
+        emit.cull_against_neighbors = false;
+        emit.nb.at( 0, -1, 0 ) = { AIR, 0, 0, AIR, 0 };
+        // The lantern's bail emits as an add-on on the second channel —
+        // a cross, not a solid channel-1 box.
+        BlockState lantern_state = { LANTERN, 0, 0, LANTERN, 0 };
+        emit.block = lantern_def;
+        emit.state = &lantern_state;
+        own_out.n = cross_out.n = 0;
+        const int lcount = block_emit_count( emit, &extra );
+        check_bool( "lantern emit: body + lid on channel 1, bail cross on 2", lcount == 2 && extra == 1 );
+        block_emit_cell( emit, sink );
+        // The cross sits at half-pixel bounds [6.5,9,6.5]-[9.5,11,9.5]
+        // (1/32-unit fields) so the quads centre on the block axis.
+        check_bool( "lantern emit: bail is a cross on channel 2",
+                    own_out.n == 2 && cross_out.n == 1 && cross_out.buf[ 0 ].face[ FACE_BACK ] == lantern_def->textures[ FACE_BACK ] &&
+                        cross_out.buf[ 0 ].offset_x == 13 && cross_out.buf[ 0 ].offset_y == 18 &&
+                        ( cross_out.buf[ 0 ].face_shift & BLOCK_COORDS_HALF_PIXEL ) != 0 );
+    }
     {
         bool standing_listed = false, wall_listed = false;
         for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {

@@ -796,6 +796,74 @@
   "copper_lantern": {
     "source": "textures/items/copper_lantern"
   },
+  "copper_lantern_cap": {
+    "extract": {
+      "from": [
+        0,
+        9
+      ],
+      "mirror": true,
+      "size": [
+        6,
+        6
+      ],
+      "to": [
+        5,
+        5
+      ]
+    },
+    "source": "textures/blocks/copper_lantern"
+  },
+  "copper_lantern_side": {
+    "extract": [
+      {
+        "from": [
+          0,
+          2
+        ],
+        "mirror": true,
+        "size": [
+          6,
+          7
+        ],
+        "to": [
+          5,
+          9
+        ]
+      },
+      {
+        "from": [
+          1,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          2
+        ],
+        "to": [
+          6,
+          7
+        ]
+      },
+      {
+        "from": [
+          11,
+          1
+        ],
+        "mirror": true,
+        "size": [
+          3,
+          2
+        ],
+        "to": [
+          7,
+          5
+        ]
+      }
+    ],
+    "source": "textures/blocks/copper_lantern"
+  },
   "copper_ore": {
     "source": "textures/blocks/copper_ore"
   },
@@ -1269,6 +1337,74 @@
   "exposed_copper_lantern": {
     "source": "textures/items/exposed_copper_lantern"
   },
+  "exposed_copper_lantern_cap": {
+    "extract": {
+      "from": [
+        0,
+        9
+      ],
+      "mirror": true,
+      "size": [
+        6,
+        6
+      ],
+      "to": [
+        5,
+        5
+      ]
+    },
+    "source": "textures/blocks/exposed_copper_lantern"
+  },
+  "exposed_copper_lantern_side": {
+    "extract": [
+      {
+        "from": [
+          0,
+          2
+        ],
+        "mirror": true,
+        "size": [
+          6,
+          7
+        ],
+        "to": [
+          5,
+          9
+        ]
+      },
+      {
+        "from": [
+          1,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          2
+        ],
+        "to": [
+          6,
+          7
+        ]
+      },
+      {
+        "from": [
+          11,
+          1
+        ],
+        "mirror": true,
+        "size": [
+          3,
+          2
+        ],
+        "to": [
+          7,
+          5
+        ]
+      }
+    ],
+    "source": "textures/blocks/exposed_copper_lantern"
+  },
   "exposed_copper_trapdoor": {
     "source": "textures/blocks/exposed_copper_trapdoor"
   },
@@ -1276,6 +1412,109 @@
     "source": "textures/blocks/exposed_cut_copper"
   },
   "exposed_lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/exposed_lightning_rod"
+  },
+  "exposed_lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/exposed_lightning_rod"
+  },
+  "exposed_lightning_rod_bottom": {
+    "extract":     {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
+    "source": "textures/blocks/exposed_lightning_rod"
+  },
+  "exposed_lightning_rod_top": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
     "source": "textures/blocks/exposed_lightning_rod"
   },
   "eyeblossom_blooming": {
@@ -1744,6 +1983,74 @@
   "lantern": {
     "source": "textures/items/lantern"
   },
+  "lantern_cap": {
+    "extract": {
+      "from": [
+        0,
+        9
+      ],
+      "mirror": true,
+      "size": [
+        6,
+        6
+      ],
+      "to": [
+        5,
+        5
+      ]
+    },
+    "source": "textures/blocks/lantern"
+  },
+  "lantern_side": {
+    "extract": [
+      {
+        "from": [
+          0,
+          2
+        ],
+        "mirror": true,
+        "size": [
+          6,
+          7
+        ],
+        "to": [
+          5,
+          9
+        ]
+      },
+      {
+        "from": [
+          1,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          2
+        ],
+        "to": [
+          6,
+          7
+        ]
+      },
+      {
+        "from": [
+          11,
+          1
+        ],
+        "mirror": true,
+        "size": [
+          3,
+          2
+        ],
+        "to": [
+          7,
+          5
+        ]
+      }
+    ],
+    "source": "textures/blocks/lantern"
+  },
   "lapis_block": {
     "source": "textures/blocks/lapis_block"
   },
@@ -1811,6 +2118,109 @@
     "source": "textures/items/candles/light_gray_candle"
   },
   "lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/lightning_rod"
+  },
+  "lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/lightning_rod"
+  },
+  "lightning_rod_bottom": {
+    "extract":     {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
+    "source": "textures/blocks/lightning_rod"
+  },
+  "lightning_rod_top": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
     "source": "textures/blocks/lightning_rod"
   },
   "lime_candle": {
@@ -2091,6 +2501,74 @@
   "oxidized_copper_lantern": {
     "source": "textures/items/oxidized_copper_lantern"
   },
+  "oxidized_copper_lantern_cap": {
+    "extract": {
+      "from": [
+        0,
+        9
+      ],
+      "mirror": true,
+      "size": [
+        6,
+        6
+      ],
+      "to": [
+        5,
+        5
+      ]
+    },
+    "source": "textures/blocks/oxidized_copper_lantern"
+  },
+  "oxidized_copper_lantern_side": {
+    "extract": [
+      {
+        "from": [
+          0,
+          2
+        ],
+        "mirror": true,
+        "size": [
+          6,
+          7
+        ],
+        "to": [
+          5,
+          9
+        ]
+      },
+      {
+        "from": [
+          1,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          2
+        ],
+        "to": [
+          6,
+          7
+        ]
+      },
+      {
+        "from": [
+          11,
+          1
+        ],
+        "mirror": true,
+        "size": [
+          3,
+          2
+        ],
+        "to": [
+          7,
+          5
+        ]
+      }
+    ],
+    "source": "textures/blocks/oxidized_copper_lantern"
+  },
   "oxidized_copper_trapdoor": {
     "source": "textures/blocks/oxidized_copper_trapdoor"
   },
@@ -2098,6 +2576,109 @@
     "source": "textures/blocks/oxidized_cut_copper"
   },
   "oxidized_lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/oxidized_lightning_rod"
+  },
+  "oxidized_lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/oxidized_lightning_rod"
+  },
+  "oxidized_lightning_rod_bottom": {
+    "extract":     {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
+    "source": "textures/blocks/oxidized_lightning_rod"
+  },
+  "oxidized_lightning_rod_top": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
     "source": "textures/blocks/oxidized_lightning_rod"
   },
   "packed_mud": {
@@ -4558,6 +5139,74 @@
   "soul_lantern": {
     "source": "textures/items/soul_lantern"
   },
+  "soul_lantern_cap": {
+    "extract": {
+      "from": [
+        0,
+        9
+      ],
+      "mirror": true,
+      "size": [
+        6,
+        6
+      ],
+      "to": [
+        5,
+        5
+      ]
+    },
+    "source": "textures/blocks/soul_lantern"
+  },
+  "soul_lantern_side": {
+    "extract": [
+      {
+        "from": [
+          0,
+          2
+        ],
+        "mirror": true,
+        "size": [
+          6,
+          7
+        ],
+        "to": [
+          5,
+          9
+        ]
+      },
+      {
+        "from": [
+          1,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          2
+        ],
+        "to": [
+          6,
+          7
+        ]
+      },
+      {
+        "from": [
+          11,
+          1
+        ],
+        "mirror": true,
+        "size": [
+          3,
+          2
+        ],
+        "to": [
+          7,
+          5
+        ]
+      }
+    ],
+    "source": "textures/blocks/soul_lantern"
+  },
   "soul_sand": {
     "source": "textures/blocks/soul_sand"
   },
@@ -5068,6 +5717,74 @@
   "weathered_copper_lantern": {
     "source": "textures/items/weathered_copper_lantern"
   },
+  "weathered_copper_lantern_cap": {
+    "extract": {
+      "from": [
+        0,
+        9
+      ],
+      "mirror": true,
+      "size": [
+        6,
+        6
+      ],
+      "to": [
+        5,
+        5
+      ]
+    },
+    "source": "textures/blocks/weathered_copper_lantern"
+  },
+  "weathered_copper_lantern_side": {
+    "extract": [
+      {
+        "from": [
+          0,
+          2
+        ],
+        "mirror": true,
+        "size": [
+          6,
+          7
+        ],
+        "to": [
+          5,
+          9
+        ]
+      },
+      {
+        "from": [
+          1,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          2
+        ],
+        "to": [
+          6,
+          7
+        ]
+      },
+      {
+        "from": [
+          11,
+          1
+        ],
+        "mirror": true,
+        "size": [
+          3,
+          2
+        ],
+        "to": [
+          7,
+          5
+        ]
+      }
+    ],
+    "source": "textures/blocks/weathered_copper_lantern"
+  },
   "weathered_copper_trapdoor": {
     "source": "textures/blocks/weathered_copper_trapdoor"
   },
@@ -5075,6 +5792,109 @@
     "source": "textures/blocks/weathered_cut_copper"
   },
   "weathered_lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/weathered_lightning_rod"
+  },
+  "weathered_lightning_rod": {
+    "extract": [
+      {
+        "from": [
+          0,
+          0
+        ],
+        "mirror": true,
+        "size": [
+          4,
+          4
+        ],
+        "to": [
+          6,
+          0
+        ]
+      },
+      {
+        "from": [
+          0,
+          4
+        ],
+        "mirror": true,
+        "size": [
+          2,
+          12
+        ],
+        "to": [
+          7,
+          4
+        ]
+      }
+    ],
+    "source": "textures/blocks/weathered_lightning_rod"
+  },
+  "weathered_lightning_rod_bottom": {
+    "extract":     {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
+    "source": "textures/blocks/weathered_lightning_rod"
+  },
+  "weathered_lightning_rod_top": {
+    "extract": {
+      "from": [
+        0,
+        0
+      ],
+      "mirror": true,
+      "size": [
+        4,
+        4
+      ],
+      "to": [
+        6,
+        6
+      ]
+    },
     "source": "textures/blocks/weathered_lightning_rod"
   },
   "web": {

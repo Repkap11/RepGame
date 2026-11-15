@@ -75,11 +75,18 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
         // shader-yawed path.
         return hanging_sign_boxes( boxes );
     }
+    if ( block->is_lantern ) {
+        return lantern_boxes( boxes );
+    }
+    if ( block->is_lightning_rod ) {
+        return lightning_rod_boxes( boxes );
+    }
     return 0;
 }
 
 bool block_emit_needs_neighbors( const Block *block ) {
-    return block->is_fence || block->is_wall || block->is_bars || block->is_stairs || block->is_rail || block->is_redstone_dust || block->spine_shell;
+    return block->is_fence || block->is_wall || block->is_bars || block->is_stairs || block->is_rail || block->is_redstone_dust || block->spine_shell ||
+           block->is_lantern || block->is_lightning_rod;
 }
 
 // The extra-instance flags the emit count needs — computed once per emit.
@@ -94,9 +101,11 @@ int block_emit_count( const BlockEmitParams &p, int *extra ) {
     const Block *block = p.block;
     BlockBox boxes[ FENCE_GATE_MAX_BOXES ];
     const int num_boxes = emit_shape_boxes( p, boxes );
-    // Bamboo leaf crosses go to the sink's second channel
-    // (RenderOrder_Flowers) — one per run cell with a nonzero leaf tier.
-    *extra = ( block->is_bamboo && p.state->rotation != 0 ) ? p.mesh_x * p.mesh_y * p.mesh_z : 0;
+    // Crosses go to the sink's second channel (RenderOrder_Flowers), one
+    // per run cell: bamboo's leaf tier, and the lantern's bail handle —
+    // the last lantern box stays out of channel 1.
+    *extra = ( block->is_bamboo && p.state->rotation != 0 ? p.mesh_x * p.mesh_y * p.mesh_z : 0 ) +
+             ( block->is_lantern ? p.mesh_x * p.mesh_y * p.mesh_z : 0 );
     return ( num_boxes > 0 ? num_boxes : 1 ) + ( emit_redstone_orb( p ) ? 1 : 0 ) + ( block->spine_shell ? 2 : 0 ) +
            ( emit_piston_arm( p ) ? p.mesh_x * p.mesh_y * p.mesh_z : 0 ) +
            ( block->is_repeater ? ( p.state->current_redstone_power > 0 ? 4 : 2 ) : 0 );
@@ -661,6 +670,12 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
     // rail ends buried in the post or a connected cell.
     if ( num_boxes > 0 ) {
         const unsigned char yaw = block_yaw( block, blockState.rotation );
+        // Snapshot the instance before box 0's writes: the loop mutates
+        // blockCoord in place for the first box, and extra boxes must
+        // inherit the cell's packed_lighting/faces — not box 0's
+        // NO_LIGHT_NO_DRAW skip_faces (a rod head would lose its own
+        // top/bottom caps to the shaft's buried-cap skips).
+        const BlockCoords base_instance = *blockCoord;
         for ( int i = 0; i < num_boxes; i++ ) {
             BlockCoords *boxCoord = blockCoord;
             if ( i > 0 ) {
@@ -668,7 +683,7 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
                 if ( boxCoord == nullptr ) {
                     break;
                 }
-                *boxCoord = *blockCoord;
+                *boxCoord = base_instance;
             }
             boxCoord->scale_x = boxes[ i ].scale[ 0 ];
             boxCoord->scale_y = boxes[ i ].scale[ 1 ];
@@ -701,6 +716,47 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
                 if ( boxes[ i ].skip_faces & ( 1u << f ) ) {
                     boxCoord->packed_lighting[ mesh_rotated_face( f, ( 4 - yaw ) & 3 ) ] = NO_LIGHT_NO_DRAW;
                 }
+            }
+            // The lantern body's / rod shaft's bottom sits coplanar on
+            // the support's top face — cull it only when that face is
+            // opaque; through glass the underside must draw (the same
+            // boundary-cover test the rail underside uses).
+            if ( i == 0 && ( block->is_lantern || block->is_lightning_rod ) && p.cull_against_neighbors ) {
+                const BlockState &below_cell = p.nb.at( 0, -1, 0 );
+                const int below_rot = below_cell.rotation;
+                const int below_face = OPPOSITE_FACE[ mesh_rotated_face( FACE_BOTTOM, below_rot ) ];
+                if ( !mesh_face_seethrough( mesh_def_table( )[ below_cell.id ], below_cell.current_redstone_power != 0, below_rot, below_face ) ) {
+                    boxCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                }
+            }
+        }
+        if ( block->is_lantern && sink.alloc2 != nullptr ) {
+            // MC's bail is two 3x2 quads crossing at 45 degrees on the
+            // lid, centred on the block axis at x/z=8: the enclosing
+            // box is [6.5,9,6.5]-[9.5,11,9.5], which needs
+            // BLOCK_COORDS_HALF_PIXEL (scale/offset/tex_offset in
+            // 1/32 units). It goes out as a diagonal cross on the
+            // Flowers channel — the only index buffer that draws the
+            // crossed quads — and the u window [6.5,9.5) centres the
+            // side tile's 3px bail strip (cols 7-9) on the quads.
+            BlockCoords *cross = sink.alloc2( sink.ctx2 );
+            if ( cross != nullptr ) {
+                *cross = base_instance;
+                cross->scale_x = 6;
+                cross->scale_y = 4;
+                cross->scale_z = 6;
+                cross->offset_x = 13;
+                cross->offset_y = 18;
+                cross->offset_z = 13;
+                cross->tex_offset_x = -13;
+                cross->tex_offset_y = -18;
+                cross->tex_offset_z = -13;
+                cross->face_shift = yaw | BLOCK_COORDS_HALF_PIXEL;
+                for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                    cross->face[ f ] = TEX_AIR;
+                }
+                cross->face[ FACE_BACK ] = block->textures[ FACE_BACK ];
+                cross->face[ FACE_FRONT ] = block->textures[ FACE_BACK ];
             }
         }
     }
