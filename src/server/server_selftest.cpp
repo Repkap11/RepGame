@@ -1912,6 +1912,43 @@ int server_selftest( ) {
                "container: break clears entry + subscribers" );
         drain_client( server, ca );
 
+        // Double chest: a client holds up to two CHEST subscriptions — the
+        // merged pair's halves — while other kinds still pin it to one.
+        const glm::ivec3 half_a( 20, 41, 20 ), half_b( 21, 41, 20 ), half_c( 22, 41, 20 );
+        send_container_open( server, ca, NetContainerKind::CHEST, half_a );
+        send_container_open( server, ca, NetContainerKind::CHEST, half_b );
+        check( sc.subscriber_count( NetContainerKind::CHEST, half_a ) == 1 &&
+                   sc.subscriber_count( NetContainerKind::CHEST, half_b ) == 1,
+               "container: client holds two chest subscriptions" );
+        // Both halves accept writes independently.
+        send_container_set_slot( server, ca, NetContainerKind::CHEST, half_b, 0, InventorySlot{ DIRT, 5 } );
+        {
+            const ServerContainerEntry *ce = sc.find( NetContainerKind::CHEST, half_b );
+            check( ce != nullptr && ce->contents.slots[ 0 ].item_id == DIRT && ce->contents.slots[ 0 ].quantity == 5,
+                   "container: second half's write lands" );
+        }
+        // A third chest open evicts the oldest half's subscription.
+        send_container_open( server, ca, NetContainerKind::CHEST, half_c );
+        check( sc.subscriber_count( NetContainerKind::CHEST, half_a ) == 0 &&
+                   sc.subscriber_count( NetContainerKind::CHEST, half_b ) == 1 &&
+                   sc.subscriber_count( NetContainerKind::CHEST, half_c ) == 1,
+               "container: third open evicts the oldest half" );
+        // And the evicted half stops accepting that client's writes.
+        send_container_set_slot( server, ca, NetContainerKind::CHEST, half_a, 0, InventorySlot{ GOLD_BLOCK, 9 } );
+        {
+            const ServerContainerEntry *ce = sc.find( NetContainerKind::CHEST, half_a );
+            check( ce == nullptr || ce->contents.slots[ 0 ].item_id != GOLD_BLOCK,
+                   "container: evicted half rejects writes" );
+        }
+        // CLOSE is scoped: dropping one half leaves the other subscribed.
+        send_container_close( server, ca, NetContainerKind::CHEST, half_b );
+        check( sc.subscriber_count( NetContainerKind::CHEST, half_b ) == 0 &&
+                   sc.subscriber_count( NetContainerKind::CHEST, half_c ) == 1,
+               "container: close drops only its own half" );
+        send_container_close( server, ca, NetContainerKind::CHEST, half_c );
+        drain_client( server, ca );
+        drain_client( server, cb );
+
         // Furnace: place the block (server learns the state), open, load a
         // smelt — ticking then ignites, swaps the block to LIT_FURNACE for
         // every client, and pushes throttled progress snapshots.

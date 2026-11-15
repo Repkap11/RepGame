@@ -7,15 +7,16 @@
 // One `Set` per NetContainerKindDef carries the machinery every container
 // kind shares: a lazy per-chunk contents cache backed by the kind's
 // sidecar file (def->load/def->persist), a subscriber set per container
-// position, one open container per client, optimistic per-slot writes with
-// a correction snapshot on rejection, and loot-on-break. Kind-specific
-// behaviour (furnace ticking, lit-block swap) hangs off the def's
-// active/tick/lit hooks — adding a synced container kind is a new row in
-// container.cpp, not another copy of this file.
+// position, open-container bookkeeping per client, optimistic per-slot
+// writes with a correction snapshot on rejection, and loot-on-break.
+// Kind-specific behaviour (furnace ticking, lit-block swap) hangs off the
+// def's active/tick/lit hooks — adding a synced container kind is a new
+// row in container.cpp, not another copy of this file.
 
 #include <chrono>
 #include <map>
 #include <set>
+#include <vector>
 
 #include <glm/glm.hpp>
 
@@ -53,9 +54,10 @@ class ServerContainers {
     struct Set {
         const NetContainerKindDef *def;
         std::map<glm::ivec3, ServerContainerChunk, Compare_I_Vec3> chunks;
-        // pos -> viewing client fds; client_fd -> open pos.
+        // pos -> viewing client fds; client_fd -> open positions, oldest
+        // first (a double chest holds two chest subscriptions at once).
         std::map<glm::ivec3, std::set<int>, Compare_I_Vec3> subscribers;
-        std::map<int, glm::ivec3> client_open;
+        std::map<int, std::vector<glm::ivec3>> client_open;
         // Throttle for tick progress broadcasts (CONTENTS every N ticks).
         int broadcast_countdown = 0;
     };
@@ -74,6 +76,8 @@ class ServerContainers {
     // Answers an unauthorized/invalid write with the authoritative snapshot
     // for that container — the optimistic client's state self-heals.
     void sendCorrection( Server &server, int client_fd, const Set &set, const glm::ivec3 &pos );
+    // Drops one (fd,pos) subscription; unsubscribe drops all of a client's.
+    void unsubscribePos( Set &set, int client_fd, const glm::ivec3 &pos );
     void unsubscribe( Set &set, int client_fd );
     void handleOpen( Server &server, Set &set, int client_fd, const glm::ivec3 &pos );
     void handleSetSlot( Server &server, Set &set, int client_fd, const glm::ivec3 &pos, uint32_t slot_index, const InventorySlot &value );

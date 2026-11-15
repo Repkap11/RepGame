@@ -190,10 +190,13 @@ void RepGame::break_selected_block( ) {
             // The chunk erases the map entry when the block write lands.
         }
         // Close a UI still showing the broken container (one arm per kind —
-        // the UI structs stay per-kind even though the sync is generic).
+        // the UI structs stay per-kind even though the sync is generic). A
+        // double chest closes when either half breaks — the survivor's
+        // latch reverts to a single chest via the neighbour wake.
         switch ( def->kind ) {
             case NetContainerKind::CHEST:
-                if ( globalGameState.ui.chest.open && globalGameState.ui.chest.pos == pos ) {
+                if ( globalGameState.ui.chest.open &&
+                     ( globalGameState.ui.chest.pos == pos || ( globalGameState.ui.chest.paired && globalGameState.ui.chest.pos2 == pos ) ) ) {
                     RepGame::close_chest( globalGameState );
                     globalGameState.input.inventory_open = false;
                 }

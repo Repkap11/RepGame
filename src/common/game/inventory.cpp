@@ -56,28 +56,48 @@ void RepGame::open_chest( RepGameState &state, const glm::ivec3 &pos ) {
     if ( state.ui.furnace.open ) {
         RepGame::close_furnace( state );
     }
-    if ( state.ui.chest.open && state.ui.chest.pos != pos ) {
+    // A clicked half of a consistent pair opens the pair: `pos` is
+    // normalized to the LEFT half (which fills the panel's top three rows)
+    // and `pos2`/`paired` carry the RIGHT half's position.
+    glm::ivec3 left_pos( 0 ), right_pos( 0 );
+    const bool paired = state.world.get_chest_pair( pos, left_pos, right_pos );
+    const glm::ivec3 primary = paired ? left_pos : pos;
+    if ( state.ui.chest.open && ( state.ui.chest.pos != primary || state.ui.chest.paired != paired ) ) {
         // Unsubscribes from the previous chest in multiplayer.
         RepGame::close_chest( state );
     }
     state.ui.chest.open = true;
-    state.ui.chest.pos = pos;
+    state.ui.chest.paired = paired;
+    state.ui.chest.pos = primary;
+    state.ui.chest.pos2 = right_pos;
     state.input.inventory_open = true;
     audio_play_sfx( "chest" );
     // An open cancels a pending loot snapshot for the same position.
     state.pending_container_loot.erase( pos );
-    if ( state.multiplayer.is_active( ) ) {
-        state.multiplayer.containers.open( NetContainerKind::CHEST, pos );
+    if ( paired ) {
+        state.pending_container_loot.erase( left_pos );
+        state.pending_container_loot.erase( right_pos );
     }
-    // Ensure a local entry exists (empty until CONTAINER_CONTENTS arrives in
-    // multiplayer; the chest file contents in singleplayer) and repaint.
-    const ChestContents *contents = state.world.get_or_create_chest_contents( pos );
-    if ( contents != nullptr ) {
-        for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-            state.ui.chest.inventory_renderer.changeSlotItem( i, contents->slots[ i ] );
-            state.ui.chest.drawn[ i ] = contents->slots[ i ];
+    const int halves = paired ? 2 : 1;
+    for ( int half = 0; half < halves; half++ ) {
+        const glm::ivec3 &half_pos = half == 0 ? state.ui.chest.pos : state.ui.chest.pos2;
+        if ( state.multiplayer.is_active( ) ) {
+            state.multiplayer.containers.open( NetContainerKind::CHEST, half_pos );
+        }
+        // Ensure a local entry exists (empty until CONTAINER_CONTENTS
+        // arrives in multiplayer; the chest file contents in singleplayer)
+        // and repaint.
+        const ChestContents *contents = state.world.get_or_create_chest_contents( half_pos );
+        if ( contents != nullptr ) {
+            InventoryRenderer &renderer = half == 0 ? state.ui.chest.inventory_renderer : state.ui.chest.inventory_renderer2;
+            for ( int i = 0; i < CHEST_SLOTS; i++ ) {
+                renderer.changeSlotItem( i, contents->slots[ i ] );
+                state.ui.chest.drawn[ half * CHEST_SLOTS + i ] = contents->slots[ i ];
+            }
         }
     }
+    // Paired state decides which slab each renderer occupies — re-adopt.
+    repgame_apply_ui_layout( state );
 }
 
 void RepGame::close_chest( RepGameState &state ) {
@@ -88,7 +108,12 @@ void RepGame::close_chest( RepGameState &state ) {
     audio_play_sfx( "chest_close" );
     if ( state.multiplayer.is_active( ) ) {
         state.multiplayer.containers.close( NetContainerKind::CHEST, state.ui.chest.pos );
+        if ( state.ui.chest.paired ) {
+            state.multiplayer.containers.close( NetContainerKind::CHEST, state.ui.chest.pos2 );
+        }
     }
+    state.ui.chest.paired = false;
+    repgame_apply_ui_layout( state );
 }
 
 // Repaints chest slot icons whose world contents changed since the last
@@ -98,15 +123,21 @@ void repgame_chest_sync_icons( RepGameState &state ) {
     if ( !state.ui.chest.open ) {
         return;
     }
-    const ChestContents *contents = state.world.get_chest_contents( state.ui.chest.pos );
-    if ( contents == nullptr ) {
-        return;
-    }
-    for ( int i = 0; i < CHEST_SLOTS; i++ ) {
-        const InventorySlot &slot = contents->slots[ i ];
-        if ( slot.item_id != state.ui.chest.drawn[ i ].item_id || slot.quantity != state.ui.chest.drawn[ i ].quantity ) {
-            state.ui.chest.inventory_renderer.changeSlotItem( i, slot );
-            state.ui.chest.drawn[ i ] = slot;
+    const int halves = state.ui.chest.paired ? 2 : 1;
+    for ( int half = 0; half < halves; half++ ) {
+        const glm::ivec3 &half_pos = half == 0 ? state.ui.chest.pos : state.ui.chest.pos2;
+        const ChestContents *contents = state.world.get_chest_contents( half_pos );
+        if ( contents == nullptr ) {
+            continue;
+        }
+        InventoryRenderer &renderer = half == 0 ? state.ui.chest.inventory_renderer : state.ui.chest.inventory_renderer2;
+        for ( int i = 0; i < CHEST_SLOTS; i++ ) {
+            const InventorySlot &slot = contents->slots[ i ];
+            const int combined = half * CHEST_SLOTS + i;
+            if ( slot.item_id != state.ui.chest.drawn[ combined ].item_id || slot.quantity != state.ui.chest.drawn[ combined ].quantity ) {
+                renderer.changeSlotItem( i, slot );
+                state.ui.chest.drawn[ combined ] = slot;
+            }
         }
     }
 }
@@ -116,19 +147,58 @@ void repgame_chest_sync_icons( RepGameState &state ) {
 // ChestContents; every mutation funnels through chest_sync_slot so the chunk
 // gets dirtied, the icon repaints, and the server hears about it.
 
+// Maps a combined panel index (0..26 = primary/left half, 27..53 = right
+// half while paired) to the owning half's position, local slot index and
+// renderer. A single chest only ever produces indices 0..26.
+static void chest_slot_parts( RepGameState &state, int slot_index, glm::ivec3 &pos, int &local_index, InventoryRenderer *&renderer ) {
+    if ( state.ui.chest.paired && slot_index >= CHEST_SLOTS ) {
+        pos = state.ui.chest.pos2;
+        local_index = slot_index - CHEST_SLOTS;
+        renderer = &state.ui.chest.inventory_renderer2;
+    } else {
+        pos = state.ui.chest.pos;
+        local_index = slot_index;
+        renderer = &state.ui.chest.inventory_renderer;
+    }
+}
+
+// Combined panel index of the chest cell under the cursor, or -1. The
+// right half's renderer occupies the lower slab while paired.
+static int chest_slot_at_point( RepGameState &state, int x, int y ) {
+    int slot = state.ui.chest.inventory_renderer.whichSlotClicked( x, y );
+    if ( slot >= 0 ) {
+        return slot;
+    }
+    if ( state.ui.chest.paired ) {
+        slot = state.ui.chest.inventory_renderer2.whichSlotClicked( x, y );
+        if ( slot >= 0 ) {
+            return CHEST_SLOTS + slot;
+        }
+    }
+    return -1;
+}
+
 static void chest_sync_slot( RepGameState &state, int slot_index, const InventorySlot &slot ) {
-    state.world.set_chest_slot( state.ui.chest.pos, slot_index, slot );
-    state.ui.chest.inventory_renderer.changeSlotItem( slot_index, slot );
+    glm::ivec3 pos;
+    int local_index;
+    InventoryRenderer *renderer;
+    chest_slot_parts( state, slot_index, pos, local_index, renderer );
+    state.world.set_chest_slot( pos, local_index, slot );
+    renderer->changeSlotItem( local_index, slot );
     state.ui.chest.drawn[ slot_index ] = slot;
-    state.multiplayer.containers.set_slot( NetContainerKind::CHEST, state.ui.chest.pos, static_cast<uint32_t>( slot_index ), slot );
+    state.multiplayer.containers.set_slot( NetContainerKind::CHEST, pos, static_cast<uint32_t>( local_index ), slot );
 }
 
 static void chest_pickup_or_swap( RepGameState &state, int slot_index ) {
-    ChestContents *contents = state.world.get_or_create_chest_contents( state.ui.chest.pos );
+    glm::ivec3 pos;
+    int local_index;
+    InventoryRenderer *renderer;
+    chest_slot_parts( state, slot_index, pos, local_index, renderer );
+    ChestContents *contents = state.world.get_or_create_chest_contents( pos );
     if ( contents == nullptr ) {
         return;
     }
-    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot slot = contents->slots[ local_index ];
     InventorySlot &held = state.ui.held_slot;
     if ( !state.ui.holding_slot ) {
         if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
@@ -159,11 +229,15 @@ static void chest_pickup_or_swap( RepGameState &state, int slot_index ) {
 }
 
 static void chest_right_click( RepGameState &state, int slot_index ) {
-    ChestContents *contents = state.world.get_or_create_chest_contents( state.ui.chest.pos );
+    glm::ivec3 pos;
+    int local_index;
+    InventoryRenderer *renderer;
+    chest_slot_parts( state, slot_index, pos, local_index, renderer );
+    ChestContents *contents = state.world.get_or_create_chest_contents( pos );
     if ( contents == nullptr ) {
         return;
     }
-    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot slot = contents->slots[ local_index ];
     InventorySlot &held = state.ui.held_slot;
     if ( !state.ui.holding_slot ) {
         // Pick up half the stack, rounded up.
@@ -200,31 +274,35 @@ static void chest_right_click( RepGameState &state, int slot_index ) {
 }
 
 // Merge a stack into the chest (shift-click from a player inventory). Returns
-// the leftover count that didn't fit.
+// the leftover count that didn't fit. A paired chest tops up both halves'
+// stacks before filling empty cells; each pass scans the left half first.
 static int chest_add( RepGameState &state, ItemID item_id, int quantity ) {
-    ChestContents *contents = state.world.get_or_create_chest_contents( state.ui.chest.pos );
-    if ( contents == nullptr ) {
-        return quantity;
-    }
     int remaining = quantity;
-    for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
-        InventorySlot &slot = contents->slots[ i ];
-        if ( slot.item_id == item_id && slot.quantity > 0 && slot.quantity < item_max_stack( item_id ) ) {
-            const int space = item_max_stack( item_id ) - slot.quantity;
-            const int to_add = remaining < space ? remaining : space;
-            slot.quantity += to_add;
-            remaining -= to_add;
-            chest_sync_slot( state, i, slot );
-        }
-    }
-    for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
-        InventorySlot &slot = contents->slots[ i ];
-        if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
-            const int to_add = remaining < item_max_stack( item_id ) ? remaining : item_max_stack( item_id );
-            slot.item_id = item_id;
-            slot.quantity = to_add;
-            remaining -= to_add;
-            chest_sync_slot( state, i, slot );
+    const int halves = state.ui.chest.paired ? 2 : 1;
+    for ( int fill_pass = 0; fill_pass < 2 && remaining > 0; fill_pass++ ) {
+        for ( int half = 0; half < halves && remaining > 0; half++ ) {
+            ChestContents *contents = state.world.get_or_create_chest_contents( half == 0 ? state.ui.chest.pos : state.ui.chest.pos2 );
+            if ( contents == nullptr ) {
+                continue;
+            }
+            for ( int i = 0; i < CHEST_SLOTS && remaining > 0; i++ ) {
+                InventorySlot &slot = contents->slots[ i ];
+                if ( fill_pass == 0 ) {
+                    if ( slot.item_id == item_id && slot.quantity > 0 && slot.quantity < item_max_stack( item_id ) ) {
+                        const int space = item_max_stack( item_id ) - slot.quantity;
+                        const int to_add = remaining < space ? remaining : space;
+                        slot.quantity += to_add;
+                        remaining -= to_add;
+                        chest_sync_slot( state, half * CHEST_SLOTS + i, slot );
+                    }
+                } else if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
+                    const int to_add = remaining < item_max_stack( item_id ) ? remaining : item_max_stack( item_id );
+                    slot.item_id = item_id;
+                    slot.quantity = to_add;
+                    remaining -= to_add;
+                    chest_sync_slot( state, half * CHEST_SLOTS + i, slot );
+                }
+            }
         }
     }
     return remaining;
@@ -232,11 +310,15 @@ static int chest_add( RepGameState &state, ItemID item_id, int quantity ) {
 
 // Shift-click on a chest slot: move the whole stack to the player inventory.
 static void chest_slot_to_player( RepGameState &state, int slot_index ) {
-    ChestContents *contents = state.world.get_or_create_chest_contents( state.ui.chest.pos );
+    glm::ivec3 pos;
+    int local_index;
+    InventoryRenderer *renderer;
+    chest_slot_parts( state, slot_index, pos, local_index, renderer );
+    ChestContents *contents = state.world.get_or_create_chest_contents( pos );
     if ( contents == nullptr ) {
         return;
     }
-    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot slot = contents->slots[ local_index ];
     if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return;
     }
@@ -265,11 +347,15 @@ static void chest_move_to_player( RepGameState &state, int slot_index, bool half
         chest_slot_to_player( state, slot_index );
         return;
     }
-    ChestContents *contents = state.world.get_or_create_chest_contents( state.ui.chest.pos );
+    glm::ivec3 pos;
+    int local_index;
+    InventoryRenderer *renderer;
+    chest_slot_parts( state, slot_index, pos, local_index, renderer );
+    ChestContents *contents = state.world.get_or_create_chest_contents( pos );
     if ( contents == nullptr ) {
         return;
     }
-    InventorySlot slot = contents->slots[ slot_index ];
+    InventorySlot slot = contents->slots[ local_index ];
     if ( slot.item_id == LAST_BLOCK_ID || slot.quantity <= 0 ) {
         return;
     }
@@ -642,8 +728,9 @@ void repgame_layout_containers( RepGameState &state ) {
     const int w = static_cast<int>( state.screen.width );
     const int h = static_cast<int>( state.screen.height );
     const float stride = state.survival_inventory.inventory_renderer.getCellStride( );
-    for ( InventoryRenderer *r : { &state.ui.chest.inventory_renderer, &state.ui.crafting.grid2, &state.ui.crafting.grid3,
-                                   &state.ui.crafting.output, &state.ui.furnace.input, &state.ui.furnace.fuel, &state.ui.furnace.output } ) {
+    for ( InventoryRenderer *r : { &state.ui.chest.inventory_renderer, &state.ui.chest.inventory_renderer2, &state.ui.crafting.grid2,
+                                   &state.ui.crafting.grid3, &state.ui.crafting.output, &state.ui.furnace.input, &state.ui.furnace.fuel,
+                                   &state.ui.furnace.output } ) {
         r->options.fixed_cell_stride = stride;
         r->compute_layout( w, h );
     }
@@ -661,7 +748,9 @@ void repgame_apply_ui_layout( RepGameState &state ) {
     };
 
     // The renderer rebuilds icons from a slots pointer; use the live chest
-    // contents when one is open, an empty chest otherwise.
+    // contents when one is open, an empty chest otherwise. A paired chest
+    // draws its left half on the upper slab (chest_items2) and the right
+    // half on the lower slab directly above the player inventory.
     static const ChestContents empty_chest;
     const ChestContents *chest_contents = &empty_chest;
     if ( state.ui.chest.open ) {
@@ -669,7 +758,14 @@ void repgame_apply_ui_layout( RepGameState &state ) {
             chest_contents = live;
         }
     }
-    place( state.ui.chest.inventory_renderer, r.chest_items, chest_contents->slots );
+    place( state.ui.chest.inventory_renderer, state.ui.chest.paired ? r.chest_items2 : r.chest_items, chest_contents->slots );
+    const ChestContents *chest_contents2 = &empty_chest;
+    if ( state.ui.chest.paired ) {
+        if ( const ChestContents *live = state.world.get_chest_contents( state.ui.chest.pos2 ) ) {
+            chest_contents2 = live;
+        }
+    }
+    place( state.ui.chest.inventory_renderer2, state.ui.chest.paired ? r.chest_items : r.chest_items2, chest_contents2->slots );
 
     // Both crafting grids adopt their slabs (only the active dim draws);
     // the shared output panel joins the active group.
@@ -1071,7 +1167,9 @@ static bool off_inventory_panels( RepGameState &state ) {
     // clearly outside the window.
     const UiLayoutRects &ui_rects = state.ui.layout.rects( );
     if ( state.ui.chest.open &&
-         ( state.ui.chest.inventory_renderer.containsItemsPoint( x, y ) || ui_rects.chest_backdrop.contains( cx, cy ) ) ) {
+         ( state.ui.chest.inventory_renderer.containsItemsPoint( x, y ) ||
+           ( state.ui.chest.paired && state.ui.chest.inventory_renderer2.containsItemsPoint( x, y ) ) ||
+           ( state.ui.chest.paired ? ui_rects.chest_backdrop2 : ui_rects.chest_backdrop ).contains( cx, cy ) ) ) {
         return false;
     }
     if ( state.ui.furnace.open &&
@@ -1438,8 +1536,8 @@ void RepGame::process_inventory_events( ) {
                 }
             } else if ( globalGameState.ui.chest.open ) {
                 // Chest UI: chest slots win, then survival, then hotbar.
-                const int chest_slot = globalGameState.ui.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
-                if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
+                const int chest_slot = chest_slot_at_point( globalGameState, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( chest_slot >= 0 && chest_slot < DOUBLE_CHEST_SLOTS ) {
                     if ( globalGameState.input.shift_held ) {
                         chest_slot_to_player( globalGameState, chest_slot );
                     } else {
@@ -1557,8 +1655,8 @@ void RepGame::process_inventory_events( ) {
                 // Middle-click on crafting panels does nothing.
             } else if ( globalGameState.ui.chest.open ) {
                 // Middle-click on a chest slot moves the stack to the player.
-                const int chest_slot = globalGameState.ui.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
-                if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
+                const int chest_slot = chest_slot_at_point( globalGameState, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( chest_slot >= 0 && chest_slot < DOUBLE_CHEST_SLOTS ) {
                     chest_slot_to_player( globalGameState, chest_slot );
                 }
             } else if ( globalGameState.ui.furnace.open ) {
@@ -1599,8 +1697,8 @@ void RepGame::process_inventory_events( ) {
                     crafting_take_result( globalGameState );
                 }
             } else if ( globalGameState.ui.chest.open ) {
-                const int chest_slot = globalGameState.ui.chest.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
-                if ( chest_slot >= 0 && chest_slot < CHEST_SLOTS ) {
+                const int chest_slot = chest_slot_at_point( globalGameState, globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                if ( chest_slot >= 0 && chest_slot < DOUBLE_CHEST_SLOTS ) {
                     if ( globalGameState.input.shift_held ) {
                         chest_move_to_player( globalGameState, chest_slot, true );
                     } else {

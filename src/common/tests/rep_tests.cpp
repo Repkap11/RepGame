@@ -38,6 +38,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( vitals ),          //
     MK_TEST( sleep ),           //
     MK_TEST( bed_pair ),        //
+    MK_TEST( chest_pair ),      //
     MK_TEST( held_swing ),       //
     MK_TEST( items ),          //
     MK_TEST( furnace ),        //

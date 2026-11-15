@@ -1434,6 +1434,37 @@ def sc_containers(run, A, B):
     run.wait("loot snapshot credited",
              lambda: inv_count(A.dump.last_state(), "STONE") >= before + 7, timeout=60)
 
+    # Double chest: two same-yaw CHESTs placed side by side merge into a
+    # latch pair — at yaw 0 the cell at -x is the pair's LEFT half. Each
+    # half keeps its own 27-slot subscription, edits on either relay to
+    # every viewer, and breaking one half loots only that half while the
+    # survivor reverts to a plain chest keeping its inventory.
+    dx, dy, dz = 137, gy, 10
+    A.cmd("setblock %d %d %d CHEST" % (dx, dy, dz))
+    wait_block(run, A, dx, dy, dz, "CHEST")
+    A.cmd("setblock %d %d %d CHEST" % (dx + 1, dy, dz))
+    wait_block(run, A, dx, dy, dz, "DOUBLE_CHEST_LEFT_LATCH")
+    wait_block(run, B, dx + 1, dy, dz, "DOUBLE_CHEST_RIGHT_LATCH")
+
+    A.cmd("copen chest %d %d %d" % (dx, dy, dz))
+    A.cmd("copen chest %d %d %d" % (dx + 1, dy, dz))
+    B.cmd("copen chest %d %d %d" % (dx, dy, dz))
+    B.cmd("copen chest %d %d %d" % (dx + 1, dy, dz))
+    run.sleep_ticks(20)
+
+    A.cmd("cset chest %d %d %d 0 DIAMOND 2" % (dx, dy, dz))
+    wait_cslot(run, B, "chest", (dx, dy, dz), 0, "DIAMOND", 2, desc="left half relays")
+    B.cmd("cset chest %d %d %d 1 EMERALD 4" % (dx + 1, dy, dz))
+    wait_cslot(run, A, "chest", (dx + 1, dy, dz), 1, "EMERALD", 4, desc="right half relays")
+
+    before = inv_count(A.dump.last_state(), "EMERALD")
+    A.cmd("setblock %d %d %d AIR" % (dx + 1, dy, dz))
+    run.wait("half break loots only its own slots",
+             lambda: inv_count(A.dump.last_state(), "EMERALD") >= before + 4, timeout=60)
+    wait_block(run, A, dx, dy, dz, "CHEST")
+    wait_block(run, B, dx, dy, dz, "CHEST")
+    wait_cslot(run, A, "chest", (dx, dy, dz), 0, "DIAMOND", 2, desc="survivor keeps contents")
+
     # Furnace: place, open, load a smelt — the server ticks it, swaps the
     # block to LIT_FURNACE for everyone, and streams progress aux to viewers.
     A.cmd("setblock %d %d %d FURNACE" % (cx, cy, cz))

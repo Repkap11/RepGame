@@ -897,3 +897,150 @@ int test_bed_pair( ) {
 
     return failures;
 }
+
+// Two same-facing chests placed side by side on the axis perpendicular to
+// their front merge into a double chest: the cell at +chest_pair_left_dir
+// (the pair's left as seen from the front) becomes the LEFT_LATCH half, its
+// neighbour the RIGHT_LATCH, and each keeps its own 27-slot inventory.
+// Sneak placement stays single, front/back neighbours don't merge, a third
+// chest can't steal a paired half, and breaking either half reverts the
+// survivor to CHEST through the neighbour wake.
+int test_chest_pair( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            gs.tick_number++;
+            repgame_drain_block_updates( gs );
+        }
+    };
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
+    };
+    const BlockState chest0 = { CHEST, BLOCK_ROTATE_0, 0, CHEST, 0 };
+    const BlockState chest1 = { CHEST, BLOCK_ROTATE_90, 0, CHEST, 0 };
+
+    // --- Merge, both directions of the lateral axis (yaw 0: left is -x) ---
+    const glm::ivec3 a( 20, 10, 20 );
+    const glm::ivec3 b = a + chest_pair_left_dir( 0 ); // the pair's left cell
+    place( a, chest0 );
+    run( 1 );
+    failures += check_id( world, "first chest placed single", a, CHEST );
+    place( b, chest0 );
+    run( 1 );
+    failures += check_id( world, "left half is LEFT_LATCH", b, DOUBLE_CHEST_LEFT_LATCH );
+    failures += check_id( world, "right half is RIGHT_LATCH", a, DOUBLE_CHEST_RIGHT_LATCH );
+    {
+        glm::ivec3 left_pos( 0 ), right_pos( 0 );
+        check_bool( "pair resolves from the left half",
+                    world.get_chest_pair( b, left_pos, right_pos ) && left_pos == b && right_pos == a );
+        check_bool( "pair resolves from the right half",
+                    world.get_chest_pair( a, left_pos, right_pos ) && left_pos == b && right_pos == a );
+        const glm::ivec3 lone( 30, 10, 30 );
+        world.set_loaded_block( lone, chest0 );
+        check_bool( "a lone chest is unpaired", world.chest_is_unpaired( lone ) );
+        check_bool( "a non-chest is not unpaired", !world.chest_is_unpaired( glm::ivec3( 30, 10, 31 ) ) );
+        check_bool( "paired halves are not unpaired", !world.chest_is_unpaired( a ) && !world.chest_is_unpaired( b ) );
+    }
+
+    // A third chest can't steal a paired half: placing on the pair's outer
+    // left edge tries the LEFT_LATCH neighbour, finds it paired, and stays
+    // a single chest.
+    const glm::ivec3 c = b + chest_pair_left_dir( 0 );
+    place( c, chest0 );
+    run( 1 );
+    failures += check_id( world, "third chest next to a pair stays single", c, CHEST );
+    failures += check_id( world, "paired left half untouched", b, DOUBLE_CHEST_LEFT_LATCH );
+
+    // --- Other yaws merge on their own lateral axis (yaw 1: left is +z) ---
+    const glm::ivec3 d( 30, 10, 20 );
+    const glm::ivec3 e = d + chest_pair_left_dir( 1 ); // +z
+    place( d, chest1 );
+    place( e, chest1 );
+    run( 2 );
+    failures += check_id( world, "yaw1 left half is LEFT_LATCH", e, DOUBLE_CHEST_LEFT_LATCH );
+    failures += check_id( world, "yaw1 right half is RIGHT_LATCH", d, DOUBLE_CHEST_RIGHT_LATCH );
+
+    // --- No merge: mismatched yaw, front/back neighbour, sneak ---
+    const glm::ivec3 f( 40, 10, 20 ), g = f + chest_pair_left_dir( 0 );
+    place( f, chest0 );
+    place( g, chest1 );
+    run( 2 );
+    failures += check_id( world, "mismatched yaw: first stays single", f, CHEST );
+    failures += check_id( world, "mismatched yaw: second stays single", g, CHEST );
+    // z-adjacent for yaw 0 is the front/back axis — never a merge axis.
+    const glm::ivec3 h( 46, 10, 20 ), i2 = h + glm::ivec3( 0, 0, 1 );
+    place( h, chest0 );
+    place( i2, chest0 );
+    run( 2 );
+    failures += check_id( world, "front/back neighbour: first single", h, CHEST );
+    failures += check_id( world, "front/back neighbour: second single", i2, CHEST );
+    gs.input.movement.sneakPressed = true;
+    const glm::ivec3 j( 52, 10, 20 ), k = j + chest_pair_left_dir( 0 );
+    place( j, chest0 );
+    run( 1 );
+    place( k, chest0 );
+    run( 1 );
+    gs.input.movement.sneakPressed = false;
+    failures += check_id( world, "sneak place: first stays single", j, CHEST );
+    failures += check_id( world, "sneak place: second stays single", k, CHEST );
+
+    // --- Contents survive the merge; breaking a half reverts the other ---
+    const glm::ivec3 l( 20, 20, 20 );
+    const glm::ivec3 m = l + chest_pair_left_dir( 0 );
+    place( l, chest0 );
+    run( 1 );
+    if ( ChestContents *contents = world.get_or_create_chest_contents( l ) ) {
+        contents->slots[ 0 ].item_id = STONE;
+        contents->slots[ 0 ].quantity = 12;
+    }
+    place( m, chest0 );
+    run( 1 );
+    {
+        const ChestContents *contents = world.get_chest_contents( l );
+        check_bool( "merge keeps the first chest's contents",
+                    contents != nullptr && contents->slots[ 0 ].item_id == STONE && contents->slots[ 0 ].quantity == 12 );
+        const ChestContents *contents2 = world.get_chest_contents( m );
+        check_bool( "merged half has its own contents",
+                    contents2 == nullptr || contents2->slots[ 0 ].item_id == LAST_BLOCK_ID || contents2->slots[ 0 ].quantity == 0 );
+    }
+    // Breaking the right half drops its own contents' map entry and wakes
+    // the left half, which reverts to a plain chest keeping its inventory.
+    place( m, BLOCK_STATE_AIR );
+    run( 3 );
+    failures += check_id( world, "broken half is air", m, AIR );
+    failures += check_id( world, "orphaned half reverts to CHEST", l, CHEST );
+    {
+        const ChestContents *contents = world.get_chest_contents( l );
+        check_bool( "surviving half keeps its contents",
+                    contents != nullptr && contents->slots[ 0 ].item_id == STONE && contents->slots[ 0 ].quantity == 12 );
+    }
+    // A re-merged pair resolves again, and breaking the LEFT half reverts
+    // the right one the same way.
+    place( m, chest0 );
+    run( 1 );
+    failures += check_id( world, "re-merged left half", m, DOUBLE_CHEST_LEFT_LATCH );
+    place( m, BLOCK_STATE_AIR );
+    run( 3 );
+    failures += check_id( world, "breaking the left half reverts the right", l, CHEST );
+
+    // block_item_id: a latch half drops/picks the plain chest item.
+    check_bool( "latch halves map to the chest item",
+                block_item_id( DOUBLE_CHEST_LEFT_LATCH ) == CHEST && block_item_id( DOUBLE_CHEST_RIGHT_LATCH ) == CHEST );
+
+    return failures;
+}

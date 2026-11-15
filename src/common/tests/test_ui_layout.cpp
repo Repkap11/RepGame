@@ -144,6 +144,15 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     snprintf( what, sizeof( what ), "%s: chest slab is 9x3 at stride", name );
     near_to( what, r.chest_items.width, 9.1f * s2 );
     near_to( what, r.chest_items.height, 3.1f * s2 );
+    // The double-chest variant stacks a second identical slab directly on
+    // the first (its left half's slots fill the upper panel).
+    snprintf( what, sizeof( what ), "%s: chest2 slab stacks on chest", name );
+    near_to( what, r.chest_items2.bottom, r.chest_items.top( ) );
+    snprintf( what, sizeof( what ), "%s: chest2 slab mirrors chest", name );
+    near_to( what, r.chest_items2.width, r.chest_items.width );
+    near_to( what, r.chest_items2.height, r.chest_items.height );
+    snprintf( what, sizeof( what ), "%s: chest2 slab centered", name );
+    near_to( what, r.chest_items2.center_x( ), r.chest_items.center_x( ) );
     // Crafting rows: grid | 1-stride arrow gap | output, row centered.
     for ( int dim = 2; dim <= 3; dim++ ) {
         const UiRect &g = dim == 2 ? r.crafting_grid2 : r.crafting_grid3;
@@ -181,6 +190,10 @@ static int check_strip( UiLayout &layout, const char *name, float w, float h, fl
     near_to( what, r.chest_backdrop.bottom, r.survival_items.bottom - bp );
     near_to( what, r.chest_backdrop.top( ), r.chest_items.top( ) + bp );
     near_to( what, r.chest_backdrop.left, fminf( r.chest_items.left, r.survival_items.left ) - bp );
+    snprintf( what, sizeof( what ), "%s: chest2 backdrop tops the second slab", name );
+    near_to( what, r.chest_backdrop2.bottom, r.survival_items.bottom - bp );
+    near_to( what, r.chest_backdrop2.top( ), r.chest_items2.top( ) + bp );
+    near_to( what, r.chest_backdrop2.left, fminf( r.chest_items.left, r.survival_items.left ) - bp );
     snprintf( what, sizeof( what ), "%s: crafting3 backdrop tops grid", name );
     near_to( what, r.crafting_backdrop3.top( ), r.crafting_grid3.top( ) + bp );
     snprintf( what, sizeof( what ), "%s: furnace backdrop tops in/out row", name );

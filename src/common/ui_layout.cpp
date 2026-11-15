@@ -275,12 +275,20 @@ void UiLayout::compute( const UiLayoutInput &in ) {
                         // Slab sizes are the panels' measured items dims —
                         // the renderer owns the stride+border math.
                         // Chest: 9x3 slab, bottom edge a quarter stride
-                        // above the survival slab.
+                        // above the survival slab. A double chest stacks a
+                        // second identical slab directly on top — declared
+                        // unconditionally like every panel.
                         CLAY( { .id = CLAY_ID( "chest_items" ),
                                 .layout = { .sizing = { CLAY_SIZING_FIXED( in.chest_slab_w ), CLAY_SIZING_FIXED( in.chest_slab_h ) } },
                                 .floating = { .offset = { 0, -0.25f * s2 },
                                               .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
-                                              .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
+                                              .attachTo = CLAY_ATTACH_TO_PARENT } } ) {
+                            CLAY( { .id = CLAY_ID( "chest_items2" ),
+                                    .layout = { .sizing = { CLAY_SIZING_FIXED( in.chest_slab_w ), CLAY_SIZING_FIXED( in.chest_slab_h ) } },
+                                    .floating = { .offset = { 0, 0 },
+                                                  .attachPoints = { .element = CLAY_ATTACH_POINT_CENTER_BOTTOM, .parent = CLAY_ATTACH_POINT_CENTER_TOP },
+                                                  .attachTo = CLAY_ATTACH_TO_PARENT } } ) { }
+                        }
                         // Crafting rows: grid | one-stride arrow gap |
                         // output, the output cell vertically centered on
                         // the grid. Bottom edge pinned like the chest's.
@@ -503,6 +511,7 @@ void UiLayout::compute( const UiLayoutInput &in ) {
     this->rects_.search_box = rect_of( CLAY_ID( "search_box" ) );
 
     this->rects_.chest_items = rect_of( CLAY_ID( "chest_items" ) );
+    this->rects_.chest_items2 = rect_of( CLAY_ID( "chest_items2" ) );
     this->rects_.crafting_grid2 = rect_of( CLAY_IDI( "crafting_grid", 2 ) );
     this->rects_.crafting_out2 = rect_of( CLAY_IDI( "crafting_out", 2 ) );
     this->rects_.crafting_gap2 = rect_of( CLAY_IDI( "crafting_gap", 2 ) );
@@ -534,6 +543,7 @@ void UiLayout::compute( const UiLayoutInput &in ) {
         return r;
     };
     this->rects_.chest_backdrop = inflate( uni( this->rects_.chest_items, this->rects_.survival_items ) );
+    this->rects_.chest_backdrop2 = inflate( uni( uni( this->rects_.chest_items2, this->rects_.chest_items ), this->rects_.survival_items ) );
     this->rects_.crafting_backdrop2 = inflate( uni( uni( this->rects_.crafting_grid2, this->rects_.crafting_out2 ), this->rects_.survival_items ) );
     this->rects_.crafting_backdrop3 = inflate( uni( uni( this->rects_.crafting_grid3, this->rects_.crafting_out3 ), this->rects_.survival_items ) );
     this->rects_.furnace_backdrop = inflate( uni( uni( uni( this->rects_.furnace_input, this->rects_.furnace_output ), this->rects_.furnace_fuel ), this->rects_.survival_items ) );
@@ -618,6 +628,7 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     screen( UI_OVERFLOW_CREATIVE, "creative_items", r.creative_items );
     screen( UI_OVERFLOW_CREATIVE, "search_box", r.search_box );
     screen( UI_OVERFLOW_CHEST, "chest", r.chest_backdrop );
+    screen( UI_OVERFLOW_CHEST, "chest2", r.chest_backdrop2 );
     screen( UI_OVERFLOW_CRAFTING2, "crafting2", r.crafting_backdrop2 );
     screen( UI_OVERFLOW_CRAFTING3, "crafting3", r.crafting_backdrop3 );
     screen( UI_OVERFLOW_FURNACE, "furnace", r.furnace_backdrop );
@@ -657,6 +668,8 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     };
     // Container screens stack above the survival slab — never inside it.
     overlap( 1ull << 0, "chest_items/survival_items", r.chest_items, r.survival_items );
+    overlap( 1ull << 50, "chest_items2/chest_items", r.chest_items2, r.chest_items );
+    overlap( 1ull << 51, "chest_items2/survival_items", r.chest_items2, r.survival_items );
     overlap( 1ull << 1, "crafting_grid2/survival_items", r.crafting_grid2, r.survival_items );
     overlap( 1ull << 2, "crafting_grid3/survival_items", r.crafting_grid3, r.survival_items );
     overlap( 1ull << 3, "furnace_input/survival_items", r.furnace_input, r.survival_items );
@@ -673,8 +686,9 @@ void UiLayout::validate( const UiLayoutInput &in, const float strip_h ) {
     // Search bar floats above the panel's items slab, never inside it.
     overlap( 1ull << 12, "search_box/creative_items", r.search_box, r.creative_items );
     // Pause rows are disjoint. Each adjacent pair takes a bit past the
-    // named pairs — max shift is 13 + (MAX_ROWS - 2) ≤ 63.
-    static_assert( UI_LAYOUT_MAX_ROWS <= 52, "pause-row overlap bits exceed the mask" );
+    // named pairs — max shift is 13 + (MAX_ROWS - 2), below the sign/chat/
+    // chest2 bits at 45+.
+    static_assert( UI_LAYOUT_MAX_ROWS <= 33, "pause-row overlap bits collide with the named bits" );
     for ( int i = 0; i + 1 < r.pause_row_count; i++ ) {
         overlap( 1ull << ( 13 + i ), "pause_row/next", r.pause_rows[ i ], r.pause_rows[ i + 1 ] );
     }

@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 
+#include <algorithm>
+
 #include "common/chunk.hpp"
 #include "common/constants.hpp"
 #include "server/server.hpp"
@@ -109,13 +111,20 @@ void ServerContainers::sendCorrection( Server &server, int client_fd, const Set 
     this->sendContents( server, client_fd, set, pos, *entry );
 }
 
-void ServerContainers::unsubscribe( Set &set, int client_fd ) {
+void ServerContainers::unsubscribePos( Set &set, int client_fd, const glm::ivec3 &pos ) {
     const auto it = set.client_open.find( client_fd );
     if ( it == set.client_open.end( ) ) {
         return;
     }
-    const glm::ivec3 pos = it->second;
-    set.client_open.erase( it );
+    std::vector<glm::ivec3> &positions = it->second;
+    const auto pit = std::find( positions.begin( ), positions.end( ), pos );
+    if ( pit == positions.end( ) ) {
+        return;
+    }
+    positions.erase( pit );
+    if ( positions.empty( ) ) {
+        set.client_open.erase( it );
+    }
     const auto sit = set.subscribers.find( pos );
     if ( sit != set.subscribers.end( ) ) {
         sit->second.erase( client_fd );
@@ -136,11 +145,37 @@ void ServerContainers::unsubscribe( Set &set, int client_fd ) {
     }
 }
 
+void ServerContainers::unsubscribe( Set &set, int client_fd ) {
+    const auto it = set.client_open.find( client_fd );
+    if ( it == set.client_open.end( ) ) {
+        return;
+    }
+    const std::vector<glm::ivec3> positions = it->second;
+    for ( const glm::ivec3 &pos : positions ) {
+        this->unsubscribePos( set, client_fd, pos );
+    }
+}
+
 void ServerContainers::handleOpen( Server &server, Set &set, int client_fd, const glm::ivec3 &pos ) {
-    // A client holds at most one open container — drop any other
-    // subscription (all kinds; the client's CLOSE is best-effort).
+    // A client holds at most one open container of each other kind — a new
+    // open drops those subscriptions (the client's CLOSE is best-effort).
     for ( Set &other : this->sets ) {
-        this->unsubscribe( other, client_fd );
+        if ( &other != &set ) {
+            this->unsubscribe( other, client_fd );
+        }
+    }
+    // Chests allow two open positions so a merged double chest subscribes
+    // both halves; every other kind still pins the client to one. Opens
+    // beyond the cap evict the oldest.
+    const size_t max_open = set.def->kind == NetContainerKind::CHEST ? 2 : 1;
+    while ( true ) {
+        const auto oit = set.client_open.find( client_fd );
+        if ( oit == set.client_open.end( ) || oit->second.size( ) < max_open ) {
+            break;
+        }
+        // Copy: unsubscribePos erases the element out from under the ref.
+        const glm::ivec3 evict_pos = oit->second.front( );
+        this->unsubscribePos( set, client_fd, evict_pos );
     }
     const glm::ivec3 chunk_pos = glm::floor( glm::vec3( pos ) / CHUNK_SIZE_F );
     ServerContainerChunk &chunk = this->ensureChunk( set, chunk_pos );
@@ -149,13 +184,16 @@ void ServerContainers::handleOpen( Server &server, Set &set, int client_fd, cons
     // anything was put in it.
     ServerContainerEntry &entry = this->entryFor( set, chunk, pos );
     set.subscribers[ pos ].insert( client_fd );
-    set.client_open[ client_fd ] = pos;
+    std::vector<glm::ivec3> &positions = set.client_open[ client_fd ];
+    if ( std::find( positions.begin( ), positions.end( ), pos ) == positions.end( ) ) {
+        positions.push_back( pos );
+    }
     this->sendContents( server, client_fd, set, pos, entry );
 }
 
 void ServerContainers::handleSetSlot( Server &server, Set &set, int client_fd, const glm::ivec3 &pos, uint32_t slot_index, const InventorySlot &value ) {
     const auto it = set.client_open.find( client_fd );
-    if ( it == set.client_open.end( ) || it->second != pos ) {
+    if ( it == set.client_open.end( ) || std::find( it->second.begin( ), it->second.end( ), pos ) == it->second.end( ) ) {
         // Unauthorized write — the optimistic client already applied it, so
         // push the authoritative snapshot back; the client self-heals.
         pr_debug( "CONTAINER_SET_SLOT %s from unsubscribed client:%d — sending correction", set.def->name, client_fd );
@@ -207,7 +245,14 @@ void ServerContainers::handleRemoved( Server &server, Set &set, int client_fd, c
     const auto sit = set.subscribers.find( pos );
     if ( sit != set.subscribers.end( ) ) {
         for ( int fd : sit->second ) {
-            set.client_open.erase( fd );
+            const auto oit = set.client_open.find( fd );
+            if ( oit != set.client_open.end( ) ) {
+                std::vector<glm::ivec3> &positions = oit->second;
+                positions.erase( std::remove( positions.begin( ), positions.end( ), pos ), positions.end( ) );
+                if ( positions.empty( ) ) {
+                    set.client_open.erase( oit );
+                }
+            }
         }
         set.subscribers.erase( sit );
     }
@@ -233,10 +278,8 @@ bool ServerContainers::on_client_message( Server &server, int client_fd, NetMsgT
             Set &set = this->sets[ static_cast<uint8_t>( p.kind ) ];
             // CLOSE is scoped to the container it names — a stale close for
             // a different position mustn't drop the current subscription.
-            const auto it = set.client_open.find( client_fd );
-            if ( it != set.client_open.end( ) && it->second == glm::ivec3( p.x, p.y, p.z ) ) {
-                this->unsubscribe( set, client_fd );
-            }
+            // A double-chest close arrives per half.
+            this->unsubscribePos( set, client_fd, glm::ivec3( p.x, p.y, p.z ) );
             return true;
         }
         case NetMsgType::CONTAINER_SET_SLOT: {

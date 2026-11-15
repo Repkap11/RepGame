@@ -130,6 +130,17 @@ class World {
     // Full-state write (CONTAINER_CONTENTS packet / local open); null when not a chest.
     void set_chest_contents( const glm::ivec3 &block_pos, const ChestContents &contents );
 
+    // Double-chest pair resolution. If the block at pos is one half of a
+    // consistent latch pair (complementary halves, shared yaw), fills
+    // left_pos / right_pos with the two cell positions — left_pos is the
+    // pair's LEFT_LATCH cell, which fills the merged UI's top rows — and
+    // returns true. A plain CHEST or an orphan half returns false and opens
+    // as a single chest.
+    bool get_chest_pair( const glm::ivec3 &pos, glm::ivec3 &left_pos, glm::ivec3 &right_pos ) const;
+    // A chest-family block with no consistent partner: a plain CHEST or an
+    // orphan half. Merge candidates are exactly these on the lateral axis.
+    bool chest_is_unpaired( const glm::ivec3 &pos ) const;
+
     // Furnace containers — same shape as the chest API above. The lit
     // (LIT_FURNACE) and unlit (FURNACE) blocks share one contents entry.
     const FurnaceContents *get_furnace_contents( const glm::ivec3 &block_pos ) const;

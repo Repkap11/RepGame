@@ -25,6 +25,7 @@ int test_climb( );
 int test_vitals( );
 int test_sleep( );
 int test_bed_pair( );
+int test_chest_pair( );
 int test_held_swing( );
 int test_items( );
 int test_furnace( );

@@ -23,17 +23,24 @@
 #include <string>
 
 // Chest container the player currently has open (at most one). Contents
-// live in the owning chunk (World::get_chest_contents); this renderer
-// draws them as a top-aligned panel.
+// live in the owning chunk (World::get_chest_contents); the renderers draw
+// them as top-aligned panels. A double chest is `paired`: pos holds the
+// pair's LEFT half (top three rows) and pos2 the RIGHT half (bottom three
+// rows), each with its own 27-slot inventory and, in multiplayer, its own
+// container subscription.
 struct ChestUi {
     bool open;
     glm::ivec3 pos;
+    glm::ivec3 pos2;
+    bool paired;
     InventoryRenderer inventory_renderer;
-    // Last slot values pushed to the renderer. The net layer only writes
-    // World state (pull model), so the tick loop repaints through
+    InventoryRenderer inventory_renderer2;
+    // Last slot values pushed to the renderers — combined index, 0..26 is
+    // pos and 27..53 is pos2 while paired. The net layer only writes World
+    // state (pull model), so the tick loop repaints through
     // repgame_chest_sync_icons when the world contents differ from this
     // snapshot — same pattern as FurnaceUi::drawn.
-    InventorySlot drawn[ CHEST_SLOTS ];
+    InventorySlot drawn[ DOUBLE_CHEST_SLOTS ];
 };
 
 // Crafting grid: 2x2 in the survival inventory, 3x3 while a crafting

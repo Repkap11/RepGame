@@ -508,8 +508,12 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
 
     if ( draw_hud ) {
         const ChestContents *chest_contents = nullptr;
+        const ChestContents *chest_contents2 = nullptr;
         if ( globalGameState.ui.chest.open ) {
             chest_contents = globalGameState.world.get_chest_contents( globalGameState.ui.chest.pos );
+            if ( globalGameState.ui.chest.paired ) {
+                chest_contents2 = globalGameState.world.get_chest_contents( globalGameState.ui.chest.pos2 );
+            }
         }
         // Light the in-hand block from the flood-fill volume at the eye,
         // combined like the chunk/object shaders (skylight scales with
@@ -615,11 +619,18 @@ void RepGame::draw_ui_pass( const glm::dvec3 &render_pos, float daylight, bool d
             const UiRect &backdrop = repgame_crafting_dim( globalGameState ) == 3 ? ui_rects.crafting_backdrop3 : ui_rects.crafting_backdrop2;
             globalGameState.ui.overlay.draw_panel_backdrop( backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         } else if ( globalGameState.ui.chest.open ) {
-            globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.chest_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
+            globalGameState.ui.overlay.draw_panel_backdrop( globalGameState.ui.chest.paired ? ui_rects.chest_backdrop2 : ui_rects.chest_backdrop,
+                                                          globalGameState.world.renderer, globalGameState.screen.ortho_center );
         } else if ( globalGameState.ui.furnace.open && globalGameState.world.get_furnace_contents( globalGameState.ui.furnace.pos ) != nullptr ) {
             globalGameState.ui.overlay.draw_panel_backdrop( ui_rects.furnace_backdrop, globalGameState.world.renderer, globalGameState.screen.ortho_center );
         }
         globalGameState.ui.overlay.draw( globalGameState.ui.creative, globalGameState.survival_inventory, globalGameState.hotbar, globalGameState.game_mode, globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.input, globalGameState.ui.font, globalGameState.screen.ortho_center, chest_contents ? &globalGameState.ui.chest.inventory_renderer : nullptr, chest_contents, globalGameState.ui.crafting.table_open, globalGameState.ui.furnace.open, held_block_light );
+        // A paired chest draws its right half's 27 slots on the lower slab.
+        if ( chest_contents2 != nullptr ) {
+            globalGameState.ui.overlay.draw_slot_panel( globalGameState.ui.chest.inventory_renderer2, chest_contents2->slots, CHEST_SLOTS,
+                                                      globalGameState.world.renderer, globalGameState.blocksTexture, globalGameState.ui.font,
+                                                      globalGameState.screen.ortho_center );
+        }
         // Survival vitals: hearts above the hotbar (+ air bubbles while
         // underwater). Hidden in creative and under the death screen. The
         // row rect comes from the layout pass.

@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "block_definitions.hpp"
+#include "chest.hpp"           // block_is_chest_half for block_item_id
 #include "mesh_gen_shared.hpp" // canonical face/piston lookup tables
 
 // See world.cpp for vbl
@@ -792,6 +793,11 @@ static inline BlockID block_item_id( BlockID id ) {
     }
     if ( b->standing_variant != LAST_BLOCK_ID ) {
         return b->standing_variant;
+    }
+    // A double-chest half drops/picks the plain chest item — the merged
+    // pair is two chests, not a distinct block.
+    if ( block_is_chest_half( id ) ) {
+        return CHEST;
     }
     return id;
 }

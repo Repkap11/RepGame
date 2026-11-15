@@ -242,11 +242,12 @@ sidecar load/persist hooks, and an optional authoritative tick +
 lit-swap pair. Adding a kind is a new row plus client World storage,
 not another copy of the subscribe/tick/broadcast machinery.
 
-- `CONTAINER_OPEN` subscribes the client (a client holds at most one
-  open container — a new open drops the old subscription server-side);
-  the server answers with `CONTAINER_CONTENTS`, a full snapshot: the
-  kind's slot array plus its aux ints (furnaces carry `cook_progress`
-  and `burn_ticks`).
+- `CONTAINER_OPEN` subscribes the client to that position (a client
+  holds at most one open container per non-chest kind and up to two
+  open chest positions — the merged double chest's halves — with the
+  oldest evicted past the cap); the server answers with
+  `CONTAINER_CONTENTS`, a full snapshot: the kind's slot array plus
+  its aux ints (furnaces carry `cook_progress` and `burn_ticks`).
 - `CONTAINER_SET_SLOT` is an optimistic single-slot write in *both*
   directions — the client applies locally then sends; the server
   sanitizes (`container_clean_slot`), bumps the entry's revision, and
@@ -255,10 +256,21 @@ not another copy of the subscribe/tick/broadcast machinery.
   rejected — and answered with the authoritative `CONTAINER_CONTENTS`
   for the position so the optimistic copy self-heals instead of
   diverging until the next snapshot.
-- `CONTAINER_CLOSE` unsubscribes; disconnect drops all subscriptions.
+- `CONTAINER_CLOSE` unsubscribes just the named position (a double
+  chest closes one half at a time); disconnect drops all subscriptions.
 - Overwriting a container block triggers a `CONTAINER_CONTENTS`
   snapshot to the breaker, consumed via
   `RepGameState::pending_container_loot` so its contents drop as loot.
+
+A double chest needs no protocol additions: each latch half is a
+position-keyed chest container like any other, so a client opening a
+pair simply sends `CONTAINER_OPEN` for both cells and every
+`SET_SLOT`/`CONTENTS`/loot flow stays per half. Two viewers of the same
+pair share the two halves' contents through the same relay as a single
+chest. Merge/split travel as ordinary `BLOCK_UPDATE`s (`CHEST` ↔
+`DOUBLE_CHEST_*_LATCH`); the server treats the latch ids as chest-
+family (`block_is_chest`) so a merge preserves both contents entries
+and a split loots only the broken half (`docs/ui.md`).
 
 Client side, `NetContainers` (`state.multiplayer.containers`,
 `src/common/net_containers.cpp`) sends and applies the family —

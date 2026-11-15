@@ -61,7 +61,7 @@ void repgame_open_sign_editor( RepGameState &state, const glm::ivec3 &pos ) {
     // stack under the sign UI.
     state.input.inventory_open = false;
     state.input.menu_open = false;
-    state.ui.chest.open = false;
+    RepGame::close_chest( state );
     state.ui.crafting.table_open = false;
     state.ui.furnace.open = false;
     SignEditUi &edit = state.ui.sign_edit;

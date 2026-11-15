@@ -17,7 +17,8 @@ UiState
 ├── pause      PauseMenu     Esc menu: buttons + stepper rows
 ├── touch      TouchControls on-screen touch controls (input.touch_ui)
 ├── held_slot / holding_slot  stack currently dragged by the mouse
-├── chest      ChestUi       open chest panel (at most one)
+├── chest      ChestUi       open chest panel (at most one; a double
+│              chest is `paired`: two positions, two renderers)
 ├── furnace    FurnaceUi     open furnace panel: input/fuel/output 1x1s
 ├── sign_edit  SignEditUi    modal sign editor: 4 text lines + cursor
 ├── chat       ChatUi        chat box: one-line editor + scrollback
@@ -95,11 +96,12 @@ the match list; `Enter`/`Esc` or hiding the palette closes and clears it.
 ## Chests
 
 A placed `CHEST` block is a 9×3 container
-(`include/common/chest.hpp`; `DOUBLE_CHEST_*` halves are decorative,
-`block_is_chest` is the only identity check — it's by block id so the
-GL-less server can call it). Contents live in the owning `Chunk`
-(`World::get_chest_contents`/`set_chest_slot`, keyed by in-chunk index,
-`chests_loaded` flag, persisted per chunk — `docs/persistence.md`).
+(`include/common/chest.hpp`; `block_is_chest` is the only identity
+check — it's by block id so the GL-less server can call it, and it
+counts the `DOUBLE_CHEST_*_LATCH` halves too). Contents live in the
+owning `Chunk` (`World::get_chest_contents`/`set_chest_slot`, keyed by
+in-chunk index, `chests_loaded` flag, persisted per chunk —
+`docs/persistence.md`).
 
 `RepGame::open_chest`/`close_chest` (inventory.cpp): opening sets
 `ui.chest.{open,pos}`, raises `inventory_open`, plays the sound, and —
@@ -119,6 +121,37 @@ viewers or pushes a correcting `CONTAINER_CONTENTS` back).
 Breaking an open chest loots it (`repgame_loot_container` locally, or
 `pending_container_loot` + a server snapshot in MP —
 `docs/multiplayer.md`).
+
+### Double chests
+
+Two same-yaw chests placed side by side on the axis perpendicular to
+their front merge automatically (MC-style): the placement event
+rewrites both cells to `DOUBLE_CHEST_LEFT_LATCH` /
+`DOUBLE_CHEST_RIGHT_LATCH` — the cell at `+chest_pair_left_dir` is the
+pair's left — keeping each cell's own contents. Sneak placement stays
+single, a third chest can't join a pair, and only an *unpaired*
+same-yaw neighbour merges (`World::get_chest_pair` /
+`chest_is_unpaired` resolve the geometry from block id + rotation).
+A latch whose partner disappears or mismatches reverts to `CHEST` on
+the next neighbour wake (`perform_checks` in
+BlockNextToChangeEvent.cpp), which covers mining, explosions, and
+support loss alike; latch halves drop/pick the plain `CHEST` item
+(`block_item_id`).
+
+A pair is still two per-position 27-slot containers — the 54-slot
+panel is purely a UI composition. `open_chest` normalizes
+`ui.chest.pos` to the pair's LEFT half (its slots fill the panel's top
+three rows), sets `pos2`/`paired`, and opens a second
+`CONTAINER_OPEN` subscription for the right half; `close_chest` drops
+both. `ui.chest.inventory_renderer2` draws the right half on the lower
+slab (`chest_items`), the left half's renderer moves up to the new
+`chest_items2` slab stacked on top, and `chest_backdrop2` frames both
+slabs plus survival. `ui.chest.drawn[]` is a combined 54-slot snapshot:
+indices 0–26 map to `pos`, 27–53 to `pos2` — `chest_slot_parts`
+translates a combined index to its owning position + local slot so
+every click path (swap, half-pickup, shift-move, middle-move) writes
+and syncs the correct half, and `close_out_of_reach_containers` shuts
+the panel if the pair breaks up or either half leaves reach.
 
 ## Furnaces
 

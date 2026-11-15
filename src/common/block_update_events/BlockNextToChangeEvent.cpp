@@ -11,6 +11,7 @@
 #include "common/block_update_events/FluidUpdateEvent.hpp"
 #include "common/block_update_events/RepeaterEvent.hpp"
 #include "common/block_update_events/schedule.hpp"
+#include "common/chest.hpp"
 #include "common/rail.hpp"
 #include "common/repeater.hpp"
 
@@ -542,6 +543,25 @@ void perform_checks( RepGameState &repGameState, //
     // The affecting block is the one that origionally change
     const BlockState affecting_block_state = world.get_loaded_block( affecting_block_pos );
     const Block *affecting_block = block_definition_get_definition( affecting_block_state.id == LAST_BLOCK_ID ? AIR : affecting_block_state.id );
+
+    // An orphaned double-chest half reverts to a plain chest. The pair's
+    // cells are face-adjacent, so a partner removal always wakes this check
+    // — mining, explosions and support loss all funnel through it. Written
+    // directly rather than as a state_update: the event queue's placement
+    // guards only allow id-preserving updates on non-placeable cells.
+    if ( block_is_chest_half( affecting_block_state.id ) ) {
+        const glm::ivec3 partner_pos = affecting_block_pos + chest_partner_offset( affecting_block_state.id, affecting_block_state.rotation );
+        const BlockState partner_state = world.get_loaded_block( partner_pos );
+        if ( partner_state.id != chest_partner_id( affecting_block_state.id ) || //
+             partner_state.rotation != affecting_block_state.rotation ) {
+            BlockState reverted = affecting_block_state;
+            reverted.id = CHEST;
+            reverted.display_id = CHEST;
+            world.set_loaded_block( affecting_block_pos, reverted );
+            repGameState.multiplayer.set_block( affecting_block_pos, reverted, NET_BU_FLAG_NO_DEBRIS );
+            queue_neighbor_block_updates( repGameState, affecting_block_pos );
+        }
+    }
 
     // The state change (if any) to apply to the affecting block. Display and
     // power updates are merged into one event so a stale payload can't undo

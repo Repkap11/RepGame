@@ -1234,6 +1234,35 @@ void World::set_chest_contents( const glm::ivec3 &block_pos, const ChestContents
     }
 }
 
+bool World::get_chest_pair( const glm::ivec3 &pos, glm::ivec3 &left_pos, glm::ivec3 &right_pos ) const {
+    const BlockState state = this->get_loaded_block( pos );
+    if ( !block_is_chest_half( state.id ) ) {
+        return false;
+    }
+    const glm::ivec3 partner_pos = pos + chest_partner_offset( state.id, state.rotation );
+    const BlockState partner_state = this->get_loaded_block( partner_pos );
+    if ( partner_state.id != chest_partner_id( state.id ) || partner_state.rotation != state.rotation ) {
+        return false;
+    }
+    if ( state.id == DOUBLE_CHEST_LEFT_LATCH ) {
+        left_pos = pos;
+        right_pos = partner_pos;
+    } else {
+        left_pos = partner_pos;
+        right_pos = pos;
+    }
+    return true;
+}
+
+bool World::chest_is_unpaired( const glm::ivec3 &pos ) const {
+    const BlockState state = this->get_loaded_block( pos );
+    if ( !block_is_chest( state.id ) ) {
+        return false;
+    }
+    glm::ivec3 left_pos, right_pos;
+    return !this->get_chest_pair( pos, left_pos, right_pos );
+}
+
 const FurnaceContents *World::get_furnace_contents( const glm::ivec3 &block_pos ) const {
     if ( const Chunk *chunk_prt = this->get_loaded_chunk( block_pos ) ) {
         const Chunk &chunk = *chunk_prt;

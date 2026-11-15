@@ -691,7 +691,7 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         results::event( state.tick_number, "uistate",
                         "\"overflow\":%u,"
                         "\"open\":{\"chest\":%d,\"furnace\":%d,\"table\":%d},"
-                        "\"chest\":{\"rect\":\"%s\",\"slab\":\"%s\"},"
+                        "\"chest\":{\"rect\":\"%s\",\"slab\":\"%s\",\"paired\":%d,\"rect2\":\"%s\",\"slab2\":\"%s\"},"
                         "\"furnace\":{\"in\":\"%s\",\"fuel\":\"%s\",\"out\":\"%s\",\"in_slab\":\"%s\",\"fuel_slab\":\"%s\",\"out_slab\":\"%s\"},"
                         "\"craft3\":{\"grid\":\"%s\",\"grid_slab\":\"%s\"},"
                         "\"surv\":{\"rect\":\"%s\",\"slab\":\"%s\"},"
@@ -700,6 +700,7 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
                         r.overflow,
                         state.ui.chest.open ? 1 : 0, state.ui.furnace.open ? 1 : 0, state.ui.crafting.table_open ? 1 : 0,
                         urect( r.chest_items ).c_str( ), slab( state.ui.chest.inventory_renderer ).c_str( ),
+                        state.ui.chest.paired ? 1 : 0, urect( r.chest_items2 ).c_str( ), slab( state.ui.chest.inventory_renderer2 ).c_str( ),
                         urect( r.furnace_input ).c_str( ), urect( r.furnace_fuel ).c_str( ), urect( r.furnace_output ).c_str( ),
                         slab( state.ui.furnace.input ).c_str( ), slab( state.ui.furnace.fuel ).c_str( ), slab( state.ui.furnace.output ).c_str( ),
                         urect( r.crafting_grid3 ).c_str( ), slab( state.ui.crafting.grid3 ).c_str( ),

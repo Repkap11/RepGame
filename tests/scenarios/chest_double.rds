@@ -1,0 +1,36 @@
+# Double chest: two same-yaw chests merge on placement into a latch pair
+# (yaw 0 pairs along x, the -x cell becoming the LEFT half), either half
+# opens one paired 54-slot panel (uistate: paired + both item slabs), and
+# breaking a half reverts the survivor to a plain CHEST through the
+# neighbour wake.
+wait_idle 20 6000
+debug 0
+imgui 0
+setblock 4 1 4 CHEST
+setblock 5 1 4 CHEST
+wait 20
+assert_block 4 1 4 DOUBLE_CHEST_LEFT_LATCH
+assert_block 5 1 4 DOUBLE_CHEST_RIGHT_LATCH
+# The player has to stand within reach or the tick auto-close fires —
+# pin the camera beside the pair, then open via the right half.
+camera 4.5 2.2 8.5 0 -15
+container chest 5 1 4
+assert_ui_open inventory 1
+uistate
+wait 20
+screenshot double_chest
+# Breaking the right half closes the paired panel and reverts the left.
+setblock 5 1 4 AIR 0
+wait 20
+assert_block 5 1 4 AIR
+assert_block 4 1 4 CHEST
+assert_ui_open inventory 0
+# The survivor re-opens as an ordinary single chest.
+container chest 4 1 4
+assert_ui_open inventory 1
+uistate
+wait 10
+screenshot single_chest
+container none
+assert_ui_open inventory 0
+echo chest_double done

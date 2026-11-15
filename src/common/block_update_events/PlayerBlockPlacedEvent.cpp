@@ -9,6 +9,7 @@
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/block_update_events/TntExplodeEvent.hpp"
 #include "common/break_drops.hpp"
+#include "common/chest.hpp"
 
 static float frand( ) {
     return static_cast<float>( rand( ) ) / static_cast<float>( RAND_MAX );
@@ -277,6 +278,54 @@ void PlayerBlockPlacedEvent::performAction( RepGameState &repGameState ) {
         queue_neighbor_block_updates( repGameState, this->block_pos );
         queue_neighbor_block_updates( repGameState, head_pos );
         return;
+    }
+    // Two chest-family blocks merge on placement (MC double chest): the
+    // placed cell and an unpaired same-facing chest on the lateral axis
+    // become the pair's LEFT/RIGHT latch halves. Sneak placement forces a
+    // single. Each half keeps its own contents under its own position —
+    // merging only swaps block ids, nothing moves. A latch may only
+    // complete the pair it declares (LEFT's partner sits at -left_dir);
+    // a plain CHEST tries either side, preferring the left neighbour.
+    if ( !this->state_update && this->blockState.id != AIR && block_is_chest( this->blockState.id ) &&
+         !repGameState.input.movement.sneakPressed ) {
+        World &world = repGameState.world;
+        const glm::ivec3 left_dir = chest_pair_left_dir( this->blockState.rotation );
+        glm::ivec3 partner_offsets[ 2 ];
+        int partner_count;
+        if ( this->blockState.id == DOUBLE_CHEST_LEFT_LATCH ) {
+            partner_offsets[ 0 ] = -left_dir;
+            partner_count = 1;
+        } else if ( this->blockState.id == DOUBLE_CHEST_RIGHT_LATCH ) {
+            partner_offsets[ 0 ] = left_dir;
+            partner_count = 1;
+        } else {
+            partner_offsets[ 0 ] = left_dir;
+            partner_offsets[ 1 ] = -left_dir;
+            partner_count = 2;
+        }
+        for ( int i = 0; i < partner_count; i++ ) {
+            const glm::ivec3 partner_pos = this->block_pos + partner_offsets[ i ];
+            const BlockState partner_state = world.get_loaded_block( partner_pos );
+            if ( partner_state.id == LAST_BLOCK_ID || !block_is_chest( partner_state.id ) || //
+                 partner_state.rotation != this->blockState.rotation || !world.chest_is_unpaired( partner_pos ) ) {
+                continue;
+            }
+            // The cell at +left_dir is the pair's LEFT half.
+            const bool partner_is_left = partner_offsets[ i ] == left_dir;
+            BlockState placed_state = this->blockState;
+            BlockState merged_partner = partner_state;
+            placed_state.id = placed_state.display_id = partner_is_left ? DOUBLE_CHEST_RIGHT_LATCH : DOUBLE_CHEST_LEFT_LATCH;
+            merged_partner.id = merged_partner.display_id = partner_is_left ? DOUBLE_CHEST_LEFT_LATCH : DOUBLE_CHEST_RIGHT_LATCH;
+            world.set_loaded_block( this->block_pos, placed_state );
+            repGameState.multiplayer.set_block( this->block_pos, placed_state );
+            repGameState.world.spawn_block_debris( this->block_pos, current_block_state, placed_state.id );
+            world.set_loaded_block( partner_pos, merged_partner );
+            repGameState.multiplayer.set_block( partner_pos, merged_partner, NET_BU_FLAG_NO_DEBRIS );
+            queue_neighbor_block_updates( repGameState, this->block_pos );
+            queue_neighbor_block_updates( repGameState, partner_pos );
+            return;
+        }
+        // No merge partner — fall through to the generic single-chest write.
     }
     // Don't place a block that can't survive here (e.g. dust above dust, a
     // torch on a missing attachment): it would sit for a tick and then pop

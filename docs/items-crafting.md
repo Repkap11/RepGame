@@ -45,6 +45,9 @@ spawns the stacks — used by the player destroy path, support-loss kills
 (`PlayerBlockPlacedEvent` `BreakDrops::Survival`, so they drop only in
 survival) and leaf decay (`BreakDrops::Always`). Shears held while
 breaking leaves skip the roll and drop the leaf item itself.
+`block_item_id` also maps `DOUBLE_CHEST_*_LATCH` halves to `CHEST`, so
+a merged double chest's halves break and pick as ordinary chests
+(`docs/ui.md` "Double chests").
 
 Tools and consumables: `SHEARS` (`shears` icon, `max_stack` 1, recipe
 two iron ingots diagonal) harvests leaf blocks; `BONE` drops from

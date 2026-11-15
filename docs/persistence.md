@@ -115,6 +115,11 @@ Same record-size prefix trick; readers copy the `slots` prefix only.
 `persist_chests` *removes* the file when the map is empty — a missing
 file and "no chests" are equivalent, so deleted chests can't resurrect.
 
+A double chest is two of these records: each latch half is a chest-
+family block keeping its own 27-slot entry under its own position, so
+merging (`CHEST`→`DOUBLE_CHEST_*_LATCH`) preserves both halves' contents
+and splitting loots/persists each half independently — no format change.
+
 ## Furnace files (`furnace_x_y_z`)
 
 Same envelope as the chest file:

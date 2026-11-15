@@ -128,8 +128,10 @@ struct UiLayoutRects {
     // Container screens, all floating above the survival slab (every
     // rect is always computed — the draw pass decides which screen is
     // actually open, so nothing needs a relayout on open/close).
-    // Chest: one 9x3 slab.
+    // Chest: one 9x3 slab directly above the player inventory; a double
+    // chest stacks a second slab (its left half's slots) on top.
     UiRect chest_items;
+    UiRect chest_items2;
     // Crafting: the 2x2 and 3x3 variants side by side — grid, the
     // one-stride arrow gap, the output cell.
     UiRect crafting_grid2, crafting_out2, crafting_gap2;
@@ -138,8 +140,10 @@ struct UiLayoutRects {
     // gap between them), fuel centered below.
     UiRect furnace_input, furnace_mid, furnace_output, furnace_fuel;
     // Window backdrops: each frames its screen's panels plus the survival
-    // slab with a 0.35-stride pad — one unified window.
+    // slab with a 0.35-stride pad — one unified window. chest_backdrop2
+    // is the paired (54-slot) chest variant covering both slabs.
     UiRect chest_backdrop;
+    UiRect chest_backdrop2;
     UiRect crafting_backdrop2, crafting_backdrop3;
     UiRect furnace_backdrop;
 

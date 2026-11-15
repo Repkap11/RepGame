@@ -196,12 +196,25 @@ void RepGame::process_hotbar_scroll( ) {
 void RepGame::close_out_of_reach_containers( ) {
     Input &in = globalGameState.input;
     // Close an open chest when the block is gone (broken by anyone), its
-    // chunk unloaded, or the player walked out of reach.
+    // chunk unloaded, or the player walked out of reach. A paired chest
+    // closes when either half is out of reach or the pair breaks up.
     if ( globalGameState.ui.chest.open ) {
-        const BlockState chest_state = globalGameState.world.get_loaded_block( globalGameState.ui.chest.pos );
-        const glm::dvec3 chest_center = glm::dvec3( globalGameState.ui.chest.pos ) + glm::dvec3( 0.5 );
-        const double dist = glm::length( globalGameState.camera.pos - chest_center );
-        if ( !block_is_chest( chest_state.id ) || dist > REACH_DISTANCE + 2.0 ) {
+        bool chest_gone = false;
+        double dist;
+        if ( globalGameState.ui.chest.paired ) {
+            glm::ivec3 left_pos, right_pos;
+            chest_gone = !globalGameState.world.get_chest_pair( globalGameState.ui.chest.pos, left_pos, right_pos ) ||
+                         left_pos != globalGameState.ui.chest.pos || right_pos != globalGameState.ui.chest.pos2;
+            const glm::dvec3 center1 = glm::dvec3( globalGameState.ui.chest.pos ) + glm::dvec3( 0.5 );
+            const glm::dvec3 center2 = glm::dvec3( globalGameState.ui.chest.pos2 ) + glm::dvec3( 0.5 );
+            dist = std::max( glm::length( globalGameState.camera.pos - center1 ), glm::length( globalGameState.camera.pos - center2 ) );
+        } else {
+            const BlockState chest_state = globalGameState.world.get_loaded_block( globalGameState.ui.chest.pos );
+            chest_gone = !block_is_chest( chest_state.id );
+            const glm::dvec3 chest_center = glm::dvec3( globalGameState.ui.chest.pos ) + glm::dvec3( 0.5 );
+            dist = glm::length( globalGameState.camera.pos - chest_center );
+        }
+        if ( chest_gone || dist > REACH_DISTANCE + 2.0 ) {
             RepGame::close_chest( globalGameState );
             in.inventory_open = false;
         }
