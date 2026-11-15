@@ -17,6 +17,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->no_light = NO_LIGHT_NO_DRAW;
         block->casts_shadow = true;
         block->hides_self = { false, false, false }; // like connected glass so you don't see the perpendicular panes, you probably need is_seethrough too.
+        block->hides_self_same_rot = false;
         block->is_seethrough = false;
         for ( bool &face : block->needs_place_on_any_solid ) {
             face = false;

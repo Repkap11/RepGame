@@ -2,6 +2,12 @@
   "affected_by_redstone_power": false,
   "casts_shadow": false,
   "hardness": 0.449999988,
+  "hides_self": [
+    true,
+    true,
+    false
+  ],
+  "hides_self_same_rot": true,
   "icon": "glass_pane_top_yellow",
   "icon_is_isometric": true,
   "id": 1400,

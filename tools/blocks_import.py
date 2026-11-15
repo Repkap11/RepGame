@@ -86,6 +86,7 @@ BOOL_FIELDS = {
     "is_tall_plant_upper",
     "is_bamboo",
     "forms_sources",
+    "hides_self_same_rot",
 }
 INT_FIELDS = {"no_light", "flows", "flow_range", "flow_slope", "initial_redstone_power", "emits_light", "light_absorb"}
 FLOAT_FIELDS = {"hardness", "fall_mass"}

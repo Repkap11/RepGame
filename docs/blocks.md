@@ -143,7 +143,12 @@ until a render class exists for them — see `data/shapes.json` below for the
 workaround. Panes (`GLASS_PANE`, every `*_STAINED_GLASS_PANE`) sidestep a
 shape entry with the `scale [16,16,2]`/`offset [0,0,7]` thin plate plus
 `rotate_on_placement` — no neighbour connection, the wide front/back
-faces take the `glass*` tile and the four edges take `glass_pane_top*`. Default
+faces take the `glass*` tile and the four edges take `glass_pane_top*`.
+Their `hides_self [true,true,false]` + `hides_self_same_rot` culls the
+thin x/y edge faces against a same-id neighbour whose yaw matches mod
+180 (rotation parity — `GPUBlockDef.hides_self` mode 2 in
+mesh_vis_logic.hpp), so coplanar panes read as one sheet while a
+perpendicular neighbour keeps its edge cap. Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
 flags (`no_light`, `casts_shadow:false`); see existing `data/blocks/*.json`
 for the emitted levels.

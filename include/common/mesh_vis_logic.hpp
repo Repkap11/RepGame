@@ -62,11 +62,20 @@ if ( visible != 0 ) {
                     MG_TERN( block.renderOrder == RenderOrder_Water &&
                                  ( mesh_cell_waterlogged( next_to_cell ) != 0 || block_next_to.renderOrder == RenderOrder_Translucent ),
                              1, 0 ) )
+            // hides_self mode 1 culls against any same-id neighbour; mode 2
+            // (panes) only when the neighbour's yaw also matches mod 180 —
+            // rotation parity, since the plate is symmetric — so a
+            // perpendicular pane keeps its edge cap.
+            MG_LET( int, self_match,
+                    MG_TERN( next_to_id == block_id &&
+                                 ( block.hides_self[ rotated_face ] == 1u ||
+                                       ( ( block_rotation ^ next_to_rotation ) & 1 ) == 0 ),
+                             1, 0 ) )
             if ( face == FACE_TOP && block.renderOrder == RenderOrder_Water ) {
-                face_vis = MG_TERN( block_next_to.id != block.id && liquid_boundary == 0, 1, 0 );
+                face_vis = MG_TERN( self_match == 0 && liquid_boundary == 0, 1, 0 );
             } else {
                 face_vis = MG_TERN( mesh_face_seethrough( block_next_to, next_to_power, next_to_rotation, opposing_face ) != 0 &&
-                                        next_to_id != block_id && liquid_boundary == 0,
+                                        self_match == 0 && liquid_boundary == 0,
                                     1, 0 );
             }
         } else if ( block.is_seethrough_face[ coverage_face ] != 0u ) { // The current block is seethrough on this face — check all directions not opposing it.

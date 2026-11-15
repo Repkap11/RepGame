@@ -24,7 +24,10 @@ void fill_mesh_defs( ) {
         d.is_slab = b.is_slab ? 1u : 0u;
         for ( int j = 0; j < NUM_FACES_IN_CUBE; j++ ) {
             d.is_seethrough_face[ j ] = b.calculated.is_seethrough_face[ j ];
-            d.hides_self[ j ] = b.calculated.hides_self[ j ];
+            // 1 = hide against any same-id neighbour (glass/water);
+            // 2 = hide only when the neighbour's yaw matches mod 180
+            // (panes — see mesh_vis_logic.hpp).
+            d.hides_self[ j ] = b.calculated.hides_self[ j ] ? ( b.hides_self_same_rot ? 2u : 1u ) : 0u;
         }
     }
 }

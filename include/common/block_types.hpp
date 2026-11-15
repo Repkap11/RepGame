@@ -90,6 +90,10 @@ typedef struct {
         bool y;
         bool z;
     } hides_self;
+    // hides_self refinement for non-cubes (panes): a same-id neighbour only
+    // hides the shared face when its yaw matches mod 180 — the plate is
+    // symmetric, so parity of the 4-yaw rotation is the coplanar test.
+    bool hides_self_same_rot;
     bool needs_place_on_any_solid[ NUM_FACES_IN_CUBE ];
     bool needs_place_on_solid_but_can_stack_on_self;
     bool can_float_on_water;
