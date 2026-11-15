@@ -96,6 +96,15 @@ clean: clean-sounds
 clean-sounds:
 	rm -rf out/sounds out/include
 
+# Stale-pch recovery: a distro package update that touches system-header
+# mtimes makes clang fatal every TU with "has been modified since the
+# precompiled header ... was built" while ninja still sees the pch as up to
+# date. `make pch` deletes every serialized cmake_pch*.pch (clang) /
+# cmake_pch*.gch (gcc/mingw) under out/ (server/cmake, linux/cmake-*,
+# wasm/cmake, ...) so the next build of each target regenerates it.
+pch:
+	@if [ -d out ]; then find out \( -name 'cmake_pch*.pch' -o -name 'cmake_pch*.gch' \) -print -delete; fi
+
 .PRECIOUS: $(patsubst %,out/sounds/%.ogg,$(SOUNDS_ENABLED))
 
 # Mob model/skin importer: regenerates include/common/mob_models_gen.hpp and
@@ -166,4 +175,4 @@ scenarios: linux
 
 test-all: test mp-test scenarios
 
-.PHONY: check mobs-import blocks-import test test-all scenarios mc_pack_build
+.PHONY: check mobs-import blocks-import test test-all scenarios mc_pack_build pch
