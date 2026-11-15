@@ -1300,6 +1300,7 @@
   "end_rod_top": {
     "extract": [
       {
+        "source": "end_rod_purple_top",
         "from": [
           2,
           3
