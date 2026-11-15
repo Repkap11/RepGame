@@ -134,9 +134,12 @@ class ChunkLoader {
     int num_drawable;
     int drawable_sorted_n = 0;
     // The drawable subset with any blended geometry (Translucent or Water
-    // layer num_instances != 0), same incremental sort/gating scheme. Water
-    // and Translucent passes iterate this back-to-front instead of the full
-    // list: their draw order is the compositing order and must stay exact.
+    // layer num_instances != 0), same incremental sort/gating scheme but
+    // keyed on view depth (projection on the camera forward) rather than
+    // radial distance — painter order needs depth along the view. Water
+    // and Translucent passes iterate this back-to-front instead of the
+    // full list: their draw order is the compositing order and must stay
+    // exact.
     Chunk **blended_chunks;
     int num_blended;
     int blended_sorted_n = 0;
@@ -155,6 +158,7 @@ class ChunkLoader {
     // looking like movement.
     glm::vec3 last_full_sort_cam = glm::vec3( 0.0f );
     glm::vec3 last_blended_sort_cam = glm::vec3( 0.0f );
+    glm::vec3 last_blended_sort_dir = glm::vec3( 0.0f );
     // Precomputed-key scratch for sort_chunks_by_distance.
     std::vector<ChunkSortKey> sort_scratch;
     // Must-remesh queue: chunks dirtied by live edits (World::set_loaded_block
@@ -422,7 +426,7 @@ class ChunkLoader {
     int render_distance_blocks( ) const { return this->render_radius * CHUNK_SIZE_X; }
     void repopulate_blocks( );
     void calculate_cull( const glm::mat4 &mvp, bool saveAsReflection, const glm::ivec3 &renderOrigin ) const;
-    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, unsigned order_mask, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos );
+    void draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, unsigned order_mask, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos, const glm::vec3 &view_dir );
     // Whether draw() runs the occlusion probe block. VR calls with false for
     // the second eye so both eyes share one verdict generation.
     void set_occlusion_probe_pass( bool probe ) { this->occl_probe_pass = probe; }

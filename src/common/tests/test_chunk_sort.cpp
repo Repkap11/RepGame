@@ -2,8 +2,8 @@
 // every split of the list into a sorted prefix and an unsorted newcomer
 // tail, with the prefix pre-sorted for a nearby camera (and for a far
 // camera under full_prefix), the merged result must equal a reference
-// sort of the same strict total order (dist2 to camera, then chunk_pos
-// x/y/z). n=0/n=1 must work.
+// sort of the same strict total order (sort key to camera — dist2 or
+// view depth — then chunk_pos x/y/z). n=0/n=1 must work.
 
 #include "test_util.hpp"
 
@@ -34,15 +34,16 @@ int test_chunk_sort( ) {
         all.push_back( &chunks[ i ] );
     }
 
-    // Reference implementation of the same strict total order.
-    const auto dist2 = [ & ]( const Chunk *c, const glm::vec3 &cam ) {
+    // Reference implementation of the same strict total order: radial
+    // dist2 when dir is null, view depth (projection on dir) otherwise.
+    const auto key_of = [ & ]( const Chunk *c, const glm::vec3 &cam, const glm::vec3 *dir ) {
         const glm::vec3 d = glm::vec3( c->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I / 2 ) - ro - cam;
-        return glm::dot( d, d );
+        return dir ? glm::dot( d, *dir ) : glm::dot( d, d );
     };
-    const auto reference = [ & ]( std::vector<Chunk *> list, const glm::vec3 &cam ) {
+    const auto reference = [ & ]( std::vector<Chunk *> list, const glm::vec3 &cam, const glm::vec3 *dir ) {
         std::sort( list.begin( ), list.end( ), [ & ]( const Chunk *a, const Chunk *b ) {
-            const float da = dist2( a, cam );
-            const float db = dist2( b, cam );
+            const float da = key_of( a, cam, dir );
+            const float db = key_of( b, cam, dir );
             if ( da != db ) {
                 return da < db;
             }
@@ -67,12 +68,13 @@ int test_chunk_sort( ) {
     // n=0 / n=1, both prefix modes, with and without a tail.
     {
         Chunk *none[ 1 ] = { nullptr };
-        sort_chunks_by_distance( none, 0, 0, ro, glm::vec3( 0.0f ), false, scratch );
-        sort_chunks_by_distance( none, 0, 0, ro, glm::vec3( 0.0f ), true, scratch );
+        sort_chunks_by_distance( none, 0, 0, ro, glm::vec3( 0.0f ), nullptr, false, scratch );
+        sort_chunks_by_distance( none, 0, 0, ro, glm::vec3( 0.0f ), nullptr, true, scratch );
         Chunk *one[ 1 ] = { all[ 0 ] };
-        sort_chunks_by_distance( one, 1, 1, ro, glm::vec3( 3.0f, 4.0f, 5.0f ), false, scratch );
+        sort_chunks_by_distance( one, 1, 1, ro, glm::vec3( 3.0f, 4.0f, 5.0f ), nullptr, false, scratch );
         fails += one[ 0 ] != all[ 0 ];
-        sort_chunks_by_distance( one, 1, 0, ro, glm::vec3( 0.0f ), true, scratch );
+        const glm::vec3 dir_x( 1.0f, 0.0f, 0.0f );
+        sort_chunks_by_distance( one, 1, 0, ro, glm::vec3( 0.0f ), &dir_x, true, scratch );
         fails += one[ 0 ] != all[ 0 ];
         pr_test( "  sort: n=0 and n=1 survive all paths             %s", fails == 0 ? "PASS" : "FAIL" );
     }
@@ -87,36 +89,44 @@ int test_chunk_sort( ) {
         glm::vec3( 1.3f, -2.7f, 0.4f ),       // arbitrary
         glm::vec3( 63.9f, -30.2f, 17.1f ),    // far corner of the grid
     };
-    for ( const glm::vec3 &cam : cameras ) {
-        for ( int rep = 0; rep < 3; rep++ ) {
-            const int n = 1 + rand( ) % 300;
-            std::vector<Chunk *> list = shuffled( all );
-            list.resize( n );
-            const std::vector<Chunk *> expected = reference( list, cam );
+    // Key modes: radial distance, plus two view directions (one axis, one
+    // tilted so negative/partial depths and dir-mixing all get exercised).
+    const glm::vec3 dir_a = glm::normalize( glm::vec3( 0.0f, 0.0f, 1.0f ) );
+    const glm::vec3 dir_b = glm::normalize( glm::vec3( -0.6f, 0.35f, 0.72f ) );
+    const glm::vec3 *dirs[] = { nullptr, &dir_a, &dir_b };
+    for ( const glm::vec3 *dir : dirs ) {
+        for ( const glm::vec3 &cam : cameras ) {
+            for ( int rep = 0; rep < 3; rep++ ) {
+                const int n = 1 + rand( ) % 300;
+                std::vector<Chunk *> list = shuffled( all );
+                list.resize( n );
+                const std::vector<Chunk *> expected = reference( list, cam, dir );
 
-            // Spread of sorted_n: none, all, and in-between. The prefix is
-            // pre-sorted for a camera near `cam` (the steady-state case) or
-            // far from it under full_prefix (the teleport case).
-            const int sorted_ns[] = { 0, n, n / 2, n > 4 ? n - 2 : n / 3 };
-            for ( int s = 0; s < 4; s++ ) {
-                const int sorted_n = sorted_ns[ s ];
-                for ( int far = 0; far < 2; far++ ) {
-                    // Near offset stays under CHUNK_SORT_RESORT_DIST
-                    // (2 blocks); far offset is past CHUNK_SIZE_X.
-                    const glm::vec3 prev_cam = cam + ( far ? glm::vec3( 64.0f, 0.0f, 0.0f ) : glm::vec3( 0.5f, 0.0f, 0.0f ) );
-                    std::vector<Chunk *> order = list;
-                    // Prefix in a previous sorted order, tail shuffled in.
-                    std::vector<Chunk *> prefix( order.begin( ), order.begin( ) + sorted_n );
-                    prefix = reference( prefix, prev_cam );
-                    std::vector<Chunk *> tail = shuffled( std::vector<Chunk *>( order.begin( ) + sorted_n, order.end( ) ) );
-                    std::vector<Chunk *> input = prefix;
-                    input.insert( input.end( ), tail.begin( ), tail.end( ) );
+                // Spread of sorted_n: none, all, and in-between. The prefix
+                // is pre-sorted for a camera near `cam` (the steady-state
+                // case) or far from it under full_prefix (the teleport
+                // case).
+                const int sorted_ns[] = { 0, n, n / 2, n > 4 ? n - 2 : n / 3 };
+                for ( int s = 0; s < 4; s++ ) {
+                    const int sorted_n = sorted_ns[ s ];
+                    for ( int far = 0; far < 2; far++ ) {
+                        // Near offset stays under CHUNK_SORT_RESORT_DIST
+                        // (2 blocks); far offset is past CHUNK_SIZE_X.
+                        const glm::vec3 prev_cam = cam + ( far ? glm::vec3( 64.0f, 0.0f, 0.0f ) : glm::vec3( 0.5f, 0.0f, 0.0f ) );
+                        std::vector<Chunk *> order = list;
+                        // Prefix in a previous sorted order, tail shuffled.
+                        std::vector<Chunk *> prefix( order.begin( ), order.begin( ) + sorted_n );
+                        prefix = reference( prefix, prev_cam, dir );
+                        std::vector<Chunk *> tail = shuffled( std::vector<Chunk *>( order.begin( ) + sorted_n, order.end( ) ) );
+                        std::vector<Chunk *> input = prefix;
+                        input.insert( input.end( ), tail.begin( ), tail.end( ) );
 
-                    sort_chunks_by_distance( input.data( ), n, sorted_n, ro, cam, far != 0, scratch );
-                    const bool ok = input == expected;
-                    fails += !ok;
-                    if ( !ok ) {
-                        pr_test( "  sort: cam=(%.1f,%.1f,%.1f) n=%d sorted_n=%d far=%d  FAIL", cam.x, cam.y, cam.z, n, sorted_n, far );
+                        sort_chunks_by_distance( input.data( ), n, sorted_n, ro, cam, dir, far != 0, scratch );
+                        const bool ok = input == expected;
+                        fails += !ok;
+                        if ( !ok ) {
+                            pr_test( "  sort: dir=%p cam=(%.1f,%.1f,%.1f) n=%d sorted_n=%d far=%d  FAIL", (const void *)dir, cam.x, cam.y, cam.z, n, sorted_n, far );
+                        }
                     }
                 }
             }

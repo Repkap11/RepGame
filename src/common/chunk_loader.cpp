@@ -1559,7 +1559,7 @@ void ChunkLoader::calculate_cull( const glm::mat4 &mvp, const bool saveAsReflect
 
 int shouldInc = 0;
 int showRotation = 0;
-void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, unsigned order_mask, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos ) {
+void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Texture &texture, unsigned order_mask, bool draw_reflect, bool use_frame_buffer, const glm::vec3 &render_origin, const glm::vec3 &camera_pos, const glm::vec3 &view_dir ) {
     this->shader.set_uniform_mat4f( "u_MVP", mvp );
     {
         GLint vp[ 4 ];
@@ -1608,7 +1608,7 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
         const float moved2 = glm::dot( d, d );
         if ( this->drawable_sorted_n < this->num_drawable || //
              moved2 > CHUNK_SORT_RESORT_DIST * CHUNK_SORT_RESORT_DIST ) {
-            sort_chunks_by_distance( this->drawable_chunks, this->num_drawable, this->drawable_sorted_n, render_origin, camera_pos,
+            sort_chunks_by_distance( this->drawable_chunks, this->num_drawable, this->drawable_sorted_n, render_origin, camera_pos, nullptr,
                                      moved2 > static_cast<float>( CHUNK_SIZE_X ) * CHUNK_SIZE_X, this->sort_scratch );
             this->drawable_sorted_n = this->num_drawable;
             this->last_full_sort_cam = cam_abs;
@@ -1617,11 +1617,18 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     {
         const glm::vec3 d = cam_abs - this->last_blended_sort_cam;
         const float moved2 = glm::dot( d, d );
-        if ( this->blended_sorted_n < this->num_blended || cam_abs != this->last_blended_sort_cam ) {
-            sort_chunks_by_distance( this->blended_chunks, this->num_blended, this->blended_sorted_n, render_origin, camera_pos,
-                                     moved2 > static_cast<float>( CHUNK_SIZE_X ) * CHUNK_SIZE_X, this->sort_scratch );
+        const float dir_dot = glm::dot( view_dir, this->last_blended_sort_dir );
+        // Painter order is keyed on view depth, so it must also re-sort on
+        // rotation — the incremental list sort is cheap enough for every
+        // frame while looking around.
+        if ( this->blended_sorted_n < this->num_blended || cam_abs != this->last_blended_sort_cam || view_dir != this->last_blended_sort_dir ) {
+            // full_prefix on a teleport or a big swing: the insertion path
+            // assumes near-sorted, which a ~60+ degree rotation scrambles.
+            sort_chunks_by_distance( this->blended_chunks, this->num_blended, this->blended_sorted_n, render_origin, camera_pos, &view_dir,
+                                     moved2 > static_cast<float>( CHUNK_SIZE_X ) * CHUNK_SIZE_X || dir_dot < 0.5f, this->sort_scratch );
             this->blended_sorted_n = this->num_blended;
             this->last_blended_sort_cam = cam_abs;
+            this->last_blended_sort_dir = view_dir;
         }
     }
 
@@ -1827,6 +1834,16 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
                         if ( chunk.cached_cull_normal ||
                              ( occl && this->occl_hides( chunk ) && !cam_in_box( chunk ) ) ) {
                             continue;
+                        }
+                        if ( renderOrder == RenderOrder_Translucent && tblend != TranslucentBlend_Multiply && this->occl_probe_pass ) {
+                            // Instance order inside a chunk is the
+                            // compositing order — re-sort it back-to-front
+                            // along the view (rate-limited inside). Skip
+                            // multiply blending (order-independent anyway)
+                            // and the second stereo eye (reuses eye 0's
+                            // order — otherwise the two views would
+                            // re-sort each other's VBO every frame).
+                            chunk.sort_translucent_instances( cam_abs, view_dir );
                         }
                         chunk.light_ensure_texture( this );
                         chunk.draw( renderer, texture, shader, static_cast<RenderOrder>( renderOrder ), draw_reflect, render_origin, light_base_loc );

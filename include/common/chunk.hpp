@@ -355,7 +355,7 @@ class Chunk {
     friend int test_chunk_diff_gate( );
     friend int test_terrain_queue( );
     friend int test_dimension( );
-    friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, bool full_prefix, std::vector<ChunkSortKey> &scratch );
+    friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, const glm::vec3 *view_dir, bool full_prefix, std::vector<ChunkSortKey> &scratch );
 
     int load_state;
     int gl_initialized;
@@ -486,6 +486,12 @@ class Chunk {
     void ensure_gl_init( );
     void light_ensure_texture( ChunkLoader *loader = nullptr ); // lazily create the 3D light texture (GL thread)
     void draw( const Renderer &renderer, const Texture &texture, Shader &shader, RenderOrder renderOrder, bool draw_reflect, const glm::vec3 &render_origin, int light_base_loc );
+    // Re-sort the Translucent layer's instances back-to-front along
+    // view_dir for cam_abs (world coords) and re-upload vb_coords when the
+    // camera moved or rotated far enough to change painter order. Render
+    // thread only — no-op before ensure_gl_init or when the layer is
+    // empty.
+    void sort_translucent_instances( const glm::vec3 &cam_abs, const glm::vec3 &view_dir );
     void load_terrain( MapStorage &map_storage ); // Load from file or map gen
     void program_terrain( );                      // Program into GPU
     void unprogram_terrain( );                    // Remove from GPU

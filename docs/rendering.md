@@ -157,19 +157,35 @@ selects the compositing mode:
 Under `alpha`/`multiply` the depth-mask-off chunk order is the compositing
 order, so `ChunkLoader::draw` walks a dedicated `blended_chunks` list — the
 drawable chunks with any Translucent/Water layer instances — back-to-front,
-sorted by squared distance to the camera with a deterministic chunk_pos
-tie-break (ties were common around the render-origin corner, and unstable
-sort order flickered whenever the drawable list rebuilt). Membership is
-maintained incrementally: each slot mirrors its drawable/blended wish in a
-`slot_want` byte (refreshed by `Chunk::refresh_slot_flags` on every
-relevant field write), and `rebuild_drawable_list` diffs that byte array,
-compacting removals out in place and appending newcomers to the list tail.
-A re-sort then re-sorts the surviving prefix for the current camera, sorts
-the few newcomers, and merges the two halves — so the blended list re-sorts
-on any camera move while the full drawable list only re-sorts past
-`CHUNK_SORT_RESORT_DIST`, since stale order there just costs early-z
-efficiency. Faces *within* one chunk are still in mesh order — they are not
-view-sorted.
+sorted by view depth (chunk centre projected on the camera forward) with a
+deterministic chunk_pos tie-break (ties were common around the
+render-origin corner, and unstable sort order flickered whenever the
+drawable list rebuilt). Depth along the view — not radial distance — is
+the right painter key: two screen-overlapping surfaces separate mostly
+along the view, so their projected order stays stable under small camera
+moves, while radial distance can rank a slightly off-axis far surface as
+nearer (visible as a glass pane popping in front of a portal when the
+camera slides sideways). Membership is maintained incrementally: each slot
+mirrors its drawable/blended wish in a `slot_want` byte (refreshed by
+`Chunk::refresh_slot_flags` on every relevant field write), and
+`rebuild_drawable_list` diffs that byte array, compacting removals out in
+place and appending newcomers to the list tail. A re-sort then re-sorts
+the surviving prefix for the current camera, sorts the few newcomers, and
+merges the two halves — so the blended list re-sorts on any camera move or
+rotation while the full drawable list (radially keyed, for early-z) only
+re-sorts past `CHUNK_SORT_RESORT_DIST`, since stale order there just costs
+early-z efficiency. The Translucent layer additionally keeps its CPU
+instance array after upload (`RenderLayer::populated_blocks`) so
+`Chunk::sort_translucent_instances` can re-sort *instances within* a chunk
+back-to-front by view depth and re-upload `vb_coords` — emission order
+alone put the far surface last whenever the camera looked the wrong way,
+so e.g. a far portal or glass wall blended on top of the near one.
+Re-sorts are hysteresis-limited to 1-block camera moves plus a small view
+rotation (~5.7°), and skipped entirely under `multiply` (order-independent)
+and for the second stereo eye (reuses eye 0's order). The reflection pass
+reuses the normal view's order, and the 6 faces *within* one instance
+still draw in fixed index order — per-instance granularity, not
+per-fragment OIT.
 
 `REPGAME_TRANSLUCENT_AFTER_WATER` (ignored under `legacy`) moves
 the translucent order out of the main Blocks draw (`order_mask` bit

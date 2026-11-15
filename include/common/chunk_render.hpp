@@ -24,6 +24,15 @@ class RenderLayer {
     int num_instances;
     VertexBuffer vb_coords;
     BlockCoords *populated_blocks;
+    // Translucent layer only: program_terrain retains populated_blocks so
+    // the draw pass can re-sort instances back-to-front and re-upload —
+    // the shared index buffer can't reorder instances, so painter order
+    // lives in the VBO contents. sort_cam/sort_dir are the camera the
+    // current VBO order was sorted for; sort_valid is cleared on every
+    // upload.
+    glm::vec3 translucent_sort_cam;
+    glm::vec3 translucent_sort_dir;
+    int translucent_sort_valid;
     // Index data is a pure function of the chunk's 6-bit face-visibility mask,
     // so all variants live in one shared element buffer (chunk.cpp) and each
     // layer stores {byte offset, element count} per pass: [0]=normal,

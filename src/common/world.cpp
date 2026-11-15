@@ -445,6 +445,11 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->heart_shader.set_uniform1f( "u_Time", time_s );
     const glm::vec3 cam_right( view_look[ 0 ][ 0 ], view_look[ 1 ][ 0 ], view_look[ 2 ][ 0 ] );
     const glm::vec3 cam_up( view_look[ 0 ][ 1 ], view_look[ 1 ][ 1 ], view_look[ 2 ][ 1 ] );
+    // View-space +z points backward, so camera forward is -row2 (the look
+    // vector view_look was built from). Drives the blended painter-order
+    // sorts in ChunkLoader::draw; the reflect pass below reuses it — the
+    // normal view's order is close enough for the mirrored world.
+    const glm::vec3 cam_forward( -view_look[ 0 ][ 2 ], -view_look[ 1 ][ 2 ], -view_look[ 2 ][ 2 ] );
     this->heart_shader.set_uniform3f( "u_CamRight", cam_right.x, cam_right.y, cam_right.z );
     this->heart_shader.set_uniform3f( "u_CamUp", cam_up.x, cam_up.y, cam_up.z );
 
@@ -674,13 +679,13 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     this->chunkLoader.draw( mvp, this->renderer, blocksTexture,
                             order_no_water & ~( water_order != TranslucentWaterOrder::Before ? render_order_bit( RenderOrder_Translucent ) : 0u ),
-                            false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Blocks
+                            false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Blocks
 
     if ( water_order == TranslucentWaterOrder::Split ) {
         // Far side of the plane first: below the surface seen from above,
         // above it seen from below. u_SplitSign keeps only those fragments.
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", camera_above ? -1.0f : 1.0f );
-        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Translucent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Translucent, far side
+        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Translucent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Translucent, far side
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     }
 
@@ -732,7 +737,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Water ), false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Stencil water
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Water ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Stencil water
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
 
@@ -751,7 +756,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             this->chunkLoader.shader.set_uniform1f( "u_SplitSign", camera_above ? 1.0f : -1.0f );
         }
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Translucent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Translucent after water
+        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Translucent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Translucent after water
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     }
@@ -879,7 +884,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", offset + renderOriginF.y );
         this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
         this->chunkLoader.calculate_cull( mvp_reflect, true, renderOrigin );
-        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, order_no_water, true, useFrameBuffer, renderOriginF, camera_pos_rebased ); // Reflected blocks
+        this->chunkLoader.draw( mvp_reflect, this->renderer, blocksTexture, order_no_water, true, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Reflected blocks
 
         this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
         this->object_shader.set_uniform1f( "u_ReflectionHeight", 0 );

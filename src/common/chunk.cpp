@@ -1,4 +1,5 @@
 #include <string.h>
+#include <algorithm>
 #include <chrono>
 #include <random>
 #include <vector>
@@ -1901,8 +1902,15 @@ void Chunk::program_terrain( ) {
             renderLayer.vb_coords.set_data( renderLayer.populated_blocks, sizeof( BlockCoords ) * renderLayer.num_instances );
             this->set_should_render( 1 );
         }
-        free( renderLayer.populated_blocks );
-        renderLayer.populated_blocks = nullptr;
+        if ( renderOrder == RenderOrder_Translucent ) {
+            // Keep the CPU copy: sort_translucent_instances re-orders it
+            // back-to-front for the camera and re-uploads, fixing
+            // far-surface-over-near blending inside a chunk.
+            renderLayer.translucent_sort_valid = 0;
+        } else {
+            free( renderLayer.populated_blocks );
+            renderLayer.populated_blocks = nullptr;
+        }
     }
     this->refresh_slot_flags( );
 }
@@ -1925,6 +1933,61 @@ void Chunk::unprogram_terrain( ) {
         renderLayer.populated_blocks = nullptr;
     }
 }
+
+// In-chunk painter order for the Translucent pass: with depth writes off,
+// VBO instance order is the compositing order, and emission order (y, x, z)
+// puts the far portal/glass surface last whenever the camera looks the
+// wrong way — it then blends ON TOP of the nearer surface. Chunks already
+// sort back-to-front by view depth; do the same per instance. Depth along
+// view_dir — not radial distance — is the right key: two screen-overlapping
+// surfaces separate mostly along the view, so their projected order is
+// stable under small camera moves, while radial distance flips whenever a
+// slightly-off-axis far surface sits nearer in absolute terms.
+// Re-sorts are rate-limited by a position and a rotation hysteresis; small
+// camera moves and sub-degree rotations skip the sort + re-upload.
+static constexpr float TRANSLUCENT_SORT_RESORT_DIST = 1.0f;
+// ~5.7 degrees of view rotation before a re-sort: pairs whose projected
+// depth differs meaningfully need a much larger swing to swap, and pairs
+// that swap inside this band barely overlap on screen.
+static constexpr float TRANSLUCENT_SORT_RESORT_DOT = 0.995f;
+void Chunk::sort_translucent_instances( const glm::vec3 &cam_abs, const glm::vec3 &view_dir ) {
+    if ( this->layers == nullptr ) {
+        return;
+    }
+    RenderLayer &layer = this->layers[ RenderOrder_Translucent ];
+    if ( !this->gl_initialized || layer.num_instances == 0 || layer.populated_blocks == nullptr ) {
+        return;
+    }
+    const glm::vec3 moved = cam_abs - layer.translucent_sort_cam;
+    if ( layer.translucent_sort_valid && //
+         glm::dot( moved, moved ) <= TRANSLUCENT_SORT_RESORT_DIST * TRANSLUCENT_SORT_RESORT_DIST &&
+         glm::dot( view_dir, layer.translucent_sort_dir ) >= TRANSLUCENT_SORT_RESORT_DOT ) {
+        return;
+    }
+    // Back-to-front: largest view depth first so it composites under nearer
+    // surfaces. Ties (equal depth) break lexicographically on position so
+    // the order is deterministic like chunk_sort_key_less.
+    std::sort( layer.populated_blocks, layer.populated_blocks + layer.num_instances,
+               [ &cam_abs, &view_dir ]( const BlockCoords &a, const BlockCoords &b ) {
+                   const float da = glm::dot( glm::vec3( a.x, a.y, a.z ) - cam_abs, view_dir );
+                   const float db = glm::dot( glm::vec3( b.x, b.y, b.z ) - cam_abs, view_dir );
+                   if ( da != db ) {
+                       return da > db;
+                   }
+                   if ( a.x != b.x ) {
+                       return a.x < b.x;
+                   }
+                   if ( a.y != b.y ) {
+                       return a.y < b.y;
+                   }
+                   return a.z < b.z;
+               } );
+    layer.vb_coords.set_data( layer.populated_blocks, sizeof( BlockCoords ) * layer.num_instances );
+    layer.translucent_sort_cam = cam_abs;
+    layer.translucent_sort_dir = view_dir;
+    layer.translucent_sort_valid = 1;
+}
+
 // Full-shell index-buffer ranges for one render order — what a chunk whose
 // visibility mask is all-ones draws. Used by the block-body instance batch
 // (ChunkLoader::draw) so movers render the same face set the mesher emits;
