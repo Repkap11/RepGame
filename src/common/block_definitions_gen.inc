@@ -3503,12 +3503,12 @@ block_definitions[ 220 ].icon_texture = TEX_HARDENED_CLAY_STAINED_BROWN;
 block_definitions[ 220 ].mineable = MINEABLE_PICKAXE;
 
 // GLASS_PANE (221)
-block_definitions[ 221 ].textures[ FACE_TOP ] = TEX_LEGACY_GLASS_PANE;
-block_definitions[ 221 ].textures[ FACE_BOTTOM ] = TEX_LEGACY_GLASS_PANE;
-block_definitions[ 221 ].textures[ FACE_RIGHT ] = TEX_LEGACY_GLASS_PANE;
-block_definitions[ 221 ].textures[ FACE_FRONT ] = TEX_LEGACY_GLASS;
-block_definitions[ 221 ].textures[ FACE_LEFT ] = TEX_LEGACY_GLASS_PANE;
-block_definitions[ 221 ].textures[ FACE_BACK ] = TEX_LEGACY_GLASS;
+block_definitions[ 221 ].textures[ FACE_TOP ] = TEX_GLASS_PANE_TOP;
+block_definitions[ 221 ].textures[ FACE_BOTTOM ] = TEX_GLASS_PANE_TOP;
+block_definitions[ 221 ].textures[ FACE_RIGHT ] = TEX_GLASS_PANE_TOP;
+block_definitions[ 221 ].textures[ FACE_FRONT ] = TEX_GLASS;
+block_definitions[ 221 ].textures[ FACE_LEFT ] = TEX_GLASS_PANE_TOP;
+block_definitions[ 221 ].textures[ FACE_BACK ] = TEX_GLASS;
 block_definitions[ 221 ].icon_texture = TEX_GLASS_PANE_TOP;
 block_definitions[ 221 ].casts_shadow = false;
 block_definitions[ 221 ].hardness = 0.449999988f;

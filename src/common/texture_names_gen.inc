@@ -649,8 +649,6 @@
     "lectern_sides",
     "lectern_top",
     "legacy_end_rod",
-    "legacy_glass",
-    "legacy_glass_pane",
     "legacy_turtle_eggs1",
     "legacy_turtle_eggs2",
     "lever",
