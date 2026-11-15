@@ -8,9 +8,12 @@
 #include "common/map_gen.hpp"
 #include "common/utils/frame_stats.hpp"
 
-// Set to 1 to make the overlay interactive while the cursor is free
-// (inventory/menu open) and show the held-pose tuning controls.
-#define IMGUI_OVERLAY_LIVE_TUNE 0
+// REPGAME_IMGUI_TUNE=1 makes the overlay interactive while the cursor is
+// free (inventory/menu open) and shows the held-pose tuning controls.
+static bool imgui_live_tune( ) {
+    static const bool enabled = env_bool( "REPGAME_IMGUI_TUNE", false );
+    return enabled;
+}
 
 ImGuiDebugVars debug_vars;
 
@@ -147,8 +150,8 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         ImGuiIO &io = ImGui::GetIO( );
         // The overlay is read-only while the game owns the mouse; with the
         // cursor free (inventory/menu open) make ImGui interactive so the
-        // live-tuning controls below are usable (IMGUI_OVERLAY_LIVE_TUNE).
-        const bool interactive = IMGUI_OVERLAY_LIVE_TUNE && ( input.inventory_open || input.menu_open );
+        // live-tuning controls below are usable (REPGAME_IMGUI_TUNE).
+        const bool interactive = imgui_live_tune( ) && ( input.inventory_open || input.menu_open );
         if ( interactive ) {
             io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
         } else {
@@ -257,13 +260,14 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
                      static_cast<int>( state.world.mobs.remote_count( ) ) );
         ImGui::Text( "Items: %d  Arrows: %d", debug_vars.item_entities, static_cast<int>( state.world.arrows.count( ) ) );
 
-#if IMGUI_OVERLAY_LIVE_TUNE
-        ImGui::Separator( );
-        // Live tuning for the in-hand poses (see draw_ui_pass); usable
-        // only while the cursor is free. Edits log once the mouse button
-        // comes up; "Log pose" dumps the current values on demand so a
-        // settled pose can be baked back into ImGuiDebugVars defaults.
-        bool pose_dirty = false;
+        if ( imgui_live_tune( ) ) {
+            ImGui::Separator( );
+            // Live tuning for the in-hand poses (see draw_ui_pass); usable
+            // only while the cursor is free. Edits log once the mouse
+            // button comes up; "Log pose" dumps the current values on
+            // demand so a settled pose can be baked back into
+            // ImGuiDebugVars defaults.
+            bool pose_dirty = false;
         if ( ImGui::CollapsingHeader( "Held Item", ImGuiTreeNodeFlags_DefaultOpen ) ) {
             pose_dirty |= ImGui::DragFloat3( "Position", &debug_vars.held_pos.x, 0.01f );
             pose_dirty |= ImGui::DragFloat( "Yaw", &debug_vars.held_rot.y, 0.5f );
@@ -327,7 +331,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
                       debug_vars.avatar_held_block_pos.x, debug_vars.avatar_held_block_pos.y, debug_vars.avatar_held_block_pos.z,
                       debug_vars.avatar_held_block_rot.x, debug_vars.avatar_held_block_rot.y, debug_vars.avatar_held_block_rot.z, debug_vars.avatar_held_block_scale );
         }
-#endif
+        }
 
         ImGui::End( );
         ImGui::PopStyleColor( );

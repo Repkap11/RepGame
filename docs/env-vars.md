@@ -38,6 +38,7 @@ the index, not the reference.
 | `REPGAME_FLY_TICKS` | 0 (run forever) | all | exit at fly tick n via the normal cleanup path | docs/rendering.md |
 | `REPGAME_FOG_RANGE` | 96 | all | width of the distance-fog band in blocks (capped at 38% of render distance) | docs/rendering.md |
 | `REPGAME_GIT` | unset | all | `<sha>` stamped into the `REPGAME_RESULTS` header record (set by rep-dbg) | docs/debug-tools.md |
+| `REPGAME_IMGUI_TUNE` | 0 | desktop | `1` makes the ImGui overlay interactive while the cursor is free and shows the held-pose tuning controls (first-person + avatar/bow) | docs/ui.md |
 | `REPGAME_ITEM_TEST` | unset | all | `"name,x,y,z[,count][;...]"` deterministic non-persistent item spawns at init | docs/items-crafting.md |
 | `REPGAME_LIGHT_CLAIM_RADIUS` | 1 | all | `1..4`: Chebyshev claim-conflict radius between light-job center columns | docs/rendering.md |
 | `REPGAME_LIGHT_MIPMAPS` | 1 | all | `0`/`1`: mipmapped light volume vs flat RG8 volume | docs/rendering.md |
