@@ -1069,6 +1069,9 @@ void StructureGen::place_nether_trees( Chunk &chunk, const int cox, const int co
                 spec.log = WARPED_STEM;
                 spec.leaf = WARPED_WART_BLOCK;
                 spec.trunk_h = 8 + (int)( hr * 5.0f );
+                spec.hanger = TWISTING_VINES;
+                spec.hanger_len = 4;
+                spec.hanger_mask = 3u;
             } else {
                 continue;
             }

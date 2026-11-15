@@ -56,7 +56,8 @@ digging/flying up ends in ~50 blocks of rock, not kilometres of caves.
 `map_gen.cpp` dispatches on
 `DIM_IS_NETHER_BY(y)` so CPU, CUDA, HIP and the WGSL/WebGPU path all pick
 it up; `StructureGen::place` also stamps huge fungi (crimson/warped
-stems, wart caps with embedded shroomlights, weeping vines on crimson)
+stems, wart caps with embedded shroomlights, weeping vines on crimson,
+twisting vines on warped)
 onto the nylium crust — `place_nether_trees` in `structure_gen.cpp`
 finds the up-facing surface by probing `gen_block_id` down the column
 and roots a `SHAPE_FUNGUS` tree wherever the top cell is nylium, so
