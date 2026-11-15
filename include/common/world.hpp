@@ -39,6 +39,7 @@ class World {
 
     friend int test_lighting( );
     friend int test_async_remesh( );
+    friend int test_chunk_diff_gate( );
     friend int test_falling_blocks( );
     friend int test_arrows( );
     // Portal travel's readiness gate (portal_travel.cpp) — needs the

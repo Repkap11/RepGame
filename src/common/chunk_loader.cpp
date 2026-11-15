@@ -167,6 +167,12 @@ static constexpr long long FRAME_WORK_MIN_US = 2200;
 static constexpr long long FRAME_WORK_MAX_US = 7000;
 static constexpr int FRAME_WORK_BACKLOG_US = 40;
 
+// CHUNK_SETTLE_WAIT fallback timings: a chunk whose covering diff answer
+// never arrives re-asks once its deferral is this old, and force-reveals
+// (with a warning) past the hard cap rather than leaving a hole in the world.
+static constexpr long long SETTLE_REASK_US = 3000000;  // 3 s
+static constexpr long long SETTLE_FORCE_US = 15000000; // 15 s
+
 static inline long long now_us( ) {
     return std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now( ).time_since_epoch( ) ).count( );
@@ -246,8 +252,9 @@ int ChunkLoader::reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_
                 chunk.set_load_state( CHUNK_PARKED );
                 this->defer_release( chunk );
             }
-        } else if ( chunk.load_state == CHUNK_LOADING ) {
-            // A just-dequeued item that landed out of window: its previous
+        } else if ( chunk.load_state == CHUNK_LOADING || chunk.load_state == CHUNK_SETTLE_WAIT ) {
+            // A just-dequeued item that landed out of window (or a
+            // settle-wait slot whose window moved off it): its previous
             // position's edits already persisted on the worker (and a dirty
             // park's just did), while freshly generated terrain is
             // reproducible — drop everything.
@@ -281,7 +288,43 @@ void ChunkLoader::defer_release( Chunk &chunk ) {
 
 // The post-terrain-load steps shared by the dequeue path and parked-slot
 // reactivation: GL init, mesh, pending diffs, light finalize, GPU upload.
-void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &center_next ) {
+void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &center_next, bool force_reveal ) {
+    // Backstop for diff-request coverage: in-flight loads retarget to the
+    // slot's current position at pick-up (terrain_slot_pos), so a chunk can
+    // land on a position no request box ever covered. Without this it would
+    // sit as pure generated terrain while neighbours' halo mirrors hold the
+    // real border edits — mismatched seam mirrors, see-through faces, and
+    // "reset" blocks.
+    const int slot_i = static_cast<int>( &chunk - this->chunkArray );
+    if ( this->slot_diff_req[ slot_i ] != chunk.chunk_pos && multiplayer.request_chunk( chunk.chunk_pos ) ) {
+        this->slot_diff_req[ slot_i ] = chunk.chunk_pos;
+        this->slot_diff_seq[ slot_i ] = multiplayer.diff_boxes_sent_count( );
+    }
+    // Diff-gated reveal (docs/multiplayer.md): with the server connected,
+    // hold the whole finalize until the request covering this position is
+    // DONE so the first live state already carries every applied diff —
+    // no generated-terrain pop-in, no stale-edit seams, and every reader
+    // (portals, collision, probes) sees LAST_BLOCK_ID meanwhile. Runs
+    // before set_load_state/GL so a deferred slot touches nothing.
+    if ( !force_reveal && !this->chunk_settled( slot_i, multiplayer ) ) {
+        chunk.set_load_state( CHUNK_SETTLE_WAIT );
+        // A slot re-deferred after retarget replaces its old entry so the
+        // reask/force windows always start at the latest defer.
+        for ( size_t k = 0; k < this->settle_wait_list.size( ); k++ ) {
+            if ( this->settle_wait_list[ k ].slot == slot_i ) {
+                this->settle_wait_list[ k ] = this->settle_wait_list.back( );
+                this->settle_wait_list.pop_back( );
+                break;
+            }
+        }
+        this->settle_wait_list.push_back( { slot_i, now_us( ), false } );
+        if ( mpload_trace_enabled( ) ) {
+            mpload_tracef( "settle-wait chunk=%d,%d,%d seq=%u done=%u",
+                           chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z,
+                           this->slot_diff_seq[ slot_i ], multiplayer.diff_boxes_done_count( ) );
+        }
+        return;
+    }
     // Publish before the finalize work (the old dequeue path cleared
     // is_loading first): light jobs and seeds popped mid-finalize see the
     // chunk as loaded rather than missing.
@@ -296,16 +339,6 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     // loop doesn't block the first frame.
     chunk.ensure_gl_init( );
     process_chunk_position( chunk, center_next, 1 );
-    // Backstop for diff-request coverage: in-flight loads retarget to the
-    // slot's current position at pick-up (terrain_slot_pos), so a chunk can
-    // land on a position no request box ever covered. Without this it would
-    // sit as pure generated terrain while neighbours' halo mirrors hold the
-    // real border edits — mismatched seam mirrors, see-through faces, and
-    // "reset" blocks.
-    const int slot_i = static_cast<int>( &chunk - this->chunkArray );
-    if ( this->slot_diff_req[ slot_i ] != chunk.chunk_pos && multiplayer.request_chunk( chunk.chunk_pos ) ) {
-        this->slot_diff_req[ slot_i ] = chunk.chunk_pos;
-    }
     // Apply any chunk diffs that arrived from the server before this chunk's
     // terrain gen finished (Phase 2 eager requests).
     const bool had_diffs = multiplayer.apply_pending_diffs( *this, chunk );
@@ -387,8 +420,10 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
 
     const VertexBuffer &vb_block_solid = this->solid.vb_block;
     const VertexBuffer &vb_block_water = this->water.vb_block;
+    this->settle_wait_list.clear( );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         this->slot_diff_req[ i ] = glm::ivec3( std::numeric_limits<int>::max( ) );
+        this->slot_diff_seq[ i ] = 0;
         this->chunkArray[ i ].slot_flags = &this->slot_want[ i ];
         this->chunkArray[ i ].light.stale_word = &this->light_stale_bits[ i >> 6 ];
         this->chunkArray[ i ].light.stale_bit = 1ull << ( i & 63 );
@@ -457,13 +492,80 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     this->initial_chunk_request_pending = true;
 }
 
-void ChunkLoader::stamp_diff_request_box( const glm::ivec3 &center, const glm::ivec3 &box_min, const glm::ivec3 &box_size ) {
+void ChunkLoader::stamp_diff_request_box( const glm::ivec3 &center, const glm::ivec3 &box_min, const glm::ivec3 &box_size, uint32_t seq ) {
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         const glm::ivec3 np = slot_target_pos( this->chunkArray[ i ].chunk_mod, center );
         if ( np.x >= box_min.x && np.x < box_min.x + box_size.x && //
              np.y >= box_min.y && np.y < box_min.y + box_size.y && //
              np.z >= box_min.z && np.z < box_min.z + box_size.z ) {
             this->slot_diff_req[ i ] = np;
+            this->slot_diff_seq[ i ] = seq;
+        }
+    }
+}
+
+// REPGAME_CHUNK_DIFF_GATE=0 restores pre-gate behaviour: chunks finalize as
+// soon as terrain lands and late diffs apply on top of visible cells.
+bool ChunkLoader::diff_gate_enabled( ) const {
+    static const bool on = env_bool( "REPGAME_CHUNK_DIFF_GATE", true );
+    return this->diff_gate_override >= 0 ? this->diff_gate_override != 0 : on;
+}
+
+// Is the diff request covering `slot`'s position fully answered? Offline
+// (or with the gate off) everything is settled by definition; otherwise the
+// slot must carry a stamp for its current position whose sequence the
+// diff_boxes_done watermark has already passed.
+bool ChunkLoader::chunk_settled( int slot_i, const Multiplayer &multiplayer ) const {
+    if ( !this->diff_gate_enabled( ) || !multiplayer.is_active( ) ) {
+        return true;
+    }
+    const Chunk &chunk = this->chunkArray[ slot_i ];
+    return this->slot_diff_req[ slot_i ] == chunk.chunk_pos &&
+           this->slot_diff_seq[ slot_i ] <= multiplayer.diff_boxes_done_count( );
+}
+
+// Bounded pass over the settle-wait list, run each frame after the terrain
+// dequeue. A settled (or timed-out) entry re-runs the whole finalize; an
+// unanswered one past SETTLE_REASK_US re-issues its request once (answer
+// presumably lost); an entry whose slot moved on (retargeted LOADING,
+// parked) is simply dropped. Entries that stay deferred cost only their
+// scan slot — reveals are what the budget bounds.
+void ChunkLoader::settle_scan( Multiplayer &multiplayer, const glm::ivec3 &center_next, long long budget_us ) {
+    const long long t0 = now_us( );
+    for ( size_t i = 0; i < this->settle_wait_list.size( ); ) {
+        const SettleWait sw = this->settle_wait_list[ i ];
+        Chunk &chunk = this->chunkArray[ sw.slot ];
+        if ( chunk.load_state != CHUNK_SETTLE_WAIT ) {
+            this->settle_wait_list[ i ] = this->settle_wait_list.back( );
+            this->settle_wait_list.pop_back( );
+            continue;
+        }
+        const long long deferred_for = t0 - sw.defer_us;
+        const bool forced = deferred_for >= SETTLE_FORCE_US;
+        const bool reveal = forced || this->chunk_settled( sw.slot, multiplayer );
+        if ( !reveal ) {
+            if ( !sw.reasked && deferred_for >= SETTLE_REASK_US &&
+                 this->slot_diff_req[ sw.slot ] == chunk.chunk_pos &&
+                 multiplayer.request_chunk( chunk.chunk_pos ) ) {
+                this->slot_diff_seq[ sw.slot ] = multiplayer.diff_boxes_sent_count( );
+                this->settle_wait_list[ i ].reasked = true;
+            }
+            i++;
+            continue;
+        }
+        if ( forced ) {
+            pr_debug( "Chunk (%d,%d,%d) settle wait timed out after %lldus; revealing with possibly missing diffs",
+                      chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, deferred_for );
+        }
+        this->settle_wait_list[ i ] = this->settle_wait_list.back( );
+        this->settle_wait_list.pop_back( );
+        if ( mpload_trace_enabled( ) ) {
+            mpload_tracef( "settle-reveal chunk=%d,%d,%d forced=%d",
+                           chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z, forced ? 1 : 0 );
+        }
+        this->finalize_loaded_chunk( chunk, multiplayer, center_next, true );
+        if ( now_us( ) - t0 >= budget_us ) {
+            break;
         }
     }
 }
@@ -508,6 +610,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
     // nothing when there is no work to spend it on.
     const int work_backlog = terrain_work_q + terrain_results_q + mesh_work_q + mesh_results_q +
                              this->num_repop_must + static_cast<int>( this->async_wanted_list.size( ) ) +
+                             static_cast<int>( this->settle_wait_list.size( ) ) +
                              this->remesh_flag_backlog + light_upload_backlog( );
     const long long t_frame_work = now_us( );
     const long long frame_budget = std::min(
@@ -539,7 +642,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                                              static_cast<uint8_t>( box_size.z ),
                                              /* initial = */ true ) ) {
             this->initial_chunk_request_pending = false;
-            this->stamp_diff_request_box( chunk_pos, box_min, box_size );
+            this->stamp_diff_request_box( chunk_pos, box_min, box_size, multiplayer.diff_boxes_sent_count( ) );
         }
     }
 
@@ -566,6 +669,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
                     const int slot_i = static_cast<int>( &chunk - this->chunkArray );
                     if ( multiplayer.request_chunk( new_pos ) ) {
                         this->slot_diff_req[ slot_i ] = new_pos;
+                        this->slot_diff_seq[ slot_i ] = multiplayer.diff_boxes_sent_count( );
                     }
                 }
             }
@@ -575,6 +679,12 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             // per-chunk GL finalize work so load-in bursts don't hitch frames.
         } while ( chunk_ptr && ( now_us( ) - t_budget_start < fin_limit ) );
         light_dbg_us_finalize += now_us( ) - t_budget_start;
+    }
+    // Reveal settle-wait chunks whose covering request finished since the
+    // last frame (same budget class as the finalize dequeue above — a burst
+    // of DONEs streams in over a few frames rather than hitching).
+    if ( !this->settle_wait_list.empty( ) ) {
+        this->settle_scan( multiplayer, chunk_pos, std::min<long long>( CHUNK_FINALIZE_BUDGET_US, frame_left( ) ) );
     }
     // Drain deferred park releases whose defer window elapsed (PARK_RELEASE_
     // DEFER_FRAMES). A stale entry (gen mismatch or no longer parked) means
@@ -618,6 +728,20 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
         this->light_heal_budget = LIGHT_HEAL_PER_SHIFT;
         for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
             Chunk &chunk = this->chunkArray[ i ];
+            if ( chunk.load_state == CHUNK_SETTLE_WAIT ) {
+                // A deferred slot tracks window moves like LOADING (retarget
+                // re-enqueues, leaving the window parks) — the now-stale
+                // settle_wait_list entry drops itself on the next scan.
+                // Same-target slots only need their coverage kept fresh.
+                glm::ivec3 new_pos;
+                const int reloaded = reload_if_out_of_bounds( chunk, chunk_pos, &new_pos );
+                if ( reloaded == 0 && this->slot_diff_req[ i ] != chunk.chunk_pos ) {
+                    new_positions.push_back( chunk.chunk_pos );
+                } else if ( reloaded == 1 ) {
+                    new_positions.push_back( new_pos );
+                }
+                continue;
+            }
             if ( chunk.load_state == CHUNK_LOADING ) {
                 // A worker retargets an in-flight load to the slot's
                 // CURRENT position at pick-up, so a chunk can land on a
@@ -664,7 +788,7 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             uint8_t sy = static_cast<uint8_t>( std::min( box_size.y, static_cast<int>( NET_MAX_BOX_DIM ) ) );
             uint8_t sz = static_cast<uint8_t>( std::min( box_size.z, static_cast<int>( NET_MAX_BOX_DIM ) ) );
             if ( multiplayer.request_chunks_box( box_min, sx, sy, sz ) ) {
-                this->stamp_diff_request_box( chunk_pos, box_min, glm::ivec3( sx, sy, sz ) );
+                this->stamp_diff_request_box( chunk_pos, box_min, glm::ivec3( sx, sy, sz ), multiplayer.diff_boxes_sent_count( ) );
             }
         }
         this->chunk_center = chunk_pos;
@@ -774,8 +898,9 @@ void ChunkLoader::render_chunks( Multiplayer &multiplayer, const glm::dvec3 &cam
             for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
                 loading += this->chunkArray[ i ].load_state == CHUNK_LOADING ? 1 : 0;
             }
-            mpload_tracef( "frame_stats fps=%ld remesh_backlog=%d pending_diffs=%zu loading=%d",
-                           stats_frames, remesh_backlog, multiplayer.pending_diffs_count( ), loading );
+            mpload_tracef( "frame_stats fps=%ld remesh_backlog=%d pending_diffs=%zu loading=%d settle_wait=%zu",
+                           stats_frames, remesh_backlog, multiplayer.pending_diffs_count( ), loading,
+                           this->settle_wait_list.size( ) );
             stats_frames = 0;
             last_stats_ms = now_ms;
         }

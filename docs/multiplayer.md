@@ -177,10 +177,11 @@ travels is the per-chunk edit set:
   including the current targets of slots still `CHUNK_LOADING`, since a
   worker retargets an in-flight load at pick-up and can land it on a
   position that entered the window while the slot was busy.
-  `slot_diff_req` records the last requested target per slot;
-  `finalize_loaded_chunk` re-requests any landed position still
-  uncovered, so a chunk can never go live as pure generated terrain
-  while neighbours' halo mirrors hold the real border edits.
+  `slot_diff_req` records the last requested target per slot and
+  `slot_diff_seq` the request's sequence (`diff_boxes_sent` right after
+  the send); `finalize_loaded_chunk` re-requests any landed position
+  still uncovered, so a chunk can never go live as pure generated
+  terrain while neighbours' halo mirrors hold the real border edits.
 - `CHUNK_DIFF_RESULT` is one frame per chunk: a list of
   `(blocks_index, BlockState)` pairs covering the chunk's *internal*
   (halo-inclusive) index space. `apply_diff_block` writes each cell and
@@ -200,7 +201,24 @@ travels is the per-chunk edit set:
   because boxes are served synchronously and in order over TCP,
   `done >= N` means every one of the first N boxes' diffs is applied —
   portal travel's destination-search gate waits on that (see
-  `docs/dimensions.md` "Portals").
+  `docs/dimensions.md` "Portals"), and so does the chunk settle gate:
+
+**Diff-gated reveal.** While the gate is on (`REPGAME_CHUNK_DIFF_GATE`,
+default) a generated chunk does not finalize on an unanswered request:
+`finalize_loaded_chunk` flips the slot to `CHUNK_SETTLE_WAIT` and returns
+early, so players never see generated-but-undiffed terrain — no edit
+pop-in, no seams — and every block reader (portal search, collision,
+probes) keeps seeing `LAST_BLOCK_ID`. A slot is *settled* when
+`slot_diff_req` names its position and `slot_diff_seq` is behind the
+`diff_boxes_done` watermark (`ChunkLoader::chunk_settled`); offline or
+with the gate off everything is settled by definition. Each frame
+`ChunkLoader::settle_scan` re-runs the whole finalize for entries that
+settled — bounded by `CHUNK_FINALIZE_BUDGET_US`, so a burst of DONEs
+streams in over a few frames — and the staged `pending_diffs` drain
+inside it, so the first live state already carries every edit. A slot
+unanswered for ~3 s re-issues its covering request once; past ~15 s it
+force-reveals with a warning rather than leaving a hole. Disconnect
+settles everything immediately (`is_active()` false).
 
 Diffs routinely beat terrain gen to the client, so a result for a
 non-live chunk goes into `Multiplayer::pending_diffs` and lands during
@@ -419,12 +437,17 @@ chunk-diff load-in path:
 
 - client: `connected` (first active `process_events`), `req` (each
   `CHUNK_DIFF_REQUEST` send, `initial=1` for the connect box), `recv`
-  (each `CHUNK_DIFF_RESULT`, `state=live|queued`), `apply_pending`
-  (queued diff applied at finalize), `pe` (per `process_events` drain:
-  frame count, 100-frame cap hit, elapsed µs, diff count), `finalize`
+  (each `CHUNK_DIFF_RESULT`, `state=live|queued`), `done` (each
+  `CHUNK_DIFF_DONE`), `apply_pending` (queued diff applied at finalize),
+  `pe` (per `process_events` drain:
+  frame count, 100-frame cap hit, elapsed µs, diff count),
+  `settle-wait`/`settle-reveal` (diff-gated defer and reveal, with the
+  slot's covering seq vs the done watermark; `forced=1` on the timeout
+  fallback), `finalize`
   (per `finalize_loaded_chunk`, `pending=1` when a queued diff existed),
   `diff_remesh` (live diff → remesh latency), `frame_stats` (once a
-  second: fps, remesh backlog, pending diff queue, chunks loading);
+  second: fps, remesh backlog, pending diff queue, chunks loading,
+  settle-wait list depth);
 - server: `srv_req`/`srv_served` (diff request box: chunks, frames and
   bytes queued, loop µs), `srv_flush` (per write-ready flush: frames
   sent/left, µs), `srv_stats` (once a second: inbound frame counts by

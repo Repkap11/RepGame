@@ -81,6 +81,7 @@ class ChunkLoader {
     friend int test_grass_persist( );
     friend void light_fill_chunk( Chunk &chunk );
     friend int test_async_remesh( );
+    friend int test_chunk_diff_gate( );
 
     TerrainLoadingThread terrain_loading_thread;
     glm::ivec3 chunk_center;
@@ -232,9 +233,31 @@ class ChunkLoader {
     // chunk can never go live as pure generated terrain while its
     // neighbours' halo mirrors hold the real border edits.
     glm::ivec3 slot_diff_req[ MAX_LOADED_CHUNKS ];
-    // After a request box is sent, stamp slot_diff_req for every slot whose
-    // current target position lies inside the box.
-    void stamp_diff_request_box( const glm::ivec3 &center, const glm::ivec3 &box_min, const glm::ivec3 &box_size );
+    // Sequence of the request that produced the slot_diff_req stamp (the
+    // Multiplayer::diff_boxes_sent value right after the send). The settle
+    // gate compares it against diff_boxes_done: a slot is settled once the
+    // watermark passes the seq of the request covering its position.
+    uint32_t slot_diff_seq[ MAX_LOADED_CHUNKS ] = {};
+    // After a request box is sent, stamp slot_diff_req/slot_diff_seq for
+    // every slot whose current target position lies inside the box.
+    void stamp_diff_request_box( const glm::ivec3 &center, const glm::ivec3 &box_min, const glm::ivec3 &box_size, uint32_t seq );
+    // Diff-gated reveal: a generated chunk waits as CHUNK_SETTLE_WAIT until
+    // chunk_settled — its covering request's DONE has arrived (or the gate
+    // is off / multiplayer inactive). Deferred slots are scanned every frame
+    // and re-finalized on settle so the first live state already carries
+    // every applied diff. REPGAME_CHUNK_DIFF_GATE=0 disables the gate;
+    // diff_gate_override mirrors async_remesh_override for tests
+    // (-1 = env, 0/1 = forced).
+    struct SettleWait {
+        int slot;
+        long long defer_us;
+        bool reasked;
+    };
+    std::vector<SettleWait> settle_wait_list;
+    int diff_gate_override = -1;
+    bool diff_gate_enabled( ) const;
+    bool chunk_settled( int slot_i, const Multiplayer &multiplayer ) const;
+    void settle_scan( Multiplayer &multiplayer, const glm::ivec3 &center_next, long long budget_us );
     // Near-heal promotions left this grid shift (light_heal_chunk): each
     // near chunk with queued incident seed work may take one near-lane
     // re-finalize so flying up to a half-lit region converges it promptly.
@@ -275,7 +298,10 @@ class ChunkLoader {
 
     bool pos_in_window( const glm::ivec3 &center, const glm::ivec3 &pos ) const;
     int reload_if_out_of_bounds( Chunk &chunk, const glm::ivec3 &chunk_pos, glm::ivec3 *out_new_pos = nullptr );
-    void finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &center_next );
+    // force_reveal skips the settle gate — the stall-fallback path in
+    // settle_scan reveals a chunk whose answer never arrived rather than
+    // leaving a permanent hole.
+    void finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer, const glm::ivec3 &center_next, bool force_reveal = false );
     inline int process_chunk_position( Chunk &chunk, const glm::ivec3 &center_next, int force_reload );
     void process_random_ticks( );
     void rebuild_drawable_list( );

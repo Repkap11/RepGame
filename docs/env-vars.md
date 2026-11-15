@@ -27,6 +27,7 @@ the index, not the reference.
 | `REPGAME_CAPTURE_TIME` | noon (`DAY_LENGTH_TICKS/4`) | all | world_time in ticks during captures | capture skill |
 | `REPGAME_CAPTURE_TIMEOUT` | `30 * UPS_RATE` | all | max ticks per view before shooting anyway | capture skill |
 | `REPGAME_CAPTURE_VIEW_TICKS` | 0 (idle-settle) | all | `n>0`: views after the first shoot exactly n ticks after the camera jump | capture skill |
+| `REPGAME_CHUNK_DIFF_GATE` | 1 | client | `0` disables the multiplayer settle gate: generated chunks finalize immediately and late diffs apply on top of visible terrain | docs/multiplayer.md |
 | `REPGAME_DISPLAY` | primary | desktop (SDL3) | 0-based index into the SDL display list; invalid values warn and fall back to primary | — |
 | `REPGAME_FACE_GROW_PX` | 0.125 (`CHUNK_FACE_GROW_PX`) | all | screen-space face grow in pixels | docs/rendering.md |
 | `REPGAME_FLY` | unset | all | `"x,y,z,yaw,pitch[,speed]"` — scripted no-clip flight; presence enables fly mode | docs/rendering.md |

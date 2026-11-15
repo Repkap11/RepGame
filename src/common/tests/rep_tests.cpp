@@ -89,6 +89,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( chunk_occlusion ),  //
     MK_TEST( light_stale ),      //
     MK_TEST( async_remesh ),     //
+    MK_TEST( chunk_diff_gate ),  //
     MK_TEST( terrain_queue ),    //
     MK_TEST( leaf_decay ),       //
     MK_TEST( support_drops ),    //

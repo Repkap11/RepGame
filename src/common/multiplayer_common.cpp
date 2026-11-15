@@ -93,6 +93,9 @@ void Multiplayer::handle_frame( RepGameState &state, const std::vector<uint8_t> 
             // dispatch point that applies CHUNK_DIFF_RESULT, so ordering
             // with the diffs holds for the portal-travel gate.
             this->diff_boxes_done.fetch_add( 1 );
+            if ( mpload_trace_enabled( ) ) {
+                mpload_tracef( "done n=%u", this->diff_boxes_done.load( ) );
+            }
             break;
         case NetMsgType::BLOCK_UPDATE: {
             NetBlockUpdatePayload bu;

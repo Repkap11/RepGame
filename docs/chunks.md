@@ -31,13 +31,22 @@ loading — see "Parking".
 
 ## States
 
-`Chunk::load_state` has three values:
+`Chunk::load_state` has four values:
 
 - `CHUNK_LOADING` — a terrain job is queued or running. Excluded from
   drawing, random ticks, and the light paths.
 - `CHUNK_LIVE` (0) — blocks are final and the chunk participates in
   everything.
 - `CHUNK_PARKED` — out of window; holds no terrain data (see below).
+- `CHUNK_SETTLE_WAIT` — multiplayer only: terrain finished but the slot's
+  covering `CHUNK_DIFF_REQUEST` is still unanswered. The whole finalize is
+  deferred so generated-but-undiffed terrain is never drawn, lit, or read
+  as final — every block reader sees `LAST_BLOCK_ID` like an unloaded
+  chunk. Unlike `CHUNK_LOADING` no work item is in flight; the loader's
+  per-frame `settle_scan` re-runs `finalize_loaded_chunk` when the
+  request's `CHUNK_DIFF_DONE` lands (see "Diff-gated reveal" in
+  docs/multiplayer.md). Grid shifts treat it like `CHUNK_LOADING`
+  (retarget re-enqueues, out-of-window parks).
 
 ## The pipeline
 
@@ -62,7 +71,10 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    the worker (`calculate_populated_blocks` → `build_mesh`).
 3. **Finalize** (`finalize_loaded_chunk`, render thread, capped by
    `CHUNK_FINALIZE_BUDGET_US` within the shared frame-work pool below):
-   publish `CHUNK_LIVE`, lazy GL init,
+   with the diff gate on, an unsettled multiplayer slot instead parks as
+   `CHUNK_SETTLE_WAIT` and returns early — `settle_scan` (same budget
+   class, run right after the dequeue) re-enters here once its covering
+   request's DONE lands. On reveal: publish `CHUNK_LIVE`, lazy GL init,
    `process_chunk_position` (the 6-bit face-visibility mask that decides
    which chunk faces can be seen from the current center →
    `calculate_sides`), apply queued network diffs

@@ -20,6 +20,7 @@ struct RepGameState;
 class Multiplayer {
     friend int test_net_multiplayer_mode( );
     friend int test_dimension( );
+    friend int test_chunk_diff_gate( );
     FramedSocket framed_socket;
     glm::vec3 prev_player_pos;
     glm::mat4 prev_rotation;
@@ -79,9 +80,12 @@ class Multiplayer {
     // actually sent; handle_frame counts the DONE frames. The server serves
     // boxes synchronously and in order over TCP, so done >= the sent count
     // at some past snapshot means every box up to that point has been fully
-    // applied (portal travel's destination-search gate). Atomics: the send
-    // side can run while process_events is draining on the same logical
-    // thread, but transports don't guarantee that on every platform.
+    // applied — read by portal travel's destination-search gate and by the
+    // loader's settle gate (ChunkLoader::slot_diff_seq/chunk_settled, which
+    // holds generated terrain invisible until its covering request's seq is
+    // done). Atomics: the send side can run while process_events is
+    // draining on the same logical thread, but transports don't guarantee
+    // that on every platform.
     std::atomic<uint32_t> diff_boxes_sent{ 0 };
     std::atomic<uint32_t> diff_boxes_done{ 0 };
 

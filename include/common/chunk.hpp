@@ -82,10 +82,20 @@ void chunk_free_air_mask( unsigned char *p );
 // even hold one full torus). Re-entry reloads the save or regenerates. No
 // work item is in flight for parked slots, and the grid-shift rescan
 // re-evaluates them when the window grows.
+//
+// CHUNK_SETTLE_WAIT (multiplayer only): terrain finished but the slot's
+// covering CHUNK_DIFF_REQUEST is still unanswered — the whole finalize is
+// deferred so players never see generated-but-undiffed terrain. Nonzero
+// keeps it invisible to every block/light/draw reader, but no work item is
+// in flight (unlike CHUNK_LOADING) — the loader's settle scan re-runs
+// finalize once the request's CHUNK_DIFF_DONE lands (ChunkLoader::
+// settle_wait_list). Grid-shift handling treats it like LOADING (retarget
+// re-enqueues, out-of-window parks).
 enum ChunkLoadState {
-    CHUNK_LIVE = 0,     // loaded + finalized (the old is_loading=0)
-    CHUNK_LOADING = 1,  // terrain work item in flight (old is_loading=1)
-    CHUNK_PARKED = 2,   // out of window, no data retained — re-entry re-enqueues a load
+    CHUNK_LIVE = 0,        // loaded + finalized (the old is_loading=0)
+    CHUNK_LOADING = 1,     // terrain work item in flight (old is_loading=1)
+    CHUNK_PARKED = 2,      // out of window, no data retained — re-entry re-enqueues a load
+    CHUNK_SETTLE_WAIT = 3, // terrain done, diff request outstanding — finalize deferred
 };
 
 // Per-slot draw-list membership bits for ChunkLoader's slot_want/slot_listed
@@ -342,6 +352,7 @@ class Chunk {
     friend int test_grass_persist( );
     friend int test_chunk_edits( );
     friend int test_async_remesh( );
+    friend int test_chunk_diff_gate( );
     friend int test_terrain_queue( );
     friend int test_dimension( );
     friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, bool full_prefix, std::vector<ChunkSortKey> &scratch );
