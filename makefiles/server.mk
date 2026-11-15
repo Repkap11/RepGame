@@ -40,7 +40,7 @@ server-deploy: server
 
 # Restart the deployed binary on repkap11.com via its user-level systemd
 # unit (see tools/server_restart.sh for overrides).
-server-restart:
+server-restart: | server-deploy
 	./tools/server_restart.sh
 
 server-test: server
