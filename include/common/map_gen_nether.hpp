@@ -67,6 +67,7 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     MG_VAR( float, floor_h, mgn_floor_height( x, z ) )
     MG_VAR( float, roof_base, mgn_roof_base( x, z ) )
     MG_LET( float, roof_raw, roof_base )
+    MG_LET( float, floor_raw, floor_h )
 
     // Pillar zones: converge the floor and roof surfaces onto a shared
     // mid-band. Each surface lerps toward mid±T rather than sliding by a
@@ -115,6 +116,9 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
         return BEDROCK;
     }
 
+    // Biome provinces (see the material picks below) — hoisted here because
+    // the air path needs to know whether surface fire is plain or soul.
+    MG_LET( float, biome, MAP_GEN_PERLIN2D( x, z, 0.0012f, 2, MAP_SEED + 47 ) )
     MG_VAR( int, solid, 0 )
     if ( MG_F32( ly ) <= floor_h || MG_F32( ly ) >= roof_base ) {
         solid = 1;
@@ -124,16 +128,15 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     // high-frequency term — chunky mounded land with sloped undersides,
     // not flat ribbons. Where a shelf meets a fused pillar it merges into
     // semi-supported mass; elsewhere it floats, and carving bores windows
-    // and tunnels through it.
+    // and tunnels through it. shelf_h/shelf_th are hoisted so the air
+    // path's below-cell test can reuse them.
     MG_LET( float, shelf, MAP_GEN_PERLIN2D( x, z, 0.008f, 2, MAP_SEED + 64 ) )
-    if ( shelf > 0.60f ) {
-        MG_LET( float, shelf_h, mid + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 2, MAP_SEED + 63 ) - 0.5f ) * 100.0f )
-        MG_LET( float, shelf_th,
-                4.0f + ( shelf - 0.60f ) * 38.0f + ( MAP_GEN_PERLIN2D( x, z, 0.05f, 2, MAP_SEED + 66 ) - 0.5f ) * 10.0f +
-                    ( MAP_GEN_PERLIN2D( x, z, 0.13f, 2, MAP_SEED + 67 ) - 0.5f ) * 7.0f )
-        if ( MG_F32( ly ) > shelf_h - shelf_th && MG_F32( ly ) < shelf_h + shelf_th ) {
-            solid = 1;
-        }
+    MG_LET( float, shelf_h, mid + ( MAP_GEN_PERLIN2D( x, z, 0.03f, 2, MAP_SEED + 63 ) - 0.5f ) * 100.0f )
+    MG_LET( float, shelf_th,
+            4.0f + ( shelf - 0.60f ) * 38.0f + ( MAP_GEN_PERLIN2D( x, z, 0.05f, 2, MAP_SEED + 66 ) - 0.5f ) * 10.0f +
+                ( MAP_GEN_PERLIN2D( x, z, 0.13f, 2, MAP_SEED + 67 ) - 0.5f ) * 7.0f )
+    if ( shelf > 0.60f && MG_F32( ly ) > shelf_h - shelf_th && MG_F32( ly ) < shelf_h + shelf_th ) {
+        solid = 1;
     }
     // Cave worms chew through the floor and roof masses — but always stop
     // short of either bedrock: a rock skin over the floor keeps caverns off
@@ -177,6 +180,50 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
                 }
             }
         }
+        // Fire and soul fire flicker on open surfaces: the air cell must
+        // sit on real rock, so the solid pipeline is re-run for the cell
+        // below (WGSL has no recursion — the terms are spelled out rather
+        // than calling the pick). Plain fire on netherrack, soul fire on
+        // soul-valley crust; nothing burns on basalt/blackstone.
+        if ( ly > MGN_LAVA_SEA && pull < 0.5f ) {
+            MG_LET( float, fn, MAP_GEN_PERLIN2D( x, z, 0.16f, 2, MAP_SEED + 72 ) )
+            MG_LET( float, fd, MAP_GEN_PERLIN2D( x, z, 0.35f, 2, MAP_SEED + 73 ) )
+            // fn picks small sparse burn patches; the fine field gates ~half
+            // the cells inside each patch so a fire area reads as scattered
+            // flames, not a solid carpet.
+            if ( fn > 0.78f && fd > 0.46f ) {
+                MG_LET( float, bw, MAP_GEN_PERLIN3D( x, y - 1, z, 0.09f, 2, MAP_SEED + 61 ) )
+                MG_LET( float, bp, pull * ( 1.0f + ( bw - 0.5f ) * 2.4f ) )
+                MG_LET( float, bfh, floor_raw + bp * ( mid + half_t - floor_raw ) )
+                MG_LET( float, brb, roof_raw + bp * ( mid - half_t - roof_raw ) )
+                MG_VAR( int, bs, 0 )
+                if ( MG_F32( ly - 1 ) <= bfh || MG_F32( ly - 1 ) >= brb ) {
+                    bs = 1;
+                }
+                if ( shelf > 0.60f && MG_F32( ly - 1 ) > shelf_h - shelf_th && MG_F32( ly - 1 ) < shelf_h + shelf_th ) {
+                    bs = 1;
+                }
+                MG_LET( float, bc, MAP_GEN_PERLIN3D( x, y - 1, z, 0.045f, 3, MAP_SEED + 45 ) )
+                MG_LET( float, bcf, MAP_GEN_PERLIN3D( x, y - 1, z, 0.12f, 2, MAP_SEED + 60 ) )
+                if ( bs != 0 && ( bc < 0.30f * carve_keep || bcf < 0.14f * carve_keep ) && ly - 1 > 8 &&
+                     MG_F32( ly - 1 ) < carve_cap ) {
+                    bs = 0;
+                }
+                MG_LET( float, bh, MAP_GEN_PERLIN3D( x, y - 1, z, 0.008f, 2, MAP_SEED + 46 ) )
+                if ( bs != 0 && bh < 0.42f * carve_keep && MG_F32( ly - 1 ) > 20.0f &&
+                     MG_F32( ly - 1 ) < carve_cap ) {
+                    bs = 0;
+                }
+                if ( bs != 0 ) {
+                    if ( biome >= 0.60f && biome < 0.63f && MG_F32( ly - 1 ) > bfh - 3.0f ) {
+                        return SOUL_FIRE;
+                    }
+                    if ( biome < 0.56f ) {
+                        return FIRE;
+                    }
+                }
+            }
+        }
         return MG_TERN( ly <= MGN_LAVA_SEA, LAVA, AIR );
     }
 
@@ -195,7 +242,6 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     // own province; soul valleys swap the surface band to soul sand over
     // soul soil. Provinces apply through the whole column, so fused masses
     // and shelves inside them are made of the province rock.
-    MG_LET( float, biome, MAP_GEN_PERLIN2D( x, z, 0.0012f, 2, MAP_SEED + 47 ) )
     if ( biome >= 0.72f ) {
         MG_LET( float, bst, MAP_GEN_PERLIN3D( x, y, z, 0.05f, 3, MAP_SEED + 69 ) )
         id = MG_TERN( bst > 0.60f, BLACKSTONE, BASALT );
