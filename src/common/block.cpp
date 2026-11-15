@@ -825,6 +825,17 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
         // fat column.
         return lightning_rod_boxes( out );
     }
+    if ( block_icon_yaw( block ) != 0 ) {
+        // Panes: the def plate yawed 90 — thin in x so the broad face lands
+        // on the iso RIGHT like the other thin items (block_icon_yaw).
+        for ( int i = 0; i < 3; i++ ) {
+            out[ 0 ].scale[ i ] = static_cast<signed char>( i == 0 ? block->scale.x : i == 1 ? block->scale.y : block->scale.z );
+            out[ 0 ].offset[ i ] = static_cast<signed char>( i == 0 ? block->offset.x : i == 1 ? block->offset.y : block->offset.z );
+        }
+        out[ 0 ].skip_faces = 0;
+        block_rotate_box( block_icon_yaw( block ), out[ 0 ].scale, out[ 0 ].offset );
+        return 1;
+    }
     return 0;
 }
 

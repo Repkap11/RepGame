@@ -113,19 +113,22 @@ inline void set_block_icon( UIOverlayInstance &inst, const Block *block, int box
             // Like Reeds
             inst.id_isos[ face ] = block->icon_texture;
         } else {
-            // Like grass
-            inst.id_isos[ face ] = block->textures[ inventory_isometric_face[ face ] ];
+            // Like grass. block_icon_face maps the drawn face back to the
+            // def face for yawed icons (panes draw the plate turned 90).
+            inst.id_isos[ face ] = block->textures[ block_icon_face( block, inventory_isometric_face[ face ] ) ];
         }
     }
     BlockBox boxes[ ICON_MAX_BOXES ];
     if ( block_icon_boxes( block, boxes ) > 0 ) {
         const BlockBox &b = boxes[ box_index ];
+        // The chunk multi-box convention: texture position follows the box's
+        // world position (-offset); yawed icons rotate the def's tex_offset
+        // instead (block_icon_tex_offset).
+        const glm::vec3 tex_offset = block_icon_tex_offset( block, b );
         for ( int i = 0; i < 3; i++ ) {
             inst.block_scale[ i ] = b.scale[ i ];
             inst.block_offset[ i ] = b.offset[ i ];
-            // The chunk multi-box convention: texture position follows the
-            // box's world position.
-            inst.block_tex_offset[ i ] = static_cast<float>( -b.offset[ i ] );
+            inst.block_tex_offset[ i ] = tex_offset[ i ];
         }
         return;
     }

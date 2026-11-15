@@ -195,8 +195,10 @@ void resolve_item_faces( const ItemID item, unsigned short face[ NUM_FACES_IN_CU
         coords.face[ f ] = block->textures[ f ];
     }
     block_adjust_coord_based_on_state( block, &state, &coords );
+    // block_icon_face maps each drawn face back to the def face for yawed
+    // icons (panes draw the plate turned 90 — see block_icon_boxes).
     for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-        face[ f ] = coords.face[ f ];
+        face[ f ] = coords.face[ block_icon_face( block, f ) ];
     }
 }
 
@@ -1039,8 +1041,9 @@ void block_item_shape( const Block *block, bool item_centered, int box, BlockObj
         const BlockBox &b = boxes[ box ];
         inst.shape_scale = glm::vec3( b.scale[ 0 ], b.scale[ 1 ], b.scale[ 2 ] );
         inst.shape_offset = glm::vec3( b.offset[ 0 ], b.offset[ 1 ], b.offset[ 2 ] );
-        // The chunk multi-box convention: texture position follows the box.
-        inst.shape_tex_offset = -inst.shape_offset;
+        // The chunk multi-box convention: texture position follows the box
+        // (-offset); yawed icons rotate the def's tex_offset instead.
+        inst.shape_tex_offset = block_icon_tex_offset( block, b );
         return;
     }
     block_object_shape( block, item_centered, inst.shape_scale, inst.shape_offset, inst.shape_tex_offset );
@@ -1138,7 +1141,7 @@ void ItemEntities::set_held_item( ItemID item ) {
             const std::pair<entt::entity, BlockObjectInstance &> data = this->render_held_block.create_instance( );
             this->held_block_entities[ i ] = data.first;
             for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
-                data.second.face[ f ] = block->textures[ f ];
+                data.second.face[ f ] = block->textures[ block_icon_face( block, f ) ];
             }
             block_item_shape( block, true, i, data.second );
             data.second.transform = glm::mat4( 0.0f ); // hidden until update_held

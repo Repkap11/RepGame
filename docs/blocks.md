@@ -148,7 +148,14 @@ Their `hides_self [true,true,false]` + `hides_self_same_rot` culls the
 thin x/y edge faces against a same-id neighbour whose yaw matches mod
 180 (rotation parity — `GPUBlockDef.hides_self` mode 2 in
 mesh_vis_logic.hpp), so coplanar panes read as one sheet while a
-perpendicular neighbour keeps its edge cap. Default
+perpendicular neighbour keeps its edge cap. The def plate is thin in z,
+which reads edge-on in the held pose, so the item icon draws it yawed 90 —
+`block_icon_yaw`/`block_icon_boxes` emit the plate thin in x like the
+fence/bars icon boxes, `block_icon_face` remaps the face textures and
+`block_icon_tex_offset` the tex_offset windows the way a placed yaw-1
+pane samples them (the mesh shader swaps face_shift components under
+rotation; the icon paths take the already-rotated box and must yaw the
+vector themselves). Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
 flags (`no_light`, `casts_shadow:false`); see existing `data/blocks/*.json`
 for the emitted levels.

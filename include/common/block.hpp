@@ -650,10 +650,38 @@ int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] );
 
 // ---- Item icons -------------------------------------------------------------
+// Icon-space yaw for the item/pickup model: panes (hides_self_same_rot —
+// the symmetric flat plate) author the def plate thin in z, which reads
+// edge-on in the held pose and lays the broad face across the iso FRONT,
+// so the icon turns it 90 — thin in x, broad face on the iso RIGHT like
+// fences/bars/gates. block_icon_boxes emits the yawed box; drawn faces
+// sample textures through block_icon_face. Returns 0 for everything else.
+static inline unsigned char block_icon_yaw( const Block *block ) {
+    return block->hides_self_same_rot ? BLOCK_ROTATE_90 : 0;
+}
+// The def-space face an icon-space drawn face samples — the FACE_ROTATE_90
+// remap a placed yaw-1 pane gets from the mesh shader's face_shift, or the
+// identity for un-yawed icons (block_icon_yaw).
+static inline int block_icon_face( const Block *block, int face ) {
+    return block_icon_yaw( block ) == BLOCK_ROTATE_90 ? FACE_ROTATE_90[ face ] : face;
+}
+// The icon-space tex_offset for a block_icon_boxes box. The multi-box
+// convention samples the texels the box covers (-offset), but a yawed icon
+// rotates the def's tex_offset with the geometry: side faces take their
+// u-shift from tex_offset[face normal], so yawing the plate 90 moves the
+// pane's strip window onto the drawn z-normal edges and leaves the drawn
+// x-normal broad faces on the full tile, like a placed yaw-1 pane.
+static inline glm::vec3 block_icon_tex_offset( const Block *block, const BlockBox &box ) {
+    if ( block_icon_yaw( block ) == BLOCK_ROTATE_90 ) {
+        return glm::vec3( static_cast<float>( block->tex_offset.z ), static_cast<float>( block->tex_offset.y ), static_cast<float>( block->tex_offset.x ) );
+    }
+    return glm::vec3( static_cast<float>( -box.offset[ 0 ] ), static_cast<float>( -box.offset[ 1 ] ), static_cast<float>( -box.offset[ 2 ] ) );
+}
 // The model-space boxes a block's item icon draws: stairs their
 // stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),
 // gates the closed leaf spanning z (fence_gate_icon_boxes), buttons the
-// centered button_inventory box (button_icon_boxes). Returns the
+// centered button_inventory box (button_icon_boxes), panes the def plate
+// yawed 90 (block_icon_yaw). Returns the
 // box count — 0 for blocks whose icon is their single def box
 // (Block::scale/offset/tex_offset), which callers draw through the
 // non-box path.

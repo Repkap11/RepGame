@@ -518,6 +518,28 @@ int test_bars( ) {
                     boxes[ 2 ].offset[ 2 ] == 9 && boxes[ 2 ].scale[ 2 ] == 7 );    // +z arm half
     check_bool( "icon: box count", block_icon_box_count( iron ) == 3 );
 
+    // Panes: the def plate is thin in z, but the item icon draws it yawed
+    // 90 (block_icon_yaw) so the broad face lands on the iso RIGHT like the
+    // bars/fence/gate thin items — thin in x, spanning z.
+    const Block *pane = block_definition_get_definition( GLASS_PANE );
+    check_bool( "icon: pane yaws its plate", block_icon_yaw( pane ) == BLOCK_ROTATE_90 && block_icon_yaw( iron ) == 0 );
+    check_bool( "icon: stained panes yaw too",
+                block_icon_yaw( block_definition_get_definition( RED_STAINED_GLASS_PANE ) ) == BLOCK_ROTATE_90 );
+    check_bool( "icon: pane box spans z",
+                block_icon_boxes( pane, boxes ) == 1 &&                     //
+                    boxes[ 0 ].scale[ 0 ] == 2 && boxes[ 0 ].scale[ 1 ] == 16 && boxes[ 0 ].scale[ 2 ] == 16 && //
+                    boxes[ 0 ].offset[ 0 ] == 7 && boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].offset[ 2 ] == 0 );
+    check_bool( "icon: pane faces remap — broad glass on the drawn sides",
+                block_icon_face( pane, FACE_RIGHT ) == FACE_BACK && block_icon_face( pane, FACE_LEFT ) == FACE_FRONT && //
+                    block_icon_face( pane, FACE_FRONT ) == FACE_RIGHT && block_icon_face( pane, FACE_BACK ) == FACE_LEFT && //
+                    block_icon_face( pane, FACE_TOP ) == FACE_TOP && block_icon_face( iron, FACE_RIGHT ) == FACE_RIGHT );
+    // The def's tex_offset yaws with the plate: the strip window moves from
+    // the x-normal edges (def) to the z-normal edges (icon), so the drawn
+    // broad faces sample the full glass tile like a placed yaw-1 pane.
+    const glm::vec3 pane_tex_offset = block_icon_tex_offset( pane, boxes[ 0 ] );
+    check_bool( "icon: pane tex_offset yaws too",
+                pane_tex_offset.x == 0.0f && pane_tex_offset.y == 0.0f && pane_tex_offset.z == -7.0f );
+
     // --- block-world showcase (z<0, y=1) --------------------------------------
     check_bool( "showcase: iron/copper run joins materials",
                 MapGen::block_world_id( -8, 1, -26 ) == IRON_BARS && MapGen::block_world_id( -7, 1, -26 ) == COPPER_BARS );
