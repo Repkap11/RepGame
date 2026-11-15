@@ -4,6 +4,7 @@
 #include "test_util.hpp"
 #include "common/dimension.hpp"
 #include "common/dimension_profile.hpp"
+#include "common/map_gen_nether.hpp"
 #include "common/portal.hpp"
 
 int test_dimension( ) {
@@ -153,6 +154,41 @@ int test_dimension( ) {
             }
         }
         check_bool( "nether roof is capped by solid bedrock", filler_gaps == 0 );
+    }
+
+    // ---- Roof skin: carving stops short of the cap, so no AIR cell may sit
+    // directly under BEDROCK in the roof region (bare-bedrock patches). ----
+    {
+        int exposed = 0;
+        for ( int x = -96; x < 96; x += 3 ) {
+            for ( int z = -96; z < 96; z += 3 ) {
+                for ( int ly = 190; ly < 266; ly++ ) {
+                    const int y = DIM_BY_MIN_N + ly;
+                    exposed += MapGen::gen_block_id( x, y, z ) == AIR && MapGen::gen_block_id( x, y + 1, z ) == BEDROCK;
+                }
+            }
+        }
+        check_bool( "bedrock cap is never exposed to air", exposed == 0 );
+    }
+
+    // ---- Pillars: deformed floor/roof masses fuse across the cavern gap.
+    // Cave worms pocket the column, so assert majority-solid over the raw
+    // gap span rather than fully airtight. ----
+    {
+        int pillar_cols = 0;
+        for ( int x = -192; x < 192; x += 2 ) {
+            for ( int z = -192; z < 192; z += 2 ) {
+                const float fh = mgn_floor_height( x, z );
+                const float rb = mgn_roof_base( x, z );
+                int total = 0, open = 0;
+                for ( float ly = fh + 8.0f; ly < rb - 8.0f; ly += 5.0f ) {
+                    total++;
+                    open += MapGen::gen_block_id( x, DIM_BY_MIN_N + static_cast<int>( ly ), z ) == AIR;
+                }
+                pillar_cols += total > 0 && open * 2 < total;
+            }
+        }
+        check_bool( "nether pillars connect floor to roof", pillar_cols > 100 );
     }
 
     // ---- Overworld band still generates overworld terrain ----
