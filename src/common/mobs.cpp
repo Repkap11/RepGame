@@ -427,6 +427,18 @@ void MobManager::remove_remote( uint32_t uid ) {
     }
 }
 
+bool MobManager::remote_head_pos( const uint32_t uid, const float alpha, glm::dvec3 &out, float &sneak ) const {
+    for ( const Mob &mob : this->mobs ) {
+        if ( mob.uid == uid ) {
+            const glm::dvec3 feet = glm::mix( mob.prev_pos, mob.pos, static_cast<double>( alpha ) );
+            out = feet + glm::dvec3( 0.0, mob_types[ mob.type ].hitbox_h * scale_of( mob ), 0.0 );
+            sneak = mob.prev_sneak + ( mob.sneak - mob.prev_sneak ) * alpha;
+            return true;
+        }
+    }
+    return false;
+}
+
 void MobManager::flash_remote_hurt( const uint32_t uid, const glm::dvec3 &listener_pos ) {
     for ( Mob &mob : this->mobs ) {
         if ( mob.uid == uid ) {

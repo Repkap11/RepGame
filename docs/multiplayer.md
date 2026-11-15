@@ -337,7 +337,10 @@ commands are `docs/chat.md`.
   its `player_names` map; the requested name, not the deduped one, is
   what persists locally). A new joiner gets one `PLAYER_NAME` per
   already-connected client, and joins/renames/leaves go out as SYSTEM
-  chat lines so the log tells the story.
+  chat lines so the log tells the story. Names also drive the floating
+  nametag over each avatar — the world-text pass draws
+  `name_of(player_id)` (or the `Player<fd>` fallback) billboarded above
+  the avatar's head; see `docs/rendering.md`.
 - **Chat (`CHAT`)**: client → server carries `kind` and `text`
   (`PLAYER`, `WHISPER` with a `target` name, `EMOTE`); the server
   sanitizes, drops empties, stamps the authoritative `from` from its own

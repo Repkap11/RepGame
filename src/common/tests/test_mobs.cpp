@@ -780,6 +780,17 @@ int test_mobs( ) {
         double dist = 0.0;
         check_bool( "remote: raycast misses", mobs.raycast( origin, glm::dvec3( 1.0, 0.0, 0.0 ), 6.0, &dist ) < 0 );
 
+        // ...and remote_head_pos gives the nametag anchor: eased feet +
+        // hitbox top, false for a uid that isn't a live remote mob.
+        {
+            glm::dvec3 head;
+            float sneak_out = -1.0f;
+            check_bool( "remote: head anchor found", mobs.remote_head_pos( uid, 1.0f, head, sneak_out ) );
+            check_near( "remote: anchor at hitbox top", head.y, mobs.mobs[ 0 ].pos.y + mob_types[ MOB_PLAYER ].hitbox_h, 1e-6 );
+            check_near( "remote: anchor above feet xz", head.x, mobs.mobs[ 0 ].pos.x, 1e-6 );
+            check_bool( "remote: unknown uid misses", !mobs.remote_head_pos( 9999, 1.0f, head, sneak_out ) );
+        }
+
         // ...never persisted...
         {
             ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
@@ -826,6 +837,11 @@ int test_mobs( ) {
         }
         check_near( "remote sneak: feet on ground", mobs.mobs[ 0 ].pos.y, ground, 1e-3 );
         check_bool( "remote sneak: sneak converges to 1", mobs.mobs[ 0 ].sneak > 0.95f );
+        {
+            glm::dvec3 head;
+            float sneak_out = -1.0f;
+            check_bool( "remote sneak: head anchor reports sneak", mobs.remote_head_pos( uid, 1.0f, head, sneak_out ) && sneak_out > 0.95f );
+        }
 
         // Sneaking must not tilt the head: the sneak pose is a model-space
         // pre-multiply (head/arms don't inherit body's lean), so the head

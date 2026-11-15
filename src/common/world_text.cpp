@@ -99,6 +99,18 @@ void WorldTextRenderer::begin( ) {
     this->batch_quads = 0;
 }
 
+void WorldTextRenderer::reserve_quads( const int extra ) {
+    const int needed = this->batch_quads + extra;
+    if ( needed > this->batch_capacity ) {
+        int capacity = this->batch_capacity > 0 ? this->batch_capacity : 256;
+        while ( capacity < needed ) {
+            capacity *= 2;
+        }
+        this->batch = static_cast<WorldTextVertex *>( realloc( this->batch, static_cast<size_t>( capacity ) * 4 * sizeof( WorldTextVertex ) ) );
+        this->batch_capacity = capacity;
+    }
+}
+
 void WorldTextRenderer::append_sign( const glm::vec3 &sign_pos, const BlockState &state, const SignText &text, const float tint[ 4 ] ) {
     if ( !this->initialized || this->font == nullptr ) {
         return;
@@ -147,15 +159,7 @@ void WorldTextRenderer::append_sign( const glm::vec3 &sign_pos, const BlockState
 
     // Grow the staging buffer for the whole sign at once (4 lines *
     // SIGN_LINE_MAX glyphs worst case).
-    const int needed = this->batch_quads + SIGN_LINES * SIGN_LINE_MAX;
-    if ( needed > this->batch_capacity ) {
-        int capacity = this->batch_capacity > 0 ? this->batch_capacity : 256;
-        while ( capacity < needed ) {
-            capacity *= 2;
-        }
-        this->batch = static_cast<WorldTextVertex *>( realloc( this->batch, static_cast<size_t>( capacity ) * 4 * sizeof( WorldTextVertex ) ) );
-        this->batch_capacity = capacity;
-    }
+    this->reserve_quads( SIGN_LINES * SIGN_LINE_MAX );
 
     // Def-space point -> world (matches chunk_vertex.glsl's yaw transform:
     // rotate about the cell center, R(v) = (-v.z, v.y, v.x) per step).
@@ -190,6 +194,52 @@ void WorldTextRenderer::append_sign( const glm::vec3 &sign_pos, const BlockState
             quad[ 1 ] = { p_tl.x, p_tl.y, p_tl.z, q.s0, q.t_top, tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] };
             quad[ 2 ] = { p_tr.x, p_tr.y, p_tr.z, q.s1, q.t_top, tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] };
             quad[ 3 ] = { p_br.x, p_br.y, p_br.z, q.s1, q.t_bot, tint[ 0 ], tint[ 1 ], tint[ 2 ], tint[ 3 ] };
+            this->batch_quads++;
+        }
+    }
+}
+
+// Billboard drop shadow: one raster texel down-right, pushed a hair along
+// `back` so the two layers keep a fixed depth order instead of z-fighting.
+static constexpr float kShadowPx = 1.0f;
+static constexpr float kShadowDepth = 0.02f;
+
+void WorldTextRenderer::append_billboard( const glm::vec3 &anchor, const glm::vec3 &right, const glm::vec3 &back, const char *text, const int len, const float height, const float alpha ) {
+    if ( !this->initialized || this->font == nullptr || len <= 0 || alpha <= 0.0f ) {
+        return;
+    }
+    FontGlyphQuad quads[ 64 ];
+    const int n = len < 64 ? len : 64;
+    const int quad_count = this->font->glyph_quads( text, n, quads, 64 );
+    if ( quad_count == 0 ) {
+        return;
+    }
+    const float raster = this->font->raster_size( );
+    // Scale the cap+descender band to `height` blocks; the anchor is the
+    // baseline's center point.
+    const float s = height / ( this->font->getCapHeight( raster ) - this->font->getDescent( raster ) );
+    const float half_w = this->font->getTextWidthSlice( text, n, raster ) * s * 0.5f;
+    this->reserve_quads( quad_count * 2 );
+
+    const glm::vec3 up( 0.0f, 1.0f, 0.0f );
+    const glm::vec3 shadow_off = ( right - up ) * ( kShadowPx * s ) + back * kShadowDepth;
+    for ( int pass = 0; pass < 2; pass++ ) {
+        const bool shadow = pass == 0;
+        const glm::vec3 base = anchor + ( shadow ? shadow_off : glm::vec3( 0.0f ) );
+        const float shade = shadow ? 0.25f : 1.0f;
+        for ( int g = 0; g < quad_count; g++ ) {
+            const FontGlyphQuad &q = quads[ g ];
+            const float x0 = q.x0 * s - half_w;
+            const float x1 = q.x1 * s - half_w;
+            const glm::vec3 p_bl = base + right * x0 + up * ( q.y_bot * s );
+            const glm::vec3 p_tl = base + right * x0 + up * ( q.y_top * s );
+            const glm::vec3 p_tr = base + right * x1 + up * ( q.y_top * s );
+            const glm::vec3 p_br = base + right * x1 + up * ( q.y_bot * s );
+            WorldTextVertex *quad = &this->batch[ this->batch_quads * 4 ];
+            quad[ 0 ] = { p_bl.x, p_bl.y, p_bl.z, q.s0, q.t_bot, shade, shade, shade, alpha };
+            quad[ 1 ] = { p_tl.x, p_tl.y, p_tl.z, q.s0, q.t_top, shade, shade, shade, alpha };
+            quad[ 2 ] = { p_tr.x, p_tr.y, p_tr.z, q.s1, q.t_top, shade, shade, shade, alpha };
+            quad[ 3 ] = { p_br.x, p_br.y, p_br.z, q.s1, q.t_bot, shade, shade, shade, alpha };
             this->batch_quads++;
         }
     }

@@ -307,6 +307,12 @@ class MobManager {
     // streamed pose. While seated, set_remote_pose only steers the head.
     void set_remote_seated( uint32_t uid, const glm::dvec3 &seat_pos, float cart_yaw, bool seated = true );
     void remove_remote( uint32_t uid );
+    // Interpolated top-of-hitbox anchor for a remote mob (feet mix of
+    // prev/pos at render alpha + hitbox height * scale) — the same eased
+    // pose update_render draws with, so nametags never detach from the
+    // body. `sneak` gets the alpha-blended crouch amount for dimming.
+    // False when no remote mob carries `uid`.
+    bool remote_head_pos( uint32_t uid, float alpha, glm::dvec3 &out, float &sneak ) const;
     // Remote-player hurt feedback (avatar): red flash + "player_hurt" faded
     // by distance to the local camera — driven by health drops in the
     // player's streamed NetPlayerPayload.

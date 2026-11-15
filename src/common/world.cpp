@@ -13,6 +13,7 @@
 #include "common/block_update_events/FluidUpdateEvent.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string>
 
@@ -689,8 +690,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     }
 
-    // Sign front text: batched glyph quads on the board faces. After the
-    // opaque/glass block pass so depth culls text behind terrain; before
+    // Sign front text + remote-player nametags: batched glyph quads. After
+    // the opaque/glass block pass so depth culls text behind terrain; before
     // the selection outline and the water passes.
     {
         const glm::ivec3 camera_block = glm::ivec3( glm::floor( camera_pos ) );
@@ -704,6 +705,51 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             const float tint[ 4 ] = { 0.0f, 0.0f, 0.0f, 1.0f };
             const glm::vec3 pos_rebased = glm::vec3( sign.pos - renderOrigin );
             this->worldText.append_sign( pos_rebased, sign.state, *sign.text, tint );
+        }
+        // Nametags yaw-billboard over each live avatar's head at the eased
+        // render pose (the same interp the mob model draws with), dimmed
+        // while the player sneaks. Past ~64 blocks the plate is unreadable,
+        // so they're skipped instead of shimmering in the fog.
+        if ( this->multiplayer != nullptr ) {
+            constexpr float NAMETAG_MAX_DIST = 64.0f;
+            constexpr float NAMETAG_LIFT = 0.45f;   // gap above the hitbox top
+            constexpr float NAMETAG_HEIGHT = 0.24f; // cap+descender band, blocks
+            glm::vec3 tag_fwd( cam_forward.x, 0.0f, cam_forward.z );
+            if ( glm::length( tag_fwd ) < 1.0e-3f ) {
+                // Looking straight up/down: fall back to the camera's
+                // horizontal right so the basis can't degenerate.
+                tag_fwd = glm::vec3( -cam_right.x, 0.0f, -cam_right.z );
+            }
+            tag_fwd = glm::normalize( tag_fwd );
+            const glm::vec3 tag_right = glm::normalize( glm::cross( tag_fwd, glm::vec3( 0.0f, 1.0f, 0.0f ) ) );
+            for ( int fd = 0; fd < MAX_CLIENT_FDS; fd++ ) {
+                const uint32_t uid = this->multiplayer_avatars.uid_of( fd );
+                if ( uid == 0 ) {
+                    continue;
+                }
+                glm::dvec3 head;
+                float sneak = 0.0f;
+                if ( !this->mobs.remote_head_pos( uid, alpha, head, sneak ) ) {
+                    continue;
+                }
+                const glm::dvec3 delta = head - camera_pos;
+                if ( glm::dot( delta, delta ) > NAMETAG_MAX_DIST * NAMETAG_MAX_DIST ) {
+                    continue;
+                }
+                char fallback[ 24 ];
+                const std::string *name = this->multiplayer->name_of( fd );
+                const char *text = nullptr;
+                int len = 0;
+                if ( name != nullptr ) {
+                    text = name->c_str( );
+                    len = static_cast<int>( name->size( ) );
+                } else {
+                    len = snprintf( fallback, sizeof( fallback ), "Player%d", fd );
+                    text = fallback;
+                }
+                const glm::vec3 anchor = glm::vec3( head - glm::dvec3( renderOrigin ) ) + glm::vec3( 0.0f, NAMETAG_LIFT, 0.0f );
+                this->worldText.append_billboard( anchor, tag_right, tag_fwd, text, len, NAMETAG_HEIGHT, 1.0f - 0.7f * sneak );
+            }
         }
         this->worldText.flush( this->renderer, mvp, camera_pos_rebased, renderOriginF, fog_near, fog_far, water_fog_near, water_fog_far,
                                fog_blend_color, underwater_wash, useFogBlend ? 1 : 0, block_water_tint_type );

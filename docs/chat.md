@@ -52,7 +52,9 @@ SYSTEM lines. The server keeps no history. Full wire detail:
 The local display name resolves at init: `player.dat`'s `name` >
 `Player` — sanitized; `/name` sets it live and it persists on exit (the
 requested name, never the server-deduped one). See
-`docs/persistence.md`.
+`docs/persistence.md`. Received names also float above remote avatars
+as billboarded nametags (`docs/rendering.md` "World-space text"), so a
+`/name` rename retags the avatar on the next broadcast.
 
 ## Commands
 

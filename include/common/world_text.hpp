@@ -37,6 +37,9 @@ class WorldTextRenderer {
     int batch_capacity = 0;
     int batch_quads = 0;
 
+    // Grow the staging buffer so `extra` more quads fit.
+    void reserve_quads( int extra );
+
   public:
     void init( const FontRenderer &font );
     void cleanup( );
@@ -44,6 +47,13 @@ class WorldTextRenderer {
     // Queue the four front lines on `text`'s board face. sign_pos is the
     // sign cell rebased by the render origin (world pos - renderOrigin).
     void append_sign( const glm::vec3 &sign_pos, const BlockState &state, const SignText &text, const float tint[ 4 ] );
+    // Queue one line of billboard text centered on `anchor` (rebased like
+    // sign_pos): the quad stays upright and yaws to face the camera along
+    // `right`/`back` (horizontal camera basis, back pointing away from the
+    // viewer). A dark drop-shadow layer rides `back` a hair so coplanar
+    // layers never z-fight. `height` is the cap+descender band in blocks;
+    // `alpha` scales both layers (sneaking nametags dim).
+    void append_billboard( const glm::vec3 &anchor, const glm::vec3 &right, const glm::vec3 &back, const char *text, int len, float height, float alpha );
     // Fog/water uniforms mirror object_fragment's set so sign text fades
     // and underwater-tints like everything else in the world pass.
     void flush( const Renderer &renderer, const glm::mat4 &mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin, float fog_near, float fog_far, float water_fog_near, float water_fog_far,

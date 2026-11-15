@@ -266,7 +266,7 @@ as the order flips (multiply fixes exactly this); and without
 after-water mode, water draws after glass so water seen through glass
 composites on top of the glass tint rather than behind it.
 
-## Sign text (world space)
+## World-space text (signs, nametags)
 
 Sign front text renders as real 3D geometry, not screen overlays.
 `WorldTextRenderer` (`include/common/world_text.hpp`,
@@ -293,6 +293,17 @@ standard distance/water fog uniforms, so the pass matches the terrain
 around it. Depth test on, depth write
 on: the quads sit ~0.01 off the board face so they can't z-fight the
 plate but still hide behind walls.
+
+The same batch carries remote-player nametags: `World::draw` appends one
+`append_billboard` line per live `multiplayer_avatars` uid, anchored at
+`MobManager::remote_head_pos` (the eased render pose's hitbox top, so
+the tag never detaches from the walking body). The billboard yaws to the
+camera along its horizontal forward — upright like vanilla nameplates —
+with a dark drop-shadow copy slid one texel down-right and pushed a hair
+behind along the view normal so the two layers keep a fixed depth order.
+Text comes from `Multiplayer::name_of` (the PLAYER_NAME table), falling
+back to `Player<fd>`; tags past 64 blocks are skipped and sneaking
+players dim toward 30 % alpha.
 
 ## Fly mode (load-in / lighting stress runs)
 
