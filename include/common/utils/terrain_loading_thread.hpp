@@ -44,8 +44,12 @@ class TerrainLoadingThread {
     // keep doing file IO after multiplayer flips the gate.
     MapStorage *map_storage = nullptr;
     // Work queue: the render thread pushes and workers pop; work_cv lets
-    // idle workers sleep until work arrives instead of polling. Result
-    // queue: workers push, the render thread pops non-blocking. Both FIFO.
+    // idle workers sleep until work arrives instead of polling. Pops take
+    // the item nearest the loader focus (nearest_work_index), not the
+    // front: a bulk reload (login, dimension hop, long teleport) enqueues
+    // the whole window in slot order, and FIFO would generate the
+    // camera's surroundings last. Result queue: workers push, the render
+    // thread pops non-blocking FIFO.
     mutable std::mutex work_mutex;
     std::condition_variable work_cv;
     std::deque<TerrainWorkItem> work_queue;
@@ -68,6 +72,10 @@ class TerrainLoadingThread {
     std::atomic<int> focus_valid{ 0 }; // 0 → retarget falls back to new_chunk_pos
 
     void process_value( TerrainWorkItem &item );
+    // Index into `queue` of the item whose focus-retargeted position is
+    // nearest the loader focus — 0 (the FIFO front) until set_focus has
+    // run. Callers hold work_mutex where threading applies.
+    size_t nearest_work_index( const std::deque<TerrainWorkItem> &queue ) const;
     static void *process_background_tasks( void *arg );
 
   public:
@@ -81,8 +89,11 @@ class TerrainLoadingThread {
     // Async remesh plumbing: the render thread enqueues jobs, workers run
     // mesh_job_run and push to the result deque the render thread drains
     // non-blocking. mesh_pop_work lets tests run a queued job inline.
+    // work_pop is the terrain-side equivalent: it pops the way a worker
+    // would (nearest-to-focus) without spawning threads.
     void mesh_enqueue( MeshJob &&job );
     bool mesh_pop_work( MeshJob *out );
+    bool work_pop( TerrainWorkItem *out );
     bool mesh_pop_result( MeshJob *out );
     void mesh_queue_sizes( int *work, int *results ) const;
     // False where no worker pool exists (WASM without pthreads, or start()

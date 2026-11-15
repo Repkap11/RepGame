@@ -1,6 +1,9 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <iterator>
+#include <limits>
+
 #include "common/utils/terrain_loading_thread.hpp"
 #include "common/utils/profile.hpp"
 #include "common/chunk.hpp"
@@ -29,6 +32,39 @@ static glm::ivec3 terrain_slot_pos( const glm::ivec3 &chunk_mod, const glm::ivec
         static_cast<int>( floorf( static_cast<float>( center.x - chunk_mod.x + CHUNK_RADIUS_XZ ) / static_cast<float>( rx ) ) ) * rx + chunk_mod.x,
         static_cast<int>( floorf( static_cast<float>( center.y - chunk_mod.y + CHUNK_RADIUS_Y ) / static_cast<float>( ry ) ) ) * ry + chunk_mod.y,
         static_cast<int>( floorf( static_cast<float>( center.z - chunk_mod.z + CHUNK_RADIUS_XZ ) / static_cast<float>( rz ) ) ) * rz + chunk_mod.z );
+}
+
+// Index of the queued item whose retargeted position is nearest the loader
+// focus. After a bulk reload (login, dimension hop, long teleport) the whole
+// window queues at once in slot order — FIFO pops would generate the
+// camera's surroundings last and leave the player standing in an unloaded
+// hole while edge chunks generate first. The retarget in process_value keeps
+// even a postponed item landing a useful position, so deferring the window
+// edge while the camera moves is harmless.
+size_t TerrainLoadingThread::nearest_work_index( const std::deque<TerrainWorkItem> &queue ) const {
+    if ( !this->focus_valid.load( std::memory_order_relaxed ) ) {
+        return 0;
+    }
+    const glm::ivec3 focus( this->focus_x.load( std::memory_order_relaxed ),
+                            this->focus_y.load( std::memory_order_relaxed ),
+                            this->focus_z.load( std::memory_order_relaxed ) );
+    size_t best = 0;
+    long long best_d2 = std::numeric_limits<long long>::max( );
+    for ( size_t i = 0; i < queue.size( ); i++ ) {
+        Chunk *chunk = queue[ i ].chunk;
+        if ( chunk == nullptr ) {
+            continue;
+        }
+        const glm::ivec3 d = terrain_slot_pos( chunk->chunk_mod, focus ) - focus;
+        const long long d2 = static_cast<long long>( d.x ) * d.x + //
+                             static_cast<long long>( d.y ) * d.y + //
+                             static_cast<long long>( d.z ) * d.z;
+        if ( d2 < best_d2 ) {
+            best_d2 = d2;
+            best = i;
+        }
+    }
+    return best;
 }
 
 void TerrainLoadingThread::set_focus( const glm::ivec3 &chunk_pos, int render_radius ) {
@@ -100,6 +136,17 @@ bool TerrainLoadingThread::mesh_pop_work( MeshJob *out ) {
     return true;
 }
 
+bool TerrainLoadingThread::work_pop( TerrainWorkItem *out ) {
+    std::lock_guard<std::mutex> lock( this->work_mutex );
+    if ( this->work_queue.empty( ) ) {
+        return false;
+    }
+    const size_t pick = this->nearest_work_index( this->work_queue );
+    *out = this->work_queue[ pick ];
+    this->work_queue.erase( std::next( this->work_queue.begin( ), pick ) );
+    return true;
+}
+
 bool TerrainLoadingThread::mesh_pop_result( MeshJob *out ) {
     std::lock_guard<std::mutex> lock( this->result_mutex );
     if ( this->mesh_result_queue.empty( ) ) {
@@ -132,8 +179,9 @@ Chunk *TerrainLoadingThread::dequeue( ) {
     if ( this->result_queue.empty( ) ) {
         return NULL;
     }
-    TerrainWorkItem item = this->result_queue.front( );
-    this->result_queue.pop_front( );
+    const size_t pick = this->nearest_work_index( this->result_queue );
+    TerrainWorkItem item = this->result_queue[ pick ];
+    this->result_queue.erase( std::next( this->result_queue.begin( ), pick ) );
     this->process_value( item );
     return item.chunk;
 }
@@ -193,8 +241,9 @@ void *TerrainLoadingThread::process_background_tasks( void *arg ) {
                 self.mesh_work_queue.pop_front( );
                 have_mesh_job = true;
             } else {
-                item = self.work_queue.front( );
-                self.work_queue.pop_front( );
+                const size_t pick = self.nearest_work_index( self.work_queue );
+                item = self.work_queue[ pick ];
+                self.work_queue.erase( std::next( self.work_queue.begin( ), pick ) );
             }
         }
         if ( have_mesh_job ) {

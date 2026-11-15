@@ -342,6 +342,7 @@ class Chunk {
     friend int test_grass_persist( );
     friend int test_chunk_edits( );
     friend int test_async_remesh( );
+    friend int test_terrain_queue( );
     friend void sort_chunks_by_distance( Chunk **list, int n, int sorted_n, const glm::vec3 &render_origin, const glm::vec3 &cam, bool full_prefix, std::vector<ChunkSortKey> &scratch );
 
     int load_state;

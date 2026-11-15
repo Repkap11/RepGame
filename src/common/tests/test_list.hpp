@@ -85,3 +85,4 @@ int test_chunk_sort( );
 int test_chunk_occlusion( );
 int test_light_stale( );
 int test_async_remesh( );
+int test_terrain_queue( );

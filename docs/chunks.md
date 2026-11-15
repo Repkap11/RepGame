@@ -49,9 +49,12 @@ Per frame, `ChunkLoader::render_chunks` (from `World::render`):
    out-of-window slots park. New positions batch into one
    `CHUNK_DIFF_REQUEST` box (`docs/multiplayer.md`).
 2. **Terrain work.** `TerrainLoadingThread`
-   (`include/common/utils/terrain_loading_thread.hpp`) workers pop jobs,
-   retarget stale requests at the current `set_focus` center, persist
-   departing dirty slots, and run `Chunk::load_terrain`: mapgen +
+   (`include/common/utils/terrain_loading_thread.hpp`) workers pop the
+   queued job nearest the current `set_focus` center — not the queue
+   front, since a bulk reload (login, dimension hop, long teleport)
+   enqueues the whole window in slot order and FIFO would generate the
+   camera's surroundings last — then retarget stale requests at that
+   center, persist departing dirty slots, and run `Chunk::load_terrain`: mapgen +
    structure gen always runs first, then the chunk file's saved edit
    runs are overlaid on the generated cells (`docs/persistence.md`),
    with all-air chunks folded to null `cells` (`is_empty_chunk`)
