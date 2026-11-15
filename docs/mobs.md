@@ -221,7 +221,9 @@ raycast, and keep ticking in capture mode.
 
 `update_position` also carries the sender's selected hotbar item
 (`Mob::held_item`); `set_remote_held_item` stores it and `update_render`
-rebuilds `mob.held_parts` on change — a sprite instance via
+rebuilds `mob.held_parts` on change. Owned mobs get `held_item` from
+`MobTypeDef::held_item` at `spawn_any` (the skeleton's `BOW`), so mirrors
+derive it too without a wire field; — a sprite instance via
 `render_held_sprite` for flat items/non-isometric block icons, or one
 `render_held_cube` `BlockObjectInstance` per `block_icon_box_count` box
 for isometric icons (same `resolve_item_faces`/`block_item_shape` rules

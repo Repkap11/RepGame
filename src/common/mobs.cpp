@@ -237,6 +237,9 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.net_sent_health = def.max_health;
     mob.net_sent_flags = 0;
     mob.net.keyframe_tick = -1;
+    // Type-fixed held item (the skeleton's bow); remote players get theirs
+    // per-avatar from NetPlayerPayload instead.
+    mob.held_item = def.held_item;
     if ( this->render_inited ) {
         // One render entity per cube; a shearable type allocates for the
         // larger of its two models so a wool-swap never reallocates.

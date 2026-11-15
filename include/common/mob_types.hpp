@@ -70,6 +70,10 @@ typedef struct {
     // Item that hatches this mob on right-click (the spawn eggs in
     // data/items); LAST_BLOCK_ID = no egg (the remote player type).
     ItemID spawn_egg;
+    // Item the mob is drawn holding in its right hand (the skeleton's bow;
+    // remote players override this per-avatar from NetPlayerPayload).
+    // LAST_BLOCK_ID = empty hand.
+    ItemID held_item;
     // Breeding (passive types): food items that tempt the mob toward the
     // player and put it in love mode when fed; LAST_BLOCK_ID-terminated.
     // An empty list means the type can't breed (player, hostiles). The
