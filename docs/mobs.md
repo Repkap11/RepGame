@@ -18,7 +18,14 @@ fences and closed gates occupy one cell but collide 1.5 high, so a mob
 pressing against one waits instead of hopping forever.
 
 Wandering is a pick-align-commit cycle: an idle mob (`ai_state == 0`,
-2–6 s) picks a ground column within ±8 blocks, steers toward it at up to
+2–6 s) picks a ground column within ±8 blocks — validated against terrain
+the mob can actually cross, so the random walk doesn't ratchet uphill.
+Walkers need a surface within one hop up or a 3-block drop of their feet —
+a probe that ends inside a hillside reports the slope's interior as
+"ground", lands outside that band, and is rejected like a cliff. Flyers
+(`hover_h > 0`) probe a tall window with the water-counting hover scan —
+a bee picks a valley floor or a ridge crest equally. The mob steers toward
+the pick at up to
 4°/tick only until aligned (|Δyaw| ≤ 2°), then *locks* the heading
 (`leg_locked`) and walks it straight — it never re-aims mid-leg. A leg
 ends on arrival, overshoot (the mob has walked past the pick), or a

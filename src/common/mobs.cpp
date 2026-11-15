@@ -272,8 +272,9 @@ static bool solid_at( World &world, const glm::ivec3 &pos ) {
 
 // Height of the ground surface under the column (bx, bz), scanning from
 // `from_y` down; returns the top Y of the first solid block or 0/1 in
-// *found. The wander AI rejects targets whose ground drops more than 3 below
-// the mob's feet.
+// *found. On a slope taller than the scan the hit is inside the hillside,
+// reporting the face as "ground" — the wander AI's climb/drop band is what
+// rejects those as unreachable.
 static double ground_top_at( World &world, int bx, int bz, int from_y, int max_drop, bool *found ) {
     for ( int y = from_y; y >= from_y - max_drop; y-- ) {
         if ( solid_at( world, glm::ivec3( bx, y, bz ) ) ) {
@@ -835,16 +836,41 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             mob.ai_state = 0;
             mob.ai_ticks = 0;
         } else if ( mob.ai_state == 0 ) {
-            // Idle, then pick a wander target: a column within 8 blocks whose
-            // ground doesn't drop more than 3 below the mob.
+            // Idle, then pick a wander target: a random column within 8
+            // blocks, validated against the terrain the mob can cross.
             if ( --mob.ai_ticks <= 0 ) {
                 std::uniform_real_distribution<double> off( -8.0, 8.0 );
                 const double tx = mob.pos.x + off( this->rng );
                 const double tz = mob.pos.z + off( this->rng );
+                const int bx = static_cast<int>( floor( tx ) );
+                const int bz = static_cast<int>( floor( tz ) );
                 bool found = false;
-                const double ground = ground_top_at( world, static_cast<int>( floor( tx ) ), static_cast<int>( floor( tz ) ),
-                                                     static_cast<int>( floor( mob.pos.y ) ) + 1, 4, &found );
-                if ( found && mob.pos.y - ground <= 3.0 ) {
+                double ground;
+                if ( def.hover_h > 0.0f ) {
+                    // A flyer climbs and dives at will, so any column with
+                    // ground inside a tall window is fair game — the probe
+                    // reads the surface it would hover over (water counts).
+                    // Symmetric reach matters: a shallow probe strands a
+                    // bee on whatever hilltop it last climbed, since every
+                    // lowland pick reads as "no ground".
+                    ground = hover_ground_at( world, bx, bz, static_cast<int>( floor( mob.pos.y ) ) + 6, 30, &found );
+                } else {
+                    // Walkers: the pick has to be reachable terrain — at
+                    // most one hop up (+1) or a safe drop down (-3). A
+                    // steeper hillside reads as its inside-the-slope face
+                    // (the scan's first "solid" is underground), which
+                    // lands outside the band and is rejected like any
+                    // cliff; without the bound every uphill pick reports
+                    // "ground" and the random walk ratchets mobs onto
+                    // hilltops. The band is compared with slack: the feet
+                    // rest an epsilon above the block top after settling.
+                    ground = ground_top_at( world, bx, bz, static_cast<int>( floor( mob.pos.y ) ) + 2, 6, &found );
+                    const double dy = ground - mob.pos.y;
+                    if ( found && ( dy > 1.0 + 1e-3 || dy < -( 3.0 + 1e-3 ) ) ) {
+                        found = false;
+                    }
+                }
+                if ( found ) {
                     mob.target = glm::dvec3( tx, ground, tz );
                     mob.ai_state = 1;
                     mob.leg_locked = 0;

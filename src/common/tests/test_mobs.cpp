@@ -259,6 +259,103 @@ int test_mobs( ) {
         }
     }
 
+    // --- 2f: wander picks stay in the reachable band (no uphill ratchet) --
+    {
+        // A 10-high solid hill filling the eastern half of the pick area:
+        // picks into the slope used to read the hillside interior as
+        // "ground" at feet+2 and were always accepted, while downhill picks
+        // past the probe bottom were rejected — a random walk biased
+        // uphill that strands mobs on summits. Now every pick must land on
+        // a surface within one hop up or a 3-block drop of the feet.
+        for ( int x = 18; x <= 30; x++ ) {
+            for ( int z = 5; z <= 15; z++ ) {
+                for ( int y = 11; y <= 20; y++ ) {
+                    world.set_loaded_block( glm::ivec3( x, y, z ), stone );
+                }
+            }
+        }
+        MobManager mobs;
+        mobs.spawn( MOB_PIG, glm::dvec3( 14.5, 11.0, 10.5 ), 0.0f, 1 );
+        MobManager::Mob &mob = mobs.mobs[ 0 ];
+        mob.ai_ticks = 1; // first tick picks
+        int legs = 0, was_wandering = 0, band_ok = 1;
+        for ( int i = 0; i < 60 * UPS_RATE; i++ ) {
+            mobs.tick( world, player_pos );
+            if ( mob.ai_state == 1 && !was_wandering ) {
+                legs++;
+                // Fresh pick: floor is 11, the band allows 8..12.
+                if ( mob.target.y < 8.0 || mob.target.y > 12.0 ) {
+                    band_ok = 0;
+                }
+            }
+            was_wandering = mob.ai_state == 1;
+        }
+        check_bool( "wander pick: several legs ran", legs >= 3 );
+        check_bool( "wander pick: targets stay in the reachable band", band_ok );
+        check_bool( "wander pick: never climbed the hill", mob.pos.y < 12.0 );
+        for ( int x = 18; x <= 30; x++ ) {
+            for ( int z = 5; z <= 15; z++ ) {
+                for ( int y = 11; y <= 20; y++ ) {
+                    world.set_loaded_block( glm::ivec3( x, y, z ), BLOCK_STATE_AIR );
+                }
+            }
+        }
+    }
+
+    // --- 2g: a 3-block mesa is descendable; the bee probes deep ground ---
+    {
+        // A 3-high mesa over the floor: the old probe bottom stopped one
+        // short of the drop limit, so every off-mesa pick read "no ground"
+        // and the pig was stranded on top forever. Now the floor below is
+        // a valid pick and the pig walks off the edge.
+        for ( int x = 13; x <= 15; x++ ) {
+            for ( int z = 9; z <= 11; z++ ) {
+                for ( int y = 11; y <= 13; y++ ) {
+                    world.set_loaded_block( glm::ivec3( x, y, z ), stone );
+                }
+            }
+        }
+        MobManager mobs;
+        mobs.spawn( MOB_PIG, glm::dvec3( 14.5, 14.0, 10.5 ), 0.0f, 1 );
+        mobs.mobs[ 0 ].ai_ticks = 1;
+        for ( int i = 0; i < 60 * UPS_RATE && mobs.mobs[ 0 ].pos.y > 12.0; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        check_bool( "3-mesa: wandered down to the floor", mobs.mobs[ 0 ].pos.y < 12.0 );
+        for ( int x = 13; x <= 15; x++ ) {
+            for ( int z = 9; z <= 11; z++ ) {
+                for ( int y = 11; y <= 13; y++ ) {
+                    world.set_loaded_block( glm::ivec3( x, y, z ), BLOCK_STATE_AIR );
+                }
+            }
+        }
+
+        // A bee perched on a tall pillar: its flyer probe reads ground far
+        // below its feet, so a lowland pick is legal and it glides down —
+        // the shallow walker probe stranded it at altitude.
+        for ( int x = 13; x <= 14; x++ ) {
+            for ( int z = 9; z <= 10; z++ ) {
+                for ( int y = 11; y <= 19; y++ ) {
+                    world.set_loaded_block( glm::ivec3( x, y, z ), stone );
+                }
+            }
+        }
+        MobManager bees;
+        bees.spawn( MOB_BEE, glm::dvec3( 14.0, 21.0, 10.0 ), 0.0f, 1 );
+        bees.mobs[ 0 ].ai_ticks = 1;
+        for ( int i = 0; i < 60 * UPS_RATE && bees.mobs[ 0 ].pos.y > 14.0; i++ ) {
+            bees.tick( world, player_pos );
+        }
+        check_bool( "bee: picked lowland and glided down", bees.mobs[ 0 ].pos.y < 14.0 );
+        for ( int x = 13; x <= 14; x++ ) {
+            for ( int z = 9; z <= 10; z++ ) {
+                for ( int y = 11; y <= 19; y++ ) {
+                    world.set_loaded_block( glm::ivec3( x, y, z ), BLOCK_STATE_AIR );
+                }
+            }
+        }
+    }
+
     // --- 3: half slab step-up ----------------------------------------------
     {
         MobManager mobs;
