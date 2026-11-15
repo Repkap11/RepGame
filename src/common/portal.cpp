@@ -163,17 +163,17 @@ bool portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockState
     return false;
 }
 
-// Build a 4x5 obsidian ring (interior 2x3) with its bottom row at `floor_y`
-// and the interior over `center`, then fill it. Cells are direct writes —
-// the destination was picked for a clear footprint, and each write syncs to
-// the server as a normal block edit.
-void portal_build_frame( RepGameState &state, const glm::ivec3 &center, const int axis ) {
+// Build a (w+2)x(h+2) obsidian ring (interior w×h) with its bottom row at
+// `center.y` and the interior over `center` along `axis`, then fill it.
+// Cells are direct writes — the destination was picked for a clear
+// footprint, and each write syncs to the server as a normal block edit.
+void portal_build_frame( RepGameState &state, const glm::ivec3 &center, const int axis, const int w, const int h ) {
     const glm::ivec3 du = axis ? glm::ivec3( 0, 0, 1 ) : glm::ivec3( 1, 0, 0 );
     const unsigned char rot = static_cast<unsigned char>( axis );
-    for ( int u = -1; u <= 2; u++ ) {
-        for ( int y = 0; y <= 4; y++ ) {
+    for ( int u = -1; u <= w; u++ ) {
+        for ( int y = 0; y <= h + 1; y++ ) {
             const glm::ivec3 pos = center + du * u + glm::ivec3( 0, y, 0 );
-            const bool edge = u == -1 || u == 2 || y == 0 || y == 4;
+            const bool edge = u == -1 || u == w || y == 0 || y == h + 1;
             const BlockState bs = edge ? BlockState{ OBSIDIAN, 0, 0, OBSIDIAN, 0 } : BlockState{ PORTAL, rot, 0, PORTAL, 0 };
             portal_write_cell( state, pos, bs );
         }
@@ -184,13 +184,13 @@ void portal_build_frame( RepGameState &state, const glm::ivec3 &center, const in
 // rock: clear a room so the player can actually walk out. Covers the ring
 // footprint in u, 3 deep on both open faces, and one above the lintel —
 // the floor row (y=0) stays solid to stand on.
-void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, const int axis ) {
+void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, const int axis, const int w, const int h ) {
     const glm::ivec3 du = axis ? glm::ivec3( 0, 0, 1 ) : glm::ivec3( 1, 0, 0 );
     const glm::ivec3 dn = axis ? glm::ivec3( 1, 0, 0 ) : glm::ivec3( 0, 0, 1 );
     const BlockState air = { AIR, 0, 0, AIR, 0 };
-    for ( int u = -1; u <= 2; u++ ) {
+    for ( int u = -1; u <= w; u++ ) {
         for ( int v = -3; v <= 3; v++ ) {
-            for ( int y = 1; y <= 5; y++ ) {
+            for ( int y = 1; y <= h + 2; y++ ) {
                 const glm::ivec3 pos = center + du * u + dn * v + glm::ivec3( 0, y, 0 );
                 const BlockState cur = state.world.get_loaded_block( pos );
                 if ( cur.id == LAST_BLOCK_ID || cur.id == AIR || cur.id == OBSIDIAN ) {

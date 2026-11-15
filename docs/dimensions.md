@@ -95,9 +95,13 @@ dimension name (`dim_name`, `dim_local_block_y`).
 - **Travel**: `repgame_portal_tick` counts `PORTAL_TRAVEL_TICKS` (80)
   inside a portal, drops the player at the same x/z in the other band,
   then `portal_find_nearest`/`portal_build_frame` materialize a lit
-  destination once its chunks load (`pending_build`). Landing inside the
-  portal sets `must_exit` + `PORTAL_COOLDOWN_TICKS` so you don't bounce
-  straight back.
+  destination once its chunks load (`pending_build`). A found portal is
+  entered on the sill inside its plate (`portal_arrive_inside`); a built
+  one copies the source frame's axis and interior size via
+  `pending_axis/w/h`. Landing inside the portal sets `must_exit` +
+  `PORTAL_COOLDOWN_TICKS` so you don't bounce straight back — `must_exit`
+  is only released on loaded non-portal ground, so a slow-loading
+  destination can't drop the guard before the frame lands.
 - `/dimension [overworld|nether]` (`chat_commands.cpp`) is the portal-less
   debug path: same landing-column search, no frame built. Spare slots and
   same-dimension travel are refused.

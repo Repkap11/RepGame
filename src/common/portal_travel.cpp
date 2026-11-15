@@ -38,24 +38,25 @@ static void portal_band_bounds( const DimensionId dim, int &y_top, int &y_bottom
     }
 }
 
-// A column at (x,z) is a portal site when four ring-floor cells at y collide
-// and the 2x4 interior cavity above it is clear of solids and lava. `y` is
-// the floor cell — the ring's bottom obsidian row replaces it.
-static bool portal_column_try( const DimensionId dim, const int x, const int z, int &floor_y ) {
+// A column at (x,z) is a portal site when the w+2 ring-floor cells at y
+// collide and the w×(h+1) interior+lintel cavity above them is clear of
+// solids and lava. `y` is the floor cell — the ring's bottom obsidian row
+// replaces it. The footprint runs along `du` (the frame axis).
+static bool portal_column_try( const DimensionId dim, const int x, const int z, const glm::ivec3 &du, const int w, const int h, int &floor_y ) {
     int y_top, y_bottom, ledge_y;
     portal_band_bounds( dim, y_top, y_bottom, ledge_y );
     for ( int y = y_top; y >= y_bottom; y-- ) {
         bool floor_ok = true;
-        for ( int u = -1; u <= 2 && floor_ok; u++ ) {
-            floor_ok = portal_gen_collides( x + u, y, z );
+        for ( int u = -1; u <= w && floor_ok; u++ ) {
+            floor_ok = portal_gen_collides( x + du.x * u, y, z + du.z * u );
         }
         if ( !floor_ok ) {
             continue;
         }
         bool cavity_ok = true;
-        for ( int u = 0; u <= 1 && cavity_ok; u++ ) {
-            for ( int k = 1; k <= 4 && cavity_ok; k++ ) {
-                const BlockID id = MapGen::gen_block_id( x + u, y + k, z );
+        for ( int u = 0; u < w && cavity_ok; u++ ) {
+            for ( int k = 1; k <= h + 1 && cavity_ok; k++ ) {
+                const BlockID id = MapGen::gen_block_id( x + du.x * u, y + k, z + du.z * u );
                 cavity_ok = id != LAST_BLOCK_ID && id != LAVA && !block_definition_get_definition( id )->collides_with_player;
             }
         }
@@ -94,12 +95,14 @@ static void portal_teleport_feet( RepGameState &state, const glm::dvec3 &feet ) 
     state.vitals.fall_dist = 0.0;
 }
 
-// Find the frame origin (ring corner: interior spans u in {0,1}, floor row at
-// center.y) near (bx,bz) in `dim`. Spirals outward column by column.
+// Find the frame origin (ring corner: interior spans u in [0,w), floor row
+// at center.y) near (bx,bz) in `dim`, for a frame spanning `axis` with a
+// w×h interior. Spirals outward column by column.
 // `embedded` reports a pass-B/ledge site — the arrival carve digs the
 // pocket. Never fails: the last resort is an obsidian ledge over the lava
 // sea (the overworld fallback is unreachable — every column has bedrock).
-static bool portal_find_spot( const DimensionId dim, const int bx, const int bz, glm::ivec3 &out, int &embedded ) {
+static bool portal_find_spot( const DimensionId dim, const int bx, const int bz, const int axis, const int w, const int h, glm::ivec3 &out, int &embedded ) {
+    const glm::ivec3 du = axis ? glm::ivec3( 0, 0, 1 ) : glm::ivec3( 1, 0, 0 );
     embedded = 0;
     int floor_y;
     for ( int r = 0; r <= PORTAL_SCAN_RADIUS; r++ ) {
@@ -108,7 +111,7 @@ static bool portal_find_spot( const DimensionId dim, const int bx, const int bz,
                 if ( r != 0 && abs( dx ) != r && abs( dz ) != r ) {
                     continue;
                 }
-                if ( portal_column_try( dim, bx + dx, bz + dz, floor_y ) ) {
+                if ( portal_column_try( dim, bx + dx, bz + dz, du, w, h, floor_y ) ) {
                     out = glm::ivec3( bx + dx, floor_y, bz + dz );
                     return true;
                 }
@@ -136,28 +139,57 @@ static bool portal_find_spot( const DimensionId dim, const int bx, const int bz,
     return true;
 }
 
+// Arrive inside an existing portal's plate: `found` is a PORTAL cell, so
+// stand on the sill at the bottom of its interior column. must_exit keeps
+// the plate from re-triggering until the player steps out.
+static void portal_arrive_inside( RepGameState &state, const glm::ivec3 &found ) {
+    glm::ivec3 base = found;
+    while ( state.world.get_loaded_block( glm::ivec3( base.x, base.y - 1, base.z ) ).id == PORTAL ) {
+        base.y--;
+    }
+    portal_teleport_feet( state, glm::dvec3( base.x + 0.5, base.y, base.z + 0.5 ) );
+}
+
 // Travel: drop the player at generated ground in the destination band, then
 // let portal_pending_tick find or build the actual portal once the torus
-// catches up.
-static void portal_travel( RepGameState &state, const DimensionId dst ) {
+// catches up. A built destination frame copies `src`'s axis and interior
+// size (null → the default 2x3 x-plate).
+static void portal_travel( RepGameState &state, const DimensionId dst, const PortalFrame *src ) {
     const int bx = static_cast<int>( floor( state.camera.pos.x ) );
     const int bz = static_cast<int>( floor( state.camera.pos.z ) );
+    int axis = 0, w = 2, h = 3;
+    if ( src ) {
+        axis = src->axis;
+        w = ( axis ? src->hi.z - src->lo.z : src->hi.x - src->lo.x ) + 1;
+        h = src->hi.y - src->lo.y + 1;
+        if ( w > PORTAL_MAX_INTERIOR_W ) {
+            w = PORTAL_MAX_INTERIOR_W;
+        }
+        if ( h > PORTAL_MAX_INTERIOR_H ) {
+            h = PORTAL_MAX_INTERIOR_H;
+        }
+    }
     glm::ivec3 center;
     int embedded;
-    portal_find_spot( dst, bx, bz, center, embedded );
-    const glm::dvec3 feet( center.x + 1.0, center.y + 1.0, center.z + 0.5 );
+    portal_find_spot( dst, bx, bz, axis, w, h, center, embedded );
+    const double mid = w / 2.0;
+    const glm::dvec3 feet = axis ? glm::dvec3( center.x + 0.5, center.y + 1.0, center.z + mid )
+                                 : glm::dvec3( center.x + mid, center.y + 1.0, center.z + 0.5 );
     portal_teleport_feet( state, feet );
     PortalState &p = state.portal;
     p.cooldown = PORTAL_COOLDOWN_TICKS;
     p.must_exit = 1;
     p.pending_build = 1;
     p.pending_carve = embedded;
+    p.pending_axis = axis;
+    p.pending_w = w;
+    p.pending_h = h;
     p.pending_pos = feet;
 }
 
 // Once the destination chunks are live: adopt the nearest existing PORTAL as
-// the exit (hop beside it), else carve the pocket (embedded drops) and/or
-// build the frame at the drop point.
+// the exit (stand inside its plate), else carve the pocket (embedded drops)
+// and/or build the frame at the drop point.
 static void portal_pending_tick( RepGameState &state ) {
     PortalState &p = state.portal;
     const glm::ivec3 c( static_cast<int>( floor( p.pending_pos.x ) ), static_cast<int>( floor( p.pending_pos.y ) ),
@@ -167,23 +199,27 @@ static void portal_pending_tick( RepGameState &state ) {
     }
     const int want_build = p.pending_build;
     const int want_carve = p.pending_carve;
+    const int axis = p.pending_axis;
+    const int w = p.pending_w, h = p.pending_h;
     p.pending_build = 0;
     p.pending_carve = 0;
     glm::ivec3 found;
     if ( want_build && portal_find_nearest( state.world, c, PORTAL_SEARCH_RX, PORTAL_SEARCH_RY, found ) ) {
-        // Stand just in front of the plate, not inside it — must_exit still
-        // guards, but exiting into open space reads better.
-        portal_teleport_feet( state, glm::dvec3( found.x + 0.5, found.y, found.z + 1.5 ) );
+        portal_arrive_inside( state, found );
         p.must_exit = 1;
         return;
     }
-    // frame origin: interior covers the drop cell (u in {0,1} of center).
-    const glm::ivec3 frame( c.x - 1, c.y - 1, c.z );
+    // frame origin: the interior centres on the drop point along `axis`.
+    glm::ivec3 frame( c.x, c.y - 1, c.z );
+    ( axis ? frame.z : frame.x ) = static_cast<int>( floor( ( axis ? p.pending_pos.z : p.pending_pos.x ) - w / 2.0 + 0.5 ) );
     if ( want_carve ) {
-        portal_carve_pocket( state, frame, 0 );
+        portal_carve_pocket( state, frame, axis, w, h );
     }
     if ( want_build ) {
-        portal_build_frame( state, frame, 0 );
+        portal_build_frame( state, frame, axis, w, h );
+        // The player stands inside the new plate — without this a
+        // must_exit lost to slow chunk loads would bounce them back.
+        p.must_exit = 1;
     }
 }
 
@@ -199,9 +235,16 @@ void repgame_portal_tick( RepGameState &state ) {
     const double feet_y = eye.y - state.camera.eye_height;
     const glm::ivec3 feet_cell( glm::round( glm::dvec3( eye.x, feet_y + 0.05, eye.z ) - glm::dvec3( 0.5 ) ) );
     const glm::ivec3 body_cell( glm::round( glm::dvec3( eye.x, feet_y + PLAYER_HEIGHT / 2.0, eye.z ) - glm::dvec3( 0.5 ) ) );
-    if ( state.world.get_loaded_block( feet_cell ).id != PORTAL && state.world.get_loaded_block( body_cell ).id != PORTAL ) {
+    const BlockID feet_id = state.world.get_loaded_block( feet_cell ).id;
+    const BlockID body_id = state.world.get_loaded_block( body_cell ).id;
+    if ( feet_id != PORTAL && body_id != PORTAL ) {
         p.ticks_inside = 0;
-        p.must_exit = 0;
+        // Only release must_exit on confirmed loaded ground: LAST_BLOCK_ID
+        // means the destination torus hasn't caught up yet, and a pending
+        // frame may still materialize around the player.
+        if ( feet_id != LAST_BLOCK_ID && body_id != LAST_BLOCK_ID ) {
+            p.must_exit = 0;
+        }
         return;
     }
     if ( p.must_exit || p.cooldown > 0 ) {
@@ -210,10 +253,13 @@ void repgame_portal_tick( RepGameState &state ) {
     if ( ++p.ticks_inside >= PORTAL_TRAVEL_TICKS ) {
         p.ticks_inside = 0;
         const DimensionId cur = dimension_of_pos( feet_cell );
-        if ( cur == DIM_OVERWORLD ) {
-            portal_travel( state, DIM_NETHER );
-        } else if ( cur == DIM_NETHER ) {
-            portal_travel( state, DIM_OVERWORLD );
+        const DimensionId dst = cur == DIM_OVERWORLD ? DIM_NETHER : cur == DIM_NETHER ? DIM_OVERWORLD : cur;
+        if ( dst != cur ) {
+            // The destination frame copies this portal's axis and interior
+            // size — detect the ring around whichever cell is lit.
+            PortalFrame src;
+            const glm::ivec3 seed = feet_id == PORTAL ? feet_cell : body_cell;
+            portal_travel( state, dst, portal_find_frame( state.world, seed, src ) ? &src : nullptr );
         }
     }
 }
@@ -231,13 +277,16 @@ bool portal_travel_to_dimension( RepGameState &state, const DimensionId dim ) {
     const int bz = static_cast<int>( floor( state.camera.pos.z ) );
     glm::ivec3 center;
     int embedded;
-    portal_find_spot( dim, bx, bz, center, embedded );
+    portal_find_spot( dim, bx, bz, 0, 2, 3, center, embedded );
     const glm::dvec3 feet( center.x + 1.0, center.y + 1.0, center.z + 0.5 );
     portal_teleport_feet( state, feet );
     PortalState &p = state.portal;
     p.cooldown = PORTAL_COOLDOWN_TICKS;
     p.must_exit = 1;
     p.pending_carve = embedded;
+    p.pending_axis = 0;
+    p.pending_w = 2;
+    p.pending_h = 3;
     p.pending_pos = feet;
     return true;
 }

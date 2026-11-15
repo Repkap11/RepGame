@@ -45,6 +45,9 @@ struct PortalState {
     int must_exit = 0;      // just arrived: no travel until the player steps out
     int pending_build = 0;  // destination portal still needs finding/building
     int pending_carve = 0;  // embedded drop: carve the pocket around the site
+    int pending_axis = 0;   // frame to build: source portal's axis (PortalFrame::axis)
+    int pending_w = 2;      // frame to build: interior width along the axis
+    int pending_h = 3;      // frame to build: interior height
     glm::dvec3 pending_pos; // where the player was dropped (frame search centre)
 };
 
@@ -63,16 +66,17 @@ bool portal_ignite( RepGameState &state, const glm::ivec3 &seed );
 // pops the adjacent cell, which cascades through the interior.
 bool portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockState &block_state );
 
-// Build a lit 4x5 obsidian ring (interior 2x3) with its bottom row at
-// `center.y` and the interior spanning `axis` over `center` — the
-// destination half of travel when no portal is found.
-void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis );
+// Build a lit (w+2)x(h+2) obsidian ring (interior w×h) with its bottom row
+// at `center.y` and the interior spanning `axis` over `center` — the
+// destination half of travel when no portal is found. Callers pass the
+// source frame's axis and interior size so both ends look the same.
+void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h );
 
-// Clear an air pocket around a destination frame site (same `center` as
-// portal_build_frame): a room over the frame's open faces so a portal
-// embedded in solid rock isn't an immediate entombment. Solid and fluid
-// cells become AIR; call BEFORE portal_build_frame.
-void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, int axis );
+// Clear an air pocket around a destination frame site (same `center` and
+// w/h as portal_build_frame): a room over the frame's open faces so a
+// portal embedded in solid rock isn't an immediate entombment. Solid and
+// fluid cells become AIR; call BEFORE portal_build_frame.
+void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h );
 
 // Nearest loaded PORTAL cell to `center` inside a (rx, ry) box — the
 // destination-portal search half of travel.

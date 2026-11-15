@@ -266,6 +266,96 @@ int test_dimension( ) {
         check_bool( "broken ring kills portal cell", !portal_cell_survives( world, glm::ivec3( 11, 12, 10 ), portal_cell ) );
     }
 
+    // ---- z-facing frames: detection, ignite, build/carve sizing ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        // Obsidian ring in the y-z plane at x=4: ring z 4..8, y 8..14 —
+        // interior (x 4, y 9..13, z 5..7), 3 wide x 5 tall.
+        for ( int dz = 4; dz <= 8; dz++ ) {
+            for ( int dy = 8; dy <= 14; dy++ ) {
+                const bool edge = dz == 4 || dz == 8 || dy == 8 || dy == 14;
+                if ( edge ) {
+                    world.set_loaded_block( glm::ivec3( 4, dy, dz ), { OBSIDIAN, 0, 0, OBSIDIAN, 0 } );
+                }
+            }
+        }
+        PortalFrame frame;
+        check_bool( "z-axis frame detected", portal_find_frame( world, glm::ivec3( 4, 10, 6 ), frame ) );
+        check_bool( "frame spans z, interior 3x5", frame.axis == 1 && frame.lo == glm::ivec3( 4, 9, 5 ) && frame.hi == glm::ivec3( 4, 13, 7 ) );
+        check_bool( "z-axis ignite fills interior", portal_ignite( gs, glm::ivec3( 4, 10, 6 ) ) );
+        const BlockState lit = world.get_loaded_block( glm::ivec3( 4, 10, 6 ) );
+        check_bool( "lit cell is PORTAL axis 1", lit.id == PORTAL && lit.rotation == 1 );
+        // Travel seeds find_frame on a lit cell — it must still report the ring.
+        check_bool( "lit interior still detects frame", portal_find_frame( world, glm::ivec3( 4, 11, 7 ), frame ) && frame.axis == 1 );
+
+        // portal_carve_pocket clears rock across the frame's footprint plus
+        // 3 deep on each open face (x 17..23 here), sparing obsidian. It
+        // runs before the build, same as the arrival path.
+        world.set_loaded_block( glm::ivec3( 23, 10, 11 ), { STONE, 0, 0, STONE, 0 } );
+        world.set_loaded_block( glm::ivec3( 23, 10, 12 ), { OBSIDIAN, 0, 0, OBSIDIAN, 0 } );
+        portal_carve_pocket( gs, glm::ivec3( 20, 8, 10 ), 1, 3, 5 );
+        failures += check_id( world, "carve clears stone", glm::ivec3( 23, 10, 11 ), AIR );
+        failures += check_id( world, "carve keeps obsidian", glm::ivec3( 23, 10, 12 ), OBSIDIAN );
+
+        // portal_build_frame honours axis + interior w/h (3x5 along z).
+        portal_build_frame( gs, glm::ivec3( 20, 8, 10 ), 1, 3, 5 );
+        failures += check_id( world, "built sill", glm::ivec3( 20, 8, 11 ), OBSIDIAN );
+        failures += check_id( world, "built lintel", glm::ivec3( 20, 14, 11 ), OBSIDIAN );
+        failures += check_id( world, "built side -z", glm::ivec3( 20, 10, 9 ), OBSIDIAN );
+        failures += check_id( world, "built side +z", glm::ivec3( 20, 10, 13 ), OBSIDIAN );
+        check_bool( "built interior is PORTAL", world.get_loaded_block( glm::ivec3( 20, 10, 10 ) ).id == PORTAL &&
+                                                world.get_loaded_block( glm::ivec3( 20, 12, 12 ) ).id == PORTAL );
+        check_bool( "built cells store axis", world.get_loaded_block( glm::ivec3( 20, 11, 11 ) ).rotation == 1 );
+
+        // A found destination portal drops the player inside its plate, on
+        // the sill row of the nearest interior column.
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        gs.portal.pending_build = 1;
+        gs.portal.pending_pos = glm::dvec3( 4.5, 10.4, 6.5 );
+        repgame_portal_tick( gs );
+        const glm::dvec3 feet( gs.camera.pos.x, gs.camera.pos.y - gs.camera.eye_height, gs.camera.pos.z );
+        check_bool( "arrival inside the plate", floor( feet.x ) == 4 && floor( feet.z ) == 6 && feet.y == 9.0 );
+        check_bool( "arrival keeps must_exit", gs.portal.must_exit == 1 );
+    }
+
+    // ---- Travel copies the source frame; must_exit survives unloaded cells ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        // Same 3x5 z-facing ring as above, ignited.
+        for ( int dz = 4; dz <= 8; dz++ ) {
+            for ( int dy = 8; dy <= 14; dy++ ) {
+                const bool edge = dz == 4 || dz == 8 || dy == 8 || dy == 14;
+                if ( edge ) {
+                    world.set_loaded_block( glm::ivec3( 4, dy, dz ), { OBSIDIAN, 0, 0, OBSIDIAN, 0 } );
+                }
+            }
+        }
+        portal_ignite( gs, glm::ivec3( 4, 10, 6 ) );
+        // Feet + body inside the lit interior (feet cell (4,10,6)).
+        gs.camera.pos = glm::dvec3( 4.5, 10.4 + PLAYER_EYE_HEIGHT, 6.5 );
+        for ( int i = 0; i < PORTAL_TRAVEL_TICKS + 2; i++ ) {
+            repgame_portal_tick( gs );
+        }
+        check_bool( "dwell travelled to nether", dimension_of_pos( gs.camera.pos ) == DIM_NETHER );
+        check_bool( "destination copies axis", gs.portal.pending_axis == 1 );
+        check_bool( "destination copies size", gs.portal.pending_w == 3 && gs.portal.pending_h == 5 );
+        check_bool( "arrival sets must_exit", gs.portal.must_exit == 1 && gs.portal.pending_build == 1 );
+        // Slow-load regression: the drop cell's chunk isn't live yet (only
+        // chunk 0 is loaded) — the tick must not clear must_exit or consume
+        // the pending frame.
+        repgame_portal_tick( gs );
+        check_bool( "unloaded cells keep must_exit", gs.portal.must_exit == 1 );
+        check_bool( "unloaded cells keep pending build", gs.portal.pending_build == 1 );
+    }
+
     // ---- /dimension travel: same x/z, lands in the band ----
     {
         RepGameState &gs = *new RepGameState( );
