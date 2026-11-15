@@ -289,6 +289,36 @@ int test_player_placement_valid( ) {
                     block_wall_variant_rotation( block_definition_get_definition( LADDER ), glm::ivec3( 0, 0, 1 ) ) < 0 );
     }
 
+    // check_collides_with_block validates against the would-be block's own
+    // collision boxes, not the whole cell: thin shapes let the player keep
+    // clipping the rest of the cell, while shapes reaching past the cell
+    // (fence/gate collision is 1.5 tall) still reject.
+    {
+        const glm::ivec3 cell( 10, 11, 20 );
+        auto collides = [ & ]( const glm::dvec3 &eye, const BlockState &s ) {
+            return Collision::check_collides_with_block( world, eye, cell, s, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) != 0;
+        };
+        const double feet11 = 11.0 + PLAYER_EYE_HEIGHT; // feet at the cell's floor
+        const BlockState fence = { OAK_FENCE, 0, 0, OAK_FENCE, 0 };
+        // The post is x/z 6..10px: clipping the cell's +x edge is outside it.
+        check_bool( "place: fence cell-edge clip doesn't collide", !collides( glm::dvec3( 11.0, feet11, 20.5 ), fence ) );
+        check_bool( "place: fence post under the player collides", collides( glm::dvec3( 10.5, feet11, 20.5 ), fence ) );
+        // The post's 1.5-tall box reaches into the cell above — placing a
+        // fence with the feet in that band still rejects (a full cube at
+        // the same spot is flush and fine).
+        check_bool( "place: fence catches feet a block above its cell", collides( glm::dvec3( 10.5, feet11 + 1.0, 20.5 ), fence ) );
+        check_bool( "place: full block under feet a block up is fine", !collides( glm::dvec3( 10.5, feet11 + 1.0, 20.5 ), stone ) );
+        // A pane's 2px plate (z 7..9px at rotation 0) leaves the cell's
+        // sides free.
+        const BlockState pane = { GLASS_PANE, 0, 0, GLASS_PANE, 0 };
+        check_bool( "place: pane plate edge clip doesn't collide", !collides( glm::dvec3( 10.5, feet11, 20.9 ), pane ) );
+        check_bool( "place: pane plate under the player collides", collides( glm::dvec3( 10.5, feet11, 20.5 ), pane ) );
+        // A bottom slab collides only in the cell's lower half.
+        const BlockState slab = { STONE_BRICK_SLAB, 0, 0, STONE_BRICK_SLAB, 0 };
+        check_bool( "place: feet on the slab's top are flush, allowed", !collides( glm::dvec3( 10.5, feet11 + 0.5, 20.5 ), slab ) );
+        check_bool( "place: feet inside a bottom slab collide", collides( glm::dvec3( 10.5, feet11 + 0.4, 20.5 ), slab ) );
+    }
+
     return failures;
 }
 

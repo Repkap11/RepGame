@@ -28,14 +28,16 @@ static bool aabb_overlap( const glm::dvec3 &min1, const glm::dvec3 &max1, const 
            min1.z < max2.z && max1.z > min2.z;
 }
 
-// Computes the collision AABBs of the block at `block_pos`. Returns the box
-// count (0 = no collision). Unloaded
+// Computes the collision AABBs a block with `blockState` has at `block_pos`
+// — also used for a not-yet-placed block, where the live neighbors are
+// exactly what its connection arms will reach. Returns the box count (0 =
+// no collision). Unloaded
 // blocks are treated as solid full blocks so the player can't fall into the
 // unloaded void (matches the previous collide_with_unloaded behavior).
 // Fences emit the post plus full-height bars toward connected sides
 // (fence_collision_boxes); every other type emits exactly one box.
-static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
-    BlockState blockState = world.get_loaded_block( block_pos );
+static int block_collision_boxes_for_state( World &world, const glm::ivec3 &block_pos, const BlockState &blockState,
+                                            glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
         mins[ 0 ] = glm::dvec3( block_pos );
@@ -191,6 +193,11 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
         out_max.y = out_min.y + 1.5;
     }
     return 1;
+}
+
+// The collision AABBs of whatever the cell currently holds.
+static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
+    return block_collision_boxes_for_state( world, block_pos, world.get_loaded_block( block_pos ), mins, maxs );
 }
 
 double Collision::block_collision_top( World &world, const glm::ivec3 &block_pos ) {
@@ -461,16 +468,22 @@ static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &am
     amax[ axis ] = pre_max[ axis ] + lo * ( clamped_max[ axis ] - pre_max[ axis ] );
 }
 
-int Collision::check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block, double player_height, double eye_height, double half_width ) {
-    // Used by block placement validation: reject if the player overlaps the
-    // target block cell. Treat the target as a full 1x1x1 block (the caller
-    // already gated on collides_with_player), matching the original behavior.
-    const glm::dvec3 block_min = glm::dvec3( block );
-    const glm::dvec3 block_max = block_min + glm::dvec3( 1.0 );
-
+int Collision::check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block, const BlockState &blockState,
+                                          double player_height, double eye_height, double half_width ) {
+    // Placement validation: reject when the player AABB overlaps the
+    // would-be block's own collision boxes — a pane's thin plate lets the
+    // player keep standing in the rest of its cell, while a fence's 1.5-tall
+    // post still catches feet in the cell above.
     glm::dvec3 pmin, pmax;
     player_aabb( player, player_height, eye_height, half_width, pmin, pmax );
-    return aabb_overlap( pmin, pmax, block_min, block_max ) ? 1 : 0;
+    glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+    const int num_boxes = block_collision_boxes_for_state( world, block, blockState, mins, maxs );
+    for ( int i = 0; i < num_boxes; i++ ) {
+        if ( aabb_overlap( pmin, pmax, mins[ i ], maxs[ i ] ) ) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 bool Collision::collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width ) {

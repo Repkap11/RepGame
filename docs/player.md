@@ -179,8 +179,11 @@ mob pre-empt the block target for left clicks.
   rotation on the held item's pose; releasing mid-swing finishes the
   chop out to the rest pose.
 - **Placement.** `change_block` rejects positions that would intersect
-  the player AABB (`check_collides_with_block`, including the cell a
-  door's upper half occupies) and runs `player_placement_valid` /
+  the player AABB (`check_collides_with_block` tests the placed state's
+  own collision boxes — thin panes/fence posts place fine in a cell the
+  player clips into, 1.5-tall fence/wall boxes still catch feet in the
+  cell above — including the cell a door's upper half or a bed's head
+  occupies) and runs `player_placement_valid` /
   `can_be_placed_in` / `block_can_survive_at` rules; the write itself is
   a `PlayerBlockPlacedEvent` on the block-update queue
   (`docs/redstone.md`), which is also where debris spawns. Rotation is

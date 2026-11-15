@@ -45,23 +45,33 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
         const Block *placed_def = block_definition_get_definition( blockState.id );
         if ( placed_def->collides_with_player ) {
             // If the block collides with the player, make sure it's not being placed where it would collide
-            if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block, //
+            if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block, blockState, //
                                                        globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
                 return LAST_BLOCK_ID;
             }
-            // A door lower also occupies the cell above.
-            if ( placed_def->is_door && !placed_def->is_door_upper &&
-                 Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block + glm::ivec3( 0, 1, 0 ), //
-                                                       globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
-                return LAST_BLOCK_ID;
+            // A door lower also occupies the cell above — checked with the
+            // partner half's state (its final hinge bit doesn't move the
+            // closed panel's box).
+            if ( placed_def->is_door && !placed_def->is_door_upper ) {
+                BlockState upper_state = blockState;
+                upper_state.id = placed_def->door_partner;
+                upper_state.display_id = placed_def->door_partner;
+                if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block + glm::ivec3( 0, 1, 0 ), upper_state, //
+                                                           globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
+                    return LAST_BLOCK_ID;
+                }
             }
             // A bed foot also occupies the head cell one block in the
             // placer's facing direction.
-            if ( placed_def->bed_partner != LAST_BLOCK_ID && !placed_def->is_bed_head &&
-                 Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos,
-                                                       block + block_bed_partner_dir( placed_def, blockState.rotation ), //
-                                                       globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
-                return LAST_BLOCK_ID;
+            if ( placed_def->bed_partner != LAST_BLOCK_ID && !placed_def->is_bed_head ) {
+                BlockState head_state = blockState;
+                head_state.id = placed_def->bed_partner;
+                head_state.display_id = placed_def->bed_partner;
+                if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos,
+                                                           block + block_bed_partner_dir( placed_def, blockState.rotation ), head_state, //
+                                                           globalGameState.camera.player_height, globalGameState.camera.eye_height ) ) {
+                    return LAST_BLOCK_ID;
+                }
             }
         }
     } else {

@@ -10,6 +10,7 @@
 
 class World;
 struct RepGameState;
+struct BlockState;
 
 // An extra AABB obstacle move_box collides against on top of the voxel
 // world — the other live BlockBodies. index is opaque to collision code;
@@ -36,8 +37,12 @@ class Collision {
     // hitbox width; the player keeps the default).
     static void check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
                             double player_height, double eye_height, bool edge_guard, double half_width = PLAYER_WIDTH / 2.0 );
-    // Returns 1 if the player AABB at `player` overlaps the block at `block`.
-    static int check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block,
+    // Returns 1 if the player AABB at `player` overlaps the collision boxes a
+    // block with `blockState` would have at `block` — used by placement
+    // validation so thin shapes (panes, fence posts) can be placed in a cell
+    // the player clips into, while shapes reaching past the cell (fences,
+    // closed gates — 1.5 tall) still reject.
+    static int check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block, const BlockState &blockState,
                                           double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
     // Returns true if the player AABB with the given dimensions at eye
     // position `eye` overlaps any solid block. Used for the headroom check

@@ -123,7 +123,7 @@ bool BlockBodies::settle_land( RepGameState &state, Body &b ) {
     if ( cur.id == AIR || cur.id == WATER || cur_block->can_be_placed_in ) {
         // The cell overlaps the player: wait rather than place a block inside
         // them.
-        if ( Collision::check_collides_with_block( world, state.camera.pos, cell, state.camera.player_height, state.camera.eye_height ) ) {
+        if ( Collision::check_collides_with_block( world, state.camera.pos, cell, b.state, state.camera.player_height, state.camera.eye_height ) ) {
             return false;
         }
         if ( cur.id != AIR && cur.id != WATER ) {
