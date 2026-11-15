@@ -25,6 +25,12 @@
 #define FACE_LEFT 4
 #define FACE_BACK 5
 
+// Scaffolding support radius (MC Java): a scaffold survives while a
+// grounded column — scaffold cells running down to a colliding
+// non-scaffold block — is reachable through scaffold cells within this
+// many horizontal steps. block_can_survive_at's scaffolding_supported.
+#define SCAFFOLDING_MAX_DISTANCE 6
+
 #define ISO_FACE_TOP 0
 #define ISO_FACE_FRONT 1
 #define ISO_FACE_RIGHT 2
@@ -132,6 +138,13 @@ typedef struct {
     // climbs, sneak hangs, and descent is capped — see
     // Collision::on_climbable and process_movement (docs/player.md).
     bool climbable;
+    // Scaffolding: renders the frame model (top plate, corner legs, optional
+    // bottom plate), collides only through a 2px lip at the cell top
+    // (skipped for movers whose feet are below the lip, or while sneaking
+    // — collision.cpp), and survives within SCAFFOLDING_MAX_DISTANCE
+    // horizontal cells of a column resting on solid ground
+    // (block_can_survive_at).
+    bool is_scaffolding;
     // Edible cake (MC's bites property): right-click eats a 2px slice off
     // the +x edge; the bite count 0..CAKE_MAX_BITES lives in
     // BlockState::rotation (never a yaw — block_yaw masks it to 0) and the

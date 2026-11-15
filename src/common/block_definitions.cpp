@@ -27,6 +27,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->is_pickable = true;
         block->collides_with_player = true;
         block->climbable = false;
+        block->is_scaffolding = false;
         block->flows = 0;
         block->flow_range = 0;
         block->flow_slope = 0;
@@ -167,8 +168,10 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         // Rails are the same: every cell has its own shape (rotation +
         // display_id) and ascending cells carry the slope flag, so a merged
         // run instance can never stand in for them. Bamboo too: its leaf
-        // cross is emitted per cell off the rotation leaf tier.
-        if ( block->spine_shell || block->is_rail || block->is_bamboo ) {
+        // cross is emitted per cell off the rotation leaf tier, and
+        // scaffolding: the frame's bottom plate and boundary faces depend
+        // on the neighboring cells.
+        if ( block->spine_shell || block->is_rail || block->is_bamboo || block->is_scaffolding ) {
             block->calculated.can_mesh_x = false;
             block->calculated.can_mesh_y = false;
             block->calculated.can_mesh_z = false;

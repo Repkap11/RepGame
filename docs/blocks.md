@@ -178,6 +178,27 @@ jump ascends, sneak hangs, and descent is capped — see `docs/player.md`
 movement physics and `Collision::on_climbable`. Independent of
 `collides_with_player`: ladders stay non-colliding thin slabs.
 
+`"is_scaffolding": true` (scaffolding) bundles the scaffold mechanics.
+Rendering emits the frame model per cell — `scaffolding_boxes`: a 16x2x16
+platform plate at the cell top, four 2x16x2 corner legs, and a bottom
+lattice plate only where the cell below isn't scaffolding (seams between
+adjacent frames are dropped through `skip_faces`/`nmask` like the fence
+rail culls; the block is excluded from merged-run meshing like
+fences/bamboo). Collision is the MC model: `block_collision_boxes_for_state`
+returns only the 2px platform lip at the cell top, and the move scans skip
+it for a mover whose feet are below the lip top or while sneaking
+(`scaffold_box_active` in collision.cpp) — so the frame interior is
+enterable, the platform is standable, and sneak descends through it.
+Support is MC Java's distance rule: `scaffolding_supported`
+(BlockNextToChangeEvent.cpp) 0-1 BFS's the scaffold graph — descending a
+column is free, each horizontal hop costs 1 — and the cell survives while
+a column resting on a colliding non-scaffold block is reachable within
+`SCAFFOLDING_MAX_DISTANCE` (6) steps; the generic neighbor-update kill
+path then cascades the pop through the structure. Scaffolding is also
+`climbable`, with its own hang/descend feel (docs/player.md), and clicking
+a scaffold while holding scaffolding towers onto the column top unless
+sneaking (RepGame::change_block).
+
 `blocks_light_down` (derived, no JSON key): bottom-aligned partial blocks —
 casts_shadow, opaque, scale.x/z=16, offset 0, scale.y<16, e.g. bottom slabs
 and grass path. The post-pass clears `casts_shadow` (cell holds light,
@@ -661,7 +682,10 @@ SANDSTONE for y≤0 (solid, not a one-block floor, so the light cascade has
 no void volume to sweep) with every defined non-AIR block placed
 once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered
 `CREATIVE_BLOCKS` first then the remaining defined ids ascending — the
-layout lives in `MapGen::block_world_id`. The z<0 half of the y=1 plane
+layout lives in `MapGen::block_world_id`. The z<0 side also holds a
+scaffolding showcase: a 4-high column at x=-9/z=-33 with a 6-cell arm off
+its top (horizontal distances 1-6, the Java support limit) and a
+freestanding frame at (0,-34). The z<0 half of the y=1 plane
 holds a fixed fence showcase: an oak run with an inline gate, an L corner,
 a T and a + junction, a lone post, a fence against planks, an oak fence
 against nether brick (must not connect), and a nether brick run. The ImGui debug overlay

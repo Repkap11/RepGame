@@ -43,6 +43,23 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
         blockState.display_id = blockState.id;
         block = globalGameState.block_selection.pos_create;
         const Block *placed_def = block_definition_get_definition( blockState.id );
+        if ( placed_def->is_scaffolding && !globalGameState.input.movement.sneakPressed ) {
+            // Tower-building: clicking a scaffold while holding scaffolding
+            // places on top of its column regardless of the face hit (MC's
+            // use-on redirect). Sneaking bypasses it to place against the
+            // clicked face — how horizontal arms get started.
+            const glm::ivec3 clicked = globalGameState.block_selection.pos_destroy;
+            const BlockState clicked_state = globalGameState.world.get_loaded_block( clicked );
+            if ( clicked_state.id != LAST_BLOCK_ID && block_definition_get_definition( clicked_state.id )->is_scaffolding ) {
+                glm::ivec3 top = clicked;
+                BlockState above;
+                do {
+                    top.y += 1;
+                    above = globalGameState.world.get_loaded_block( top );
+                } while ( above.id != LAST_BLOCK_ID && block_definition_get_definition( above.id )->is_scaffolding );
+                block = top;
+            }
+        }
         if ( placed_def->collides_with_player ) {
             // If the block collides with the player, make sure it's not being placed where it would collide
             if ( Collision::check_collides_with_block( globalGameState.world, globalGameState.camera.pos, block, blockState, //
@@ -1186,9 +1203,13 @@ void RepGame::process_movement( ) {
     // Climbing (ladders): the player is "on a ladder" while the body AABB
     // overlaps a cell holding a climbable block. The check uses the standing
     // height (like the swim check's standing body center) so a sneak-pose
-    // transition can't drop the grip mid-tick.
+    // transition can't drop the grip mid-tick. Scaffolding is also climbable
+    // but hangs/descends differently — the matched id tells the branch.
+    BlockID climb_block = AIR;
     const bool player_climbing = !player_flying && !globalGameState.input.no_clip &&
-                                 Collision::on_climbable( globalGameState.world, globalGameState.camera.pos, PLAYER_HEIGHT, globalGameState.camera.eye_height );
+                                 Collision::on_climbable( globalGameState.world, globalGameState.camera.pos, PLAYER_HEIGHT, globalGameState.camera.eye_height,
+                                                          PLAYER_WIDTH / 2.0, &climb_block );
+    const bool climb_is_scaffold = climb_block != LAST_BLOCK_ID && block_definition_get_definition( climb_block )->is_scaffolding;
 
     // Sneak pose transitions. The sneak key doubles as "move down" while
     // flying, and while swimming it crouches AND sinks (the swim branch below
@@ -1273,8 +1294,15 @@ void RepGame::process_movement( ) {
         if ( globalGameState.input.movement.jumpPressed || pushing ) {
             globalGameState.camera.y_speed = CLIMB_VERTICAL_SPEED;
         } else if ( globalGameState.input.movement.sneakPressed ) {
+            // Sneak on scaffolding descends through the frame (the lip's
+            // collision box is skipped while sneaking — collision.cpp);
+            // on a ladder it hangs.
+            globalGameState.camera.y_speed = climb_is_scaffold ? -CLIMB_SLIDE_SPEED : 0;
+            gravity = 0; // sneak is the vertical override — no gravity substep
+        } else if ( climb_is_scaffold ) {
+            // MC: standing inside the frame hangs in place — no idle slide.
             globalGameState.camera.y_speed = 0;
-            gravity = 0; // hard hang — gravity's substep can't pull below 0
+            gravity = 0;
         } else if ( globalGameState.camera.y_speed < -CLIMB_SLIDE_SPEED ) {
             globalGameState.camera.y_speed = -CLIMB_SLIDE_SPEED;
         }

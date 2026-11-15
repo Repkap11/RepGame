@@ -1,7 +1,10 @@
 {
+ "breaks_in_liquid": true,
  "casts_shadow": false,
- "hardness": 0.35,
+ "climbable": true,
+ "hardness": 0,
  "id": 1102,
+ "is_scaffolding": true,
  "is_seethrough": true,
  "name": "SCAFFOLDING",
  "no_light": 6815743,

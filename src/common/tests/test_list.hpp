@@ -22,6 +22,7 @@ int test_ray_face_neighbor( );
 int test_player_placement_valid( );
 int test_sneak( );
 int test_climb( );
+int test_scaffolding( );
 int test_vitals( );
 int test_sleep( );
 int test_bed_pair( );

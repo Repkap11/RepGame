@@ -127,6 +127,16 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         }
         return num_boxes;
     }
+    if ( block->is_scaffolding ) {
+        // Only the platform lip at the cell top collides — the frame
+        // interior is enterable (MC's model). The agent-aware scans skip
+        // this box for a mover whose feet are below the lip top, or while
+        // sneaking (scaffold_box_active), so the lip can never seal a
+        // mover inside the frame.
+        mins[ 0 ] = glm::dvec3( block_pos ) + glm::dvec3( 0.0, PIXEL_TO_FLOAT( 14 ), 0.0 );
+        maxs[ 0 ] = glm::dvec3( block_pos ) + glm::dvec3( 1.0, 1.0, 1.0 );
+        return 1;
+    }
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
     if ( block->is_piston_head || piston_extended ) {
         // Plate + arm shaft (head cell) or recessed body + throat stub
@@ -200,6 +210,19 @@ static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm
     return block_collision_boxes_for_state( world, block_pos, world.get_loaded_block( block_pos ), mins, maxs );
 }
 
+// A scaffold cell's lip box is skipped for a mover whose feet are below the
+// lip's top face — inside the frame it can't hold them, and a live box at
+// that level would seal every cell above their feet — and while the mover
+// is sneaking (sneak on scaffolding descends, docs/player.md). True for
+// every other cell. feet_y is the mover's AABB min.y at the pre-move pose.
+static bool scaffold_box_active( World &world, const glm::ivec3 &cell, const glm::dvec3 &bmax, double feet_y, bool sneaking ) {
+    const BlockState state = world.get_loaded_block( cell );
+    if ( state.id >= LAST_BLOCK_ID || !block_definition_get_definition( state.id )->is_scaffolding ) {
+        return true;
+    }
+    return !sneaking && feet_y >= bmax.y - SKIN;
+}
+
 double Collision::block_collision_top( World &world, const glm::ivec3 &block_pos ) {
     glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
     const int num_boxes = block_collision_boxes( world, block_pos, mins, maxs );
@@ -229,6 +252,9 @@ static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm
                 glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
                 const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
                 for ( int i = 0; i < num_boxes; i++ ) {
+                    if ( !scaffold_box_active( world, glm::ivec3( x, y, z ), maxs[ i ], amin.y, false ) ) {
+                        continue;
+                    }
                     if ( aabb_overlap( amin, amax, mins[ i ], maxs[ i ] ) ) {
                         return true;
                     }
@@ -250,7 +276,7 @@ static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm
 // fails, standing flickers every other tick, and the body never settles.
 static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double delta, bool &hit, bool &standing,
                           const BodyBox *extra = nullptr, size_t extra_count = 0, const BodyBox **hit_extra = nullptr,
-                          bool resticky_down = false ) {
+                          bool resticky_down = false, bool sneaking = false ) {
     hit = false;
     if ( delta == 0.0 ) {
         return;
@@ -261,6 +287,9 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
     // player is standing next to).
     const double pre_min = amin[ axis ];
     const double pre_max = amax[ axis ];
+    // Scaffold lips key off the mover's pre-move feet, not this axis's
+    // pre_min — a horizontal step still judges them by body height.
+    const double feet_y = amin.y;
 
     amin[ axis ] += delta;
     amax[ axis ] += delta;
@@ -286,6 +315,9 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
                 for ( int i = 0; i < num_boxes; i++ ) {
                     const glm::dvec3 &bmin = mins[ i ];
                     const glm::dvec3 &bmax = maxs[ i ];
+                    if ( !scaffold_box_active( world, glm::ivec3( x, y, z ), bmax, feet_y, sneaking ) ) {
+                        continue;
+                    }
                     // resticky_down also counts a face within SKIN below the
                     // leading edge as contact (a clamped body rests exactly
                     // SKIN above the face, so a sub-SKIN step never overlaps).
@@ -374,7 +406,7 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
 // snow layer) that blocked a horizontal move on `axis`. On success the AABB is
 // updated to the stepped-up-and-settled position; on failure it is left as the
 // clamped position produced by resolve_axis.
-static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double requested_delta ) {
+static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double requested_delta, bool sneaking = false ) {
     const glm::dvec3 clamped_min = amin;
     const glm::dvec3 clamped_max = amax;
 
@@ -406,7 +438,7 @@ static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int a
     amax = test_max;
     bool yhit = false;
     bool standing = false;
-    resolve_axis( world, amin, amax, 1, -STEP_HEIGHT, yhit, standing );
+    resolve_axis( world, amin, amax, 1, -STEP_HEIGHT, yhit, standing, nullptr, 0, nullptr, false, sneaking );
     // resolve_axis can't write back into the caller's standing flag, so we
     // don't propagate it here; the next gravity substep will re-detect ground.
     ( void ) yhit;
@@ -433,7 +465,7 @@ static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &am
     const glm::dvec3 pre_min = amin;
     const glm::dvec3 pre_max = amax;
     bool hit = false;
-    resolve_axis( world, amin, amax, axis, delta, hit, standing );
+    resolve_axis( world, amin, amax, axis, delta, hit, standing, nullptr, 0, nullptr, false, edge_guard );
     // The clamped (non-stepped) position, kept so a stepped position that
     // turned out to be over a void can be rolled back to it.
     const glm::dvec3 clamped_min = amin;
@@ -441,7 +473,7 @@ static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &am
     if ( standing && hit ) {
         // Step forward by only the unapplied remainder of this substep's
         // move so the total displacement never exceeds what was requested.
-        try_step_up( world, amin, amax, axis, delta - ( amin[ axis ] - pre_min[ axis ] ) );
+        try_step_up( world, amin, amax, axis, delta - ( amin[ axis ] - pre_min[ axis ] ), edge_guard );
     }
     if ( !edge_guard || !standing || has_support_below( world, amin, amax ) ) {
         return;
@@ -478,7 +510,14 @@ int Collision::check_collides_with_block( World &world, const glm::dvec3 &player
     player_aabb( player, player_height, eye_height, half_width, pmin, pmax );
     glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
     const int num_boxes = block_collision_boxes_for_state( world, block, blockState, mins, maxs );
+    // The same enterable-frame rule as the move scans, keyed off the
+    // would-be block's own def (the cell isn't written yet): a scaffold
+    // can be placed with the player's lower body inside its frame.
+    const bool scaffold = blockState.id < LAST_BLOCK_ID && block_definition_get_definition( blockState.id )->is_scaffolding;
     for ( int i = 0; i < num_boxes; i++ ) {
+        if ( scaffold && pmin.y < maxs[ i ].y - SKIN ) {
+            continue;
+        }
         if ( aabb_overlap( pmin, pmax, mins[ i ], maxs[ i ] ) ) {
             return 1;
         }
@@ -492,7 +531,7 @@ bool Collision::collides_at( World &world, const glm::dvec3 &eye, double player_
     return aabb_collides_world( world, amin, amax );
 }
 
-bool Collision::on_climbable( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width ) {
+bool Collision::on_climbable( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width, BlockID *found_id ) {
     glm::dvec3 amin, amax;
     player_aabb( eye, player_height, eye_height, half_width, amin, amax );
     const double eps = 1e-4;
@@ -507,6 +546,9 @@ bool Collision::on_climbable( World &world, const glm::dvec3 &eye, double player
             for ( int z = z0; z <= z1; z++ ) {
                 const BlockState cell = world.get_loaded_block( glm::ivec3( x, y, z ) );
                 if ( cell.id != LAST_BLOCK_ID && block_definition_get_definition( cell.id )->climbable ) {
+                    if ( found_id != nullptr ) {
+                        *found_id = cell.id;
+                    }
                     return true;
                 }
             }
@@ -539,6 +581,9 @@ bool Collision::unstick( World &world, glm::dvec3 &eye, double player_height, do
                     glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
                     const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
                     for ( int i = 0; i < num_boxes; i++ ) {
+                        if ( !scaffold_box_active( world, glm::ivec3( x, y, z ), maxs[ i ], amin.y, false ) ) {
+                            continue;
+                        }
                         if ( !aabb_overlap( amin, amax, mins[ i ], maxs[ i ] ) ) {
                             continue;
                         }
@@ -601,6 +646,9 @@ bool Collision::unstick_box( World &world, glm::dvec3 &amin, glm::dvec3 &amax ) 
                 glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
                 const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
                 for ( int i = 0; i < num_boxes; i++ ) {
+                    if ( !scaffold_box_active( world, glm::ivec3( x, y, z ), maxs[ i ], amin.y, false ) ) {
+                        continue;
+                    }
                     if ( !aabb_overlap( amin, amax, mins[ i ], maxs[ i ] ) ) {
                         continue;
                     }
@@ -663,8 +711,9 @@ void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &
     for ( int i = 0; i < steps; i++ ) {
         bool hit = false;
         // Resolve Y first so gravity/landing is settled before horizontal
-        // moves and so step-up has a stable base to work from.
-        resolve_axis( world, amin, amax, 1, step.y, hit, standing );
+        // moves and so step-up has a stable base to work from. edge_guard
+        // doubles as the sneaking flag for scaffold lips.
+        resolve_axis( world, amin, amax, 1, step.y, hit, standing, nullptr, 0, nullptr, false, edge_guard );
 
         // Step-up only applies when the player is standing on the ground this
         // tick — otherwise jumping/falling next to a wall would launch the
@@ -698,6 +747,9 @@ int Collision::terrain_boxes( World &world, const glm::dvec3 &amin, const glm::d
                 glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
                 const int num_boxes = block_collision_boxes( world, glm::ivec3( x, y, z ), mins, maxs );
                 for ( int i = 0; i < num_boxes && n < max_boxes; i++ ) {
+                    if ( !scaffold_box_active( world, glm::ivec3( x, y, z ), maxs[ i ], amin.y, false ) ) {
+                        continue;
+                    }
                     mins_out[ n ] = mins[ i ];
                     maxs_out[ n ] = maxs[ i ];
                     n++;

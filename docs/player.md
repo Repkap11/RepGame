@@ -117,15 +117,18 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   flip into swim and oscillate. Feet-in-liquid but body above the
   surface is wading (slower walk, normal physics).
 - **Climbing.** While the body AABB overlaps a cell holding a block
-  flagged `"climbable"` (`Collision::on_climbable` — ladders; the whole
-  cell counts even though the slab geometry is thin), holding jump or
-  pressing *forward* into a wall that blocks the move ascends at
+  flagged `"climbable"` (`Collision::on_climbable` — ladders, scaffolding;
+  the whole cell counts even though the slab geometry is thin), holding
+  jump or pressing *forward* into a wall that blocks the move ascends at
   `CLIMB_VERTICAL_SPEED` — strafe/back input blocked by a wall does not
-  climb. Sneak hangs in place (gravity off for the tick); otherwise
-  gravity keeps pulling but descent is capped at `CLIMB_SLIDE_SPEED`,
-  so a falling player is caught by the ladder. The branch sits between
-  flying and swimming — flying and `no_clip` bypass it — and climb
-  descent doesn't count toward fall distance.
+  climb. On a ladder, sneak hangs in place (gravity off for the tick) and
+  idle descent is capped at `CLIMB_SLIDE_SPEED`, so a falling player is
+  caught by the ladder. On scaffolding — whose enterable frame is
+  detected through `on_climbable`'s out id — idle hangs in place like MC
+  and sneak descends at the slide speed, passing through the platform
+  lips (`scaffold_box_active` skips them for a sneaking mover). The branch
+  sits between flying and swimming — flying and `no_clip` bypass it — and
+  climb descent doesn't count toward fall distance.
 - **Collision.** `Collision::check_move`
   (`include/common/utils/collision.hpp`) resolves the requested
   `movement_vector` axis-by-axis with sub-steps and step-up

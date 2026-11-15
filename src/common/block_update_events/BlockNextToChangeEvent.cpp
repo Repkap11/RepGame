@@ -1,3 +1,4 @@
+#include <deque>
 #include <queue>
 #include <unordered_map>
 #include <vector>
@@ -220,6 +221,66 @@ glm::ivec3 piston_head_base( World &world, const glm::ivec3 &block_pos, const Bl
     return block_pos;
 }
 
+// Scaffolding survival (MC Java): the cell survives while a grounded column
+// — scaffold cells running down to a colliding non-scaffold block — is
+// reachable through scaffold cells within SCAFFOLDING_MAX_DISTANCE
+// horizontal steps. Descending a column is free, so an arm hanging off a
+// tower measures its distance from the column it attaches to, not from the
+// ground. 0-1 BFS over the scaffold graph (down edges push_front at cost 0,
+// horizontal edges push_back at cost +1); `visited` bounds the search on
+// huge connected structures — cells beyond it count as unsupported.
+static bool scaffolding_supported( World &world, const glm::ivec3 &start ) {
+    static constexpr glm::ivec3 horiz_dirs[ 4 ] = {
+        glm::ivec3( 1, 0, 0 ),  //
+        glm::ivec3( -1, 0, 0 ), //
+        glm::ivec3( 0, 0, 1 ),  //
+        glm::ivec3( 0, 0, -1 ), //
+    };
+    std::unordered_map<glm::ivec3, int> distances;
+    std::deque<glm::ivec3> pending;
+    distances.emplace( start, 0 );
+    pending.push_back( start );
+    int visited = 0;
+    while ( !pending.empty( ) && visited < 4096 ) {
+        const glm::ivec3 cur = pending.front( );
+        pending.pop_front( );
+        visited++;
+        const int dist = distances[ cur ];
+        if ( dist > SCAFFOLDING_MAX_DISTANCE ) {
+            continue;
+        }
+        const BlockState below = world.get_loaded_block( cur + glm::ivec3( 0, -1, 0 ) );
+        const Block *below_def = below.id == LAST_BLOCK_ID ? nullptr : block_definition_get_definition( below.id );
+        // Grounded: a colliding block that isn't more scaffolding.
+        if ( below_def != nullptr && below_def->collides_with_player && !below_def->is_scaffolding ) {
+            return true;
+        }
+        // The column continues below: same support distance (free edge).
+        if ( below_def != nullptr && below_def->is_scaffolding ) {
+            const glm::ivec3 down = cur + glm::ivec3( 0, -1, 0 );
+            const auto it = distances.find( down );
+            if ( it == distances.end( ) || dist < it->second ) {
+                distances[ down ] = dist;
+                pending.push_front( down );
+            }
+        }
+        // Horizontal arm: one more step of distance.
+        for ( const glm::ivec3 &dir : horiz_dirs ) {
+            const glm::ivec3 next = cur + dir;
+            const BlockState n = world.get_loaded_block( next );
+            if ( n.id == LAST_BLOCK_ID || !block_definition_get_definition( n.id )->is_scaffolding ) {
+                continue;
+            }
+            const auto it = distances.find( next );
+            if ( it == distances.end( ) || dist + 1 < it->second ) {
+                distances[ next ] = dist + 1;
+                pending.push_back( next );
+            }
+        }
+    }
+    return false;
+}
+
 // Returns false if a block with the given state couldn't survive at block_pos
 // (no required solid face/attachment). Used to reject invalid placements and
 // to break blocks whose support was removed.
@@ -304,6 +365,9 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         // field pops the plant through the neighbour-update kill path.
         const BlockState below = world.get_loaded_block( block_pos + glm::ivec3( 0, -1, 0 ) );
         return below.id == FARMLAND;
+    }
+    if ( block->is_scaffolding ) {
+        return scaffolding_supported( world, block_pos );
     }
     return block_supports_present( world, block_pos, block_state );
 }

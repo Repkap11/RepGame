@@ -797,6 +797,59 @@ int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] ) {
     return 2;
 }
 
+int scaffolding_boxes( unsigned nmask, BlockBox out[ SCAFFOLDING_MAX_BOXES ] ) {
+    // Platform plate: 16x2x16 at the cell top (y 14..16). Lateral faces
+    // buried against a scaffold neighbor's mirrored plate (or an opaque
+    // neighbor's covering face) are skipped — the plates would otherwise
+    // sit coplanar and z-fight.
+    const unsigned lateral = nmask & ( ( 1u << FACE_RIGHT ) | ( 1u << FACE_FRONT ) | ( 1u << FACE_LEFT ) | ( 1u << FACE_BACK ) );
+    out[ 0 ].scale[ 0 ] = 16;
+    out[ 0 ].scale[ 1 ] = 2;
+    out[ 0 ].scale[ 2 ] = 16;
+    out[ 0 ].offset[ 0 ] = 0;
+    out[ 0 ].offset[ 1 ] = 14;
+    out[ 0 ].offset[ 2 ] = 0;
+    out[ 0 ].skip_faces = static_cast<unsigned char>( lateral );
+    // The four 2x16x2 corner legs. Each leg's two boundary faces are
+    // coplanar with the mirrored leg of a scaffold (or covered by an
+    // opaque) neighbor on that side — skipped. The caps are always
+    // buried: the top in the platform plate, the bottom in the base
+    // plate or the leg cap of the scaffold cell below.
+    static const signed char leg_off[ 4 ][ 2 ] = { { 0, 0 }, { 14, 0 }, { 0, 14 }, { 14, 14 } };
+    static const int leg_face[ 4 ][ 2 ] = {
+        { FACE_LEFT, FACE_BACK },
+        { FACE_RIGHT, FACE_BACK },
+        { FACE_LEFT, FACE_FRONT },
+        { FACE_RIGHT, FACE_FRONT },
+    };
+    for ( int l = 0; l < 4; l++ ) {
+        BlockBox &leg = out[ 1 + l ];
+        leg.scale[ 0 ] = 2;
+        leg.scale[ 1 ] = 16;
+        leg.scale[ 2 ] = 2;
+        leg.offset[ 0 ] = leg_off[ l ][ 0 ];
+        leg.offset[ 1 ] = 0;
+        leg.offset[ 2 ] = leg_off[ l ][ 1 ];
+        leg.skip_faces = static_cast<unsigned char>( ( 1u << FACE_TOP ) | ( 1u << FACE_BOTTOM ) |
+                                                    ( nmask & ( ( 1u << leg_face[ l ][ 0 ] ) | ( 1u << leg_face[ l ][ 1 ] ) ) ) );
+    }
+    int n = 5;
+    if ( ( nmask & ( 1u << FACE_BOTTOM ) ) == 0 ) {
+        // Bottom lattice plate — drawn only where the frame doesn't
+        // continue below: the column base, freestanding cells, and the
+        // exposed underside of horizontal arms.
+        out[ n ].scale[ 0 ] = 16;
+        out[ n ].scale[ 1 ] = 2;
+        out[ n ].scale[ 2 ] = 16;
+        out[ n ].offset[ 0 ] = 0;
+        out[ n ].offset[ 1 ] = 0;
+        out[ n ].offset[ 2 ] = 0;
+        out[ n ].skip_faces = static_cast<unsigned char>( lateral );
+        n++;
+    }
+    return n;
+}
+
 int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] ) {
     if ( block->id == FIRE ) {
         // The crossed quads span the full cell; fire_0 frame 0's opaque
@@ -850,6 +903,11 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     if ( block->is_end_rod ) {
         // Bulb + shaft — the iso icon reads as a rod, not a cross sprite.
         return end_rod_boxes( out );
+    }
+    if ( block->is_scaffolding ) {
+        // Plate + legs + bottom lattice — the whole frame reads as the
+        // item.
+        return scaffolding_boxes( 0, out );
     }
     if ( block_icon_yaw( block ) != 0 ) {
         // Panes: the def plate yawed 90 — thin in x so the broad face lands

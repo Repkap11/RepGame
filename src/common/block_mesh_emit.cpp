@@ -84,12 +84,43 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
     if ( block->is_end_rod ) {
         return end_rod_boxes( boxes );
     }
+    if ( block->is_scaffolding ) {
+        // The four lateral bits mark a boundary face buried under a
+        // scaffold neighbor's mirrored plate/leg, or covered by an
+        // opaque neighbor outright (the same covering-face test as the
+        // per-box culls below). FACE_BOTTOM means the cell below is
+        // scaffolding — scaffolding_boxes then drops the bottom plate;
+        // an opaque support only culls the plate's bottom quad at emit
+        // time, like the lantern's.
+        static const int side_dir[ 4 ][ 3 ] = { // dx, dz, face
+            { 1, 0, FACE_RIGHT },
+            { -1, 0, FACE_LEFT },
+            { 0, 1, FACE_FRONT },
+            { 0, -1, FACE_BACK },
+        };
+        const GPUBlockDef *mesh_defs = mesh_def_table( );
+        unsigned nmask = 0;
+        for ( int d = 0; d < 4; d++ ) {
+            const BlockState &ncell = p.nb.at( side_dir[ d ][ 0 ], 0, side_dir[ d ][ 1 ] );
+            if ( block_definition_get_definition( ncell.id )->is_scaffolding ) {
+                nmask |= 1u << side_dir[ d ][ 2 ];
+            } else if ( p.cull_against_neighbors &&
+                        !mesh_face_seethrough( mesh_defs[ ncell.id ], ncell.current_redstone_power != 0, ncell.rotation,
+                                               mesh_rotated_face( OPPOSITE_FACE[ side_dir[ d ][ 2 ] ], ncell.rotation ) ) ) {
+                nmask |= 1u << side_dir[ d ][ 2 ];
+            }
+        }
+        if ( block_definition_get_definition( p.nb.at( 0, -1, 0 ).id )->is_scaffolding ) {
+            nmask |= 1u << FACE_BOTTOM;
+        }
+        return scaffolding_boxes( nmask, boxes );
+    }
     return 0;
 }
 
 bool block_emit_needs_neighbors( const Block *block ) {
     return block->is_fence || block->is_wall || block->is_bars || block->is_stairs || block->is_rail || block->is_redstone_dust || block->spine_shell ||
-           block->is_lantern || block->is_lightning_rod || block->is_end_rod;
+           block->is_lantern || block->is_lightning_rod || block->is_end_rod || block->is_scaffolding;
 }
 
 // The extra-instance flags the emit count needs — computed once per emit.
@@ -730,6 +761,27 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
                 const int below_face = OPPOSITE_FACE[ mesh_rotated_face( FACE_BOTTOM, below_rot ) ];
                 if ( !mesh_face_seethrough( mesh_def_table( )[ below_cell.id ], below_cell.current_redstone_power != 0, below_rot, below_face ) ) {
                     boxCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                }
+            }
+            // Scaffolding's horizontal plates sit coplanar with a covering
+            // neighbor face: the platform's top quad under an opaque cell,
+            // and the base plate's bottom quad on an opaque support. The
+            // plate-vs-scaffold seams are already skipped via nmask.
+            if ( block->is_scaffolding && p.cull_against_neighbors ) {
+                if ( i == 0 ) {
+                    const BlockState &above_cell = p.nb.at( 0, 1, 0 );
+                    const int above_rot = above_cell.rotation;
+                    const int above_face = mesh_rotated_face( FACE_BOTTOM, above_rot );
+                    if ( !mesh_face_seethrough( mesh_def_table( )[ above_cell.id ], above_cell.current_redstone_power != 0, above_rot, above_face ) ) {
+                        boxCoord->packed_lighting[ FACE_TOP ] = NO_LIGHT_NO_DRAW;
+                    }
+                } else if ( i == num_boxes - 1 && num_boxes == SCAFFOLDING_MAX_BOXES ) {
+                    const BlockState &below_cell = p.nb.at( 0, -1, 0 );
+                    const int below_rot = below_cell.rotation;
+                    const int below_face = mesh_rotated_face( FACE_TOP, below_rot );
+                    if ( !mesh_face_seethrough( mesh_def_table( )[ below_cell.id ], below_cell.current_redstone_power != 0, below_rot, below_face ) ) {
+                        boxCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                    }
                 }
             }
         }

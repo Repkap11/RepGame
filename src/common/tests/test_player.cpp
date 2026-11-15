@@ -1,5 +1,6 @@
 // Player movement/interaction tests — split out of rep_tests.cpp.
 #include "test_util.hpp"
+#include "common/block_update_events/BlockNextToChangeEvent.hpp"
 // Sneak edge protection: Collision::check_move with edge_guard must keep a
 // standing player from walking off a drop — the AABB clamps at the edge —
 // while still allowing step-downs within STEP_HEIGHT (slabs/stairs) and
@@ -448,6 +449,137 @@ int test_climb( ) {
         const double feet = eye.y - PLAYER_EYE_HEIGHT;
         check_bool( "strafe/back push into the wall does not climb", feet < 10.5 );
     }
+
+    return failures;
+}
+
+// Scaffolding: the frame interior is enterable (the collision box is only the
+// platform lip at the cell top, skipped for movers with feet below the lip
+// or while sneaking — scaffold_box_active), the whole cell is climbable
+// (jump/push climbs, idle hangs, sneak descends through the lips), and a
+// scaffold survives only while a grounded column is reachable within
+// SCAFFOLDING_MAX_DISTANCE horizontal steps (scaffolding_supported).
+//
+//   floor at y=9    column at x=10, y=10..13    arm along +x at y=13
+int test_scaffolding( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    const BlockState scaffold = { SCAFFOLDING, 0, 0, SCAFFOLDING, 0 };
+    for ( int x = 9; x <= 18; x++ ) {
+        for ( int z = 9; z <= 12; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 9, z ), stone );
+        }
+    }
+    // Column on the floor at x=10, arm of 7 cells extending +x at y=13.
+    for ( int y = 10; y <= 13; y++ ) {
+        world.set_loaded_block( glm::ivec3( 10, y, 10 ), scaffold );
+    }
+    for ( int x = 11; x <= 17; x++ ) {
+        world.set_loaded_block( glm::ivec3( x, 13, 10 ), scaffold );
+    }
+    // A lone scaffold hanging in mid-air with no path to ground.
+    world.set_loaded_block( glm::ivec3( 20, 20, 10 ), scaffold );
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    // --- defs ---------------------------------------------------------------
+    {
+        const Block *def = block_definition_get_definition( SCAFFOLDING );
+        check_bool( "def: climbable + is_scaffolding", def->climbable && def->is_scaffolding );
+        BlockBox icon_boxes[ ICON_MAX_BOXES ];
+        check_bool( "icon: frame is 6 boxes", block_icon_boxes( def, icon_boxes ) == SCAFFOLDING_MAX_BOXES );
+    }
+
+    // --- support rule (scaffolding_supported via block_can_survive_at) ------
+    auto survive = [ & ]( const glm::ivec3 &pos ) { return block_can_survive_at( world, pos, scaffold ); };
+    check_bool( "survive: column base on floor", survive( glm::ivec3( 10, 10, 10 ) ) );
+    check_bool( "survive: mid-column", survive( glm::ivec3( 10, 12, 10 ) ) );
+    check_bool( "survive: arm cell at distance 1", survive( glm::ivec3( 11, 13, 10 ) ) );
+    check_bool( "survive: arm cell at distance 6", survive( glm::ivec3( 16, 13, 10 ) ) );
+    check_bool( "survive: arm cell past max distance fails", !survive( glm::ivec3( 17, 13, 10 ) ) );
+    check_bool( "survive: floating lone scaffold fails", !survive( glm::ivec3( 20, 20, 10 ) ) );
+    check_bool( "survive: placement candidate over floor", survive( glm::ivec3( 14, 10, 10 ) ) );
+    check_bool( "survive: placement candidate in the void fails", !survive( glm::ivec3( 25, 20, 10 ) ) );
+
+    // Removing the base through the event queue cascades: every cell that
+    // lost its grounded path pops.
+    gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR, false );
+    test_run_game_ticks( gs, 20 );
+    check_bool( "cascade: column pops after the base breaks", world.get_loaded_block( glm::ivec3( 10, 13, 10 ) ).id == AIR );
+    check_bool( "cascade: arm pops with the column", world.get_loaded_block( glm::ivec3( 14, 13, 10 ) ).id == AIR );
+    check_bool( "cascade: lone scaffold still floats (unsupported but not woken)", world.get_loaded_block( glm::ivec3( 20, 20, 10 ) ).id == SCAFFOLDING );
+
+    // --- collision: the lip only ------------------------------------------
+    // Fresh tower: single scaffold cell at (11,10,10) over the stone floor.
+    world.set_loaded_block( glm::ivec3( 11, 10, 10 ), scaffold );
+    const BlockState scaffold_cell = world.get_loaded_block( glm::ivec3( 11, 10, 10 ) );
+
+    // Walking into the frame at ground level passes through — feet (10.0)
+    // are below the lip top (11.0), so the lip doesn't block.
+    {
+        glm::dvec3 eye( 10.4, 10.0 + PLAYER_EYE_HEIGHT, 10.5 );
+        int standing = 0;
+        for ( int i = 0; i < 10; i++ ) {
+            glm::dvec3 vec( 0.15, -0.01, 0.0 );
+            Collision::check_move( world, vec, eye, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            eye += vec;
+        }
+        check_bool( "frame interior is enterable from the side", eye.x > 11.4 );
+    }
+    // Standing inside the cell: the box at foot level doesn't collide.
+    check_bool( "interior AABB is free at cell floor", !Collision::collides_at( world, glm::dvec3( 11.5, 10.0 + PLAYER_EYE_HEIGHT, 10.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+
+    // Landing on the platform: a downward move from just above clamps onto
+    // the lip top (y=11) and reports standing.
+    {
+        glm::dvec3 eye( 11.5, 11.2 + PLAYER_EYE_HEIGHT, 10.5 );
+        int standing = 0;
+        for ( int i = 0; i < 20; i++ ) {
+            glm::dvec3 vec( 0.0, -0.05, 0.0 );
+            Collision::check_move( world, vec, eye, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false );
+            eye += vec;
+        }
+        check_bool( "landing on the lip stands", standing == 1 );
+        check_bool( "lip top is the full cell top", fabs( eye.y - ( 11.0 + PLAYER_EYE_HEIGHT ) ) < 0.01 );
+        // Standing on top means the feet sit at the cell boundary — the
+        // climbable scan sees the cell ABOVE, so no climb flag.
+        check_bool( "standing on the platform is not 'climbing'", !Collision::on_climbable( world, eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+    }
+    // Sneaking on the platform descends straight through it onto the floor.
+    {
+        glm::dvec3 eye( 11.5, 11.0 + PLAYER_SNEAK_EYE_HEIGHT, 10.5 );
+        int standing = 0;
+        for ( int i = 0; i < 40; i++ ) {
+            glm::dvec3 vec( 0.0, -CLIMB_SLIDE_SPEED, 0.0 );
+            Collision::check_move( world, vec, eye, &standing, PLAYER_SNEAK_HEIGHT, PLAYER_SNEAK_EYE_HEIGHT, true );
+            eye += vec;
+        }
+        check_bool( "sneak on the platform sinks through to the floor", fabs( eye.y - ( 10.0 + PLAYER_SNEAK_EYE_HEIGHT ) ) < 0.05 );
+    }
+    // Placement check: a scaffold can be placed in a cell the player's feet
+    // occupy — its lip is above the feet, so it doesn't count as colliding.
+    check_bool( "scaffold placeable in the player's own cell",
+                !Collision::check_collides_with_block( world, glm::dvec3( 14.5, 10.0 + PLAYER_EYE_HEIGHT, 10.5 ), glm::ivec3( 14, 10, 10 ), scaffold_cell,
+                                                     PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
+
+    // --- climbable ---------------------------------------------------------
+    BlockID found = LAST_BLOCK_ID;
+    check_bool( "frame cell reads climbable", Collision::on_climbable( world, glm::dvec3( 11.5, 10.5 + PLAYER_EYE_HEIGHT, 10.5 ), PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, PLAYER_WIDTH / 2.0, &found ) &&
+                                                  found == SCAFFOLDING );
 
     return failures;
 }

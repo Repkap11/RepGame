@@ -656,6 +656,22 @@ int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 // its def box (its scale/offset). Returns 1.
 int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] );
 
+// ---- Scaffolding ------------------------------------------------------------
+// The frame model (MC's scaffolding): box 0 is the 16x2x16 platform plate
+// at the cell top (y 14..16), boxes 1-4 the four 2x16x2 corner legs, and —
+// only when the cell below isn't scaffolding — box 5 the 16x2x16 lattice
+// plate at the cell bottom (y 0..2). `nmask` carries a FACE_* bit per
+// direction whose boundary faces are buried: the four lateral bits mean
+// "neighbor is scaffolding or covers the shared face" (gathered by the
+// mesher, since the halo read is needed); FACE_BOTTOM means "the cell
+// below is scaffolding", which drops the bottom plate. Leg caps are
+// always skipped — the top is buried in the platform plate and the bottom
+// in the base plate or the next leg cap down.
+// The collision model is unrelated: a single lip box at the cell top with
+// agent-aware filtering (collision.cpp, scaffold_box_active).
+#define SCAFFOLDING_MAX_BOXES 6
+int scaffolding_boxes( unsigned nmask, BlockBox out[ SCAFFOLDING_MAX_BOXES ] );
+
 // ---- Item icons -------------------------------------------------------------
 // Icon-space yaw for the item/pickup model: panes (hides_self_same_rot —
 // the symmetric flat plate) author the def plate thin in z, which reads

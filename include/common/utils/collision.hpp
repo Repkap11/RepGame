@@ -7,6 +7,7 @@
 // BlockBodies definition from world.hpp.
 #include <glm/glm.hpp>
 #include "common/constants.hpp"
+#include "common/block_ids_gen.hpp"
 
 class World;
 struct RepGameState;
@@ -49,9 +50,12 @@ class Collision {
     // before standing up out of a sneak.
     static bool collides_at( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
     // Returns true if the player AABB overlaps any cell holding a climbable
-    // block (ladders — the whole cell counts, not the thin slab geometry).
-    // Unloaded cells don't count.
-    static bool on_climbable( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // block (ladders, scaffolding — the whole cell counts, not the thin
+    // slab/frame geometry). Unloaded cells don't count. `found_id`, when
+    // non-null, gets the matching block's id (movement treats scaffolding
+    // differently from ladders: sneak descends and idle hangs).
+    static bool on_climbable( World &world, const glm::dvec3 &eye, double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0,
+                              BlockID *found_id = nullptr );
     // Pushes a body whose box already overlaps the world out to free space —
     // for a hitbox that just grew into a wall (baby mob -> adult), where
     // check_move's face-crossing clamps can't help and the body would tunnel

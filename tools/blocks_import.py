@@ -80,7 +80,7 @@ BOOL_FIELDS = {
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "is_wall", "is_bars", "falls_with_gravity", "spine_shell",
     "is_stairs", "is_standing_sign", "is_hanging_sign", "is_lantern",
-    "is_lightning_rod", "is_end_rod", "climbable", "is_cake",
+    "is_lightning_rod", "is_end_rod", "climbable", "is_cake", "is_scaffolding",
     "is_bed", "is_bed_head",
     "is_door", "is_door_upper", "door_redstone_only", "is_rail",
     "is_tall_plant_upper",

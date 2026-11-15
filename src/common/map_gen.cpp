@@ -99,6 +99,18 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
         }
         return AIR;
     }
+    // Scaffolding showcase: a 4-high column at x=-9 with a 6-cell arm off
+    // its top (horizontal distances 1-6 — the Java support limit), plus a
+    // freestanding frame at (0,-34) for the lone-cell look.
+    if ( z == -33 && y >= 1 && y <= 4 ) {
+        if ( x == -9 || ( y == 4 && x >= -8 && x <= -3 ) ) {
+            return SCAFFOLDING;
+        }
+        return AIR;
+    }
+    if ( z == -34 && y == 1 ) {
+        return x == 0 ? SCAFFOLDING : AIR;
+    }
     if ( y != 1 ) {
         return AIR;
     }

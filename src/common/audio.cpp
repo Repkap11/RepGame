@@ -196,6 +196,7 @@ static const char *block_material( int block_id ) {
     case LIT_REDSTONE_LAMP:
         return "glass";
     case LADDER:
+    case SCAFFOLDING:
         return "ladder";
     default:
         return "stone";
