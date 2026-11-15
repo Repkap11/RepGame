@@ -329,6 +329,7 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     // is_loading first): light jobs and seeds popped mid-finalize see the
     // chunk as loaded rather than missing.
     chunk.set_load_state( CHUNK_LIVE );
+    this->live_finalize_count++;
     // Slot reuse: drop any async-remesh state the previous position left
     // behind (a stale in-flight seq would wrongly gate the new mesh).
     chunk.async_wanted = 0;

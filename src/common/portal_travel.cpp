@@ -224,28 +224,26 @@ static bool portal_find_spot( const DimensionId dim, const int bx, const int bz,
     return true;
 }
 
-// Arrive inside an existing portal's plate: `found` is a PORTAL cell, so
-// stand on the sill at the bottom of its interior column. must_exit keeps
-// the plate from re-triggering until the player steps out.
-static void portal_arrive_inside( RepGameState &state, const glm::ivec3 &found ) {
+// Feet at the bottom of an existing portal's plate: `found` is a PORTAL
+// cell, so stand on the sill at the bottom of its interior column.
+static glm::dvec3 portal_arrive_feet_inside( RepGameState &state, const glm::ivec3 &found ) {
     glm::ivec3 base = found;
     while ( state.world.get_loaded_block( glm::ivec3( base.x, base.y - 1, base.z ) ).id == PORTAL ) {
         base.y--;
     }
-    portal_teleport_feet( state, glm::dvec3( base.x + 0.5, base.y, base.z + 0.5 ) );
+    return glm::dvec3( base.x + 0.5, base.y, base.z + 0.5 );
 }
 
 static int portal_axis_u( const glm::ivec3 &pos, const int axis ) {
     return axis ? pos.z : pos.x;
 }
 
-// Arrive inside a frame whose PortalFrame bounds are known: feet on the
-// bottom interior row (lo.y), centred along the axis, +0.5 on the thin one.
-static void portal_arrive_frame( RepGameState &state, const PortalFrame &frame ) {
+// Feet inside a frame whose PortalFrame bounds are known: bottom interior
+// row (lo.y), centred along the axis, +0.5 on the thin one.
+static glm::dvec3 portal_arrive_feet_frame( const PortalFrame &frame ) {
     const double u_mid = ( portal_axis_u( frame.lo, frame.axis ) + portal_axis_u( frame.hi, frame.axis ) + 1 ) / 2.0;
-    const glm::dvec3 feet = frame.axis ? glm::dvec3( frame.lo.x + 0.5, frame.lo.y, u_mid )
-                                       : glm::dvec3( u_mid, frame.lo.y, frame.lo.z + 0.5 );
-    portal_teleport_feet( state, feet );
+    return frame.axis ? glm::dvec3( frame.lo.x + 0.5, frame.lo.y, u_mid )
+                      : glm::dvec3( u_mid, frame.lo.y, frame.lo.z + 0.5 );
 }
 
 // Travel: drop the player at generated ground in the destination band and
@@ -291,6 +289,9 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
     p.pending_start_tick = state.tick_number;
     p.pending_diff_snap = 0;
     p.pending_wait_logged = 0;
+    p.pending_scan_tick = -1;
+    p.pending_live_seen = -1;
+    p.pending_adopted = 0;
 }
 
 // The readiness gate for resolving a pending destination portal. False
@@ -349,10 +350,13 @@ bool portal_destination_ready( RepGameState &state, int &unmet ) {
 }
 
 // The resolve's existing-portal half: scan the destination band's box for a
-// PORTAL cell and, on a hit, stand the player inside that plate. Shared by
-// the ready path and the give-up path — adopting a loaded portal is always
-// safe; only building needs confirmed chunks.
-static bool portal_resolve_adopt( RepGameState &state ) {
+// PORTAL cell and, on a hit, stand the player inside that plate and re-aim
+// the hold at it so the freeze keeps them there. Shared by the ready path,
+// the give-up path, and the pending wait's periodic scans — adopting a
+// loaded portal is always safe (a PORTAL cell can only sit in confirmed
+// chunks); only building needs the gate. `quiet_miss` skips the log line
+// for the periodic scans, where a miss is the common case.
+static bool portal_try_adopt( RepGameState &state, const bool quiet_miss ) {
     PortalState &p = state.portal;
     int y_min, y_max;
     portal_band_span( static_cast<DimensionId>( p.pending_dim ), y_min, y_max );
@@ -361,16 +365,18 @@ static bool portal_resolve_adopt( RepGameState &state ) {
     glm::ivec3 found;
     const bool have_portal = portal_find_nearest( state.world, search_center, y_min, y_max, found );
     const long long search_us = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now( ) - t0 ).count( );
-    pr_debug( "portal search: %lld us (%s)", search_us, have_portal ? "found" : "missed" );
+    if ( have_portal || !quiet_miss ) {
+        pr_debug( "portal search: %lld us (%s)", search_us, have_portal ? "found" : "missed" );
+    }
     if ( !have_portal ) {
         return false;
     }
     PortalFrame frame;
-    if ( portal_find_frame( state.world, found, frame ) ) {
-        portal_arrive_frame( state, frame );
-    } else {
-        portal_arrive_inside( state, found );
-    }
+    const glm::dvec3 feet = portal_find_frame( state.world, found, frame )
+                                ? portal_arrive_feet_frame( frame )
+                                : portal_arrive_feet_inside( state, found );
+    p.hold_feet = feet;
+    portal_teleport_feet( state, feet );
     p.must_exit = 1;
     return true;
 }
@@ -410,6 +416,24 @@ static void portal_pending_tick( RepGameState &state ) {
         static const char *why[] = { "none", "chunk_center not at hold", "search-box chunk not live", "diff boxes pending" };
         const char *why_s = why[ unmet >= 0 && unmet <= 3 ? unmet : 0 ];
         if ( elapsed < PORTAL_RESOLVE_GIVEUP_TICKS ) {
+            // Early adopt: as soon as the loaded chunks reveal a PORTAL
+            // cell, move the hold inside it — the release then happens in
+            // place instead of snapping hold→portal at resolve. Scan every
+            // PORTAL_ADOPT_SCAN_TICKS and (until first adopted) whenever
+            // new chunks went live since the last scan — a chunk only
+            // goes live once its diffs are in — throttled to once per 4
+            // ticks.
+            const long live_now = state.world.get_live_finalize_count( );
+            if ( elapsed - p.pending_scan_tick >= 4 &&
+                 ( elapsed % PORTAL_ADOPT_SCAN_TICKS == 0 ||
+                   ( p.pending_adopted == 0 && live_now != p.pending_live_seen ) ) ) {
+                p.pending_scan_tick = elapsed;
+                p.pending_live_seen = live_now;
+                if ( portal_try_adopt( state, true ) && !p.pending_adopted ) {
+                    p.pending_adopted = 1;
+                    pr_debug( "early adopt at elapsed %d (unmet: %s)", static_cast<int>( elapsed ), why_s );
+                }
+            }
             if ( elapsed >= PORTAL_RESOLVE_TIMEOUT_TICKS && !p.pending_wait_logged ) {
                 p.pending_wait_logged = 1;
                 pr_debug( "portal resolve still waiting after %d ticks (unmet: %s)", PORTAL_RESOLVE_TIMEOUT_TICKS, why_s );
@@ -422,7 +446,7 @@ static void portal_pending_tick( RepGameState &state ) {
         // enter, but no new frame may be written off unconfirmed chunks.
         p.pending_build = 0;
         p.pending_carve = 0;
-        if ( !portal_resolve_adopt( state ) ) {
+        if ( !portal_try_adopt( state, false ) ) {
             p.must_exit = 1;
         }
         return;
@@ -435,7 +459,7 @@ static void portal_pending_tick( RepGameState &state ) {
     p.pending_build = 0;
     p.pending_carve = 0;
 
-    if ( portal_resolve_adopt( state ) ) {
+    if ( portal_try_adopt( state, false ) ) {
         return;
     }
 
@@ -453,7 +477,7 @@ static void portal_pending_tick( RepGameState &state ) {
     built.lo = site + glm::ivec3( 0, 1, 0 );
     built.hi = built.lo + ( axis ? glm::ivec3( 0, h - 1, w - 1 ) : glm::ivec3( w - 1, h - 1, 0 ) );
     built.axis = axis;
-    portal_arrive_frame( state, built );
+    portal_teleport_feet( state, portal_arrive_feet_frame( built ) );
     // The player stands inside the new plate — without this a must_exit
     // lost to slow chunk loads would bounce them back.
     p.must_exit = 1;

@@ -745,5 +745,45 @@ int test_dimension( ) {
         gs.multiplayer.active = false;
     }
 
+    // ---- Early adopt: a revealed portal moves the hold mid-wait ----
+    // While the gate is unmet the periodic scan adopts any PORTAL the
+    // loaded chunks already show — the hold re-aims inside it so the
+    // eventual release is a no-op teleport, not a snap.
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
+        // Lit 2x3 x-facing frame, same shape as the give-up adopt case.
+        for ( int dx = 53; dx <= 56; dx++ ) {
+            for ( int dy = 55; dy <= 59; dy++ ) {
+                const bool edge = dx == 53 || dx == 56 || dy == 55 || dy == 59;
+                world.set_loaded_block( glm::ivec3( dx, dy, 10 ),
+                                        edge ? BlockState{ OBSIDIAN, 0, 0, OBSIDIAN, 0 } : BlockState{ PORTAL, 0, 0, PORTAL, 0 } );
+            }
+        }
+        stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 5, 10, 5 ) );
+        // One in-window box chunk still missing -> the gate stays unmet.
+        const glm::ivec3 missing( 1, 0, 1 );
+        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, &missing );
+        // Land exactly on a scan tick so the wait's periodic adopt runs.
+        gs.portal.pending_start_tick = gs.tick_number - PORTAL_ADOPT_SCAN_TICKS;
+        repgame_portal_tick( gs );
+        const glm::dvec3 feet = feet_of( gs );
+        check_bool( "early adopt: still pending", gs.portal.pending_build == 1 );
+        check_bool( "early adopt: inside the loaded plate", floor( feet.z ) == 10 && feet.y == 56.0 &&
+                                                            feet.x >= 54.0 && feet.x <= 56.0 );
+        check_bool( "early adopt: hold re-aimed at the plate", glm::distance( gs.portal.hold_feet, feet ) < 0.001 );
+        check_bool( "early adopt: must_exit set", gs.portal.must_exit == 1 );
+        // The missing chunk goes live -> resolve adopts the same plate,
+        // so the release teleports nowhere.
+        make_chunk_live( world, missing, 0 );
+        repgame_portal_tick( gs );
+        check_bool( "early adopt: resolve finishes", gs.portal.pending_build == 0 );
+        check_bool( "early adopt: feet unchanged at resolve", glm::distance( feet_of( gs ), feet ) < 0.001 );
+    }
+
     return failures;
 }

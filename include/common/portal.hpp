@@ -43,6 +43,11 @@ class World;
 // building on unconfirmed chunks is what planted frames beside existing
 // portals.
 #define PORTAL_RESOLVE_GIVEUP_TICKS ( 60 * UPS_RATE )
+// How often the pending wait re-scans for a destination portal to adopt
+// early (~0.5 s): once the loaded chunks reveal a PORTAL cell the hold
+// moves inside that plate, so the resolve's release is a no-op teleport
+// instead of a visible snap from the predicted site to the real portal.
+#define PORTAL_ADOPT_SCAN_TICKS ( UPS_RATE / 2 )
 
 // A detected empty obsidian ring ready for ignition.
 struct PortalFrame {
@@ -62,12 +67,19 @@ struct PortalState {
     int pending_w = 2;             // frame to build: interior width along the axis
     int pending_h = 3;             // frame to build: interior height
     int pending_dim = 0;           // destination DimensionId (site scan + search band)
-    glm::dvec3 hold_feet;          // frozen drop position the player is re-snapped to
+    glm::dvec3 hold_feet;          // frozen drop position the player is re-snapped to —
+                                   // moved inside the adopted plate when an early scan finds one
     glm::ivec3 src_center;         // source portal interior centre (search/build origin x/z)
     long pending_start_tick = 0;   // tick_number when the travel began (timeout clock)
     uint32_t pending_diff_target = 0; // MP gate: diff_boxes_sent snapshot to wait for
     int pending_diff_snap = 0;     // MP gate: the snapshot above has been taken
     int pending_wait_logged = 0;   // soft-timeout "still waiting" line already logged
+    long pending_scan_tick = -1;   // elapsed of the last early-adopt scan
+    long pending_live_seen = -1;   // ChunkLoader::live_finalize_count at that scan —
+                                   // newly live chunks retrigger it (throttled to 4 ticks)
+    int pending_adopted = 0;       // an early scan already moved the hold into a plate —
+                                   // live-triggered scans stop, periodic ones keep
+                                   // looking for a nearer portal
 };
 
 // Detect a complete empty obsidian ring containing `seed` (an interior-able

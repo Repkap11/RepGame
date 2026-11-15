@@ -439,6 +439,12 @@ class ChunkLoader {
     // (block_instance_batch.hpp); World fills it in BlockBodies::update_render.
     class BlockInstanceBatch *body_batch = nullptr;
     const glm::ivec3 &get_chunk_center( ) const { return this->chunk_center; }
+    // Monotone count of chunks that have gone live (each real
+    // finalize_loaded_chunk publish — never the SETTLE_WAIT defer). The
+    // portal pending wait diffs it to run its early-adopt scan right when
+    // a newly confirmed chunk might have revealed the destination portal,
+    // rather than only on the fixed PORTAL_ADOPT_SCAN_TICKS interval.
+    long live_finalize_count = 0;
     // Re-upload every live light texture under the current smoothing mode —
     // the "Shadows" quality toggle calls this (render thread).
     void light_shadow_refresh_all( );

@@ -114,6 +114,13 @@ dimension name (`dim_name`, `dim_local_block_y`).
   on chunks whose diffs never landed is what planted a new frame
   beside the real portal, so the give-up path clears `pending_build`/
   `pending_carve` and writes nothing.
+- **Early adopt**: while the gate is unmet, every
+  `PORTAL_ADOPT_SCAN_TICKS` (~0.5 s) `portal_try_adopt` re-scans the
+  box's live chunks; a PORTAL cell can only sit in confirmed chunks, so
+  the first one found moves `hold_feet` inside its plate and the player
+  waits *there* — the eventual release is a no-op teleport instead of a
+  visible snap from the predicted site to the real portal. A nearer
+  portal in a still-unsettled chunk can still win at resolve.
 - **Resolve**: `portal_find_nearest` scans the box's live chunks for the
   closest existing PORTAL cell (horizontal distance to src_center, |dy|
   tie-break) and the player is stood inside its plate; otherwise the
