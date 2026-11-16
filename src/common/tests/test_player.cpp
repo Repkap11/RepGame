@@ -541,6 +541,37 @@ int test_scaffolding( ) {
     check_bool( "fall: no bodies remain", world.bodies.count_falling( ) == 0 );
     check_bool( "fall: the landed scaffold is supported", survive( glm::ivec3( 14, 10, 10 ) ) );
 
+    // --- use-on redirect (repgame_scaffold_place_target) -------------------
+    // Side/bottom clicks walk UP to the column's top; a top click walks the
+    // player's facing direction through connected scaffolding, so a click
+    // anywhere on a beam extends its end — never stacks mid-beam.
+    {
+        // Grounded column at x=15 z=11 plus a beam +x at y=12.
+        for ( int y = 10; y <= 12; y++ ) {
+            world.set_loaded_block( glm::ivec3( 15, y, 11 ), scaffold );
+        }
+        world.set_loaded_block( glm::ivec3( 16, 12, 11 ), scaffold );
+        world.set_loaded_block( glm::ivec3( 17, 12, 11 ), scaffold );
+        glm::ivec3 target;
+        gs.block_selection.face = FACE_TOP;
+        gs.camera.look = glm::vec3( 1.0f, -0.3f, 0.0f );
+        check_bool( "redirect: top click walks the beam to its end",
+                    repgame_scaffold_place_target( gs, glm::ivec3( 15, 12, 11 ), &target ) && target == glm::ivec3( 18, 12, 11 ) );
+        check_bool( "redirect: top click on the beam end extends past it",
+                    repgame_scaffold_place_target( gs, glm::ivec3( 17, 12, 11 ), &target ) && target == glm::ivec3( 18, 12, 11 ) );
+        gs.camera.look = glm::vec3( -1.0f, -0.3f, 0.0f );
+        check_bool( "redirect: top click facing -x extends the other end",
+                    repgame_scaffold_place_target( gs, glm::ivec3( 17, 12, 11 ), &target ) && target == glm::ivec3( 14, 12, 11 ) );
+        gs.block_selection.face = FACE_RIGHT;
+        check_bool( "redirect: side click towers the column",
+                    repgame_scaffold_place_target( gs, glm::ivec3( 15, 12, 11 ), &target ) && target == glm::ivec3( 15, 13, 11 ) );
+        gs.block_selection.face = FACE_BOTTOM;
+        check_bool( "redirect: bottom click also towers",
+                    repgame_scaffold_place_target( gs, glm::ivec3( 15, 10, 11 ), &target ) && target == glm::ivec3( 15, 13, 11 ) );
+        check_bool( "redirect: a non-scaffold click is not redirected",
+                    !repgame_scaffold_place_target( gs, glm::ivec3( 18, 12, 11 ), &target ) );
+    }
+
     // --- collision: the lip only ------------------------------------------
     // Fresh tower: single scaffold cell at (11,10,10) over the stone floor.
     world.set_loaded_block( glm::ivec3( 11, 10, 10 ), scaffold );

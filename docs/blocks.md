@@ -212,10 +212,12 @@ lands as a new grounded column base — an over-extended arm can keep
 growing. Scaffolding is also
 `climbable`, with its own hang/descend feel (docs/player.md), and clicking
 a scaffold while holding scaffolding redirects by the face hit
-(RepGame::change_block — MC's use-on redirect): a side face towers onto
-the clicked column's top, the top face steps one cell in the player's
-facing direction and towers that column; sneaking places against the
-exact face hit.
+(repgame_scaffold_place_target — MC's use-on redirect): the target is the
+first non-scaffold cell walking UP from the clicked cell on a side or
+bottom face (the column's top), or walking in the player's horizontal
+facing direction on the top face — the walk skips connected scaffold
+cells, so a top click anywhere on a beam extends its end; sneaking places
+against the exact face hit.
 
 `blocks_light_down` (derived, no JSON key): bottom-aligned partial blocks —
 casts_shadow, opaque, scale.x/z=16, offset 0, scale.y<16, e.g. bottom slabs

@@ -33,6 +33,37 @@
 // Left-click damage to a mob in survival (creative kills in one hit).
 #define HIT_DAMAGE 4.0f
 
+// MC's scaffolding use-on redirect: when the clicked cell is scaffolding,
+// picks the placement cell by walking a direction while the cells are
+// scaffolding and stopping at the first non-scaffold cell. A side/bottom
+// click walks UP to the column's top (tower-building); a top-face click
+// walks in the player's horizontal facing direction — skipping the beam's
+// own cells — so a top click anywhere on a beam extends its end
+// (bridge-building). Sneaking bypasses this entirely: the caller places
+// against the exact face hit.
+bool repgame_scaffold_place_target( RepGameState &state, const glm::ivec3 &clicked, glm::ivec3 *target ) {
+    World &world = state.world;
+    const BlockState clicked_state = world.get_loaded_block( clicked );
+    if ( clicked_state.id == LAST_BLOCK_ID || !block_definition_get_definition( clicked_state.id )->is_scaffolding ) {
+        return false;
+    }
+    glm::ivec3 dir( 0, 1, 0 );
+    if ( state.block_selection.face == FACE_TOP ) {
+        // Player facing: the dominant horizontal axis of the look vector
+        // (look.xz keeps the angle_H ratio even at straight-up/down pitch).
+        const glm::vec3 look = state.camera.look;
+        dir = fabsf( look.x ) > fabsf( look.z ) ? glm::ivec3( look.x > 0.0f ? 1 : -1, 0, 0 ) : glm::ivec3( 0, 0, look.z > 0.0f ? 1 : -1 );
+    }
+    glm::ivec3 end = clicked;
+    BlockState at;
+    do {
+        end += dir;
+        at = world.get_loaded_block( end );
+    } while ( at.id != LAST_BLOCK_ID && block_definition_get_definition( at.id )->is_scaffolding );
+    *target = end;
+    return true;
+}
+
 BlockID RepGame::change_block( const int place, BlockState blockState ) {
 
     glm::ivec3 block;
@@ -44,31 +75,9 @@ BlockID RepGame::change_block( const int place, BlockState blockState ) {
         block = globalGameState.block_selection.pos_create;
         const Block *placed_def = block_definition_get_definition( blockState.id );
         if ( placed_def->is_scaffolding && !globalGameState.input.movement.sneakPressed ) {
-            // MC's use-on redirect: clicking a scaffold's top face steps
-            // one cell in the player's facing direction (bridge-building);
-            // clicking a side face steps up onto the clicked column's
-            // top (tower-building). The offset cell then climbs while it's
-            // scaffolding, so a top click beside a taller column lands on
-            // that column instead of inside it. Sneaking bypasses the
-            // redirect to place against the exact face hit.
-            const glm::ivec3 clicked = globalGameState.block_selection.pos_destroy;
-            const BlockState clicked_state = globalGameState.world.get_loaded_block( clicked );
-            if ( clicked_state.id != LAST_BLOCK_ID && block_definition_get_definition( clicked_state.id )->is_scaffolding ) {
-                glm::ivec3 dir( 0, 1, 0 );
-                if ( globalGameState.block_selection.face == FACE_TOP ) {
-                    // Player facing: the dominant horizontal axis of the
-                    // look vector (look.xz keeps the angle_H ratio even at
-                    // straight-up/down pitch).
-                    const glm::vec3 look = globalGameState.camera.look;
-                    dir = fabsf( look.x ) > fabsf( look.z ) ? glm::ivec3( look.x > 0.0f ? 1 : -1, 0, 0 ) : glm::ivec3( 0, 0, look.z > 0.0f ? 1 : -1 );
-                }
-                glm::ivec3 end = clicked + dir;
-                BlockState at = globalGameState.world.get_loaded_block( end );
-                while ( at.id != LAST_BLOCK_ID && block_definition_get_definition( at.id )->is_scaffolding ) {
-                    end.y += 1;
-                    at = globalGameState.world.get_loaded_block( end );
-                }
-                block = end;
+            glm::ivec3 redirected;
+            if ( repgame_scaffold_place_target( globalGameState, globalGameState.block_selection.pos_destroy, &redirected ) ) {
+                block = redirected;
             }
         }
         if ( placed_def->collides_with_player ) {

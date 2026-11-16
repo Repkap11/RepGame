@@ -196,6 +196,16 @@ void repgame_loot_container( RepGameState &state, const glm::ivec3 &pos, const I
 // rep_tests can drive it.
 bool repgame_use_bucket( RepGameState &state );
 
+// MC's scaffolding use-on redirect (the RepGame::change_block scaffold
+// branch): false when `clicked` isn't scaffolding, else `target` is the
+// first non-scaffold cell walking UP for a side/bottom-face click (the
+// column's top) or walking in the player's horizontal facing for a
+// top-face click — so a top click on a beam extends its end instead of
+// stacking mid-beam. Direction/face come from state.block_selection and
+// state.camera.look. Sneaking bypasses this in the caller. A free
+// function so rep_tests can drive it.
+bool repgame_scaffold_place_target( RepGameState &state, const glm::ivec3 &clicked, glm::ivec3 *target );
+
 // Right-click with the bow held: releases an arrow along the camera look
 // direction at full draw speed. Survival consumes one ARROW (hotbar first,
 // then the survival inventory); creative shoots free. False when no arrow
