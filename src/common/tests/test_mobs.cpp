@@ -1795,20 +1795,35 @@ int test_mobs( ) {
             }
             c.sidecars.mobs.clear( );
         };
-        // Nether band is chunk y -96..-33 (dimension.hpp). Every nether type
-        // is hostile — near-player-spawner only — so the seeded farm roll
-        // emits nothing there, on netherrack or on fortress brick alike.
+        // Nether band is chunk y -96..-33 (dimension.hpp). The seeded roll
+        // emits ghasts on a netherrack floor — piglins and wither skeletons
+        // left the roll for the near-player spawner (spawn_chance 0) and
+        // the enderman needs warped nylium.
         check_bool( "nether: band resolves", dimension_of_chunk( glm::ivec3( 0, -40, 0 ) ) == DIM_NETHER );
         Chunk roll_chunk;
-        bool nether_roll = false;
-        for ( int x = 0; x < 32 && !nether_roll; x++ ) {
+        bool saw_ghast = false;
+        bool other_type = false;
+        for ( int x = 0; x < 64 && !saw_ghast; x++ ) {
             fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), NETHERRACK, AIR );
-            nether_roll |= roll_chunk.spawn_mobs( );
+            if ( roll_chunk.spawn_mobs( ) ) {
+                saw_ghast = true;
+                for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
+                    other_type |= rec.type != MOB_GHAST;
+                }
+            } else {
+                chunk_free_cells( roll_chunk.cells );
+                roll_chunk.cells = nullptr;
+            }
+        }
+        check_bool( "nether roll: a netherrack chunk emits ghasts", saw_ghast );
+        check_bool( "nether roll: netherrack only emits ghasts", saw_ghast && !other_type );
+        if ( roll_chunk.cells != nullptr ) {
             chunk_free_cells( roll_chunk.cells );
             roll_chunk.cells = nullptr;
         }
-        check_bool( "nether roll: netherrack floors emit nothing", !nether_roll );
-        nether_roll = false;
+        // Fortress brick still emits nothing — ghasts won't seed on it and
+        // the spawner-owned types never roll.
+        bool nether_roll = false;
         for ( int x = 0; x < 32 && !nether_roll; x++ ) {
             fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), NETHER_BRICK, AIR );
             nether_roll |= roll_chunk.spawn_mobs( );

@@ -94,14 +94,16 @@ typedef enum {
     FIRE_CHARGE = 2137,
     BLAZE_ROD = 2138,
     BLAZE_SPAWN_EGG = 2139,
+    GHAST_SPAWN_EGG = 2140,
+    GHAST_TEAR = 2141,
 
     ITEM_ID_BASE = 2048,
-    ITEM_ID_END = 2140,
+    ITEM_ID_END = 2142,
 } ItemEnum;
 
 #define ITEM_DEFINED_BITS_LEN 12
 static const unsigned char ITEM_DEFINED_BITS[ITEM_DEFINED_BITS_LEN] = {
-0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x0f,
+0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x3f,
 };
 static inline int item_id_defined( unsigned int id ) {
     return id >= (unsigned int)ITEM_ID_BASE && id < (unsigned int)ITEM_ID_END && ( ITEM_DEFINED_BITS[ ( id - ITEM_ID_BASE ) >> 3 ] & ( 1u << ( ( id - ITEM_ID_BASE ) & 7 ) ) ) != 0;

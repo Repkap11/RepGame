@@ -45,3 +45,12 @@ wither_skeleton|models/entity/wither_skeleton.geo.json|geometry.skeleton.wither.
 # The blaze: head + 12 detached rods all pivoting at y=24 (bedrock keeps the
 # rod spin/float in animations; here MOB_ANIM_BLAZE_RODS drives them).
 blaze|models/entity/blaze.geo.json|geometry.blaze|textures/entity/blaze.tga
+# The ghast: the Bedrock geo is authored at 4.5 pixels/texel with per-face
+# UVs, so the repo copy at data/models/ghast.geo.json rescales it to texel
+# units (MobTypeDef::model_scale renders it back up) and bakes the 23°
+# tentacle splay from animation.ghast.move; the sway rides
+# MOB_ANIM_GHAST_TENTACLES. ghast_shooting is the open-mouth face shown
+# while a fireball charges. The Bedrock skins are 128x64 (HD, 2x the
+# declared 64x32 texel space) — the repo copies are downscaled to 64x32
+# since skin texels map 1:1 onto atlas layer pixels.
+ghast|repo:data/models/ghast.geo.json|geometry.ghast|repo:data/models/ghast.png,repo:data/models/ghast_shooting.png

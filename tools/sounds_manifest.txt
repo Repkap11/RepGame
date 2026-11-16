@@ -747,3 +747,18 @@ blaze_hurt_3|mc_pack/mob/blaze/hit3.wav|sfx|Blaze hurt
 blaze_hurt_4|mc_pack/mob/blaze/hit4.wav|sfx|Blaze hurt
 blaze_death|mc_pack/mob/blaze/death.wav|sfx|Blaze death
 blaze_shoot|mc_pack/mob/ghast/fireball4.wav|sfx|Blaze fireball launch
+ghast_say_1|mc_pack/mob/ghast/moan1.wav|sfx|Ghast moan
+ghast_say_2|mc_pack/mob/ghast/moan2.wav|sfx|Ghast moan
+ghast_say_3|mc_pack/mob/ghast/moan3.wav|sfx|Ghast moan
+ghast_say_4|mc_pack/mob/ghast/moan4.wav|sfx|Ghast moan
+ghast_say_5|mc_pack/mob/ghast/moan5.wav|sfx|Ghast moan
+ghast_say_6|mc_pack/mob/ghast/moan6.wav|sfx|Ghast moan
+ghast_say_7|mc_pack/mob/ghast/moan7.wav|sfx|Ghast moan
+ghast_hurt_1|mc_pack/mob/ghast/scream1.wav|sfx|Ghast hurt
+ghast_hurt_2|mc_pack/mob/ghast/scream2.wav|sfx|Ghast hurt
+ghast_hurt_3|mc_pack/mob/ghast/scream3.wav|sfx|Ghast hurt
+ghast_hurt_4|mc_pack/mob/ghast/scream4.wav|sfx|Ghast hurt
+ghast_hurt_5|mc_pack/mob/ghast/scream5.wav|sfx|Ghast hurt
+ghast_death|mc_pack/mob/ghast/death.wav|sfx|Ghast death
+ghast_charge|mc_pack/mob/ghast/charge.wav|sfx|Ghast charge scream
+ghast_shoot|mc_pack/mob/ghast/fireball4.wav|sfx|Ghast fireball launch

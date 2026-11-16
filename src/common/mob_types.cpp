@@ -45,6 +45,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_PLAYER */ {
         // Remote multiplayer players: the Bedrock humanoid (Steve skin),
@@ -91,6 +92,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_COW */ {
         .name = "cow",
@@ -134,6 +136,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_CHICKEN */ {
         .name = "chicken",
@@ -177,6 +180,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { "wing0", "wing1" },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_SHEEP */ {
         .name = "sheep",
@@ -222,6 +226,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_ZOMBIE */ {
         // Hostile: burns in daylight, never chunk-gen spawns (the night
@@ -268,6 +273,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_CREEPER */ {
         // Hostile: silent (sound_say NULL), fuses and explodes near the
@@ -313,6 +319,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_BEE */ {
         // Hovering bee: flies ~1 block over the ground and climbs over
@@ -364,6 +371,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { "rightwing_bone", "leftwing_bone" },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_CAT */ {
         // Passive; breeds on raw fish (no taming/sitting). The tail bones
@@ -411,6 +419,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.3f,
+        .model_scale = 1.0f,
     },
     /* MOB_SKELETON */ {
         // Hostile archer: burns in daylight like the zombie, spawns from the
@@ -460,6 +469,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_ZOMBIFIED_PIGLIN */ {
         // Nether hostile: the classic zombie pigman — always-hostile melee
@@ -511,6 +521,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_WITHER_SKELETON */ {
         // Nether hostile: a taller black skeleton that swings a stone sword
@@ -560,6 +571,7 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
     },
     /* MOB_BLAZE */ {
         // Nether hostile: floats on a ring of spinning head rods and lobs
@@ -606,5 +618,61 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = NULL,
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
+        .model_scale = 1.0f,
+    },
+    /* MOB_GHAST */ {
+        // Nether hostile flyer: drifts high over the cavern floor and lobs
+        // a single flat-trajectory fireball per ~4 s charge cycle at much
+        // longer range than the blaze (MOB_AI_HOSTILE_GHAST). No melee —
+        // the volley is its only attack. The geo is stored at 1/4.5 texel
+        // scale (the Bedrock source is per-face UV at 4.5 px/texel, which
+        // box-UV import can't express); model_scale renders it back at
+        // its real 4.5-block size.
+        .name = "ghast",
+        .model = MOB_MODEL_GHAST,
+        // skins[1] is the open-mouth face, swapped in while a fireball
+        // charges (update_render).
+        .skins = { MOB_SKIN_GHAST, MOB_SKIN_GHAST_GHAST_SHOOTING },
+        .skin_count = 2,
+        .hitbox_w = 4.0f,
+        .hitbox_h = 4.0f,
+        .eye_h = 2.6f,
+        .max_health = 10.0f,
+        .walk_speed = 0.008f,
+        .panic_speed = 0.0f,
+        .chase_speed = 0.02f,
+        .attack_damage = 6.0f,
+        .fall_cap = 0.0f,
+        .hover_h = 6.0f,
+        .drops = { { GHAST_TEAR, 0, 1 }, { GUNPOWDER, 0, 2 } },
+        .shear_drop = { LAST_BLOCK_ID, 0, 0 },
+        .sheared_model = MOB_MODEL_COUNT,
+        .spawn_egg = GHAST_SPAWN_EGG,
+        .held_item = LAST_BLOCK_ID,
+        .breed_items = { LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID },
+        .breeds_with_flowers = false,
+        .sound_say = "ghast_say",
+        .sound_hurt = "ghast_hurt",
+        .sound_death = "ghast_death",
+        .sound_step = NULL,
+        .step_gain = 0.0f,
+        .spawn_on = { NETHERRACK, SOUL_SAND, BLACKSTONE, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID },
+        .spawn_chance = 1.0f / 20.0f,
+        .herd_min = 1,
+        .herd_max = 2,
+        .spawn_dims = ( 1u << DIM_NETHER ),
+        .night_spawn_weight = 0.1f,
+        .burns_in_daylight = 0,
+        .ai = MOB_AI_HOSTILE_GHAST,
+        .anims = MOB_ANIM_GHAST_TENTACLES | MOB_ANIM_DEATH_TIP,
+        // No head bone — the whole body yaws onto the target; the nine
+        // tentacles_N bones are bound by name prefix in the animator.
+        .bone_head = NULL,
+        .bone_legs = { NULL, NULL, NULL, NULL },
+        .bone_arms = { NULL, NULL },
+        .bone_body = NULL,
+        .bone_wings = { NULL, NULL },
+        .gait_scale = 0.0f,
+        .model_scale = 4.5f,
     },
 };
