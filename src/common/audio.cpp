@@ -894,10 +894,10 @@ static bool sfx_decode( int idx, SfxPcm *out ) {
 // Picks a random pool variant and returns its decoded PCM, or nullptr
 // when the pool is unknown or fails to decode.
 static const SfxPcm *sfx_pool_pcm( const char *base_name ) {
-    int variants[ 16 ];
+    int variants[ 32 ];
     int num_variants = 0;
     const int num_sfx = ( int )sfx_cache.size( );
-    for ( int i = 0; i < num_sfx && num_variants < 16; i++ ) {
+    for ( int i = 0; i < num_sfx && num_variants < ( int )( sizeof( variants ) / sizeof( variants[ 0 ] ) ); i++ ) {
         if ( strcmp( SFX_SOUNDS[ i ].base, base_name ) == 0 ) {
             variants[ num_variants++ ] = i;
         }
@@ -1002,7 +1002,7 @@ void audio_init( ) {
 #endif
 }
 
-void audio_tick( long tick_number, const int music_set ) {
+void audio_tick( long tick_number, const int music_set, const bool in_cave ) {
     if ( !audio_enabled ) {
         return;
     }
@@ -1082,6 +1082,24 @@ void audio_tick( long tick_number, const int music_set ) {
     } else {
         nether_mood_at = 0;
         nether_addition_at = 0;
+    }
+    // Cave ambience: the same mood trick, keyed off the caller's skylight
+    // probe — sky 0 at the head cell means fully enclosed (deep cave or
+    // unlit interior). Overworld only: the nether band always reads sky 0
+    // and has its own mood pool. The timer resets when the player steps
+    // back into the open, so each entry starts with a short delay rather
+    // than a leftover deadline.
+    static long cave_mood_at = 0;
+    if ( in_cave && music_set == DIM_MUSIC_OVERWORLD ) {
+        if ( cave_mood_at == 0 ) {
+            cave_mood_at = tick_number + 10 * UPS_RATE;
+        }
+        if ( tick_number >= cave_mood_at ) {
+            audio_play_sfx( "cave" );
+            cave_mood_at = tick_number + ( 60 + rand( ) % 60 ) * UPS_RATE;
+        }
+    } else {
+        cave_mood_at = 0;
     }
 #if !defined( REPGAME_WASM )
     // Reap finished plays: once a flushed stream has no queued input and

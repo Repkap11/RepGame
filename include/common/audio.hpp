@@ -41,8 +41,10 @@ void audio_init( );
 // gap and reaps finished one-shot SFX streams. `music_set` is the dimension
 // music set (DIM_MUSIC_* in dimension_profile.hpp) the rotation draws from;
 // when it changes (dimension hop) the in-flight track is cut and the new
-// set starts after a short delay instead of the full random gap.
-void audio_tick( long tick_number, int music_set );
+// set starts after a short delay instead of the full random gap. `in_cave`
+// is the caller's enclosed-space probe (skylight 0 at the head cell) and
+// gates the cave-ambience mood sounds.
+void audio_tick( long tick_number, int music_set, bool in_cave );
 // Plays a random variant of the named SFX pool (manifest names dig_1..dig_n
 // all belong to base "dig"). Unknown/empty pools are ignored.
 void audio_play_sfx( const char *base_name );
@@ -66,7 +68,7 @@ void audio_cleanup( );
 
 static inline void audio_init( ) {
 }
-static inline void audio_tick( long tick_number, int music_set ) {
+static inline void audio_tick( long tick_number, int music_set, bool in_cave ) {
 }
 static inline void audio_play_sfx( const char *base_name ) {
 }

@@ -10,6 +10,7 @@
 #include "common/audio.hpp"
 #include "common/dimension.hpp"
 #include "common/dimension_profile.hpp"
+#include "common/light.hpp"
 #include "common/block_definitions.hpp"
 #include "common/utils/profile.hpp"
 #include "common/world.hpp"
@@ -107,8 +108,16 @@ void RepGame::advance_clocks( ) {
     globalGameState.tick_number++;
     // Music scheduling + one-shot SFX reaping (no-op without REPGAME_AUDIO).
     // The dimension's music set selects the rotation (nether tracks play
-    // underground in the nether band).
-    audio_tick( globalGameState.tick_number, dimension_profile( dimension_of_pos( globalGameState.camera.pos ) )->music_set );
+    // underground in the nether band). Cave ambience detection reuses the
+    // packed light volume: one O(1) probe of the sky channel at the head
+    // cell — 0 means fully enclosed (deep cave or sealed unlit interior),
+    // which is the whole "in a cave" test. A still-loading/unloaded chunk
+    // reports -1 and counts as open air.
+    const glm::ivec3 head_cell( ( int )floor( globalGameState.camera.pos.x ),
+                                ( int )floor( globalGameState.camera.pos.y ),
+                                ( int )floor( globalGameState.camera.pos.z ) );
+    const bool in_cave = globalGameState.world.chunkLoader.light_probe( head_cell, LIGHT_CHANNEL_SKY ) == 0;
+    audio_tick( globalGameState.tick_number, dimension_profile( dimension_of_pos( globalGameState.camera.pos ) )->music_set, in_cave );
     // Feed the tick to the light pool: the BFS starve window measures backlog
     // age in ticks so the seed hot paths never read the clock.
     globalGameState.world.chunkLoader.light_note_tick( globalGameState.tick_number );
