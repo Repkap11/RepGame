@@ -107,10 +107,10 @@ See `docs/models.md`.
 - `src/common/tests/` — the in-game `rep_tests` suite, one file per
   subsystem, run via `RepGame --tests` / `make tests`
 - `src/common/utils/map_storage.cpp` + `player_data.cpp` — per-chunk save
-  records and `player.dat`. Two backends store the record blobs: a sqlite
-  `world.db` (server + linux/arm/steamframe, vendored amalgamation in
-  `sqlite_build/` via `make install`) and loose `<kind>_<x>_<y>_<z>`
-  files (Windows only). WASM/Android persist
+  records and `player.dat`. The record blobs live in a sqlite
+  `world.db` (server + all native clients, vendored amalgamation in
+  `sqlite_build/` via `make install`); loose `<kind>_<x>_<y>_<z>` files
+  survive only as the legacy read/migration format. WASM/Android persist
   no per-chunk state. The player save is a human-readable text format
   (`include/common/player_data.hpp`), with the five historical binary
   layouts still accepted on read

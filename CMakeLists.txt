@@ -83,12 +83,13 @@ if(REPGAME_BUILD_CLIENT AND NOT EXISTS ${CMAKE_SOURCE_DIR}/imgui_build)
 endif()
 
 # SQLite world storage (world.db) backs the per-chunk file kinds on the
-# server and the native single-player clients (linux/arm/steamframe — all
-# POSIX; the blob lock is pthread_mutex_t). Windows/wasm/android keep the
-# loose-file backend — wasm/android never persist world files anyway.
+# server and every native client (linux/arm/steamframe/windows — the blob
+# lock is pthread_mutex_t, which mingw provides via winpthreads).
+# wasm/android are the only exclusions: they never persist world files.
 set(REPGAME_SQLITE OFF)
 if(REPGAME_BUILD_SERVER OR REPGAME_PLATFORM STREQUAL "linux" OR
-		REPGAME_PLATFORM STREQUAL "arm" OR REPGAME_PLATFORM STREQUAL "steamframe")
+		REPGAME_PLATFORM STREQUAL "arm" OR REPGAME_PLATFORM STREQUAL "steamframe" OR
+		REPGAME_PLATFORM STREQUAL "windows")
 	set(REPGAME_SQLITE ON)
 endif()
 if(REPGAME_SQLITE AND NOT EXISTS ${CMAKE_SOURCE_DIR}/sqlite_build/sqlite3.c)

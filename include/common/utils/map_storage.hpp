@@ -134,10 +134,11 @@ class MapStorage {
 
     // ---- Storage backend ---------------------------------------------------
     // Each per-chunk record kind is a "blob": the byte payload one
-    // <kind>_<x>_<y>_<z> file held. Two backends store blobs — loose files
-    // (fopen tmp+rename / stat / readdir) and a sqlite world.db (compiled
-    // where REPGAME_MAP_SQLITE links the vendored amalgamation: server +
-    // linux client). The codecs never see the difference — read_kind_blob
+    // <kind>_<x>_<y>_<z> file held. The sqlite world.db (compiled where
+    // REPGAME_MAP_SQLITE links the vendored amalgamation: server + all
+    // native clients) is the only write backend — loose files survive
+    // purely as the legacy read format (migration import + init_readonly
+    // inspection). The codecs never see the difference — read_kind_blob
     // hands back the stored bytes either way, and persists encode into a
     // buffer that store_kind_blob then makes durable.
     bool use_sqlite( ) const {
@@ -151,10 +152,10 @@ class MapStorage {
     // exists — even when it holds zero bytes.
     int read_kind_blob( int kind, const glm::ivec3 &pos, std::vector<unsigned char> &out );
     // Stores `len` bytes as the record for (kind, pos): INSERT OR REPLACE
-    // on sqlite, sibling-tmp+rename on files. Indexes once durable.
-    // 1 on success.
+    // on sqlite. Indexes once durable. 1 on success — 0 when there is no
+    // writable backend (no loose-file fallback exists anymore).
     int store_kind_blob( int kind, const glm::ivec3 &pos, const void *data, size_t len );
-    // Deletes the kind's record at pos (unlink or DELETE) + unindexes it.
+    // Deletes the kind's record at pos (DELETE row) + unindexes it.
     void remove_kind( int kind, const glm::ivec3 &pos );
     // First 4 bytes of the stored blob (format magic peek). False = absent.
     bool peek_kind_u32( int kind, const glm::ivec3 &pos, uint32_t &out );
@@ -176,7 +177,13 @@ class MapStorage {
     // Serializes sqlite calls (client terrain workers persist
     // concurrently) and is held across a batch_begin/end transaction
     // span. Recursive so blob writes inside a batch re-lock harmlessly.
+    // Recursive-initializer spelling: _NP is glibc-only, mingw's
+    // winpthreads ships only the POSIX name.
+#if defined( REPGAME_WINDOWS )
+    pthread_mutex_t db_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+#else
     pthread_mutex_t db_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
     int db_txn_depth = 0;
     // Opens <map_name>/world.db (create + migrate loose files when `create`,
     // read-only otherwise). Returns 1 when the sqlite backend went live.

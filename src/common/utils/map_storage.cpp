@@ -430,27 +430,12 @@ int MapStorage::store_kind_blob( int kind, const glm::ivec3 &pos, const void *da
         return 1;
     }
 #endif
-    // Write a sibling temp then rename on commit: a mid-write crash/kill
-    // must not leave a truncated record in place.
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
-    char tmp_path[ CHUNK_NAME_MAX_LENGTH + 8 ];
-    snprintf( tmp_path, sizeof( tmp_path ), "%s.tmp", file_name );
-    FILE *f = fopen( tmp_path, "wb" );
-    if ( f == nullptr ) {
-        pr_debug( "open failed for write:%s", file_name );
-        return 0;
-    }
-    const int ok = fwrite( data, 1, len, f ) == len;
-    fclose( f );
-    if ( !ok || rename( tmp_path, file_name ) != 0 ) {
-        pr_debug( "persist failed for:%s", file_name );
-        remove( tmp_path );
-        return 0;
-    }
-    // Index only once the file is durable: the temp write must not count.
-    this->index_insert( kind, pos );
-    return 1;
+    // No writable backend (readonly open, or a build without sqlite):
+    // nothing may write the loose <kind>_<x>_<y>_<z> format anymore.
+    pr_debug( "store_kind_blob: no backend for kind=%d pos=(%d,%d,%d)", kind, pos.x, pos.y, pos.z );
+    ( void )data;
+    ( void )len;
+    return 0;
 }
 
 void MapStorage::remove_kind( int kind, const glm::ivec3 &pos ) {
@@ -468,10 +453,10 @@ void MapStorage::remove_kind( int kind, const glm::ivec3 &pos ) {
         return;
     }
 #endif
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
-    remove( file_name );
-    this->index_remove( kind, pos );
+    // Without sqlite there is no record store to delete from — loose
+    // files are never touched (a legacy dir opens read-only).
+    ( void )kind;
+    ( void )pos;
 }
 
 bool MapStorage::peek_kind_u32( int kind, const glm::ivec3 &pos, uint32_t &out ) {

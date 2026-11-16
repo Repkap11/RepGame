@@ -43,21 +43,21 @@ sections below. `MapStorage` has two backends for storing blobs:
 
 - **`world.db` (sqlite)** — built where `REPGAME_MAP_SQLITE` links the
   vendored amalgamation (`sqlite_build/`, fetched by `make install` /
-  `make server-install`): the dedicated server and the
-  linux/arm/steamframe clients. One row per record:
+  `make server-install`): the dedicated server and every native client
+  (linux/arm/steamframe/windows). One row per record:
   `entries(kind, x, y, z, data)` — `data` is the *exact* byte stream a
   loose file held, so every codec (v1 magic, `record_size` prefix,
   legacy decode, `needs_rewrite`) is byte-identical across backends.
   WAL journal + `synchronous=NORMAL` is app-crash durable; persisting a
   chunk and its sidecars commits in one transaction (`batch_begin`/
   `batch_end`), and `enable_file_index` fills the save-file index with
-  one `SELECT` instead of a `readdir`.
-- **Loose files** — the classic backend: one `<kind>_<x>_<y>_<z>` file
-  per record under the world dir, tmp+rename on write. Only used where
-  sqlite isn't built (Windows); on sqlite builds an unopenable
-  `world.db` is fatal (`repgame_fatal`) — nothing writes the old format
-  there anymore. `init_readonly` still reads a legacy loose-file dir
-  when no `world.db` exists.
+  one `SELECT` instead of a `readdir`. This is the only *write* backend
+  — an unopenable `world.db` is fatal (`repgame_fatal`).
+- **Loose files** — the legacy format: one `<kind>_<x>_<y>_<z>` file
+  per record under the world dir. Nothing writes this format anymore;
+  it survives only as a read source — `init`'s one-shot import into
+  `world.db`, and `init_readonly` inspection of pre-migration dirs
+  (e.g. `rep-dbg inspect` on an old world or backup).
 
 **Migration is automatic**: on `init`, `sqlite_open` imports every loose
 `<kind>_*` file it finds into `world.db` (one transaction), then unlinks
@@ -97,11 +97,9 @@ size differs from this build's sets `ChunkEdits::needs_rewrite` so it is
 rewritten in v1 on the next persist. Persisting an empty run set
 removes the file.
 
-Writes are atomic on both backends: on loose files every persist writes
-a sibling `*.tmp` then renames, so a crash or kill mid-write leaves the
-previous file intact rather than a truncated stream that would decode
-as a shorter edit list; on `world.db` the blob lands inside a WAL
-commit. A record that exists but fails to decode is never rewritten
+Writes are atomic: every `world.db` blob lands inside a WAL commit.
+(The old loose-file backend did the same with a sibling `*.tmp` +
+rename.) A record that exists but fails to decode is never rewritten
 from a partial or empty read — `load_chunk_edits` fails closed,
 `ServerLogic` refuses to merge such a chunk into its edit cache (the
 new edit is dropped for that chunk, the stored data survives), and
