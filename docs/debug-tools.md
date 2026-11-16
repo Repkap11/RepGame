@@ -259,7 +259,7 @@ aggregate cleanly and A/B well.
   compares budgets across cfgs.
 - Instrumented sites: `profile.hpp`/`game_tick.cpp` ("tick"),
   `game_render.cpp` ("draw_frame"), `world.cpp` ("world_draw"),
-  `light.cpp` ("light_bfs" — per-column BFS drain on the light workers, "light_finalize"),
+  `light.cpp`/`light_chunks.cpp` ("light_bfs" — per-column BFS drain on the light workers, "light_finalize"),
   `terrain_loading_thread.cpp` ("terrain_job"), `chunk.cpp`
   ("chunk_mesh"), `mobs.cpp` ("mobs_tick"), `player.cpp`
   ("player_movement", "block_updates"). Implementation:

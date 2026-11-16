@@ -269,7 +269,7 @@ class ChunkLoader {
     // light_stale flags as a per-slot atomic bitset (one bit per chunkArray
     // slot; Chunk::light_stale_word/_bit bind into it in init). light_heal_
     // idle walks words and skips zeros instead of probing every Chunk
-    // record (see light_heal_idle in light.cpp).
+    // record (see light_heal_idle in light_thread.cpp).
     static constexpr int LIGHT_STALE_WORDS = ( MAX_LOADED_CHUNKS + 63 ) / 64;
     std::atomic<uint64_t> light_stale_bits[ LIGHT_STALE_WORDS ]{};
 
@@ -313,9 +313,11 @@ class ChunkLoader {
     void remesh_now( Chunk &chunk );
     void remesh_group( Chunk &chunk );
 
-    // Flood-fill lighting (implemented in light.cpp). Light-state mutation is
+    // Flood-fill lighting (implemented in light.cpp, light_chunks.cpp,
+    // light_upload.cpp and light_thread.cpp; shared internals live in
+    // light_internal.hpp). Light-state mutation is
     // owned by the lighting worker pool when it runs — workers process jobs
-    // under 5x5 column claims (see light.cpp) — otherwise the calling thread
+    // under 5x5 column claims (see light_thread.cpp) — otherwise the calling thread
     // (tests, WASM without pthreads) does everything inline.
     //
     // Add seeds are bucketed by the light level written at push time and
@@ -346,7 +348,7 @@ class ChunkLoader {
     // backlog cap may refuse; producer pushes leave it false.
     void light_push_remove_seed( const glm::ivec3 &block_pos, int channel, int old_value, bool internal = false );
     static int light_emit_at( const Chunk &chunk, int index );
-    // Null-light (uniform volume) helpers — light.cpp.
+    // Null-light (uniform volume) helpers — light_internal.hpp.
     static inline unsigned short light_read_cell( const Chunk &chunk, int idx );
     static void light_materialize( Chunk &chunk );
     static inline void light_write_cell( Chunk &chunk, int idx, unsigned short nv );

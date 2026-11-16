@@ -6,7 +6,7 @@
 #endif
 
 // The "Shadows" pause-menu setting: SMOOTH uploads the raw chamfer light
-// field; SMOOTHER applies the air-gated 3x3x3 upload-time blur (light.cpp).
+// field; SMOOTHER applies the air-gated 3x3x3 upload-time blur (light_upload.cpp).
 // REPGAME_LIGHT_SMOOTH overrides it when set.
 enum ShadowQuality { SHADOW_SMOOTH = 0, SHADOW_SMOOTHER = 1, SHADOW_QUALITY_LAST };
 

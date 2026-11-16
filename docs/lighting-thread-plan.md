@@ -342,7 +342,7 @@ Done on branch `lighting`:
 
 - `LIGHT_ON_THREAD` in light.hpp: 1 on native, 0 on WASM-no-pthreads.
 - `ChunkLoader::light_thread_start/stop/loop` + `light_submit_finalize` /
-  `light_submit_recheck` in light.cpp. One mutex+cv (`light_work_mutex`)
+  `light_submit_recheck` in light_thread.cpp. One mutex+cv (`light_work_mutex`)
   guards jobs, pending list, dirty-upload list. Statics are file-scope —
   ChunkLoader is effectively a singleton.
 - Render loop: `light_submit_finalize` replaces inline finalize;

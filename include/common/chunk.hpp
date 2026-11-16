@@ -116,7 +116,7 @@ static inline unsigned int chunk_face_mask( const glm::ivec3 &pos, const glm::iv
            ( ( pos.x >= center.x ) << 3 ) | ( ( pos.y <= center.y ) << 4 ) | ( ( pos.y >= center.y ) << 5 );
 }
 
-// ---- Flood-fill lighting (light.cpp) ----
+// ---- Flood-fill lighting (src/common/light*.cpp) ----
 // One chunk's whole light pipeline state: the packed volume, the masks the
 // texture upload derives from it, and every flag/staging field the async
 // workers and the render thread coordinate through. Plain struct — Chunk
@@ -131,7 +131,7 @@ struct ChunkLight {
     // Kept out of the mesh entirely so light changes never force a
     // remesh: the fragment shader samples the matching 3D texture instead.
     // nullptr means the whole volume is uniform: every cell reads
-    // uniform (light.cpp reads via light_read_cell; writes materialize
+    // uniform (light_internal.hpp reads via light_read_cell; writes materialize
     // the array only when the new value differs).
     unsigned short *volume;
     unsigned short uniform;
@@ -180,7 +180,7 @@ struct ChunkLight {
     // Set by a light worker when a seed targeting this chunk was refused
     // under the backlog cap (also sets reseed so the heal relights
     // fully); healed by a re-finalize on near-radius entry or the render
-    // thread's idle scan (light_heal_* in light.cpp). The flag itself is one
+    // thread's idle scan (light_heal_* in light_thread.cpp). The flag itself is one
     // bit in ChunkLoader::light_stale_bits (64 slots per word) — the heal
     // scan then skips empty words instead of probing every Chunk record.
     // Bound in ChunkLoader::init / test_setup_world; unbound chunks
@@ -477,13 +477,13 @@ class Chunk {
     // block sides) until some later move happens to recalc.
     unsigned int sides_mask;
 
-    // ---- Flood-fill lighting (light.cpp) — see ChunkLight above ----
+    // ---- Flood-fill lighting (src/common/light*.cpp) — see ChunkLight above ----
     ChunkLight light;
 
     static int can_extend_rect( const BlockCell *cells, const BlockExtra *extras, const BlockState &blockState, const unsigned int *packed_lighting, const WorkingSpace *workingSpace, const glm::ivec3 &starting, const glm::ivec3 &size, const glm::ivec3 &dir );
 
     // Fills the 26-slot neighbour predicate table the upload-time light
-    // smoother uses for boundary (halo) texels — light.cpp. Member function
+    // smoother uses for boundary (halo) texels — light_upload.cpp. Member function
     // because it reads other chunks' private light/cells fields; the
     // ChunkLoader friend calls it for the dirty-upload path too.
     static void light_nb_ctxs( const ChunkLoader &loader, const glm::ivec3 &pos, const glm::ivec3 &center,

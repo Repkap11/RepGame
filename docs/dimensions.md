@@ -69,7 +69,7 @@ bypass dimensions entirely.
 
 ## Lighting + environment
 
-`has_sky = 0` in the nether gates the skylight model in `light.cpp`: no
+`has_sky = 0` in the nether gates the skylight model in `light_chunks.cpp`: no
 column fills, no boundary sky seeds, no cascade sky contribution — the
 band is lit only by lava/fire/glowstone/portal emitters. Rendering keys
 off the profile too: `World::draw` swaps the panorama skybox for a

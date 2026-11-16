@@ -7,6 +7,14 @@ and propagation algorithm; the worker/queue concurrency design lives in
 `docs/lighting-thread-plan.md`, and the shader-side sampling tunables in
 `docs/rendering.md`.
 
+Implementation lives in four files, split by concern: `light.cpp`
+(cell access, seed queues, BFS propagation), `light_chunks.cpp`
+(column setup/finalization, border sync, `light_fill_chunk`),
+`light_upload.cpp` (GPU upload, mipmaps, smoothing, staging pool) and
+`light_thread.cpp` (job lanes, column claims, the worker loop, healing,
+debug counters). Shared state and hot inline helpers live in
+`include/common/light_internal.hpp`.
+
 ## Storage
 
 `Chunk::light[]` (`include/common/light.hpp`,
@@ -99,7 +107,7 @@ also seals the downward hop of any diagonal route through it.
 ## Propagation
 
 Two work functions, both 18-direction chamfer BFS over `ChunkLoader`'s
-queues (`src/common/light.cpp`). `light_step_dirs` lists the step set: 6
+queues (`src/common/light.cpp`, `light_internal.hpp`). `light_step_dirs` lists the step set: 6
 face steps at cost 17 (one level) and 12 edge diagonals at 24 (≈√2·17).
 Corner diagonals aren't steps — corner-to-corner light arrives via
 edge + face at 41. (The old 8 corner steps at 29 were dropped after A/B
@@ -158,7 +166,7 @@ and later re-finalized ("healed", `light_heal_chunk`, bounded by
 `LIGHT_HEAL_PER_SHIFT` per grid shift plus `light_heal_idle`).
 
 All of the above is gated per dimension band: where
-`dimension_profile(dim)->has_sky` is 0 (the nether) `light.cpp` skips the
+`dimension_profile(dim)->has_sky` is 0 (the nether) `light_chunks.cpp` skips the
 column fills, boundary sky seeds and the cascade's sky contribution, so
 the band is lit only by block emitters (`docs/dimensions.md`).
 
