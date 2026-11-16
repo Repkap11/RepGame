@@ -173,15 +173,13 @@ void MapStorage::init( const char *world_name ) {
     mkdir_p( this->map_name );
     pr_debug( "Map dir ready:%s", this->map_name );
 #if defined( REPGAME_MAP_SQLITE )
-    // No loose-file fallback: on a sqlite build nothing may write the old
-    // <kind>_<x>_<y>_<z> format, so an unopenable world.db is fatal.
-    if ( this->sqlite_open( true ) ) {
-        pr_debug( "Map backend: sqlite world.db" );
-    } else {
-        repgame_fatal( );
-    }
+    // world.db opens lazily on the first blob op that needs the backend
+    // (see db_wanted): a multiplayer client never touches chunk storage,
+    // so it never gets an empty world.db file.
+    this->db_wanted = true;
+    pr_debug( "Map backend: sqlite world.db" );
 #else
-    pr_debug( "Map backend: loose files" );
+    pr_debug( "Map backend: no local chunk storage" );
 #endif
     free( dir );
 }
@@ -225,10 +223,11 @@ void MapStorage::sqlite_close( ) {
     if ( this->db == nullptr ) {
         return;
     }
-    // A still-open batch means the object died mid-transaction: roll it
+    // A still-open transaction means the object died mid-batch: roll it
     // back rather than commit a torn group.
-    if ( this->db_txn_depth > 0 ) {
+    if ( this->db_txn_open ) {
         this->sqlite_exec( "ROLLBACK" );
+        this->db_txn_open = false;
         this->db_txn_depth = 0;
     }
     sqlite3_stmt *stmts[] = { this->stmt_get,  this->stmt_put,       this->stmt_del,  this->stmt_exists,
@@ -250,6 +249,42 @@ int MapStorage::sqlite_exec( const char *sql ) {
         sqlite3_free( err );
     }
     return rc == SQLITE_OK;
+}
+
+// Opens world.db on first use (init() only marks it wanted — see
+// db_wanted). Caller holds db_mutex. A failed open is fatal: writes have
+// no loose-file fallback.
+int MapStorage::ensure_db( ) {
+    if ( this->db == nullptr ) {
+        if ( !this->db_wanted ) {
+            return 0;
+        }
+        if ( this->sqlite_open( true ) ) {
+            pr_debug( "sqlite world.db ready:%s/world.db", this->map_name );
+        } else {
+            repgame_fatal( );
+        }
+    }
+    // First real op inside a batch whose db wasn't open at batch_begin:
+    // issue the deferred BEGIN here, before the statement.
+    if ( this->db_txn_depth > 0 && !this->db_txn_open ) {
+        this->db_txn_open = this->sqlite_exec( "BEGIN IMMEDIATE" ) != 0;
+    }
+    return 1;
+}
+
+// Read-side counterpart of ensure_db: opens world.db only when the file
+// already exists. A missing db is just an empty store — pre-migration
+// loose files still answer via the file backend below, and probing
+// reads never materialize a database file. Caller holds db_mutex.
+int MapStorage::ensure_db_read( ) {
+    if ( this->db != nullptr || !this->db_wanted ) {
+        return this->db != nullptr;
+    }
+    char db_path[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( db_path, sizeof( db_path ), "%s/world.db", this->map_name );
+    struct stat st;
+    return stat( db_path, &st ) == 0 && this->sqlite_open( true );
 }
 
 int MapStorage::sqlite_open( bool create ) {
@@ -388,8 +423,9 @@ void MapStorage::migrate_loose_files( ) {
 int MapStorage::read_kind_blob( int kind, const glm::ivec3 &pos, std::vector<unsigned char> &out ) {
     out.clear( );
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         DbLock lock( this->db_mutex );
+        if ( this->ensure_db_read( ) ) {
         sqlite3_stmt *st = this->stmt_get;
         sqlite3_bind_int( st, 1, kind );
         sqlite3_bind_int( st, 2, pos.x );
@@ -406,6 +442,7 @@ int MapStorage::read_kind_blob( int kind, const glm::ivec3 &pos, std::vector<uns
         }
         sqlite3_reset( st );
         return got;
+        }
     }
 #endif
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -415,8 +452,9 @@ int MapStorage::read_kind_blob( int kind, const glm::ivec3 &pos, std::vector<uns
 
 int MapStorage::store_kind_blob( int kind, const glm::ivec3 &pos, const void *data, size_t len ) {
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         DbLock lock( this->db_mutex );
+        if ( this->ensure_db( ) ) {
         sqlite3_stmt *st = this->stmt_put;
         sqlite3_bind_int( st, 1, kind );
         sqlite3_bind_int( st, 2, pos.x );
@@ -432,6 +470,7 @@ int MapStorage::store_kind_blob( int kind, const glm::ivec3 &pos, const void *da
         sqlite3_reset( st );
         this->index_insert( kind, pos );
         return 1;
+        }
     }
 #endif
     // No writable backend (readonly open, or a build without sqlite):
@@ -444,8 +483,9 @@ int MapStorage::store_kind_blob( int kind, const glm::ivec3 &pos, const void *da
 
 void MapStorage::remove_kind( int kind, const glm::ivec3 &pos ) {
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         DbLock lock( this->db_mutex );
+        if ( this->ensure_db( ) ) {
         sqlite3_stmt *st = this->stmt_del;
         sqlite3_bind_int( st, 1, kind );
         sqlite3_bind_int( st, 2, pos.x );
@@ -455,6 +495,7 @@ void MapStorage::remove_kind( int kind, const glm::ivec3 &pos ) {
         sqlite3_reset( st );
         this->index_remove( kind, pos );
         return;
+        }
     }
 #endif
     // Without sqlite there is no record store to delete from — loose
@@ -465,8 +506,9 @@ void MapStorage::remove_kind( int kind, const glm::ivec3 &pos ) {
 
 bool MapStorage::peek_kind_u32( int kind, const glm::ivec3 &pos, uint32_t &out ) {
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         DbLock lock( this->db_mutex );
+        if ( this->ensure_db_read( ) ) {
         sqlite3_stmt *st = this->stmt_peek;
         sqlite3_bind_int( st, 1, kind );
         sqlite3_bind_int( st, 2, pos.x );
@@ -479,6 +521,7 @@ bool MapStorage::peek_kind_u32( int kind, const glm::ivec3 &pos, uint32_t &out )
         }
         sqlite3_reset( st );
         return got;
+        }
     }
 #endif
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -498,8 +541,9 @@ int MapStorage::enumerate_kind( int kind, std::vector<glm::ivec3> &out ) {
     }
     int n = 0;
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         DbLock lock( this->db_mutex );
+        if ( this->ensure_db_read( ) ) {
         sqlite3_stmt *st = this->stmt_kind_enum;
         sqlite3_bind_int( st, 1, kind );
         while ( sqlite3_step( st ) == SQLITE_ROW ) {
@@ -508,6 +552,7 @@ int MapStorage::enumerate_kind( int kind, std::vector<glm::ivec3> &out ) {
         }
         sqlite3_reset( st );
         return n;
+        }
     }
 #endif
     DIR *d = opendir( this->map_name );
@@ -532,8 +577,9 @@ long MapStorage::stored_size( int kind, const glm::ivec3 &pos ) {
         return -1;
     }
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         DbLock lock( this->db_mutex );
+        if ( this->ensure_db_read( ) ) {
         sqlite3_stmt *st = this->stmt_size;
         sqlite3_bind_int( st, 1, kind );
         sqlite3_bind_int( st, 2, pos.x );
@@ -545,6 +591,7 @@ long MapStorage::stored_size( int kind, const glm::ivec3 &pos ) {
         }
         sqlite3_reset( st );
         return size;
+        }
     }
 #endif
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
@@ -562,22 +609,24 @@ int MapStorage::write_kind_blob( int kind, const glm::ivec3 &pos, const void *da
 
 void MapStorage::batch_begin( ) {
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->db == nullptr ) {
-        return;
-    }
     pthread_mutex_lock( &this->db_mutex );
-    if ( this->db_txn_depth++ == 0 ) {
-        this->sqlite_exec( "BEGIN IMMEDIATE" );
+    // When the db isn't open yet the BEGIN defers to the first
+    // store/removal inside (see ensure_db) — an empty batch never
+    // materializes world.db.
+    if ( this->db != nullptr && this->db_txn_depth == 0 && !this->db_txn_open ) {
+        this->db_txn_open = this->sqlite_exec( "BEGIN IMMEDIATE" ) != 0;
     }
+    this->db_txn_depth++;
 #endif
 }
 
 void MapStorage::batch_end( ) {
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->db == nullptr ) {
+    if ( this->db_txn_depth <= 0 ) {
         return;
     }
-    if ( --this->db_txn_depth == 0 ) {
+    if ( --this->db_txn_depth == 0 && this->db_txn_open ) {
+        this->db_txn_open = false;
         this->sqlite_exec( "COMMIT" );
     }
     pthread_mutex_unlock( &this->db_mutex );
@@ -643,22 +692,26 @@ void MapStorage::enable_file_index( ) {
     this->file_index_enabled = true;
     size_t indexed = 0;
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         // One SELECT instead of a readdir — every stored row is a blob.
+        // ensure_db also makes the server's startup call perform the lazy
+        // open (and loose-file import) right away.
         DbLock lock( this->db_mutex );
-        sqlite3_stmt *st = this->stmt_enum;
-        while ( sqlite3_step( st ) == SQLITE_ROW ) {
-            const int kind = sqlite3_column_int( st, 0 );
-            if ( kind >= 0 && kind < MAP_FILE_KIND_COUNT ) {
-                this->file_index[ kind ].insert(
-                    pack_chunk_coords( sqlite3_column_int( st, 1 ), sqlite3_column_int( st, 2 ),
-                                       sqlite3_column_int( st, 3 ) ) );
-                indexed++;
+        if ( this->ensure_db( ) ) {
+            sqlite3_stmt *st = this->stmt_enum;
+            while ( sqlite3_step( st ) == SQLITE_ROW ) {
+                const int kind = sqlite3_column_int( st, 0 );
+                if ( kind >= 0 && kind < MAP_FILE_KIND_COUNT ) {
+                    this->file_index[ kind ].insert(
+                        pack_chunk_coords( sqlite3_column_int( st, 1 ), sqlite3_column_int( st, 2 ),
+                                           sqlite3_column_int( st, 3 ) ) );
+                    indexed++;
+                }
             }
+            sqlite3_reset( st );
+            pr_debug( "file index: %zu rows in %s/world.db", indexed, this->map_name );
+            return;
         }
-        sqlite3_reset( st );
-        pr_debug( "file index: %zu rows in %s/world.db", indexed, this->map_name );
-        return;
     }
 #endif
     DIR *dir = opendir( this->map_name );
@@ -931,7 +984,7 @@ int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &ou
 }
 
 void MapStorage::persist_chunk( const Chunk &chunk ) {
-    if ( world_storage_off( ) ) {
+    if ( world_storage_off( ) || !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return;
     }
     this->batch_begin( ); // one sqlite txn for the chunk + its sidecars
@@ -1013,8 +1066,9 @@ int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
         return this->file_index[ MAP_FILE_CHUNK ].count( pack_chunk_coords( chunk_offset.x, chunk_offset.y, chunk_offset.z ) ) ? 1 : 0;
     }
 #if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
+    {
         DbLock lock( this->db_mutex );
+        if ( this->ensure_db_read( ) ) {
         sqlite3_stmt *st = this->stmt_exists;
         sqlite3_bind_int( st, 1, MAP_FILE_CHUNK );
         sqlite3_bind_int( st, 2, chunk_offset.x );
@@ -1023,6 +1077,7 @@ int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
         const int exists = sqlite3_step( st ) == SQLITE_ROW;
         sqlite3_reset( st );
         return exists;
+        }
     }
 #endif
     char file_name[ CHUNK_NAME_MAX_LENGTH ];

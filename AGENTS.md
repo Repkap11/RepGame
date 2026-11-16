@@ -109,9 +109,11 @@ See `docs/models.md`.
 - `src/common/utils/map_storage.cpp` + `player_data.cpp` — per-chunk save
   records and `player.dat`. The record blobs live in a sqlite
   `world.db` (server + all native clients, vendored amalgamation in
-  `sqlite_build/` via `make install`); loose `<kind>_<x>_<y>_<z>` files
-  survive only as the legacy read/migration format. WASM/Android persist
-  no per-chunk state. The player save is a human-readable text format
+  `sqlite_build/` via `make install`), which opens lazily on the first
+  record op — a multiplayer client never creates one; loose
+  `<kind>_<x>_<y>_<z>` files survive only as the legacy read/migration
+  format. WASM/Android persist no per-chunk state. The player save is a
+  human-readable text format
   (`include/common/player_data.hpp`), with the five historical binary
   layouts still accepted on read
 - `src/linux/` — SDL3 desktop client (also base for ARM/SteamFrame/Windows)

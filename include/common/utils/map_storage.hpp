@@ -185,9 +185,22 @@ class MapStorage {
     pthread_mutex_t db_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 #endif
     int db_txn_depth = 0;
+    // A BEGIN IMMEDIATE is outstanding on the connection (vs. batch depth,
+    // which counts begin/end pairs — the two differ while the db is still
+    // unopened inside a deferred batch).
+    bool db_txn_open = false;
+    // init() marks world.db wanted but doesn't open it: the db file
+    // materializes on the first blob op that needs the backend, so a
+    // multiplayer client (or a session that never persists a chunk)
+    // never creates an empty world.db.
+    bool db_wanted = false;
     // Opens <map_name>/world.db (create + migrate loose files when `create`,
     // read-only otherwise). Returns 1 when the sqlite backend went live.
     int sqlite_open( bool create );
+    // Performs the lazy open — caller holds db_mutex; fatal on failure.
+    int ensure_db( );
+    // Read-side variant: opens only an existing world.db, never creates.
+    int ensure_db_read( );
     // Finalizes the prepared statements and closes the handle. Open a new
     // db with sqlite_open afterwards if needed — used by the destructor.
     void sqlite_close( );
@@ -307,14 +320,21 @@ class MapStorage {
     // payloads without depending on the loose-file layout. 1 on success.
     int write_kind_blob( int kind, const glm::ivec3 &pos, const void *data, size_t len );
     // Groups persists into one sqlite transaction (BEGIN IMMEDIATE at
-    // depth 0, COMMIT when the last ends). Nested calls ref-count; both
-    // are no-ops on the file backend. The mutex is held across the span so
-    // a worker's transaction can't interleave statements.
+    // depth 0 once the db is open, COMMIT when the last ends). Nested
+    // calls ref-count; both are no-ops on the file backend. The mutex is
+    // held across the span so a worker's transaction can't interleave
+    // statements. A batch whose db isn't open yet defers the BEGIN to the
+    // first store/removal inside, so a no-op batch creates nothing.
     void batch_begin( );
     void batch_end( );
-    // "files" or "world.db" — debug/log labelling only.
+    // "files" or "world.db" — debug/log labelling only. Reports world.db
+    // from init() on, even before the lazy open has run.
     const char *backend_name( ) const {
-        return this->use_sqlite( ) ? "world.db" : "files";
+#if defined( REPGAME_MAP_SQLITE )
+        return ( this->db != nullptr || this->db_wanted ) ? "world.db" : "files";
+#else
+        return "files";
+#endif
     }
     // Rewrites every indexed chunk file that lacks the v1 magic by
     // round-tripping it through load_chunk_edits + persist_chunk_edits.

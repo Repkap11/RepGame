@@ -53,16 +53,29 @@ sections below. `MapStorage` has two backends for storing blobs:
   `batch_end`), and `enable_file_index` fills the save-file index with
   one `SELECT` instead of a `readdir`. This is the only *write* backend
   — an unopenable `world.db` is fatal (`repgame_fatal`).
+
+  `init` only marks the db wanted; `world.db` opens **lazily** on the
+  first op that needs the backend (`ensure_db`): a store, a remove, or
+  the server's `enable_file_index` at startup. Reads open an existing
+  db but never create one (`ensure_db_read`), and a `batch_begin` with
+  the db still unopened defers its `BEGIN` to the first store inside —
+  so a multiplayer client (`chunk_io_enabled` off; never touches chunk
+  storage) or a session that persists nothing leaves no `world.db`
+  behind. `player.dat` is unaffected.
 - **Loose files** — the legacy format: one `<kind>_<x>_<y>_<z>` file
   per record under the world dir. Nothing writes this format anymore;
-  it survives only as a read source — `init`'s one-shot import into
-  `world.db`, and `init_readonly` inspection of pre-migration dirs
-  (e.g. `rep-dbg inspect` on an old world or backup).
+  it survives only as a read source — the one-shot import into
+  `world.db` at the first open, and `init_readonly` inspection of
+  pre-migration dirs (e.g. `rep-dbg inspect` on an old world or backup).
 
-**Migration is automatic**: on `init`, `sqlite_open` imports every loose
-`<kind>_*` file it finds into `world.db` (one transaction), then unlinks
-the originals — a file-era world upgrades on first open. `player.dat`,
-`world.dat` and `world_type` stay loose files on all platforms.
+**Migration is automatic**: when the db first opens (see the lazy-open
+rule above — at startup for the server, at the first store for a
+single-player client), `sqlite_open` imports every loose `<kind>_*`
+file it finds into `world.db` (one transaction), then unlinks the
+originals — a file-era world upgrades on first open. Until then, reads
+of a pre-migration dir still answer through the loose files, so the
+lazy open never hides legacy data. `player.dat`, `world.dat` and
+`world_type` stay loose files on all platforms.
 
 **WASM and Android persist no per-chunk world state at all** — they
 always run connected, so `load_*`/`persist_*`/`check_if_chunk_exists`
