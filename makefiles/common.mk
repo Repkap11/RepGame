@@ -59,9 +59,9 @@ APPIMAGE_OUT ?= out/appimage
 mc_pack_build: sounds/mc_pack
 sounds/mc_pack:
 	mkdir -p sounds
-	wget -q https://repkap11.com/files/repgame/mc_pack.tar.gz -O mc_pack.tar.gz
-	bsdtar -xvzf mc_pack.tar.gz -C sounds
-	rm -rf mc_pack.tar.gz
+	wget -q https://repkap11.com/files/repgame/mc_pack_full.tar.gz -O mc_pack_full.tar.gz
+	bsdtar -xvzf mc_pack_full.tar.gz -C sounds
+	rm -rf mc_pack_full.tar.gz
 ifneq ($(wildcard sounds),)
 REPGAME_AUDIO ?= 1
 endif
