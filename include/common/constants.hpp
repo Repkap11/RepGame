@@ -234,6 +234,8 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 // by the hurt cooldown (~0.5 s), so these are ~2x per second.
 #define PLAYER_LAVA_DAMAGE 4.0f
 #define PLAYER_FIRE_DAMAGE 1.0f
+// Standing on magma burns like open fire; MC exempts sneaking.
+#define PLAYER_MAGMA_DAMAGE 1.0f
 // Explosion damage falls off linearly from EXPLOSION_MAX_DAMAGE at the
 // center to 0 at this radius (same reach as the entity impulse).
 #define PLAYER_EXPLOSION_MAX_DAMAGE 16.0f

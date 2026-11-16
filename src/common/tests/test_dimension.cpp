@@ -139,7 +139,7 @@ int test_dimension( ) {
 
     // ---- Nether generator (MapGen::gen_block_id dispatches on the band) ----
     {
-        int netherrack = 0, lava = 0, air = 0, glowstone = 0, quartz = 0, forbidden = 0;
+        int netherrack = 0, lava = 0, air = 0, glowstone = 0, quartz = 0, magma = 0, forbidden = 0;
         int floor_gaps = 0, ceiling_gaps = 0;
         for ( int x = -128; x < 128; x += 2 ) {
             for ( int z = -128; z < 128; z += 2 ) {
@@ -169,8 +169,10 @@ int test_dimension( ) {
                         case ANCIENT_DEBRIS:
                             quartz++;
                             break;
-                        case BEDROCK:
                         case MAGMA:
+                            magma++;
+                            break;
+                        case BEDROCK:
                             break;
                         default:
                             forbidden++; // overworld-only blocks must never leak in
@@ -193,6 +195,7 @@ int test_dimension( ) {
         check_bool( "nether caverns are open", air > 1000 );
         check_bool( "nether lava sea exists", lava > 100 );
         check_bool( "nether ores generate", quartz > 10 );
+        check_bool( "nether magma generates", magma > 10 );
         check_bool( "no overworld blocks in nether", forbidden == 0 );
         // glowstone is a nice-to-have, not guaranteed by density.
         (void)glowstone;

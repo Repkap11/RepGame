@@ -439,7 +439,8 @@ void repgame_tick_vitals( RepGameState &state ) {
     const glm::dvec3 &eye = state.camera.pos;
     const double feet_y = eye.y - state.camera.eye_height;
     const BlockState eye_block = state.world.get_loaded_block( glm::ivec3( glm::round( eye - glm::dvec3( 0.5 ) ) ) );
-    const BlockState feet_block = state.world.get_loaded_block( glm::ivec3( glm::round( glm::dvec3( eye.x, feet_y + 0.05, eye.z ) - glm::dvec3( 0.5 ) ) ) );
+    const glm::ivec3 feet_cell( glm::round( glm::dvec3( eye.x, feet_y + 0.05, eye.z ) - glm::dvec3( 0.5 ) ) );
+    const BlockState feet_block = state.world.get_loaded_block( feet_cell );
     const glm::dvec3 body_center( eye.x, feet_y + PLAYER_HEIGHT / 2.0, eye.z );
     const BlockState body_block = state.world.get_loaded_block( glm::ivec3( glm::round( body_center - glm::dvec3( 0.5 ) ) ) );
     // Breath drains while the head is under water (the render path's
@@ -461,6 +462,17 @@ void repgame_tick_vitals( RepGameState &state ) {
     } else if ( feet_block.id == FIRE || body_block.id == FIRE || feet_block.id == SOUL_FIRE || body_block.id == SOUL_FIRE ) {
         if ( RepGame::player_damage( state, PLAYER_FIRE_DAMAGE ) ) {
             audio_play_sfx( "player_hurt" );
+        }
+    } else {
+        // Standing on magma burns like open fire — only when grounded (a
+        // jump over it is safe) and not sneaking, flying or no-clipping
+        // (MC's exemptions).
+        const BlockState below_feet = state.world.get_loaded_block( feet_cell - glm::ivec3( 0, 1, 0 ) );
+        if ( below_feet.id == MAGMA && state.camera.standing_on_solid && !state.input.movement.sneakPressed &&
+             !state.input.player_flying && !state.input.no_clip ) {
+            if ( RepGame::player_damage( state, PLAYER_MAGMA_DAMAGE ) ) {
+                audio_play_sfx( "player_hurt" );
+            }
         }
     }
     if ( state.peaceful && state.game_mode == GameMode_Survival && v.health < PLAYER_MAX_HEALTH ) {

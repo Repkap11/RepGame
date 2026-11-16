@@ -245,6 +245,11 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     if ( biome >= 0.72f ) {
         MG_LET( float, bst, MAP_GEN_PERLIN3D( x, y, z, 0.05f, 3, MAP_SEED + 69 ) )
         id = MG_TERN( bst > 0.60f, BLACKSTONE, BASALT );
+        // Deltas are shot through with magma flecks, vanilla-style.
+        MG_LET( float, dmag, MAP_GEN_PERLIN3D( x, y, z, 0.13f, 2, MAP_SEED + 74 ) )
+        if ( dmag * dmag < 0.05f ) {
+            id = MAGMA;
+        }
     } else if ( biome >= 0.66f && biome < 0.70f ) {
         id = BLACKSTONE;
     } else if ( biome >= 0.60f && biome < 0.63f ) {
@@ -298,10 +303,24 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
             id = GLOWSTONE;
         }
     }
-    // Magma pockets near the lava sea line.
-    if ( MG_F32( ly ) > 18.0f && MG_F32( ly ) < floor_h ) {
-        MG_LET( float, mag, MAP_GEN_PERLIN3D( x, y, z, 0.30f, 4, MAP_SEED + 53 ) )
-        if ( mag * mag < 0.015f ) {
+    // Magma concentrates at the lava sea, vanilla-style: blobby veins run
+    // through the floor mass in a band around the sea line — low-frequency
+    // so they read as ~10-block blobs surfacing on lakebeds, shorelines and
+    // carved walls near the lava, not buried specks.
+    if ( ly > MGN_LAVA_SEA - 10 && ly < MGN_LAVA_SEA + 14 && MG_F32( ly ) < floor_h ) {
+        MG_LET( float, mag, MAP_GEN_PERLIN3D( x, y, z, 0.10f, 3, MAP_SEED + 53 ) )
+        if ( mag * mag < 0.045f ) {
+            id = MAGMA;
+        }
+    }
+    // The top few cells of a floor surface sitting at or just above the
+    // sea get patchy magma: lakebeds glow through the lava and shores rim
+    // it a few blocks above the waterline.
+    if ( surf_open > 0.5f && MG_F32( ly ) <= floor_h && floor_h - MG_F32( ly ) <= 3.0f &&
+         floor_h < MG_F32( MGN_LAVA_SEA ) + 7.0f ) {
+        MG_LET( float, mp, MAP_GEN_PERLIN2D( x, z, 0.05f, 2, MAP_SEED + 75 ) )
+        MG_LET( float, mf, MAP_GEN_PERLIN2D( x, z, 0.30f, 2, MAP_SEED + 76 ) )
+        if ( mp > 0.58f && mf > 0.42f ) {
             id = MAGMA;
         }
     }

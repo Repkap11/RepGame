@@ -39,7 +39,10 @@ checks. The spare slots are inert voids (no sky, no spawns).
 nether generator in the multi-backend dialect — bedrock floor,
 netherrack caverns, lava sea, quartz/gold veins, glowstone veins plus
 crystal clusters hanging from the cavern ceiling,
-soul sand/soil, basalt veins, sparse natural `FIRE` on netherrack
+soul sand/soil, basalt veins, magma veins clustered in the lava-sea
+band (patchy crust on the submerged seafloor and shorelines, flecks
+shot through the basalt deltas — it also burns players standing on
+it, `PLAYER_MAGMA_DAMAGE`), sparse natural `FIRE` on netherrack
 surfaces and `SOUL_FIRE` on soul-valley tops (both emit light via their
 block definitions), and pillars that fuse the cavern floor to
 the roof — a sparse 2D field converges `floor_h`/`roof_base` onto a

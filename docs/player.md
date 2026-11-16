@@ -265,7 +265,9 @@ then the funnel), fall damage (the movement loop's `fall_dist`:
 `floor(dist) - PLAYER_FALL_SAFE_DISTANCE` half-hearts on landing, same
 accumulator as farmland trampling), lava at the eye/body/feet
 (`PLAYER_LAVA_DAMAGE`), standing in `FIRE`/`SOUL_FIRE`
-(`PLAYER_FIRE_DAMAGE`), explosions (`repgame_explosion_affect_player`,
+(`PLAYER_FIRE_DAMAGE`), standing on `MAGMA`
+(`PLAYER_MAGMA_DAMAGE` — `standing_on_solid` only, exempt while
+sneaking, flying or no-clipping), explosions (`repgame_explosion_affect_player`,
 linear falloff from `PLAYER_EXPLOSION_MAX_DAMAGE` plus a shove — both
 local TNT and remote `EXPLOSION` frames; each client damages only
 itself), and drowning once `air_ticks` runs out under water

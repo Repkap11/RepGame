@@ -112,7 +112,9 @@ All of the above generates the overworld band. Chunks in the nether band
 picker, `mgn_pick_block` in `include/common/map_gen_nether.hpp`
 (netherrack caverns, floor/roof height fields converged into pillar
 masses, floating mid-cavern shelf ledges, bounded roof mass + jittered
-bedrock cap, lava sea, nether ores, glowstone), dispatched in
+bedrock cap, lava sea, nether ores, glowstone, magma veins clustered in
+the lava-sea band with patchy seafloor/shoreline crusts plus flecks
+through the basalt deltas), dispatched in
 `map_gen.cpp` so every backend shares it. Nether chunks also get a
 `StructureGen` pass — `place_nether_trees` stamps `SHAPE_FUNGUS` huge
 fungi where the column's top solid cell is crimson/warped nylium

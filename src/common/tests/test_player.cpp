@@ -882,6 +882,22 @@ int test_vitals( ) {
     check_near( "fire at feet burns slower", gs.vitals.health, 12.0f - PLAYER_LAVA_DAMAGE - PLAYER_FIRE_DAMAGE );
     gs.world.set_loaded_block( glm::ivec3( 8, 8, 8 ), BLOCK_STATE_AIR );
 
+    // Magma: burns when grounded on it, exempt while sneaking or airborne.
+    gs.world.set_loaded_block( glm::ivec3( 8, 7, 8 ), { MAGMA, 0, 0, MAGMA, 0 } );
+    gs.vitals.hurt_cooldown = 0;
+    gs.camera.standing_on_solid = 1;
+    repgame_tick_vitals( gs );
+    check_near( "standing on magma burns", gs.vitals.health, 12.0f - PLAYER_LAVA_DAMAGE - PLAYER_FIRE_DAMAGE - PLAYER_MAGMA_DAMAGE );
+    gs.vitals.hurt_cooldown = 0;
+    gs.input.movement.sneakPressed = true;
+    repgame_tick_vitals( gs );
+    check_bool( "sneaking on magma is safe", gs.vitals.health == 12.0f - PLAYER_LAVA_DAMAGE - PLAYER_FIRE_DAMAGE - PLAYER_MAGMA_DAMAGE );
+    gs.input.movement.sneakPressed = false;
+    gs.camera.standing_on_solid = 0;
+    repgame_tick_vitals( gs );
+    check_bool( "airborne over magma is safe", gs.vitals.health == 12.0f - PLAYER_LAVA_DAMAGE - PLAYER_FIRE_DAMAGE - PLAYER_MAGMA_DAMAGE );
+    gs.world.set_loaded_block( glm::ivec3( 8, 7, 8 ), BLOCK_STATE_AIR );
+
     // Peaceful regen: one half-heart per PLAYER_PEACEFUL_REGEN_TICKS while
     // hurt in survival; off without the toggle.
     gs.vitals = PlayerVitals( );
