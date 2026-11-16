@@ -26,6 +26,7 @@ enum MobType {
     MOB_ZOMBIFIED_PIGLIN,
     MOB_WITHER_SKELETON,
     MOB_BLAZE,
+    MOB_GHAST,
     MOB_TYPE_COUNT
 };
 
@@ -37,6 +38,7 @@ enum MobAI {
     MOB_AI_HOSTILE_CREEPER, // chase + fuse explosion (creeper)
     MOB_AI_HOSTILE_RANGED,  // strafe at stand-off + fire arrows (skeleton)
     MOB_AI_HOSTILE_BLAZE,   // hover + strafe + 3-shot fireball volley (blaze)
+    MOB_AI_HOSTILE_GHAST,   // high hover + strafe + single charged fireball (ghast)
 };
 
 // Procedural animators; MobTypeDef::anims is a bitmask of these.
@@ -49,6 +51,7 @@ enum MobAnim {
     MOB_ANIM_WING_FLAP = 1 << 5,      // wings flap on z, faster while airborne
     MOB_ANIM_SWELL = 1 << 6,          // creeper fuse swelling + white flash
     MOB_ANIM_BLAZE_RODS = 1 << 7,     // head rods orbit the body + bob (blaze)
+    MOB_ANIM_GHAST_TENTACLES = 1 << 8, // tentacles_N bones sway on a per-tentacle phase (ghast)
 };
 
 typedef struct {
@@ -140,6 +143,11 @@ typedef struct {
     // 10-unit leg at the full swing points out horizontal like a second
     // tail).
     float gait_scale;
+    // Render scale on the model's 1/16-block units, like
+    // VehicleTypeDef::model_scale: 1.0 for every mob whose geo is authored
+    // at the standard 16 px/block. The ghast is 4.5 — its repo-authored
+    // geo is stored at 1/4.5 so box UVs stay 1 texel per model pixel.
+    float model_scale;
 } MobTypeDef;
 
 extern const MobTypeDef mob_types[ MOB_TYPE_COUNT ];

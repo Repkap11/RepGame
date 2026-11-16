@@ -59,6 +59,7 @@
 #define MOB_RANGED_NEAR 5.0
 #define MOB_RANGED_FAR 14.0
 #define MOB_RANGED_SHOT_RANGE 16.0
+#define MOB_GHAST_SHOT_RANGE 30.0
 #define MOB_ARROW_SPEED 0.35 // slower than a full player draw (ARROW_SPEED)
 // HeartParticles::now wraps with u_Time (3600 s) — wrapped-diff for the
 // per-mob emission cadence.
@@ -571,7 +572,8 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
 
     const glm::ivec3 feet = glm::ivec3( glm::floor( mob.pos ) );
     const bool in_water = world.get_loaded_block( feet ).id == WATER || world.get_loaded_block( feet + glm::ivec3( 0, 1, 0 ) ).id == WATER;
-    const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER || def.ai == MOB_AI_HOSTILE_RANGED || def.ai == MOB_AI_HOSTILE_BLAZE;
+    const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER || def.ai == MOB_AI_HOSTILE_RANGED ||
+                         def.ai == MOB_AI_HOSTILE_BLAZE || def.ai == MOB_AI_HOSTILE_GHAST;
     // in==nullptr defaults: not targetable, noon (no burn), standing eye height.
     static const MobTickInput fallback_input = { false, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
     if ( in == nullptr ) {
@@ -605,13 +607,17 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     const bool any_targetable = target_dist_xz < 1e29;
 
     // Hostile targeting: acquire inside 16 blocks of the target's feet, drop
-    // past 24. No targetable player means passive wandering.
+    // past 24. No targetable player means passive wandering. The ghast
+    // fires from much further out, so it acquires and keeps targets at
+    // roughly double those distances.
     if ( hostile ) {
+        const double acquire = def.ai == MOB_AI_HOSTILE_GHAST ? 32.0 : 16.0;
+        const double drop = def.ai == MOB_AI_HOSTILE_GHAST ? 48.0 : 24.0;
         if ( !any_targetable ) {
             mob.targeting = 0;
-        } else if ( !mob.targeting && target_dist_xz < 16.0 ) {
+        } else if ( !mob.targeting && target_dist_xz < acquire ) {
             mob.targeting = 1;
-        } else if ( mob.targeting && target_dist_xz > 24.0 ) {
+        } else if ( mob.targeting && target_dist_xz > drop ) {
             mob.targeting = 0;
         }
     }
@@ -759,10 +765,13 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                     mob.attack_ticks = static_cast<int>( cooldown( this->rng ) * UPS_RATE );
                 }
             }
-        } else if ( def.ai == MOB_AI_HOSTILE_BLAZE ) {
+        } else if ( def.ai == MOB_AI_HOSTILE_BLAZE || def.ai == MOB_AI_HOSTILE_GHAST ) {
+            const bool ghast = def.ai == MOB_AI_HOSTILE_GHAST;
             mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -10.0f, 10.0f );
             // Same circling stand-off band as the archer skeleton — the
-            // blaze floats just off the ground while it closes in.
+            // blaze floats just off the ground while it closes in. The
+            // ghast keeps its distance on a wider band and fires from
+            // further out.
             if ( --mob.strafe_ticks <= 0 ) {
                 std::uniform_int_distribution<int> span( UPS_RATE, 3 * UPS_RATE );
                 mob.strafe_ticks = span( this->rng );
@@ -770,9 +779,11 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             }
             strafing = true;
             strafe_yaw = want_yaw;
-            if ( target_dist_xz < MOB_RANGED_NEAR ) {
+            const double strafe_near = ghast ? 12.0 : MOB_RANGED_NEAR;
+            const double strafe_far = ghast ? 24.0 : MOB_RANGED_FAR;
+            if ( target_dist_xz < strafe_near ) {
                 strafe_yaw += mob.strafe_dir * 135.0f;
-            } else if ( target_dist_xz < MOB_RANGED_FAR ) {
+            } else if ( target_dist_xz < strafe_far ) {
                 strafe_yaw += mob.strafe_dir * 65.0f;
             }
             speed = def.chase_speed;
@@ -781,33 +792,41 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             }
             const glm::dvec3 aim = target_feet + glm::dvec3( 0.0, target_eye_h * 0.75, 0.0 );
             if ( mob.volley_ticks > 0 ) {
-                // Mid-volley: 3 fireballs ~5 ticks apart on a flat
-                // trajectory with a little spread.
-                if ( mob.volley_ticks % 5 == 0 ) {
+                // Mid-volley: the blaze fires 3 fireballs ~5 ticks apart;
+                // the ghast spends the window as a ~0.4 s screamed charge
+                // and releases one fireball on the last tick.
+                const bool fire_tick = ghast ? mob.volley_ticks == 5 : mob.volley_ticks % 5 == 0;
+                if ( fire_tick ) {
                     std::uniform_real_distribution<double> spread( -0.15, 0.15 );
                     const glm::dvec3 aim_at = aim + glm::dvec3( spread( this->rng ), spread( this->rng ), spread( this->rng ) );
                     const glm::dvec3 vel = glm::normalize( aim_at - mob_eye ) * ArrowEntities::ARROW_SPEED * 0.8;
                     if ( out != nullptr ) {
-                        out->arrow_shots.push_back( { mob_eye + glm::normalize( vel ) * 0.5, vel, def.attack_damage, 1 } );
+                        // The ghast's hitbox is 4 blocks wide: the fireball
+                        // must spawn outside its own body, from its face.
+                        const double launch = ghast ? def.hitbox_w / 2.0 + 0.5 : 0.5;
+                        out->arrow_shots.push_back( { mob_eye + glm::normalize( vel ) * launch, vel, def.attack_damage, 1 } );
+                    }
+                    if ( ghast ) {
+                        audio_play_sfx_gain( "ghast_shoot", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
                     }
                 }
                 if ( --mob.volley_ticks == 0 ) {
-                    // Cooldown after the third shot (~4 s).
+                    // Cooldown after the volley (~4 s).
                     std::uniform_real_distribution<double> cooldown( 3.2, 4.4 );
                     mob.attack_ticks = static_cast<int>( cooldown( this->rng ) * UPS_RATE );
                 }
-            } else if ( target_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( target_feet.y - mob.pos.y ) < 1.5 ) {
+            } else if ( !ghast && target_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( target_feet.y - mob.pos.y ) < 1.5 ) {
                 // Pressed against the player: contact hit instead of a volley.
                 mob.attack_ticks = UPS_RATE;
                 if ( out != nullptr ) {
                     out->player_hits.push_back( { mob.pos, def.attack_damage, target_player_id } );
                 }
-            } else if ( mob.attack_ticks <= 0 && target_dist_xz < MOB_RANGED_SHOT_RANGE ) {
+            } else if ( mob.attack_ticks <= 0 && target_dist_xz < ( ghast ? MOB_GHAST_SHOT_RANGE : MOB_RANGED_SHOT_RANGE ) ) {
                 glm::ivec3 los_cell;
                 int los_face = 0;
                 if ( !RayTraversal::find_block_from_to( world, mob_eye, aim, los_cell, &los_face ) ) {
-                    mob.volley_ticks = 15; // shots at 15, 10, 5
-                    audio_play_sfx_gain( "blaze_shoot", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
+                    mob.volley_ticks = ghast ? 60 : 15; // blaze shots at 15, 10, 5; the ghast's lands at 5
+                    audio_play_sfx_gain( ghast ? "ghast_charge" : "blaze_shoot", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
                 }
             }
         } else {
@@ -1355,7 +1374,8 @@ bool MobManager::hostiles_within( const glm::dvec3 &pos, const double radius ) c
             continue;
         }
         const MobAI ai = mob_types[ mob.type ].ai;
-        if ( ai != MOB_AI_HOSTILE_MELEE && ai != MOB_AI_HOSTILE_CREEPER && ai != MOB_AI_HOSTILE_RANGED && ai != MOB_AI_HOSTILE_BLAZE ) {
+        if ( ai != MOB_AI_HOSTILE_MELEE && ai != MOB_AI_HOSTILE_CREEPER && ai != MOB_AI_HOSTILE_RANGED && ai != MOB_AI_HOSTILE_BLAZE &&
+             ai != MOB_AI_HOSTILE_GHAST ) {
             continue;
         }
         if ( glm::distance( mob.pos, pos ) <= radius ) {
@@ -1745,25 +1765,6 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
                 break;
             }
         }
-        // Needs a floor with two standable cells above for the mob —
-        // non-colliding and not liquid (no seabed/lava-floor spawns).
-        if ( top < 0 || !spawnable_air_at( world, glm::ivec3( bx, top + 1, bz ) ) || !spawnable_air_at( world, glm::ivec3( bx, top + 2, bz ) ) ) {
-            continue;
-        }
-        const glm::dvec3 feet_pos( sx, top + 1.0, sz );
-        const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( feet_pos / csize ) );
-        const Chunk *chunk = world.chunkLoader.get_chunk( feet_chunk );
-        if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
-            continue;
-        }
-        // Multiplayer: the night spawner only places into chunks we own.
-        if ( this->mp_mode && ( this->net == nullptr || !this->net->owns_chunk( feet_chunk ) ) ) {
-            continue;
-        }
-        const glm::vec2 light = world.chunkLoader.light_sample( glm::vec3( feet_pos ) + glm::vec3( 0.0f, 0.5f, 0.0f ) );
-        if ( !hostile_spawn_light_ok( light.x, light.y, daylight ) ) {
-            continue;
-        }
         const double roll = type_roll( this->rng ) * weight_total;
         double weight_acc = 0.0;
         MobType type = MOB_TYPE_COUNT;
@@ -1779,6 +1780,36 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
             }
         }
         if ( type == MOB_TYPE_COUNT ) {
+            continue;
+        }
+        // Needs a floor with standable cells above for the mob's whole
+        // hitbox — non-colliding and not liquid (no seabed/lava-floor
+        // spawns). Taller types need the taller column: the 4-block ghast
+        // can't materialize with its head in a cavern ceiling.
+        if ( top >= 0 ) {
+            const int headroom = static_cast<int>( ceil( mob_types[ type ].hitbox_h ) );
+            for ( int i = 1; i <= headroom; i++ ) {
+                if ( !spawnable_air_at( world, glm::ivec3( bx, top + i, bz ) ) ) {
+                    top = -1;
+                    break;
+                }
+            }
+        }
+        if ( top < 0 ) {
+            continue;
+        }
+        const glm::dvec3 feet_pos( sx, top + 1.0, sz );
+        const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( feet_pos / csize ) );
+        const Chunk *chunk = world.chunkLoader.get_chunk( feet_chunk );
+        if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
+            continue;
+        }
+        // Multiplayer: the night spawner only places into chunks we own.
+        if ( this->mp_mode && ( this->net == nullptr || !this->net->owns_chunk( feet_chunk ) ) ) {
+            continue;
+        }
+        const glm::vec2 light = world.chunkLoader.light_sample( glm::vec3( feet_pos ) + glm::vec3( 0.0f, 0.5f, 0.0f ) );
+        if ( !hostile_spawn_light_ok( light.x, light.y, daylight ) ) {
             continue;
         }
         if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {
@@ -1876,6 +1907,16 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
                 if ( def.bone_wings[ w ] != NULL && strcmp( bone.name, def.bone_wings[ w ] ) == 0 ) {
                     bone_anim[ i ].z += ( w == 0 ? 1.0f : -1.0f ) * amp * sinf( mob.wing_phase );
                 }
+            }
+        }
+        if ( def.anims & MOB_ANIM_GHAST_TENTACLES ) {
+            // Bedrock animation.ghast.move: each tentacles_N bone sways
+            // ±11.5° on x around its 23° rest splay (baked into the geo),
+            // phased ~1 rad apart per tentacle at a ~1 Hz rate — the slow
+            // wing_phase reuse keeps the drift gentle.
+            if ( strncmp( bone.name, "tentacles_", 10 ) == 0 ) {
+                const int tentacle = atoi( bone.name + 10 );
+                bone_anim[ i ].x += 11.5f * sinf( mob.wing_phase * 0.11f + static_cast<float>( tentacle ) );
             }
         }
         if ( def.anims & MOB_ANIM_BLAZE_RODS ) {
@@ -2008,7 +2049,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
             fuse_f = fuse_f * fuse_f * fuse_f;
             base = glm::scale( base, glm::vec3( ( 1.0f + fuse_f * 0.4f ) * fp, ( 1.0f + fuse_f * 0.1f ) / fp, ( 1.0f + fuse_f * 0.4f ) * fp ) );
         }
-        base = glm::scale( base, glm::vec3( scale_of( mob ) / 16.0f ) );
+        base = glm::scale( base, glm::vec3( scale_of( mob ) * def.model_scale / 16.0f ) );
 
         // One light sample per mob covers all of its parts.
         const glm::vec2 light = chunk_loader.light_sample( glm::vec3( rpos ) + glm::vec3( 0.0f, def.eye_h * scale_of( mob ), 0.0f ) );
@@ -2058,7 +2099,13 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
                 // uv_b.w < 0 is the red hurt flash; > 0 is the creeper's
                 // white fuse flash on alternate tenths. Hurt wins.
                 const bool white_flash = fuse_f > 0.0f && static_cast<int>( fuse_f * 10.0f ) % 2 == 0;
-                inst.uv_b = glm::vec4( cube.size[ 2 ], static_cast<float>( def.skins[ mob.variant ] ),
+                // The ghast swaps to its open-mouth shooting skin while a
+                // fireball charges (volley_ticks spans the windup) —
+                // skins[1] is a state overlay, not a random variant.
+                const MobSkin skin = def.ai == MOB_AI_HOSTILE_GHAST && def.skin_count > 1
+                                         ? def.skins[ mob.volley_ticks > 0 ? 1 : 0 ]
+                                         : def.skins[ mob.variant ];
+                inst.uv_b = glm::vec4( cube.size[ 2 ], static_cast<float>( skin ),
                                        ( bone.mirror || cube.mirror ) ? 1.0f : 0.0f, mob.hurt_ticks > 0 ? -0.7f : white_flash ? 0.5f : 0.0f );
             }
         }

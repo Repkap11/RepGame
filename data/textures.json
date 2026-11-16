@@ -243,6 +243,9 @@
   "blaze_rod": {
     "source": "textures/items/blaze_rod"
   },
+  "ghast_tear": {
+    "source": "textures/items/ghast_tear"
+  },
   "blue_candle": {
     "source": "textures/items/candles/blue_candle"
   },
@@ -5238,6 +5241,9 @@
   },
   "spawn_egg_blaze": {
     "source": "textures/items/spawn_eggs/spawn_egg_blaze"
+  },
+  "spawn_egg_ghast": {
+    "source": "textures/items/spawn_eggs/spawn_egg_ghast"
   },
   "spawn_egg_cat": {
     "source": "textures/items/spawn_eggs/spawn_egg_cat"

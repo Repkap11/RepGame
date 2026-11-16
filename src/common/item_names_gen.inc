@@ -91,3 +91,5 @@
     "FIRE_CHARGE",
     "BLAZE_ROD",
     "BLAZE_SPAWN_EGG",
+    "GHAST_SPAWN_EGG",
+    "GHAST_TEAR",
