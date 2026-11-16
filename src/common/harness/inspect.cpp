@@ -71,27 +71,14 @@ struct DirScan {
     std::vector<glm::ivec3> chests, mobs, items, vehicles;
 };
 
-// Find {chest,mobs,items,carts}_<cx>_<cy>_<cz> files under dir (the carts_* name is kept on disk).
-DirScan scan_entity_files( const char *dir ) {
+// All chunk coords storing each entity sidecar — enumerate_kind hides
+// whether the world is loose files or a world.db.
+DirScan scan_entity_files( MapStorage &ms ) {
     DirScan out;
-    DIR *d = opendir( dir );
-    if ( d == nullptr ) {
-        return out;
-    }
-    const struct dirent *e;
-    while ( ( e = readdir( d ) ) != nullptr ) {
-        int a, b, c;
-        if ( sscanf( e->d_name, "chest_%d_%d_%d", &a, &b, &c ) == 3 ) {
-            out.chests.emplace_back( a, b, c );
-        } else if ( sscanf( e->d_name, "mobs_%d_%d_%d", &a, &b, &c ) == 3 ) {
-            out.mobs.emplace_back( a, b, c );
-        } else if ( sscanf( e->d_name, "items_%d_%d_%d", &a, &b, &c ) == 3 ) {
-            out.items.emplace_back( a, b, c );
-        } else if ( sscanf( e->d_name, "carts_%d_%d_%d", &a, &b, &c ) == 3 ) {
-            out.vehicles.emplace_back( a, b, c );
-        }
-    }
-    closedir( d );
+    ms.enumerate_kind( MAP_FILE_CHEST, out.chests );
+    ms.enumerate_kind( MAP_FILE_MOBS, out.mobs );
+    ms.enumerate_kind( MAP_FILE_ITEMS, out.items );
+    ms.enumerate_kind( MAP_FILE_CARTS, out.vehicles );
     return out;
 }
 
@@ -274,12 +261,10 @@ inspect::Result inspect::chunk( const char *dir, const int cx, const int cy, con
     const glm::ivec3 off{ cx, cy, cz };
     MapStorage ms;
     ms.init_readonly( dir );
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, ms.get_map_name( ), cx, cy, cz );
-    struct stat st;
-    if ( stat( file_name, &st ) != 0 ) {
+    const long file_size = ms.stored_size( MAP_FILE_CHUNK, off );
+    if ( file_size < 0 ) {
         r.json = jf( "{\"chunk\":[%d,%d,%d],\"saved\":false}", cx, cy, cz );
-        r.human = jf( "chunk (%d,%d,%d): no file — generated terrain, not stored", cx, cy, cz );
+        r.human = jf( "chunk (%d,%d,%d): no stored record — generated terrain, not saved", cx, cy, cz );
         return r;
     }
     std::vector<BlockState> cells( CHUNK_BLOCK_SIZE, BLOCK_STATE_AIR );
@@ -309,9 +294,9 @@ inspect::Result inspect::chunk( const char *dir, const int cx, const int cy, con
         counts_text += jf( "    %6ld %s\n", top[ i ].second, top[ i ].first.c_str( ) );
     }
     r.json = jf( "{\"chunk\":[%d,%d,%d],\"saved\":true,\"size\":%ld,\"non_air\":%ld,\"edited\":%ld,\"counts\":{%s}}",
-                 cx, cy, cz, static_cast<long>( st.st_size ), non_air, edited_cells, counts_json.c_str( ) );
+                 cx, cy, cz, file_size, non_air, edited_cells, counts_json.c_str( ) );
     r.human = jf( "chunk (%d,%d,%d): %ld bytes, %ld non-air cells, %ld edited\ncounts:\n%s",
-                  cx, cy, cz, static_cast<long>( st.st_size ), non_air, edited_cells, counts_text.c_str( ) );
+                  cx, cy, cz, file_size, non_air, edited_cells, counts_text.c_str( ) );
     return r;
 }
 
@@ -319,7 +304,7 @@ inspect::Result inspect::entities( const char *dir, const double *near, const do
     Result r;
     MapStorage ms;
     ms.init_readonly( dir );
-    const DirScan scan = scan_entity_files( dir );
+    const DirScan scan = scan_entity_files( ms );
     auto within = [&]( const double x, const double y, const double z ) {
         if ( near == nullptr ) {
             return true;

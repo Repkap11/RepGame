@@ -553,22 +553,16 @@ int test_mobs( ) {
         storage.persist_mobs( chunk_pos, { }, { } );
         out.clear( );
         check_bool( "mob file: empty+empty removes", storage.load_mobs( chunk_pos, out ) == 0 );
-        // A pre-net_id file (record_size without net_id, no removed
+        // A pre-net_id record (record_size without net_id, no removed
         // section) still loads with net_id == 0.
         {
-            char *dir = getRepGamePath( );
-            char map_root[ CHUNK_NAME_MAX_LENGTH ];
-            snprintf( map_root, sizeof( map_root ), "%s/TestMobs", dir );
-            free( dir );
-            char file_name[ CHUNK_NAME_MAX_LENGTH ];
-            snprintf( file_name, sizeof( file_name ), FILE_ROOT_MOBS, map_root, 0, 0, 3 );
-            FILE *f = fopen( file_name, "wb" );
             const uint32_t old_size = static_cast<uint32_t>( offsetof( MobFileRecord, net_id ) );
-            const uint32_t one = 1;
-            fwrite( &old_size, sizeof( uint32_t ), 1, f );
-            fwrite( &one, sizeof( uint32_t ), 1, f );
-            fwrite( &r, old_size, 1, f );
-            fclose( f );
+            test_write_blob( storage, MAP_FILE_MOBS, glm::ivec3( 0, 0, 3 ), [ & ]( FILE *f ) {
+                const uint32_t one = 1;
+                fwrite( &old_size, sizeof( uint32_t ), 1, f );
+                fwrite( &one, sizeof( uint32_t ), 1, f );
+                fwrite( &r, old_size, 1, f );
+            } );
             out.clear( );
             removed.clear( );
             check_bool( "mob file: old record loads", storage.load_mobs( glm::ivec3( 0, 0, 3 ), out, &removed ) == 1 && out.size( ) == 1 );
@@ -1511,23 +1505,17 @@ int test_mobs( ) {
             check_bool( "breed persist: baby grow_ticks negative", out[ 0 ].grow_ticks == -12345 );
             check_bool( "breed persist: cooldown grow_ticks positive", out[ 1 ].grow_ticks == 777 );
         }
-        // A pre-grow_ticks file (shorter record) loads with grow_ticks 0.
+        // A pre-grow_ticks record (shorter record) loads with grow_ticks 0.
         {
-            char *dir = getRepGamePath( );
-            char map_root[ CHUNK_NAME_MAX_LENGTH ];
-            snprintf( map_root, sizeof( map_root ), "%s/TestMobs", dir );
-            free( dir );
-            char file_name[ CHUNK_NAME_MAX_LENGTH ];
-            snprintf( file_name, sizeof( file_name ), FILE_ROOT_MOBS, map_root, 0, 0, 4 );
-            FILE *f = fopen( file_name, "wb" );
             const uint32_t old_size = static_cast<uint32_t>( offsetof( MobFileRecord, grow_ticks ) );
-            const uint32_t one = 1;
             MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
             r.type = MOB_PIG;
-            fwrite( &old_size, sizeof( uint32_t ), 1, f );
-            fwrite( &one, sizeof( uint32_t ), 1, f );
-            fwrite( &r, old_size, 1, f );
-            fclose( f );
+            test_write_blob( storage, MAP_FILE_MOBS, glm::ivec3( 0, 0, 4 ), [ & ]( FILE *f ) {
+                const uint32_t one = 1;
+                fwrite( &old_size, sizeof( uint32_t ), 1, f );
+                fwrite( &one, sizeof( uint32_t ), 1, f );
+                fwrite( &r, old_size, 1, f );
+            } );
             out.clear( );
             check_bool( "breed persist: old record loads with grow_ticks 0",
                         storage.load_mobs( glm::ivec3( 0, 0, 4 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].grow_ticks == 0 );

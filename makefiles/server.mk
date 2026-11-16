@@ -17,13 +17,15 @@ server: out/server/$(REPSERVER)
 
 # Server-only host setup (repkap11.com): just what `make server` and
 # tools/server_deploy.sh need — no SDL3/GLEW/CUDA/HIP/flatpak/emsdk like the
-# full `make install`. entt is the only third-party source the server uses.
+# full `make install`. entt + the sqlite amalgamation are the only
+# third-party sources the server uses.
 SERVER_PACKAGES := clang ccache cmake ninja-build wget libarchive-tools tmux
 
-# entt_build runs after apt (it needs wget + bsdtar), hence the sub-make.
+# entt_build/sqlite_build run after apt (they need wget + bsdtar), hence the
+# sub-make. sqlite_build is the amalgamation behind the world.db backend.
 server-install:
 	sudo apt-get install -y $(SERVER_PACKAGES)
-	$(MAKE) entt_build
+	$(MAKE) entt_build sqlite_build
 
 server-run: server
 	./out/server/$(REPSERVER)

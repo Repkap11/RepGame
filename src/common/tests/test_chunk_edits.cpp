@@ -91,26 +91,24 @@ int test_chunk_edits( ) {
         storage.persist_chunk_edits( pos, { } );
         check_bool( "empty runs remove file", !storage.check_if_chunk_exists( pos ) );
 
-        // Hand-crafted files with foreign record_size: shared-prefix decode.
-        char file_name[ CHUNK_NAME_MAX_LENGTH ];
-        snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, storage.get_map_name( ), pos.x, pos.y, pos.z );
+        // Hand-crafted blobs with foreign record_size: shared-prefix decode.
         const uint32_t magic = 0x4B434752u, version = 1u;
         {
             // Larger record: BlockState + 4 trailing bytes.
             const uint32_t record_size = sizeof( BlockState ) + 4;
-            FILE *f = fopen( file_name, "wb" );
-            uint32_t run_count = 1, start = 7, count = 3;
-            char record[ sizeof( BlockState ) + 4 ];
-            memset( record, 0xAA, sizeof( record ) );
-            memcpy( record, &TNT_EDIT, sizeof( BlockState ) );
-            fwrite( &magic, 4, 1, f );
-            fwrite( &version, 4, 1, f );
-            fwrite( &record_size, 4, 1, f );
-            fwrite( &run_count, 4, 1, f );
-            fwrite( &start, 4, 1, f );
-            fwrite( &count, 4, 1, f );
-            fwrite( record, record_size, 1, f );
-            fclose( f );
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
+                uint32_t run_count = 1, start = 7, count = 3;
+                char record[ sizeof( BlockState ) + 4 ];
+                memset( record, 0xAA, sizeof( record ) );
+                memcpy( record, &TNT_EDIT, sizeof( BlockState ) );
+                fwrite( &magic, 4, 1, f );
+                fwrite( &version, 4, 1, f );
+                fwrite( &record_size, 4, 1, f );
+                fwrite( &run_count, 4, 1, f );
+                fwrite( &start, 4, 1, f );
+                fwrite( &count, 4, 1, f );
+                fwrite( record, record_size, 1, f );
+            } );
             ChunkEdits bigger;
             check_bool( "larger record_size decodes", storage.load_chunk_edits( pos, bigger ) == 1 &&
                                                           bigger.runs.size( ) == 1 && bigger.runs[ 0 ].start == 7 &&
@@ -120,34 +118,34 @@ int test_chunk_edits( ) {
         {
             // Smaller record: first 8 bytes of BlockState.
             const uint32_t record_size = 8;
-            FILE *f = fopen( file_name, "wb" );
-            uint32_t run_count = 1, start = 11, count = 1;
-            fwrite( &magic, 4, 1, f );
-            fwrite( &version, 4, 1, f );
-            fwrite( &record_size, 4, 1, f );
-            fwrite( &run_count, 4, 1, f );
-            fwrite( &start, 4, 1, f );
-            fwrite( &count, 4, 1, f );
-            fwrite( &TNT_EDIT, record_size, 1, f );
-            fclose( f );
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
+                uint32_t run_count = 1, start = 11, count = 1;
+                fwrite( &magic, 4, 1, f );
+                fwrite( &version, 4, 1, f );
+                fwrite( &record_size, 4, 1, f );
+                fwrite( &run_count, 4, 1, f );
+                fwrite( &start, 4, 1, f );
+                fwrite( &count, 4, 1, f );
+                fwrite( &TNT_EDIT, record_size, 1, f );
+            } );
             ChunkEdits smaller;
             check_bool( "smaller record_size decodes", storage.load_chunk_edits( pos, smaller ) == 1 &&
                                                            smaller.runs.size( ) == 1 && smaller.runs[ 0 ].start == 11 );
             check_bool( "smaller record_size flags rewrite", smaller.needs_rewrite );
         }
         {
-            // Corrupt/short file: magic then truncation.
-            FILE *f = fopen( file_name, "wb" );
-            fwrite( &magic, 4, 1, f );
-            fclose( f );
+            // Corrupt/short record: magic then truncation.
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
+                fwrite( &magic, 4, 1, f );
+            } );
             ChunkEdits bad;
             check_bool( "short file rejected", storage.load_chunk_edits( pos, bad ) != 1 );
-            FILE *f2 = fopen( file_name, "wb" );
-            fputc( 'x', f2 );
-            fclose( f2 );
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
+                fputc( 'x', f );
+            } );
             ChunkEdits bad2;
             check_bool( "1-byte file rejected", storage.load_chunk_edits( pos, bad2 ) != 1 );
-            remove( file_name );
+            storage.persist_chunk_edits( pos, { } ); // removes the record
         }
         check_bool( "missing file returns 0", storage.load_chunk_edits( pos, back ) == 0 );
     }
@@ -353,13 +351,10 @@ int test_chunk_edits( ) {
         storage.load_chunk_edits( pos, after );
         check_bool( "gate blocks chunk writes", after.runs.size( ) == 1 && after.runs[ 0 ].count == 1 &&
                                                       BlockStates_equal( after.runs[ 0 ].state, TNT_EDIT ) );
-        char furnace_name[ CHUNK_NAME_MAX_LENGTH ];
-        snprintf( furnace_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_FURNACE, storage.get_map_name( ), pos.x, pos.y, pos.z );
         ChestContentsMap chests_back;
         storage.load_chests( pos, chests_back );
         check_bool( "gate blocks chest writes", chests_back.size( ) == 1 );
-        struct stat st;
-        check_bool( "gate writes no furnace file", stat( furnace_name, &st ) != 0 );
+        check_bool( "gate writes no furnace file", storage.stored_size( MAP_FILE_FURNACE, pos ) < 0 );
     }
 
     // --- 7. slot reuse drops stale cells and edit bits -----------------------
@@ -471,21 +466,19 @@ int test_chunk_edits( ) {
         MapStorage storage;
         storage.init( "TestChunkEditsCorrupt" );
         const glm::ivec3 pos( 13, 0, 13 );
-        char file_name[ CHUNK_NAME_MAX_LENGTH ];
-        snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, storage.get_map_name( ), pos.x, pos.y, pos.z );
         // Legacy layout: u32 record_size, then {state rec, u32 count} records.
         // A record_size matching sizeof(BlockState)+4 = sizeof(STORAGE_TYPE);
         // the state record is the first record_size-4 bytes of BlockState.
         const uint32_t record_size = sizeof( BlockState ) + 4;
-        FILE *f = fopen( file_name, "wb" );
-        fwrite( &record_size, 4, 1, f );
-        auto put = [ & ]( const BlockState &s, uint32_t count ) {
-            fwrite( &s, record_size - 4, 1, f );
-            fwrite( &count, 4, 1, f );
-        };
-        put( TNT_EDIT, CHUNK_BLOCK_SIZE ); // fills the whole volume
-        put( GOLD_EDIT, 7 );               // one record too many
-        fclose( f );
+        test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
+            fwrite( &record_size, 4, 1, f );
+            auto put = [ & ]( const BlockState &s, uint32_t count ) {
+                fwrite( &s, record_size - 4, 1, f );
+                fwrite( &count, 4, 1, f );
+            };
+            put( TNT_EDIT, CHUNK_BLOCK_SIZE ); // fills the whole volume
+            put( GOLD_EDIT, 7 );               // one record too many
+        } );
         ChunkEdits edits;
         check_bool( "corrupt legacy decodes without crash", storage.load_chunk_edits( pos, edits ) == 1 );
         uint32_t last_end = 0;

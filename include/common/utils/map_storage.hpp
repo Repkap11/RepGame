@@ -1,9 +1,16 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <unordered_set>
 #include <vector>
+
+#if defined( REPGAME_MAP_SQLITE )
+#include <pthread.h>
+struct sqlite3;
+struct sqlite3_stmt;
+#endif
 
 class Chunk;
 struct PlayerData;
@@ -125,13 +132,82 @@ enum MapFileKind {
 class MapStorage {
     char map_name[ MAP_NAME_MAX_LENGTH ];
 
-    // Save-file index (opt-in, server only): one readdir at enable time
-    // fills a set per kind holding the packed chunk coords of every
-    // existing file; persists/unlinks keep it current. While enabled,
+    // ---- Storage backend ---------------------------------------------------
+    // Each per-chunk record kind is a "blob": the byte payload one
+    // <kind>_<x>_<y>_<z> file held. Two backends store blobs — loose files
+    // (fopen tmp+rename / stat / readdir) and a sqlite world.db (compiled
+    // where REPGAME_MAP_SQLITE links the vendored amalgamation: server +
+    // linux client). The codecs never see the difference: open_kind_read
+    // returns a FILE* over the stored bytes either way (sqlite copies the
+    // row and fmemopens it), and persists stream into a FILE* that
+    // commit_kind_write then makes durable.
+    bool use_sqlite( ) const {
+#if defined( REPGAME_MAP_SQLITE )
+        return this->db != nullptr;
+#else
+        return false;
+#endif
+    }
+    struct ReadCtx {
+        unsigned char *mem = nullptr; // sqlite only — free() after fclose
+        size_t len = 0;
+    };
+    FILE *open_kind_read( int kind, const glm::ivec3 &pos, ReadCtx &ctx );
+    struct WriteCtx {
+        int kind = 0;
+        glm::ivec3 pos{ 0 };
+        char *mem = nullptr;      // sqlite only: open_memstream backing
+        size_t mem_size = 0;
+        char tmp_path[ CHUNK_NAME_MAX_LENGTH + 8 ] = { 0 }; // file backend
+    };
+    FILE *open_kind_write( int kind, const glm::ivec3 &pos, WriteCtx &ctx );
+    // Makes a finished (fclose'd) write durable: renames the tmp file (file
+    // backend) or INSERTs the memstream blob (sqlite), then indexes it.
+    void commit_kind_write( WriteCtx &ctx );
+    // Deletes the kind's record at pos (unlink or DELETE) + unindexes it.
+    void remove_kind( int kind, const glm::ivec3 &pos );
+    // First 4 bytes of the stored blob (format magic peek). False = absent.
+    bool peek_kind_u32( int kind, const glm::ivec3 &pos, uint32_t &out );
+
+#if defined( REPGAME_MAP_SQLITE )
+    // sqlite world.db — non-null selects the sqlite backend. Types are
+    // forward-declared so this header stays sqlite-free; pthread_mutex_t
+    // (not std::mutex) because nvcc TUs include this header and can't
+    // parse <mutex>.
+    sqlite3 *db = nullptr;
+    sqlite3_stmt *stmt_get = nullptr;
+    sqlite3_stmt *stmt_put = nullptr;
+    sqlite3_stmt *stmt_del = nullptr;
+    sqlite3_stmt *stmt_exists = nullptr;
+    sqlite3_stmt *stmt_enum = nullptr;
+    sqlite3_stmt *stmt_kind_enum = nullptr;
+    sqlite3_stmt *stmt_size = nullptr;
+    sqlite3_stmt *stmt_peek = nullptr;
+    // Serializes sqlite calls (client terrain workers persist
+    // concurrently) and is held across a batch_begin/end transaction
+    // span. Recursive so blob writes inside a batch re-lock harmlessly.
+    pthread_mutex_t db_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+    int db_txn_depth = 0;
+    // Opens <map_name>/world.db (create + migrate loose files when `create`,
+    // read-only otherwise). Returns 1 when the sqlite backend went live.
+    int sqlite_open( bool create );
+    // Finalizes the prepared statements and closes the handle. Open a new
+    // db with sqlite_open afterwards if needed — used by the destructor.
+    void sqlite_close( );
+    int sqlite_exec( const char *sql );
+    // Imports every loose <kind>_<x>_<y>_<z> file into world.db, then
+    // unlinks the originals — the one-shot upgrade for file-era worlds.
+    void migrate_loose_files( );
+#endif
+
+    // Save-file index (opt-in, server only): one scan at enable time
+    // (readdir, or one SELECT on the sqlite backend) fills a set per kind
+    // holding the packed chunk coords of every stored blob;
+    // persists/unlinks keep it current. While enabled,
     // check_if_chunk_exists and the load_* functions answer "no file"
-    // from the index instead of stat/fopen. Single-threaded only — the
-    // dedicated server calls these from its event loop; the client never
-    // enables it, so client behaviour is unchanged.
+    // from the index instead of stat/fopen/SELECT. Single-threaded only —
+    // the dedicated server calls these from its event loop; the client
+    // never enables it, so client behaviour is unchanged.
     bool file_index_enabled = false;
     std::unordered_set<uint64_t> file_index[ MAP_FILE_KIND_COUNT ];
     // Test/debug counter: existence checks the index answered without a
@@ -145,6 +221,7 @@ class MapStorage {
     bool index_miss( int kind, const glm::ivec3 &pos );
 
   public:
+    ~MapStorage( );
     void init( const char *world_name );
     // Points map_name at an existing directory without creating anything —
     // the offline inspector's read-only mode.
@@ -218,9 +295,30 @@ class MapStorage {
     int read_world_time( int64_t &world_time );
     void write_world_time( int64_t world_time );
     // Builds the save-file index (see the file_index comment above): one
-    // readdir of the world dir fills the per-kind sets. Called once from
-    // ServerLogic::init, after init().
+    // scan of the world dir (or the entries table) fills the per-kind sets.
+    // Called once from ServerLogic::init, after init().
     void enable_file_index( );
+    // Every chunk coord that stores a blob of `kind` — enumerate_kind is
+    // the offline inspector's way to find chests/mobs/items/carts without
+    // knowing the backend. Returns the count appended to `out`.
+    int enumerate_kind( int kind, std::vector<glm::ivec3> &out );
+    // Stored byte size of the kind's record at `pos` (file size or blob
+    // length); -1 when absent.
+    long stored_size( int kind, const glm::ivec3 &pos );
+    // Test/tooling hook: stores `len` raw bytes as the kind's record at
+    // `pos` through the active backend — lets tests craft foreign/corrupt
+    // payloads without depending on the loose-file layout. 1 on success.
+    int write_kind_blob( int kind, const glm::ivec3 &pos, const void *data, size_t len );
+    // Groups persists into one sqlite transaction (BEGIN IMMEDIATE at
+    // depth 0, COMMIT when the last ends). Nested calls ref-count; both
+    // are no-ops on the file backend. The mutex is held across the span so
+    // a worker's transaction can't interleave statements.
+    void batch_begin( );
+    void batch_end( );
+    // "files" or "world.db" — debug/log labelling only.
+    const char *backend_name( ) const {
+        return this->use_sqlite( ) ? "world.db" : "files";
+    }
     // Rewrites every indexed chunk file that lacks the v1 magic by
     // round-tripping it through load_chunk_edits + persist_chunk_edits.
     // Returns the number rewritten; 0 while the index is off. Idempotent.

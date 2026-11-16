@@ -92,3 +92,19 @@ struct ScopedTempHome {
     char orig_home[ 512 ];
     bool had_home;
 };
+
+// Lets tests craft foreign/corrupt records without depending on the
+// loose-file layout: fill() fwrites the blob bytes into a memstream, and
+// the blob is stored through MapStorage's active backend (file or
+// world.db). Returns the write_kind_blob result for check_bool.
+template <typename Fill>
+static inline int test_write_blob( MapStorage &storage, int kind, const glm::ivec3 &pos, Fill &&fill ) {
+    char *mem = nullptr;
+    size_t mem_size = 0;
+    FILE *f = open_memstream( &mem, &mem_size );
+    fill( f );
+    fclose( f );
+    const int ok = storage.write_kind_blob( kind, pos, mem, mem_size );
+    free( mem );
+    return ok;
+}

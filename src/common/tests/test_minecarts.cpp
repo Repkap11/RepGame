@@ -354,16 +354,12 @@ int test_minecarts( ) {
             char raw[ 40 ];
             memset( raw, 0, sizeof( raw ) );
             memcpy( raw, &rec, sizeof( raw ) ); // old record = prefix without `type`
-            char file_name[ CHUNK_NAME_MAX_LENGTH ];
-            snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CARTS, storage.get_map_name( ), 1, 0, 0 );
-            FILE *w = fopen( file_name, "wb" );
-            if ( w != nullptr ) {
-                fwrite( &old_record_size, sizeof( uint32_t ), 1, w );
+            test_write_blob( storage, MAP_FILE_CARTS, glm::ivec3( 1, 0, 0 ), [ & ]( FILE *w ) {
                 const uint32_t one = 1;
+                fwrite( &old_record_size, sizeof( uint32_t ), 1, w );
                 fwrite( &one, sizeof( uint32_t ), 1, w );
                 fwrite( raw, sizeof( raw ), 1, w );
-                fclose( w );
-            }
+            } );
             check_bool( "cart persist: legacy 40-byte record loads as minecart",
                         storage.load_vehicles( glm::ivec3( 1, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].type == VEHICLE_MINECART &&
                             fabs( out[ 0 ].x - 5.5 ) < 1e-9 && fabs( out[ 0 ].yaw - 45.0f ) < 1e-6 );

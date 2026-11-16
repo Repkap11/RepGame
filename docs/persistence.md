@@ -18,19 +18,55 @@ chunk/entities/player — all through the real loaders, read-only; see
     world_type              optional; "flat" selects the flat generator
     player.dat              player position, inventories, settings
     world.dat               server-side world clock (int64)
+    world.db                sqlite: all per-chunk records (see below)
+    world.db-wal            sqlite write-ahead log (live writes)
     chunk_<x>_<y>_<z>       player-edit runs per chunk (v1); legacy saves
-                            were a full RLE BlockState volume
-    chest_<x>_<y>_<z>       chest contents for a chunk
-    furnace_<x>_<y>_<z>     furnace contents+progress for a chunk
-    sign_<x>_<y>_<z>        sign text for a chunk
-    mobs_<x>_<y>_<z>        mob records for a chunk
-    items_<x>_<y>_<z>       dropped-item records for a chunk
+                            were a full RLE BlockState volume  [files backend]
+    chest_<x>_<y>_<z>       chest contents for a chunk           [files backend]
+    furnace_<x>_<y>_<z>     furnace contents+progress for a chunk[files backend]
+    sign_<x>_<y>_<z>        sign text for a chunk                [files backend]
+    mobs_<x>_<y>_<z>        mob records for a chunk              [files backend]
+    items_<x>_<y>_<z>       dropped-item records for a chunk     [files backend]
+    carts_<x>_<y>_<z>       vehicle records for a chunk          [files backend]
 ```
 
 The `world_type` marker file is read once by
 `MapStorage::detect_flat_world` before any generation; `flat` worlds get
 a sandstone floor and skip normal terrain (see `docs/mapgen.md`,
 `docs/models.md` — `tools/model_to_world.py` writes it).
+
+## Storage backends: `world.db` vs loose files
+
+Every per-chunk record kind (`chunk`/`chest`/`furnace`/`sign`/`mobs`/
+`items`/`carts`) is a **blob** — the byte payload described by the format
+sections below. `MapStorage` has two backends for storing blobs:
+
+- **`world.db` (sqlite)** — built where `REPGAME_MAP_SQLITE` links the
+  vendored amalgamation (`sqlite_build/`, fetched by `make install` /
+  `make server-install`): the dedicated server and the
+  linux/arm/steamframe clients. One row per record:
+  `entries(kind, x, y, z, data)` — `data` is the *exact* byte stream a
+  loose file held, so every codec (v1 magic, `record_size` prefix,
+  legacy decode, `needs_rewrite`) is byte-identical across backends.
+  WAL journal + `synchronous=NORMAL` is app-crash durable; persisting a
+  chunk and its sidecars commits in one transaction (`batch_begin`/
+  `batch_end`), and `enable_file_index` fills the save-file index with
+  one `SELECT` instead of a `readdir`.
+- **Loose files** — the classic backend: one `<kind>_<x>_<y>_<z>` file
+  per record under the world dir, tmp+rename on write. Used on Windows
+  and whenever `world.db` can't be opened (`sqlite_open` falls back).
+  `REPGAME_MAP_FILES=1` forces this backend on sqlite builds
+  (debugging/comparison only — the loose-file import is skipped too).
+
+**Migration is automatic**: on `init`, `sqlite_open` imports every loose
+`<kind>_*` file it finds into `world.db` (one transaction), then unlinks
+the originals — a file-era world upgrades on first open. `player.dat`,
+`world.dat` and `world_type` stay loose files on all platforms.
+
+**WASM and Android persist no per-chunk world state at all** — they
+always run connected, so `load_*`/`persist_*`/`check_if_chunk_exists`
+for the chunk kinds early-out (`world_storage_off`). `player.dat` (and
+`world_type` for flat worlds) still work on every platform.
 
 ## Chunk files (`chunk_x_y_z`)
 
@@ -60,14 +96,15 @@ size differs from this build's sets `ChunkEdits::needs_rewrite` so it is
 rewritten in v1 on the next persist. Persisting an empty run set
 removes the file.
 
-Writes are atomic: `persist_chunk_edits` writes a sibling `*.tmp` then
-renames, so a crash or kill mid-write leaves the previous file intact
-rather than a truncated stream that would decode as a shorter edit list.
-A file that exists but fails to decode is never rewritten from a partial
-or empty read — `load_chunk_edits` fails closed, `ServerLogic` refuses to
-merge such a chunk into its edit cache (the new edit is dropped for that
-chunk, the on-disk data survives), and `migrate_legacy_chunk_files`
-skips it.
+Writes are atomic on both backends: on loose files every persist writes
+a sibling `*.tmp` then renames, so a crash or kill mid-write leaves the
+previous file intact rather than a truncated stream that would decode
+as a shorter edit list; on `world.db` the blob lands inside a WAL
+commit. A record that exists but fails to decode is never rewritten
+from a partial or empty read — `load_chunk_edits` fails closed,
+`ServerLogic` refuses to merge such a chunk into its edit cache (the
+new edit is dropped for that chunk, the stored data survives), and
+`migrate_legacy_chunk_files` skips it.
 
 Writes happen off the render thread inside
 `TerrainLoadingThread::process_value` — a departing slot persists
@@ -320,6 +357,9 @@ pre-2047 saves and is permanently reserved — never reuse it. On load:
   `furnace_*`/`sign_*` files are read or written. Chunks already loaded when a connect fails
   outright are *not* reloaded — their saved edits only appear after
   they leave and re-enter the render window.
+- **WASM + Android** touch no per-chunk storage at all —
+  `world_storage_off` early-outs every chunk-kind load/persist (they
+  always run connected); `player.dat` still persists.
 - **Block world** (`REPGAME_BLOCK_WORLD`) touches no files at all —
   `MapStorage` methods early-out and no map dir is created.
 - **Flat worlds** keep chunk saves (the sandstone floor is regenerable,

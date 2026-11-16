@@ -106,8 +106,12 @@ See `docs/models.md`.
   `REPGAME_RESULTS` JSONL event-stream writer (docs/debug-tools.md)
 - `src/common/tests/` — the in-game `rep_tests` suite, one file per
   subsystem, run via `RepGame --tests` / `make tests`
-- `src/common/utils/map_storage.cpp` + `player_data.cpp` — chunk files and
-  `player.dat`; the player save is a human-readable text format
+- `src/common/utils/map_storage.cpp` + `player_data.cpp` — per-chunk save
+  records and `player.dat`. Two backends store the record blobs: a sqlite
+  `world.db` (server + linux/arm/steamframe, vendored amalgamation in
+  `sqlite_build/` via `make install`) and loose `<kind>_<x>_<y>_<z>`
+  files (Windows; `REPGAME_MAP_FILES=1` forces it). WASM/Android persist
+  no per-chunk state. The player save is a human-readable text format
   (`include/common/player_data.hpp`), with the five historical binary
   layouts still accepted on read
 - `src/linux/` — SDL3 desktop client (also base for ARM/SteamFrame/Windows)

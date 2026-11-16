@@ -4,8 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string> /* std::string — migrate file list */
 #include <sys/stat.h> /* mkdir(2) */
 #include <unistd.h>
+
+#if defined( REPGAME_MAP_SQLITE )
+#include "sqlite3.h"
+#endif
 
 #include "common/utils/map_storage.hpp"
 #include "common/Platforms.hpp" // IWYU pragma: keep — REPGAME_PATH_DIVIDOR + platform macros
@@ -16,6 +21,7 @@
 #include "common/player_data.hpp"
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
+#include "common/utils/env_config.hpp"
 
 // WasmFS opens O_RDONLY OPFS files via a Blob and reads it with
 // slice().arrayBuffer(), which in Firefox needs the main thread's event
@@ -27,6 +33,44 @@
 #else
 #define MAP_READ_MODE "rb"
 #endif
+
+// Per-chunk world storage is off on platforms that always run connected
+// (WASM + Android never persist world state — player.dat is the only
+// per-world file they write) and in the block world (no disk I/O at all).
+// Every per-chunk kind, the save-file index and the migrations early-out.
+static inline bool world_storage_off( ) {
+#if defined( REPGAME_WASM ) || defined( REPGAME_ANDROID )
+    return true;
+#else
+    return repgame_block_world( );
+#endif
+}
+
+// FILE_ROOT_* format and name prefix per MapFileKind (enum order).
+static const char *const KIND_FILE_ROOT[ MAP_FILE_KIND_COUNT ] = {
+    FILE_ROOT_CHUNK, FILE_ROOT_MOBS, FILE_ROOT_ITEMS, FILE_ROOT_CARTS,
+    FILE_ROOT_CHEST, FILE_ROOT_FURNACE, FILE_ROOT_SIGN };
+static const char *const KIND_PREFIX[ MAP_FILE_KIND_COUNT ] = {
+    "chunk_", "mobs_", "items_", "carts_", "chest_", "furnace_", "sign_" };
+
+// "<prefix>_<x>_<y>_<z>" -> kind + coords; trailing junk rejects the match.
+static bool parse_kind_filename( const char *name, int &kind, glm::ivec3 &pos ) {
+    for ( int k = 0; k < MAP_FILE_KIND_COUNT; k++ ) {
+        const size_t prefix_len = strlen( KIND_PREFIX[ k ] );
+        if ( strncmp( name, KIND_PREFIX[ k ], prefix_len ) != 0 ) {
+            continue;
+        }
+        int x = 0, y = 0, z = 0;
+        char tail = 0;
+        if ( sscanf( name + prefix_len, "%d_%d_%d%c", &x, &y, &z, &tail ) == 3 ) {
+            kind = k;
+            pos = glm::ivec3( x, y, z );
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
 
 bool MapStorage::detect_flat_world( const char *world_name ) {
     g_repgame_flat_world = false;
@@ -62,11 +106,487 @@ void MapStorage::init( const char *world_name ) {
     }
     mkdir_p( this->map_name );
     pr_debug( "Map dir ready:%s", this->map_name );
+#if defined( REPGAME_MAP_SQLITE )
+    // REPGAME_MAP_FILES=1 keeps the loose-file backend — debugging and
+    // side-by-side comparison only; the world.db import is skipped too.
+    const bool use_files = env_bool( "REPGAME_MAP_FILES", false );
+    if ( !use_files && this->sqlite_open( true ) ) {
+        pr_debug( "Map backend: sqlite world.db" );
+    } else {
+        pr_debug( "Map backend: loose files%s", use_files ? " (REPGAME_MAP_FILES)" : " (sqlite unavailable)" );
+    }
+#else
+    pr_debug( "Map backend: loose files" );
+#endif
     free( dir );
+}
+
+MapStorage::~MapStorage( ) {
+#if defined( REPGAME_MAP_SQLITE )
+    this->sqlite_close( );
+#endif
 }
 
 void MapStorage::init_readonly( const char *map_dir ) {
     snprintf( this->map_name, MAP_NAME_MAX_LENGTH, "%s", map_dir );
+#if defined( REPGAME_MAP_SQLITE )
+    // world.db present -> read it through the sqlite backend; a dir of
+    // loose files (or a non-sqlite build) keeps the file backend.
+    char db_path[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( db_path, sizeof( db_path ), "%s/world.db", this->map_name );
+    struct stat st;
+    if ( stat( db_path, &st ) == 0 ) {
+        this->sqlite_open( false );
+    }
+#endif
+}
+
+#if defined( REPGAME_MAP_SQLITE )
+namespace {
+// RAII lock for db_mutex — the member is pthread_mutex_t (std::mutex's
+// <mutex> header breaks nvcc TUs that include map_storage.hpp).
+struct DbLock {
+    explicit DbLock( pthread_mutex_t &m ) : m( m ) {
+        pthread_mutex_lock( &this->m );
+    }
+    ~DbLock( ) {
+        pthread_mutex_unlock( &this->m );
+    }
+    pthread_mutex_t &m;
+};
+} // namespace
+
+void MapStorage::sqlite_close( ) {
+    if ( this->db == nullptr ) {
+        return;
+    }
+    // A still-open batch means the object died mid-transaction: roll it
+    // back rather than commit a torn group.
+    if ( this->db_txn_depth > 0 ) {
+        this->sqlite_exec( "ROLLBACK" );
+        this->db_txn_depth = 0;
+    }
+    sqlite3_stmt *stmts[] = { this->stmt_get,  this->stmt_put,       this->stmt_del,  this->stmt_exists,
+                              this->stmt_enum, this->stmt_kind_enum, this->stmt_size, this->stmt_peek };
+    for ( sqlite3_stmt *st : stmts ) {
+        sqlite3_finalize( st );
+    }
+    this->stmt_get = this->stmt_put = this->stmt_del = this->stmt_exists = nullptr;
+    this->stmt_enum = this->stmt_kind_enum = this->stmt_size = this->stmt_peek = nullptr;
+    sqlite3_close( this->db );
+    this->db = nullptr;
+}
+
+int MapStorage::sqlite_exec( const char *sql ) {
+    char *err = nullptr;
+    const int rc = sqlite3_exec( this->db, sql, nullptr, nullptr, &err );
+    if ( rc != SQLITE_OK ) {
+        pr_debug( "sqlite exec failed (%d): %s [%s]", rc, err != nullptr ? err : "?", sql );
+        sqlite3_free( err );
+    }
+    return rc == SQLITE_OK;
+}
+
+int MapStorage::sqlite_open( bool create ) {
+    char db_path[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( db_path, sizeof( db_path ), "%s/world.db", this->map_name );
+    const int flags = create ? ( SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX )
+                             : ( SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX );
+    if ( sqlite3_open_v2( db_path, &this->db, flags, nullptr ) != SQLITE_OK ) {
+        pr_debug( "sqlite open failed for %s: %s — using loose files", db_path,
+                  this->db != nullptr ? sqlite3_errmsg( this->db ) : "?" );
+        sqlite3_close( this->db );
+        this->db = nullptr;
+        return 0;
+    }
+    if ( create ) {
+        // WAL gives crash-safe commits (checksums + atomic commit
+        // records); synchronous=NORMAL is durable against an app crash —
+        // only an OS crash/power loss can lose the last commit, and the
+        // loose files were never fsync'd at all. Writer-only pragmas: a
+        // READONLY open doesn't set them.
+        this->sqlite_exec( "PRAGMA journal_mode=WAL" );
+        this->sqlite_exec( "PRAGMA synchronous=NORMAL" );
+        this->sqlite_exec( "PRAGMA busy_timeout=5000" );
+        // One row per per-chunk record: (kind, chunk coords) -> the exact
+        // bytes the loose file held, so every codec (v1 magic, record_size
+        // prefix, legacy decode) reads identical payloads. WITHOUT ROWID
+        // clusters rows by the PK instead of keeping a separate index.
+        if ( !this->sqlite_exec( "CREATE TABLE IF NOT EXISTS entries("
+                                 "kind INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL,"
+                                 "data BLOB NOT NULL, PRIMARY KEY(kind, x, y, z)) WITHOUT ROWID" ) ) {
+            sqlite3_close( this->db );
+            this->db = nullptr;
+            return 0;
+        }
+    }
+    {
+        // Prepared for readonly opens too — the write stmts would simply
+        // fail at step time on a READONLY handle, and nothing calls them.
+        static const char *const sqls[] = {
+            "SELECT data FROM entries WHERE kind=?1 AND x=?2 AND y=?3 AND z=?4",
+            "INSERT OR REPLACE INTO entries(kind,x,y,z,data) VALUES(?1,?2,?3,?4,?5)",
+            "DELETE FROM entries WHERE kind=?1 AND x=?2 AND y=?3 AND z=?4",
+            "SELECT 1 FROM entries WHERE kind=?1 AND x=?2 AND y=?3 AND z=?4",
+            "SELECT kind,x,y,z FROM entries",
+            "SELECT x,y,z FROM entries WHERE kind=?1",
+            "SELECT length(data) FROM entries WHERE kind=?1 AND x=?2 AND y=?3 AND z=?4",
+            "SELECT substr(data,1,4) FROM entries WHERE kind=?1 AND x=?2 AND y=?3 AND z=?4",
+        };
+        sqlite3_stmt **slots[] = { &this->stmt_get,  &this->stmt_put,       &this->stmt_del,  &this->stmt_exists,
+                                   &this->stmt_enum, &this->stmt_kind_enum, &this->stmt_size, &this->stmt_peek };
+        for ( size_t i = 0; i < sizeof( sqls ) / sizeof( sqls[ 0 ] ); i++ ) {
+            if ( sqlite3_prepare_v2( this->db, sqls[ i ], -1, slots[ i ], nullptr ) != SQLITE_OK ) {
+                pr_debug( "sqlite prepare failed: %s", sqlite3_errmsg( this->db ) );
+                sqlite3_close( this->db );
+                this->db = nullptr;
+                return 0;
+            }
+        }
+    }
+    if ( create ) {
+        this->migrate_loose_files( );
+    }
+    return 1;
+}
+
+// Imports every loose <kind>_<x>_<y>_<z> file into world.db, then unlinks
+// the originals — the one-shot upgrade for file-era worlds. The inserts
+// commit (batch) before any file is unlinked, so a mid-import crash just
+// re-imports next open.
+void MapStorage::migrate_loose_files( ) {
+    DIR *d = opendir( this->map_name );
+    if ( d == nullptr ) {
+        return;
+    }
+    std::vector<std::string> names;
+    struct dirent *entry;
+    while ( ( entry = readdir( d ) ) != nullptr ) {
+        int kind = 0;
+        glm::ivec3 pos;
+        if ( parse_kind_filename( entry->d_name, kind, pos ) ) {
+            names.emplace_back( entry->d_name );
+        }
+    }
+    closedir( d );
+    if ( names.empty( ) ) {
+        return;
+    }
+    int migrated = 0;
+    std::vector<std::string> imported;
+    this->batch_begin( );
+    for ( const std::string &name : names ) {
+        int kind = 0;
+        glm::ivec3 pos;
+        if ( !parse_kind_filename( name.c_str( ), kind, pos ) ) {
+            continue;
+        }
+        char path[ CHUNK_NAME_MAX_LENGTH ];
+        snprintf( path, sizeof( path ), "%s/%s", this->map_name, name.c_str( ) );
+        FILE *f = fopen( path, "rb" );
+        if ( f == nullptr ) {
+            continue;
+        }
+        fseek( f, 0, SEEK_END );
+        long len = ftell( f );
+        fseek( f, 0, SEEK_SET );
+        if ( len < 0 ) {
+            len = 0;
+        }
+        unsigned char *buf = static_cast<unsigned char *>( malloc( len > 0 ? len : 1 ) );
+        const size_t got = fread( buf, 1, len, f );
+        fclose( f );
+        if ( got != static_cast<size_t>( len ) ) {
+            free( buf );
+            continue;
+        }
+        {
+            DbLock lock( this->db_mutex );
+            sqlite3_stmt *st = this->stmt_put;
+            sqlite3_bind_int( st, 1, kind );
+            sqlite3_bind_int( st, 2, pos.x );
+            sqlite3_bind_int( st, 3, pos.y );
+            sqlite3_bind_int( st, 4, pos.z );
+            sqlite3_bind_blob( st, 5, buf, static_cast<int>( len ), SQLITE_TRANSIENT );
+            const int rc = sqlite3_step( st );
+            sqlite3_reset( st );
+            if ( rc == SQLITE_DONE ) {
+                imported.push_back( path );
+                this->index_insert( kind, pos );
+                migrated++;
+            } else {
+                pr_debug( "sqlite migrate failed for %s: %s", path, sqlite3_errmsg( this->db ) );
+            }
+        }
+        free( buf );
+    }
+    this->batch_end( );
+    for ( const std::string &p : imported ) {
+        remove( p.c_str( ) );
+    }
+    pr_debug( "sqlite: imported %d loose files into world.db under %s", migrated, this->map_name );
+}
+#endif // REPGAME_MAP_SQLITE
+
+// ---- Per-kind blob IO ------------------------------------------------------
+// The two backends share this interface: reads hand back a FILE* over the
+// stored bytes (sqlite copies the row and fmemopens it — free(ctx.mem)
+// after fclose), writes stream into a FILE* that commit_kind_write makes
+// durable. Decode/encode code is backend-agnostic.
+
+FILE *MapStorage::open_kind_read( int kind, const glm::ivec3 &pos, ReadCtx &ctx ) {
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_get;
+        sqlite3_bind_int( st, 1, kind );
+        sqlite3_bind_int( st, 2, pos.x );
+        sqlite3_bind_int( st, 3, pos.y );
+        sqlite3_bind_int( st, 4, pos.z );
+        if ( sqlite3_step( st ) == SQLITE_ROW ) {
+            ctx.len = static_cast<size_t>( sqlite3_column_bytes( st, 0 ) );
+            ctx.mem = static_cast<unsigned char *>( malloc( ctx.len > 0 ? ctx.len : 1 ) );
+            memcpy( ctx.mem, sqlite3_column_blob( st, 0 ), ctx.len );
+        }
+        sqlite3_reset( st );
+        if ( ctx.mem == nullptr ) {
+            return nullptr;
+        }
+        FILE *fp = fmemopen( ctx.mem, ctx.len > 0 ? ctx.len : 1, "rb" );
+        if ( fp == nullptr ) {
+            free( ctx.mem );
+            ctx.mem = nullptr;
+        }
+        return fp;
+    }
+#endif
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
+    return fopen( file_name, MAP_READ_MODE );
+}
+
+FILE *MapStorage::open_kind_write( int kind, const glm::ivec3 &pos, WriteCtx &ctx ) {
+    ctx.kind = kind;
+    ctx.pos = pos;
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        return open_memstream( &ctx.mem, &ctx.mem_size );
+    }
+#endif
+    // Write a sibling temp then rename on commit: a mid-write crash/kill
+    // must not leave a truncated record in place.
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
+    snprintf( ctx.tmp_path, sizeof( ctx.tmp_path ), "%s.tmp", file_name );
+    return fopen( ctx.tmp_path, "wb" );
+}
+
+void MapStorage::commit_kind_write( WriteCtx &ctx ) {
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_put;
+        sqlite3_bind_int( st, 1, ctx.kind );
+        sqlite3_bind_int( st, 2, ctx.pos.x );
+        sqlite3_bind_int( st, 3, ctx.pos.y );
+        sqlite3_bind_int( st, 4, ctx.pos.z );
+        sqlite3_bind_blob( st, 5, ctx.mem, static_cast<int>( ctx.mem_size ), SQLITE_TRANSIENT );
+        if ( sqlite3_step( st ) == SQLITE_DONE ) {
+            this->index_insert( ctx.kind, ctx.pos );
+        } else {
+            pr_debug( "sqlite write failed kind=%d pos=(%d,%d,%d): %s", ctx.kind, ctx.pos.x, ctx.pos.y, ctx.pos.z,
+                      sqlite3_errmsg( this->db ) );
+        }
+        sqlite3_reset( st );
+        free( ctx.mem );
+        ctx.mem = nullptr;
+        return;
+    }
+#endif
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ ctx.kind ], this->map_name, ctx.pos.x, ctx.pos.y, ctx.pos.z );
+    if ( rename( ctx.tmp_path, file_name ) != 0 ) {
+        pr_debug( "rename failed for:%s", file_name );
+        remove( ctx.tmp_path );
+        return;
+    }
+    // Index only once the file is durable: the temp write must not count.
+    this->index_insert( ctx.kind, ctx.pos );
+}
+
+void MapStorage::remove_kind( int kind, const glm::ivec3 &pos ) {
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_del;
+        sqlite3_bind_int( st, 1, kind );
+        sqlite3_bind_int( st, 2, pos.x );
+        sqlite3_bind_int( st, 3, pos.y );
+        sqlite3_bind_int( st, 4, pos.z );
+        sqlite3_step( st );
+        sqlite3_reset( st );
+        this->index_remove( kind, pos );
+        return;
+    }
+#endif
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
+    remove( file_name );
+    this->index_remove( kind, pos );
+}
+
+bool MapStorage::peek_kind_u32( int kind, const glm::ivec3 &pos, uint32_t &out ) {
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_peek;
+        sqlite3_bind_int( st, 1, kind );
+        sqlite3_bind_int( st, 2, pos.x );
+        sqlite3_bind_int( st, 3, pos.y );
+        sqlite3_bind_int( st, 4, pos.z );
+        bool got = false;
+        if ( sqlite3_step( st ) == SQLITE_ROW && sqlite3_column_bytes( st, 0 ) == 4 ) {
+            memcpy( &out, sqlite3_column_blob( st, 0 ), sizeof( uint32_t ) );
+            got = true;
+        }
+        sqlite3_reset( st );
+        return got;
+    }
+#endif
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
+    FILE *f = fopen( file_name, MAP_READ_MODE );
+    if ( f == nullptr ) {
+        return false;
+    }
+    const bool got = fread( &out, sizeof( uint32_t ), 1, f ) == 1;
+    fclose( f );
+    return got;
+}
+
+int MapStorage::enumerate_kind( int kind, std::vector<glm::ivec3> &out ) {
+    if ( world_storage_off( ) ) {
+        return 0;
+    }
+    int n = 0;
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_kind_enum;
+        sqlite3_bind_int( st, 1, kind );
+        while ( sqlite3_step( st ) == SQLITE_ROW ) {
+            out.emplace_back( sqlite3_column_int( st, 0 ), sqlite3_column_int( st, 1 ), sqlite3_column_int( st, 2 ) );
+            n++;
+        }
+        sqlite3_reset( st );
+        return n;
+    }
+#endif
+    DIR *d = opendir( this->map_name );
+    if ( d == nullptr ) {
+        return 0;
+    }
+    struct dirent *entry;
+    while ( ( entry = readdir( d ) ) != nullptr ) {
+        int k = 0;
+        glm::ivec3 pos;
+        if ( parse_kind_filename( entry->d_name, k, pos ) && k == kind ) {
+            out.push_back( pos );
+            n++;
+        }
+    }
+    closedir( d );
+    return n;
+}
+
+long MapStorage::stored_size( int kind, const glm::ivec3 &pos ) {
+    if ( world_storage_off( ) ) {
+        return -1;
+    }
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_size;
+        sqlite3_bind_int( st, 1, kind );
+        sqlite3_bind_int( st, 2, pos.x );
+        sqlite3_bind_int( st, 3, pos.y );
+        sqlite3_bind_int( st, 4, pos.z );
+        long size = -1;
+        if ( sqlite3_step( st ) == SQLITE_ROW ) {
+            size = static_cast<long>( sqlite3_column_int64( st, 0 ) );
+        }
+        sqlite3_reset( st );
+        return size;
+    }
+#endif
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
+    struct stat st;
+    return stat( file_name, &st ) == 0 ? static_cast<long>( st.st_size ) : -1;
+}
+
+int MapStorage::write_kind_blob( int kind, const glm::ivec3 &pos, const void *data, size_t len ) {
+    if ( world_storage_off( ) ) {
+        return 0;
+    }
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_put;
+        sqlite3_bind_int( st, 1, kind );
+        sqlite3_bind_int( st, 2, pos.x );
+        sqlite3_bind_int( st, 3, pos.y );
+        sqlite3_bind_int( st, 4, pos.z );
+        sqlite3_bind_blob( st, 5, data, static_cast<int>( len ), SQLITE_TRANSIENT );
+        const int rc = sqlite3_step( st );
+        sqlite3_reset( st );
+        if ( rc != SQLITE_DONE ) {
+            return 0;
+        }
+        this->index_insert( kind, pos );
+        return 1;
+    }
+#endif
+    char file_name[ CHUNK_NAME_MAX_LENGTH ];
+    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
+    char tmp_name[ CHUNK_NAME_MAX_LENGTH + 8 ];
+    snprintf( tmp_name, sizeof( tmp_name ), "%s.tmp", file_name );
+    FILE *f = fopen( tmp_name, "wb" );
+    if ( f == nullptr ) {
+        return 0;
+    }
+    fwrite( data, 1, len, f );
+    fclose( f );
+    if ( rename( tmp_name, file_name ) != 0 ) {
+        remove( tmp_name );
+        return 0;
+    }
+    this->index_insert( kind, pos );
+    return 1;
+}
+
+void MapStorage::batch_begin( ) {
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->db == nullptr ) {
+        return;
+    }
+    pthread_mutex_lock( &this->db_mutex );
+    if ( this->db_txn_depth++ == 0 ) {
+        this->sqlite_exec( "BEGIN IMMEDIATE" );
+    }
+#endif
+}
+
+void MapStorage::batch_end( ) {
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->db == nullptr ) {
+        return;
+    }
+    if ( --this->db_txn_depth == 0 ) {
+        this->sqlite_exec( "COMMIT" );
+    }
+    pthread_mutex_unlock( &this->db_mutex );
+#endif
 }
 
 char *MapStorage::get_map_name( ) {
@@ -120,43 +640,42 @@ bool MapStorage::index_miss( int kind, const glm::ivec3 &pos ) {
 }
 
 void MapStorage::enable_file_index( ) {
-    if ( this->file_index_enabled || repgame_block_world( ) ) {
+    if ( this->file_index_enabled || world_storage_off( ) ) {
         return;
     }
     this->file_index_enabled = true;
-    static const struct {
-        const char *prefix;
-        int prefix_len;
-        int kind;
-    } kinds[] = {
-        { "chunk_", 6, MAP_FILE_CHUNK },
-        { "mobs_", 5, MAP_FILE_MOBS },
-        { "items_", 6, MAP_FILE_ITEMS },
-        { "carts_", 6, MAP_FILE_CARTS },
-        { "chest_", 6, MAP_FILE_CHEST },
-        { "furnace_", 8, MAP_FILE_FURNACE },
-        { "sign_", 5, MAP_FILE_SIGN },
-    };
+    size_t indexed = 0;
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        // One SELECT instead of a readdir — every stored row is a blob.
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_enum;
+        while ( sqlite3_step( st ) == SQLITE_ROW ) {
+            const int kind = sqlite3_column_int( st, 0 );
+            if ( kind >= 0 && kind < MAP_FILE_KIND_COUNT ) {
+                this->file_index[ kind ].insert(
+                    pack_chunk_coords( sqlite3_column_int( st, 1 ), sqlite3_column_int( st, 2 ),
+                                       sqlite3_column_int( st, 3 ) ) );
+                indexed++;
+            }
+        }
+        sqlite3_reset( st );
+        pr_debug( "file index: %zu rows in %s/world.db", indexed, this->map_name );
+        return;
+    }
+#endif
     DIR *dir = opendir( this->map_name );
     if ( dir == NULL ) {
         pr_debug( "file index: opendir failed for %s", this->map_name );
         return;
     }
-    size_t indexed = 0;
     struct dirent *entry;
     while ( ( entry = readdir( dir ) ) != NULL ) {
-        const char *name = entry->d_name;
-        for ( const auto &k : kinds ) {
-            if ( strncmp( name, k.prefix, k.prefix_len ) != 0 ) {
-                continue;
-            }
-            int x = 0, y = 0, z = 0;
-            char tail = 0;
-            if ( sscanf( name + k.prefix_len, "%d_%d_%d%c", &x, &y, &z, &tail ) == 3 ) {
-                this->file_index[ k.kind ].insert( pack_chunk_coords( x, y, z ) );
-                indexed++;
-            }
-            break;
+        int kind = 0;
+        glm::ivec3 pos;
+        if ( parse_kind_filename( entry->d_name, kind, pos ) ) {
+            this->file_index[ kind ].insert( pack_chunk_coords( pos.x, pos.y, pos.z ) );
+            indexed++;
         }
     }
     closedir( dir );
@@ -170,7 +689,7 @@ void MapStorage::file_index_counts( size_t out[ MAP_FILE_KIND_COUNT ] ) const {
 }
 
 int MapStorage::migrate_legacy_chunk_files( ) {
-    if ( repgame_block_world( ) || !this->file_index_enabled ) {
+    if ( world_storage_off( ) || !this->file_index_enabled ) {
         return 0;
     }
     // Snapshot the keys first: persist_chunk_edits mutates the index as
@@ -180,16 +699,8 @@ int MapStorage::migrate_legacy_chunk_files( ) {
     int migrated = 0;
     for ( const uint64_t key : keys ) {
         const glm::ivec3 pos = unpack_chunk_coords( key );
-        char file_name[ CHUNK_NAME_MAX_LENGTH ];
-        snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, pos.x, pos.y, pos.z );
         uint32_t head = 0;
-        int got_head = 0;
-        FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
-        if ( read_ptr != NULL ) {
-            got_head = fread( &head, sizeof( uint32_t ), 1, read_ptr ) == 1;
-            fclose( read_ptr );
-        }
-        if ( !got_head || head == CHUNK_EDITS_MAGIC ) {
+        if ( !this->peek_kind_u32( MAP_FILE_CHUNK, pos, head ) || head == CHUNK_EDITS_MAGIC ) {
             continue; // already v1 (or unreadable — left for the loader)
         }
         // Legacy format: decode through the normal path, re-encode as v1.
@@ -209,26 +720,20 @@ typedef struct __attribute__( ( packed ) ) {
 } STORAGE_TYPE;
 
 void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std::vector<ChunkEditRun> &runs ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( runs.empty( ) ) {
-        remove( file_name );
-        this->index_remove( MAP_FILE_CHUNK, chunk_offset );
+        this->remove_kind( MAP_FILE_CHUNK, chunk_offset );
         return;
     }
-    // Write to a sibling temp then rename: a mid-write crash/kill must not
-    // leave a truncated chunk file that later decodes as a shorter edit list.
-    char tmp_name[ CHUNK_NAME_MAX_LENGTH + 8 ];
-    snprintf( tmp_name, sizeof( tmp_name ), "%s.tmp", file_name );
-    FILE *write_ptr = fopen( tmp_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_CHUNK, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for chunk:%s", tmp_name );
+        pr_debug( "open failed for chunk:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
     const uint32_t magic = CHUNK_EDITS_MAGIC;
@@ -244,27 +749,15 @@ void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std:
         fwrite( &run.count, sizeof( uint32_t ), 1, write_ptr );
         fwrite( &run.state, sizeof( BlockState ), 1, write_ptr );
     }
-#if defined( REPGAME_WASM )
-    // File lives on the OPFS backend; fdatasync forces the
-    // FileSystemSyncAccessHandle flush so the write survives a tab crash.
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
-    if ( rename( tmp_name, file_name ) != 0 ) {
-        pr_debug( "rename failed for chunk:%s", file_name );
-        remove( tmp_name );
-        return;
-    }
-    // Index only once the file is durable: the temp write must not count.
-    this->index_insert( MAP_FILE_CHUNK, chunk_offset );
+    this->commit_kind_write( w );
 }
 
 void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const BlockState *blocks ) {
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *write_ptr = fopen( file_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_CHUNK, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for chunk:%s", file_name );
+        pr_debug( "open failed for chunk:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
     const uint32_t storage_type_size = sizeof( STORAGE_TYPE );
@@ -290,8 +783,8 @@ void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const Blo
     persist_data.num = num_same_blocks;
     fwrite( &persist_data, sizeof( STORAGE_TYPE ), 1, write_ptr );
     fclose( write_ptr );
-    // Test-only writer, but the index must still learn about the file.
-    this->index_insert( MAP_FILE_CHUNK, chunk_offset );
+    // Test-only writer, but the index must still learn about the record.
+    this->commit_kind_write( w );
 }
 
 namespace {
@@ -409,7 +902,7 @@ int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32
 
 int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &out ) {
     out = ChunkEdits{ };
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
@@ -420,25 +913,30 @@ int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &ou
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    ReadCtx r;
+    FILE *read_ptr = this->open_kind_read( MAP_FILE_CHUNK, chunk_offset, r );
     if ( read_ptr == NULL ) {
-        pr_debug( "fopen failed for chunk:%s", file_name );
+        pr_debug( "open failed for chunk:%s", file_name );
         return -1;
     }
     uint32_t head = 0;
     if ( fread( &head, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
         fclose( read_ptr );
+        free( r.mem );
         return -1;
     }
     if ( head != CHUNK_EDITS_MAGIC ) {
         // `head` is the legacy file's record_size.
-        return load_chunk_edits_legacy( read_ptr, file_name, head, out );
+        const int ret = load_chunk_edits_legacy( read_ptr, file_name, head, out );
+        free( r.mem );
+        return ret;
     }
     uint32_t version = 0, record_size = 0, run_count = 0;
     if ( fread( &version, sizeof( uint32_t ), 1, read_ptr ) != 1 || version != CHUNK_EDITS_VERSION ||
          fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 || record_size > 4096 ||
          fread( &run_count, sizeof( uint32_t ), 1, read_ptr ) != 1 || run_count > CHUNK_BLOCK_SIZE ) {
         fclose( read_ptr );
+        free( r.mem );
         return -1;
     }
     if ( record_size != sizeof( BlockState ) ) {
@@ -456,6 +954,7 @@ int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &ou
              count == 0 || start < prev_end || start + count > CHUNK_BLOCK_SIZE ) {
             free( raw );
             fclose( read_ptr );
+            free( r.mem );
             out = ChunkEdits{ };
             return -1;
         }
@@ -469,13 +968,15 @@ int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &ou
     }
     free( raw );
     fclose( read_ptr );
+    free( r.mem );
     return 1;
 }
 
 void MapStorage::persist_chunk( const Chunk &chunk ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
+    this->batch_begin( ); // one sqlite txn for the chunk + its sidecars
     if ( chunk.dirty ) {
         if ( !chunk.edits_read_failed ) {
             // Only the cells runtime edits touched get written; everything
@@ -540,18 +1041,32 @@ void MapStorage::persist_chunk( const Chunk &chunk ) {
             this->persist_signs( chunk.chunk_pos, sign_world_map );
         }
     }
+    this->batch_end( );
 }
 
 int MapStorage::check_if_chunk_exists( const glm::ivec3 &chunk_offset ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( this->file_index_enabled ) {
-        // The index answers without a stat — this is the hot path for
-        // server CHUNK_DIFF_REQUEST boxes.
+        // The index answers without a stat/query — this is the hot path
+        // for server CHUNK_DIFF_REQUEST boxes.
         this->file_index_short_circuits++;
         return this->file_index[ MAP_FILE_CHUNK ].count( pack_chunk_coords( chunk_offset.x, chunk_offset.y, chunk_offset.z ) ) ? 1 : 0;
     }
+#if defined( REPGAME_MAP_SQLITE )
+    if ( this->use_sqlite( ) ) {
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_exists;
+        sqlite3_bind_int( st, 1, MAP_FILE_CHUNK );
+        sqlite3_bind_int( st, 2, chunk_offset.x );
+        sqlite3_bind_int( st, 3, chunk_offset.y );
+        sqlite3_bind_int( st, 4, chunk_offset.z );
+        const int exists = sqlite3_step( st ) == SQLITE_ROW;
+        sqlite3_reset( st );
+        return exists;
+    }
+#endif
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     struct stat st;
@@ -570,27 +1085,24 @@ struct __attribute__( ( packed ) ) ChestFileRecord {
 };
 
 void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestContentsMap &chests ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHEST, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( chests.empty( ) ) {
-        // No chests left in this chunk — remove the file so deleted chests
-        // don't resurrect on the next load.
-        remove( file_name );
-        this->index_remove( MAP_FILE_CHEST, chunk_offset );
+        // No chests left in this chunk — remove the record so deleted
+        // chests don't resurrect on the next load.
+        this->remove_kind( MAP_FILE_CHEST, chunk_offset );
         return;
     }
-    FILE *write_ptr = fopen( file_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_CHEST, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for chest file:%s", file_name );
+        pr_debug( "open failed for chest:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
-    this->index_insert( MAP_FILE_CHEST, chunk_offset );
     uint32_t record_size = sizeof( ChestFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     uint32_t num_chests = static_cast<uint32_t>( chests.size( ) );
@@ -603,14 +1115,12 @@ void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestCont
         memcpy( record.slots, pair.second.slots, sizeof( record.slots ) );
         fwrite( &record, sizeof( ChestFileRecord ), 1, write_ptr );
     }
-#if defined( REPGAME_WASM )
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
+    this->commit_kind_write( w );
 }
 
 int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
@@ -619,20 +1129,21 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
     if ( this->index_miss( MAP_FILE_CHEST, chunk_offset ) ) {
         return 0;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHEST, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    ReadCtx r;
+    FILE *read_ptr = this->open_kind_read( MAP_FILE_CHEST, chunk_offset, r );
     if ( read_ptr == NULL ) {
         return 0;
     }
     uint32_t record_size = 0;
     if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 0;
     }
     uint32_t num_chests = 0;
     if ( fread( &num_chests, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_chests > CHUNK_BLOCK_SIZE ) {
         fclose( read_ptr );
+        free( r.mem );
         return 0;
     }
     // Read whatever the file's record holds; older/newer builds may have a
@@ -641,6 +1152,7 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
     char *raw = static_cast<char *>( calloc( num_chests, record_size ) );
     size_t num_read = fread( raw, record_size, num_chests, read_ptr );
     fclose( read_ptr );
+    free( r.mem );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
         ChestContents contents; // default: all empty
@@ -694,14 +1206,12 @@ static bool furnace_contents_empty( const FurnaceContents &fc ) {
 }
 
 void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const FurnaceContentsMap &furnaces ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_FURNACE, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     uint32_t num_furnaces = 0;
     for ( const auto &pair : furnaces ) {
         if ( !furnace_contents_empty( pair.second ) ) {
@@ -709,16 +1219,15 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
         }
     }
     if ( num_furnaces == 0 ) {
-        remove( file_name );
-        this->index_remove( MAP_FILE_FURNACE, chunk_offset );
+        this->remove_kind( MAP_FILE_FURNACE, chunk_offset );
         return;
     }
-    FILE *write_ptr = fopen( file_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_FURNACE, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for furnace file:%s", file_name );
+        pr_debug( "open failed for furnace:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
-    this->index_insert( MAP_FILE_FURNACE, chunk_offset );
     uint32_t record_size = sizeof( FurnaceFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     fwrite( &num_furnaces, sizeof( uint32_t ), 1, write_ptr );
@@ -735,14 +1244,12 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
         record.burn_ticks = pair.second.burn_ticks;
         fwrite( &record, sizeof( FurnaceFileRecord ), 1, write_ptr );
     }
-#if defined( REPGAME_WASM )
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
+    this->commit_kind_write( w );
 }
 
 int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMap &out ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
@@ -751,20 +1258,21 @@ int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMa
     if ( this->index_miss( MAP_FILE_FURNACE, chunk_offset ) ) {
         return 0;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_FURNACE, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    ReadCtx r;
+    FILE *read_ptr = this->open_kind_read( MAP_FILE_FURNACE, chunk_offset, r );
     if ( read_ptr == NULL ) {
         return 0;
     }
     uint32_t record_size = 0;
     if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 0;
     }
     uint32_t num_furnaces = 0;
     if ( fread( &num_furnaces, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_furnaces > CHUNK_BLOCK_SIZE ) {
         fclose( read_ptr );
+        free( r.mem );
         return 0;
     }
     // Read whatever the file's record holds; older/newer builds may have a
@@ -774,6 +1282,7 @@ int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMa
     char *raw = static_cast<char *>( calloc( num_furnaces, record_size ) );
     size_t num_read = fread( raw, record_size, num_furnaces, read_ptr );
     fclose( read_ptr );
+    free( r.mem );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
         FurnaceContents contents; // default: empty + zeroed progress
@@ -818,14 +1327,12 @@ struct __attribute__( ( packed ) ) SignFileRecord {
 };
 
 void MapStorage::persist_signs( const glm::ivec3 &chunk_offset, const SignTextMap &signs ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
         return;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_SIGN, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     uint32_t num_signs = 0;
     for ( const auto &pair : signs ) {
         if ( !pair.second.empty( ) ) {
@@ -833,18 +1340,17 @@ void MapStorage::persist_signs( const glm::ivec3 &chunk_offset, const SignTextMa
         }
     }
     if ( num_signs == 0 ) {
-        // No text left in this chunk — remove the file so erased signs
+        // No text left in this chunk — remove the record so erased signs
         // don't resurrect on the next load.
-        remove( file_name );
-        this->index_remove( MAP_FILE_SIGN, chunk_offset );
+        this->remove_kind( MAP_FILE_SIGN, chunk_offset );
         return;
     }
-    FILE *write_ptr = fopen( file_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_SIGN, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for sign file:%s", file_name );
+        pr_debug( "open failed for sign:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
-    this->index_insert( MAP_FILE_SIGN, chunk_offset );
     uint32_t record_size = sizeof( SignFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     fwrite( &num_signs, sizeof( uint32_t ), 1, write_ptr );
@@ -864,14 +1370,12 @@ void MapStorage::persist_signs( const glm::ivec3 &chunk_offset, const SignTextMa
         }
         fwrite( &record, sizeof( SignFileRecord ), 1, write_ptr );
     }
-#if defined( REPGAME_WASM )
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
+    this->commit_kind_write( w );
 }
 
 int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( !this->chunk_io_enabled.load( std::memory_order_relaxed ) ) {
@@ -880,20 +1384,21 @@ int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
     if ( this->index_miss( MAP_FILE_SIGN, chunk_offset ) ) {
         return 0;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_SIGN, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    ReadCtx r;
+    FILE *read_ptr = this->open_kind_read( MAP_FILE_SIGN, chunk_offset, r );
     if ( read_ptr == NULL ) {
         return 0;
     }
     uint32_t record_size = 0;
     if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 0;
     }
     uint32_t num_signs = 0;
     if ( fread( &num_signs, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_signs > CHUNK_BLOCK_SIZE ) {
         fclose( read_ptr );
+        free( r.mem );
         return 0;
     }
     // Read whatever the file's record holds; older/newer builds may have a
@@ -903,6 +1408,7 @@ int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
     char *raw = static_cast<char *>( calloc( num_signs, record_size ) );
     size_t num_read = fread( raw, record_size, num_signs, read_ptr );
     fclose( read_ptr );
+    free( r.mem );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
         SignText text; // default: all lines empty
@@ -942,22 +1448,19 @@ int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
 // all-empty write deletes the file instead — nothing about the file's
 // existence suppresses the deterministic roll anymore.
 void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector<MobFileRecord> &mobs, const std::vector<uint8_t> &removed ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( mobs.empty( ) && removed.empty( ) ) {
-        remove( file_name );
-        this->index_remove( MAP_FILE_MOBS, chunk_offset );
+        this->remove_kind( MAP_FILE_MOBS, chunk_offset );
         return;
     }
-    FILE *write_ptr = fopen( file_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_MOBS, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for mobs file:%s", file_name );
+        pr_debug( "open failed for mobs:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
-    this->index_insert( MAP_FILE_MOBS, chunk_offset );
     uint32_t record_size = sizeof( MobFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     uint32_t num_mobs = static_cast<uint32_t>( mobs.size( ) );
@@ -970,22 +1473,19 @@ void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector
     if ( num_removed > 0 ) {
         fwrite( removed.data( ), sizeof( uint8_t ), num_removed, write_ptr );
     }
-#if defined( REPGAME_WASM )
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
+    this->commit_kind_write( w );
 }
 
 int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out, std::vector<uint8_t> *removed ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( this->index_miss( MAP_FILE_MOBS, chunk_offset ) ) {
         return 0;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_MOBS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    ReadCtx r;
+    FILE *read_ptr = this->open_kind_read( MAP_FILE_MOBS, chunk_offset, r );
     if ( read_ptr == NULL ) {
         return 0;
     }
@@ -995,13 +1495,15 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
     }
     uint32_t record_size = 0;
     if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
-        // Truncated/marker file: it exists, which is all the caller needs.
+        // Truncated/marker record: it exists, which is all the caller needs.
         fclose( read_ptr );
+        free( r.mem );
         return 1;
     }
     uint32_t num_mobs = 0;
     if ( fread( &num_mobs, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_mobs > 65535 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 1;
     }
     // Read whatever the file's record holds; older/newer builds may have a
@@ -1019,6 +1521,7 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
         }
     }
     fclose( read_ptr );
+    free( r.mem );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
         MobFileRecord mob = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
@@ -1042,22 +1545,19 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
 // equivalent, and unlinking still clears stale records for a chunk whose
 // items were all picked up.
 void MapStorage::persist_items( const glm::ivec3 &chunk_offset, const std::vector<ItemFileRecord> &items ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( items.empty( ) ) {
-        remove( file_name );
-        this->index_remove( MAP_FILE_ITEMS, chunk_offset );
+        this->remove_kind( MAP_FILE_ITEMS, chunk_offset );
         return;
     }
-    FILE *write_ptr = fopen( file_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_ITEMS, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for items file:%s", file_name );
+        pr_debug( "open failed for items:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
-    this->index_insert( MAP_FILE_ITEMS, chunk_offset );
     uint32_t record_size = sizeof( ItemFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     uint32_t num_items = static_cast<uint32_t>( items.size( ) );
@@ -1065,22 +1565,19 @@ void MapStorage::persist_items( const glm::ivec3 &chunk_offset, const std::vecto
     for ( const ItemFileRecord &record : items ) {
         fwrite( &record, sizeof( ItemFileRecord ), 1, write_ptr );
     }
-#if defined( REPGAME_WASM )
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
+    this->commit_kind_write( w );
 }
 
 int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( this->index_miss( MAP_FILE_ITEMS, chunk_offset ) ) {
         return 0;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    ReadCtx r;
+    FILE *read_ptr = this->open_kind_read( MAP_FILE_ITEMS, chunk_offset, r );
     if ( read_ptr == NULL ) {
         return 0;
     }
@@ -1088,16 +1585,19 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
     uint32_t record_size = 0;
     if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 1;
     }
     uint32_t num_items = 0;
     if ( fread( &num_items, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_items > 65535 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 1;
     }
     char *raw = static_cast<char *>( calloc( num_items, record_size ) );
     size_t num_read = fread( raw, record_size, num_items, read_ptr );
     fclose( read_ptr );
+    free( r.mem );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
         ItemFileRecord item = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0 };
@@ -1116,22 +1616,19 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
 // VehicleFileRecords. Same conventions as the items file — an empty list
 // removes the file. The on-disk name stays carts_x_y_z (no migration).
 void MapStorage::persist_vehicles( const glm::ivec3 &chunk_offset, const std::vector<VehicleFileRecord> &vehicles ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CARTS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
     if ( vehicles.empty( ) ) {
-        remove( file_name );
-        this->index_remove( MAP_FILE_CARTS, chunk_offset );
+        this->remove_kind( MAP_FILE_CARTS, chunk_offset );
         return;
     }
-    FILE *write_ptr = fopen( file_name, "wb" );
+    WriteCtx w;
+    FILE *write_ptr = this->open_kind_write( MAP_FILE_CARTS, chunk_offset, w );
     if ( write_ptr == NULL ) {
-        pr_debug( "fopen failed for carts file:%s", file_name );
+        pr_debug( "open failed for carts:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
         return;
     }
-    this->index_insert( MAP_FILE_CARTS, chunk_offset );
     uint32_t record_size = sizeof( VehicleFileRecord );
     fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
     uint32_t num_vehicles = static_cast<uint32_t>( vehicles.size( ) );
@@ -1139,22 +1636,19 @@ void MapStorage::persist_vehicles( const glm::ivec3 &chunk_offset, const std::ve
     for ( const VehicleFileRecord &record : vehicles ) {
         fwrite( &record, sizeof( VehicleFileRecord ), 1, write_ptr );
     }
-#if defined( REPGAME_WASM )
-    fdatasync( fileno( write_ptr ) );
-#endif
     fclose( write_ptr );
+    this->commit_kind_write( w );
 }
 
 int MapStorage::load_vehicles( const glm::ivec3 &chunk_offset, std::vector<VehicleFileRecord> &out ) {
-    if ( repgame_block_world( ) ) {
+    if ( world_storage_off( ) ) {
         return 0;
     }
     if ( this->index_miss( MAP_FILE_CARTS, chunk_offset ) ) {
         return 0;
     }
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CARTS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    FILE *read_ptr = fopen( file_name, MAP_READ_MODE );
+    ReadCtx r;
+    FILE *read_ptr = this->open_kind_read( MAP_FILE_CARTS, chunk_offset, r );
     if ( read_ptr == NULL ) {
         return 0;
     }
@@ -1162,16 +1656,19 @@ int MapStorage::load_vehicles( const glm::ivec3 &chunk_offset, std::vector<Vehic
     uint32_t record_size = 0;
     if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 1;
     }
     uint32_t num_vehicles = 0;
     if ( fread( &num_vehicles, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_vehicles > 65535 ) {
         fclose( read_ptr );
+        free( r.mem );
         return 1;
     }
     char *raw = static_cast<char *>( calloc( num_vehicles, record_size ) );
     size_t num_read = fread( raw, record_size, num_vehicles, read_ptr );
     fclose( read_ptr );
+    free( r.mem );
     for ( size_t i = 0; i < num_read; i++ ) {
         const char *record = &raw[ i * record_size ];
         VehicleFileRecord vehicle = { 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0.0f, 0u };

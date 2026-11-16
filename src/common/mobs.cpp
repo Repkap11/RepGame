@@ -1529,6 +1529,7 @@ void MobManager::persist_all( ) {
         return;
     }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    this->storage->batch_begin( ); // every owned chunk in one commit
     for ( const OwnedChunk &owned : this->owned_chunks ) {
         std::vector<MobFileRecord> records;
         for ( const Mob &mob : this->mobs ) {
@@ -1555,6 +1556,7 @@ void MobManager::persist_all( ) {
             this->storage->persist_mobs( owned.pos, records, removed );
         }
     }
+    this->storage->batch_end( );
 }
 
 void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTickInput *in, MobTickOutput *out ) {

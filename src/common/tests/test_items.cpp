@@ -510,32 +510,28 @@ int test_item_entities( ) {
         storage.persist_items( glm::ivec3( 0, 0, 0 ), { bad_id, bad_count, rec } );
         check_bool( "persist: invalid records skipped", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].item == STICK );
 
-        // A larger on-disk record_size still parses the shared prefix.
+        // A larger stored record_size still parses the shared prefix.
         {
-            char file_name[ CHUNK_NAME_MAX_LENGTH ];
-            snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, storage.get_map_name( ), 0, 0, 0 );
-            FILE *fp = fopen( file_name, "wb" );
             const uint32_t big_size = sizeof( ItemFileRecord ) + 8;
-            uint32_t one = 1;
-            fwrite( &big_size, sizeof( uint32_t ), 1, fp );
-            fwrite( &one, sizeof( uint32_t ), 1, fp );
-            fwrite( &rec, sizeof( ItemFileRecord ), 1, fp );
-            const char pad[ 8 ] = { 0 };
-            fwrite( pad, 1, sizeof( pad ), fp );
-            fclose( fp );
+            test_write_blob( storage, MAP_FILE_ITEMS, glm::ivec3( 0, 0, 0 ), [ & ]( FILE *fp ) {
+                uint32_t one = 1;
+                fwrite( &big_size, sizeof( uint32_t ), 1, fp );
+                fwrite( &one, sizeof( uint32_t ), 1, fp );
+                fwrite( &rec, sizeof( ItemFileRecord ), 1, fp );
+                const char pad[ 8 ] = { 0 };
+                fwrite( pad, 1, sizeof( pad ), fp );
+            } );
             check_bool( "persist: larger record_size parses prefix", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].item == STICK && out[ 0 ].count == 5 );
         }
         // A tiny record_size leaves count 0 -> skipped.
         {
-            char file_name[ CHUNK_NAME_MAX_LENGTH ];
-            snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, storage.get_map_name( ), 0, 0, 0 );
-            FILE *fp = fopen( file_name, "wb" );
             const uint32_t tiny_size = 4;
-            uint32_t one = 1;
-            fwrite( &tiny_size, sizeof( uint32_t ), 1, fp );
-            fwrite( &one, sizeof( uint32_t ), 1, fp );
-            fwrite( &rec.item, sizeof( uint32_t ), 1, fp );
-            fclose( fp );
+            test_write_blob( storage, MAP_FILE_ITEMS, glm::ivec3( 0, 0, 0 ), [ & ]( FILE *fp ) {
+                uint32_t one = 1;
+                fwrite( &tiny_size, sizeof( uint32_t ), 1, fp );
+                fwrite( &one, sizeof( uint32_t ), 1, fp );
+                fwrite( &rec.item, sizeof( uint32_t ), 1, fp );
+            } );
             check_bool( "persist: tiny record_size skipped", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.empty( ) );
         }
 

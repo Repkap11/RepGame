@@ -219,6 +219,7 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
         ce.vehicles_dirty = false;
         return;
     }
+    this->storage->batch_begin( ); // items + mobs + vehicles in one commit
     if ( ce.items_dirty ) {
         std::vector<ItemFileRecord> out;
         for ( const auto &pair : ce.entities ) {
@@ -301,6 +302,7 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
         this->storage->persist_vehicles( chunk, out );
         ce.vehicles_dirty = false;
     }
+    this->storage->batch_end( );
 }
 
 void ServerEntities::uncover_chunk( const glm::ivec3 &chunk ) {
@@ -1099,7 +1101,13 @@ bool ServerEntities::on_client_message( Server &server, int client_fd, NetMsgTyp
 }
 
 void ServerEntities::flush_all( ) {
+    if ( this->storage != nullptr ) {
+        this->storage->batch_begin( );
+    }
     for ( auto &pair : this->chunks ) {
         this->persist_chunk_entities( pair.second, pair.first );
+    }
+    if ( this->storage != nullptr ) {
+        this->storage->batch_end( );
     }
 }

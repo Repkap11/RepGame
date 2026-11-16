@@ -750,10 +750,8 @@ int server_selftest( ) {
     const glm::ivec3 bad( 9, 0, 9 );
     {
         MapStorage &srv_storage = server.test_logic( ).test_storage( );
-        char bad_name[ CHUNK_NAME_MAX_LENGTH ];
-        snprintf( bad_name, sizeof( bad_name ), FILE_ROOT_CHUNK, world_dir( ).c_str( ), bad.x, bad.y, bad.z );
 
-        // Seed a valid legacy file so the save-file index knows the chunk.
+        // Seed a valid legacy record so the save-file index knows the chunk.
         BlockState *seed = static_cast<BlockState *>( malloc( CHUNK_BLOCK_SIZE * sizeof( BlockState ) ) );
         for ( int i = 0; i < CHUNK_BLOCK_SIZE; ++i ) {
             seed[ i ] = BlockState{ static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0, 0,
@@ -765,41 +763,42 @@ int server_selftest( ) {
         // Overwrite it in place with a corrupt stream: two good records then
         // a hole run that overshoots the volume.
         const uint32_t rec_size = sizeof( BlockState ) + sizeof( uint32_t );
-        FILE *f = fopen( bad_name, "wb" );
-        check( f != NULL, "wrote corrupt legacy chunk file" );
-        if ( f != NULL ) {
-            const BlockState hole{ static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0, 0,
-                                   static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0 };
-            fwrite( &rec_size, sizeof( rec_size ), 1, f );
-            const uint32_t n5 = 5, n3 = 3, nbig = CHUNK_BLOCK_SIZE;
-            fwrite( &stone, sizeof( stone ), 1, f );
-            fwrite( &n5, sizeof( n5 ), 1, f );
-            fwrite( &stone, sizeof( stone ), 1, f );
-            fwrite( &n3, sizeof( n3 ), 1, f );
-            fwrite( &hole, sizeof( hole ), 1, f );
-            fwrite( &nbig, sizeof( nbig ), 1, f );
-            fclose( f );
+        const BlockState hole{ static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0, 0,
+                               static_cast<BlockID>( LEGACY_EMPTY_BLOCK_ID ), 0 };
+        const uint32_t n5 = 5, n3 = 3, nbig = CHUNK_BLOCK_SIZE;
+        char blob[ sizeof( rec_size ) + 2 * sizeof( stone ) + sizeof( hole ) + 3 * sizeof( uint32_t ) ];
+        {
+            char *bp = blob;
+            memcpy( bp, &rec_size, 4 ); bp += 4;
+            memcpy( bp, &stone, sizeof( stone ) ); bp += sizeof( stone );
+            memcpy( bp, &n5, 4 ); bp += 4;
+            memcpy( bp, &stone, sizeof( stone ) ); bp += sizeof( stone );
+            memcpy( bp, &n3, 4 ); bp += 4;
+            memcpy( bp, &hole, sizeof( hole ) ); bp += sizeof( hole );
+            memcpy( bp, &nbig, 4 );
         }
-        const long bad_size = std::filesystem::file_size( bad_name );
+        check( srv_storage.write_kind_blob( MAP_FILE_CHUNK, bad, blob, sizeof( blob ) ) == 1,
+               "wrote corrupt legacy chunk record" );
+        const long bad_size = srv_storage.stored_size( MAP_FILE_CHUNK, bad );
 
         ChunkEdits corrupt;
         check( srv_storage.load_chunk_edits( bad, corrupt ) == -1,
                "corrupt legacy run length refuses decode" );
         check( srv_storage.migrate_legacy_chunk_files( ) == 0 &&
-                   std::filesystem::file_size( bad_name ) == (size_t)bad_size,
-               "migration leaves an undecodable file untouched" );
+                   srv_storage.stored_size( MAP_FILE_CHUNK, bad ) == bad_size,
+               "migration leaves an undecodable record untouched" );
 
-        // An edit into the corrupt chunk must not clobber the file: the merge
-        // refuses, so the next persist writes nothing.
+        // An edit into the corrupt chunk must not clobber the record: the
+        // merge refuses, so the next persist writes nothing.
         SimClient c = connect_client( server );
         drain_client( server, c );
         send_block_update( server, c, bad * CHUNK_SIZE_I + glm::ivec3( 1, 40, 1 ), stone );
         drain_client( server, c );
         server.test_logic( ).flushAll( );
-        check( std::filesystem::file_size( bad_name ) == (size_t)bad_size,
-               "edit + persist preserves the undecodable chunk file" );
+        check( srv_storage.stored_size( MAP_FILE_CHUNK, bad ) == bad_size,
+               "edit + persist preserves the undecodable chunk record" );
         disconnect_client( server, c );
-        remove( bad_name );
+        srv_storage.persist_chunk_edits( bad, { } );
     }
 
     // --- Save-file index: existence checks hit the index instead of the
@@ -842,8 +841,8 @@ int server_selftest( ) {
         disconnect_client( server, c );
     }
 
-    // --- File index build + upkeep: one readdir picks up every file kind,
-    // persists index new files, empty persists unindex them. Own world dir
+    // --- File index build + upkeep: one scan picks up every record kind,
+    // persists index new blobs, empty persists unindex them. Own world dir
     // so the main test world's contents stay untouched. ---
     {
         const char *IDX_WORLD = "SelfTestIndexWorld";

@@ -1370,6 +1370,10 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
     // Join the light thread (draining queued work inline) before chunk.destroy
     // frees the light volumes it may still reference.
     this->light_thread_stop( );
+    // The whole shutdown flush is one storage transaction: hundreds of
+    // dirty chunks commit together instead of fsync-per-chunk. No-ops on
+    // the file backend.
+    map_storage.batch_begin( );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         Chunk &chunk = this->chunkArray[ i ];
         // The threads are joined, so every slot's chunk_pos/data pair is
@@ -1379,6 +1383,7 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
         chunk.persist( map_storage );
         chunk.destroy( );
     }
+    map_storage.batch_end( );
     free( this->chunkArray );
     free( this->drawable_chunks );
     free( this->blended_chunks );

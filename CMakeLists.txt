@@ -82,6 +82,19 @@ if(REPGAME_BUILD_CLIENT AND NOT EXISTS ${CMAKE_SOURCE_DIR}/imgui_build)
 	message(FATAL_ERROR "imgui_build/ is missing — run `make install` first")
 endif()
 
+# SQLite world storage (world.db) backs the per-chunk file kinds on the
+# server and the native single-player clients (linux/arm/steamframe — all
+# glibc, so fmemopen/open_memstream exist). Windows/wasm/android keep the
+# loose-file backend — wasm/android never persist world files anyway.
+set(REPGAME_SQLITE OFF)
+if(REPGAME_BUILD_SERVER OR REPGAME_PLATFORM STREQUAL "linux" OR
+		REPGAME_PLATFORM STREQUAL "arm" OR REPGAME_PLATFORM STREQUAL "steamframe")
+	set(REPGAME_SQLITE ON)
+endif()
+if(REPGAME_SQLITE AND NOT EXISTS ${CMAKE_SOURCE_DIR}/sqlite_build/sqlite3.c)
+	message(FATAL_ERROR "sqlite_build/ is missing — run `make install` (or `make server-install` on a server-only host) first")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(RepGameSources)
 include(RepGameBlobs)
@@ -337,6 +350,16 @@ if(REPGAME_BUILD_CLIENT)
 		PROPERTIES COMPILE_OPTIONS -Wno-missing-field-initializers)
 endif()
 
+# ---- sqlite (vendored amalgamation; warnings are not errors) --------------
+if(REPGAME_SQLITE)
+	enable_language(C)
+	add_library(repgame_sqlite OBJECT ${CMAKE_SOURCE_DIR}/sqlite_build/sqlite3.c)
+	# Vendored C — don't hold it to the project warning set.
+	target_compile_options(repgame_sqlite PRIVATE -w)
+	target_compile_definitions(repgame_platform INTERFACE REPGAME_MAP_SQLITE)
+	target_include_directories(repgame_platform SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/sqlite_build)
+endif()
+
 # ---- client ---------------------------------------------------------------
 if(REPGAME_BUILD_CLIENT)
 	if(REPGAME_PLATFORM STREQUAL "wasm")
@@ -353,6 +376,7 @@ if(REPGAME_BUILD_CLIENT)
 		${REPGAME_COMMON_SOURCES}
 		${platform_srcs}
 		${REPGAME_BLOB_SOURCES}
+		$<$<BOOL:${REPGAME_SQLITE}>:$<TARGET_OBJECTS:repgame_sqlite>>
 		$<TARGET_OBJECTS:repgame_imgui>)
 	if(REPGAME_AUDIO)
 		target_sources(RepGame PRIVATE ${SOUNDS_MANIFEST_HPP})
@@ -517,7 +541,8 @@ if(REPGAME_BUILD_SERVER)
 		src/common/mob_types.cpp
 		src/common/vehicle_types.cpp
 		src/common/block_definitions.cpp)
-	add_executable(RepGameServer ${server_srcs} ${server_common})
+	add_executable(RepGameServer ${server_srcs} ${server_common}
+		$<$<BOOL:${REPGAME_SQLITE}>:$<TARGET_OBJECTS:repgame_sqlite>>)
 	target_link_libraries(RepGameServer PRIVATE repgame_flags repgame_platform)
 	# No SDL/imgui: the server host builds without client deps.
 	if(REPGAME_PCH)

@@ -784,6 +784,7 @@ void ItemEntities::persist_all( ) {
         return;
     }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    this->storage->batch_begin( ); // every owned chunk in one commit
     for ( const OwnedItemChunk &owned : this->owned_chunks ) {
         std::vector<ItemFileRecord> records;
         for ( const ItemEntity &it : this->items ) {
@@ -805,6 +806,7 @@ void ItemEntities::persist_all( ) {
             this->storage->persist_items( owned.pos, records );
         }
     }
+    this->storage->batch_end( );
 }
 
 // ---------------------------------------------------------------------------

@@ -636,6 +636,7 @@ void Vehicles::persist_all( ) {
         return;
     }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    this->storage->batch_begin( ); // every owned chunk in one commit
     for ( const OwnedVehicleChunk &owned : this->owned_chunks ) {
         std::vector<VehicleFileRecord> records;
         for ( const Vehicle &c : this->vehicles ) {
@@ -650,6 +651,7 @@ void Vehicles::persist_all( ) {
             this->storage->persist_vehicles( owned.pos, records );
         }
     }
+    this->storage->batch_end( );
 }
 
 // ---------------------------------------------------------------------------

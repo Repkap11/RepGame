@@ -263,6 +263,7 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
     // (In practice dirty chunks never reach the DiffCache; this is a
     // cheap guard against future writers forgetting to invalidate.)
     this->diff_cache.erase( chunk_pos );
+    this->map_storage.batch_begin( ); // chunk diff + sidecars land in one commit
     auto it = this->world_cache.find( chunk_pos );
     if ( it != this->world_cache.end( ) && !it->second.blocks.empty( ) ) {
         // The cache is a sorted index->state map: fold adjacent equal
@@ -289,10 +290,14 @@ void ServerLogic::persistChunk( const glm::ivec3 &chunk_pos ) {
     // Sign texts persist the same way — a pure text edit arms the same
     // idle timer on a timer-only entry.
     this->signs.persist_chunk( chunk_pos );
+    this->map_storage.batch_end( );
 }
 
 void ServerLogic::persistAll( ) {
     this->map_storage.write_world_time( this->worldTimeNow( ) );
+    // One transaction for the whole flush: every dirty chunk + entity
+    // sidecar commits together instead of fsync-per-chunk.
+    this->map_storage.batch_begin( );
     this->entities.flush_all( );
     size_t saved = 0;
     for ( const auto &[ chunk_pos, entry ] : this->world_cache ) {
@@ -305,6 +310,7 @@ void ServerLogic::persistAll( ) {
     // Container chunks may exist without a block-cache entry.
     this->containers.persist_all( );
     this->signs.persist_all( );
+    this->map_storage.batch_end( );
     pr_debug( "World saved (%zu chunks)", saved );
     this->world_cache.clear( );
     this->wake_schedule.clear( );
