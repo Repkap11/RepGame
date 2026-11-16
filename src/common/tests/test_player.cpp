@@ -454,9 +454,9 @@ int test_climb( ) {
 }
 
 // Scaffolding: the frame interior is enterable (the collision box is only the
-// platform lip at the cell top, skipped for movers with feet below the lip
-// or while sneaking — scaffold_box_active), the whole cell is climbable
-// (jump/push climbs, idle hangs, sneak descends through the lips), and a
+// platform lip at the cell top, skipped for movers with feet below the lip —
+// scaffold_box_active), the whole cell is climbable (jump/push climbs, idle
+// hangs; sneak sinks inside the open frame but never through a lip), and a
 // scaffold survives only while a grounded column is reachable within
 // SCAFFOLDING_MAX_DISTANCE horizontal steps (scaffolding_supported).
 //
@@ -559,7 +559,9 @@ int test_scaffolding( ) {
         // climbable scan sees the cell ABOVE, so no climb flag.
         check_bool( "standing on the platform is not 'climbing'", !Collision::on_climbable( world, eye, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT ) );
     }
-    // Sneaking on the platform descends straight through it onto the floor.
+    // Sneaking never sinks through the lip — on the exposed top platform,
+    // and inside the frame standing on a lip (a stacked scaffold makes the
+    // mover's feet cell a frame).
     {
         glm::dvec3 eye( 11.5, 11.0 + PLAYER_SNEAK_EYE_HEIGHT, 10.5 );
         int standing = 0;
@@ -568,8 +570,40 @@ int test_scaffolding( ) {
             Collision::check_move( world, vec, eye, &standing, PLAYER_SNEAK_HEIGHT, PLAYER_SNEAK_EYE_HEIGHT, true );
             eye += vec;
         }
-        check_bool( "sneak on the platform sinks through to the floor", fabs( eye.y - ( 10.0 + PLAYER_SNEAK_EYE_HEIGHT ) ) < 0.05 );
+        check_bool( "sneak on the platform stays on the lip", standing == 1 && fabs( eye.y - ( 11.0 + PLAYER_SNEAK_EYE_HEIGHT ) ) < 0.05 );
     }
+    world.set_loaded_block( glm::ivec3( 11, 11, 10 ), scaffold );
+    {
+        glm::dvec3 eye( 11.5, 11.0 + PLAYER_SNEAK_EYE_HEIGHT, 10.5 );
+        int standing = 0;
+        for ( int i = 0; i < 40; i++ ) {
+            glm::dvec3 vec( 0.0, -CLIMB_SLIDE_SPEED, 0.0 );
+            Collision::check_move( world, vec, eye, &standing, PLAYER_SNEAK_HEIGHT, PLAYER_SNEAK_EYE_HEIGHT, true );
+            eye += vec;
+        }
+        check_bool( "sneak inside the column also stays on the lip", standing == 1 && fabs( eye.y - ( 11.0 + PLAYER_SNEAK_EYE_HEIGHT ) ) < 0.05 );
+    }
+    // Sneak-walk: the edge guard's support probe must count the lip the
+    // mover stands on, or every horizontal sneak move clamps to zero.
+    world.set_loaded_block( glm::ivec3( 12, 10, 10 ), scaffold );
+    {
+        glm::dvec3 eye( 11.5, 11.0 + PLAYER_SNEAK_EYE_HEIGHT, 10.5 );
+        int standing = 0;
+        for ( int i = 0; i < 10; i++ ) {
+            glm::dvec3 vec( 0.15, -0.05, 0.0 );
+            Collision::check_move( world, vec, eye, &standing, PLAYER_SNEAK_HEIGHT, PLAYER_SNEAK_EYE_HEIGHT, true );
+            eye += vec;
+        }
+        check_bool( "sneak-walk across the platform advances", eye.x > 12.0 );
+        for ( int i = 0; i < 20; i++ ) {
+            glm::dvec3 vec( 0.15, -0.05, 0.0 );
+            Collision::check_move( world, vec, eye, &standing, PLAYER_SNEAK_HEIGHT, PLAYER_SNEAK_EYE_HEIGHT, true );
+            eye += vec;
+        }
+        check_bool( "edge guard still clamps at the lip edge", eye.x < 13.4 );
+    }
+    world.set_loaded_block( glm::ivec3( 11, 11, 10 ), { AIR, 0, 0, AIR, 0 } );
+    world.set_loaded_block( glm::ivec3( 12, 10, 10 ), { AIR, 0, 0, AIR, 0 } );
     // Placement check: a scaffold can be placed in a cell the player's feet
     // occupy — its lip is above the feet, so it doesn't count as colliding.
     check_bool( "scaffold placeable in the player's own cell",

@@ -1305,9 +1305,9 @@ void RepGame::process_movement( ) {
         if ( globalGameState.input.movement.jumpPressed || pushing ) {
             globalGameState.camera.y_speed = CLIMB_VERTICAL_SPEED;
         } else if ( globalGameState.input.movement.sneakPressed ) {
-            // Sneak on scaffolding descends through the frame (the lip's
-            // collision box is skipped while sneaking — collision.cpp);
-            // on a ladder it hangs.
+            // Sneak on scaffolding sinks at the slide speed inside the open
+            // frame but never through a lip — the lip boxes stay solid for
+            // a sneaking mover (collision.cpp); on a ladder it hangs.
             globalGameState.camera.y_speed = climb_is_scaffold ? -CLIMB_SLIDE_SPEED : 0;
             gravity = 0; // sneak is the vertical override — no gravity substep
         } else if ( climb_is_scaffold ) {

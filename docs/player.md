@@ -125,8 +125,10 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   idle descent is capped at `CLIMB_SLIDE_SPEED`, so a falling player is
   caught by the ladder. On scaffolding — whose enterable frame is
   detected through `on_climbable`'s out id — idle hangs in place like MC
-  and sneak descends at the slide speed, passing through the platform
-  lips (`scaffold_box_active` skips them for a sneaking mover). The branch
+  and sneak sinks at the slide speed inside the open frame — but the
+  platform lips stay solid for a sneaking mover (`scaffold_box_active`
+  uses only the feet-below-lip rule), so sneak never drops the player
+  through a platform, on top or inside. The branch
   sits between flying and swimming — flying and `no_clip` bypass it — and
   climb descent doesn't count toward fall distance.
 - **Collision.** `Collision::check_move`

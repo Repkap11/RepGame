@@ -195,9 +195,10 @@ passes the covered-below bit so it draws the bare frame — plate and
 legs without the base lattice. Collision is the MC model:
 `block_collision_boxes_for_state`
 returns only the 2px platform lip at the cell top, and the move scans skip
-it for a mover whose feet are below the lip top or while sneaking
+it for a mover whose feet are below the lip top
 (`scaffold_box_active` in collision.cpp) — so the frame interior is
-enterable, the platform is standable, and sneak descends through it.
+enterable, the platform is standable, and sneaking never sinks through
+the lip (sneak still slides down inside the open frame, docs/player.md).
 Support is MC Java's distance rule: `scaffolding_supported`
 (BlockNextToChangeEvent.cpp) 0-1 BFS's the scaffold graph — descending a
 column is free, each horizontal hop costs 1 — and the cell survives while
