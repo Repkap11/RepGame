@@ -239,31 +239,38 @@ all pure functions of world coords:
   glow-lichen colonies and rare glow-berry vines. Reef sea pickles also
   emit a soft underwater light. All clustered in 16-block neighborhoods.
 - *Fortresses* (nether only, `src/common/structure_fortress.cpp`): one
-  fortress roll per `SGF_CELL` (384×384) world cell at ~20% frequency —
-  roughly one per 850×850 blocks. `sgf_for_cell` rolls
-  `SGF_ANCHOR_TRIES` candidate anchors in the cell's middle region and
-  keeps the one over the lowest `mgn_floor_height`, which biases
-  placement toward open cavern and lava basins; the deck then sits a
-  small gap above that floor (capped by a band-local roll in
-  `[66, 110)` — above the lava sea at 60, below the roof mass ~200+),
-  so basin anchors perch the fortress just over the lava while high
-  shelves still embed it sometimes. Rolls that would bury the keep
-  below the surface or leave too little roof clearance are rejected.
-  The footprint stays inside its cell (clipped to `SGF_EXTENT` ±152), so
-  a chunk only has to check the cells its own box overlaps.
+  fortress roll per `SGF_CELL` (384×384) world cell at ~90% frequency —
+  with multi-section footprints most of the cavern band is fortress
+  country. `sgf_for_cell` rolls `SGF_ANCHOR_TRIES` candidate anchors
+  within `SGF_MARGIN` of the cell's edges and keeps the one over the
+  lowest `mgn_floor_height`, which biases placement toward open cavern
+  and lava basins; the deck then sits a small gap above that floor
+  (capped by a band-local roll — above the lava sea at 60, below the
+  roof mass ~200+), so basin anchors perch the fortress just over the
+  lava while high shelves still embed it sometimes. Rolls that would
+  bury the keep below the surface or leave too little roof clearance
+  are rejected. Footprints spill freely across cell boundaries (clipped
+  to `SGF_EXTENT` ±360 of the anchor), so a chunk enumerates every cell
+  whose footprint could reach its box, and overlapping complexes share
+  the same ordered stamp passes so neighbouring fortresses carve into
+  each other instead of plastering shut.
   `sgf_decode` then expands the layout with `std::mt19937_64` seeded from
   `sg_hash(cell)` — integer-only so every chunk derives the identical
-  piece list. A layout is a two-storey nether-brick keep (lower hall +
-  upper room joined by an open-riser stair) with 2–4 bridge arms that
-  random-walk out of its walls in 7-wide decked segments, ending in
-  15×15 platforms that over half the time carry a hollow 11×11 tower
-  with a chest and an inert `MOB_SPAWNER` block (a structural anchor
-  only — no mob behaviour); the upper keep room gets a spawner too.
-  Stamping runs three ordered passes — solid shells, carves (hall/tower
-  interiors, walkway headroom channels, arrow slits, stair floor holes,
-  tower doors), then details (fence parapets with gaps at joins, roofline
-  battlement rings, treads, sparse shroomlight, `CHEST`/`MOB_SPAWNER`
-  slots) plus support columns probed down to solid `gen_block_id`
+  piece list. A layout is a complex: a main two-storey nether-brick keep
+  (lower hall + upper room joined by an open-riser stair) plus 2–3
+  satellite keeps at rolled offsets and deck levels, all linked by
+  stepped connector decks that tunnel their own doorways where they
+  meet each hall. Bridge arms random-walk out of the keep walls in
+  7-wide decked segments, ending in 15×15 platforms that over half the
+  time carry a hollow 11×11 tower with a chest and an inert
+  `MOB_SPAWNER` block (a structural anchor only — no mob behaviour);
+  the upper keep room gets a spawner too.
+  Stamping runs three ordered passes over every gathered layout — solid
+  shells, carves (hall/tower interiors, walkway headroom channels,
+  arrow slits, stair floor holes, tower doors), then details (fence
+  parapets with gaps at joins, roofline battlement rings, treads,
+  sparse shroomlight, `CHEST`/`MOB_SPAWNER` slots) plus support columns
+  probed down to solid `gen_block_id`
   terrain (air/lava cells don't count as ground, so a column over the
   lava sea fills the whole span and pierces the surface to the bed;
   capped at `SGF_PILLAR_MAX` so deep voids stay column-free). Wall

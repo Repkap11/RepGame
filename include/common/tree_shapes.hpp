@@ -208,10 +208,12 @@ inline void sg_canopy_pine( Target &chunk, const int bx, const int by, const int
 // Hanging under-canopy scatter (pale moss, vines, propagules): a leaf cell
 // with air below may grow a strand. Reads this chunk's own just-written
 // canopy and hashes world coords, so border-crossing trees hang identically
-// on both sides. One edge case: a leaf at world y == 1 (mod CHUNK_SIZE_Y)
-// sits at local 63 for the chunk below — out of its readable band — so it
-// can never evaluate that cell; both sides skip hangers there to stay
-// mirror-consistent.
+// on both sides. One edge case: a leaf at world-y residue r >= 1
+// (mod CHUNK_SIZE_Y) sits at local r + CHUNK_SIZE_Y >= 63 for the chunk
+// below — out of its readable band — so it can never evaluate that cell;
+// if a strand could reach the shared face (leaf residue <= hanger_len lets
+// a vine reach local 0 or -1 below), both sides must skip the hanger to
+// stay mirror-consistent.
 template <class Target>
 inline void sg_canopy_hangers( Target &chunk, const TreeSpec &spec, const int bx, const int by, const int bz, const glm::ivec3 &co ) {
     const int r = spec.canopy_r + 1;
@@ -223,7 +225,8 @@ inline void sg_canopy_hangers( Target &chunk, const TreeSpec &spec, const int bx
                     continue;
                 }
                 const int leaf_wy = co.y + ly;
-                if ( ( leaf_wy % CHUNK_SIZE_Y + CHUNK_SIZE_Y ) % CHUNK_SIZE_Y == 1 ) {
+                const int leaf_res = ( ( leaf_wy % CHUNK_SIZE_Y ) + CHUNK_SIZE_Y ) % CHUNK_SIZE_Y;
+                if ( leaf_res >= 1 && leaf_res <= spec.hanger_len ) {
                     continue;
                 }
                 if ( chunk.get_block( glm::ivec3( bx + dx, ly - 1, bz + dz ) ).id != AIR ) {

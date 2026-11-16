@@ -1,7 +1,7 @@
 #! terrain
 #! timeout 300
-# Nether fortress generation: deterministic structure at grid cell (-1,-3)
-# — anchor (-164,-991), deck y -5851 (anchor selection favours the lowest
+# Nether fortress generation: deterministic structure at grid cell (-1,0)
+# — anchor (-187,67), deck y -5876 (anchor selection favours the lowest
 # cavern floor in the cell, i.e. open cavern / lava basins). Asserts
 # through the real chunk-load path: keep floor/interior carve, generated
 # CHEST slots (lower hall + upper room) and the inert MOB_SPAWNER the
@@ -12,7 +12,7 @@ debug 0
 imgui 0
 fly on
 rd 6
-goto -163.5 -5842 -990.5
+goto -186.5 -5867 67.5
 wait 120
 wait_idle 10 6000
 chatopen /
@@ -22,12 +22,12 @@ signkey enter
 wait 2
 assert_chat Dimension: nether
 # Keep: floor brick under the anchor, carved hall interior above it.
-assert_block -164 -5851 -991 NETHER_BRICK
-assert_block -164 -5848 -991 AIR
+assert_block -187 -5876 67 NETHER_BRICK
+assert_block -187 -5875 67 AIR
 # Lower-hall chest, upper-room chest + its inert spawner.
-assert_block -153 -5850 -1005 CHEST
-assert_block -173 -5842 -977 CHEST
-assert_block -156 -5842 -979 MOB_SPAWNER
-camera -163.5 -5846 -990.5 45 -5
+assert_block -203 -5875 56 CHEST
+assert_block -171 -5867 76 CHEST
+assert_block -173 -5867 59 MOB_SPAWNER
+camera -186.5 -5870 67.5 45 -5
 screenshot fortress_keep
 echo fortress done

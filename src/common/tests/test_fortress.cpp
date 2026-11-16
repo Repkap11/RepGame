@@ -28,6 +28,14 @@ static int tf_floor_div62( const int v ) {
     return q;
 }
 
+static int tf_floor_div384( const int v ) {
+    int q = v / 384;
+    if ( v % 384 != 0 && v < 0 ) {
+        q--;
+    }
+    return q;
+}
+
 int test_fortress( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
@@ -59,7 +67,7 @@ int test_fortress( ) {
         delete c;
     };
 
-    // Find a fortress cell; ~1-in-5 hit rate makes the first few cells
+    // Find a fortress cell; ~9-in-10 hit rate makes the first few cells
     // enough, but scan a window so a salt tweak can't silently turn this
     // into a never-found skip.
     glm::ivec3 anchor( 0 );
@@ -131,7 +139,10 @@ int test_fortress( ) {
         mismatches++;
         if ( shown++ < 24 ) {
             const glm::ivec3 wa = a->chunk_pos * CHUNK_SIZE_I + pa;
-            pr_test( "    mismatch world(%d %d %d): id %d vs %d", wa.x, wa.y, wa.z, (int)ia, (int)ib );
+            pr_test( "    mismatch world(%d %d %d): id %d vs %d  a_chunk(%d %d %d) b_chunk(%d %d %d)",
+                     wa.x, wa.y, wa.z, (int)ia, (int)ib,
+                     a->chunk_pos.x, a->chunk_pos.y, a->chunk_pos.z,
+                     b->chunk_pos.x, b->chunk_pos.y, b->chunk_pos.z );
         }
     };
     for ( int gx = 0; gx < 3; gx++ ) {
@@ -170,9 +181,29 @@ int test_fortress( ) {
     }
     check_bool( "halo cells mirror neighbor interiors", mismatches == 0 );
 
-    // Bounds + bedrock: every fortress cell must sit inside the declared
-    // footprint and never overwrite bedrock (gen_block_id is the pure
-    // terrain view — a BEDROCK there must still be bedrock in the chunk).
+    // Bounds + bedrock: complexes spill past cell edges and overlap, so a
+    // stamped cell only has to sit inside SOME neighbouring anchor's
+    // footprint — collect every anchor whose reach covers the grid.
+    // (gen_block_id is the pure terrain view — a BEDROCK there must still
+    // be bedrock in the chunk.)
+    struct TFAnchor {
+        int ax, az, deck;
+    };
+    TFAnchor tfa[ 48 ];
+    int ntfa = 0;
+    {
+        const glm::ivec3 lo = grid[ 0 ][ 0 ][ 0 ]->chunk_pos * CHUNK_SIZE_I;
+        const glm::ivec3 hi = grid[ 2 ][ 2 ][ 2 ]->chunk_pos * CHUNK_SIZE_I + CHUNK_SIZE_I;
+        for ( int cx = tf_floor_div384( lo.x - 800 ); cx <= tf_floor_div384( hi.x + 800 ) && ntfa < 48; cx++ ) {
+            for ( int cz = tf_floor_div384( lo.z - 800 ); cz <= tf_floor_div384( hi.z + 800 ) && ntfa < 48; cz++ ) {
+                glm::ivec3 an;
+                int dk;
+                if ( StructureGen::fortress_cell_exists( cx, cz, &an, &dk ) ) {
+                    tfa[ ntfa++ ] = { an.x, an.z, dk };
+                }
+            }
+        }
+    }
     int fortress_cells = 0, border_cells = 0, out_of_bounds = 0, bedrock_eaten = 0;
     for ( int gx = 0; gx < 3; gx++ ) {
         for ( int gy = 0; gy < 3; gy++ ) {
@@ -194,7 +225,12 @@ int test_fortress( ) {
                             if ( lx == -1 || lx == CHUNK_SIZE_X || ly == -1 || ly == CHUNK_SIZE_Y || lz == -1 || lz == CHUNK_SIZE_Z ) {
                                 border_cells++;
                             }
-                            if ( abs( w.x - anchor.x ) > 153 || abs( w.z - anchor.z ) > 153 || w.y < deck - 165 || w.y > deck + 41 ) {
+                            bool in_bounds = false;
+                            for ( int t = 0; t < ntfa && !in_bounds; t++ ) {
+                                in_bounds = abs( w.x - tfa[ t ].ax ) <= 361 && abs( w.z - tfa[ t ].az ) <= 361 &&
+                                            w.y >= tfa[ t ].deck - 165 && w.y <= tfa[ t ].deck + 49;
+                            }
+                            if ( !in_bounds ) {
                                 out_of_bounds++;
                             }
                             if ( MapGen::gen_block_id( w.x, w.y, w.z ) == BEDROCK ) {

@@ -1,17 +1,17 @@
-// Nether fortresses: deterministic bridge networks and keeps stamped over
-// the nether cavern band. Same contract as every StructureGen pass — a pure
+// Nether fortresses: deterministic multi-section complexes stamped over the
+// nether cavern band. Same contract as every StructureGen pass — a pure
 // function of world coords: each chunk re-derives every fortress whose
 // footprint could overlap it and writes only the cells it owns (+/-1 halo).
 //
-// Layout: a two-storey keep (lower hall + upper room joined by a stepped
-// stair) anchored over the lowest-floored of a few candidate spots — lava
-// basins and open cavern — with 2-4 bridge arms random-walking out of its
-// walls: each arm a chain of 7-wide decked segments ending in a widened
-// platform, over half of which carry a hollow tower with a chest and an
-// inert MOB_SPAWNER block. Supports drop from decks to the cavern floor or
-// through the lava sea to its bed. Carve passes open interiors and tunnel
-// bridge headroom through netherrack, so embedded fortresses read like
-// MC's.
+// Layout: a two-storey central keep (lower hall + upper room joined by a
+// stepped stair) plus 2-4 satellite halls scattered a few hundred blocks
+// out, each linked back to the keep by a stepped bridge deck that tunnels
+// its doorway on contact. Bridge arms random-walk out of keep and satellite
+// walls, ending in widened platforms that often carry a hollow tower with a
+// chest and an inert MOB_SPAWNER block. Footprints spill past cell edges,
+// so neighbouring complexes overlap and merge; supports drop from decks to
+// the cavern floor or through the lava sea to its bed. Carve passes open
+// interiors and tunnel bridge headroom through netherrack.
 
 #include <random>
 #include <string.h>
@@ -36,21 +36,24 @@
 
 // ---------------------------------------------------------------------------
 // Grid + anchor. One fortress roll per SGF_CELL world cell; the anchor sits
-// in the cell's middle half so the whole footprint stays inside its cell —
-// a chunk only ever needs to check the cells its own box overlaps.
+// anywhere in the cell minus a margin, so the footprint (anchor +/- EXTENT)
+// spills past cell edges — a chunk must enumerate every cell whose reachable
+// interval overlaps its box, not just the cells it touches.
 // ---------------------------------------------------------------------------
 
 #define SGF_CELL 384        // world grid cell holding at most one fortress
-#define SGF_EXTENT 152      // hard clip: no piece reaches past anchor +/- this
+#define SGF_EXTENT 360      // hard clip: no piece reaches past anchor +/- this
+#define SGF_MARGIN 48       // anchor stays inside cell + [MARGIN, CELL-MARGIN)
 #define SGF_DECK_MIN_LY 66  // lowest deck height, band-local y (lava sea = 60)
 #define SGF_DECK_SPAN_LY 44 // deck cap rolled inside [66, 110)
-#define SGF_FREQ 0.20f      // ~1 fortress per 5 cells (~700x700 blocks)
+#define SGF_FREQ 0.90f      // ~one complex per cell — near-continuous sprawl
 #define SGF_PILLAR_MAX 160  // longest support column probe below a deck
-#define SGF_TOP_RISE 40     // highest a piece top reaches above the deck
+#define SGF_TOP_RISE 48     // highest a piece top reaches above the deck
 #define SGF_ANCHOR_TRIES 4  // anchor candidates per cell; lowest floor wins
 
-#define SGF_MAX_PIECES 64
-#define SGF_MAX_SLOTS 16
+#define SGF_MAX_PIECES 288 // worst: 4 satellites x (keep + ~45-step connector + arm)
+#define SGF_MAX_SLOTS 32
+#define SGF_MAX_LAYOUTS 16 // cells whose footprint can reach one chunk
 
 // Piece kinds. Every piece is an axis-aligned world-space bbox; aux carries
 // a world direction where noted.
@@ -114,8 +117,8 @@ static int sgf_for_cell( const int cx, const int cz, SGFAnchor *a ) {
     a->ax = 0;
     a->az = 0;
     for ( int k = 0; k < SGF_ANCHOR_TRIES; k++ ) {
-        const int x = cx * SGF_CELL + SGF_EXTENT + (int)( sg_roll( cx, cz, 102 + k * 2 ) * (float)( SGF_CELL - 2 * SGF_EXTENT ) );
-        const int z = cz * SGF_CELL + SGF_EXTENT + (int)( sg_roll( cx, cz, 103 + k * 2 ) * (float)( SGF_CELL - 2 * SGF_EXTENT ) );
+        const int x = cx * SGF_CELL + SGF_MARGIN + (int)( sg_roll( cx, cz, 102 + k * 2 ) * (float)( SGF_CELL - 2 * SGF_MARGIN ) );
+        const int z = cz * SGF_CELL + SGF_MARGIN + (int)( sg_roll( cx, cz, 103 + k * 2 ) * (float)( SGF_CELL - 2 * SGF_MARGIN ) );
         const float f = mgn_floor_height( x, z );
         if ( f < best_floor ) {
             best_floor = f;
@@ -252,6 +255,12 @@ static void sgf_push_chest( SGFLayout &L, const SGFAnchor &a, const int x, const
     if ( L.n_chests >= SGF_MAX_SLOTS ) {
         return;
     }
+    // Same extent contract as pieces: a slot outside the declared footprint
+    // would write into cells the enumeration doesn't cover — a lone chest a
+    // neighbouring chunk never derives.
+    if ( x < a.ax - SGF_EXTENT || x > a.ax + SGF_EXTENT || z < a.az - SGF_EXTENT || z > a.az + SGF_EXTENT ) {
+        return;
+    }
     const glm::ivec2 p = sgf_rot( x - a.ax, z - a.az, a.facing );
     SGFSlot &s = L.chests[ L.n_chests++ ];
     s.x = a.ax + p.x;
@@ -262,6 +271,9 @@ static void sgf_push_chest( SGFLayout &L, const SGFAnchor &a, const int x, const
 
 static void sgf_push_spawner( SGFLayout &L, const SGFAnchor &a, const int x, const int y, const int z ) {
     if ( L.n_spawners >= SGF_MAX_SLOTS ) {
+        return;
+    }
+    if ( x < a.ax - SGF_EXTENT || x > a.ax + SGF_EXTENT || z < a.az - SGF_EXTENT || z > a.az + SGF_EXTENT ) {
         return;
     }
     const glm::ivec2 p = sgf_rot( x - a.ax, z - a.az, a.facing );
@@ -324,6 +336,66 @@ static void sgf_arm( SGFLayout &L, const SGFAnchor &a, std::mt19937_64 &rng, con
     sgf_push_spawner( L, a, wx + 3, deck + 1, wz + 3 );
 }
 
+// One hall section: lower hall (8 rows: floor, 6 interior, roof) plus a
+// ground chest, and when `upper` an inset upper room over the canonical +x
+// two-thirds joined by a stepped stair (with its own chest and spawner).
+// Upper pieces are pushed with aux 1 so the support pass skips their floor.
+static void sgf_emit_keep( SGFLayout &L, const SGFAnchor &a, const int kx, const int kz,
+                          const int kd, const int kw, const int kdeck, const int upper ) {
+    sgf_push( L, a, SGF_KEEP, kx - kd, kdeck, kz - kw, kx + kd, kdeck + 7, kz + kw, 0 );
+    sgf_push_chest( L, a, kx - kd + 2, kdeck + 1, kz - kw + 2, SGF_DIR_PX );
+    if ( !upper ) {
+        return;
+    }
+    sgf_push( L, a, SGF_KEEP, kx - kd + 3, kdeck + 8, kz - kw + 2, kx + kd, kdeck + 15, kz + kw - 2, 1 );
+    sgf_push( L, a, SGF_STAIR, kx - 3, kdeck + 1, kz + kw - 5, kx + 4, kdeck + 8, kz + kw - 3, SGF_DIR_PX );
+    sgf_push_chest( L, a, kx + kd - 2, kdeck + 9, kz + kw - 4, SGF_DIR_NX );
+    sgf_push_spawner( L, a, kx + kd - 4, kdeck + 9, kz - kw + 5 );
+}
+
+// Stepped deck linking two section centres: an L path — x leg first, then
+// z — emitted as short BRIDGE pieces whose y eases between the two decks by
+// at most ~1 per step. Where a leg crosses a hall wall the bridge's own
+// carve channel punches the doorway.
+static void sgf_connector( SGFLayout &L, const SGFAnchor &a,
+                           int x0, int z0, const int x1, const int z1, const int ya, const int yb ) {
+    const int lx = abs( x1 - x0 ), lz = abs( z1 - z0 );
+    const int total = lx + lz;
+    if ( total == 0 ) {
+        return;
+    }
+    int walked = 0;
+    for ( int leg = 0; leg < 2; leg++ ) {
+        const int len = leg == 0 ? lx : lz;
+        const int sgn = leg == 0 ? ( x1 > x0 ? 1 : -1 ) : ( z1 > z0 ? 1 : -1 );
+        int done = 0;
+        while ( done < len ) {
+            const int step = len - done < 12 ? len - done : 12;
+            const int mid = walked + done + step / 2;
+            const int y = ya + (int)( ( (int64_t)( yb - ya ) * mid + total / 2 ) / total );
+            int bx0, bx1, bz0, bz1;
+            if ( leg == 0 ) {
+                const int ex = x0 + sgn * step;
+                bx0 = x0 < ex ? x0 : ex;
+                bx1 = x0 < ex ? ex : x0;
+                bz0 = z0 - 3;
+                bz1 = z0 + 3;
+                x0 = ex;
+            } else {
+                const int ez = z0 + sgn * step;
+                bz0 = z0 < ez ? z0 : ez;
+                bz1 = z0 < ez ? ez : z0;
+                bx0 = x0 - 3;
+                bx1 = x0 + 3;
+                z0 = ez;
+            }
+            sgf_push( L, a, SGF_BRIDGE, bx0, y, bz0, bx1, y, bz1, 0 );
+            done += step;
+        }
+        walked += len;
+    }
+}
+
 static void sgf_decode( const SGFAnchor &a, SGFLayout &L ) {
     memset( &L, 0, sizeof( L ) );
     std::mt19937_64 rng( (uint64_t)sg_hash( a.cx, 0, a.cz, 101 ) );
@@ -333,20 +405,9 @@ static void sgf_decode( const SGFAnchor &a, SGFLayout &L ) {
     const int deck = sgf_deck_y( a );
     const int ax = a.ax, az = a.az;
 
-    // Keep: lower hall (8 rows: floor, 6 interior, roof) and a slightly
-    // inset upper room over the canonical +x two-thirds, joined by a
-    // stepped stair run inside the lower hall against the +z inner wall.
     const int kw = 11 + rr( 0, 1 ) * 2; // half-width along z: 11 or 13
     const int kd = 14 + rr( 0, 2 ) * 2; // half-depth along x: 14, 16 or 18
-    sgf_push( L, a, SGF_KEEP, ax - kd, deck, az - kw, ax + kd, deck + 7, az + kw, 0 );
-    sgf_push( L, a, SGF_KEEP, ax - kd + 3, deck + 8, az - kw + 2, ax + kd, deck + 15, az + kw - 2, 0 );
-    sgf_push( L, a, SGF_STAIR, ax - 3, deck + 1, az + kw - 5, ax + 4, deck + 8, az + kw - 3, SGF_DIR_PX );
-
-    // Loot: one chest per keep level plus an upper-room spawner; each
-    // arm-end tower adds another of both.
-    sgf_push_chest( L, a, ax - kd + 2, deck + 1, az - kw + 2, SGF_DIR_PX );
-    sgf_push_chest( L, a, ax + kd - 2, deck + 9, az + kw - 4, SGF_DIR_NX );
-    sgf_push_spawner( L, a, ax + kd - 4, deck + 9, az - kw + 5 );
+    sgf_emit_keep( L, a, ax, az, kd, kw, deck, 1 );
 
     // Bridge arms: the front (canonical -x) always exists; sides ~50%,
     // back ~33%. Arms start on the keep wall face so their carve channel
@@ -360,6 +421,32 @@ static void sgf_decode( const SGFAnchor &a, SGFLayout &L ) {
     }
     if ( rr( 0, 2 ) == 0 ) {
         sgf_arm( L, a, rng, deck, ax + kd, az, SGF_DIR_PX );
+    }
+
+    // Satellite sections: 2-4 more halls on the eight compass points around
+    // the keep, each on its own deck level and linked back by a stepped
+    // connector — a complex of connected sections, not a single keep.
+    // Stride 3 through the direction ring spreads the picks so halls
+    // don't stack on the same side.
+    static const int dirs[ 8 ][ 2 ] = {
+        { 1, 0 }, { 1, 1 }, { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 },
+    };
+    const int n_sat = 2 + rr( 0, 2 );
+    const int d0 = rr( 0, 7 );
+    for ( int i = 0; i < n_sat; i++ ) {
+        const int di = ( d0 + i * 3 ) & 7;
+        const int dxx = dirs[ di ][ 0 ], dzz = dirs[ di ][ 1 ];
+        const int dist = 130 + rr( 0, 140 );
+        const int sx = ax + dxx * dist, sz = az + dzz * dist;
+        const int sdeck = deck + 4 * ( rr( 0, 2 ) - 1 ); // deck-4, deck or deck+4
+        const int skw = 9 + rr( 0, 3 ), skd = 11 + rr( 0, 4 );
+        sgf_emit_keep( L, a, sx, sz, skd, skw, sdeck, rr( 0, 1 ) );
+        sgf_connector( L, a, sx, sz, ax, az, sdeck, deck );
+        if ( rr( 0, 99 ) < 40 ) {
+            // Extra arm off the satellite's outer face.
+            const int dir = dxx != 0 ? ( dxx > 0 ? SGF_DIR_PX : SGF_DIR_NX ) : ( dzz > 0 ? SGF_DIR_PZ : SGF_DIR_NZ );
+            sgf_arm( L, a, rng, sdeck, sx + dxx * skd, sz + dzz * skw, dir );
+        }
     }
 }
 
@@ -598,6 +685,12 @@ static void sgf_carve_piece( Chunk &chunk, const SGFLayout &L, const SGFPiece &p
 // nothing.
 static void sgf_pillar( Chunk &chunk, const int cox, const int coy, const int coz,
                         const int wx, const int wz, const int y_top, const int half ) {
+    // Cheap x/z reject before the mapgen probe — most pieces of the cells
+    // enumerated for a chunk sit outside its writable window.
+    if ( wx + half < cox - 1 || wx - half > cox + CHUNK_SIZE_X ||
+         wz + half < coz - 1 || wz - half > coz + CHUNK_SIZE_Z ) {
+        return;
+    }
     int base = y_top - SGF_PILLAR_MAX;
     const int floor_min = DIM_BY_MIN_N + 2;
     if ( base < floor_min ) {
@@ -669,7 +762,7 @@ static void sgf_parapet( Chunk &chunk, const SGFLayout &L, const SGFPiece &p,
     }
 }
 
-static void sgf_detail( Chunk &chunk, const int deck, const SGFLayout &L, const SGFPiece &p,
+static void sgf_detail( Chunk &chunk, const SGFLayout &L, const SGFPiece &p,
                         const int cox, const int coy, const int coz ) {
     if ( p.kind == SGF_STAIR ) {
         // Open-riser treads rising 1/block toward aux; the matching floor
@@ -728,9 +821,13 @@ static void sgf_detail( Chunk &chunk, const int deck, const SGFLayout &L, const 
             }
         }
     }
-    // Deck-level pieces get support columns down to terrain (the upper keep
-    // floor sits on the lower keep — its y0 > deck excludes it).
-    if ( p.y0 != deck ) {
+    // Floor-level pieces get support columns down to terrain. An upper keep
+    // floor sits on its lower hall — aux 1 excludes it — while satellites on
+    // their own deck levels still carry pillars.
+    if ( p.kind == SGF_KEEP && p.aux != 0 ) {
+        return;
+    }
+    if ( p.kind == SGF_STAIR ) {
         return;
     }
     if ( p.kind == SGF_KEEP || p.kind == SGF_TOWER || p.kind == SGF_PLATFORM ) {
@@ -765,44 +862,61 @@ static int sgf_floor_div( const int v ) {
     return q;
 }
 
-// Enumerate the fortress cells overlapped by this chunk's x/z box and run
-// the full stamp for each that survives the existence + y-range gates.
+// Cells whose fortress footprint can reach the world interval edge:
+// cell c's reach is [c*CELL + MARGIN - EXTENT, (c+1)*CELL - MARGIN + EXTENT].
+static int sgf_cells_lo( const int lo ) {
+    return sgf_floor_div( lo - SGF_CELL + SGF_MARGIN - SGF_EXTENT );
+}
+static int sgf_cells_hi( const int hi ) {
+    return sgf_floor_div( hi + SGF_EXTENT - SGF_MARGIN );
+}
+
+// Gather every fortress layout whose footprint reaches this chunk, then
+// stamp shells -> carves -> details as global passes across all of them:
+// a neighbouring complex's carve or parapet lands on top of this one's
+// shell, so overlapping sections connect instead of walling each other off.
 void StructureGen::place_nether_fortress( Chunk &chunk, const int cox, const int coy, const int coz ) {
-    const int cx0 = sgf_floor_div( cox - 1 );
-    const int cx1 = sgf_floor_div( cox + CHUNK_SIZE_X );
-    const int cz0 = sgf_floor_div( coz - 1 );
-    const int cz1 = sgf_floor_div( coz + CHUNK_SIZE_Z );
+    const int cx0 = sgf_cells_lo( cox - 1 ), cx1 = sgf_cells_hi( cox + CHUNK_SIZE_X );
+    const int cz0 = sgf_cells_lo( coz - 1 ), cz1 = sgf_cells_hi( coz + CHUNK_SIZE_Z );
+    SGFLayout layouts[ SGF_MAX_LAYOUTS ];
+    int n_layouts = 0;
     for ( int cx = cx0; cx <= cx1; cx++ ) {
         for ( int cz = cz0; cz <= cz1; cz++ ) {
             SGFAnchor a;
-            if ( !sgf_for_cell( cx, cz, &a ) ) {
+            if ( n_layouts >= SGF_MAX_LAYOUTS || !sgf_for_cell( cx, cz, &a ) ) {
                 continue;
             }
             const int deck = sgf_deck_y( a );
             if ( coy - 1 > deck + SGF_TOP_RISE || coy + CHUNK_SIZE_Y + 1 < deck - SGF_PILLAR_MAX ) {
                 continue;
             }
-            SGFLayout L;
-            sgf_decode( a, L );
-            for ( int i = 0; i < L.n_pieces; i++ ) {
-                sgf_shell( chunk, L.pieces[ i ], cox, coy, coz );
-            }
-            for ( int i = 0; i < L.n_pieces; i++ ) {
-                sgf_carve_piece( chunk, L, L.pieces[ i ], cox, coy, coz );
-            }
-            for ( int i = 0; i < L.n_pieces; i++ ) {
-                sgf_detail( chunk, deck, L, L.pieces[ i ], cox, coy, coz );
-            }
-            // Chest + spawner slots.
-            static const int chest_rot[ 4 ] = { 1, 3, 0, 2 }; // front: +x -x +z -z
-            for ( int i = 0; i < L.n_chests; i++ ) {
-                const SGFSlot &s = L.chests[ i ];
-                sgf_put_state( chunk, s.x - cox, s.y - coy, s.z - coz, CHEST, chest_rot[ s.facing & 3 ] );
-            }
-            for ( int i = 0; i < L.n_spawners; i++ ) {
-                const glm::ivec3 &s = L.spawners[ i ];
-                sgf_put( chunk, s.x - cox, s.y - coy, s.z - coz, MOB_SPAWNER );
-            }
+            sgf_decode( a, layouts[ n_layouts++ ] );
+        }
+    }
+    for ( int l = 0; l < n_layouts; l++ ) {
+        for ( int i = 0; i < layouts[ l ].n_pieces; i++ ) {
+            sgf_shell( chunk, layouts[ l ].pieces[ i ], cox, coy, coz );
+        }
+    }
+    for ( int l = 0; l < n_layouts; l++ ) {
+        for ( int i = 0; i < layouts[ l ].n_pieces; i++ ) {
+            sgf_carve_piece( chunk, layouts[ l ], layouts[ l ].pieces[ i ], cox, coy, coz );
+        }
+    }
+    static const int chest_rot[ 4 ] = { 1, 3, 0, 2 }; // front: +x -x +z -z
+    for ( int l = 0; l < n_layouts; l++ ) {
+        const SGFLayout &L = layouts[ l ];
+        for ( int i = 0; i < L.n_pieces; i++ ) {
+            sgf_detail( chunk, L, L.pieces[ i ], cox, coy, coz );
+        }
+        // Chest + spawner slots.
+        for ( int i = 0; i < L.n_chests; i++ ) {
+            const SGFSlot &s = L.chests[ i ];
+            sgf_put_state( chunk, s.x - cox, s.y - coy, s.z - coz, CHEST, chest_rot[ s.facing & 3 ] );
+        }
+        for ( int i = 0; i < L.n_spawners; i++ ) {
+            const glm::ivec3 &s = L.spawners[ i ];
+            sgf_put( chunk, s.x - cox, s.y - coy, s.z - coz, MOB_SPAWNER );
         }
     }
 }
@@ -860,10 +974,10 @@ void StructureGen::place_fortress_loot( Chunk &chunk ) {
     }
     const glm::ivec3 origin = chunk.chunk_pos * CHUNK_SIZE_I;
     const int cox = origin.x, coy = origin.y, coz = origin.z;
-    const int cx0 = sgf_floor_div( cox );
-    const int cx1 = sgf_floor_div( cox + CHUNK_SIZE_X - 1 );
-    const int cz0 = sgf_floor_div( coz );
-    const int cz1 = sgf_floor_div( coz + CHUNK_SIZE_Z - 1 );
+    const int cx0 = sgf_cells_lo( cox );
+    const int cx1 = sgf_cells_hi( cox + CHUNK_SIZE_X - 1 );
+    const int cz0 = sgf_cells_lo( coz );
+    const int cz1 = sgf_cells_hi( coz + CHUNK_SIZE_Z - 1 );
     for ( int cx = cx0; cx <= cx1; cx++ ) {
         for ( int cz = cz0; cz <= cz1; cz++ ) {
             SGFAnchor a;
