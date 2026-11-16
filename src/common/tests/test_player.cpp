@@ -478,11 +478,12 @@ int test_scaffolding( ) {
             world.set_loaded_block( glm::ivec3( x, 9, z ), stone );
         }
     }
-    // Column on the floor at x=10, arm of 7 cells extending +x at y=13.
+    // Column on the floor at x=10, arm of 13 cells extending +x at y=13 —
+    // one past SCAFFOLDING_MAX_DISTANCE.
     for ( int y = 10; y <= 13; y++ ) {
         world.set_loaded_block( glm::ivec3( 10, y, 10 ), scaffold );
     }
-    for ( int x = 11; x <= 17; x++ ) {
+    for ( int x = 11; x <= 23; x++ ) {
         world.set_loaded_block( glm::ivec3( x, 13, 10 ), scaffold );
     }
     // A lone scaffold hanging in mid-air with no path to ground.
@@ -510,7 +511,8 @@ int test_scaffolding( ) {
     check_bool( "survive: mid-column", survive( glm::ivec3( 10, 12, 10 ) ) );
     check_bool( "survive: arm cell at distance 1", survive( glm::ivec3( 11, 13, 10 ) ) );
     check_bool( "survive: arm cell at distance 6", survive( glm::ivec3( 16, 13, 10 ) ) );
-    check_bool( "survive: arm cell past max distance fails", !survive( glm::ivec3( 17, 13, 10 ) ) );
+    check_bool( "survive: arm cell at max distance", survive( glm::ivec3( 22, 13, 10 ) ) );
+    check_bool( "survive: arm cell past max distance fails", !survive( glm::ivec3( 23, 13, 10 ) ) );
     check_bool( "survive: floating lone scaffold fails", !survive( glm::ivec3( 20, 20, 10 ) ) );
     check_bool( "survive: placement candidate over floor", survive( glm::ivec3( 14, 10, 10 ) ) );
     check_bool( "survive: placement candidate in the void fails", !survive( glm::ivec3( 25, 20, 10 ) ) );

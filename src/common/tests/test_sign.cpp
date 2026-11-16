@@ -28,7 +28,13 @@ int test_signs( ) {
             if ( def == nullptr ) {
                 continue;
             }
-            const bool want_sign = def->is_standing_sign || def->is_hanging_sign || def->standing_variant != LAST_BLOCK_ID;
+            // Wall signs flag themselves only by pointing back at a
+            // standing sign — follow the pair so non-sign wall variants
+            // (coral fans share standing_variant for drops) don't count.
+            const Block *standing =
+                def->standing_variant != LAST_BLOCK_ID ? block_definition_get_definition( def->standing_variant ) : nullptr;
+            const bool want_sign =
+                def->is_standing_sign || def->is_hanging_sign || ( standing != nullptr && standing->is_standing_sign );
             if ( block_is_sign( id ) != want_sign ) {
                 pr_test( "    block_is_sign mismatch id=%d", i );
                 mismatch = true;
