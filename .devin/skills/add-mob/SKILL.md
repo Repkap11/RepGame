@@ -51,7 +51,11 @@ Full behaviour/rendering reference: `docs/mobs.md`.
    body/wing bone names the animators bind to (NULL = unused).
 4. Optional sounds: append `sfx` entries to `tools/sounds_manifest.txt`
    (base + `_N` variants pool, e.g. `pig_say_1..3`; `pig_death`,
-   `pig_step_1..5`).
+   `pig_step_1..5`). New sources must exist in `sounds/mc_pack` — they
+   come only from the tarball on repkap11.com: adding one requires
+   repkap11 to update `mc_pack_full.tar.gz` first (never fetch from
+   Mojang's CDN without permission — see the sourcing policy at the top
+   of sounds_manifest.txt).
 
 Skin atlas convention: each skin is one 64x64 layer of `mobs.png`
 (`MOB_SKIN_*` is the layer index, NEAREST + no mipmaps). UV mapping and
