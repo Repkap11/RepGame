@@ -283,6 +283,12 @@ can't hold itself on. Powered rails swap their top tile to
 `rail_golden_powered` in `block_adjust_coord_based_on_state` (same trick
 as the lit lamp). Shape/track rules are in `docs/blocks.md`.
 
+A powered **redstone lamp** stays `REDSTONE_LAMP` — the "on" state is the
+cell's powered bit: the texture swaps in
+`block_adjust_coord_based_on_state`, and the light engine reads the
+`lit_variant` def's `emits_light` (`light_emit_level`) while the bit is
+set, so LIT_REDSTONE_LAMP is a data-only variant that is never placed.
+
 **Repeaters** (`is_repeater`, `REPEATER`) are diodes: they read power
 only from the block *behind* them, wait a configured delay, then emit
 hard power 15 out the front — refreshing the signal and strongly

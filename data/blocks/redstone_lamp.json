@@ -2,6 +2,7 @@
   "hardness": 0.449999988,
   "id": 316,
   "is_redstone_mechanism": true,
+  "lit_variant": "LIT_REDSTONE_LAMP",
   "name": "REDSTONE_LAMP",
   "textures": {
     "back": "redstone_lamp_off",

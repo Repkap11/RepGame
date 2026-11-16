@@ -95,7 +95,7 @@ VEC3_BOOL = {"hides_self"}
 # Keys holding another block's name, emitted raw as the enum constant.
 BLOCK_REF_FIELDS = {"door_partner", "tall_plant_partner", "bed_partner",
                     "persistent_variant", "natural_variant", "crop_next",
-                    "wall_variant", "standing_variant"}
+                    "wall_variant", "standing_variant", "lit_variant"}
 STRUCT_META = {"id", "name", "aliases", "textures", "icon", "shape",
                "render_order", "needs_place_on_any_solid", "creative", "drops",
                "mineable"}
@@ -668,6 +668,18 @@ def load_blocks():
             fail("%s: crop_next must not point at itself" % b["_file"])
         if nxt not in names:
             fail("%s: crop_next %s not found" % (b["_file"], nxt))
+    # lit_variant links a powered-state variant (the lamp's on state): the
+    # named block must exist and actually emit light — that's the whole
+    # point of the link.
+    for bid, b in blocks.items():
+        lit = b.get("lit_variant")
+        if lit is None:
+            continue
+        lbid = names.get(lit)
+        if lbid is None:
+            fail("%s: lit_variant %s not found" % (b["_file"], lit))
+        if not blocks[lbid].get("emits_light", 0):
+            fail("%s: lit_variant %s does not emit light" % (b["_file"], lit))
     # wall_variant / standing_variant pair a sign's two placement forms:
     # the standing block names its wall form, the wall form points back.
     for bid, b in blocks.items():

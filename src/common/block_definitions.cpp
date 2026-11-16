@@ -74,6 +74,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->crop_next = LAST_BLOCK_ID;
         block->wall_variant = LAST_BLOCK_ID;
         block->standing_variant = LAST_BLOCK_ID;
+        block->lit_variant = LAST_BLOCK_ID;
         block->is_crop = false;
         block->is_log = false;
         block->is_flower = false;

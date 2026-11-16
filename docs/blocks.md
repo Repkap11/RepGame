@@ -161,7 +161,10 @@ rotation; the icon paths take the already-rotated box and must yaw the
 vector themselves). Default
 hardness is 1.5. Light emitters set `emits_light` and mirror the torch-style
 flags (`no_light`, `casts_shadow:false`); see existing `data/blocks/*.json`
-for the emitted levels.
+for the emitted levels. A block that should emit only while powered names
+its lit form in `"lit_variant"` (a block ref, validated to exist and emit
+light) — `redstone_lamp.json` → `LIT_REDSTONE_LAMP`; the light engine reads
+the variant's `emits_light` while the cell's powered bit is set.
 
 `"mineable"` (optional, `"pickaxe"`/`"axe"`/`"shovel"`/`"shears"`/`"none"`)
 sets the tool family that speeds up survival mining of the block

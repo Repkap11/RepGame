@@ -4965,6 +4965,7 @@ block_definitions[ 316 ].textures[ FACE_BACK ] = TEX_REDSTONE_LAMP_OFF;
 block_definitions[ 316 ].icon_texture = TEX_REDSTONE_LAMP_OFF;
 block_definitions[ 316 ].hardness = 0.449999988f;
 block_definitions[ 316 ].is_redstone_mechanism = true;
+block_definitions[ 316 ].lit_variant = LIT_REDSTONE_LAMP;
 block_definitions[ 316 ].mineable = MINEABLE_PICKAXE;
 
 // LIT_REDSTONE_LAMP (317)

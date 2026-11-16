@@ -177,6 +177,25 @@ int test_lighting( ) {
     world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
     cl.light_process_queue( 1000000 );
 
+    // A redstone lamp's "on" state is the cell's powered bit on the same id
+    // (the texture swaps; the id never changes), so its emission comes
+    // through lit_variant: unpowered is dark, powered emits the lit
+    // variant's 15, and unpowering removes the light again.
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );
+    cl.light_process_queue( 1000000 );
+    check_light( "unpowered lamp cell", glm::ivec3( 10, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+    check_light( "beside unpowered lamp", glm::ivec3( 11, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { REDSTONE_LAMP, 0, 15, REDSTONE_LAMP, 0 } );
+    cl.light_process_queue( 1000000 );
+    check_light( "powered lamp cell", glm::ivec3( 10, 10, 10 ), LIGHT_CHANNEL_BLOCK, 15 );
+    check_light( "beside powered lamp", glm::ivec3( 11, 10, 10 ), LIGHT_CHANNEL_BLOCK, 14 );
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );
+    cl.light_process_queue( 1000000 );
+    check_light( "lamp cell unpowered again", glm::ivec3( 10, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+    check_light( "beside lamp unpowered again", glm::ivec3( 11, 10, 10 ), LIGHT_CHANNEL_BLOCK, 0 );
+    world.set_loaded_block( glm::ivec3( 10, 10, 10 ), BLOCK_STATE_AIR );
+    cl.light_process_queue( 1000000 );
+
     // Leaves are light-permeable but absorbing: entering one costs 1 +
     // light_absorb (7 at absorb 6), so torchlight inside a leaf dims hard,
     // and the far side settles at the best wraparound path (glass costs -1).

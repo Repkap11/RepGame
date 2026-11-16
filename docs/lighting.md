@@ -97,7 +97,10 @@ y the sky cascade fills, so the fill needs no per-cell opacity reads.
 ## Values that drive it
 
 From `Block` (`include/common/block_definitions.hpp`): `emits_light`
-seeds the block channel (in display levels, scaled ×17 to raw);
+seeds the block channel (in display levels, scaled ×17 to raw) —
+`light_emit_level` reads it, returning the `lit_variant`'s level instead
+while the cell's powered bit is set (the redstone lamp's lit state is a
+power bit on the same id, not a block swap);
 `light_absorb` is extra attenuation per cell (also display levels,
 charged per step entry); opacity (`light_opaque_id`) blocks both
 channels; `blocks_light_down` (slabs, path blocks) holds light *in* the

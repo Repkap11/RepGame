@@ -1361,7 +1361,7 @@ void ChunkLoader::light_debug_verify( ) {
                     cells++;
                     for ( int ch = 0; ch < 2; ch++ ) {
                         const int stored = ch == LIGHT_CHANNEL_BLOCK ? light_get_block( cell ) : light_get_sky( cell );
-                        int best = ch == LIGHT_CHANNEL_BLOCK ? block_definition_get_definition( c_id )->emits_light * LIGHT_RAW_PER_LEVEL : 0;
+                        int best = ch == LIGHT_CHANNEL_BLOCK ? light_emit_level( block_definition_get_definition( c_id ), light_cell_powered_at( chunk.cells, c ) ) * LIGHT_RAW_PER_LEVEL : 0;
                         bool complete = true;
                         for ( int d = 0; d < LIGHT_STEP_COUNT; d++ ) {
                             const LightStepDir &sd = light_step_dirs[ d ];

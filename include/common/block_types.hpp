@@ -315,6 +315,13 @@ typedef struct {
     // LAST_BLOCK_ID for unpaired blocks.
     BlockID wall_variant;
     BlockID standing_variant;
+    // Powered-state variant ("lit_variant" in data/blocks): while a cell's
+    // power bit is set, the light engine reads the variant's emits_light —
+    // the redstone lamp's "on" state stays the same block id (its texture
+    // swaps in block_adjust_coord_based_on_state), so emission comes
+    // through this link rather than a real LIT_REDSTONE_LAMP placement.
+    // LAST_BLOCK_ID means "no lit variant".
+    BlockID lit_variant;
     // Derived (no JSON key): the block is a member of a crop_next chain —
     // it survives only on farmland and grows by stage.
     bool is_crop;
