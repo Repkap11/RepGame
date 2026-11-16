@@ -19,6 +19,10 @@ file-level `out/...` rules) are omitted on purpose.
   cache under `<build dir>/thinlto-cache` makes incremental release relinks
   cheap (wiped by clean-linux); the gcc flatpak path gets no cache.
 - `make player` — delete `~/.repgame/$(WORLD)/player.dat`.
+- Window icon: `repgame_set_window_icon` in `src/linux/RepGameSDL3.cpp`
+  decodes the embedded `window_icon` blob (`bitmaps/icons/icon_512.png`,
+  the Android launcher icon) and calls `SDL_SetWindowIcon` — shared by all
+  SDL3 desktop builds (linux/arm/steamframe/windows).
 - `make bedrock_samples_build` — clone Mojang's bedrock-samples (pinned
   `BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored); the input
   to `make blocks-import` / `make mobs-import` (see docs/blocks.md).
@@ -124,7 +128,9 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 - `make windows` — cross-compile `out/windows/RepGame.exe` (CMake
   `REPGAME_PLATFORM=windows`, mingw toolchain
   `cmake/toolchains/windows-mingw.cmake`); `SDL3.dll` is copied next to the
-  exe post-build.
+  exe post-build. A generated `repgame.rc` embeds
+  `bitmaps/icons/icon.ico` (the multi-size render of the Android launcher
+  icon) so the .exe itself has the icon in explorer and the taskbar.
 - `make windows-run` — run the exe under wine against www.repkap11.com
   (`WORLD`), like `linux-run`. Multiplayer works: the client shares the Linux socket
   transport (`src/linux/multiplayer.cpp` over
