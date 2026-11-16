@@ -310,6 +310,10 @@ inline long long light_dbg_us_finalize = 0, light_dbg_us_remesh = 0, light_dbg_u
           light_dbg_us_fin_bscan = 0, light_dbg_us_fin_border = 0,
           light_dbg_us_fill = 0, light_dbg_n_fill = 0,
           light_dbg_us_framepool = 0, light_dbg_n_framepool = 0;
+// Approximate count of queued BFS seeds, kept atomic so light workers can
+// test "queue nonempty" from the cv predicate without touching the deques
+// (a claimed job may be pushing while another worker waits). ++ on every
+// push_back, -- on every pop_front below.
 inline std::atomic<long long> light_bfs_pending{ 0 };
 
 // Starve-window thresholds (the window machinery lives with the claim code
