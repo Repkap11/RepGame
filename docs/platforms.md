@@ -99,7 +99,10 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   host packages). Compile/link is CMake (`REPGAME_PLATFORM=wasm`, emsdk's
   Emscripten.cmake); the WASMFS preload is staged under `out/wasm/cmake/fs`.
 - `make wasm-start-server` — serve `out/wasm/delivery` on :8080 via
-  `wasm_server.py` (COOP/COEP headers for SharedArrayBuffer).
+  `wasm_server.py` (COOP/COEP headers for SharedArrayBuffer). `index.js`
+  skips loading the game when the page isn't cross-origin isolated
+  (embedded previews/iframes can never be) and points at a dedicated tab
+  or the missing headers instead of hitting the SAB abort.
 - `make wasm-run` — build + open in Chrome (`WASM_START_COMMAND`).
 - `make wasm-deploy` — rsync `out/wasm/delivery/` to repkap11.com.
 - Touch: `input.touch_ui` defaults on for `matchMedia('(pointer: coarse)')`
