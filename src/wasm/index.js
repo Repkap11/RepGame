@@ -417,9 +417,29 @@ var Module = {
   }]
 };
 
-var script = document.createElement("script");
-script.src = "RepGame.js";
-document.body.appendChild(script);
+// SharedArrayBuffer (wasm pthreads) needs a cross-origin isolated page:
+// COOP+COEP headers from the server (wasm_server.py sends them) and no
+// non-isolated ancestors. An embedded page (preview panel, iframe) can
+// never be isolated, so bail with an actionable message instead of
+// letting emscripten die on "SharedArrayBuffer is not defined".
+function canRunWasmThreads() {
+  if (window.crossOriginIsolated) return true;
+  var el = document.getElementById("browser_status");
+  if (window.self !== window.top) {
+    el.innerHTML = "This Web build needs SharedArrayBuffer, which can't run inside an embedded page - " +
+      '<a href="' + location.href + '" target="_blank" rel="noopener">open it in its own tab</a>';
+  } else {
+    el.textContent = "This Web build needs SharedArrayBuffer, but the server isn't sending the COOP/COEP " +
+      "headers that enable it (serve via wasm_server.py).";
+  }
+  return false;
+}
+
+if (canRunWasmThreads()) {
+  var script = document.createElement("script");
+  script.src = "RepGame.js";
+  document.body.appendChild(script);
+}
 
 function clear_fullscreen_functions() {
   //   document["exitFullscreen"] = function() {};
