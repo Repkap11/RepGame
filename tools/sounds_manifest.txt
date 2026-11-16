@@ -732,10 +732,6 @@ cave_16|mc_pack/ambient/cave/cave16.wav|sfx|Cave ambience
 cave_17|mc_pack/ambient/cave/cave17.wav|sfx|Cave ambience
 cave_18|mc_pack/ambient/cave/cave18.wav|sfx|Cave ambience
 cave_19|mc_pack/ambient/cave/cave19.wav|sfx|Cave ambience
-cave_20|mc_pack/ambient/cave/cave20.wav|sfx|Cave ambience
-cave_21|mc_pack/ambient/cave/cave21.wav|sfx|Cave ambience
-cave_22|mc_pack/ambient/cave/cave22.wav|sfx|Cave ambience
-cave_23|mc_pack/ambient/cave/cave23.wav|sfx|Cave ambience
 
 # Melee — swing whoosh on every attack; strong/crit/knockback on hits by
 # damage tier; sweep for the classic all-in-one hit noise
