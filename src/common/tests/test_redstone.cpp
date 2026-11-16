@@ -878,6 +878,108 @@ int test_redstone_clock( ) {
     return failures;
 }
 
+// Lever power semantics: a thrown lever owns its power (never times out,
+// never recomputed by neighbor writes), hard-powers the block it mounts —
+// floor, wall or ceiling — and weakly feeds adjacent dust and mechanisms.
+// Toggling back decays everything; breaking the mount pops the lever.
+int test_lever( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_redstone
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+
+    // Static terrain: a floor under the floor lever, a -z wall for the
+    // rot-0 lever, a ceiling over the rot-5 lever, blocks under the dust.
+    const glm::ivec3 floor_lever( 4, 11, 20 );
+    const glm::ivec3 wall_lever( 8, 11, 20 );
+    const glm::ivec3 ceil_lever( 12, 11, 20 );
+    world.set_loaded_block( floor_lever + glm::ivec3( 0, -1, 0 ), stone );
+    world.set_loaded_block( wall_lever + glm::ivec3( 0, 0, -1 ), stone );
+    world.set_loaded_block( ceil_lever + glm::ivec3( 0, 1, 0 ), stone );
+    world.set_loaded_block( glm::ivec3( 5, 10, 20 ), stone );
+    world.set_loaded_block( glm::ivec3( 8, 10, 21 ), stone );
+    world.set_loaded_block( glm::ivec3( 16, 10, 21 ), stone );
+
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
+    };
+    place( floor_lever, { LEVER, LEVER_ROT_FLOOR, 0, LEVER, 0 } );
+    place( wall_lever, { LEVER, 0, 0, LEVER, 0 } );                        // wall mount, support at -z
+    place( ceil_lever, { LEVER, LEVER_ROT_CEILING, 0, LEVER, 0 } );
+    place( glm::ivec3( 5, 11, 20 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // dust beside the floor lever
+    place( glm::ivec3( 8, 11, 21 ), { REDSTONE_WIRE_CROSS, 0, 0, REDSTONE_WIRE_CROSS, 0 } ); // dust beside the wall lever
+    place( glm::ivec3( 4, 11, 19 ), { REDSTONE_LAMP, 0, 0, REDSTONE_LAMP, 0 } );             // mechanism beside the floor lever
+    test_run_redstone_ticks( gs, 2 );
+
+    failures += check_power( world, "unpowered lever starts at 0", floor_lever, 0 );
+
+    // Toggle on: the lever stores 15, hard-powers its mount, weakly feeds
+    // adjacent dust and mechanisms.
+    repgame_toggle_lever( gs, floor_lever );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_power( world, "thrown lever owns 15", floor_lever, 15 );
+    failures += check_power( world, "floor mount block hard-powered", floor_lever + glm::ivec3( 0, -1, 0 ), 15 );
+    failures += check_power( world, "dust beside lever", glm::ivec3( 5, 11, 20 ), 14 );
+    failures += check_power( world, "lamp beside lever activated", glm::ivec3( 4, 11, 19 ), 1 );
+
+    // Latched: an unrelated neighbor write doesn't recompute the lever.
+    place( glm::ivec3( 4, 11, 22 ), stone );
+    test_run_redstone_ticks( gs, 2 );
+    failures += check_power( world, "lever stays powered across neighbor writes", floor_lever, 15 );
+
+    // Wall mount: the wall block is the attachment.
+    repgame_toggle_lever( gs, wall_lever );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_power( world, "wall lever owns 15", wall_lever, 15 );
+    failures += check_power( world, "wall mount block hard-powered", wall_lever + glm::ivec3( 0, 0, -1 ), 15 );
+    failures += check_power( world, "dust beside wall lever", glm::ivec3( 8, 11, 21 ), 14 );
+
+    // Ceiling mount: the block above is the attachment.
+    repgame_toggle_lever( gs, ceil_lever );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_power( world, "ceiling lever owns 15", ceil_lever, 15 );
+    failures += check_power( world, "ceiling mount block hard-powered", ceil_lever + glm::ivec3( 0, 1, 0 ), 15 );
+
+    // Toggle off: everything decays.
+    repgame_toggle_lever( gs, floor_lever );
+    test_run_redstone_ticks( gs, 3 );
+    failures += check_power( world, "lever toggled back to 0", floor_lever, 0 );
+    failures += check_power( world, "mount block depowers", floor_lever + glm::ivec3( 0, -1, 0 ), 0 );
+    failures += check_power( world, "dust beside lever off", glm::ivec3( 5, 11, 20 ), 0 );
+    failures += check_power( world, "lamp beside lever off", glm::ivec3( 4, 11, 19 ), 0 );
+
+    // Repeater reads a powered lever on its back cell (rot-0 output -z →
+    // the back cell is +z).
+    const glm::ivec3 rep_pos( 16, 11, 20 );
+    place( glm::ivec3( 16, 11, 21 ), { LEVER, LEVER_ROT_FLOOR, 0, LEVER, 0 } );
+    place( rep_pos, { REPEATER, 0, 0, REPEATER, 0 } );
+    test_run_redstone_ticks( gs, 3 );
+    repgame_toggle_lever( gs, glm::ivec3( 16, 11, 21 ) );
+    test_run_redstone_ticks( gs, 3 );
+    check_bool( "repeater reads lever on its back cell",
+                repeater_input_powered( world, rep_pos, world.get_loaded_block( rep_pos ) ) );
+
+    // Support loss pops the lever through the neighbor-update kill path.
+    place( wall_lever + glm::ivec3( 0, 0, -1 ), BLOCK_STATE_AIR );
+    test_run_game_ticks( gs, 4 );
+    failures += check_id( world, "breaking the mount pops the wall lever", wall_lever, AIR );
+
+    return failures;
+}
+
 // Piston slide animation: a power edge writes MOVING_PISTON cells locally and
 // spawns one kinematic BODY_PISTON per mover; per-cell PistonLandEvents land
 // the carried states PISTON_MOVE_GT (2 gt) later, relay then.

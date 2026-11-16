@@ -90,6 +90,7 @@ const CraftRecipe CRAFT_RECIPES[] = {
     { 0, 0, 0, { { RECIPE_OPTS_24, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, JUNGLE_PLANKS, 4 },
     { 1, 3, 1, { { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, JUNGLE_SLAB, 6 },
     { 1, 3, 3, { { RECIPE_OPTS_23, 1 }, { nullptr, 0 }, { nullptr, 0 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { nullptr, 0 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 }, { RECIPE_OPTS_23, 1 } }, JUNGLE_STAIRS, 4 },
+    { 1, 1, 2, { { RECIPE_OPTS_3, 1 }, { RECIPE_OPTS_16, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, LEVER, 1 },
     { 1, 3, 2, { { RECIPE_OPTS_25, 1 }, { nullptr, 0 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, MANGROVE_BOAT, 1 },
     { 0, 0, 0, { { RECIPE_OPTS_26, 4 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, MANGROVE_PLANKS, 4 },
     { 1, 3, 1, { { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { RECIPE_OPTS_25, 1 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 }, { nullptr, 0 } }, MANGROVE_SLAB, 6 },

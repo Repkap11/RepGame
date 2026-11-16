@@ -649,6 +649,36 @@ int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 // isometric item icon.
 int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 
+// ---- Levers -----------------------------------------------------------------
+// The two-box lever model (cobblestone base + wood stick). rotation encodes
+// the mount, not a plain yaw: 0-3 are wall yaws on the canonical -z-wall
+// model (needs_place_on_any_solid.front — the mesher's face_shift and
+// pick-time block_rotate_box apply the yaw like signs), while
+// LEVER_ROT_FLOOR/CEILING (z-axis) and LEVER_ROT_FLOOR_X/CEILING_X (x-axis)
+// emit world-baked floor/ceiling models — face_shift >= 4 applies no shader
+// transform, the piston up/down precedent. powered shifts the stick ~4px
+// along the throw axis so the on/off state reads in-world. Box 0 is the
+// base, box 1 the stick; skip_faces drops the quads coplanar with the
+// mount surface or buried in the base.
+#define LEVER_ROT_FLOOR 4
+#define LEVER_ROT_CEILING 5
+#define LEVER_ROT_FLOOR_X 6
+#define LEVER_ROT_CEILING_X 7
+#define LEVER_MAX_BOXES 2
+// The direction from a floor/ceiling lever's cell to the block it mounts
+// on: floor variants (4/6) the block below, ceiling variants (5/7) the
+// block above. Wall mounts (0-3) instead use the generic
+// needs_place_on_any_solid.front side-face lookup (the button convention).
+static inline glm::ivec3 lever_vertical_support_dir( unsigned char rotation ) {
+    return glm::ivec3( 0, ( rotation == LEVER_ROT_CEILING || rotation == LEVER_ROT_CEILING_X ) ? 1 : -1, 0 );
+}
+int lever_boxes( unsigned char rotation, bool powered, BlockBox out[ LEVER_MAX_BOXES ] );
+// The pick/outline model: the rendered pair yawed to world space for wall
+// mounts (floor/ceiling boxes are world-baked already).
+int lever_pick_boxes( unsigned char rotation, bool powered, BlockBox out[ LEVER_MAX_BOXES ] );
+// Icon/pickup shape: the floor model, stick unthrown. Returns LEVER_MAX_BOXES.
+int lever_icon_boxes( BlockBox out[ LEVER_MAX_BOXES ] );
+
 // ---- Fire -------------------------------------------------------------------
 // The pick/outline box covering the region the fire texture actually
 // draws: FIRE's crossed quads span the full cell but fire_0 frame 0's
@@ -713,6 +743,17 @@ static inline glm::vec3 block_icon_tex_offset( const Block *block, const BlockBo
         return glm::vec3( static_cast<float>( block->tex_offset.z ), static_cast<float>( block->tex_offset.y ), static_cast<float>( block->tex_offset.x ) );
     }
     return glm::vec3( static_cast<float>( -box.offset[ 0 ] ), static_cast<float>( -box.offset[ 1 ] ), static_cast<float>( -box.offset[ 2 ] ) );
+}
+// Per-box icon face fixups: the lever's stick box (box 1) draws spruce on
+// every face — the same override the placed model gets in
+// block_mesh_emit.cpp. Everything else keeps the def faces the caller
+// already filled through block_icon_face.
+static inline void block_icon_box_faces( const Block *block, int box_index, unsigned short face[ NUM_FACES_IN_CUBE ] ) {
+    if ( block->is_lever && box_index == 1 ) {
+        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+            face[ f ] = TEX_PLANKS_SPRUCE;
+        }
+    }
 }
 // The model-space boxes a block's item icon draws: stairs their
 // stairs_icon_boxes, fences a connected z segment (fence_icon_boxes),

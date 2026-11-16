@@ -70,7 +70,7 @@ bool repeater_input_powered( World &world, const glm::ivec3 &pos, const BlockSta
     if ( back.id == REDSTONE_TORCH && back.current_redstone_power > 0 ) {
         return true;
     }
-    if ( ( back_def->is_button || back_def->is_pressure_plate ) && back.current_redstone_power > 0 ) {
+    if ( ( back_def->is_button || back_def->is_pressure_plate || back_def->is_lever ) && back.current_redstone_power > 0 ) {
         return true;
     }
     if ( back_def->is_solid && back.current_redstone_power > 0 ) {

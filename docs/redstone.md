@@ -127,8 +127,8 @@ anything). MC's two power strengths map onto the stored level:
 
 - **Hard (>1) power** is emitted by sources: `initial_redstone_power`
   blocks (redstone block — always emits at that level), powered redstone
-  torches (`REDSTONE_TORCH_POWER` = 15), and pressed buttons/plates
-  strongly powering the block they're attached to
+  torches (`REDSTONE_TORCH_POWER` = 15), and pressed buttons/plates or
+  thrown levers strongly powering the block they're attached to
   (`activator_attached_to`). A torch also strongly powers the block
   directly above it. Hard power is what dust reads.
 - **Weak (1) power** is what a solid block gets from powered dust whose
@@ -138,7 +138,7 @@ anything). MC's two power strengths map onto the stored level:
   *not* read by dust.
 - **Mechanisms** (`is_redstone_mechanism`: pistons, lamps, doors, TNT)
   activate next to any powered emitting block — powered solids, pressed
-  buttons/plates — but their stored level is capped at 1 ("activated,
+  buttons/plates, thrown levers — but their stored level is capped at 1 ("activated,
   not emitting"), so two adjacent mechanisms can't latch each other.
   Only `is_solid` blocks hold power at all; air/water/glass and powered
   mechanisms themselves store 0 for transmission purposes.
@@ -150,6 +150,7 @@ dust visually connects to), `initial_redstone_power`,
 `affected_by_redstone_power` (solids that can hold weak power),
 `is_solid` (can hold hard power — note pistons are opaque but non-solid
 so they never transmit), `is_torch`, `is_button`, `is_pressure_plate`,
+`is_lever`,
 `is_redstone_mechanism`, `is_piston`, `is_sticky_piston`,
 `is_piston_head`, `piston_immovable`, `is_tnt`, `is_inverse_tnt`.
 
@@ -200,6 +201,21 @@ and starts a self-rescheduling `PressurePlateEvent` chain
 MC release time), deduped by `RepGameState::watched_pressure_plates` so
 exactly one chain exists per plate. Both strongly power their
 attachment block.
+
+**Levers** (`is_lever`) toggle on right-click
+(`repgame_toggle_lever` in `player.cpp`): the write flips
+`current_redstone_power` between 0 and `REDSTONE_SOURCE_POWER` on the
+physics clock and, unlike a button, never schedules a release — the
+lever latches until toggled again. `perform_checks` treats it as an
+owning source like buttons/plates (neighbor recomputes leave its stored
+level alone), `activator_attached_to` strongly powers its mount block,
+and `repeater_input_powered` reads a powered lever on the repeater's
+back cell. Mounting: rotations 0-3 are wall yaws riding the same
+`needs_place_on_any_solid.front` machinery as buttons;
+`LEVER_ROT_FLOOR`/`LEVER_ROT_FLOOR_X` (4/6) mount on the block below and
+`LEVER_ROT_CEILING`/`LEVER_ROT_CEILING_X` (5/7) on the block above
+(`lever_vertical_support_dir`), so support loss pops the lever through
+the usual neighbor-update kill path.
 
 **Pistons** (`is_piston`/`is_sticky_piston`) move on a power edge:
 `PlayerBlockPlacedEvent` runs `piston_update` inline on the edge's own drain
@@ -342,8 +358,8 @@ drops the same way (`docs/fluids.md`). Two-cell blocks (doors, tall plants) drop
 partner cell still holds the partner — whichever half goes second sees
 an empty partner, so a pair yields exactly one item. `BreakDrops` modes:
 `None` (default), `Survival`, `Always`. Right-click interactions
-(buttons, chest open, crafting table, gate/door toggles, dust dot
-toggle) all live in the right-click chain in
+(buttons, levers, chest open, crafting table, gate/door toggles, dust
+dot toggle) all live in the right-click chain in
 `src/common/game/player.cpp`; sneak+right-click skips them and places
 instead.
 
@@ -365,7 +381,8 @@ comment for the canonical example. `test_repeaters` (same file,
 hard power. `test_redstone_clock` (same file) covers the clock itself:
 the `redstone_tick_now` mapping, delay-0 and delay-n firing semantics,
 dust speed, and the torch/piston/button/plate game-tick delays.
-`test_doors` (same file) and
+`test_doors` (same file), `test_lever` (same file, `TESTS=lever` —
+mount power, latch, repeater input, support-loss pop) and
 `test_falling_blocks`/`test_tnt` (`test_blocks.cpp`) exercise the same
 queues. Tests drive the clocks with `test_run_game_ticks` /
 `test_run_redstone_ticks` (`src/common/tests/test_util.hpp`).

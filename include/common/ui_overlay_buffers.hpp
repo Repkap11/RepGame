@@ -112,6 +112,10 @@ inline void set_block_icon( UIOverlayInstance &inst, const Block *block, int box
         if ( !block->icon_is_isometric ) {
             // Like Reeds
             inst.id_isos[ face ] = block->icon_texture;
+        } else if ( block->is_lever && box_index == 1 ) {
+            // The lever's stick is spruce on every face — the same per-box
+            // override the chunk mesh applies in block_mesh_emit.cpp.
+            inst.id_isos[ face ] = TEX_PLANKS_SPRUCE;
         } else {
             // Like grass. block_icon_face maps the drawn face back to the
             // def face for yawed icons (panes draw the plate turned 90).

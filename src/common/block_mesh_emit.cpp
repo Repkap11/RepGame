@@ -84,6 +84,10 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
     if ( block->is_end_rod ) {
         return end_rod_boxes( boxes );
     }
+    if ( block->is_lever ) {
+        // Base + stick per mount; powered throws the stick.
+        return lever_boxes( blockState.rotation, blockState.current_redstone_power != 0, boxes );
+    }
     if ( block->is_scaffolding ) {
         // The four lateral bits mark a boundary face buried under a
         // scaffold neighbor's mirrored plate/leg, or covered by an
@@ -123,7 +127,7 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
 
 bool block_emit_needs_neighbors( const Block *block ) {
     return block->is_fence || block->is_wall || block->is_bars || block->is_stairs || block->is_rail || block->is_redstone_dust || block->spine_shell ||
-           block->is_lantern || block->is_lightning_rod || block->is_end_rod || block->is_scaffolding;
+           block->is_lantern || block->is_lightning_rod || block->is_end_rod || block->is_scaffolding || block->is_lever;
 }
 
 // The extra-instance flags the emit count needs — computed once per emit.
@@ -742,6 +746,14 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
                 boxCoord->tex_offset_z = 0;
             }
             boxCoord->face_shift = yaw;
+            // The lever's base (box 0) takes the def's cobblestone faces;
+            // the stick (box 1) is spruce wood on every face — its narrow
+            // faces would otherwise sample cobblestone texels.
+            if ( block->is_lever && i == 1 ) {
+                for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                    boxCoord->face[ f ] = TEX_PLANKS_SPRUCE;
+                }
+            }
             // skip_faces is definition-space while
             // packed_lighting indexes the world-space quad
             // (faceType) the shader turns the box onto —
@@ -764,6 +776,35 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
                 const int below_face = OPPOSITE_FACE[ mesh_rotated_face( FACE_BOTTOM, below_rot ) ];
                 if ( !mesh_face_seethrough( mesh_def_table( )[ below_cell.id ], below_cell.current_redstone_power != 0, below_rot, below_face ) ) {
                     boxCoord->packed_lighting[ FACE_BOTTOM ] = NO_LIGHT_NO_DRAW;
+                }
+            }
+            // The lever plate's mount-side quad is buried only while the
+            // support's facing side is opaque — on glass the plate's back
+            // must render (the same boundary-cover test the lantern
+            // underside uses). The mount sits at pos - FACE_DIR[W] where
+            // the world face W maps to def needs.front on wall mounts
+            // (mesh_rotated_face(FRONT, counter-yaw) inverts that row),
+            // below on floors and above on ceilings; the quad facing it
+            // is OPPOSITE_FACE[W].
+            if ( block->is_lever && i == 0 && p.cull_against_neighbors ) {
+                int dir_x = 0, dir_y = -1, dir_z = 0;
+                int buried_face = FACE_BOTTOM, facing_face = FACE_TOP;
+                if ( blockState.rotation < LEVER_ROT_FLOOR ) {
+                    facing_face = mesh_rotated_face( FACE_FRONT, ( 4 - yaw ) & 3 );
+                    dir_y = 0;
+                    dir_x = -FACE_DIR_X_OFFSETS[ facing_face ];
+                    dir_z = -FACE_DIR_Z_OFFSETS[ facing_face ];
+                    buried_face = OPPOSITE_FACE[ facing_face ];
+                } else if ( blockState.rotation == LEVER_ROT_CEILING || blockState.rotation == LEVER_ROT_CEILING_X ) {
+                    dir_y = 1;
+                    buried_face = FACE_TOP;
+                    facing_face = FACE_BOTTOM;
+                }
+                const BlockState &mount_cell = p.nb.at( dir_x, dir_y, dir_z );
+                const int mount_rot = mount_cell.rotation;
+                const int mount_side = mesh_rotated_face( facing_face, mount_rot );
+                if ( !mesh_face_seethrough( mesh_def_table( )[ mount_cell.id ], mount_cell.current_redstone_power != 0, mount_rot, mount_side ) ) {
+                    boxCoord->packed_lighting[ buried_face ] = NO_LIGHT_NO_DRAW;
                 }
             }
             // Scaffolding's platform plate samples the woven top tile on

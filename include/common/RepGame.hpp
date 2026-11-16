@@ -224,6 +224,7 @@ bool repgame_eat_food( RepGameState &state );
 // instant; the release is re-queued every press so a saved-pressed button
 // still pops out. A free function so rep_tests can drive it.
 void repgame_press_button( RepGameState &state, const glm::ivec3 &pos );
+void repgame_toggle_lever( RepGameState &state, const glm::ivec3 &pos );
 
 // Explosion blast on the local player: distance-falloff damage
 // (PLAYER_EXPLOSION_MAX_DAMAGE at the center fading to 0 at `radius`)

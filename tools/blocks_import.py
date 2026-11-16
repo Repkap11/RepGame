@@ -75,7 +75,7 @@ BOOL_FIELDS = {
     "collides_with_player", "breaks_in_liquid", "waterloggable",
     "affected_by_redstone_power", "transmits_redstone_power", "can_be_placed_in",
     "connects_to_redstone_dust", "is_redstone_dust", "is_torch", "is_repeater",
-    "is_button",
+    "is_button", "is_lever",
     "is_pressure_plate", "is_redstone_mechanism", "is_piston", "is_sticky_piston",
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "is_wall", "is_bars", "falls_with_gravity", "spine_shell",
@@ -421,7 +421,8 @@ def creative_signature(b, r, layers):
         # same-textured single-box icon.
         (b.get("is_stairs", False), b.get("is_fence", False),
          b.get("is_fence_gate", False), b.get("is_wall", False),
-         b.get("is_bars", False), b.get("is_button", False)),
+         b.get("is_bars", False), b.get("is_button", False),
+         b.get("is_lever", False)),
         b.get("render_order", "Opaque"),
     )
 

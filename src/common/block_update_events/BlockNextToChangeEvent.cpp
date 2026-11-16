@@ -352,6 +352,14 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         BlockID next_to_block_id = world.get_loaded_block( glm::ivec3( block_pos.x - FACE_DIR_X_OFFSETS[ attach_face ], block_pos.y - FACE_DIR_Y_OFFSETS[ attach_face ], block_pos.z - FACE_DIR_Z_OFFSETS[ attach_face ] ) ).id;
         return next_to_block_id != LAST_BLOCK_ID && block_definition_get_definition( next_to_block_id )->collides_with_player;
     }
+    if ( block->is_lever && block_state.rotation >= LEVER_ROT_FLOOR ) {
+        // Floor/ceiling lever: the mount cell below/above must stay solid.
+        // Wall mounts (0-3) fall through to block_supports_present, which
+        // checks the needs.front side face (the button convention).
+        const glm::ivec3 support = block_pos + lever_vertical_support_dir( block_state.rotation );
+        const BlockState support_state = world.get_loaded_block( support );
+        return support_state.id != LAST_BLOCK_ID && block_definition_get_definition( support_state.id )->collides_with_player;
+    }
     if ( block->is_rail ) {
         // Rails need a colliding block below — checked directly rather than
         // through the generic needs_place_on_any_solid path, which rotates
@@ -414,6 +422,11 @@ static bool activator_attached_to( const glm::ivec3 &activator_pos, const BlockS
         return false;
     }
     const Block *activator = block_definition_get_definition( activator_state.id );
+    if ( activator->is_lever && activator_state.rotation >= LEVER_ROT_FLOOR ) {
+        // Floor/ceiling lever: attaches to the cell below/above. Wall
+        // mounts (0-3) fall through to the generic needs.front loop.
+        return activator_pos + lever_vertical_support_dir( activator_state.rotation ) == target_pos;
+    }
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
         int rotated_face = get_rotated_face( face, activator_state.rotation );
         if ( activator->needs_place_on_any_solid[ rotated_face ] ) {
@@ -500,8 +513,9 @@ static int block_neighbor_power( World &world, const glm::ivec3 &pos, bool soft_
             }
             // Torch to the side (not attached): weakly powers (soft power 1), handled below
         }
-        if ( ( neighbor_block->is_button || neighbor_block->is_pressure_plate ) && neighbor.current_redstone_power > 0 ) {
-            // Pressed button/plate: strongly powers the block it's attached to.
+        if ( ( neighbor_block->is_button || neighbor_block->is_pressure_plate || neighbor_block->is_lever ) && neighbor.current_redstone_power > 0 ) {
+            // Pressed button/plate or thrown lever: strongly powers the
+            // block it's attached to.
             if ( activator_attached_to( pos + dir, neighbor, pos ) && REDSTONE_TORCH_POWER > new_power ) {
                 new_power = REDSTONE_TORCH_POWER;
             }
@@ -553,12 +567,12 @@ static int block_neighbor_power( World &world, const glm::ivec3 &pos, bool soft_
         // Mechanisms (pistons, lamps) also activate when an adjacent
         // block is powered at all — a powered block feeds mechanism
         // components whether its power is weak or strong. Only blocks
-        // that emit power count: powered solids, pressed buttons and
-        // plates. A powered mechanism (lit lamp, extended piston) is
-        // activated, not emitting — counting it would let two adjacent
-        // mechanisms latch each other on forever after their source is
-        // gone. Dust and torches have their own directional rules
-        // above.
+        // that emit power count: powered solids, pressed buttons/plates
+        // and thrown levers. A powered mechanism (lit lamp, extended
+        // piston) is activated, not emitting — counting it would let two
+        // adjacent mechanisms latch each other on forever after their
+        // source is gone. Dust and torches have their own directional
+        // rules above.
         if ( new_power == 0 && is_mechanism ) {
             for ( const glm::ivec3 &dir : directions ) {
                 const BlockState neighbor = world.get_loaded_block( pos + dir );
@@ -566,7 +580,7 @@ static int block_neighbor_power( World &world, const glm::ivec3 &pos, bool soft_
                     continue;
                 }
                 const Block *neighbor_block = block_definition_get_definition( neighbor.id );
-                if ( ( neighbor_block->is_solid && !neighbor_block->is_redstone_mechanism ) || neighbor_block->is_button || neighbor_block->is_pressure_plate ) {
+                if ( ( neighbor_block->is_solid && !neighbor_block->is_redstone_mechanism ) || neighbor_block->is_button || neighbor_block->is_pressure_plate || neighbor_block->is_lever ) {
                     new_power = 1;
                     break;
                 }
@@ -756,9 +770,10 @@ void perform_checks( RepGameState &repGameState, //
             // Any power (> 0) to the attachment block turns the torch off: hard power (> 1) from a
             // torch/redstone block, or soft power (1) from dust pointing into the block.
             new_power = attach_state.current_redstone_power > 0 ? 0 : REDSTONE_TORCH_POWER;
-        } else if ( affecting_block->is_button || affecting_block->is_pressure_plate ) {
-            // Buttons and pressure plates own their power through their press
-            // state — neighboring redstone can't change it.
+        } else if ( affecting_block->is_button || affecting_block->is_pressure_plate || affecting_block->is_lever ) {
+            // Buttons, pressure plates and levers own their power through
+            // their press/toggle state — neighboring redstone can't
+            // change it.
             new_power = affecting_block_state.current_redstone_power;
         } else if ( affecting_block->is_repeater ) {
             // Repeaters own their power too: only RepeaterEvent flips it,

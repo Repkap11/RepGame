@@ -1087,6 +1087,7 @@ void ItemEntities::update_render( const float alpha, const ChunkLoader &chunk_lo
                     if ( block->is_scaffolding && i == nboxes - 1 ) {
                         data.second.face[ FACE_BOTTOM ] = data.second.face[ FACE_TOP ];
                     }
+                    block_icon_box_faces( block, i, data.second.face );
                     // The block's shape recentred on the spin axis: a slab rests
                     // on the ground, a chest keeps its proportions centered.
                     block_item_shape( block, true, i, data.second );
@@ -1155,6 +1156,7 @@ void ItemEntities::set_held_item( ItemID item ) {
             if ( block->is_scaffolding && i == nboxes - 1 ) {
                 data.second.face[ FACE_BOTTOM ] = data.second.face[ FACE_TOP ];
             }
+            block_icon_box_faces( block, i, data.second.face );
             block_item_shape( block, true, i, data.second );
             data.second.transform = glm::mat4( 0.0f ); // hidden until update_held
             data.second.light = glm::vec2( 1.0f );

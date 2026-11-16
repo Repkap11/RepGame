@@ -161,6 +161,10 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         // Lantern: body + lid/bail union; rods: rendered pair — the pick
         // model; axisymmetric, so no yaw remap.
         num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : block->is_lightning_rod ? lightning_rod_boxes( boxes ) : end_rod_boxes( boxes );
+    } else if ( block->is_lever ) {
+        // Base + stick — the same boxes the raycast hits, world-baked by
+        // lever_pick_boxes for the mount.
+        num_boxes = lever_pick_boxes( blockState.rotation, blockState.current_redstone_power != 0, boxes );
     } else if ( block_is_fire( blockState.id ) ) {
         // The drawn flame region — the same box the raycast hits.
         num_boxes = fire_pick_boxes( block, boxes );

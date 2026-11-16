@@ -649,7 +649,6 @@
     "lectern_top",
     "legacy_turtle_eggs1",
     "legacy_turtle_eggs2",
-    "lever",
     "light_blue_candle",
     "light_dead_sappling_in_pot",
     "light_gray_candle",

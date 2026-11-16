@@ -797,6 +797,84 @@ int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] ) {
     return 2;
 }
 
+// Lever model, in the mount's own pixel space. rotation 0-3 return the
+// canonical wall model — the base plate against the -z wall, the stick
+// poking out +z — for the mesher's face_shift / pick-time block_rotate_box
+// to yaw; LEVER_ROT_* return world-baked floor/ceiling models (face_shift
+// >= 4 is a shader no-op). powered throws the stick: on a wall it rides up
+// the base plate, on a floor/ceiling it shifts 4px along the base's long
+// axis. Box 0 is the base, box 1 the stick.
+int lever_boxes( unsigned char rotation, bool powered, BlockBox out[ LEVER_MAX_BOXES ] ) {
+    if ( rotation < LEVER_ROT_FLOOR ) {
+        // Base plate on the wall (z 0..3); its -z quad (FACE_BACK — the
+        // mesh label for the -z face, not needs.front's mount direction)
+        // is buried in the support — culled at emit time, only when the
+        // support's facing side is opaque so the back renders through
+        // glass. The stick's -z end seats inside the plate.
+        out[ 0 ].scale[ 0 ] = 8;
+        out[ 0 ].scale[ 1 ] = 8;
+        out[ 0 ].scale[ 2 ] = 3;
+        out[ 0 ].offset[ 0 ] = 4;
+        out[ 0 ].offset[ 1 ] = 4;
+        out[ 0 ].offset[ 2 ] = 0;
+        out[ 0 ].skip_faces = 0;
+        // Stick along +z (z 2..10): unpowered low on the plate (y 5..7),
+        // powered high (y 9..11) — the up/down throw of a wall lever.
+        out[ 1 ].scale[ 0 ] = 2;
+        out[ 1 ].scale[ 1 ] = 2;
+        out[ 1 ].scale[ 2 ] = 8;
+        out[ 1 ].offset[ 0 ] = 7;
+        out[ 1 ].offset[ 1 ] = powered ? 9 : 5;
+        out[ 1 ].offset[ 2 ] = 2;
+        out[ 1 ].skip_faces = 1u << FACE_BACK;
+        return LEVER_MAX_BOXES;
+    }
+    // Floor/ceiling models, world-baked. The base is an 8x3 plate running
+    // 10px along the throw axis (z for 4/5, x for 6/7); the stick stands
+    // on it (floor) or hangs off it (ceiling) and throws 4px along the
+    // axis. The plate's mount-side quad (bottom on a floor, top on a
+    // ceiling) is culled at emit time only against an opaque support;
+    // the stick's buried cap sits inside the plate and always skips.
+    const bool ceiling = rotation == LEVER_ROT_CEILING || rotation == LEVER_ROT_CEILING_X;
+    const bool x_axis = rotation >= LEVER_ROT_FLOOR_X;
+    const signed char base_y = ceiling ? 13 : 0;
+    const signed char stick_y = ceiling ? 4 : 3;
+    const unsigned char buried = 1u << ( ceiling ? FACE_TOP : FACE_BOTTOM );
+    const signed char throw_lo = 5, throw_hi = 9;
+    out[ 0 ].scale[ 0 ] = x_axis ? 10 : 8;
+    out[ 0 ].scale[ 1 ] = 3;
+    out[ 0 ].scale[ 2 ] = x_axis ? 8 : 10;
+    out[ 0 ].offset[ 0 ] = x_axis ? 3 : 4;
+    out[ 0 ].offset[ 1 ] = base_y;
+    out[ 0 ].offset[ 2 ] = x_axis ? 4 : 3;
+    out[ 0 ].skip_faces = 0;
+    out[ 1 ].scale[ 0 ] = 2;
+    out[ 1 ].scale[ 1 ] = 9;
+    out[ 1 ].scale[ 2 ] = 2;
+    out[ 1 ].offset[ 0 ] = x_axis ? ( powered ? throw_hi : throw_lo ) : 7;
+    out[ 1 ].offset[ 1 ] = stick_y;
+    out[ 1 ].offset[ 2 ] = x_axis ? 7 : ( powered ? throw_hi : throw_lo );
+    out[ 1 ].skip_faces = buried;
+    return LEVER_MAX_BOXES;
+}
+
+int lever_pick_boxes( unsigned char rotation, bool powered, BlockBox out[ LEVER_MAX_BOXES ] ) {
+    const int n = lever_boxes( rotation, powered, out );
+    if ( rotation < LEVER_ROT_FLOOR ) {
+        // Wall model is def-space — yaw it to world space like the mesher
+        // does with face_shift.
+        for ( int i = 0; i < n; i++ ) {
+            block_rotate_box( rotation, out[ i ].scale, out[ i ].offset );
+        }
+    }
+    return n;
+}
+
+int lever_icon_boxes( BlockBox out[ LEVER_MAX_BOXES ] ) {
+    // The floor model, stick unthrown — reads as a lever in the iso slot.
+    return lever_boxes( LEVER_ROT_FLOOR, false, out );
+}
+
 int scaffolding_boxes( unsigned nmask, BlockBox out[ SCAFFOLDING_MAX_BOXES ] ) {
     // Platform plate: 16x2x16 at the cell top (y 14..16). Lateral faces
     // buried against a scaffold neighbor's mirrored plate (or an opaque
@@ -925,6 +1003,11 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
     }
     if ( block->is_button ) {
         return button_icon_boxes( out );
+    }
+    if ( block->is_lever ) {
+        // Base + stick of the floor model — the iso icon reads as a
+        // lever, not a flat mount plate.
+        return lever_icon_boxes( out );
     }
     if ( block->is_lightning_rod ) {
         // The real shaft + head pair — the iso icon reads as a rod, not a

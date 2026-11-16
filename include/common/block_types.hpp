@@ -353,6 +353,12 @@ typedef struct {
     // thickness (see block_adjust_coord_based_on_state).
     bool is_button;
     bool is_pressure_plate;
+    // Lever: a latching activator — right-click toggles current_redstone_power
+    // between 0 and REDSTONE_SOURCE_POWER and it stays until toggled back (no
+    // timeout). rotation encodes the mount: 0-3 wall yaw like buttons
+    // (needs_place_on_any_solid.front), 4/6 floor and 5/7 ceiling along the
+    // z/x axis (world-baked model, face_shift >= 4 is a no-op).
+    bool is_lever;
     // Mechanism components (pistons, lamps): they activate when an adjacent
     // block is powered at all — powered blocks feed mechanisms without the
     // mechanism re-emitting power of its own, so their stored level is capped

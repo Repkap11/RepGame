@@ -343,6 +343,34 @@ wall block back to the standing block, so drops, pick-block and the
 survival inventory all yield the shared item; wall signs also carry
 `creative: false` so the creative list shows one sign entry per species.
 
+Levers (`is_lever`, `LEVER` id 677) are a two-box model — a cobblestone
+base plate plus a spruce stick — with the mount baked into `rotation`:
+0-3 are wall yaws on a canonical -z-wall model
+(`needs_place_on_any_solid.front`, the ladder/button convention — the
+mesher's `face_shift` and the pick path's `block_rotate_box` apply the
+yaw), while `LEVER_ROT_FLOOR`/`LEVER_ROT_CEILING` (4/5, throw along z)
+and `LEVER_ROT_FLOOR_X`/`LEVER_ROT_CEILING_X` (6/7, throw along x) emit
+world-baked floor/ceiling models — `face_shift` >= 4 is a shader no-op,
+the piston up/down precedent. `getPlacedRotation` keeps the wall-mount
+yaw on side clicks and picks the floor/ceiling variant on top/bottom
+clicks with the throw axis along the player's facing axis.
+`lever_boxes` in block.cpp authors all of these; `lever_pick_boxes`
+yaws the wall variant to world space so raycast and the `MouseSelection`
+outline hit the real model, and powered state shifts the stick ~4px
+(`current_redstone_power != 0`) so on/off reads in-world. The base draws
+the def's cobblestone faces while the stick box's faces are overridden
+to `TEX_PLANKS_SPRUCE` at emit time and in `block_icon_box_faces` (the
+same helper covers the dropped item, held item and mob-held paths).
+`lever_icon_boxes` supplies the floor model as the isometric item icon.
+The plate's mount-side quad is culled at emit time only when the
+support's facing side is opaque — a lever on glass renders its back
+through the block (the lantern-underside boundary-cover test).
+Floor/ceiling mounts read their support through
+`lever_vertical_support_dir` in `block_can_survive_at` — wall mounts
+fall through to the generic `block_supports_present` — and support loss
+pops the lever with normal survival drops. Crafting is a stick over a
+cobblestone; the redstone behaviour is in `docs/redstone.md`.
+
 Corals follow the same pairing pattern: every `*_CORAL_FAN` /
 `DEAD_*_CORAL_FAN` (plus the standing `*_CORAL` plants) is a
 bottom-anchored Flowers cross on `needs_place_on_any_solid.top`,
@@ -491,7 +519,13 @@ direction and to `is_solid` blocks; rails on both sides of an axis merge
 into one 0..16 box, and rail end faces get `NO_LIGHT_NO_DRAW` — `skip_faces`
 bits are definition-space `FACE_*` indexes, and the mesher counter-rotates
 them by the box's yaw into the world-space `packed_lighting` slots (the
-shader's `faceType` quads are world faces). A closed
+shader's `faceType` quads are world faces). Face naming gotcha:
+`needs_place_on_any_solid[F]` checks the mount at `pos - FACE_DIR[F]`, so
+`needs.front` mounts at z-1 and the buried quad facing that mount is
+`FACE_BACK` (the -z face) — don't skip `FACE_FRONT` for a front-mounted
+plate, or you cull the quad the player sees. When the mount can be
+seethrough (glass), cull the buried quad conditionally at emit time
+like the lantern underside instead of via `skip_faces`. A closed
 gate's leaf rails are emitted pre-split where the center upright crosses
 them — an unsplit rail's z faces would sit coplanar with the upright's and
 z-fight. Gates rotate

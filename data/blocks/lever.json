@@ -1,16 +1,35 @@
 {
- "casts_shadow": false,
- "hardness": 0.35,
- "id": 677,
- "is_seethrough": true,
- "name": "LEVER",
- "no_light": 6815743,
- "textures": {
-  "back": "lever",
-  "bottom": "lever",
-  "front": "lever",
-  "left": "lever",
-  "right": "cobblestone",
-  "top": "lever"
- }
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "connects_to_redstone_dust": true,
+  "hardness": 0.5,
+  "icon_is_isometric": true,
+  "id": 677,
+  "is_lever": true,
+  "is_seethrough": true,
+  "name": "LEVER",
+  "needs_place_on_any_solid": {
+    "front": true
+  },
+  "no_light": 6815743,
+  "offset": [
+    4,
+    4,
+    0
+  ],
+  "rotate_on_placement": true,
+  "scale": [
+    8,
+    8,
+    12
+  ],
+  "tex_offset": [
+    -4,
+    -4,
+    0
+  ],
+  "textures": {
+    "all": "cobblestone"
+  }
 }

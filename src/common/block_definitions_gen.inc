@@ -10438,17 +10438,27 @@ block_definitions[ 676 ].icon_texture = TEX_LECTERN_TOP;
 block_definitions[ 676 ].mineable = MINEABLE_AXE;
 
 // LEVER (677)
-block_definitions[ 677 ].textures[ FACE_TOP ] = TEX_LEVER;
-block_definitions[ 677 ].textures[ FACE_BOTTOM ] = TEX_LEVER;
+block_definitions[ 677 ].textures[ FACE_TOP ] = TEX_COBBLESTONE;
+block_definitions[ 677 ].textures[ FACE_BOTTOM ] = TEX_COBBLESTONE;
 block_definitions[ 677 ].textures[ FACE_RIGHT ] = TEX_COBBLESTONE;
-block_definitions[ 677 ].textures[ FACE_FRONT ] = TEX_LEVER;
-block_definitions[ 677 ].textures[ FACE_LEFT ] = TEX_LEVER;
-block_definitions[ 677 ].textures[ FACE_BACK ] = TEX_LEVER;
-block_definitions[ 677 ].icon_texture = TEX_LEVER;
+block_definitions[ 677 ].textures[ FACE_FRONT ] = TEX_COBBLESTONE;
+block_definitions[ 677 ].textures[ FACE_LEFT ] = TEX_COBBLESTONE;
+block_definitions[ 677 ].textures[ FACE_BACK ] = TEX_COBBLESTONE;
+block_definitions[ 677 ].icon_texture = TEX_COBBLESTONE;
+block_definitions[ 677 ].breaks_in_liquid = true;
 block_definitions[ 677 ].casts_shadow = false;
-block_definitions[ 677 ].hardness = 0.35f;
+block_definitions[ 677 ].collides_with_player = false;
+block_definitions[ 677 ].connects_to_redstone_dust = true;
+block_definitions[ 677 ].hardness = 0.5f;
+block_definitions[ 677 ].icon_is_isometric = true;
+block_definitions[ 677 ].is_lever = true;
 block_definitions[ 677 ].is_seethrough = true;
+block_definitions[ 677 ].needs_place_on_any_solid[ FACE_FRONT ] = true;
 block_definitions[ 677 ].no_light = 6815743;
+block_definitions[ 677 ].offset = { 4, 4, 0 };
+block_definitions[ 677 ].rotate_on_placement = true;
+block_definitions[ 677 ].scale = { 8, 8, 12 };
+block_definitions[ 677 ].tex_offset = { -4, -4, 0 };
 
 // LIGHT_BLUE_CANDLE (678)
 block_definitions[ 678 ].textures[ FACE_TOP ] = TEX_AIR;

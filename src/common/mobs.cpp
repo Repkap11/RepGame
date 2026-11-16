@@ -2027,6 +2027,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
                         for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
                             data.second.face[ f ] = face[ f ];
                         }
+                        block_icon_box_faces( block, i, data.second.face );
                         block_item_shape( block, true, i, data.second );
                         data.second.transform = glm::mat4( 0.0f );
                     }

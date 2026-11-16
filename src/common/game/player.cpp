@@ -178,6 +178,20 @@ unsigned char RepGame::getPlacedRotation( const BlockID blockID ) const {
             rotation = 7;       // attached BACK (solid block is behind)
         }
     }
+    // Levers mount on walls, floors and ceilings. Side clicks keep the
+    // needs.front mount yaw block_mount_rotation already returned (buttons
+    // ride the same path); top/bottom clicks pick the floor/ceiling model
+    // with the throw axis along the player's facing axis, like MC.
+    if ( block->is_lever ) {
+        const int face = globalGameState.block_selection.face;
+        const float yaw = globalGameState.camera.angle_H;
+        const bool x_axis = ( yaw >= 45 && yaw < 135 ) || ( yaw >= 225 && yaw < 315 );
+        if ( face == FACE_TOP ) {
+            rotation = static_cast<unsigned char>( x_axis ? LEVER_ROT_FLOOR_X : LEVER_ROT_FLOOR );
+        } else if ( face == FACE_BOTTOM ) {
+            rotation = static_cast<unsigned char>( x_axis ? LEVER_ROT_CEILING_X : LEVER_ROT_CEILING );
+        }
+    }
     // Pistons can also face up/down: the head points at the player, so looking
     // steeply down places an upward-facing piston, steeply up a downward one.
     if ( block->is_piston ) {
@@ -751,6 +765,13 @@ void RepGame::process_mouse_events( ) {
             // powered for a timeout, then released. The click delay also
             // swallows the placement attempt below.
             repgame_press_button( globalGameState, globalGameState.block_selection.pos_destroy );
+            globalGameState.input.click_delay_right = 30;
+        }
+        // Right-click toggles a lever instead of placing against it. Sneaking
+        // skips the interaction so a block can be placed against the lever.
+        if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_lever && !globalGameState.input.movement.sneakPressed ) {
+            repgame_toggle_lever( globalGameState, globalGameState.block_selection.pos_destroy );
+            audio_play_sfx( audio_block_dig_pool( target_state.id ) );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -1661,6 +1682,20 @@ void repgame_press_button( RepGameState &state, const glm::ivec3 &pos ) {
     released_state.current_redstone_power = 0;
     const long press_gt = target_state.id == STONE_BUTTON ? STONE_BUTTON_PRESS_GT : WOOD_BUTTON_PRESS_GT;
     schedule_redstone_update<PlayerBlockPlacedEvent>( state, press_gt, pos, released_state, true );
+}
+
+// Right-click a lever: latches between unpowered and full power — unlike a
+// button there is no release timer. The write is an instant state update on
+// the physics clock; BlockNextToChangeEvent owns-power keeps the new level
+// until the next toggle. A free function so rep_tests can drive it.
+void repgame_toggle_lever( RepGameState &state, const glm::ivec3 &pos ) {
+    const BlockState target_state = state.world.get_loaded_block( pos );
+    if ( target_state.id == LAST_BLOCK_ID || !block_definition_get_definition( target_state.id )->is_lever ) {
+        return;
+    }
+    BlockState toggled_state = target_state;
+    toggled_state.current_redstone_power = target_state.current_redstone_power > 0 ? 0 : REDSTONE_SOURCE_POWER;
+    schedule_block_update<PlayerBlockPlacedEvent>( state, 0, pos, toggled_state, true );
 }
 
 void RepGame::process_block_updates( ) {

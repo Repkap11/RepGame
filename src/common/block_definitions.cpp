@@ -81,6 +81,7 @@ void block_definitions_initilize_definitions( Texture *texture ) {
         block->emits_light = 0;
         block->is_button = false;
         block->is_pressure_plate = false;
+        block->is_lever = false;
         block->is_redstone_mechanism = false;
         block->is_tnt = false;
         block->is_inverse_tnt = false;

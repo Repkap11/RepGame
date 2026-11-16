@@ -937,6 +937,130 @@ int test_buttons( ) {
     return failures;
 }
 
+// Levers: the is_lever def flag, the mount-encoded rotation (0-3 wall yaw
+// on the needs.front convention, LEVER_ROT_* floor/ceiling variants), the
+// two-box lever_boxes model with the powered stick throw, the isometric
+// icon pair with the spruce stick faces, and the mount support rules in
+// block_can_survive_at.
+int test_levers( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+
+    const Block *lever = block_definition_get_definition( LEVER );
+    check_bool( "def: lever is a lever + isometric icon",
+                lever->is_lever && lever->icon_is_isometric && lever->rotate_on_placement && //
+                    lever->connects_to_redstone_dust && !lever->collides_with_player && lever->non_full_size );
+    check_bool( "def: wall mounts ride the front-face support rule",
+                lever->needs_place_on_any_solid[ FACE_FRONT ] && !lever->needs_place_on_any_solid[ FACE_TOP ] &&
+                    !lever->needs_place_on_any_solid[ FACE_BOTTOM ] );
+
+    // --- lever_boxes: box 0 is the base, box 1 the stick; powered throws ---
+    BlockBox boxes[ LEVER_MAX_BOXES ];
+    check_bool( "model: wall mount is the canonical -z plate",
+                lever_boxes( 0, false, boxes ) == LEVER_MAX_BOXES &&                       //
+                    boxes[ 0 ].offset[ 2 ] == 0 && boxes[ 0 ].scale[ 2 ] == 3 &&          //
+                    boxes[ 0 ].skip_faces == 0 );
+    lever_boxes( 0, false, boxes );
+    check_bool( "model: unpowered wall stick rides low",
+                boxes[ 1 ].offset[ 1 ] == 5 && boxes[ 1 ].scale[ 2 ] == 8 && //
+                    ( boxes[ 1 ].skip_faces & ( 1u << FACE_BACK ) ) != 0 );
+    lever_boxes( 0, true, boxes );
+    check_bool( "model: powered wall stick rides high", boxes[ 1 ].offset[ 1 ] == 9 );
+    lever_boxes( LEVER_ROT_FLOOR, false, boxes );
+    check_bool( "model: floor base sits at y=0", boxes[ 0 ].offset[ 1 ] == 0 && boxes[ 0 ].scale[ 1 ] == 3 &&
+                                                     boxes[ 0 ].skip_faces == 0 &&
+                                                     ( boxes[ 1 ].skip_faces & ( 1u << FACE_BOTTOM ) ) != 0 );
+    check_bool( "model: unpowered floor stick sits back", boxes[ 1 ].offset[ 2 ] == 5 && boxes[ 1 ].offset[ 0 ] == 7 );
+    lever_boxes( LEVER_ROT_FLOOR, true, boxes );
+    check_bool( "model: powered floor stick throws along z", boxes[ 1 ].offset[ 2 ] == 9 );
+    lever_boxes( LEVER_ROT_FLOOR_X, true, boxes );
+    check_bool( "model: x-axis floor throws along x", boxes[ 1 ].offset[ 0 ] == 9 && boxes[ 0 ].scale[ 0 ] == 10 );
+    lever_boxes( LEVER_ROT_CEILING, false, boxes );
+    check_bool( "model: ceiling base hangs from the cell top",
+                boxes[ 0 ].offset[ 1 ] == 13 && boxes[ 1 ].offset[ 1 ] == 4 && //
+                    boxes[ 0 ].skip_faces == 0 && ( boxes[ 1 ].skip_faces & ( 1u << FACE_TOP ) ) != 0 );
+
+    // Pick boxes: wall mounts yaw the def model to world space — rot 2
+    // lands the -z plate on the +z wall.
+    lever_pick_boxes( 2, false, boxes );
+    check_bool( "pick: rot-2 wall plate hugs the +z edge", boxes[ 0 ].offset[ 2 ] == 13 && boxes[ 0 ].scale[ 2 ] == 3 );
+    lever_pick_boxes( LEVER_ROT_FLOOR, false, boxes );
+    check_bool( "pick: floor boxes are world-baked already", boxes[ 0 ].offset[ 1 ] == 0 );
+
+    // Icon: the floor-model pair, stick on spruce faces.
+    check_bool( "icon: floor-model pair", block_icon_boxes( lever, boxes ) == 2 && block_icon_box_count( lever ) == 2 );
+    unsigned short icon_face[ NUM_FACES_IN_CUBE ];
+    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+        icon_face[ f ] = lever->textures[ f ];
+    }
+    block_icon_box_faces( lever, 0, icon_face );
+    check_bool( "icon: base box keeps def faces", icon_face[ FACE_TOP ] == lever->textures[ FACE_TOP ] );
+    block_icon_box_faces( lever, 1, icon_face );
+    check_bool( "icon: stick box faces spruce",
+                icon_face[ FACE_TOP ] == TEX_PLANKS_SPRUCE && icon_face[ FACE_RIGHT ] == TEX_PLANKS_SPRUCE );
+
+    // --- world: mount support rules + pick ------------------------------
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        const BlockState stone = { STONE, 0, 0, STONE, 0 };
+        const glm::ivec3 pos( 10, 11, 10 );
+
+        // Floor mount (rot 4): the cell below must be solid; a side wall
+        // doesn't substitute.
+        const BlockState floor_lever = { LEVER, LEVER_ROT_FLOOR, 0, LEVER, 0 };
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), stone );
+        check_bool( "survive: floor lever on a block", block_can_survive_at( world, pos, floor_lever ) );
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), BLOCK_STATE_AIR );
+        world.set_loaded_block( pos + glm::ivec3( 0, 0, -1 ), stone );
+        check_bool( "survive: floor lever ignores a side wall", !block_can_survive_at( world, pos, floor_lever ) );
+
+        // Wall mount (rot 0): the -z cell must be solid; a floor doesn't
+        // substitute.
+        const BlockState wall_lever = { LEVER, 0, 0, LEVER, 0 };
+        check_bool( "survive: rot-0 wall lever on its -z support", block_can_survive_at( world, pos, wall_lever ) );
+        world.set_loaded_block( pos + glm::ivec3( 0, 0, -1 ), BLOCK_STATE_AIR );
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), stone );
+        check_bool( "survive: wall lever ignores the floor", !block_can_survive_at( world, pos, wall_lever ) );
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), BLOCK_STATE_AIR );
+
+        // Ceiling mount (rot 5): the cell above must be solid.
+        const BlockState ceiling_lever = { LEVER, LEVER_ROT_CEILING, 0, LEVER, 0 };
+        world.set_loaded_block( pos + glm::ivec3( 0, 1, 0 ), stone );
+        check_bool( "survive: ceiling lever on a block above", block_can_survive_at( world, pos, ceiling_lever ) );
+        world.set_loaded_block( pos + glm::ivec3( 0, 1, 0 ), BLOCK_STATE_AIR );
+        check_bool( "survive: ceiling lever needs the ceiling", !block_can_survive_at( world, pos, ceiling_lever ) );
+
+        // Raycast: a ray down onto the stick selects the lever; a ray
+        // through the empty corner reaches the block below.
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), stone );
+        world.set_loaded_block( pos, floor_lever );
+        glm::ivec3 out( -1, -1, -1 );
+        int which_face = -1;
+        check_bool( "ray: descending on the stick selects the lever",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 10.45, 12.0, 10.4 ), glm::dvec3( 10.45, 11.0, 10.4 ), out, &which_face ) &&
+                        out == pos );
+        out = glm::ivec3( -1, -1, -1 );
+        check_bool( "ray: through the empty corner hits the floor",
+                    RayTraversal::find_block_from_to( world, glm::dvec3( 10.05, 12.0, 10.05 ), glm::dvec3( 10.05, 10.5, 10.05 ), out, &which_face ) &&
+                        out == pos + glm::ivec3( 0, -1, 0 ) );
+        world.set_loaded_block( pos, BLOCK_STATE_AIR );
+        world.set_loaded_block( pos + glm::ivec3( 0, -1, 0 ), BLOCK_STATE_AIR );
+    }
+    return failures;
+}
+
 // Half slabs: the derived is_slab flag, rotation bit 2 as the top-half
 // marker (BLOCK_ROTATE_SLAB_TOP — shared with stairs/gates/doors), the
 // mirrored collision/raycast box, the block_adjust geometry flip, and the
