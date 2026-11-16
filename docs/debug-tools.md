@@ -146,6 +146,10 @@ All presets accept `--build release|debug|asan|tsan`, `--profile`
 (REPGAME_PROFILE=1), `--gdb` and `--every`; `rep-dbg tests` is the odd
 one out — see *Sanitizers & crashes*.
 
+Every rep-dbg run defaults `REPGAME_IMGUI=0` so screenshots come out
+overlay-free; pass `--env REPGAME_IMGUI=1` to include the ImGui debug
+overlay in a shot (a script can also toggle it mid-run with `imgui 1`).
+
 ### Runs, stats and metrics
 
 - `rep-dbg runs [--name N] [--status S] [--git SHA] [--since 2h] [--last N]
@@ -425,6 +429,7 @@ no length limit:
 | `inventory <0|1>` | toggle `input.inventory_open` (shows the survival grid + 2x2 crafting UI in survival) |
 | `menu <0|1>`, `search <0|1>` | toggle `input.menu_open` / `input.search_focused` (pause menu, creative search bar) |
 | `touchui <0|1>` | toggle `input.touch_ui` — the on-screen touch controls (docs/ui.md) |
+| `imgui <0|1>` | show/hide the ImGui debug overlay (rep-dbg runs start with it hidden — `REPGAME_IMGUI`; use `imgui 1` to include it in a shot) |
 | `resize <w> <h>` | run the full screen-size chain (`repgame_set_screen_size`: layout pass, slab adoption, projections) at an arbitrary size — `uistate` is faithful; `screenshot` is clipped to the real framebuffer, so pair with `REPGAME_WINDOW_SIZE` for exact-size shots |
 | `touch down\|move\|up\|cancel <id> <x> <y>` | one touch event in window pixels through `repgame_touch_event` (a no-op while `touch_ui` is off); button rects come from `uistate`'s `touch` dump |
 | `assert_pos x y z <tol>` | assert the camera is within `tol` of the point |
