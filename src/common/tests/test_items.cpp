@@ -513,24 +513,24 @@ int test_item_entities( ) {
         // A larger stored record_size still parses the shared prefix.
         {
             const uint32_t big_size = sizeof( ItemFileRecord ) + 8;
-            test_write_blob( storage, MAP_FILE_ITEMS, glm::ivec3( 0, 0, 0 ), [ & ]( FILE *fp ) {
+            test_write_blob( storage, MAP_FILE_ITEMS, glm::ivec3( 0, 0, 0 ), [ & ]( std::vector<unsigned char> &blob ) {
                 uint32_t one = 1;
-                fwrite( &big_size, sizeof( uint32_t ), 1, fp );
-                fwrite( &one, sizeof( uint32_t ), 1, fp );
-                fwrite( &rec, sizeof( ItemFileRecord ), 1, fp );
+                blob_put( blob, big_size );
+                blob_put( blob, one );
+                blob_put( blob, rec );
                 const char pad[ 8 ] = { 0 };
-                fwrite( pad, 1, sizeof( pad ), fp );
+                blob_put( blob, pad, sizeof( pad ) );
             } );
             check_bool( "persist: larger record_size parses prefix", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].item == STICK && out[ 0 ].count == 5 );
         }
         // A tiny record_size leaves count 0 -> skipped.
         {
             const uint32_t tiny_size = 4;
-            test_write_blob( storage, MAP_FILE_ITEMS, glm::ivec3( 0, 0, 0 ), [ & ]( FILE *fp ) {
+            test_write_blob( storage, MAP_FILE_ITEMS, glm::ivec3( 0, 0, 0 ), [ & ]( std::vector<unsigned char> &blob ) {
                 uint32_t one = 1;
-                fwrite( &tiny_size, sizeof( uint32_t ), 1, fp );
-                fwrite( &one, sizeof( uint32_t ), 1, fp );
-                fwrite( &rec.item, sizeof( uint32_t ), 1, fp );
+                blob_put( blob, tiny_size );
+                blob_put( blob, one );
+                blob_put( blob, rec.item );
             } );
             check_bool( "persist: tiny record_size skipped", storage.load_items( glm::ivec3( 0, 0, 0 ), out ) == 1 && out.empty( ) );
         }

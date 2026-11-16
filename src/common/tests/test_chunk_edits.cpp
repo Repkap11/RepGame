@@ -96,18 +96,18 @@ int test_chunk_edits( ) {
         {
             // Larger record: BlockState + 4 trailing bytes.
             const uint32_t record_size = sizeof( BlockState ) + 4;
-            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( std::vector<unsigned char> &blob ) {
                 uint32_t run_count = 1, start = 7, count = 3;
                 char record[ sizeof( BlockState ) + 4 ];
                 memset( record, 0xAA, sizeof( record ) );
                 memcpy( record, &TNT_EDIT, sizeof( BlockState ) );
-                fwrite( &magic, 4, 1, f );
-                fwrite( &version, 4, 1, f );
-                fwrite( &record_size, 4, 1, f );
-                fwrite( &run_count, 4, 1, f );
-                fwrite( &start, 4, 1, f );
-                fwrite( &count, 4, 1, f );
-                fwrite( record, record_size, 1, f );
+                blob_put( blob, magic );
+                blob_put( blob, version );
+                blob_put( blob, record_size );
+                blob_put( blob, run_count );
+                blob_put( blob, start );
+                blob_put( blob, count );
+                blob_put( blob, record, record_size );
             } );
             ChunkEdits bigger;
             check_bool( "larger record_size decodes", storage.load_chunk_edits( pos, bigger ) == 1 &&
@@ -118,15 +118,15 @@ int test_chunk_edits( ) {
         {
             // Smaller record: first 8 bytes of BlockState.
             const uint32_t record_size = 8;
-            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( std::vector<unsigned char> &blob ) {
                 uint32_t run_count = 1, start = 11, count = 1;
-                fwrite( &magic, 4, 1, f );
-                fwrite( &version, 4, 1, f );
-                fwrite( &record_size, 4, 1, f );
-                fwrite( &run_count, 4, 1, f );
-                fwrite( &start, 4, 1, f );
-                fwrite( &count, 4, 1, f );
-                fwrite( &TNT_EDIT, record_size, 1, f );
+                blob_put( blob, magic );
+                blob_put( blob, version );
+                blob_put( blob, record_size );
+                blob_put( blob, run_count );
+                blob_put( blob, start );
+                blob_put( blob, count );
+                blob_put( blob, &TNT_EDIT, record_size );
             } );
             ChunkEdits smaller;
             check_bool( "smaller record_size decodes", storage.load_chunk_edits( pos, smaller ) == 1 &&
@@ -135,13 +135,13 @@ int test_chunk_edits( ) {
         }
         {
             // Corrupt/short record: magic then truncation.
-            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
-                fwrite( &magic, 4, 1, f );
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( std::vector<unsigned char> &blob ) {
+                blob_put( blob, magic );
             } );
             ChunkEdits bad;
             check_bool( "short file rejected", storage.load_chunk_edits( pos, bad ) != 1 );
-            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
-                fputc( 'x', f );
+            test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( std::vector<unsigned char> &blob ) {
+                blob.push_back( 'x' );
             } );
             ChunkEdits bad2;
             check_bool( "1-byte file rejected", storage.load_chunk_edits( pos, bad2 ) != 1 );
@@ -470,11 +470,11 @@ int test_chunk_edits( ) {
         // A record_size matching sizeof(BlockState)+4 = sizeof(STORAGE_TYPE);
         // the state record is the first record_size-4 bytes of BlockState.
         const uint32_t record_size = sizeof( BlockState ) + 4;
-        test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( FILE *f ) {
-            fwrite( &record_size, 4, 1, f );
+        test_write_blob( storage, MAP_FILE_CHUNK, pos, [ & ]( std::vector<unsigned char> &blob ) {
+            blob_put( blob, record_size );
             auto put = [ & ]( const BlockState &s, uint32_t count ) {
-                fwrite( &s, record_size - 4, 1, f );
-                fwrite( &count, 4, 1, f );
+                blob_put( blob, &s, record_size - 4 );
+                blob_put( blob, count );
             };
             put( TNT_EDIT, CHUNK_BLOCK_SIZE ); // fills the whole volume
             put( GOLD_EDIT, 7 );               // one record too many

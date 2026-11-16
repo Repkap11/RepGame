@@ -94,17 +94,20 @@ struct ScopedTempHome {
 };
 
 // Lets tests craft foreign/corrupt records without depending on the
-// loose-file layout: fill() fwrites the blob bytes into a memstream, and
-// the blob is stored through MapStorage's active backend (file or
-// world.db). Returns the write_kind_blob result for check_bool.
+// loose-file layout: fill() appends the blob bytes, and the blob is
+// stored through MapStorage's active backend (file or world.db).
+// Returns the write_kind_blob result for check_bool.
+static inline void blob_put( std::vector<unsigned char> &blob, const void *src, size_t n ) {
+    const unsigned char *p = static_cast<const unsigned char *>( src );
+    blob.insert( blob.end(), p, p + n );
+}
+template <typename T>
+static inline void blob_put( std::vector<unsigned char> &blob, const T &v ) {
+    blob_put( blob, &v, sizeof( T ) );
+}
 template <typename Fill>
 static inline int test_write_blob( MapStorage &storage, int kind, const glm::ivec3 &pos, Fill &&fill ) {
-    char *mem = nullptr;
-    size_t mem_size = 0;
-    FILE *f = open_memstream( &mem, &mem_size );
-    fill( f );
-    fclose( f );
-    const int ok = storage.write_kind_blob( kind, pos, mem, mem_size );
-    free( mem );
-    return ok;
+    std::vector<unsigned char> blob;
+    fill( blob );
+    return storage.write_kind_blob( kind, pos, blob.data( ), blob.size( ) );
 }

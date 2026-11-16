@@ -84,7 +84,7 @@ endif()
 
 # SQLite world storage (world.db) backs the per-chunk file kinds on the
 # server and the native single-player clients (linux/arm/steamframe — all
-# glibc, so fmemopen/open_memstream exist). Windows/wasm/android keep the
+# POSIX; the blob lock is pthread_mutex_t). Windows/wasm/android keep the
 # loose-file backend — wasm/android never persist world files anyway.
 set(REPGAME_SQLITE OFF)
 if(REPGAME_BUILD_SERVER OR REPGAME_PLATFORM STREQUAL "linux" OR

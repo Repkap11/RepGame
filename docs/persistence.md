@@ -54,8 +54,10 @@ sections below. `MapStorage` has two backends for storing blobs:
   one `SELECT` instead of a `readdir`.
 - **Loose files** — the classic backend: one `<kind>_<x>_<y>_<z>` file
   per record under the world dir, tmp+rename on write. Only used where
-  sqlite isn't built (Windows) or `world.db` can't be opened
-  (`sqlite_open` falls back).
+  sqlite isn't built (Windows); on sqlite builds an unopenable
+  `world.db` is fatal (`repgame_fatal`) — nothing writes the old format
+  there anymore. `init_readonly` still reads a legacy loose-file dir
+  when no `world.db` exists.
 
 **Migration is automatic**: on `init`, `sqlite_open` imports every loose
 `<kind>_*` file it finds into `world.db` (one transaction), then unlinks

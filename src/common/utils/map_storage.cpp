@@ -51,6 +51,71 @@ static const char *const KIND_FILE_ROOT[ MAP_FILE_KIND_COUNT ] = {
 static const char *const KIND_PREFIX[ MAP_FILE_KIND_COUNT ] = {
     "chunk_", "mobs_", "items_", "carts_", "chest_", "furnace_", "sign_" };
 
+namespace {
+// In-memory stream the codecs encode into; store_kind_blob commits it.
+struct BlobWriter {
+    std::vector<unsigned char> data;
+    void put( const void *src, size_t n ) {
+        const unsigned char *p = static_cast<const unsigned char *>( src );
+        data.insert( data.end(), p, p + n );
+    }
+    template<class T> void put( const T &v ) {
+        put( &v, sizeof( T ) );
+    }
+};
+
+// Cursor over a stored blob. get() is all-or-nothing — a short read just
+// fails, and callers treat that as decode failure. records() answers how
+// many complete fixed-size records are left for the bulk-read loaders.
+struct BlobReader {
+    const unsigned char *data = nullptr;
+    size_t len = 0;
+    size_t off = 0;
+    size_t left( ) const {
+        return len - off;
+    }
+    bool get( void *dst, size_t n ) {
+        if ( n > left( ) ) {
+            return false;
+        }
+        memcpy( dst, data + off, n );
+        off += n;
+        return true;
+    }
+    template<class T> bool get( T &v ) {
+        return get( &v, sizeof( T ) );
+    }
+    const unsigned char *at( ) const {
+        return data + off;
+    }
+    void skip( size_t n ) {
+        off += n;
+    }
+    size_t records( size_t size ) const {
+        return size > 0 ? left( ) / size : 0;
+    }
+};
+
+// Whole file into `out` — the file backend's half of read_kind_blob, and
+// the loose-file importer's slurp. 1 when the file existed.
+int slurp_file( const char *path, std::vector<unsigned char> &out ) {
+    FILE *f = fopen( path, MAP_READ_MODE );
+    if ( f == nullptr ) {
+        return 0;
+    }
+    unsigned char buf[ 8192 ];
+    for ( ;; ) {
+        const size_t n = fread( buf, 1, sizeof( buf ), f );
+        out.insert( out.end(), buf, buf + n );
+        if ( n < sizeof( buf ) ) {
+            break;
+        }
+    }
+    fclose( f );
+    return 1;
+}
+} // namespace
+
 // "<prefix>_<x>_<y>_<z>" -> kind + coords; trailing junk rejects the match.
 static bool parse_kind_filename( const char *name, int &kind, glm::ivec3 &pos ) {
     for ( int k = 0; k < MAP_FILE_KIND_COUNT; k++ ) {
@@ -105,10 +170,12 @@ void MapStorage::init( const char *world_name ) {
     mkdir_p( this->map_name );
     pr_debug( "Map dir ready:%s", this->map_name );
 #if defined( REPGAME_MAP_SQLITE )
+    // No loose-file fallback: on a sqlite build nothing may write the old
+    // <kind>_<x>_<y>_<z> format, so an unopenable world.db is fatal.
     if ( this->sqlite_open( true ) ) {
         pr_debug( "Map backend: sqlite world.db" );
     } else {
-        pr_debug( "Map backend: loose files (sqlite unavailable)" );
+        repgame_fatal( );
     }
 #else
     pr_debug( "Map backend: loose files" );
@@ -188,7 +255,7 @@ int MapStorage::sqlite_open( bool create ) {
     const int flags = create ? ( SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX )
                              : ( SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX );
     if ( sqlite3_open_v2( db_path, &this->db, flags, nullptr ) != SQLITE_OK ) {
-        pr_debug( "sqlite open failed for %s: %s — using loose files", db_path,
+        pr_debug( "sqlite open failed for %s: %s", db_path,
                   this->db != nullptr ? sqlite3_errmsg( this->db ) : "?" );
         sqlite3_close( this->db );
         this->db = nullptr;
@@ -278,21 +345,8 @@ void MapStorage::migrate_loose_files( ) {
         }
         char path[ CHUNK_NAME_MAX_LENGTH ];
         snprintf( path, sizeof( path ), "%s/%s", this->map_name, name.c_str( ) );
-        FILE *f = fopen( path, "rb" );
-        if ( f == nullptr ) {
-            continue;
-        }
-        fseek( f, 0, SEEK_END );
-        long len = ftell( f );
-        fseek( f, 0, SEEK_SET );
-        if ( len < 0 ) {
-            len = 0;
-        }
-        unsigned char *buf = static_cast<unsigned char *>( malloc( len > 0 ? len : 1 ) );
-        const size_t got = fread( buf, 1, len, f );
-        fclose( f );
-        if ( got != static_cast<size_t>( len ) ) {
-            free( buf );
+        std::vector<unsigned char> buf;
+        if ( !slurp_file( path, buf ) ) {
             continue;
         }
         {
@@ -302,7 +356,7 @@ void MapStorage::migrate_loose_files( ) {
             sqlite3_bind_int( st, 2, pos.x );
             sqlite3_bind_int( st, 3, pos.y );
             sqlite3_bind_int( st, 4, pos.z );
-            sqlite3_bind_blob( st, 5, buf, static_cast<int>( len ), SQLITE_TRANSIENT );
+            sqlite3_bind_blob( st, 5, buf.data(), static_cast<int>( buf.size() ), SQLITE_TRANSIENT );
             const int rc = sqlite3_step( st );
             sqlite3_reset( st );
             if ( rc == SQLITE_DONE ) {
@@ -313,7 +367,6 @@ void MapStorage::migrate_loose_files( ) {
                 pr_debug( "sqlite migrate failed for %s: %s", path, sqlite3_errmsg( this->db ) );
             }
         }
-        free( buf );
     }
     this->batch_end( );
     for ( const std::string &p : imported ) {
@@ -324,12 +377,12 @@ void MapStorage::migrate_loose_files( ) {
 #endif // REPGAME_MAP_SQLITE
 
 // ---- Per-kind blob IO ------------------------------------------------------
-// The two backends share this interface: reads hand back a FILE* over the
-// stored bytes (sqlite copies the row and fmemopens it — free(ctx.mem)
-// after fclose), writes stream into a FILE* that commit_kind_write makes
-// durable. Decode/encode code is backend-agnostic.
+// The two backends share this interface: reads return the stored bytes,
+// writes take bytes and make them durable. Decode/encode code is
+// backend-agnostic and never touches a stream.
 
-FILE *MapStorage::open_kind_read( int kind, const glm::ivec3 &pos, ReadCtx &ctx ) {
+int MapStorage::read_kind_blob( int kind, const glm::ivec3 &pos, std::vector<unsigned char> &out ) {
+    out.clear( );
 #if defined( REPGAME_MAP_SQLITE )
     if ( this->use_sqlite( ) ) {
         DbLock lock( this->db_mutex );
@@ -338,75 +391,66 @@ FILE *MapStorage::open_kind_read( int kind, const glm::ivec3 &pos, ReadCtx &ctx 
         sqlite3_bind_int( st, 2, pos.x );
         sqlite3_bind_int( st, 3, pos.y );
         sqlite3_bind_int( st, 4, pos.z );
+        int got = 0;
         if ( sqlite3_step( st ) == SQLITE_ROW ) {
-            ctx.len = static_cast<size_t>( sqlite3_column_bytes( st, 0 ) );
-            ctx.mem = static_cast<unsigned char *>( malloc( ctx.len > 0 ? ctx.len : 1 ) );
-            memcpy( ctx.mem, sqlite3_column_blob( st, 0 ), ctx.len );
+            const int n = sqlite3_column_bytes( st, 0 );
+            const unsigned char *p = static_cast<const unsigned char *>( sqlite3_column_blob( st, 0 ) );
+            if ( n > 0 && p != nullptr ) {
+                out.assign( p, p + n );
+            }
+            got = 1;
         }
         sqlite3_reset( st );
-        if ( ctx.mem == nullptr ) {
-            return nullptr;
-        }
-        FILE *fp = fmemopen( ctx.mem, ctx.len > 0 ? ctx.len : 1, "rb" );
-        if ( fp == nullptr ) {
-            free( ctx.mem );
-            ctx.mem = nullptr;
-        }
-        return fp;
+        return got;
     }
 #endif
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
-    return fopen( file_name, MAP_READ_MODE );
+    return slurp_file( file_name, out );
 }
 
-FILE *MapStorage::open_kind_write( int kind, const glm::ivec3 &pos, WriteCtx &ctx ) {
-    ctx.kind = kind;
-    ctx.pos = pos;
+int MapStorage::store_kind_blob( int kind, const glm::ivec3 &pos, const void *data, size_t len ) {
 #if defined( REPGAME_MAP_SQLITE )
     if ( this->use_sqlite( ) ) {
-        return open_memstream( &ctx.mem, &ctx.mem_size );
+        DbLock lock( this->db_mutex );
+        sqlite3_stmt *st = this->stmt_put;
+        sqlite3_bind_int( st, 1, kind );
+        sqlite3_bind_int( st, 2, pos.x );
+        sqlite3_bind_int( st, 3, pos.y );
+        sqlite3_bind_int( st, 4, pos.z );
+        sqlite3_bind_blob( st, 5, data, static_cast<int>( len ), SQLITE_TRANSIENT );
+        if ( sqlite3_step( st ) != SQLITE_DONE ) {
+            sqlite3_reset( st );
+            pr_debug( "sqlite write failed kind=%d pos=(%d,%d,%d): %s", kind, pos.x, pos.y, pos.z,
+                      sqlite3_errmsg( this->db ) );
+            return 0;
+        }
+        sqlite3_reset( st );
+        this->index_insert( kind, pos );
+        return 1;
     }
 #endif
     // Write a sibling temp then rename on commit: a mid-write crash/kill
     // must not leave a truncated record in place.
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
-    snprintf( ctx.tmp_path, sizeof( ctx.tmp_path ), "%s.tmp", file_name );
-    return fopen( ctx.tmp_path, "wb" );
-}
-
-void MapStorage::commit_kind_write( WriteCtx &ctx ) {
-#if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
-        DbLock lock( this->db_mutex );
-        sqlite3_stmt *st = this->stmt_put;
-        sqlite3_bind_int( st, 1, ctx.kind );
-        sqlite3_bind_int( st, 2, ctx.pos.x );
-        sqlite3_bind_int( st, 3, ctx.pos.y );
-        sqlite3_bind_int( st, 4, ctx.pos.z );
-        sqlite3_bind_blob( st, 5, ctx.mem, static_cast<int>( ctx.mem_size ), SQLITE_TRANSIENT );
-        if ( sqlite3_step( st ) == SQLITE_DONE ) {
-            this->index_insert( ctx.kind, ctx.pos );
-        } else {
-            pr_debug( "sqlite write failed kind=%d pos=(%d,%d,%d): %s", ctx.kind, ctx.pos.x, ctx.pos.y, ctx.pos.z,
-                      sqlite3_errmsg( this->db ) );
-        }
-        sqlite3_reset( st );
-        free( ctx.mem );
-        ctx.mem = nullptr;
-        return;
+    char tmp_path[ CHUNK_NAME_MAX_LENGTH + 8 ];
+    snprintf( tmp_path, sizeof( tmp_path ), "%s.tmp", file_name );
+    FILE *f = fopen( tmp_path, "wb" );
+    if ( f == nullptr ) {
+        pr_debug( "open failed for write:%s", file_name );
+        return 0;
     }
-#endif
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ ctx.kind ], this->map_name, ctx.pos.x, ctx.pos.y, ctx.pos.z );
-    if ( rename( ctx.tmp_path, file_name ) != 0 ) {
-        pr_debug( "rename failed for:%s", file_name );
-        remove( ctx.tmp_path );
-        return;
+    const int ok = fwrite( data, 1, len, f ) == len;
+    fclose( f );
+    if ( !ok || rename( tmp_path, file_name ) != 0 ) {
+        pr_debug( "persist failed for:%s", file_name );
+        remove( tmp_path );
+        return 0;
     }
     // Index only once the file is durable: the temp write must not count.
-    this->index_insert( ctx.kind, ctx.pos );
+    this->index_insert( kind, pos );
+    return 1;
 }
 
 void MapStorage::remove_kind( int kind, const glm::ivec3 &pos ) {
@@ -524,40 +568,7 @@ int MapStorage::write_kind_blob( int kind, const glm::ivec3 &pos, const void *da
     if ( world_storage_off( ) ) {
         return 0;
     }
-#if defined( REPGAME_MAP_SQLITE )
-    if ( this->use_sqlite( ) ) {
-        DbLock lock( this->db_mutex );
-        sqlite3_stmt *st = this->stmt_put;
-        sqlite3_bind_int( st, 1, kind );
-        sqlite3_bind_int( st, 2, pos.x );
-        sqlite3_bind_int( st, 3, pos.y );
-        sqlite3_bind_int( st, 4, pos.z );
-        sqlite3_bind_blob( st, 5, data, static_cast<int>( len ), SQLITE_TRANSIENT );
-        const int rc = sqlite3_step( st );
-        sqlite3_reset( st );
-        if ( rc != SQLITE_DONE ) {
-            return 0;
-        }
-        this->index_insert( kind, pos );
-        return 1;
-    }
-#endif
-    char file_name[ CHUNK_NAME_MAX_LENGTH ];
-    snprintf( file_name, CHUNK_NAME_MAX_LENGTH, KIND_FILE_ROOT[ kind ], this->map_name, pos.x, pos.y, pos.z );
-    char tmp_name[ CHUNK_NAME_MAX_LENGTH + 8 ];
-    snprintf( tmp_name, sizeof( tmp_name ), "%s.tmp", file_name );
-    FILE *f = fopen( tmp_name, "wb" );
-    if ( f == nullptr ) {
-        return 0;
-    }
-    fwrite( data, 1, len, f );
-    fclose( f );
-    if ( rename( tmp_name, file_name ) != 0 ) {
-        remove( tmp_name );
-        return 0;
-    }
-    this->index_insert( kind, pos );
-    return 1;
+    return this->store_kind_blob( kind, pos, data, len );
 }
 
 void MapStorage::batch_begin( ) {
@@ -725,38 +736,28 @@ void MapStorage::persist_chunk_edits( const glm::ivec3 &chunk_offset, const std:
         this->remove_kind( MAP_FILE_CHUNK, chunk_offset );
         return;
     }
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_CHUNK, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for chunk:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
+    BlobWriter w;
+    w.data.reserve( 4 * sizeof( uint32_t ) + runs.size( ) * ( 2 * sizeof( uint32_t ) + sizeof( BlockState ) ) );
     const uint32_t magic = CHUNK_EDITS_MAGIC;
     const uint32_t version = CHUNK_EDITS_VERSION;
     const uint32_t record_size = sizeof( BlockState );
     const uint32_t run_count = static_cast<uint32_t>( runs.size( ) );
-    fwrite( &magic, sizeof( uint32_t ), 1, write_ptr );
-    fwrite( &version, sizeof( uint32_t ), 1, write_ptr );
-    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    fwrite( &run_count, sizeof( uint32_t ), 1, write_ptr );
+    w.put( magic );
+    w.put( version );
+    w.put( record_size );
+    w.put( run_count );
     for ( const ChunkEditRun &run : runs ) {
-        fwrite( &run.start, sizeof( uint32_t ), 1, write_ptr );
-        fwrite( &run.count, sizeof( uint32_t ), 1, write_ptr );
-        fwrite( &run.state, sizeof( BlockState ), 1, write_ptr );
+        w.put( run.start );
+        w.put( run.count );
+        w.put( run.state );
     }
-    fclose( write_ptr );
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_CHUNK, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const BlockState *blocks ) {
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_CHUNK, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for chunk:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
+    BlobWriter w;
     const uint32_t storage_type_size = sizeof( STORAGE_TYPE );
-    fwrite( &storage_type_size, sizeof( uint32_t ), 1, write_ptr );
+    w.put( storage_type_size );
     STORAGE_TYPE persist_data;
     unsigned int num_same_blocks = 0;
     BlockState previousBlockState = { BLOCK_STATE_LAST_BLOCK_ID };
@@ -768,7 +769,7 @@ void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const Blo
             if ( num_same_blocks > 0 ) {
                 persist_data.blockState = previousBlockState;
                 persist_data.num = num_same_blocks;
-                fwrite( &persist_data, sizeof( STORAGE_TYPE ), 1, write_ptr );
+                w.put( persist_data );
             }
             previousBlockState = blockState;
             num_same_blocks = 1;
@@ -776,10 +777,9 @@ void MapStorage::persist_chunk_legacy( const glm::ivec3 &chunk_offset, const Blo
     }
     persist_data.blockState = previousBlockState;
     persist_data.num = num_same_blocks;
-    fwrite( &persist_data, sizeof( STORAGE_TYPE ), 1, write_ptr );
-    fclose( write_ptr );
+    w.put( persist_data );
     // Test-only writer, but the index must still learn about the record.
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_CHUNK, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 namespace {
@@ -789,11 +789,10 @@ namespace {
 // or LEGACY_EMPTY_BLOCK_ID are holes (server diff files) and skipped; a
 // file with no holes is a client full snapshot. Kept self-contained so the
 // whole branch can be deleted once old saves are gone.
-int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32_t storage_type_size, ChunkEdits &out ) {
+int load_chunk_edits_legacy( BlobReader &r, const char *file_name, const uint32_t storage_type_size, ChunkEdits &out ) {
     out.needs_rewrite = true;
     out.legacy_snapshot = true;
     if ( storage_type_size <= sizeof( unsigned int ) || storage_type_size > 64 ) {
-        fclose( read_ptr );
         return -1;
     }
     const bool loading_old_format_chunk = storage_type_size != sizeof( STORAGE_TYPE );
@@ -802,24 +801,13 @@ int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32
     }
 
     int storage_block_state_size = storage_type_size - sizeof( unsigned int );
-    // Read the whole remaining file into an exact-size buffer (from
-    // fstat) rather than allocating CHUNK_BLOCK_SIZE * record_size worst
-    // case — legacy diff files are tiny. Fallback keeps the old worst-case
-    // read when the size can't be determined.
-    size_t want_bytes = ( size_t )CHUNK_BLOCK_SIZE * storage_type_size;
-    const off_t data_start = lseek( fileno( read_ptr ), 0, SEEK_CUR );
-    struct stat st;
-    if ( data_start >= 0 && fstat( fileno( read_ptr ), &st ) == 0 && st.st_size > data_start &&
-         ( uint64_t )( st.st_size - data_start ) < want_bytes ) {
-        want_bytes = ( size_t )( st.st_size - data_start );
-    }
-    char *persist_data = ( char * )malloc( want_bytes > 0 ? want_bytes : 1 );
-    const size_t got_bytes = fread( persist_data, 1, want_bytes, read_ptr );
-    fclose( read_ptr );
-    unsigned int persist_data_length = ( unsigned int )( got_bytes / storage_type_size );
-    if ( persist_data_length > CHUNK_BLOCK_SIZE ) {
-        persist_data_length = CHUNK_BLOCK_SIZE;
-    }
+    // The rest of the blob is the record array: decode however many
+    // complete records it holds (a full snapshot is CHUNK_BLOCK_SIZE
+    // cells; server diff files are tiny).
+    const unsigned int persist_data_length =
+        ( unsigned int )( r.records( storage_type_size ) < ( size_t )CHUNK_BLOCK_SIZE ? r.records( storage_type_size )
+                                                                                    : ( size_t )CHUNK_BLOCK_SIZE );
+    const char *persist_data = reinterpret_cast<const char *>( r.at( ) );
 
     if ( storage_block_state_size > ( int )sizeof( BlockState ) ) {
         pr_debug( "Smaller" );
@@ -829,7 +817,7 @@ int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32
     uint32_t block_index = 0;
     int overflow = 0;
     for ( unsigned int i = 0; i < persist_data_length && !overflow; i++ ) {
-        char *block_storage = &persist_data[ i * storage_type_size ];
+        const char *block_storage = &persist_data[ i * storage_type_size ];
         unsigned int block_storage_num;
         memcpy( &block_storage_num, &persist_data[ ( ( i + 1 ) * storage_type_size ) - sizeof( unsigned int ) ], sizeof( block_storage_num ) );
         if ( block_index >= CHUNK_BLOCK_SIZE ) {
@@ -843,7 +831,6 @@ int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32
             // the tail. Refuse it instead — the file stays on disk.
             pr_debug( "Chunk %s run length %u overflows at cell %u; refusing partial decode",
                       file_name, block_storage_num, block_index );
-            free( persist_data );
             return -1;
         }
         if ( block_storage_num == 0 ) {
@@ -890,7 +877,6 @@ int load_chunk_edits_legacy( FILE *read_ptr, const char *file_name, const uint32
     if ( block_index != CHUNK_BLOCK_SIZE ) {
         pr_debug( "Didn't get enough blocks load:%s", file_name );
     }
-    free( persist_data );
     return 1;
 }
 } // namespace
@@ -908,52 +894,41 @@ int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &ou
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CHUNK, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
-    ReadCtx r;
-    FILE *read_ptr = this->open_kind_read( MAP_FILE_CHUNK, chunk_offset, r );
-    if ( read_ptr == NULL ) {
+    std::vector<unsigned char> blob;
+    if ( !this->read_kind_blob( MAP_FILE_CHUNK, chunk_offset, blob ) ) {
         pr_debug( "open failed for chunk:%s", file_name );
         return -1;
     }
+    BlobReader r{ blob.data( ), blob.size( ), 0 };
     uint32_t head = 0;
-    if ( fread( &head, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( head ) ) {
         return -1;
     }
     if ( head != CHUNK_EDITS_MAGIC ) {
         // `head` is the legacy file's record_size.
-        const int ret = load_chunk_edits_legacy( read_ptr, file_name, head, out );
-        free( r.mem );
-        return ret;
+        return load_chunk_edits_legacy( r, file_name, head, out );
     }
     uint32_t version = 0, record_size = 0, run_count = 0;
-    if ( fread( &version, sizeof( uint32_t ), 1, read_ptr ) != 1 || version != CHUNK_EDITS_VERSION ||
-         fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 || record_size > 4096 ||
-         fread( &run_count, sizeof( uint32_t ), 1, read_ptr ) != 1 || run_count > CHUNK_BLOCK_SIZE ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( version ) || version != CHUNK_EDITS_VERSION ||
+         !r.get( record_size ) || record_size == 0 || record_size > 4096 ||
+         !r.get( run_count ) || run_count > CHUNK_BLOCK_SIZE ) {
         return -1;
     }
     if ( record_size != sizeof( BlockState ) ) {
         out.needs_rewrite = true;
     }
-    char *raw = static_cast<char *>( malloc( record_size ) );
+    std::vector<char> raw( record_size );
     uint32_t prev_end = 0;
     for ( uint32_t i = 0; i < run_count; i++ ) {
         uint32_t start = 0, count = 0;
         BlockState state = BLOCK_STATE_AIR;
         memset( &state, 0, sizeof( BlockState ) );
-        if ( fread( &start, sizeof( uint32_t ), 1, read_ptr ) != 1 ||
-             fread( &count, sizeof( uint32_t ), 1, read_ptr ) != 1 ||
-             fread( raw, record_size, 1, read_ptr ) != 1 ||
+        if ( !r.get( start ) || !r.get( count ) || !r.get( raw.data( ), record_size ) ||
              count == 0 || start < prev_end || start + count > CHUNK_BLOCK_SIZE ) {
-            free( raw );
-            fclose( read_ptr );
-            free( r.mem );
             out = ChunkEdits{ };
             return -1;
         }
-        memcpy( &state, raw, record_size <= sizeof( BlockState ) ? record_size : sizeof( BlockState ) );
+        memcpy( &state, raw.data( ), record_size <= sizeof( BlockState ) ? record_size : sizeof( BlockState ) );
         if ( state.id >= LAST_BLOCK_ID ) {
             pr_debug( "Got strange block in %s :%d", file_name, state.id );
             state = BLOCK_STATE_AIR;
@@ -961,9 +936,6 @@ int MapStorage::load_chunk_edits( const glm::ivec3 &chunk_offset, ChunkEdits &ou
         out.runs.push_back( { start, count, state } );
         prev_end = start + count;
     }
-    free( raw );
-    fclose( read_ptr );
-    free( r.mem );
     return 1;
 }
 
@@ -1092,26 +1064,21 @@ void MapStorage::persist_chests( const glm::ivec3 &chunk_offset, const ChestCont
         this->remove_kind( MAP_FILE_CHEST, chunk_offset );
         return;
     }
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_CHEST, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for chest:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
-    uint32_t record_size = sizeof( ChestFileRecord );
-    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    uint32_t num_chests = static_cast<uint32_t>( chests.size( ) );
-    fwrite( &num_chests, sizeof( uint32_t ), 1, write_ptr );
+    BlobWriter w;
+    w.data.reserve( 2 * sizeof( uint32_t ) + chests.size( ) * sizeof( ChestFileRecord ) );
+    const uint32_t record_size = sizeof( ChestFileRecord );
+    const uint32_t num_chests = static_cast<uint32_t>( chests.size( ) );
+    w.put( record_size );
+    w.put( num_chests );
     for ( const auto &pair : chests ) {
         ChestFileRecord record;
         record.x = pair.first.x;
         record.y = pair.first.y;
         record.z = pair.first.z;
         memcpy( record.slots, pair.second.slots, sizeof( record.slots ) );
-        fwrite( &record, sizeof( ChestFileRecord ), 1, write_ptr );
+        w.put( record );
     }
-    fclose( write_ptr );
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_CHEST, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &out ) {
@@ -1124,32 +1091,25 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
     if ( this->index_miss( MAP_FILE_CHEST, chunk_offset ) ) {
         return 0;
     }
-    ReadCtx r;
-    FILE *read_ptr = this->open_kind_read( MAP_FILE_CHEST, chunk_offset, r );
-    if ( read_ptr == NULL ) {
+    std::vector<unsigned char> blob;
+    if ( !this->read_kind_blob( MAP_FILE_CHEST, chunk_offset, blob ) ) {
         return 0;
     }
+    BlobReader r{ blob.data( ), blob.size( ), 0 };
     uint32_t record_size = 0;
-    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( record_size ) ) {
         return 0;
     }
     uint32_t num_chests = 0;
-    if ( fread( &num_chests, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_chests > CHUNK_BLOCK_SIZE ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( num_chests ) || num_chests > CHUNK_BLOCK_SIZE ) {
         return 0;
     }
     // Read whatever the file's record holds; older/newer builds may have a
     // different record size, so copy only the shared prefix per record.
     const int slot_prefix = offsetof( ChestFileRecord, slots );
-    char *raw = static_cast<char *>( calloc( num_chests, record_size ) );
-    size_t num_read = fread( raw, record_size, num_chests, read_ptr );
-    fclose( read_ptr );
-    free( r.mem );
+    const size_t num_read = r.records( record_size ) < num_chests ? r.records( record_size ) : num_chests;
     for ( size_t i = 0; i < num_read; i++ ) {
-        const char *record = &raw[ i * record_size ];
+        const char *record = reinterpret_cast<const char *>( r.at( ) ) + i * record_size;
         ChestContents contents; // default: all empty
         glm::ivec3 pos( 0 );
         memcpy( &pos, record, sizeof( glm::ivec3 ) <= (size_t)record_size ? sizeof( glm::ivec3 ) : (size_t)record_size );
@@ -1168,7 +1128,6 @@ int MapStorage::load_chests( const glm::ivec3 &chunk_offset, ChestContentsMap &o
         }
         out[ pos ] = contents;
     }
-    free( raw );
     return 1;
 }
 
@@ -1217,15 +1176,11 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
         this->remove_kind( MAP_FILE_FURNACE, chunk_offset );
         return;
     }
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_FURNACE, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for furnace:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
-    uint32_t record_size = sizeof( FurnaceFileRecord );
-    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    fwrite( &num_furnaces, sizeof( uint32_t ), 1, write_ptr );
+    BlobWriter w;
+    w.data.reserve( 2 * sizeof( uint32_t ) + num_furnaces * sizeof( FurnaceFileRecord ) );
+    const uint32_t record_size = sizeof( FurnaceFileRecord );
+    w.put( record_size );
+    w.put( num_furnaces );
     for ( const auto &pair : furnaces ) {
         if ( furnace_contents_empty( pair.second ) ) {
             continue;
@@ -1237,10 +1192,9 @@ void MapStorage::persist_furnaces( const glm::ivec3 &chunk_offset, const Furnace
         memcpy( record.slots, pair.second.slots, sizeof( record.slots ) );
         record.cook_progress = pair.second.cook_progress;
         record.burn_ticks = pair.second.burn_ticks;
-        fwrite( &record, sizeof( FurnaceFileRecord ), 1, write_ptr );
+        w.put( record );
     }
-    fclose( write_ptr );
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_FURNACE, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMap &out ) {
@@ -1253,33 +1207,26 @@ int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMa
     if ( this->index_miss( MAP_FILE_FURNACE, chunk_offset ) ) {
         return 0;
     }
-    ReadCtx r;
-    FILE *read_ptr = this->open_kind_read( MAP_FILE_FURNACE, chunk_offset, r );
-    if ( read_ptr == NULL ) {
+    std::vector<unsigned char> blob;
+    if ( !this->read_kind_blob( MAP_FILE_FURNACE, chunk_offset, blob ) ) {
         return 0;
     }
+    BlobReader r{ blob.data( ), blob.size( ), 0 };
     uint32_t record_size = 0;
-    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( record_size ) ) {
         return 0;
     }
     uint32_t num_furnaces = 0;
-    if ( fread( &num_furnaces, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_furnaces > CHUNK_BLOCK_SIZE ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( num_furnaces ) || num_furnaces > CHUNK_BLOCK_SIZE ) {
         return 0;
     }
     // Read whatever the file's record holds; older/newer builds may have a
     // different record size, so copy only the shared prefix per record.
     const int slot_prefix = offsetof( FurnaceFileRecord, slots );
     const int tail_prefix = offsetof( FurnaceFileRecord, cook_progress );
-    char *raw = static_cast<char *>( calloc( num_furnaces, record_size ) );
-    size_t num_read = fread( raw, record_size, num_furnaces, read_ptr );
-    fclose( read_ptr );
-    free( r.mem );
+    const size_t num_read = r.records( record_size ) < num_furnaces ? r.records( record_size ) : num_furnaces;
     for ( size_t i = 0; i < num_read; i++ ) {
-        const char *record = &raw[ i * record_size ];
+        const char *record = reinterpret_cast<const char *>( r.at( ) ) + i * record_size;
         FurnaceContents contents; // default: empty + zeroed progress
         glm::ivec3 pos( 0 );
         memcpy( &pos, record, sizeof( glm::ivec3 ) <= (size_t)record_size ? sizeof( glm::ivec3 ) : (size_t)record_size );
@@ -1304,7 +1251,6 @@ int MapStorage::load_furnaces( const glm::ivec3 &chunk_offset, FurnaceContentsMa
         }
         out[ pos ] = contents;
     }
-    free( raw );
     return 1;
 }
 
@@ -1340,15 +1286,11 @@ void MapStorage::persist_signs( const glm::ivec3 &chunk_offset, const SignTextMa
         this->remove_kind( MAP_FILE_SIGN, chunk_offset );
         return;
     }
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_SIGN, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for sign:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
-    uint32_t record_size = sizeof( SignFileRecord );
-    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    fwrite( &num_signs, sizeof( uint32_t ), 1, write_ptr );
+    BlobWriter w;
+    w.data.reserve( 2 * sizeof( uint32_t ) + num_signs * sizeof( SignFileRecord ) );
+    const uint32_t record_size = sizeof( SignFileRecord );
+    w.put( record_size );
+    w.put( num_signs );
     for ( const auto &pair : signs ) {
         if ( pair.second.empty( ) ) {
             continue;
@@ -1363,10 +1305,9 @@ void MapStorage::persist_signs( const glm::ivec3 &chunk_offset, const SignTextMa
             record.line_len[ l ] = static_cast<unsigned char>( len );
             memcpy( record.text[ l ], pair.second.lines[ l ].data( ), len );
         }
-        fwrite( &record, sizeof( SignFileRecord ), 1, write_ptr );
+        w.put( record );
     }
-    fclose( write_ptr );
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_SIGN, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
@@ -1379,33 +1320,26 @@ int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
     if ( this->index_miss( MAP_FILE_SIGN, chunk_offset ) ) {
         return 0;
     }
-    ReadCtx r;
-    FILE *read_ptr = this->open_kind_read( MAP_FILE_SIGN, chunk_offset, r );
-    if ( read_ptr == NULL ) {
+    std::vector<unsigned char> blob;
+    if ( !this->read_kind_blob( MAP_FILE_SIGN, chunk_offset, blob ) ) {
         return 0;
     }
+    BlobReader r{ blob.data( ), blob.size( ), 0 };
     uint32_t record_size = 0;
-    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( record_size ) ) {
         return 0;
     }
     uint32_t num_signs = 0;
-    if ( fread( &num_signs, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_signs > CHUNK_BLOCK_SIZE ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( num_signs ) || num_signs > CHUNK_BLOCK_SIZE ) {
         return 0;
     }
     // Read whatever the file's record holds; older/newer builds may have a
     // different record size, so copy only the shared prefix per record and
     // never index past it.
     const int text_prefix = offsetof( SignFileRecord, line_len );
-    char *raw = static_cast<char *>( calloc( num_signs, record_size ) );
-    size_t num_read = fread( raw, record_size, num_signs, read_ptr );
-    fclose( read_ptr );
-    free( r.mem );
+    const size_t num_read = r.records( record_size ) < num_signs ? r.records( record_size ) : num_signs;
     for ( size_t i = 0; i < num_read; i++ ) {
-        const char *record = &raw[ i * record_size ];
+        const char *record = reinterpret_cast<const char *>( r.at( ) ) + i * record_size;
         SignText text; // default: all lines empty
         glm::ivec3 pos( 0 );
         memcpy( &pos, record, sizeof( glm::ivec3 ) <= (size_t)record_size ? sizeof( glm::ivec3 ) : (size_t)record_size );
@@ -1432,7 +1366,6 @@ int MapStorage::load_signs( const glm::ivec3 &chunk_offset, SignTextMap &out ) {
             out[ pos ] = text;
         }
     }
-    free( raw );
     return 1;
 }
 
@@ -1450,26 +1383,21 @@ void MapStorage::persist_mobs( const glm::ivec3 &chunk_offset, const std::vector
         this->remove_kind( MAP_FILE_MOBS, chunk_offset );
         return;
     }
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_MOBS, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for mobs:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
-    uint32_t record_size = sizeof( MobFileRecord );
-    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    uint32_t num_mobs = static_cast<uint32_t>( mobs.size( ) );
-    fwrite( &num_mobs, sizeof( uint32_t ), 1, write_ptr );
+    BlobWriter w;
+    w.data.reserve( 3 * sizeof( uint32_t ) + mobs.size( ) * sizeof( MobFileRecord ) + removed.size( ) );
+    const uint32_t record_size = sizeof( MobFileRecord );
+    const uint32_t num_mobs = static_cast<uint32_t>( mobs.size( ) );
+    w.put( record_size );
+    w.put( num_mobs );
     for ( const MobFileRecord &record : mobs ) {
-        fwrite( &record, sizeof( MobFileRecord ), 1, write_ptr );
+        w.put( record );
     }
-    uint32_t num_removed = static_cast<uint32_t>( removed.size( ) );
-    fwrite( &num_removed, sizeof( uint32_t ), 1, write_ptr );
+    const uint32_t num_removed = static_cast<uint32_t>( removed.size( ) );
+    w.put( num_removed );
     if ( num_removed > 0 ) {
-        fwrite( removed.data( ), sizeof( uint8_t ), num_removed, write_ptr );
+        w.put( removed.data( ), num_removed );
     }
-    fclose( write_ptr );
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_MOBS, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out, std::vector<uint8_t> *removed ) {
@@ -1479,46 +1407,37 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
     if ( this->index_miss( MAP_FILE_MOBS, chunk_offset ) ) {
         return 0;
     }
-    ReadCtx r;
-    FILE *read_ptr = this->open_kind_read( MAP_FILE_MOBS, chunk_offset, r );
-    if ( read_ptr == NULL ) {
+    std::vector<unsigned char> blob;
+    if ( !this->read_kind_blob( MAP_FILE_MOBS, chunk_offset, blob ) ) {
         return 0;
     }
     out.clear( );
     if ( removed != nullptr ) {
         removed->clear( );
     }
+    BlobReader r{ blob.data( ), blob.size( ), 0 };
     uint32_t record_size = 0;
-    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 ) {
+    if ( !r.get( record_size ) ) {
         // Truncated/marker record: it exists, which is all the caller needs.
-        fclose( read_ptr );
-        free( r.mem );
         return 1;
     }
     uint32_t num_mobs = 0;
-    if ( fread( &num_mobs, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_mobs > 65535 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( num_mobs ) || num_mobs > 65535 ) {
         return 1;
     }
     // Read whatever the file's record holds; older/newer builds may have a
     // different record size, so copy only the shared prefix per record
     // (shorter records zero-fill their tail, e.g. net_id on pre-net_id files).
-    char *raw = static_cast<char *>( calloc( num_mobs, record_size ) );
-    size_t num_read = fread( raw, record_size, num_mobs, read_ptr );
+    const size_t num_read = r.records( record_size ) < num_mobs ? r.records( record_size ) : num_mobs;
+    const unsigned char *records = r.at( );
+    r.skip( num_read * record_size );
     uint32_t num_removed = 0;
-    uint8_t *removed_raw = nullptr;
-    if ( removed != nullptr && fread( &num_removed, sizeof( uint32_t ), 1, read_ptr ) == 1 && num_removed <= 64 ) {
-        removed_raw = static_cast<uint8_t *>( malloc( num_removed ) );
-        if ( fread( removed_raw, sizeof( uint8_t ), num_removed, read_ptr ) != num_removed ) {
-            free( removed_raw );
-            removed_raw = nullptr;
-        }
+    if ( removed != nullptr && r.get( num_removed ) && num_removed <= 64 && r.left( ) >= num_removed ) {
+        removed->assign( r.at( ), r.at( ) + num_removed );
+        r.skip( num_removed );
     }
-    fclose( read_ptr );
-    free( r.mem );
     for ( size_t i = 0; i < num_read; i++ ) {
-        const char *record = &raw[ i * record_size ];
+        const char *record = reinterpret_cast<const char *>( records ) + i * record_size;
         MobFileRecord mob = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
         const size_t prefix = sizeof( MobFileRecord ) <= (size_t)record_size ? sizeof( MobFileRecord ) : (size_t)record_size;
         memcpy( &mob, record, prefix );
@@ -1526,11 +1445,6 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
             continue;
         }
         out.push_back( mob );
-    }
-    free( raw );
-    if ( removed_raw != nullptr ) {
-        removed->assign( removed_raw, removed_raw + num_removed );
-        free( removed_raw );
     }
     return 1;
 }
@@ -1547,21 +1461,16 @@ void MapStorage::persist_items( const glm::ivec3 &chunk_offset, const std::vecto
         this->remove_kind( MAP_FILE_ITEMS, chunk_offset );
         return;
     }
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_ITEMS, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for items:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
-    uint32_t record_size = sizeof( ItemFileRecord );
-    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    uint32_t num_items = static_cast<uint32_t>( items.size( ) );
-    fwrite( &num_items, sizeof( uint32_t ), 1, write_ptr );
+    BlobWriter w;
+    w.data.reserve( 2 * sizeof( uint32_t ) + items.size( ) * sizeof( ItemFileRecord ) );
+    const uint32_t record_size = sizeof( ItemFileRecord );
+    const uint32_t num_items = static_cast<uint32_t>( items.size( ) );
+    w.put( record_size );
+    w.put( num_items );
     for ( const ItemFileRecord &record : items ) {
-        fwrite( &record, sizeof( ItemFileRecord ), 1, write_ptr );
+        w.put( record );
     }
-    fclose( write_ptr );
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_ITEMS, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out ) {
@@ -1571,30 +1480,23 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
     if ( this->index_miss( MAP_FILE_ITEMS, chunk_offset ) ) {
         return 0;
     }
-    ReadCtx r;
-    FILE *read_ptr = this->open_kind_read( MAP_FILE_ITEMS, chunk_offset, r );
-    if ( read_ptr == NULL ) {
+    std::vector<unsigned char> blob;
+    if ( !this->read_kind_blob( MAP_FILE_ITEMS, chunk_offset, blob ) ) {
         return 0;
     }
     out.clear( );
+    BlobReader r{ blob.data( ), blob.size( ), 0 };
     uint32_t record_size = 0;
-    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( record_size ) || record_size == 0 ) {
         return 1;
     }
     uint32_t num_items = 0;
-    if ( fread( &num_items, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_items > 65535 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( num_items ) || num_items > 65535 ) {
         return 1;
     }
-    char *raw = static_cast<char *>( calloc( num_items, record_size ) );
-    size_t num_read = fread( raw, record_size, num_items, read_ptr );
-    fclose( read_ptr );
-    free( r.mem );
+    const size_t num_read = r.records( record_size ) < num_items ? r.records( record_size ) : num_items;
     for ( size_t i = 0; i < num_read; i++ ) {
-        const char *record = &raw[ i * record_size ];
+        const char *record = reinterpret_cast<const char *>( r.at( ) ) + i * record_size;
         ItemFileRecord item = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0 };
         const size_t prefix = sizeof( ItemFileRecord ) <= (size_t)record_size ? sizeof( ItemFileRecord ) : (size_t)record_size;
         memcpy( &item, record, prefix );
@@ -1603,7 +1505,6 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
         }
         out.push_back( item );
     }
-    free( raw );
     return 1;
 }
 
@@ -1618,21 +1519,16 @@ void MapStorage::persist_vehicles( const glm::ivec3 &chunk_offset, const std::ve
         this->remove_kind( MAP_FILE_CARTS, chunk_offset );
         return;
     }
-    WriteCtx w;
-    FILE *write_ptr = this->open_kind_write( MAP_FILE_CARTS, chunk_offset, w );
-    if ( write_ptr == NULL ) {
-        pr_debug( "open failed for carts:(%d,%d,%d)", chunk_offset.x, chunk_offset.y, chunk_offset.z );
-        return;
-    }
-    uint32_t record_size = sizeof( VehicleFileRecord );
-    fwrite( &record_size, sizeof( uint32_t ), 1, write_ptr );
-    uint32_t num_vehicles = static_cast<uint32_t>( vehicles.size( ) );
-    fwrite( &num_vehicles, sizeof( uint32_t ), 1, write_ptr );
+    BlobWriter w;
+    w.data.reserve( 2 * sizeof( uint32_t ) + vehicles.size( ) * sizeof( VehicleFileRecord ) );
+    const uint32_t record_size = sizeof( VehicleFileRecord );
+    const uint32_t num_vehicles = static_cast<uint32_t>( vehicles.size( ) );
+    w.put( record_size );
+    w.put( num_vehicles );
     for ( const VehicleFileRecord &record : vehicles ) {
-        fwrite( &record, sizeof( VehicleFileRecord ), 1, write_ptr );
+        w.put( record );
     }
-    fclose( write_ptr );
-    this->commit_kind_write( w );
+    this->store_kind_blob( MAP_FILE_CARTS, chunk_offset, w.data.data( ), w.data.size( ) );
 }
 
 int MapStorage::load_vehicles( const glm::ivec3 &chunk_offset, std::vector<VehicleFileRecord> &out ) {
@@ -1642,30 +1538,23 @@ int MapStorage::load_vehicles( const glm::ivec3 &chunk_offset, std::vector<Vehic
     if ( this->index_miss( MAP_FILE_CARTS, chunk_offset ) ) {
         return 0;
     }
-    ReadCtx r;
-    FILE *read_ptr = this->open_kind_read( MAP_FILE_CARTS, chunk_offset, r );
-    if ( read_ptr == NULL ) {
+    std::vector<unsigned char> blob;
+    if ( !this->read_kind_blob( MAP_FILE_CARTS, chunk_offset, blob ) ) {
         return 0;
     }
     out.clear( );
+    BlobReader r{ blob.data( ), blob.size( ), 0 };
     uint32_t record_size = 0;
-    if ( fread( &record_size, sizeof( uint32_t ), 1, read_ptr ) != 1 || record_size == 0 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( record_size ) || record_size == 0 ) {
         return 1;
     }
     uint32_t num_vehicles = 0;
-    if ( fread( &num_vehicles, sizeof( uint32_t ), 1, read_ptr ) != 1 || num_vehicles > 65535 ) {
-        fclose( read_ptr );
-        free( r.mem );
+    if ( !r.get( num_vehicles ) || num_vehicles > 65535 ) {
         return 1;
     }
-    char *raw = static_cast<char *>( calloc( num_vehicles, record_size ) );
-    size_t num_read = fread( raw, record_size, num_vehicles, read_ptr );
-    fclose( read_ptr );
-    free( r.mem );
+    const size_t num_read = r.records( record_size ) < num_vehicles ? r.records( record_size ) : num_vehicles;
     for ( size_t i = 0; i < num_read; i++ ) {
-        const char *record = &raw[ i * record_size ];
+        const char *record = reinterpret_cast<const char *>( r.at( ) ) + i * record_size;
         VehicleFileRecord vehicle = { 0.0, 0.0, 0.0, 0.0f, 0.0f, 0.0f, 0.0f, 0u };
         const size_t prefix = sizeof( VehicleFileRecord ) <= (size_t)record_size ? sizeof( VehicleFileRecord ) : (size_t)record_size;
         memcpy( &vehicle, record, prefix );
@@ -1674,7 +1563,6 @@ int MapStorage::load_vehicles( const glm::ivec3 &chunk_offset, std::vector<Vehic
         }
         out.push_back( vehicle );
     }
-    free( raw );
     return 1;
 }
 

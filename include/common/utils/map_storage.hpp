@@ -137,10 +137,9 @@ class MapStorage {
     // <kind>_<x>_<y>_<z> file held. Two backends store blobs — loose files
     // (fopen tmp+rename / stat / readdir) and a sqlite world.db (compiled
     // where REPGAME_MAP_SQLITE links the vendored amalgamation: server +
-    // linux client). The codecs never see the difference: open_kind_read
-    // returns a FILE* over the stored bytes either way (sqlite copies the
-    // row and fmemopens it), and persists stream into a FILE* that
-    // commit_kind_write then makes durable.
+    // linux client). The codecs never see the difference — read_kind_blob
+    // hands back the stored bytes either way, and persists encode into a
+    // buffer that store_kind_blob then makes durable.
     bool use_sqlite( ) const {
 #if defined( REPGAME_MAP_SQLITE )
         return this->db != nullptr;
@@ -148,22 +147,13 @@ class MapStorage {
         return false;
 #endif
     }
-    struct ReadCtx {
-        unsigned char *mem = nullptr; // sqlite only — free() after fclose
-        size_t len = 0;
-    };
-    FILE *open_kind_read( int kind, const glm::ivec3 &pos, ReadCtx &ctx );
-    struct WriteCtx {
-        int kind = 0;
-        glm::ivec3 pos{ 0 };
-        char *mem = nullptr;      // sqlite only: open_memstream backing
-        size_t mem_size = 0;
-        char tmp_path[ CHUNK_NAME_MAX_LENGTH + 8 ] = { 0 }; // file backend
-    };
-    FILE *open_kind_write( int kind, const glm::ivec3 &pos, WriteCtx &ctx );
-    // Makes a finished (fclose'd) write durable: renames the tmp file (file
-    // backend) or INSERTs the memstream blob (sqlite), then indexes it.
-    void commit_kind_write( WriteCtx &ctx );
+    // Reads the stored blob for (kind, pos) into `out`. 1 when a record
+    // exists — even when it holds zero bytes.
+    int read_kind_blob( int kind, const glm::ivec3 &pos, std::vector<unsigned char> &out );
+    // Stores `len` bytes as the record for (kind, pos): INSERT OR REPLACE
+    // on sqlite, sibling-tmp+rename on files. Indexes once durable.
+    // 1 on success.
+    int store_kind_blob( int kind, const glm::ivec3 &pos, const void *data, size_t len );
     // Deletes the kind's record at pos (unlink or DELETE) + unindexes it.
     void remove_kind( int kind, const glm::ivec3 &pos );
     // First 4 bytes of the stored blob (format magic peek). False = absent.

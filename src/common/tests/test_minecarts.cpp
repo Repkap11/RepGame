@@ -354,11 +354,11 @@ int test_minecarts( ) {
             char raw[ 40 ];
             memset( raw, 0, sizeof( raw ) );
             memcpy( raw, &rec, sizeof( raw ) ); // old record = prefix without `type`
-            test_write_blob( storage, MAP_FILE_CARTS, glm::ivec3( 1, 0, 0 ), [ & ]( FILE *w ) {
+            test_write_blob( storage, MAP_FILE_CARTS, glm::ivec3( 1, 0, 0 ), [ & ]( std::vector<unsigned char> &blob ) {
                 const uint32_t one = 1;
-                fwrite( &old_record_size, sizeof( uint32_t ), 1, w );
-                fwrite( &one, sizeof( uint32_t ), 1, w );
-                fwrite( raw, sizeof( raw ), 1, w );
+                blob_put( blob, old_record_size );
+                blob_put( blob, one );
+                blob_put( blob, raw, sizeof( raw ) );
             } );
             check_bool( "cart persist: legacy 40-byte record loads as minecart",
                         storage.load_vehicles( glm::ivec3( 1, 0, 0 ), out ) == 1 && out.size( ) == 1 && out[ 0 ].type == VEHICLE_MINECART &&

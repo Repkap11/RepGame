@@ -557,11 +557,11 @@ int test_mobs( ) {
         // section) still loads with net_id == 0.
         {
             const uint32_t old_size = static_cast<uint32_t>( offsetof( MobFileRecord, net_id ) );
-            test_write_blob( storage, MAP_FILE_MOBS, glm::ivec3( 0, 0, 3 ), [ & ]( FILE *f ) {
+            test_write_blob( storage, MAP_FILE_MOBS, glm::ivec3( 0, 0, 3 ), [ & ]( std::vector<unsigned char> &blob ) {
                 const uint32_t one = 1;
-                fwrite( &old_size, sizeof( uint32_t ), 1, f );
-                fwrite( &one, sizeof( uint32_t ), 1, f );
-                fwrite( &r, old_size, 1, f );
+                blob_put( blob, old_size );
+                blob_put( blob, one );
+                blob_put( blob, &r, old_size );
             } );
             out.clear( );
             removed.clear( );
@@ -1510,11 +1510,11 @@ int test_mobs( ) {
             const uint32_t old_size = static_cast<uint32_t>( offsetof( MobFileRecord, grow_ticks ) );
             MobFileRecord r = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
             r.type = MOB_PIG;
-            test_write_blob( storage, MAP_FILE_MOBS, glm::ivec3( 0, 0, 4 ), [ & ]( FILE *f ) {
+            test_write_blob( storage, MAP_FILE_MOBS, glm::ivec3( 0, 0, 4 ), [ & ]( std::vector<unsigned char> &blob ) {
                 const uint32_t one = 1;
-                fwrite( &old_size, sizeof( uint32_t ), 1, f );
-                fwrite( &one, sizeof( uint32_t ), 1, f );
-                fwrite( &r, old_size, 1, f );
+                blob_put( blob, old_size );
+                blob_put( blob, one );
+                blob_put( blob, &r, old_size );
             } );
             out.clear( );
             check_bool( "breed persist: old record loads with grow_ticks 0",
