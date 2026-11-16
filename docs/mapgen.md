@@ -246,13 +246,11 @@ all pure functions of world coords:
   widest `mgn_roof_base − mgn_floor_height` air column, with floors
   above the lava sea penalized — and rejects cells whose best spot is
   still embedded, so complexes strongly favour open cavern and lava
-  basins; the deck then sits a small gap above that floor
-  (capped by a band-local roll — above the lava sea at 60, below the
-  roof mass ~200+), so basin anchors perch the fortress just over the
-  lava; cells whose cap roll would sink the deck under the floor are
-  rejected outright rather than embedded. Rolls that would
-  bury the keep below the surface or leave too little roof clearance
-  are rejected. Footprints spill freely across cell boundaries (clipped
+  basins. The deck rolls a narrow band at `SGF_DECK_MIN_LY`..+`SGF_DECK_SPAN_LY`
+  (band-local 94–110, ≈ world −5858..−5843 — mid-cavern, well above the
+  lava sea at 60), so complexes perch high over whatever floor the
+  anchor found; cells whose floor rises above the band or leaves too
+  little roof clearance are rejected rather than embedded. Footprints spill freely across cell boundaries (clipped
   to `SGF_EXTENT` ±360 of the anchor), so a chunk enumerates every cell
   whose footprint could reach its box, and overlapping complexes share
   the same ordered stamp passes so neighbouring fortresses carve into

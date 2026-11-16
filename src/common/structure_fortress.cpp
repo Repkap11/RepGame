@@ -48,8 +48,8 @@
 #define SGF_CELL 384        // world grid cell holding at most one fortress
 #define SGF_EXTENT 360      // hard clip: no piece reaches past anchor +/- this
 #define SGF_MARGIN 48       // anchor stays inside cell + [MARGIN, CELL-MARGIN)
-#define SGF_DECK_MIN_LY 66  // lowest deck height, band-local y (lava sea = 60)
-#define SGF_DECK_SPAN_LY 44 // deck cap rolled inside [66, 110)
+#define SGF_DECK_MIN_LY 94  // lowest deck height, band-local y (lava sea = 60)
+#define SGF_DECK_SPAN_LY 16 // narrow band [94, 110): mean ~ly 102 ≈ world -5850
 #define SGF_FREQ 0.90f      // ~one complex per cell — near-continuous sprawl
 #define SGF_PILLAR_MAX 160  // longest support column probe below a deck
 #define SGF_TOP_RISE 48     // highest a piece top reaches above the deck
@@ -140,20 +140,14 @@ static int sgf_for_cell( const int cx, const int cz, SGFAnchor *a ) {
     if ( mgn_roof_base( a->ax, a->az ) - best_floor < 45.0f ) {
         return 0;
     }
-    // Deck sits a small gap above the local floor — over a lava basin that
-    // lands just over the sea — capped by a second roll in the open cavern.
-    a->deck_ly = (int)best_floor + 8 + (int)( sg_roll( cx, cz, 130 ) * 15.0f );
-    const int cap = SGF_DECK_MIN_LY + (int)( sg_roll( cx, cz, 132 ) * (float)SGF_DECK_SPAN_LY );
-    if ( a->deck_ly > cap ) {
-        a->deck_ly = cap;
-    }
-    if ( a->deck_ly < SGF_DECK_MIN_LY ) {
-        a->deck_ly = SGF_DECK_MIN_LY;
-    }
+    // Deck rolls inside a narrow band around ly 102 (~world -5850) so
+    // complexes perch at mid-cavern height over open floors and lava
+    // basins alike, rather than hugging the sea.
+    a->deck_ly = SGF_DECK_MIN_LY + (int)( sg_roll( cx, cz, 130 ) * (float)SGF_DECK_SPAN_LY );
     a->facing = (int)( sg_roll( cx, cz, 131 ) * 4.0f );
-    // Never let the cap pull the deck below the floor — that buries the
-    // keep inside the hillside. Open-space anchors (floor under the sea)
-    // always pass; high shelves need a tall enough cap roll.
+    // Never let the deck sit below the floor — that buries the keep
+    // inside the hillside. Floors above ~ly 105 are too tall for the
+    // band and reject.
     if ( a->deck_ly < best_floor + 4.0f ) {
         return 0;
     }
