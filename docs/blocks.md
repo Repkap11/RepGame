@@ -203,7 +203,7 @@ Support is MC Java's distance rule: `scaffolding_supported`
 (BlockNextToChangeEvent.cpp) 0-1 BFS's the scaffold graph — descending a
 column is free, each horizontal hop costs 1 — and the cell survives while
 a column resting on a colliding non-scaffold block is reachable within
-`SCAFFOLDING_MAX_DISTANCE` (6) steps; the generic neighbor-update kill
+`SCAFFOLDING_MAX_DISTANCE` steps; the generic neighbor-update kill
 path then cascades the pop through the structure. Placement is never
 rejected on support: `player_placement_valid` always accepts scaffolding
 in a placeable cell, and an unsupported write releases as a falling body

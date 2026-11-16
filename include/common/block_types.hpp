@@ -29,7 +29,7 @@
 // grounded column — scaffold cells running down to a colliding
 // non-scaffold block — is reachable through scaffold cells within this
 // many horizontal steps. block_can_survive_at's scaffolding_supported.
-#define SCAFFOLDING_MAX_DISTANCE 6
+#define SCAFFOLDING_MAX_DISTANCE 12
 
 #define ISO_FACE_TOP 0
 #define ISO_FACE_FRONT 1
