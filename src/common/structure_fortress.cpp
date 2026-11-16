@@ -53,7 +53,7 @@
 #define SGF_FREQ 0.90f      // ~one complex per cell — near-continuous sprawl
 #define SGF_PILLAR_MAX 160  // longest support column probe below a deck
 #define SGF_TOP_RISE 48     // highest a piece top reaches above the deck
-#define SGF_ANCHOR_TRIES 4  // anchor candidates per cell; lowest floor wins
+#define SGF_ANCHOR_TRIES 8  // anchor candidates per cell; most open wins
 
 #define SGF_MAX_PIECES 320 // worst: 5 satellites + 2 junctions, each keep + ~34-step connector + arm
 #define SGF_MAX_SLOTS 32
@@ -109,14 +109,17 @@ static int sgf_deck_y( const SGFAnchor &a ) {
 
 // Per-cell existence + anchor. Only rolls the cheap fields — enough for the
 // chunk-pass bbox reject; the full layout decode happens per overlapping
-// chunk. The anchor picks the lowest-floored of SGF_ANCHOR_TRIES candidates,
-// so fortresses favour open cavern and lava basins over embedded spots.
+// chunk. The anchor picks the most open of SGF_ANCHOR_TRIES candidates —
+// open air column (roof base minus floor), penalizing floors above the
+// lava sea — so fortresses strongly favour open cavern and lava basins
+// over spots embedded in the cavern mass.
 static int sgf_for_cell( const int cx, const int cz, SGFAnchor *a ) {
     if ( sg_roll( cx, cz, 100 ) >= SGF_FREQ ) {
         return 0;
     }
     a->cx = cx;
     a->cz = cz;
+    float best_score = -1e30f;
     float best_floor = 1e30f;
     a->ax = 0;
     a->az = 0;
@@ -124,15 +127,21 @@ static int sgf_for_cell( const int cx, const int cz, SGFAnchor *a ) {
         const int x = cx * SGF_CELL + SGF_MARGIN + (int)( sg_roll( cx, cz, 102 + k * 2 ) * (float)( SGF_CELL - 2 * SGF_MARGIN ) );
         const int z = cz * SGF_CELL + SGF_MARGIN + (int)( sg_roll( cx, cz, 103 + k * 2 ) * (float)( SGF_CELL - 2 * SGF_MARGIN ) );
         const float f = mgn_floor_height( x, z );
-        if ( f < best_floor ) {
+        const float open = mgn_roof_base( x, z ) - f - 0.5f * ( f > (float)MGN_LAVA_SEA ? f - (float)MGN_LAVA_SEA : 0.0f );
+        if ( open > best_score ) {
+            best_score = open;
             best_floor = f;
             a->ax = x;
             a->az = z;
         }
     }
+    // Require real open air at the anchor — a keep embedded in the cavern
+    // wall is invisible from outside and reads as rubble, not a fortress.
+    if ( mgn_roof_base( a->ax, a->az ) - best_floor < 45.0f ) {
+        return 0;
+    }
     // Deck sits a small gap above the local floor — over a lava basin that
-    // lands just over the sea — capped by a second roll in the open cavern
-    // so high shelves still get embedded fortresses sometimes.
+    // lands just over the sea — capped by a second roll in the open cavern.
     a->deck_ly = (int)best_floor + 8 + (int)( sg_roll( cx, cz, 130 ) * 15.0f );
     const int cap = SGF_DECK_MIN_LY + (int)( sg_roll( cx, cz, 132 ) * (float)SGF_DECK_SPAN_LY );
     if ( a->deck_ly > cap ) {
@@ -142,12 +151,14 @@ static int sgf_for_cell( const int cx, const int cz, SGFAnchor *a ) {
         a->deck_ly = SGF_DECK_MIN_LY;
     }
     a->facing = (int)( sg_roll( cx, cz, 131 ) * 4.0f );
-    // Sanity gates: keep clear of the roof mass, and don't waste the roll on
-    // a keep that never breaches the surface.
-    if ( mgn_roof_base( a->ax, a->az ) - (float)a->deck_ly < 30.0f ) {
+    // Never let the cap pull the deck below the floor — that buries the
+    // keep inside the hillside. Open-space anchors (floor under the sea)
+    // always pass; high shelves need a tall enough cap roll.
+    if ( a->deck_ly < best_floor + 4.0f ) {
         return 0;
     }
-    if ( a->deck_ly + 16 < best_floor ) {
+    // Keep clear of the roof mass too.
+    if ( mgn_roof_base( a->ax, a->az ) - (float)a->deck_ly < 30.0f ) {
         return 0;
     }
     return 1;

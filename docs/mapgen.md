@@ -242,12 +242,15 @@ all pure functions of world coords:
   fortress roll per `SGF_CELL` (384×384) world cell at ~90% frequency —
   with multi-section footprints most of the cavern band is fortress
   country. `sgf_for_cell` rolls `SGF_ANCHOR_TRIES` candidate anchors
-  within `SGF_MARGIN` of the cell's edges and keeps the one over the
-  lowest `mgn_floor_height`, which biases placement toward open cavern
-  and lava basins; the deck then sits a small gap above that floor
+  within `SGF_MARGIN` of the cell's edges and keeps the most open one —
+  widest `mgn_roof_base − mgn_floor_height` air column, with floors
+  above the lava sea penalized — and rejects cells whose best spot is
+  still embedded, so complexes strongly favour open cavern and lava
+  basins; the deck then sits a small gap above that floor
   (capped by a band-local roll — above the lava sea at 60, below the
   roof mass ~200+), so basin anchors perch the fortress just over the
-  lava while high shelves still embed it sometimes. Rolls that would
+  lava; cells whose cap roll would sink the deck under the floor are
+  rejected outright rather than embedded. Rolls that would
   bury the keep below the surface or leave too little roof clearance
   are rejected. Footprints spill freely across cell boundaries (clipped
   to `SGF_EXTENT` ±360 of the anchor), so a chunk enumerates every cell

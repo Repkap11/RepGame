@@ -1,18 +1,19 @@
 #! terrain
 #! timeout 300
-# Nether fortress generation: deterministic structure at grid cell (-1,0)
-# — anchor (-187,67), deck y -5876 (anchor selection favours the lowest
-# cavern floor in the cell, i.e. open cavern / lava basins). Asserts
-# through the real chunk-load path: keep floor/interior carve, generated
-# CHEST slots (lower hall + upper room) and the inert MOB_SPAWNER the
-# upper room carries. Loot contents are covered by test_fortress;
-# positions verified via rep-dbg inspect.
+# Nether fortress generation: deterministic structure at grid cell (1,-1)
+# — anchor (432,-140), deck y -5886, hovering over a lava basin (anchor
+# selection scores candidates by open floor-to-roof air and never places
+# a deck below the floor, so complexes sit in open cavern / over the
+# sea rather than embedded). Asserts through the real chunk-load path:
+# keep floor/interior carve, generated CHEST slots (lower hall + upper
+# room) and the inert MOB_SPAWNER the upper room carries. Loot contents
+# are covered by test_fortress; positions verified via the layout dump.
 wait_idle 20 6000
 debug 0
 imgui 0
 fly on
 rd 6
-goto -186.5 -5867 67.5
+goto 432.5 -5877 -139.5
 wait 120
 wait_idle 10 6000
 chatopen /
@@ -22,12 +23,12 @@ signkey enter
 wait 2
 assert_chat Dimension: nether
 # Keep: floor brick under the anchor, carved hall interior above it.
-assert_block -187 -5876 67 NETHER_BRICK
-assert_block -187 -5875 67 AIR
+assert_block 432 -5886 -140 NETHER_BRICK
+assert_block 432 -5885 -140 AIR
 # Lower-hall chest, upper-room chest + its inert spawner.
-assert_block -203 -5875 56 CHEST
-assert_block -171 -5869 76 CHEST
-assert_block -173 -5869 59 MOB_SPAWNER
-camera -186.5 -5870 67.5 45 -5
+assert_block 420 -5885 -149 CHEST
+assert_block 444 -5879 -133 CHEST
+assert_block 442 -5879 -146 MOB_SPAWNER
+camera 432.5 -5881 -139.5 45 -5
 screenshot fortress_keep
 echo fortress done
