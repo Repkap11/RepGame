@@ -191,7 +191,9 @@ mob pre-empt the block target for left clicks.
   occupies) and runs `player_placement_valid` /
   `can_be_placed_in` / `block_can_survive_at` rules; the write itself is
   a `PlayerBlockPlacedEvent` on the block-update queue
-  (`docs/redstone.md`), which is also where debris spawns. Rotation is
+  (`docs/redstone.md`), which is also where debris spawns — and where an
+  unsupported scaffolding write releases as a falling body instead of
+  rejecting (docs/blocks.md). Rotation is
   chosen by yaw (`rotate_on_placement`), face for torches, pitch for
   pistons (`getPlacedRotation`); wall-mounted blocks — anything whose
   `needs_place_on_any_solid` requires a side face, like ladders and

@@ -523,6 +523,24 @@ int test_scaffolding( ) {
     check_bool( "cascade: arm pops with the column", world.get_loaded_block( glm::ivec3( 14, 13, 10 ) ).id == AIR );
     check_bool( "cascade: lone scaffold still floats (unsupported but not woken)", world.get_loaded_block( glm::ivec3( 20, 20, 10 ) ).id == SCAFFOLDING );
 
+    // --- unsupported placement falls ---------------------------------------
+    // player_placement_valid accepts scaffolding anywhere placeable — an
+    // unsupported write releases as a falling body that lands grounded.
+    check_bool( "place: unsupported scaffold cell is still valid",
+                player_placement_valid( world, glm::ivec3( 14, 14, 10 ), scaffold ) );
+    gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, glm::ivec3( 14, 14, 10 ), scaffold, false );
+    test_run_game_ticks( gs, 2 );
+    check_bool( "fall: unsupported write left the cell air", world.get_loaded_block( glm::ivec3( 14, 14, 10 ) ).id == AIR );
+    check_bool( "fall: a falling body spawned", world.bodies.count_falling( ) == 1 );
+    for ( int i = 0; i < 4 * UPS_RATE && world.bodies.count_falling( ) > 0; i++ ) {
+        gs.tick_number++;
+        world.bodies.tick( gs );
+        repgame_drain_block_updates( gs );
+    }
+    failures += check_id( world, "fall: scaffold landed grounded on the floor", glm::ivec3( 14, 10, 10 ), SCAFFOLDING );
+    check_bool( "fall: no bodies remain", world.bodies.count_falling( ) == 0 );
+    check_bool( "fall: the landed scaffold is supported", survive( glm::ivec3( 14, 10, 10 ) ) );
+
     // --- collision: the lip only ------------------------------------------
     // Fresh tower: single scaffold cell at (11,10,10) over the stone floor.
     world.set_loaded_block( glm::ivec3( 11, 10, 10 ), scaffold );

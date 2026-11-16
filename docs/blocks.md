@@ -204,7 +204,12 @@ Support is MC Java's distance rule: `scaffolding_supported`
 column is free, each horizontal hop costs 1 — and the cell survives while
 a column resting on a colliding non-scaffold block is reachable within
 `SCAFFOLDING_MAX_DISTANCE` (6) steps; the generic neighbor-update kill
-path then cascades the pop through the structure. Scaffolding is also
+path then cascades the pop through the structure. Placement is never
+rejected on support: `player_placement_valid` always accepts scaffolding
+in a placeable cell, and an unsupported write releases as a falling body
+(`PlayerBlockPlacedEvent`, docs/entities.md) that drops to the ground and
+lands as a new grounded column base — an over-extended arm can keep
+growing. Scaffolding is also
 `climbable`, with its own hang/descend feel (docs/player.md), and clicking
 a scaffold while holding scaffolding redirects by the face hit
 (RepGame::change_block — MC's use-on redirect): a side face towers onto

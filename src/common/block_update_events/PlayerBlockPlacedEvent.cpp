@@ -150,6 +150,12 @@ bool player_placement_valid( World &world, const glm::ivec3 &pos, const BlockSta
     if ( new_block->bed_partner != LAST_BLOCK_ID && !new_block->is_bed_head ) {
         return bed_foot_can_place( world, pos, blockState );
     }
+    if ( new_block->is_scaffolding ) {
+        // Scaffold placement never rejects on support: an unsupported write
+        // releases as a falling body (PlayerBlockPlacedEvent) that lands as
+        // a new grounded column base.
+        return true;
+    }
     return block_can_survive_at( world, pos, blockState );
 }
 
@@ -331,6 +337,12 @@ void PlayerBlockPlacedEvent::performAction( RepGameState &repGameState ) {
     // torch on a missing attachment): it would sit for a tick and then pop
     // off, spawning break debris for a block that was never really placed.
     if ( !this->state_update && !block_can_survive_at( repGameState.world, this->block_pos, this->blockState ) ) {
+        // Scaffolding is the exception: an unsupported write releases as a
+        // falling body that drops to the ground and lands as a new grounded
+        // column base, so an over-extended arm can keep growing.
+        if ( this->blockState.id != AIR && new_block->is_scaffolding ) {
+            repGameState.world.bodies.spawn_falling( this->block_pos, this->blockState, glm::dvec3( 0.0 ) );
+        }
         return;
     }
     // A stale survival-kill (non-update AIR write) must not clobber a piston
