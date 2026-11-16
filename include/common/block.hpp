@@ -291,7 +291,7 @@ static inline void piston_base_shape( unsigned char rotation, short scale[ 3 ], 
 // the 2px drawn stick so torches are easier to hit. Both the ray test
 // (ray_traversal.cpp) and the selection outline (mouse_selection.cpp) use it;
 // the drawn mesh and debris stay on the 2px stick. Wall mounts (rotation 4-7)
-// hug their wall with the same mapping chunk.cpp applies.
+// hug their wall with the same mapping chunk_mesh.cpp applies.
 static inline void torch_pick_shape( const Block *b, unsigned char rotation, short scale[ 3 ], short offset[ 3 ] ) {
     scale[ 0 ] = 4;
     scale[ 1 ] = b->scale.y;
@@ -348,7 +348,7 @@ typedef struct {
     unsigned char skip_faces;
 } BlockBox;
 
-// The pick/collision boxes a piston cell actually renders (chunk.cpp emits
+// The pick/collision boxes a piston cell actually renders (chunk_mesh.cpp emits
 // the same pair): a head is the plate plus the 4x4 arm shaft spanning the
 // 12px back to the cell's base end; an extended base is the recessed body
 // plus the 4x4x4 arm stub seated in its open throat. All world-space for

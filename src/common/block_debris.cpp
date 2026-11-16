@@ -48,7 +48,7 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
     const float time_s = static_cast<float>( fmod( now_us( ) / 1.0e6, TIME_WRAP ) );
     const Block *block = block_definition_get_definition( blockState.id );
     // Resolve the displayed textures the same way chunk meshing does
-    // (chunk.cpp): per-face lookup, then state-based adjustment.
+    // (chunk_mesh.cpp): per-face lookup, then state-based adjustment.
     BlockCoords coords = {};
     for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
         coords.face[ f ] = block->textures[ f ];
@@ -95,7 +95,7 @@ void BlockDebris::spawn_block_break( const glm::ivec3 &block_pos, const BlockSta
         offset16.z = 16 - block->scale.x - ox;
     }
     // Wall-mounted torches (rotation 4-7) hug their wall — the same offset
-    // push chunk.cpp applies.
+    // push chunk_mesh.cpp applies.
     if ( block->is_torch ) {
         if ( rot == 4 ) {
             offset16.x = 0;

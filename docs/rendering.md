@@ -134,7 +134,7 @@ per-platform defines in `chunk_dimensions.hpp`). The chunk torus is always alloc
 ## Translucent blocks (stained glass, ice, honey, slime, ...)
 
 Blocks with `renderOrder = RenderOrder_Translucent` draw in their own pass
-inside `ChunkLoader::draw` (`src/common/chunk_loader.cpp`), after opaque and
+inside `ChunkLoader::draw` (`src/common/chunk_loader_draw.cpp`), after opaque and
 flowers and before the dedicated water pass. `REPGAME_TRANSLUCENT_BLEND`
 selects the compositing mode:
 

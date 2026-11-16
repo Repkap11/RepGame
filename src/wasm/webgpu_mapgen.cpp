@@ -17,7 +17,7 @@
 //     wakes on cv            <---          repack u32->BlockCell, signal cv
 //
 // A lost/absent device flips init_state to FAILED; queued jobs complete with
-// ok=0 and chunk.cpp falls back to load_block_c — the same graceful-degrade
+// ok=0 and chunk_load.cpp falls back to load_block_c — the same graceful-degrade
 // shape as load_block_hip.
 //
 // Sizing mirrors hip_set_block in src/linux/hip/map_gen.hip: one invocation

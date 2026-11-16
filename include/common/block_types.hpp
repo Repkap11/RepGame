@@ -234,7 +234,7 @@ typedef struct {
     // whole side tile (opaque interior = inset body, edge columns = spines
     // at the boundary). Top/bottom are culled against covering neighbors.
     // The block's own scale/offset then describes only the pick/collision
-    // box (chunk.cpp phase 2 emits the mesh).
+    // box (chunk_mesh.cpp phase 2 emits the mesh).
     bool spine_shell;
     // Standing signs draw as two boxes (standing_sign_boxes in block.cpp):
     // a 16x9x2 board plate at the top of the cell plus a 2-wide post under

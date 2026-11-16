@@ -54,7 +54,7 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
     }
     if ( block->is_fence ) {
         // Build the connection mask from the 4 horizontal neighbours, the
-        // same rules as the mesher in chunk.cpp phase 2; an unloaded cell
+        // same rules as the mesher in chunk_mesh.cpp phase 2; an unloaded cell
         // (LAST_BLOCK_ID) doesn't connect.
         unsigned connections = 0;
         static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
@@ -109,7 +109,7 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
     if ( block->is_stairs ) {
         // Neighbor stair rotations for the corner derive (stair_rots[d] =
         // rotation of the stair in world direction d, -1 = not a stair) —
-        // the same gather the mesher does in chunk.cpp phase 2; an unloaded
+        // the same gather the mesher does in chunk_mesh.cpp phase 2; an unloaded
         // cell doesn't merge.
         static const glm::ivec3 stair_dirs[ 4 ] = {
             glm::ivec3( 0, 0, -1 ), glm::ivec3( 1, 0, 0 ), glm::ivec3( 0, 0, 1 ), glm::ivec3( -1, 0, 0 ),

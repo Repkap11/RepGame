@@ -2,7 +2,7 @@
 
 // ---------------------------------------------------------------------------
 // mesh_gen_fns.hpp — dialect helper functions for phase-1 meshing, shared by
-// the CPU loop (chunk.cpp), the HIP kernel (mesh_gen.hip), and the WGSL
+// the CPU loop (chunk_mesh.cpp), the HIP kernel (mesh_gen.hip), and the WGSL
 // WebGPU kernel (mesh_gen.wgsl). Requires the tables/GPUBlockDef from
 // mesh_gen_shared.hpp (included here).
 //
@@ -62,7 +62,7 @@ MG_FN3( int, mesh_slab_face, GPUBlockDef, block, int, rotation, int, face ) {
     return face;
 }
 
-// Mirror of chunk.cpp's face_is_seethrough: a powered piston base recesses
+// Mirror of chunk_mesh.cpp's face_is_seethrough: a powered piston base recesses
 // 4px at its head end, so every def-space face except the covered back face
 // lets neighbor faces show through. A piston head plate only ever covers
 // its head-end face — the def's is_seethrough_face can't express the

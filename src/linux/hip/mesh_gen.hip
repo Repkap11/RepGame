@@ -1,6 +1,6 @@
 // HIP phase-1 mesh kernel — the per-cell visibility + packed-lighting logic
 // is NOT written here: it comes from mesh_vis_logic.hpp, the same dialect
-// source the CPU loop (chunk.cpp) and the WGSL WebGPU kernel consume.
+// source the CPU loop (chunk_mesh.cpp) and the WGSL WebGPU kernel consume.
 // This file provides only the kernel scaffolding (index decode, buffer
 // management, launch + readback).
 

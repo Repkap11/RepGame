@@ -260,7 +260,7 @@ aggregate cleanly and A/B well.
 - Instrumented sites: `profile.hpp`/`game_tick.cpp` ("tick"),
   `game_render.cpp` ("draw_frame"), `world.cpp` ("world_draw"),
   `light.cpp`/`light_chunks.cpp` ("light_bfs" — per-column BFS drain on the light workers, "light_finalize"),
-  `terrain_loading_thread.cpp` ("terrain_job"), `chunk.cpp`
+  `terrain_loading_thread.cpp` ("terrain_job"), `chunk_mesh.cpp`
   ("chunk_mesh"), `mobs.cpp` ("mobs_tick"), `player.cpp`
   ("player_movement", "block_updates"). Implementation:
   `src/common/utils/profile.cpp`.

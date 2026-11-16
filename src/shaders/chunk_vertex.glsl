@@ -327,7 +327,7 @@ void main() {
     }
 
     // FACE_RIGHT/FRONT/LEFT/BACK = +x/+z/-x/-z. vd_data_solid puts FRONT
-    // vertices at z=1.0 / BACK at z=0.0, and chunk.cpp's shading checks the
+    // vertices at z=1.0 / BACK at z=0.0, and chunk_render.cpp's shading checks the
     // z+1 neighbor for FRONT (f) and z-1 for BACK (ba).
     //
     // Use faceType, NOT faceType_rotated: the rotation transform only

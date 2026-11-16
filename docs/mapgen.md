@@ -10,7 +10,7 @@ seed.
 
 ## The pipeline
 
-`Chunk::load_terrain` (`src/common/chunk.cpp`) runs on the
+`Chunk::load_terrain` (`src/common/chunk_load.cpp`) runs on the
 `TerrainLoadingThread` worker pool:
 
 1. `map_storage.load_chunk` — a saved chunk file always wins; generation

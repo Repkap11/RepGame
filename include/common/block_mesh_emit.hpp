@@ -6,7 +6,7 @@
 // sign models, the redstone-torch orb, repeater torches + glow, the piston
 // head arm and extended-base stub, cactus spine shells, rail underside
 // tile/cull, dust side strips, wall-torch offsets and fluid metadata.
-// Extracted from chunk.cpp phase 2 so a sliding/falling block draws its
+// Extracted from chunk_mesh.cpp phase 2 so a sliding/falling block draws its
 // real model through the shared chunk shader.
 
 #include <glm/glm.hpp>

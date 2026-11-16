@@ -1,6 +1,6 @@
 // mesh_vis_logic.hpp — phase-1 per-cell mesh logic in the wgsl_dialect.hpp
 // dialect, included inside the per-cell loop of every meshing backend (CPU
-// in chunk.cpp, HIP in mesh_gen.hip, WebGPU in mesh_gen.wgsl) the same way
+// in chunk_mesh.cpp, HIP in mesh_gen.hip, WebGPU in mesh_gen.wgsl) the same way
 // map_logic.hpp is included inside the mapgen kernels.
 //
 // In scope at the include site (each backend provides):

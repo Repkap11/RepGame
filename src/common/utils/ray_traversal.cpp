@@ -305,20 +305,20 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
             num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
         } else if ( block->is_wall ) {
             // Wall arms are solid — the rendered boxes are the pick boxes.
-            // Same mask gather as collision.cpp/chunk.cpp phase 2.
+            // Same mask gather as collision.cpp/chunk_mesh.cpp phase 2.
             const unsigned mask = wall_connection_mask( [ & ]( int dx, int dy, int dz ) {
                 return world.get_loaded_block( block_pos + glm::ivec3( dx, dy, dz ) );
             } );
             num_boxes = wall_boxes( mask, boxes );
         } else if ( block->is_bars ) {
             // Bar arms are solid — the rendered boxes are the pick boxes.
-            // Same mask gather as collision.cpp/chunk.cpp phase 2.
+            // Same mask gather as collision.cpp/chunk_mesh.cpp phase 2.
             const unsigned mask = bars_connection_mask( [ & ]( int dx, int dy, int dz ) {
                 return world.get_loaded_block( block_pos + glm::ivec3( dx, dy, dz ) );
             } );
             num_boxes = bars_boxes( mask, boxes );
         } else {
-            // Same connection gather as collision.cpp/chunk.cpp phase 2.
+            // Same connection gather as collision.cpp/chunk_mesh.cpp phase 2.
             static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
                 { 1, 0, FENCE_CONNECT_POS_X, 1 },
                 { -1, 0, FENCE_CONNECT_NEG_X, 1 },

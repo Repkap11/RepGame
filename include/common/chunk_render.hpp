@@ -34,7 +34,7 @@ class RenderLayer {
     glm::vec3 translucent_sort_dir;
     int translucent_sort_valid;
     // Index data is a pure function of the chunk's 6-bit face-visibility mask,
-    // so all variants live in one shared element buffer (chunk.cpp) and each
+    // so all variants live in one shared element buffer (chunk_render.cpp) and each
     // layer stores {byte offset, element count} per pass: [0]=normal,
     // [1]=reflect. count==0 draws nothing (e.g. water has no reflect variant).
     unsigned int ib_offset[ 2 ];

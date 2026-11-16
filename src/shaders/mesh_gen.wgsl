@@ -5,7 +5,7 @@
 //
 // Phase-1 meshing (per-cell visibility + packed lighting) comes from the
 // single-source dialect — mesh_gen_shared.hpp, mesh_gen_fns.hpp,
-// mesh_vis_logic.hpp — the same text the CPU loop (chunk.cpp) and the HIP
+// mesh_vis_logic.hpp — the same text the CPU loop (chunk_mesh.cpp) and the HIP
 // kernel (mesh_gen.hip) compile. Only this wrapper (bindings, the u16->u32
 // cell unpack, the draw-range dispatch, and the border zero-fill) is
 // WebGPU-specific.

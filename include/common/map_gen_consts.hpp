@@ -45,7 +45,7 @@
 
 // Overhang 3D noise and floating islands are gated to a y-band above the
 // heightmap; solid terrain can never appear higher than
-// terrainHeight + OVERHANG_MAX_RISE. chunk.cpp's empty-chunk early-out relies
+// terrainHeight + OVERHANG_MAX_RISE. chunk_mesh.cpp's empty-chunk early-out relies
 // on this bound being correct.
 #define OVERHANG_MAX_RISE 60.0f
 

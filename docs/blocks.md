@@ -74,7 +74,7 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   Bedrock's clipped core is plain yellow-white and reads as a normal torch.
   `redstone_torch_glow` (`keep`) is the solid fd0000 tile for the lit
   torch's inward-facing 3x3x3 glow shell (Java's `template_redstone_torch`),
-  emitted in `chunk.cpp` with the `BLOCK_COORDS_INSIDE_OUT |
+  emitted in `chunk_mesh.cpp` with the `BLOCK_COORDS_INSIDE_OUT |
   BLOCK_COORDS_HALF_PIXEL` `face_shift` flags — INSIDE_OUT mirrors the unit
   cube so every quad faces inward (back-face culling leaves the far walls),
   HALF_PIXEL makes scale/offset/tex_offset 1/32-block units instead of
@@ -413,7 +413,7 @@ face covers it (`mesh_face_seethrough`, Java's `cullface`). With
 `spine_shell` the block's `scale`/`offset`/`tex_offset` describe only the
 pick/collision/icon box (cactus uses `[14,16,14]`/`[1,0,1]`), and
 `can_mesh_*` is disabled so emission stays per-cell — see `cactus.json` and
-the `block->spine_shell` block in chunk.cpp phase 2.
+the `block->spine_shell` block in chunk_mesh.cpp phase 2.
 
 `"is_bamboo": true` (bamboo stalks) is a two-order model: the def box is
 the thin 4px stalk drawn in the block's own order, and a cell whose
@@ -433,7 +433,7 @@ only the canonical front-facing plate, and an extended base
 `block_adjust_coord_based_on_state` bakes the real box per state and
 `piston_head_shape`/`piston_base_shape` (block.hpp) give the same
 world-space box for all six rotations. Phase-2 greedy merging keys off that
-effective box rather than the def scale (chunk.cpp): a run only tiles along
+effective box rather than the def scale (chunk_mesh.cpp): a run only tiles along
 axes the box fully spans, so head plates merge in the plate plane and never
 along their thin axis. In `chunk_vertex.glsl` the top/bottom face UV window
 must still pick up `mesh_size` for the non-yaw up/down rotations — without
@@ -480,7 +480,7 @@ carried block so a cell that outlives its side-table entry still lands
 correctly (see docs/redstone.md for the move lifecycle).
 
 Fences and fence gates draw several box instances per cell in the CPU
-meshing pass (chunk.cpp phase 2, `fence_boxes`/`fence_gate_boxes` in
+meshing pass (chunk_mesh.cpp phase 2, `fence_boxes`/`fence_gate_boxes` in
 block.cpp): a 4x16x4 post plus 2px rails that connect to neighbors.
 Wooden fences connect to any wooden fence, nether brick only to nether
 brick, and every fence connects to gates whose span axis matches the
@@ -562,7 +562,7 @@ fence/wall stretch), so there is no stretch or pick-merge variant. Icons
 draw a straight z segment via `bars_icon_boxes` in the fence icon's
 back-to-front painter's order.
 
-Stairs render as 2-3 box instances per cell (chunk.cpp phase 2,
+Stairs render as 2-3 box instances per cell (chunk_mesh.cpp phase 2,
 `stairs_boxes` in block.cpp): a full-width half slab plus a full-height
 step half — `rotation` bits 0-1 hold the facing (the yaw index doubles as
 the world-direction index, 0=-z/1=+x/2=+z/3=-x, matching
@@ -907,7 +907,7 @@ clockwise per yaw step), so SE/SW/NW/NE render at yaw 2/3/0/1.
 Placement pre-resolves the shape from `camera.angle_H`
 (`src/common/game/player.cpp`) so there's no wrong-shape flash, and
 `perform_checks` re-resolves on every neighbour change. In the mesher
-(`chunk.cpp` phase 2) rails emit one instance per cell with
+(`chunk_mesh.cpp` phase 2) rails emit one instance per cell with
 `face_shift = rail_render_yaw(shape)` — plus `BLOCK_COORDS_SLOPE` for
 ascending shapes, which makes `chunk_vertex.glsl` raise the uphill end
 of the plate (the rotation nibble doubles as the uphill direction:

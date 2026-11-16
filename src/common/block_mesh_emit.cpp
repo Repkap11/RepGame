@@ -8,7 +8,7 @@
 #include "common/repeater.hpp"
 
 // Per-cell BlockCoords emission shared by chunk meshing (block_emit_cell
-// replaces chunk.cpp's old phase-2 emit block) and block bodies, which call
+// replaces chunk_mesh.cpp's old phase-2 emit block) and block bodies, which call
 // it with a fractional origin, mesh size 1, an all-BRIGHT light set and
 // cull_against_neighbors = false. The code below is the verbatim port of
 // that emit block — keep the two in lockstep when touching shapes.

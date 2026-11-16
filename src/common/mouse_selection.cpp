@@ -115,7 +115,7 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         // The pick boxes: the post plus one merged rail bar per connected
         // axis (the two rendered rails merged so the outline shows the same
         // box the ray hits), from the same connection gather collision.cpp
-        // and chunk.cpp phase 2 do (unloaded cells don't connect).
+        // and chunk_mesh.cpp phase 2 do (unloaded cells don't connect).
         static const int conn_dir[ 4 ][ 4 ] = { // dx, dz, connect bit, along_x
             { 1, 0, FENCE_CONNECT_POS_X, 1 },
             { -1, 0, FENCE_CONNECT_NEG_X, 1 },
@@ -152,7 +152,7 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
                                         : piston_base_boxes( blockState.rotation, boxes );
     } else if ( block->is_standing_sign || block->is_hanging_sign ) {
         // The same board plate + post / chain strands the raycast hits and
-        // chunk.cpp draws — yawed to world space like the stair boxes.
+        // chunk_mesh.cpp draws — yawed to world space like the stair boxes.
         num_boxes = block->is_standing_sign ? standing_sign_boxes( boxes ) : hanging_sign_boxes( boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
             block_rotate_box( block_yaw( block, blockState.rotation ), boxes[ i ].scale, boxes[ i ].offset );

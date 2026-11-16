@@ -7,6 +7,23 @@ light → mesh → draw → edit → park. Terrain generation itself is
 `docs/mapgen.md`; the render pipeline consuming the meshes is
 `docs/rendering.md`. This doc is about the lifecycle and the queues.
 
+The implementation is split along the worker/render-thread boundary:
+
+- `src/common/chunk.cpp` — `Chunk` lifecycle, block storage,
+  persistence helpers.
+- `src/common/chunk_load.cpp` — `Chunk::load_terrain`: mapgen,
+  structures, saved-edit overlay, mob/chest/furnace/sign loading, light
+  init — all on the terrain workers.
+- `src/common/chunk_mesh.cpp` — `calculate_populated_blocks` /
+  `build_mesh` CPU meshing, fluid corners, the async `MeshJob` bodies.
+- `src/common/chunk_render.cpp` — shared index buffers, GL init,
+  `program_terrain`/`unprogram_terrain`, `Chunk::draw`, translucent
+  sort — render thread only.
+- `src/common/chunk_loader.cpp` — `ChunkLoader` streaming/update:
+  window slots, queueing, finalize, remesh, diffs, parking.
+- `src/common/chunk_loader_draw.cpp` — drawable lists, culling and
+  `ChunkLoader::draw` — render thread only.
+
 `Chunk` groups its per-subsystem state into three plain sub-structs —
 `chunk.light` (`ChunkLight`: light volume, masks, dirty/stale/staging
 state), `chunk.sidecars` (`ChunkSidecars`: mob/item sidecar staging,

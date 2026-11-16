@@ -79,7 +79,7 @@ int test_fluids( ) {
     };
 
     // --- Corner heights: the pure surface-shape math the mesher packs per
-    // cell (chunk.cpp's fluid_pack_corners feeds these into BlockCoords).
+    // cell (chunk_mesh.cpp's fluid_pack_corners feeds these into BlockCoords).
     {
         const FluidCornerCell level5 = { fluid_level_height( 5, 7 ), false, false }; // 21/64
         const FluidCornerCell air_cell = { -1, false, false };

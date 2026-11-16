@@ -11,7 +11,7 @@
 //                 emits WGSL text into the mesh_gen.wgsl compute shader.
 //
 // This header is also the canonical home for the face-direction/opposite/
-// rotation lookup tables and the piston face tables — block.hpp and chunk.cpp
+// rotation lookup tables and the piston face tables — block.hpp and chunk_mesh.cpp
 // consume them from here rather than keeping their own copies (previously
 // the HIP kernel duplicated them a third time).
 //

@@ -331,7 +331,7 @@ int piston_head_boxes( unsigned char rotation, BlockBox out[ PISTON_MAX_BOXES ] 
     piston_head_shape( rotation, scale, offset );
     block_box_from_shape( scale, offset, &out[ 0 ] );
     // The 4x4 shaft fills the 12px between the plate and the cell's base
-    // end, centred on the other two axes — same box chunk.cpp's arm
+    // end, centred on the other two axes — same box chunk_mesh.cpp's arm
     // instance draws.
     out[ 1 ].scale[ 0 ] = 4;
     out[ 1 ].scale[ 1 ] = 4;
@@ -368,7 +368,7 @@ int piston_base_boxes( unsigned char rotation, BlockBox out[ PISTON_MAX_BOXES ] 
     piston_base_shape( rotation, scale, offset );
     block_box_from_shape( scale, offset, &out[ 0 ] );
     // The 4x4x4 arm stub seated in the open throat at the head end — same
-    // box chunk.cpp's throat-stub instance draws.
+    // box chunk_mesh.cpp's throat-stub instance draws.
     out[ 1 ].scale[ 0 ] = 4;
     out[ 1 ].scale[ 1 ] = 4;
     out[ 1 ].scale[ 2 ] = 4;
