@@ -80,6 +80,19 @@ to `out->arrow_shots`, and `RepGame::tick_entities` spawns it as a
 the player hitboxes instead of `mobs.raycast`, so a skeleton can't
 friendly-fire another mob and can't be hit by its own arrow. A
 `fall_cap` per type limits downward speed (chickens and bees glide at 0.02).
+Blazes (`MOB_AI_HOSTILE_BLAZE`) are nether archers: they hover ~1 block
+off the ground (`hover_h`) and share the skeleton's strafing stand-off
+band, but the attack is a 3-shot fireball volley — when the attack
+cooldown clears with a clear pick line, `volley_ticks` counts 15 down
+to 0 firing one flat-trajectory `mob_fired`+`fireball` arrow every 5
+ticks (no gravity/drag, bursts on block impact instead of sticking,
+billboard `FIRE_CHARGE` sprite — docs/entities.md), then a ~4 s
+cooldown. Pressed against the player they hit on contact like a melee
+mob instead. There's no natural spawn (`spawn_chance` 0): the
+`BLAZE_SPAWN_EGG`, `n`-key debug cycle or `REPGAME_MOB_TEST` place them.
+The `MOB_ANIM_BLAZE_RODS` animator orbits the 12 `upperBodyParts` bones
+about their shared pivot and bobs them on `wing_phase`. Drops 0-1
+`BLAZE_ROD`.
 `hover_h` > 0 swaps gravity for a spring easing the feet to `hover_h`
 above the highest ground found in the mob's own column and a look-ahead
 column scanned from above the head — a ledge or tree canopy reads as
@@ -219,7 +232,7 @@ always fit, and the live count can exceed the cap.
   The mob can still be hit (hurt flash + tip-over death) but never moves.
 - `n` — debug spawn key: drops a mob three blocks in front of the
   player, cycling pig → cow → chicken → sheep → zombie → creeper → bee →
-  cat → skeleton → zombified_piglin → wither_skeleton on successive
+  cat → skeleton → zombified_piglin → wither_skeleton → blaze on successive
   presses (`MobManager::spawn_in_front`; edge-triggered
   through `Input`, handled in `RepGame::tick`, persistent, uncapped).
   The ImGui overlay shows `Mobs: <n> (players <m>)` — remote players
@@ -309,7 +322,8 @@ Adding a mob:
    despawnable spawner's pick, `burns_in_daylight` for undead-overworld
    burning), AI profile (`MOB_AI_PASSIVE`,
    `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`,
-   `MOB_AI_HOSTILE_RANGED`, `MOB_AI_REMOTE`),
+   `MOB_AI_HOSTILE_RANGED`, `MOB_AI_HOSTILE_BLAZE`,
+   `MOB_AI_REMOTE`),
    animation mask (`MOB_ANIM_*` — quadruped/humanoid walk, head look,
    death tip, sneak, wing flap, creeper swell) and the head/leg/arm/
    body/wing bone names the animators bind to (NULL = unused).

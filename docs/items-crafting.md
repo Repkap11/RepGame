@@ -56,7 +56,10 @@ zombies; `BONE_MEAL` (`dye_powder_white_new` icon, shapeless 1 bone ->
 advances a crop one `crop_next` stage, consuming one in survival.
 `<TYPE>_SPAWN_EGG` items
 (`textures/items/spawn_eggs/` icons) hatch their mob on right-click —
-see `docs/mobs.md`. `MINECART` (`minecart_normal` icon, `max_stack` 1,
+see `docs/mobs.md`. `FIRE_CHARGE` (`fireball` icon) supplies the blaze
+fireball's billboard sprite, `BLAZE_ROD` (`blaze_rod` icon) is the
+blaze's kill drop, and `BLAZE_SPAWN_EGG` hatches one.
+`MINECART` (`minecart_normal` icon, `max_stack` 1,
 recipe five iron ingots `"# #"/"###"`) places a minecart on a rail on
 right-click (`docs/entities.md`). The ten boats — `OAK_BOAT` …
 `POPLAR_BOAT` (`boat_*`/`cherry_boat`/`mangrove_boat`/`pale_oak_boat`/

@@ -64,6 +64,7 @@ struct MobArrowShot {
     glm::dvec3 pos;
     glm::dvec3 vel;
     float damage;
+    int fireball = 0; // blaze fireball: flat flight, bursts on impact
 };
 
 // Per-tick results for RepGame: melee hits to apply, ranged bow shots to
@@ -145,6 +146,7 @@ class MobManager {
         int strafe_ticks;   // ranged strafe: ticks left on the current side
         int strafe_dir;     // ranged strafe: +1/-1 side the mob is circling
         int fuse_ticks;     // creeper fuse; >0 while lit, counts down to defuse
+        int volley_ticks = 0; // blaze: >0 during a 3-shot volley, fires every 5 ticks
         int burn_acc;       // daylight-burn damage accumulator ticks
         float wing_phase;   // wing-flap oscillator
         // Breeding (types with MobTypeDef::breed_items): love_ticks > 0 is

@@ -737,3 +737,13 @@ attack_sweep_4|mc_pack/entity/player/attack/sweep4.wav|sfx|Melee sweep
 attack_sweep_5|mc_pack/entity/player/attack/sweep5.wav|sfx|Melee sweep
 attack_sweep_6|mc_pack/entity/player/attack/sweep6.wav|sfx|Melee sweep
 attack_sweep_7|mc_pack/entity/player/attack/sweep7.wav|sfx|Melee sweep
+blaze_say_1|mc_pack/mob/blaze/breathe1.wav|sfx|Blaze breathe
+blaze_say_2|mc_pack/mob/blaze/breathe2.wav|sfx|Blaze breathe
+blaze_say_3|mc_pack/mob/blaze/breathe3.wav|sfx|Blaze breathe
+blaze_say_4|mc_pack/mob/blaze/breathe4.wav|sfx|Blaze breathe
+blaze_hurt_1|mc_pack/mob/blaze/hit1.wav|sfx|Blaze hurt
+blaze_hurt_2|mc_pack/mob/blaze/hit2.wav|sfx|Blaze hurt
+blaze_hurt_3|mc_pack/mob/blaze/hit3.wav|sfx|Blaze hurt
+blaze_hurt_4|mc_pack/mob/blaze/hit4.wav|sfx|Blaze hurt
+blaze_death|mc_pack/mob/blaze/death.wav|sfx|Blaze death
+blaze_shoot|mc_pack/mob/ghast/fireball4.wav|sfx|Blaze fireball launch

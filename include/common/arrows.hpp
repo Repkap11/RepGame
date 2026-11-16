@@ -22,6 +22,7 @@ struct MobRemoteTarget; // mobs.hpp — remote-player target info
 #define NET_ARROW_FLAG_STUCK ( 1u << 0 )            // parked in a block
 #define NET_ARROW_FLAG_ATTACKER_SURVIVAL ( 1u << 1 ) // shooter's mode at fire
 #define NET_ARROW_FLAG_MOB_FIRED ( 1u << 2 )        // mob-fired: hits players, not mob hitboxes
+#define NET_ARROW_FLAG_FIREBALL ( 1u << 3 )         // blaze fireball: flat flight, bursts on impact
 
 // Tick-driven arrow projectiles, modelled on ItemEntities/BlockBodies: a
 // headless CPU simulation (rep_tests run it without GL) with a render chain
@@ -58,6 +59,7 @@ class ArrowEntities {
         float damage = ARROW_DAMAGE;
         int attacker_survival = 1; // shooter's mode at fire: gates kill drops
         int mob_fired = 0;         // mob-shot arrow: targets players, not mob hitboxes
+        int fireball = 0;          // blaze fireball: no gravity, bursts on impact, never sticks
         int stuck = 0;             // parked in a block: no integration
         glm::ivec3 stuck_cell = glm::ivec3( 0 ); // cell the embedded tip rests in
         int age_ticks = 0;
@@ -103,11 +105,11 @@ class ArrowEntities {
     // Returns its id (never 0): at the cap the oldest arrow is evicted.
     // mob_fired arrows (skeleton shots) collide with player hitboxes instead
     // of mobs; the flag rides the wire for mirrors/adoption.
-    uint32_t spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, float damage, int attacker_survival, bool mob_fired = false, bool from_net = false );
+    uint32_t spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, float damage, int attacker_survival, bool mob_fired = false, bool fireball = false, bool from_net = false );
 
     // Rebuilds the instance buffer for this frame. alpha interpolates
     // prev_pos -> pos; camera_pos rolls each sprite's plane toward the eye.
-    void update_render( float alpha, const ChunkLoader &chunk_loader );
+    void update_render( float alpha, const ChunkLoader &chunk_loader, const glm::mat4 &view_look );
     void draw( const Renderer &renderer, const Shader &item_sprite_shader );
 
     size_t count( ) const { return this->arrows.size( ); }

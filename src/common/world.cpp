@@ -644,8 +644,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->bodies.update_render( alpha, this->chunkLoader );
     // Rebuild the dropped-item transforms (cubes + extruded sprites).
     this->items.update_render( alpha, this->chunkLoader );
-    // Rebuild the arrow transforms (velocity-aligned extruded sprites).
-    this->arrows.update_render( alpha, this->chunkLoader );
+    // Rebuild the arrow transforms (velocity-aligned extruded sprites; fireballs billboard).
+    this->arrows.update_render( alpha, this->chunkLoader, view_look );
     // Rebuild the minecart part transforms (mob model cubes).
     this->vehicles.update_render( alpha, this->chunkLoader );
     this->blockDebris.draw( this->renderer, this->debris_shader, time_s );      // Break particles

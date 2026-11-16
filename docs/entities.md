@@ -135,6 +135,12 @@ instead. move_box only clamps faces the leading edge crosses, so
 a spawn already inside a solid (a point-blank release into a wall) is
 settled as a block hit where it sits (`Collision::box_collides`) instead
 of tunnelling through. Lava/fire contact destroys the arrow with a `fizz`.
+Blaze fireballs (`NET_ARROW_FLAG_FIREBALL`, set by `MOB_AI_HOSTILE_BLAZE`'s
+volley shots) are the same sim with the flag on: flat trajectory (no
+gravity or medium drag, and lava/fire don't destroy them), they burst
+with a `fizz` on block impact instead of sticking, and they render as a
+camera-facing `FIRE_CHARGE` billboard ~1.2 blocks wide rather than the
+velocity-aligned arrow sprite.
 
 A block hit parks the arrow: `stuck` freezes the sim with the tip ~0.1
 inside the hit face (`stuck_cell` is the cell whose collision face stopped

@@ -456,7 +456,7 @@ void RepGame::tick_entities( ) {
     // Ranged hostiles' released shots become mob-fired arrows — they target
     // player hitboxes, not mobs.
     for ( const MobArrowShot &shot : mob_out.arrow_shots ) {
-        gs.world.arrows.spawn( shot.pos, shot.vel, shot.damage, 1, true );
+        gs.world.arrows.spawn( shot.pos, shot.vel, shot.damage, 1, true, shot.fireball != 0 );
     }
     for ( const ArrowEntities::ArrowPlayerHit &hit : arrow_out.player_hits ) {
         if ( hit.player_id < 0 ) {
