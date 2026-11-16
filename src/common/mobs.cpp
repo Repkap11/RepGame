@@ -571,7 +571,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
 
     const glm::ivec3 feet = glm::ivec3( glm::floor( mob.pos ) );
     const bool in_water = world.get_loaded_block( feet ).id == WATER || world.get_loaded_block( feet + glm::ivec3( 0, 1, 0 ) ).id == WATER;
-    const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER || def.ai == MOB_AI_HOSTILE_RANGED;
+    const bool hostile = def.ai == MOB_AI_HOSTILE_MELEE || def.ai == MOB_AI_HOSTILE_CREEPER || def.ai == MOB_AI_HOSTILE_RANGED || def.ai == MOB_AI_HOSTILE_BLAZE;
     // in==nullptr defaults: not targetable, noon (no burn), standing eye height.
     static const MobTickInput fallback_input = { false, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
     if ( in == nullptr ) {
@@ -757,6 +757,57 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                     audio_play_sfx_gain( "bow_shoot", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
                     std::uniform_real_distribution<double> cooldown( 1.6, 2.4 );
                     mob.attack_ticks = static_cast<int>( cooldown( this->rng ) * UPS_RATE );
+                }
+            }
+        } else if ( def.ai == MOB_AI_HOSTILE_BLAZE ) {
+            mob.yaw += glm::clamp( wrap_degrees_180( want_yaw - mob.yaw ), -10.0f, 10.0f );
+            // Same circling stand-off band as the archer skeleton — the
+            // blaze floats just off the ground while it closes in.
+            if ( --mob.strafe_ticks <= 0 ) {
+                std::uniform_int_distribution<int> span( UPS_RATE, 3 * UPS_RATE );
+                mob.strafe_ticks = span( this->rng );
+                mob.strafe_dir = ( this->rng( ) & 1 ) ? 1 : -1;
+            }
+            strafing = true;
+            strafe_yaw = want_yaw;
+            if ( target_dist_xz < MOB_RANGED_NEAR ) {
+                strafe_yaw += mob.strafe_dir * 135.0f;
+            } else if ( target_dist_xz < MOB_RANGED_FAR ) {
+                strafe_yaw += mob.strafe_dir * 65.0f;
+            }
+            speed = def.chase_speed;
+            if ( mob.attack_ticks > 0 ) {
+                mob.attack_ticks--;
+            }
+            const glm::dvec3 aim = target_feet + glm::dvec3( 0.0, target_eye_h * 0.75, 0.0 );
+            if ( mob.volley_ticks > 0 ) {
+                // Mid-volley: 3 fireballs ~5 ticks apart on a flat
+                // trajectory with a little spread.
+                if ( mob.volley_ticks % 5 == 0 ) {
+                    std::uniform_real_distribution<double> spread( -0.15, 0.15 );
+                    const glm::dvec3 aim_at = aim + glm::dvec3( spread( this->rng ), spread( this->rng ), spread( this->rng ) );
+                    const glm::dvec3 vel = glm::normalize( aim_at - mob_eye ) * ArrowEntities::ARROW_SPEED * 0.8;
+                    if ( out != nullptr ) {
+                        out->arrow_shots.push_back( { mob_eye + glm::normalize( vel ) * 0.5, vel, def.attack_damage, 1 } );
+                    }
+                }
+                if ( --mob.volley_ticks == 0 ) {
+                    // Cooldown after the third shot (~4 s).
+                    std::uniform_real_distribution<double> cooldown( 3.2, 4.4 );
+                    mob.attack_ticks = static_cast<int>( cooldown( this->rng ) * UPS_RATE );
+                }
+            } else if ( target_dist_xz < def.hitbox_w / 2.0 + 0.3 + 0.5 && fabs( target_feet.y - mob.pos.y ) < 1.5 ) {
+                // Pressed against the player: contact hit instead of a volley.
+                mob.attack_ticks = UPS_RATE;
+                if ( out != nullptr ) {
+                    out->player_hits.push_back( { mob.pos, def.attack_damage, target_player_id } );
+                }
+            } else if ( mob.attack_ticks <= 0 && target_dist_xz < MOB_RANGED_SHOT_RANGE ) {
+                glm::ivec3 los_cell;
+                int los_face = 0;
+                if ( !RayTraversal::find_block_from_to( world, mob_eye, aim, los_cell, &los_face ) ) {
+                    mob.volley_ticks = 15; // shots at 15, 10, 5
+                    audio_play_sfx_gain( "blaze_shoot", audio_distance_gain( glm::distance( mob.pos, player_pos ) ) );
                 }
             }
         } else {
@@ -1304,7 +1355,7 @@ bool MobManager::hostiles_within( const glm::dvec3 &pos, const double radius ) c
             continue;
         }
         const MobAI ai = mob_types[ mob.type ].ai;
-        if ( ai != MOB_AI_HOSTILE_MELEE && ai != MOB_AI_HOSTILE_CREEPER && ai != MOB_AI_HOSTILE_RANGED ) {
+        if ( ai != MOB_AI_HOSTILE_MELEE && ai != MOB_AI_HOSTILE_CREEPER && ai != MOB_AI_HOSTILE_RANGED && ai != MOB_AI_HOSTILE_BLAZE ) {
             continue;
         }
         if ( glm::distance( mob.pos, pos ) <= radius ) {
@@ -1825,6 +1876,16 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
                 if ( def.bone_wings[ w ] != NULL && strcmp( bone.name, def.bone_wings[ w ] ) == 0 ) {
                     bone_anim[ i ].z += ( w == 0 ? 1.0f : -1.0f ) * amp * sinf( mob.wing_phase );
                 }
+            }
+        }
+        if ( def.anims & MOB_ANIM_BLAZE_RODS ) {
+            // Blaze rods: the 12 upperBodyPartsN bones all share the y=24
+            // pivot, so rotating them about Y orbits the whole ring; a
+            // slow per-rod bob keeps them floating (wing_phase reused).
+            if ( strncmp( bone.name, "upperBodyParts", 14 ) == 0 ) {
+                const int rod = atoi( bone.name + 14 );
+                bone_anim[ i ].y += glm::degrees( mob.wing_phase * 0.3f );
+                bone_offset[ i ].y = 3.0f * sinf( mob.wing_phase + rod * 0.6f );
             }
         }
         if ( def.anims & MOB_ANIM_HUMANOID_WALK ) {

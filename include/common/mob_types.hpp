@@ -25,6 +25,7 @@ enum MobType {
     MOB_SKELETON,
     MOB_ZOMBIFIED_PIGLIN,
     MOB_WITHER_SKELETON,
+    MOB_BLAZE,
     MOB_TYPE_COUNT
 };
 
@@ -35,6 +36,7 @@ enum MobAI {
     MOB_AI_HOSTILE_MELEE,   // chase + melee the player (zombie)
     MOB_AI_HOSTILE_CREEPER, // chase + fuse explosion (creeper)
     MOB_AI_HOSTILE_RANGED,  // strafe at stand-off + fire arrows (skeleton)
+    MOB_AI_HOSTILE_BLAZE,   // hover + strafe + 3-shot fireball volley (blaze)
 };
 
 // Procedural animators; MobTypeDef::anims is a bitmask of these.
@@ -46,6 +48,7 @@ enum MobAnim {
     MOB_ANIM_HUMANOID_SNEAK = 1 << 4, // crouch pose (Java ModelBiped-style offsets)
     MOB_ANIM_WING_FLAP = 1 << 5,      // wings flap on z, faster while airborne
     MOB_ANIM_SWELL = 1 << 6,          // creeper fuse swelling + white flash
+    MOB_ANIM_BLAZE_RODS = 1 << 7,     // head rods orbit the body + bob (blaze)
 };
 
 typedef struct {

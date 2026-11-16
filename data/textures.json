@@ -240,6 +240,9 @@
   "blast_furnace_top": {
     "source": "textures/blocks/blast_furnace_top"
   },
+  "blaze_rod": {
+    "source": "textures/items/blaze_rod"
+  },
   "blue_candle": {
     "source": "textures/items/candles/blue_candle"
   },
@@ -300,6 +303,9 @@
   },
   "brown_candle": {
     "source": "textures/items/candles/brown_candle"
+  },
+  "bubble": {
+    "keep": true
   },
   "bubble_column_down_top_a": {
     "source": "textures/blocks/bubble_column_down_top_a"
@@ -1529,7 +1535,7 @@
     "source": "textures/blocks/exposed_lightning_rod"
   },
   "exposed_lightning_rod_bottom": {
-    "extract":     {
+    "extract": {
       "from": [
         0,
         0
@@ -1579,6 +1585,9 @@
   },
   "fire_0": {
     "source": "textures/blocks/fire_0"
+  },
+  "fireball": {
+    "source": "textures/items/fireball"
   },
   "firefly_bush": {
     "source": "textures/items/firefly_bush"
@@ -1940,9 +1949,6 @@
   "hay_block_top": {
     "source": "textures/blocks/hay_block_top"
   },
-  "bubble": {
-    "keep": true
-  },
   "heart": {
     "keep": true
   },
@@ -2200,7 +2206,7 @@
     "source": "textures/blocks/lightning_rod"
   },
   "lightning_rod_bottom": {
-    "extract":     {
+    "extract": {
       "from": [
         0,
         0
@@ -2623,7 +2629,7 @@
     "source": "textures/blocks/oxidized_lightning_rod"
   },
   "oxidized_lightning_rod_bottom": {
-    "extract":     {
+    "extract": {
       "from": [
         0,
         0
@@ -3325,79 +3331,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -3458,79 +3464,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -3591,79 +3597,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -3724,79 +3730,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -3857,79 +3863,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -3990,79 +3996,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -4123,79 +4129,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -4256,79 +4262,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -4389,79 +4395,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -4522,79 +4528,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -4655,79 +4661,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -4788,79 +4794,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -4921,79 +4927,79 @@
     "extract": [
       {
         "from": [
-         0,
-         14
+          0,
+          14
         ],
         "size": [
-         16,
-         2
+          16,
+          2
         ],
         "to": [
-         0,
-         7
+          0,
+          7
         ]
       },
       {
         "frame": 1,
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "size": [
-         16,
-         7
+          16,
+          7
         ],
         "to": [
-         0,
-         9
+          0,
+          9
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         6,
-         0
+          6,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         1,
-         0
+          1,
+          0
         ]
       },
       {
         "from": [
-         0,
-         0
+          0,
+          0
         ],
         "mirror": true,
         "size": [
-         3,
-         7
+          3,
+          7
         ],
         "source": "textures/blocks/chain1",
         "to": [
-         12,
-         0
+          12,
+          0
         ]
       }
     ]
@@ -5229,6 +5235,9 @@
   },
   "spawn_egg_bee": {
     "source": "textures/items/spawn_eggs/spawn_egg_bee"
+  },
+  "spawn_egg_blaze": {
+    "source": "textures/items/spawn_eggs/spawn_egg_blaze"
   },
   "spawn_egg_cat": {
     "source": "textures/items/spawn_eggs/spawn_egg_cat"
@@ -5813,7 +5822,7 @@
     "source": "textures/blocks/weathered_lightning_rod"
   },
   "weathered_lightning_rod_bottom": {
-    "extract":     {
+    "extract": {
       "from": [
         0,
         0

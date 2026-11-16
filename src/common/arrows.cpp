@@ -111,6 +111,7 @@ static void arrow_apply_net_flags( ArrowEntities::Arrow &a, const uint32_t flags
     a.stuck = ( flags & NET_ARROW_FLAG_STUCK ) ? 1 : 0;
     a.attacker_survival = ( flags & NET_ARROW_FLAG_ATTACKER_SURVIVAL ) ? 1 : 0;
     a.mob_fired = ( flags & NET_ARROW_FLAG_MOB_FIRED ) ? 1 : 0;
+    a.fireball = ( flags & NET_ARROW_FLAG_FIREBALL ) ? 1 : 0;
     if ( a.stuck ) {
         const glm::dvec3 dir = glm::length( vel ) > 1e-6 ? glm::normalize( vel ) : a.orient;
         a.stuck_cell = glm::ivec3( glm::floor( pos + dir * ( ARROW_LEN * 0.5 ) ) );
@@ -189,7 +190,7 @@ void ArrowEntities::init( const VertexBufferLayout &vbl_object_vertex, const Ver
     this->render_inited = true;
 }
 
-uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, const float damage, const int attacker_survival, const bool mob_fired, const bool from_net ) {
+uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, const float damage, const int attacker_survival, const bool mob_fired, const bool fireball, const bool from_net ) {
     if ( this->arrows.size( ) >= MAX_ARROWS ) {
         // Evict the oldest arrow (lowest id).
         size_t oldest = 0;
@@ -212,6 +213,7 @@ uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, con
     a.damage = damage;
     a.attacker_survival = attacker_survival;
     a.mob_fired = mob_fired ? 1 : 0;
+    a.fireball = fireball ? 1 : 0;
     this->arrows.push_back( a );
     Arrow &back = this->arrows.back( );
     back.net.chunk = net_entity_chunk_of( pos );
@@ -318,16 +320,19 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
         const glm::ivec3 medium_cell( glm::floor( a.pos ) );
         const BlockState medium = world.get_loaded_block( medium_cell );
         const BlockID medium_fluid = fluid_in_cell( medium );
-        if ( medium_fluid == LAVA || medium.id == FIRE || medium.id == SOUL_FIRE ) {
+        if ( !a.fireball && ( medium_fluid == LAVA || medium.id == FIRE || medium.id == SOUL_FIRE ) ) {
             audio_play_sfx_gain( "fizz", audio_distance_gain( glm::length( a.pos - state.camera.pos ) ) );
             this->send_net_remove( a, NET_REMOVE_DIED );
             dead.push_back( i );
             continue;
         }
 
-        // Integrate: gravity, then medium drag.
-        a.vel.y -= ARROW_GRAVITY;
-        a.vel *= medium_fluid != LAST_BLOCK_ID ? ARROW_WATER_DRAG : ARROW_AIR_DRAG;
+        // Integrate: gravity, then medium drag. Fireballs hold a flat
+        // trajectory (no gravity or drag).
+        if ( !a.fireball ) {
+            a.vel.y -= ARROW_GRAVITY;
+            a.vel *= medium_fluid != LAST_BLOCK_ID ? ARROW_WATER_DRAG : ARROW_AIR_DRAG;
+        }
         if ( glm::length( a.vel ) > 1e-6 ) {
             a.orient = glm::normalize( a.vel );
         }
@@ -420,6 +425,13 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
             continue;
         }
         a.pos = landed;
+        if ( box_hit && a.fireball ) {
+            // Fireball bursts on contact instead of sticking.
+            audio_play_sfx_gain( "fizz", audio_distance_gain( glm::length( a.pos - state.camera.pos ) ) );
+            this->send_net_remove( a, NET_REMOVE_DIED );
+            dead.push_back( i );
+            continue;
+        }
         if ( box_hit ) {
             // Stick: seat the center so the tip embeds ~0.1 into the face
             // (landed sits ARROW_HALF back from it). vel keeps the entry
@@ -455,7 +467,7 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
     }
 }
 
-void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_loader ) {
+void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_loader, const glm::mat4 &view_look ) {
     if ( !this->render_inited ) {
         return;
     }
@@ -464,7 +476,7 @@ void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_l
         if ( a.entity == entt::null ) {
             const std::pair<entt::entity, ItemSpriteInstance &> data = this->render_chain.create_instance( );
             a.entity = data.first;
-            data.second.tex_layer = item_icon_texture( ARROW );
+            data.second.tex_layer = item_icon_texture( a.fireball ? FIRE_CHARGE : ARROW );
         }
         ItemSpriteInstance &inst = this->render_chain.get_instance( a.entity );
         // Velocity-aligned shaft: the sprite's +y is the flight direction
@@ -474,20 +486,42 @@ void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_l
         // toward the camera; viewed shaft-on it thins to its extruded
         // edge like a real arrow. Vertical flight degenerates the up
         // reference, so swap in +x for that.
-        const glm::vec3 fwd = glm::length( a.orient ) > 1e-6 ? glm::vec3( glm::normalize( a.orient ) ) : glm::vec3( 0.0f, 1.0f, 0.0f );
-        const glm::vec3 up = fabsf( fwd.y ) > 0.999f ? glm::vec3( 1.0f, 0.0f, 0.0f ) : glm::vec3( 0.0f, 1.0f, 0.0f );
-        const glm::vec3 normal = glm::normalize( glm::cross( up, fwd ) );
-        const float s = static_cast<float>( ARROW_LEN );
         glm::mat4 m( 0.0f );
-        m[ 0 ] = glm::vec4( up * s, 0.0f );
-        m[ 1 ] = glm::vec4( fwd * s, 0.0f );
-        m[ 2 ] = glm::vec4( normal * s, 0.0f );
+        if ( a.fireball ) {
+            // Camera-facing billboard ~1.2 blocks wide (vanilla's small
+            // fireball renders as an always-facing sprite).
+            const glm::vec3 cam = glm::vec3( glm::inverse( view_look )[ 3 ] );
+            glm::vec3 normal = glm::vec3( rpos ) - cam;
+            if ( glm::length( normal ) < 1e-4f ) {
+                normal = glm::vec3( 0.0f, 0.0f, 1.0f );
+            }
+            normal = glm::normalize( normal );
+            glm::vec3 fwd = glm::vec3( 0.0f, 1.0f, 0.0f ) - normal * normal.y;
+            if ( fabsf( normal.y ) > 0.999f ) {
+                fwd = glm::vec3( 1.0f, 0.0f, 0.0f );
+            } else {
+                fwd = glm::normalize( fwd );
+            }
+            const glm::vec3 up = glm::normalize( glm::cross( normal, fwd ) );
+            const float s = 1.2f;
+            m[ 0 ] = glm::vec4( fwd * s, 0.0f );
+            m[ 1 ] = glm::vec4( up * s, 0.0f );
+            m[ 2 ] = glm::vec4( normal * s, 0.0f );
+        } else {
+            const glm::vec3 fwd = glm::length( a.orient ) > 1e-6 ? glm::vec3( glm::normalize( a.orient ) ) : glm::vec3( 0.0f, 1.0f, 0.0f );
+            const glm::vec3 up = fabsf( fwd.y ) > 0.999f ? glm::vec3( 1.0f, 0.0f, 0.0f ) : glm::vec3( 0.0f, 1.0f, 0.0f );
+            const glm::vec3 normal = glm::normalize( glm::cross( up, fwd ) );
+            const float s = static_cast<float>( ARROW_LEN );
+            m[ 0 ] = glm::vec4( up * s, 0.0f );
+            m[ 1 ] = glm::vec4( fwd * s, 0.0f );
+            m[ 2 ] = glm::vec4( normal * s, 0.0f );
+            // Rotate the icon's diagonal onto +y with the tip leading (the
+            // mesh's +y samples image-down, so the tail->tip diagonal maps to
+            // +y at 315 deg, not 135 deg) about the sprite's own center — the shaft
+            // stays centered on pos, tip at +ARROW_LEN/2 along the flight dir.
+            m = m * glm::rotate( glm::mat4( 1.0f ), glm::radians( 315.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+        }
         m[ 3 ] = glm::vec4( glm::vec3( rpos ), 1.0f );
-        // Rotate the icon's diagonal onto +y with the tip leading (the
-        // mesh's +y samples image-down, so the tail→tip diagonal maps to
-        // +y at 315°, not 135°) about the sprite's own center — the shaft
-        // stays centered on pos, tip at +ARROW_LEN/2 along the flight dir.
-        m = m * glm::rotate( glm::mat4( 1.0f ), glm::radians( 315.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
         m = m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f, -0.5f, -0.5f / 16.0f ) );
         inst.transform = m;
         inst.light = chunk_loader.light_sample( glm::vec3( rpos ) );
@@ -540,7 +574,7 @@ void ArrowEntities::announce_spawn( Arrow &a ) {
     rec.health = a.damage;
     rec.age_ticks = a.age_ticks;
     rec.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u ) |
-                ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u );
+                ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u ) | ( a.fireball ? NET_ARROW_FLAG_FIREBALL : 0u );
     this->net->send_spawn( rec );
 }
 
@@ -734,7 +768,7 @@ void ArrowEntities::collect_net_state( std::vector<NetEntityStateEntry> &out, co
         e.vy = static_cast<float>( wire_vel.y );
         e.vz = static_cast<float>( wire_vel.z );
         e.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u ) |
-                  ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u );
+                  ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u ) | ( a.fireball ? NET_ARROW_FLAG_FIREBALL : 0u );
         out.push_back( e );
         // The server now applies its boundary hysteresis to this pos. The
         // receiver's prediction runs on eff_vel (0 while stuck).
