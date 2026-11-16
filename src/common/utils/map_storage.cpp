@@ -35,15 +35,17 @@
 // Per-chunk world storage is off on platforms that always run connected
 // (WASM + Android never persist world state — player.dat is the only
 // per-world file they write) and in the block world (no disk I/O at all).
-// Every per-chunk kind, the save-file index and the migrations early-out.
-static inline bool world_storage_off( ) {
-#if defined( REPGAME_WASM ) || defined( REPGAME_ANDROID )
-    return true;
-#else
-    return repgame_block_world( );
+// The blob codecs, save-file index and migrations compile only where
+// world state can persist — WASM/Android get inert stubs instead (the
+// bottom of this file), so none of the machinery ships in those builds.
+#if !defined( REPGAME_WASM ) && !defined( REPGAME_ANDROID )
+#define REPGAME_MAP_STORAGE 1
 #endif
-}
 
+#if defined( REPGAME_MAP_STORAGE )
+static inline bool world_storage_off( ) {
+    return repgame_block_world( );
+}
 // FILE_ROOT_* format and name prefix per MapFileKind (enum order).
 static const char *const KIND_FILE_ROOT[ MAP_FILE_KIND_COUNT ] = {
     FILE_ROOT_CHUNK, FILE_ROOT_MOBS, FILE_ROOT_ITEMS, FILE_ROOT_CARTS,
@@ -134,6 +136,7 @@ static bool parse_kind_filename( const char *name, int &kind, glm::ivec3 &pos ) 
     }
     return false;
 }
+#endif // REPGAME_MAP_STORAGE
 
 bool MapStorage::detect_flat_world( const char *world_name ) {
     g_repgame_flat_world = false;
@@ -376,6 +379,7 @@ void MapStorage::migrate_loose_files( ) {
 }
 #endif // REPGAME_MAP_SQLITE
 
+#if defined( REPGAME_MAP_STORAGE )
 // ---- Per-kind blob IO ------------------------------------------------------
 // The two backends share this interface: reads return the stored bytes,
 // writes take bytes and make them durable. Decode/encode code is
@@ -579,6 +583,7 @@ void MapStorage::batch_end( ) {
     pthread_mutex_unlock( &this->db_mutex );
 #endif
 }
+#endif // REPGAME_MAP_STORAGE
 
 char *MapStorage::get_map_name( ) {
     return this->map_name;
@@ -589,6 +594,7 @@ char *MapStorage::get_map_name( ) {
 #define CHUNK_EDITS_MAGIC 0x4B434752u
 #define CHUNK_EDITS_VERSION 1u
 
+#if defined( REPGAME_MAP_STORAGE )
 // ---- Save-file index ----------------------------------------------------
 // Chunk coords packed into one u64 index key: x/z get 22 bits (~±2M
 // chunks), y 20 bits (~±512K) — far past any real world. Two's-complement
@@ -1552,6 +1558,44 @@ int MapStorage::load_vehicles( const glm::ivec3 &chunk_offset, std::vector<Vehic
 }
 
 
+#else // !REPGAME_MAP_STORAGE — WASM/Android persist no per-chunk state,
+// so every per-chunk entry point is inert. player.dat/world.dat below
+// stay live on every platform.
+
+void MapStorage::persist_chunk( const Chunk & ) { }
+int MapStorage::load_chunk_edits( const glm::ivec3 &, ChunkEdits &out ) {
+    out = ChunkEdits{ };
+    return 0;
+}
+void MapStorage::persist_chunk_edits( const glm::ivec3 &, const std::vector<ChunkEditRun> & ) { }
+void MapStorage::persist_chunk_legacy( const glm::ivec3 &, const BlockState * ) { }
+void MapStorage::persist_chests( const glm::ivec3 &, const ChestContentsMap & ) { }
+int MapStorage::check_if_chunk_exists( const glm::ivec3 & ) { return 0; }
+int MapStorage::load_chests( const glm::ivec3 &, ChestContentsMap & ) { return 0; }
+void MapStorage::persist_furnaces( const glm::ivec3 &, const FurnaceContentsMap & ) { }
+int MapStorage::load_furnaces( const glm::ivec3 &, FurnaceContentsMap & ) { return 0; }
+void MapStorage::persist_signs( const glm::ivec3 &, const SignTextMap & ) { }
+int MapStorage::load_signs( const glm::ivec3 &, SignTextMap & ) { return 0; }
+void MapStorage::persist_mobs( const glm::ivec3 &, const std::vector<MobFileRecord> &, const std::vector<uint8_t> & ) { }
+int MapStorage::load_mobs( const glm::ivec3 &, std::vector<MobFileRecord> &, std::vector<uint8_t> * ) { return 0; }
+void MapStorage::persist_items( const glm::ivec3 &, const std::vector<ItemFileRecord> & ) { }
+int MapStorage::load_items( const glm::ivec3 &, std::vector<ItemFileRecord> & ) { return 0; }
+void MapStorage::persist_vehicles( const glm::ivec3 &, const std::vector<VehicleFileRecord> & ) { }
+int MapStorage::load_vehicles( const glm::ivec3 &, std::vector<VehicleFileRecord> & ) { return 0; }
+void MapStorage::enable_file_index( ) { }
+int MapStorage::enumerate_kind( int, std::vector<glm::ivec3> & ) { return 0; }
+long MapStorage::stored_size( int, const glm::ivec3 & ) { return -1; }
+int MapStorage::write_kind_blob( int, const glm::ivec3 &, const void *, size_t ) { return 0; }
+void MapStorage::batch_begin( ) { }
+void MapStorage::batch_end( ) { }
+int MapStorage::migrate_legacy_chunk_files( ) { return 0; }
+void MapStorage::file_index_counts( size_t out[ MAP_FILE_KIND_COUNT ] ) const {
+    memset( out, 0, MAP_FILE_KIND_COUNT * sizeof( size_t ) );
+}
+
+#endif // REPGAME_MAP_STORAGE
+
+// Shared by the chest/furnace codecs and player.dat's slot reader.
 static void sanitize_slots( InventorySlot *slots, int count ) {
     for ( int i = 0; i < count; i++ ) {
         InventorySlot &slot = slots[ i ];
