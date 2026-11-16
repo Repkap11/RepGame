@@ -1,6 +1,6 @@
 ---
 name: cherry-pick
-description: Cherry-pick (never merge) commits from local or remote/agent branches onto master in a dedicated worktree, resolve conflicts the RepGame way (regenerate *_gen files, never renumber block/item ids), and verify with `make linux` plus the extra builds/tests the touched files call for. Use when the user asks to pick changes onto master.
+description: Cherry-pick (never merge) commits from local or remote/agent branches onto master in the current checkout, resolve conflicts the RepGame way (regenerate *_gen files, never renumber block/item ids), and verify with `make linux` plus the extra builds/tests the touched files call for. Use when the user asks to pick changes onto master.
 ---
 
 # Cherry-pick onto master
@@ -21,41 +21,27 @@ Remotes: `origin` (GitHub) is the canonical upstream — `origin/master` is
 the real master. `repkap11` is only the user's off-site backup mirror;
 never treat its branches as sources of truth or push targets.
 
-## Step 0 — find where master can be checked out
+## Step 0 — confirm this checkout is master
 
 ```sh
 git fetch --all --prune
-git worktree list
+git status -sb          # branch + cleanliness
 ```
 
-- `master` is usually **not** checked out anywhere (the main checkout is
-  on `work`; worktrees are on their own branches). Never switch the
-  branch of a worktree the user is actively using — create or reuse a
-  dedicated master worktree instead:
-  ```sh
-  git worktree add ~/Software/Rep/RepGame_master master   # once; reuse after
-  ```
-  If `git worktree list` already shows a checkout on `[master]`, work
-  there — but only if `git status` is clean. If it's dirty, stop and ask
-  the user.
-- Do **not** put the worktree under `~/.repgame/rep-dbg/wt/` — rep-dbg's
-  gc prunes dirty worktrees in there by age. A sibling of the other
-  worktrees (`~/Software/Rep/…`) is safe.
-- A fresh worktree can't build until it has the untracked vendored dirs.
-  Symlink them from the main checkout (same trick as
-  `tools/rep_dbg/worktree.py`), or run `make install` there:
-  ```sh
-  main=$(git worktree list --porcelain | awk '/^worktree/{print $2; exit}')
-  ln -s "$main/imgui_build" "$main/entt_build" "$main/bedrock-samples" \
-      ~/Software/Rep/RepGame_master/
-  ```
-  (`bedrock-samples` is needed by `make blocks-import`/`mobs-import` —
-  missing it fails with "missing geo file".)
+- `master` is normally checked out **in the directory this skill is run
+  in** — work there. Do **not** create new worktrees: the user's
+  worktree layout is theirs to manage, and a fresh worktree lacks the
+  untracked vendored dirs (`imgui_build`, `entt_build`,
+  `bedrock-samples`) needed to build.
+- If this checkout is on a different branch, or `git worktree list`
+  shows `master` checked out in another worktree, stop and ask the user
+  — never switch the branch of a checkout they may be using, and never
+  make a new worktree to hold master.
+- If it's on `master` but dirty, stop and ask the user.
 
 ## Step 1 — sync master, pick the commits
 
 ```sh
-cd ~/Software/Rep/RepGame_master
 git status -sb                                  # behind origin/master?
 git merge --ff-only origin/master               # fast-forward if behind
 ```
@@ -127,7 +113,7 @@ RepGame-specific rules:
 
 ## Step 3 — verify the build
 
-Baseline is always `make linux` **in the master worktree** (ccache is
+Baseline is always `make linux` **in this checkout** (ccache is
 shared, so it's not a cold build). Then add rows based on what changed:
 
 | Picked commits touched | Also run |
@@ -153,7 +139,7 @@ real failure).
 
 - Report: `git log --oneline` of the new commits on master, what
   conflicted and how it was resolved, and which builds/tests ran.
-- The picks land on **local** master in the master worktree. Never push
+- The picks land on **local** master in this checkout. Never push
   unless the user asks; never run `make server-deploy` /
   `make server-restart` (live-host side effects).
 - If a pick is fundamentally broken (the branch's approach conflicts with
