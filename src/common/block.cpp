@@ -519,7 +519,7 @@ int fence_gate_icon_boxes( BlockBox out[ ICON_MAX_BOXES ] ) {
     }
     out[ n++ ] = leaf[ 1 ]; // near post — x 14..16 to z 14..16
     for ( int i = 0; i < n; i++ ) {
-        block_rotate_box( BLOCK_ROTATE_90, out[ i ].scale, out[ i ].offset );
+        block_rotate_box( BLOCK_ROTATE_90, &out[ i ] );
     }
     return n;
 }
@@ -641,7 +641,7 @@ int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], B
     const int n = stairs_boxes( stairs_shape_derive( rotation, stair_rots ), ( rotation & BLOCK_ROTATE_STAIRS_TOP ) != 0, out );
     const unsigned char yaw = rotation & 3;
     for ( int i = 0; i < n; i++ ) {
-        block_rotate_box( yaw, out[ i ].scale, out[ i ].offset );
+        block_rotate_box( yaw, &out[ i ] );
     }
     return n;
 }
@@ -649,7 +649,7 @@ int stairs_collision_boxes( unsigned char rotation, const int stair_rots[ 4 ], B
 int stairs_icon_boxes( BlockBox out[ STAIRS_MAX_BOXES ] ) {
     const int n = stairs_boxes( STAIRS_STRAIGHT, false, out );
     for ( int i = 0; i < n; i++ ) {
-        block_rotate_box( BLOCK_ROTATE_270, out[ i ].scale, out[ i ].offset );
+        block_rotate_box( BLOCK_ROTATE_270, &out[ i ] );
     }
     return n;
 }
@@ -864,7 +864,7 @@ int lever_pick_boxes( unsigned char rotation, bool powered, BlockBox out[ LEVER_
         // Wall model is def-space — yaw it to world space like the mesher
         // does with face_shift.
         for ( int i = 0; i < n; i++ ) {
-            block_rotate_box( rotation, out[ i ].scale, out[ i ].offset );
+            block_rotate_box( rotation, &out[ i ] );
         }
     }
     return n;
@@ -1040,7 +1040,7 @@ int block_icon_boxes( const Block *block, BlockBox out[ ICON_MAX_BOXES ] ) {
             out[ 0 ].offset[ i ] = static_cast<signed char>( i == 0 ? block->offset.x : i == 1 ? block->offset.y : block->offset.z );
         }
         out[ 0 ].skip_faces = 0;
-        block_rotate_box( block_icon_yaw( block ), out[ 0 ].scale, out[ 0 ].offset );
+        block_rotate_box( block_icon_yaw( block ), &out[ 0 ] );
         return 1;
     }
     return 0;

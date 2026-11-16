@@ -2149,7 +2149,7 @@ int test_support_drops( ) {
                     ( sign_boxes[ 1 ].skip_faces & ( 1u << FACE_TOP ) ) != 0 );
     // Yawed 90 the board plate spans z — the pick/outline box follows the
     // drawn orientation.
-    block_rotate_box( BLOCK_ROTATE_90, sign_boxes[ 0 ].scale, sign_boxes[ 0 ].offset );
+    block_rotate_box( BLOCK_ROTATE_90, &sign_boxes[ 0 ] );
     check_bool( "sign def: pick box yaws with the board",
                 sign_boxes[ 0 ].scale[ 0 ] == 2 && sign_boxes[ 0 ].scale[ 2 ] == 16 && sign_boxes[ 0 ].offset[ 2 ] == 0 );
 

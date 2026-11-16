@@ -266,7 +266,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
             // to world space so aiming at the board's edge selects the sign.
             num_boxes = block->is_standing_sign ? standing_sign_boxes( boxes ) : hanging_sign_boxes( boxes );
             for ( int i = 0; i < num_boxes; i++ ) {
-                block_rotate_box( block_yaw( block, blockState.rotation ), boxes[ i ].scale, boxes[ i ].offset );
+                block_rotate_box( block_yaw( block, blockState.rotation ), &boxes[ i ] );
             }
         } else if ( block->is_lantern || block->is_lightning_rod || block->is_end_rod ) {
             // Lantern's pick model (body + lid/bail union), rods' rendered

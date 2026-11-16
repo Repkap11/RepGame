@@ -564,23 +564,25 @@ StairShape stairs_shape_derive( unsigned char rotation, const int stair_rots[ 4 
 int stairs_boxes( StairShape shape, bool top_half, BlockBox out[ STAIRS_MAX_BOXES ] );
 // Def->world yaw for a pixel-space box — the same scale/offset remap the
 // mesh shader's face_shift rotation and collision/raycast apply:
-// ROTATE_90/270 swap the x/z axes, ROTATE_180 mirrors both.
-static inline void block_rotate_box( unsigned char yaw, signed char scale[ 3 ], signed char offset[ 3 ] ) {
+// ROTATE_90/270 swap the x/z axes, ROTATE_180 mirrors both. Takes the whole
+// BlockBox (not scale/offset pointers): GCC's -Wstringop-overflow otherwise
+// folds the offset member into the scale subobject and false-positives.
+static inline void block_rotate_box( unsigned char yaw, BlockBox *box ) {
     if ( yaw == BLOCK_ROTATE_90 ) {
-        const signed char sx = scale[ 0 ], ox = offset[ 0 ];
-        scale[ 0 ] = scale[ 2 ];
-        scale[ 2 ] = sx;
-        offset[ 0 ] = static_cast<signed char>( 16 - scale[ 0 ] - offset[ 2 ] );
-        offset[ 2 ] = ox;
+        const signed char sx = box->scale[ 0 ], ox = box->offset[ 0 ];
+        box->scale[ 0 ] = box->scale[ 2 ];
+        box->scale[ 2 ] = sx;
+        box->offset[ 0 ] = static_cast<signed char>( 16 - box->scale[ 0 ] - box->offset[ 2 ] );
+        box->offset[ 2 ] = ox;
     } else if ( yaw == BLOCK_ROTATE_180 ) {
-        offset[ 0 ] = static_cast<signed char>( 16 - scale[ 0 ] - offset[ 0 ] );
-        offset[ 2 ] = static_cast<signed char>( 16 - scale[ 2 ] - offset[ 2 ] );
+        box->offset[ 0 ] = static_cast<signed char>( 16 - box->scale[ 0 ] - box->offset[ 0 ] );
+        box->offset[ 2 ] = static_cast<signed char>( 16 - box->scale[ 2 ] - box->offset[ 2 ] );
     } else if ( yaw == BLOCK_ROTATE_270 ) {
-        const signed char sx = scale[ 0 ], ox = offset[ 0 ];
-        scale[ 0 ] = scale[ 2 ];
-        scale[ 2 ] = sx;
-        offset[ 0 ] = offset[ 2 ];
-        offset[ 2 ] = static_cast<signed char>( 16 - sx - ox );
+        const signed char sx = box->scale[ 0 ], ox = box->offset[ 0 ];
+        box->scale[ 0 ] = box->scale[ 2 ];
+        box->scale[ 2 ] = sx;
+        box->offset[ 0 ] = box->offset[ 2 ];
+        box->offset[ 2 ] = static_cast<signed char>( 16 - sx - ox );
     }
 }
 // World-space stair boxes: derive the corner shape, emit the def-space

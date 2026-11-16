@@ -155,7 +155,7 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         // chunk_mesh.cpp draws — yawed to world space like the stair boxes.
         num_boxes = block->is_standing_sign ? standing_sign_boxes( boxes ) : hanging_sign_boxes( boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
-            block_rotate_box( block_yaw( block, blockState.rotation ), boxes[ i ].scale, boxes[ i ].offset );
+            block_rotate_box( block_yaw( block, blockState.rotation ), &boxes[ i ] );
         }
     } else if ( block->is_lantern || block->is_lightning_rod || block->is_end_rod ) {
         // Lantern: body + lid/bail union; rods: rendered pair — the pick
