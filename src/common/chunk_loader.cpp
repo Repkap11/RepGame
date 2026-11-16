@@ -127,7 +127,7 @@ extern long long light_dbg_us_finalize, light_dbg_us_remesh, light_dbg_us_drain,
     light_dbg_n_upload, light_dbg_n_ensure, light_dbg_us_light_fin,
     light_dbg_us_framepool, light_dbg_n_framepool;
 
-int mod( const int x, const int N ) {
+static int mod( const int x, const int N ) {
     const int result = ( x % N + N ) % N;
     if ( result < 0 ) {
         pr_debug( "Bad Mod:%d", result );

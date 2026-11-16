@@ -55,7 +55,8 @@ int Chunk::inspect_load( MapStorage &map_storage, const glm::ivec3 &pos, BlockSt
     return existed;
 }
 
-int firstTime = 1;
+// Log-once flag for the mapgen backend pick; terrain workers race on it.
+static std::atomic<int> firstTime{ 1 };
 
 #if TERRAIN_GEN_PROFILING
 #include <chrono>
@@ -374,14 +375,12 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
         static const bool no_hip_mapgen = env_is_set( "REPGAME_NO_HIP_MAPGEN" );
         static const bool no_webgpu_mapgen = env_is_set( "REPGAME_NO_WEBGPU_MAPGEN" );
         if ( LOAD_CHUNKS_SUPPORTS_CUDA && MapGen::supports_cuda( ) ) {
-            if ( firstTime ) {
-                firstTime = 0;
+            if ( firstTime.exchange( 0 ) ) {
                 pr_debug( "Using CUDA" );
             }
             MapGen::load_block_cuda( this );
         } else if ( LOAD_CHUNKS_SUPPORTS_HIP && MapGen::supports_hip( ) && !no_hip_mapgen ) {
-            if ( firstTime ) {
-                firstTime = 0;
+            if ( firstTime.exchange( 0 ) ) {
                 pr_debug( "Using HIP" );
             }
             if ( !MapGen::load_block_hip( this ) ) {
@@ -393,9 +392,8 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             // firstTime is long gone by the time async WebGPU init completes
             // (early chunks legitimately used C), so announce the switch
             // separately the first time a chunk actually takes this branch.
-            static int firstWebGPU = 1;
-            if ( firstWebGPU ) {
-                firstWebGPU = 0;
+            static std::atomic<int> firstWebGPU{ 1 };
+            if ( firstWebGPU.exchange( 0 ) ) {
                 pr_debug( "Using WebGPU" );
             }
             if ( !MapGen::load_block_webgpu( this ) ) {
@@ -404,8 +402,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 MapGen::load_block_c( this );
             }
         } else {
-            if ( firstTime ) {
-                firstTime = 0;
+            if ( firstTime.exchange( 0 ) ) {
                 pr_debug( "Using C" );
             }
             MapGen::load_block_c( this );
