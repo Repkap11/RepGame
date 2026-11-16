@@ -1,7 +1,8 @@
 # Mobs
 
 Client-local mobs — passive pig, cow, chicken, sheep, bee and cat plus
-hostile zombie, creeper and skeleton — and network-driven remote players (`MOB_PLAYER`),
+hostile zombie, creeper and skeleton in the overworld and zombified piglin
+and wither skeleton in the nether — and network-driven remote players (`MOB_PLAYER`),
 driven by a type table and models imported from Bedrock
 `geo.json`. Simulation (gravity, collision,
 auto-jump, buoyancy, idle/wander/panic AI, hostile chase/fuse/ranged AI, hit
@@ -54,9 +55,10 @@ Zombies melee in reach (mob half-width + 0.3 + 0.5, |dy| < 1.5) with a
 (knockback away from the hit + a hop off the ground + the `player_hurt`
 sound pool, then `damage` half-hearts through the `player_damage` funnel
 — docs/player.md). In daylight (`light_daylight_factor > 0.5`, head sky
-light ≥ 0.95, not in water — see `mob_burns_in_daylight`) zombies and
-skeletons burn at
-1 hp/s with hurt flash/sound and no knockback. Creepers chase like
+light ≥ 0.95, not in water — see `mob_burns_in_daylight`) types with
+`MobTypeDef::burns_in_daylight` (zombie, skeleton) burn at
+1 hp/s with hurt flash/sound and no knockback; nether mobs and creepers
+never burn. Creepers chase like
 zombies, stop within 3 blocks, hiss for ~1.5 s (the `fuse` sfx +
 `MOB_ANIM_SWELL` growing/white-flash render), and defuse if the player
 gets > 7 away; at fuse end they push their position to
@@ -168,12 +170,20 @@ losing the ground aborts a started graze.
 The night spawner runs inside `MobManager::tick` (off under
 `REPGAME_MOB_TEST`, capture mode, fly mode, `REPGAME_MOB_SPAWNER=0` and
 in dimensions whose profile clears `natural_spawns` — `docs/dimensions.md`):
-every 2 s, while fewer than 12 despawnable hostiles live, up to 4
+every 2 s, while fewer than the dimension's `mob_cap` despawnable
+hostiles live (12 overworld, 24 nether — the nether runs denser), up to 4
 attempts pick a random ring 24–44 blocks out, scan down from
-player_y + 16 (40 cells) for a colliding top block with 2 air cells
-above inside a `CHUNK_LIVE` chunk, and spawn where
-`hostile_spawn_light_ok` (`max(sky * daylight, block) < 7/15`) holds —
-40% zombie / 30% skeleton / 30% creeper, `persistent=0` + `despawnable=1`.
+player_y + 16 (40 cells) for a colliding top block with 2 standable
+(non-colliding, non-liquid) cells above inside a `CHUNK_LIVE` chunk, and
+spawn where `hostile_spawn_light_ok` (`max(sky * daylight, block) < 7/15`)
+holds — `persistent=0` + `despawnable=1`. The type picked is a weighted
+roll over `MobTypeDef::night_spawn_weight` among types whose `spawn_dims`
+bit covers the player's dimension: zombie .4 / skeleton .3 / creeper .3 in
+the overworld, zombified piglin .7 / wither skeleton .3 in the nether. In
+the nether sky light is always 0, so only block light < 7/15 gates the
+spawn — dark cavern floors work, lava-lit ground doesn't. Wander picks and
+both spawn paths veto liquid cells, so mobs don't spawn or path into
+oceans and lava seas.
 Despawnables are removed > 64 blocks out, randomly at
 1/(8·UPS_RATE)/tick past 40, or when their feet chunk leaves
 `CHUNK_LIVE`, and are never persisted.
@@ -209,7 +219,8 @@ always fit, and the live count can exceed the cap.
   The mob can still be hit (hurt flash + tip-over death) but never moves.
 - `n` — debug spawn key: drops a mob three blocks in front of the
   player, cycling pig → cow → chicken → sheep → zombie → creeper → bee →
-  cat → skeleton on successive presses (`MobManager::spawn_in_front`; edge-triggered
+  cat → skeleton → zombified_piglin → wither_skeleton on successive
+  presses (`MobManager::spawn_in_front`; edge-triggered
   through `Input`, handled in `RepGame::tick`, persistent, uncapped).
   The ImGui overlay shows `Mobs: <n> (players <m>)` — remote players
   count separately.
@@ -292,7 +303,11 @@ Adding a mob:
 3. Add a `MobTypeDef` row in `src/common/mob_types.cpp` (+ `MOB_*` enum in
    `mob_types.hpp`): model/skin bindings, hitbox, health,
    walk/panic/chase speeds, `fall_cap`, `hover_h`, `attack_damage`, drops, sound
-   pool names, natural-spawn data, AI profile (`MOB_AI_PASSIVE`,
+   pool names, natural-spawn data (`spawn_on` block list + `spawn_chance`
+   + herd size for the fresh-chunk roll, `spawn_dims` bitmask gating both
+   spawn paths to a dimension band, `night_spawn_weight` for the
+   despawnable spawner's pick, `burns_in_daylight` for undead-overworld
+   burning), AI profile (`MOB_AI_PASSIVE`,
    `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`,
    `MOB_AI_HOSTILE_RANGED`, `MOB_AI_REMOTE`),
    animation mask (`MOB_ANIM_*` — quadruped/humanoid walk, head look,

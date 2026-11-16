@@ -42,7 +42,9 @@ Full behaviour/rendering reference: `docs/mobs.md`.
 3. Add a `MobTypeDef` row in `src/common/mob_types.cpp` (+ `MOB_*` enum in
    `mob_types.hpp`): model/skin bindings, hitbox, health,
    walk/panic/chase speeds, `fall_cap`, `hover_h`, `attack_damage`, drops, sound
-   pool names, natural-spawn data, AI profile (`MOB_AI_PASSIVE`,
+   pool names, natural-spawn data (`spawn_on` block list, `spawn_chance`,
+   herd size, `spawn_dims` bitmask, `night_spawn_weight`,
+   `burns_in_daylight`), AI profile (`MOB_AI_PASSIVE`,
    `MOB_AI_HOSTILE_MELEE`, `MOB_AI_HOSTILE_CREEPER`, `MOB_AI_REMOTE`),
    animation mask (`MOB_ANIM_*` — quadruped/humanoid walk, head look,
    death tip, sneak, wing flap, creeper swell) and the head/leg/arm/
@@ -66,4 +68,5 @@ as an undercoat marker) — a=0 stays cutout.
 - Combine with `REPGAME_CAPTURE` (see the `capture` skill) to screenshot
   the spawn — capture mode freezes AI/physics so poses are as authored.
 - In-game: `n` drops a mob three blocks ahead, cycling pig → cow →
-  chicken → sheep → zombie → creeper → bee → cat on successive presses.
+  chicken → sheep → zombie → creeper → bee → cat → skeleton →
+  zombified_piglin → wither_skeleton on successive presses.

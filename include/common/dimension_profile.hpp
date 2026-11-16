@@ -27,16 +27,17 @@ typedef struct {
     int water_allowed;   // 0: water placement evaporates (nether)
     int beds_explode;    // 1: sleeping attempts detonate the bed
     int natural_spawns;  // chunk natural-spawn rolls + night spawner enabled
+    int mob_cap;         // despawnable hostiles the night spawner keeps alive
     int music_set;       // DIM_MUSIC_*
 } DimensionProfile;
 
 static inline const DimensionProfile *dimension_profile( const DimensionId dim ) {
     static const DimensionProfile profiles[ DIM_COUNT ] = {
-        // name          sky skybox  fog (r,g,b)            fog_range ambient water beds spawns music
-        { "overworld", 1, 1, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 1, 0, 1, DIM_MUSIC_OVERWORLD },
-        { "nether", 0, 0, 0.20f, 0.03f, 0.02f, 48.0f, 0.20f, 0, 1, 0, DIM_MUSIC_NETHER },
-        { "dim2", 0, 0, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 0, 0, 0, DIM_MUSIC_OVERWORLD },
-        { "dim3", 0, 0, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 0, 0, 0, DIM_MUSIC_OVERWORLD },
+        // name          sky skybox  fog (r,g,b)            fog_range ambient water beds spawns cap music
+        { "overworld", 1, 1, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 1, 0, 1, 12, DIM_MUSIC_OVERWORLD },
+        { "nether", 0, 0, 0.20f, 0.03f, 0.02f, 48.0f, 0.20f, 0, 1, 1, 24, DIM_MUSIC_NETHER },
+        { "dim2", 0, 0, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 0, 0, 0, 12, DIM_MUSIC_OVERWORLD },
+        { "dim3", 0, 0, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 0, 0, 0, 12, DIM_MUSIC_OVERWORLD },
     };
     return &profiles[ dim >= 0 && dim < DIM_COUNT ? dim : DIM_OVERWORLD ];
 }

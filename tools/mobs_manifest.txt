@@ -37,3 +37,8 @@ cat|models/entity/cat.geo.json|geometry.cat|textures/entity/cat/tabby.png,textur
 minecart|models/entity/minecart.geo.json|geometry.minecart.v1.8|textures/entity/minecart.png|cube_rot
 # Boats share one model with a skin per wood variant, in VehicleType order.
 boat|repo:data/models/boat.geo.json|geometry.boat|textures/entity/boat/boat_oak.png,textures/entity/boat/boat_spruce.png,textures/entity/boat/boat_birch.png,textures/entity/boat/boat_jungle.png,textures/entity/boat/boat_acacia.png,textures/entity/boat/boat_darkoak.png,textures/entity/boat/mangrove_boat.png,textures/entity/boat/cherry_boat.png,textures/entity/boat/pale_oak_boat.png,textures/entity/boat/poplar_boat.png|cube_rot
+# Nether mobs. Bedrock's zombie_pigman entity pairs the piglin geometry
+# with the zombie_piglin skin (the pigzombie.v1.8 geo is the retired pre-
+# 1.16 model); bone names are lowercase like the piglin's.
+zombified_piglin|models/entity/piglin.geo.json|geometry.piglin|textures/entity/piglin/zombie_piglin.png
+wither_skeleton|models/entity/wither_skeleton.geo.json|geometry.skeleton.wither.v1.8|textures/entity/skeleton/wither_skeleton.png

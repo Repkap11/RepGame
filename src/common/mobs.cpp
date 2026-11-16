@@ -270,6 +270,17 @@ static bool solid_at( World &world, const glm::ivec3 &pos ) {
     return bs.id < LAST_BLOCK_ID && block_definition_get_definition( bs.id )->collides_with_player;
 }
 
+// True while a mob can stand in the cell: non-colliding and not liquid.
+// Water and lava don't collide, so plain !solid_at lets spawns land
+// submerged — under an ocean or on the nether lava-sea floor.
+static bool spawnable_air_at( World &world, const glm::ivec3 &pos ) {
+    const BlockState bs = world.get_loaded_block( pos );
+    if ( bs.id == WATER || bs.id == LAVA ) {
+        return false;
+    }
+    return bs.id == AIR || ( bs.id < LAST_BLOCK_ID && !block_definition_get_definition( bs.id )->collides_with_player );
+}
+
 // Height of the ground surface under the column (bx, bz), scanning from
 // `from_y` down; returns the top Y of the first solid block or 0/1 in
 // *found. On a slope taller than the scan the hit is inside the hillside,
@@ -606,8 +617,9 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 
     // Zombies and skeletons burn in daylight under open sky: 1 damage per
-    // second with the hurt flash, but no knockback and no panic.
-    if ( hostile && def.ai != MOB_AI_HOSTILE_CREEPER && !in_water ) {
+    // second with the hurt flash, but no knockback and no panic. Nether
+    // types never burn (burns_in_daylight == 0).
+    if ( def.burns_in_daylight && !in_water ) {
         const glm::dvec3 head = mob.pos + glm::dvec3( 0.0, def.hitbox_h, 0.0 );
         const float sky = world.chunkLoader.light_sample( glm::vec3( head ) ).x;
         if ( mob_burns_in_daylight( light_daylight_factor( in->world_time ), sky ) ) {
@@ -868,6 +880,15 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
                     const double dy = ground - mob.pos.y;
                     if ( found && ( dy > 1.0 + 1e-3 || dy < -( 3.0 + 1e-3 ) ) ) {
                         found = false;
+                    }
+                    // No wading picks: the probe's "ground" under a liquid
+                    // is the bottom, which would send the mob walking into
+                    // oceans and lava seas.
+                    if ( found ) {
+                        const BlockID feet_id = world.get_loaded_block( glm::ivec3( bx, static_cast<int>( ground ), bz ) ).id;
+                        if ( feet_id == WATER || feet_id == LAVA ) {
+                            found = false;
+                        }
                     }
                 }
                 if ( found ) {
@@ -1621,8 +1642,23 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
     if ( ++this->spawn_ticks < 2 * UPS_RATE ) {
         return;
     }
-    if ( !dimension_profile( dimension_of_pos( player_feet ) )->natural_spawns ) {
-        return; // the overworld mob table doesn't apply to other dimensions
+    const DimensionId player_dim = dimension_of_pos( player_feet );
+    const DimensionProfile *profile = dimension_profile( player_dim );
+    if ( !profile->natural_spawns ) {
+        return;
+    }
+    // The spawn table is per-dimension: types opt in with a spawn_dims bit
+    // and a night_spawn_weight — zombie .4 / skeleton .3 / creeper .3 in
+    // the overworld, zombified piglin .7 / wither skeleton .3 in the nether.
+    double weight_total = 0.0;
+    for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+        const MobTypeDef &def = mob_types[ t ];
+        if ( def.night_spawn_weight > 0.0f && ( def.spawn_dims & ( 1u << player_dim ) ) ) {
+            weight_total += def.night_spawn_weight;
+        }
+    }
+    if ( weight_total <= 0.0 ) {
+        return;
     }
     this->spawn_ticks = 0;
     if ( !this->under_mob_cap( ) ) {
@@ -1634,7 +1670,7 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         // and other clients' owned mobs aren't ours to budget.
         live += mob.despawnable && ( this->net == nullptr || this->net->owns_chunk( mob.net.chunk ) );
     }
-    if ( live >= 12 ) {
+    if ( live >= profile->mob_cap ) {
         return;
     }
     const float daylight = light_daylight_factor( in.world_time );
@@ -1658,8 +1694,9 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
                 break;
             }
         }
-        // Needs a floor with two non-colliding cells above for the mob.
-        if ( top < 0 || solid_at( world, glm::ivec3( bx, top + 1, bz ) ) || solid_at( world, glm::ivec3( bx, top + 2, bz ) ) ) {
+        // Needs a floor with two standable cells above for the mob —
+        // non-colliding and not liquid (no seabed/lava-floor spawns).
+        if ( top < 0 || !spawnable_air_at( world, glm::ivec3( bx, top + 1, bz ) ) || !spawnable_air_at( world, glm::ivec3( bx, top + 2, bz ) ) ) {
             continue;
         }
         const glm::dvec3 feet_pos( sx, top + 1.0, sz );
@@ -1676,8 +1713,23 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         if ( !hostile_spawn_light_ok( light.x, light.y, daylight ) ) {
             continue;
         }
-        const double roll = type_roll( this->rng );
-        const MobType type = roll < 0.4 ? MOB_ZOMBIE : ( roll < 0.7 ? MOB_SKELETON : MOB_CREEPER );
+        const double roll = type_roll( this->rng ) * weight_total;
+        double weight_acc = 0.0;
+        MobType type = MOB_TYPE_COUNT;
+        for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+            const MobTypeDef &def = mob_types[ t ];
+            if ( def.night_spawn_weight <= 0.0f || !( def.spawn_dims & ( 1u << player_dim ) ) ) {
+                continue;
+            }
+            weight_acc += def.night_spawn_weight;
+            if ( roll <= weight_acc ) {
+                type = static_cast<MobType>( t );
+                break;
+            }
+        }
+        if ( type == MOB_TYPE_COUNT ) {
+            continue;
+        }
         if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {
             Mob &mob = this->mobs.back( );
             mob.despawnable = 1;

@@ -2,6 +2,7 @@
 
 #include "common/mob_models_gen.hpp"
 #include "common/block_definitions.hpp" // block_definition_get_definition (breed flowers)
+#include "common/dimension.hpp"         // DimensionId (spawn_dims bitmask)
 #include "common/item.hpp"
 
 // One roll of a mob's drop table: `min`..`max` of `item` (uniform).
@@ -11,7 +12,21 @@ typedef struct {
     int max;
 } MobDrop;
 
-enum MobType { MOB_PIG = 0, MOB_PLAYER, MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT, MOB_SKELETON, MOB_TYPE_COUNT };
+enum MobType {
+    MOB_PIG = 0,
+    MOB_PLAYER,
+    MOB_COW,
+    MOB_CHICKEN,
+    MOB_SHEEP,
+    MOB_ZOMBIE,
+    MOB_CREEPER,
+    MOB_BEE,
+    MOB_CAT,
+    MOB_SKELETON,
+    MOB_ZOMBIFIED_PIGLIN,
+    MOB_WITHER_SKELETON,
+    MOB_TYPE_COUNT
+};
 
 // AI profiles — the extension point for future hostile or flying mobs.
 enum MobAI {
@@ -93,11 +108,20 @@ typedef struct {
     // steps quietly, e.g. 0.15 for pigs).
     float step_gain;
     // Natural spawning (phase 2): spawn_chance per eligible fresh chunk, on
-    // top of spawn_on blocks, in herds of herd_min..herd_max.
-    BlockID spawn_on;
+    // top of any spawn_on block, in herds of herd_min..herd_max. spawn_dims
+    // is a bitmask of (1u << dim) naming the dimensions the type naturally
+    // spawns in — the chunk roll and the night spawner both honor it.
+    // night_spawn_weight > 0 enters the type into the despawnable night
+    // spawner's weighted pick for its dims (0 = never night-spawns).
+    // burns_in_daylight opts a hostile type into daylight burning (zombie,
+    // skeleton); nether mobs and creepers don't burn.
+    BlockID spawn_on[ 4 ];
     float spawn_chance;
     int herd_min;
     int herd_max;
+    unsigned int spawn_dims;
+    float night_spawn_weight;
+    int burns_in_daylight;
     MobAI ai;
     unsigned int anims;
     // Bone names the animators bind to (head for look-at, legs for the gait).

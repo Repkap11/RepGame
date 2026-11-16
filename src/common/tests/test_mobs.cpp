@@ -1029,7 +1029,9 @@ int test_mobs( ) {
     // --- 13: every new non-remote type spawns and settles at floor+1 -------
     // (hoverers settle at floor+1+hover_h and never report standing) --------
     {
-        const MobType new_types[] = { MOB_COW, MOB_CHICKEN, MOB_SHEEP, MOB_ZOMBIE, MOB_CREEPER, MOB_BEE, MOB_CAT };
+        const MobType new_types[] = { MOB_COW,       MOB_CHICKEN,          MOB_SHEEP,     MOB_ZOMBIE,
+                                    MOB_CREEPER,   MOB_BEE,              MOB_CAT,       MOB_ZOMBIFIED_PIGLIN,
+                                    MOB_WITHER_SKELETON };
         for ( MobType t : new_types ) {
             const MobTypeDef &tdef = mob_types[ t ];
             MobManager mobs;
@@ -1775,6 +1777,68 @@ int test_mobs( ) {
         check_bool( "showcase: each type exactly once", each_once );
         check_bool( "showcase: no_ai on locals, remote avatar spawned", flags_ok );
         check_bool( "showcase: AIR cells over SANDSTONE floor", cells_ok );
+    }
+
+    // --- 29: nether roll: spawn_dims keeps each table in its dimension -----
+    {
+        // Fill a chunk with a netherrack floor like the 6c grass roll.
+        auto fill_floor = []( Chunk &c, const glm::ivec3 &pos, BlockID floor_id, BlockID above_id ) {
+            c.chunk_pos = pos;
+            c.cells = chunk_alloc_cells( );
+            for ( int cx = 0; cx < CHUNK_SIZE_X; cx++ ) {
+                for ( int cz = 0; cz < CHUNK_SIZE_Z; cz++ ) {
+                    c.cells[ Chunk::get_index_from_coords( glm::ivec3( cx, 10, cz ) ) ] = block_cell_pack( floor_id, 0, 0, 0 );
+                    if ( above_id != AIR ) {
+                        c.cells[ Chunk::get_index_from_coords( glm::ivec3( cx, 11, cz ) ) ] = block_cell_pack( above_id, 0, 0, 0 );
+                        c.cells[ Chunk::get_index_from_coords( glm::ivec3( cx, 12, cz ) ) ] = block_cell_pack( above_id, 0, 0, 0 );
+                    }
+                }
+            }
+            c.sidecars.mobs.clear( );
+        };
+        // Nether band is chunk y -96..-33 (dimension.hpp): a netherrack
+        // floor there rolls the nether table — zombified piglins and wither
+        // skeletons, never overworld types.
+        check_bool( "nether: band resolves", dimension_of_chunk( glm::ivec3( 0, -40, 0 ) ) == DIM_NETHER );
+        Chunk roll_chunk;
+        bool saw_herd = false;
+        bool wrong_dim = false;
+        for ( int x = 0; x < 64 && !saw_herd; x++ ) {
+            fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), NETHERRACK, AIR );
+            if ( roll_chunk.spawn_mobs( ) ) {
+                saw_herd = true;
+                for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
+                    wrong_dim |= rec.type != MOB_ZOMBIFIED_PIGLIN && rec.type != MOB_WITHER_SKELETON;
+                }
+            } else {
+                chunk_free_cells( roll_chunk.cells );
+                roll_chunk.cells = nullptr;
+            }
+        }
+        check_bool( "nether roll: a netherrack chunk emits a herd", saw_herd );
+        check_bool( "nether roll: only nether types", saw_herd && !wrong_dim );
+        if ( roll_chunk.cells != nullptr ) {
+            chunk_free_cells( roll_chunk.cells );
+            roll_chunk.cells = nullptr;
+        }
+        // The same floor in the overworld band spawns nothing — overworld
+        // types don't take netherrack and nether types are dim-gated.
+        fill_floor( roll_chunk, glm::ivec3( 0, 0, 0 ), NETHERRACK, AIR );
+        check_bool( "nether types: gated out of the overworld", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
+        chunk_free_cells( roll_chunk.cells );
+        roll_chunk.cells = nullptr;
+        // And grass in a nether chunk rolls nothing either (the overworld
+        // table doesn't apply downwards).
+        fill_floor( roll_chunk, glm::ivec3( 0, -40, 0 ), GRASS, AIR );
+        check_bool( "overworld types: gated out of the nether", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
+        chunk_free_cells( roll_chunk.cells );
+        roll_chunk.cells = nullptr;
+        // A netherrack floor under lava produces no spots — headroom cells
+        // holding liquid veto the spawn (no lava-sea-floor herds).
+        fill_floor( roll_chunk, glm::ivec3( 0, -40, 0 ), NETHERRACK, LAVA );
+        check_bool( "nether roll: no spawning under lava", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
+        chunk_free_cells( roll_chunk.cells );
+        roll_chunk.cells = nullptr;
     }
 
     return failures;

@@ -218,6 +218,26 @@ skeleton_step_1|mc_pack/mob/skeleton/step1.wav|sfx|Skeleton step
 skeleton_step_2|mc_pack/mob/skeleton/step2.wav|sfx|Skeleton step
 skeleton_step_3|mc_pack/mob/skeleton/step3.wav|sfx|Skeleton step
 skeleton_step_4|mc_pack/mob/skeleton/step4.wav|sfx|Skeleton step
+zpig_say_1|mc_pack/mob/zombified_piglin/zpig1.wav|sfx|Zombified piglin say
+zpig_say_2|mc_pack/mob/zombified_piglin/zpig2.wav|sfx|Zombified piglin say
+zpig_say_3|mc_pack/mob/zombified_piglin/zpig3.wav|sfx|Zombified piglin say
+zpig_say_4|mc_pack/mob/zombified_piglin/zpig4.wav|sfx|Zombified piglin say
+zpig_hurt_1|mc_pack/mob/zombified_piglin/zpighurt1.wav|sfx|Zombified piglin hurt
+zpig_hurt_2|mc_pack/mob/zombified_piglin/zpighurt2.wav|sfx|Zombified piglin hurt
+zpig_death|mc_pack/mob/zombified_piglin/zpigdeath.wav|sfx|Zombified piglin death
+wither_skeleton_say_1|mc_pack/mob/wither_skeleton/idle1.wav|sfx|Wither skeleton say
+wither_skeleton_say_2|mc_pack/mob/wither_skeleton/idle2.wav|sfx|Wither skeleton say
+wither_skeleton_say_3|mc_pack/mob/wither_skeleton/idle3.wav|sfx|Wither skeleton say
+wither_skeleton_hurt_1|mc_pack/mob/wither_skeleton/hurt1.wav|sfx|Wither skeleton hurt
+wither_skeleton_hurt_2|mc_pack/mob/wither_skeleton/hurt2.wav|sfx|Wither skeleton hurt
+wither_skeleton_hurt_3|mc_pack/mob/wither_skeleton/hurt3.wav|sfx|Wither skeleton hurt
+wither_skeleton_hurt_4|mc_pack/mob/wither_skeleton/hurt4.wav|sfx|Wither skeleton hurt
+wither_skeleton_death_1|mc_pack/mob/wither_skeleton/death1.wav|sfx|Wither skeleton death
+wither_skeleton_death_2|mc_pack/mob/wither_skeleton/death2.wav|sfx|Wither skeleton death
+wither_skeleton_step_1|mc_pack/mob/wither_skeleton/step1.wav|sfx|Wither skeleton step
+wither_skeleton_step_2|mc_pack/mob/wither_skeleton/step2.wav|sfx|Wither skeleton step
+wither_skeleton_step_3|mc_pack/mob/wither_skeleton/step3.wav|sfx|Wither skeleton step
+wither_skeleton_step_4|mc_pack/mob/wither_skeleton/step4.wav|sfx|Wither skeleton step
 bee_say_1|mc_pack/mob/bee/loop1.wav|sfx|Bee buzz
 bee_say_2|mc_pack/mob/bee/loop2.wav|sfx|Bee buzz
 bee_say_3|mc_pack/mob/bee/loop3.wav|sfx|Bee buzz

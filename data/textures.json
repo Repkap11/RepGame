@@ -5251,8 +5251,14 @@
   "spawn_egg_skeleton": {
     "source": "textures/items/spawn_eggs/spawn_egg_skeleton"
   },
+  "spawn_egg_wither_skeleton": {
+    "source": "textures/items/spawn_eggs/spawn_egg_wither_skeleton"
+  },
   "spawn_egg_zombie": {
     "source": "textures/items/spawn_eggs/spawn_egg_zombie"
+  },
+  "spawn_egg_zombified_piglin": {
+    "source": "textures/items/spawn_eggs/spawn_egg_zombified_piglin"
   },
   "sponge": {
     "source": "textures/blocks/sponge"

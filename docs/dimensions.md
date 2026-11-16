@@ -29,7 +29,8 @@ dialect (`docs/mapgen.md`) can use only the `#define` half of the header.
 
 `include/common/dimension_profile.hpp` is the policy table — skylight,
 skybox, fog tint/range, ambient light floor, water evaporation, bed
-explosions, natural spawns, music set. Gameplay/rendering code reads
+explosions, natural spawns, the despawnable-mob cap, music set.
+Gameplay/rendering code reads
 `dimension_profile(dim)` rather than scattering `dim == DIM_NETHER`
 checks. The spare slots are inert voids (no sky, no spawns).
 
@@ -144,9 +145,15 @@ dimension name (`dim_name`, `dim_local_block_y`).
 ## Rules
 
 Per the profile: water placement evaporates in the nether
-(`bucket.cpp`), beds explode on sleep attempts (`player.cpp`), natural
-mob spawning is off (`chunk.cpp` spawn gate), and the music set switches
-(`audio.cpp` `MUSIC_SET_*`).
+(`bucket.cpp`), beds explode on sleep attempts (`player.cpp`), and the
+music set switches (`audio.cpp` `MUSIC_SET_*`). The nether runs the same
+two natural-spawn paths as the overworld but on its own table: the
+fresh-chunk roll and the despawnable spawner are both gated per type by
+`MobTypeDef::spawn_dims`, so nether chunks roll zombified piglin herds
+(on netherrack/crimson nylium) and wither skeletons (soul sand,
+netherrack, blackstone), and the
+2 s spawner picks zombified piglin .7 / wither skeleton .3 instead of the
+overworld zombie/skeleton/creeper mix (docs/mobs.md).
 
 ## Multiplayer
 

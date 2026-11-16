@@ -651,7 +651,8 @@ bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
     if ( this->cells == nullptr ) {
         return false;
     }
-    if ( !dimension_profile( dimension_of_chunk( this->chunk_pos ) )->natural_spawns ) {
+    const DimensionId dim = dimension_of_chunk( this->chunk_pos );
+    if ( !dimension_profile( dim )->natural_spawns ) {
         return false;
     }
     bool spawned = false;
@@ -661,7 +662,7 @@ bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
     const glm::ivec3 origin = this->chunk_pos * CHUNK_SIZE_I;
     for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
         const MobTypeDef &def = mob_types[ t ];
-        if ( def.spawn_chance <= 0.0f ) {
+        if ( def.spawn_chance <= 0.0f || !( def.spawn_dims & ( 1u << dim ) ) ) {
             continue;
         }
         std::mt19937_64 rng( mob_spawn_seed( this->chunk_pos, t ) );
@@ -684,14 +685,27 @@ bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
                         break;
                     }
                 }
-                if ( top < 0 || top + headroom >= CHUNK_SIZE_Y ||
-                     this->id_at( Chunk::get_index_from_coords( x, top, z ) ) != def.spawn_on ) {
+                if ( top < 0 || top + headroom >= CHUNK_SIZE_Y ) {
+                    continue;
+                }
+                const BlockID floor_id = this->id_at( Chunk::get_index_from_coords( x, top, z ) );
+                bool floor_ok = false;
+                for ( int si = 0; si < 4 && def.spawn_on[ si ] != LAST_BLOCK_ID; si++ ) {
+                    if ( def.spawn_on[ si ] == floor_id ) {
+                        floor_ok = true;
+                        break;
+                    }
+                }
+                if ( !floor_ok ) {
                     continue;
                 }
                 bool fits = true;
                 for ( int y = top + 1; y <= top + headroom; y++ ) {
                     const BlockID id = this->id_at( Chunk::get_index_from_coords( x, y, z ) );
-                    if ( id != AIR && block_definition_get_definition( id )->collides_with_player ) {
+                    // Liquids veto too: non-colliding water/lava passes the
+                    // collides check, so without it herds spawn submerged
+                    // (under ocean water or on the nether lava-sea floor).
+                    if ( id == WATER || id == LAVA || ( id != AIR && block_definition_get_definition( id )->collides_with_player ) ) {
                         fits = false;
                         break;
                     }
