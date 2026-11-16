@@ -50,6 +50,7 @@ int test_tnt( );
 int test_falling_blocks( );
 int test_leaf_decay( );
 int test_support_drops( );
+int test_coral( );
 int test_sapling_grow( );
 int test_bamboo_grow( );
 int test_leaf_placement( );

@@ -49,7 +49,10 @@ class MapGen {
     static BlockID gen_block_id( int x, int y, int z );
     // Block-world debug layout (REPGAME_BLOCK_WORLD): sandstone floor at
     // y=0, every defined block on a 32-wide grid standing on it at y=1.
+    // The z<0 showcase cells may carry rotation (wall-mounted blocks);
+    // block_world_id unwraps the id for callers that don't need it.
     // O(1) per cell; used by Chunk::load_terrain and gen_block_id.
+    static BlockCell block_world_cell( int x, int y, int z );
     static BlockID block_world_id( int x, int y, int z );
     // Flat-world generator (world_type `flat`, set via
     // MapStorage::detect_flat_world): solid sandstone at y<=0, air above.

@@ -826,7 +826,7 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
                 for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
                     for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL_Y - 1; y++ ) {
                         const int index = Chunk::get_index_from_coords( glm::ivec3( x, y, z ) - chunk_offset );
-                        this->cells[ index ] = static_cast<BlockCell>( flat_world ? MapGen::flat_world_id( x, y, z ) : MapGen::block_world_id( x, y, z ) );
+                        this->cells[ index ] = flat_world ? static_cast<BlockCell>( MapGen::flat_world_id( x, y, z ) ) : MapGen::block_world_cell( x, y, z );
                     }
                 }
             }

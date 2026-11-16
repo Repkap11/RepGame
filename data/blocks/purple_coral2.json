@@ -13,6 +13,11 @@
   },
   "no_light": 0,
   "render_order": "Flowers",
+  "scale": [
+    16,
+    12,
+    16
+  ],
   "textures": {
     "bottom": "air",
     "side": "coral_plant_purple",

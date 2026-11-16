@@ -3,34 +3,34 @@
   "breaks_in_liquid": true,
   "casts_shadow": false,
   "collides_with_player": false,
+  "creative": false,
   "hardness": 0,
   "icon_is_isometric": false,
   "id": 358,
   "is_seethrough": true,
   "name": "CORAL_FAN_HANG2",
   "needs_place_on_any_solid": {
-    "top": true
+    "front": true
   },
   "no_light": 0,
   "offset": [
-    5,
     0,
-    5
+    0,
+    1
   ],
-  "render_order": "Flowers",
+  "rotate_on_placement": true,
   "scale": [
-    6,
-    11,
-    6
-  ],
-  "tex_offset": [
-    -5,
-    0,
-    -5
+    16,
+    10,
+    2
   ],
   "textures": {
+    "back": "coral_fan_purple",
     "bottom": "air",
-    "side": "coral_fan_purple",
+    "front": "coral_fan_purple",
+    "left": "air",
+    "right": "air",
     "top": "air"
-  }
+  },
+  "waterloggable": true
 }

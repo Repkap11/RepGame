@@ -1285,6 +1285,31 @@ int test_block_world( ) {
     check_bool( "bw: hanging sign below beam", MapGen::block_world_id( -9, 1, -24 ) == OAK_HANGING_SIGN && MapGen::block_world_id( -9, 2, -24 ) == STONE );
     check_bool( "bw: beam ends at x=-3", MapGen::block_world_id( -2, 2, -24 ) == AIR );
 
+    // Coral showcase (z<0): a pillar per fan species with its wall form on
+    // all four faces (rot 0 on the +z edge, 2 on -z, 3 on +x, 1 on -x),
+    // standing fans/plants/blocks in the rows around it.
+    check_bool( "bw: coral pillar stone", MapGen::block_world_id( -9, 1, -40 ) == STONE );
+    check_bool( "bw: coral wall fan +z face rot0",
+                MapGen::block_world_cell( -9, 1, -39 ) == block_cell_pack( TUBE_CORAL_WALL_FAN, 0, 0 ) );
+    check_bool( "bw: coral wall fan -z face rot2",
+                MapGen::block_world_cell( -9, 1, -41 ) == block_cell_pack( TUBE_CORAL_WALL_FAN, 0, 2 ) );
+    check_bool( "bw: coral wall fan side faces",
+                MapGen::block_world_cell( -10, 1, -40 ) == block_cell_pack( TUBE_CORAL_WALL_FAN, 0, 1 ) &&
+                    MapGen::block_world_cell( -8, 1, -40 ) == block_cell_pack( TUBE_CORAL_WALL_FAN, 0, 3 ) );
+    check_bool( "bw: coral hang forms mounted",
+                MapGen::block_world_id( 11, 1, -39 ) == CORAL_FAN_HANG && MapGen::block_world_id( 15, 1, -39 ) == CORAL_FAN_HANG2 &&
+                    MapGen::block_world_id( 11, 1, -45 ) == CORAL_FAN_HANG3 );
+    check_bool( "bw: dead coral wall pillar", MapGen::block_world_id( -9, 1, -45 ) == DEAD_TUBE_CORAL_WALL_FAN );
+    check_bool( "bw: standing coral fans",
+                MapGen::block_world_id( -9, 1, -38 ) == TUBE_CORAL_FAN && MapGen::block_world_id( 15, 1, -38 ) == CORAL_FAN_DEAD &&
+                    MapGen::block_world_id( -9, 1, -44 ) == DEAD_TUBE_CORAL_FAN );
+    check_bool( "bw: standing coral plants",
+                MapGen::block_world_id( -9, 1, -50 ) == TUBE_CORAL && MapGen::block_world_id( 15, 1, -50 ) == CORAL &&
+                    MapGen::block_world_id( -9, 1, -52 ) == DEAD_TUBE_CORAL );
+    check_bool( "bw: solid coral blocks",
+                MapGen::block_world_id( -9, 1, -56 ) == TUBE_CORAL_BLOCK && MapGen::block_world_id( 11, 1, -56 ) == CORAL_BLOCK &&
+                    MapGen::block_world_id( -9, 1, -58 ) == DEAD_TUBE_CORAL_BLOCK );
+
     // Flat world (world_type `flat`): sandstone floor at y=0, air above —
     // same ground as block world without the grid.
     check_bool( "flat: floor is sandstone at y=0", MapGen::flat_world_id( 0, 0, 0 ) == SANDSTONE );
@@ -2800,5 +2825,192 @@ int test_grass_persist( ) {
     };
     check_bool( "persist: natural ticks dirty real chunks", final_inner_dirty > 0 );
     check_bool( "persist: natural writes never set player_edited", final_edited == 0 );
+    return failures;
+}
+
+// Coral family: standing plants/fans are full-cell cutout crosses needing a
+// solid floor; the ten *_WALL_FAN forms are thin plates mounted on a solid
+// side face, paired with their standing fan so one item drives both. The
+// live plant↔fan sprites and dead grayscale sprite families were swapped in
+// the original import; these checks pin the corrected shapes.
+int test_coral( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.game_mode = GameMode_Survival;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    auto tick = [ & ]( ) {
+        gs.tick_number++;
+        repgame_drain_block_updates( gs );
+    };
+    auto run = [ & ]( const int ticks ) {
+        for ( int i = 0; i < ticks; i++ ) {
+            tick( );
+        }
+    };
+    auto place = [ & ]( const glm::ivec3 &pos, const BlockState &block_state ) {
+        gs.blockUpdateQueue.addBlockUpdate<PlayerBlockPlacedEvent>( gs.tick_number, pos, block_state, false );
+    };
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+
+    // Standing corals (plants + fans, live + dead): bottom-anchored Flowers
+    // crosses whose height matches the sprite's opaque rows — the flower
+    // template's 6x11 crop (scale/offset/tex_offset) used to cut the sprite
+    // to its center strip, and a full 16px box made the pick outline reach
+    // above the art. tex_offset shifts the sampled window so the sprite's
+    // bottom rows land on the shortened quads.
+    const struct { BlockID id; int h; } standing[] = {
+        { TUBE_CORAL, 14 }, { BRAIN_CORAL, 15 }, { BUBBLE_CORAL, 12 }, { FIRE_CORAL, 16 }, { HORN_CORAL, 14 },
+        { PURPLE_CORAL2, 12 }, { CORAL, 14 },
+        { TUBE_CORAL_FAN, 9 }, { BRAIN_CORAL_FAN, 11 }, { BUBBLE_CORAL_FAN, 10 }, { FIRE_CORAL_FAN, 12 }, { HORN_CORAL_FAN, 10 },
+        { CORAL_FAN, 9 }, { CORAL_FAN_DEAD, 9 },
+        { DEAD_TUBE_CORAL, 14 }, { DEAD_BRAIN_CORAL, 15 }, { DEAD_BUBBLE_CORAL, 12 }, { DEAD_FIRE_CORAL, 16 }, { DEAD_HORN_CORAL, 14 },
+        { DEAD_TUBE_CORAL_FAN, 9 }, { DEAD_BRAIN_CORAL_FAN, 11 }, { DEAD_BUBBLE_CORAL_FAN, 10 }, { DEAD_FIRE_CORAL_FAN, 12 }, { DEAD_HORN_CORAL_FAN, 10 },
+    };
+    bool all_cross = true, all_floor = true, all_waterlog = true;
+    for ( const auto &s : standing ) {
+        const Block *b = block_definition_get_definition( s.id );
+        all_cross &= b->renderOrder == RenderOrder_Flowers && b->is_seethrough && !b->casts_shadow && !b->collides_with_player &&
+                     b->scale.x == 16 && b->scale.y == s.h && b->scale.z == 16 &&
+                     b->offset.x == 0 && b->offset.y == 0 && b->offset.z == 0 &&
+                     b->tex_offset.x == 0 && b->tex_offset.y == 0 && b->tex_offset.z == 0;
+        all_floor &= b->needs_place_on_any_solid[ FACE_TOP ] && b->breaks_in_liquid;
+        all_waterlog &= b->waterloggable;
+    }
+    check_bool( "coral def: standing corals are sprite-height crosses", all_cross );
+    check_bool( "coral def: standing corals need a solid floor", all_floor );
+    check_bool( "coral def: standing corals waterloggable", all_waterlog );
+
+    // Live sprite families: plants wear coral_plant_*, fans wear coral_fan_* —
+    // the two were swapped in the original definitions.
+    const BlockID plant_ids[] = { TUBE_CORAL, BRAIN_CORAL, BUBBLE_CORAL, FIRE_CORAL, HORN_CORAL, PURPLE_CORAL2, CORAL };
+    const TextureID plant_tex[] = {
+        TEX_CORAL_PLANT_BLUE, TEX_CORAL_PLANT_PINK, TEX_CORAL_PLANT_PURPLE, TEX_CORAL_PLANT_RED, TEX_CORAL_PLANT_YELLOW,
+        TEX_CORAL_PLANT_PURPLE, TEX_CORAL_PLANT_BLUE,
+    };
+    const BlockID fan_ids[] = { TUBE_CORAL_FAN, BRAIN_CORAL_FAN, BUBBLE_CORAL_FAN, FIRE_CORAL_FAN, HORN_CORAL_FAN };
+    const TextureID fan_tex[] = {
+        TEX_CORAL_FAN_BLUE, TEX_CORAL_FAN_PINK, TEX_CORAL_FAN_PURPLE, TEX_CORAL_FAN_RED, TEX_CORAL_FAN_YELLOW,
+    };
+    bool plants_ok = true, fans_ok = true;
+    for ( size_t i = 0; i < sizeof( plant_ids ) / sizeof( plant_ids[ 0 ] ); i++ ) {
+        plants_ok &= block_definition_get_definition( plant_ids[ i ] )->textures[ FACE_FRONT ] == plant_tex[ i ];
+    }
+    for ( size_t i = 0; i < sizeof( fan_ids ) / sizeof( fan_ids[ 0 ] ); i++ ) {
+        fans_ok &= block_definition_get_definition( fan_ids[ i ] )->textures[ FACE_FRONT ] == fan_tex[ i ];
+    }
+    check_bool( "coral def: live plants use coral_plant_* sprites", plants_ok );
+    check_bool( "coral def: live fans use coral_fan_* sprites", fans_ok );
+
+    // Dead sprite families: dead plants use the plant-shaped grayscale tiles
+    // (graycale_coral_6-10 — no dead plant art exists), dead fans use the
+    // Bedrock dead fan sprites, matching their wall variants.
+    const struct { BlockID id; TextureID tex; } dead_map[] = {
+        { DEAD_TUBE_CORAL, TEX_GRAYCALE_CORAL_6 }, { DEAD_BRAIN_CORAL, TEX_GRAYCALE_CORAL_7 },
+        { DEAD_BUBBLE_CORAL, TEX_GRAYCALE_CORAL_8 }, { DEAD_FIRE_CORAL, TEX_GRAYCALE_CORAL_9 },
+        { DEAD_HORN_CORAL, TEX_GRAYCALE_CORAL_10 },
+        { DEAD_TUBE_CORAL_FAN, TEX_CORAL_FAN_BLUE_DEAD }, { DEAD_BRAIN_CORAL_FAN, TEX_CORAL_FAN_PINK_DEAD },
+        { DEAD_BUBBLE_CORAL_FAN, TEX_CORAL_FAN_PURPLE_DEAD }, { DEAD_FIRE_CORAL_FAN, TEX_CORAL_FAN_RED_DEAD },
+        { DEAD_HORN_CORAL_FAN, TEX_CORAL_FAN_YELLOW_DEAD },
+    };
+    bool dead_ok = true;
+    for ( const auto &d : dead_map ) {
+        dead_ok &= block_definition_get_definition( d.id )->textures[ FACE_FRONT ] == d.tex;
+    }
+    check_bool( "coral def: dead corals use correct grayscale sprites", dead_ok );
+
+    // The fan ↔ wall-fan pairs: the wall form is a 2px plate one pixel off
+    // the -z edge at rotation 0, front-mounted on a solid block, sprite-height
+    // like its standing form, visible from both sides (the fan sprite sits on
+    // front AND back — a one-sided plate disappears from behind), and the two
+    // share one item.
+    const struct { BlockID fan, wall; int h; } pairs[] = {
+        { TUBE_CORAL_FAN, TUBE_CORAL_WALL_FAN, 9 }, { BRAIN_CORAL_FAN, BRAIN_CORAL_WALL_FAN, 11 },
+        { BUBBLE_CORAL_FAN, BUBBLE_CORAL_WALL_FAN, 10 }, { FIRE_CORAL_FAN, FIRE_CORAL_WALL_FAN, 12 },
+        { HORN_CORAL_FAN, HORN_CORAL_WALL_FAN, 10 }, { DEAD_TUBE_CORAL_FAN, DEAD_TUBE_CORAL_WALL_FAN, 9 },
+        { DEAD_BRAIN_CORAL_FAN, DEAD_BRAIN_CORAL_WALL_FAN, 11 }, { DEAD_BUBBLE_CORAL_FAN, DEAD_BUBBLE_CORAL_WALL_FAN, 10 },
+        { DEAD_FIRE_CORAL_FAN, DEAD_FIRE_CORAL_WALL_FAN, 12 }, { DEAD_HORN_CORAL_FAN, DEAD_HORN_CORAL_WALL_FAN, 10 },
+        // CORAL_FAN_HANG is the old family's blue wall fan — CORAL_FAN's wall
+        // variant; HANG2/HANG3 are unpaired purple/yellow wall forms.
+        { CORAL_FAN, CORAL_FAN_HANG, 9 },
+    };
+    bool all_plate = true, all_pair = true, all_sprite = true;
+    for ( const auto &p : pairs ) {
+        const Block *fan = block_definition_get_definition( p.fan );
+        const Block *wall = block_definition_get_definition( p.wall );
+        all_plate &= wall->rotate_on_placement && wall->needs_place_on_any_solid[ FACE_FRONT ] &&
+                     !wall->collides_with_player && wall->is_seethrough && !wall->casts_shadow && wall->waterloggable &&
+                     wall->scale.x == 16 && wall->scale.y == p.h && wall->scale.z <= 4 &&
+                     wall->offset.z > 0 && wall->offset.z + wall->scale.z < 16 && wall->tex_offset.y == 0 &&
+                     wall->textures[ FACE_LEFT ] == TEX_AIR && wall->textures[ FACE_RIGHT ] == TEX_AIR &&
+                     wall->textures[ FACE_TOP ] == TEX_AIR && wall->textures[ FACE_BOTTOM ] == TEX_AIR;
+        all_pair &= fan->wall_variant == p.wall && wall->standing_variant == p.fan && block_item_id( p.wall ) == p.fan;
+        all_sprite &= wall->textures[ FACE_FRONT ] == fan->textures[ FACE_FRONT ] && wall->textures[ FACE_BACK ] == fan->textures[ FACE_FRONT ];
+    }
+    check_bool( "coral def: wall fans are thin front-mounted plates", all_plate );
+    check_bool( "coral def: fan/wall variants share one item", all_pair );
+    check_bool( "coral def: wall plate shows the fan both-sided", all_sprite );
+    // The unpaired purple/yellow wall forms get the plate shape too (they
+    // were standing crosses wearing the wrong role in the old import).
+    for ( const BlockID id : { CORAL_FAN_HANG2, CORAL_FAN_HANG3 } ) {
+        const Block *b = block_definition_get_definition( id );
+        check_bool( id == CORAL_FAN_HANG2 ? "coral def: hang2 is a wall plate" : "coral def: hang3 is a wall plate",
+                    b->needs_place_on_any_solid[ FACE_FRONT ] && b->rotate_on_placement && b->scale.z <= 4 &&
+                        b->textures[ FACE_FRONT ] == b->textures[ FACE_BACK ] );
+    }
+
+    {
+        bool fan_listed = false, wall_listed = false;
+        for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+            fan_listed |= CREATIVE_BLOCKS[ i ] == TUBE_CORAL_FAN;
+            wall_listed |= CREATIVE_BLOCKS[ i ] == TUBE_CORAL_WALL_FAN;
+        }
+        check_bool( "coral def: standing fan listed, wall fan hidden", fan_listed && !wall_listed );
+    }
+
+    // Support removal: a rot-0 wall fan mounted on stone's +z face pops and
+    // drops the standing fan item (shared item like the sign pair).
+    world.set_loaded_block( glm::ivec3( 10, 10, 40 ), stone );
+    world.set_loaded_block( glm::ivec3( 10, 10, 41 ), { TUBE_CORAL_WALL_FAN, 0, 0, TUBE_CORAL_WALL_FAN, 0 } );
+    const int before = test_count_items( world, TUBE_CORAL_FAN );
+    place( glm::ivec3( 10, 10, 40 ), BLOCK_STATE_AIR );
+    run( 20 );
+    check_bool( "support: wall fan dropped one standing item", test_count_items( world, TUBE_CORAL_FAN ) - before == 1 );
+    failures += check_id( world, "support: wall fan cell cleared", glm::ivec3( 10, 10, 41 ), AIR );
+
+    // Every horizontal mount: all four rotations survive only when their
+    // required support face has a solid block.
+    const struct { int rot; glm::ivec3 fan_off; } mounts[] = {
+        { 0, glm::ivec3( 0, 0, 1 ) },   // support -z: fan sits at +z of stone
+        { 1, glm::ivec3( -1, 0, 0 ) },  // support +x: fan sits at -x
+        { 2, glm::ivec3( 0, 0, -1 ) },  // support +z: fan sits at -z
+        { 3, glm::ivec3( 1, 0, 0 ) },   // support -x: fan sits at +x
+    };
+    {
+        const glm::ivec3 base( 20, 10, 50 );
+        world.set_loaded_block( base, stone );
+        bool survived = true;
+        for ( const auto &m : mounts ) {
+            const glm::ivec3 pos = base + m.fan_off;
+            world.set_loaded_block( pos, { FIRE_CORAL_WALL_FAN, static_cast<unsigned char>( m.rot ), 0, FIRE_CORAL_WALL_FAN, 0 } );
+        }
+        run( 20 );
+        for ( const auto &m : mounts ) {
+            survived &= world.get_loaded_block( base + m.fan_off ).id == FIRE_CORAL_WALL_FAN;
+        }
+        check_bool( "support: all four wall mounts survive", survived );
+    }
+
     return failures;
 }

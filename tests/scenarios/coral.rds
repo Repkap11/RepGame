@@ -1,0 +1,94 @@
+# Coral showcase: standing plants/fans on the floor, wall fans mounted on
+# stone pillar faces (rot: 0=+z plate, 1=+x, 2=-z, 3=-x), plus a support
+# removal pop test. Flat floor is SANDSTONE at y=0; AIR starts at y=1.
+wait_idle 20 6000
+# pillars first so wall fans have support when they land
+setblock 40 1 8 STONE
+setblock 44 1 8 STONE
+setblock 48 1 8 STONE
+setblock 52 1 8 STONE
+wait 5
+# live standing corals, row z=8
+setblock 2 1 8 TUBE_CORAL 0
+setblock 4 1 8 TUBE_CORAL_FAN 0
+setblock 6 1 8 BRAIN_CORAL 0
+setblock 8 1 8 BRAIN_CORAL_FAN 0
+setblock 10 1 8 BUBBLE_CORAL 0
+setblock 12 1 8 BUBBLE_CORAL_FAN 0
+setblock 14 1 8 FIRE_CORAL 0
+setblock 16 1 8 FIRE_CORAL_FAN 0
+setblock 18 1 8 HORN_CORAL 0
+setblock 20 1 8 HORN_CORAL_FAN 0
+setblock 24 1 8 CORAL 0
+setblock 26 1 8 CORAL_FAN 0
+setblock 28 1 8 CORAL_FAN_DEAD 0
+# dead standing corals, row z=10
+setblock 2 1 10 DEAD_BRAIN_CORAL 0
+setblock 4 1 10 DEAD_BRAIN_CORAL_FAN 0
+setblock 6 1 10 DEAD_BUBBLE_CORAL 0
+setblock 8 1 10 DEAD_BUBBLE_CORAL_FAN 0
+setblock 10 1 10 DEAD_FIRE_CORAL 0
+setblock 12 1 10 DEAD_FIRE_CORAL_FAN 0
+setblock 14 1 10 DEAD_HORN_CORAL 0
+setblock 16 1 10 DEAD_HORN_CORAL_FAN 0
+setblock 18 1 10 DEAD_TUBE_CORAL 0
+setblock 20 1 10 DEAD_TUBE_CORAL_FAN 0
+# live wall fans on pillar 40: rot r mounts def FRONT onto world face:
+# rot0 = support -z (fan at +z), rot2 = +z, rot1 = +x, rot3 = -x
+setblock 40 1 9 BRAIN_CORAL_WALL_FAN 0
+setblock 39 1 8 BUBBLE_CORAL_WALL_FAN 1
+setblock 40 1 7 FIRE_CORAL_WALL_FAN 2
+setblock 41 1 8 HORN_CORAL_WALL_FAN 3
+# dead wall fans on pillar 44
+setblock 44 1 9 DEAD_BRAIN_CORAL_WALL_FAN 0
+setblock 43 1 8 DEAD_BUBBLE_CORAL_WALL_FAN 1
+setblock 44 1 7 DEAD_FIRE_CORAL_WALL_FAN 2
+setblock 45 1 8 DEAD_TUBE_CORAL_WALL_FAN 3
+# pillar 48
+setblock 48 1 9 DEAD_HORN_CORAL_WALL_FAN 0
+setblock 47 1 8 TUBE_CORAL_WALL_FAN 1
+# old-family wall fans (coral_fan_hang*) on pillar 60
+setblock 60 1 8 STONE
+wait 5
+setblock 60 1 9 CORAL_FAN_HANG 0
+setblock 60 1 7 CORAL_FAN_HANG2 2
+setblock 59 1 8 CORAL_FAN_HANG3 1
+wait 30
+assert_block 40 1 9 BRAIN_CORAL_WALL_FAN
+assert_block 39 1 8 BUBBLE_CORAL_WALL_FAN
+assert_block 40 1 7 FIRE_CORAL_WALL_FAN
+assert_block 41 1 8 HORN_CORAL_WALL_FAN
+assert_block 26 1 8 CORAL_FAN
+assert_block 60 1 9 CORAL_FAN_HANG
+assert_block 60 1 7 CORAL_FAN_HANG2
+assert_block 59 1 8 CORAL_FAN_HANG3
+# support removal: fan mounted on stone 52's +z face, then remove the stone
+setblock 52 1 9 TUBE_CORAL_WALL_FAN 0
+wait 10
+assert_block 52 1 9 TUBE_CORAL_WALL_FAN
+setblock 52 1 8 AIR
+wait 20
+assert_block 52 1 9 AIR
+# unsupported cell: fan with no mount should not survive an update
+setblock 56 1 9 BUBBLE_CORAL_WALL_FAN 0
+wait 5
+setblock 56 1 8 STONE
+setblock 56 1 8 AIR
+wait 20
+assert_block 56 1 9 AIR
+camera 18 2.5 16 0 15
+wait 20
+screenshot coral_standing
+camera 44 2.5 17 0 15
+wait 20
+screenshot coral_wallfans_south
+camera 44 2.5 0 180 15
+wait 20
+screenshot coral_wallfans_north
+camera 54 2.5 8 270 15
+wait 20
+screenshot coral_wallfans_east
+camera 34 2.5 8 90 15
+wait 20
+screenshot coral_wallfans_west
+echo coral done

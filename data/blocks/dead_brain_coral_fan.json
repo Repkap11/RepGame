@@ -13,10 +13,16 @@
   },
   "no_light": 0,
   "render_order": "Flowers",
+  "scale": [
+    16,
+    11,
+    16
+  ],
   "textures": {
     "bottom": "air",
-    "side": "graycale_coral_7",
+    "side": "coral_fan_pink_dead",
     "top": "air"
   },
+  "wall_variant": "DEAD_BRAIN_CORAL_WALL_FAN",
   "waterloggable": true
 }

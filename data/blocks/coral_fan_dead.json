@@ -12,25 +12,16 @@
     "top": true
   },
   "no_light": 0,
-  "offset": [
-    5,
-    0,
-    5
-  ],
   "render_order": "Flowers",
   "scale": [
-    6,
-    11,
-    6
-  ],
-  "tex_offset": [
-    -5,
-    0,
-    -5
+    16,
+    9,
+    16
   ],
   "textures": {
     "bottom": "air",
     "side": "coral_fan_blue_dead",
     "top": "air"
-  }
+  },
+  "waterloggable": true
 }

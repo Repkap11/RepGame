@@ -15,7 +15,7 @@
   "render_order": "Flowers",
   "textures": {
     "bottom": "air",
-    "side": "graycale_coral_4",
+    "side": "graycale_coral_9",
     "top": "air"
   },
   "waterloggable": true

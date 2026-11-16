@@ -95,6 +95,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( terrain_queue ),    //
     MK_TEST( leaf_decay ),       //
     MK_TEST( support_drops ),    //
+    MK_TEST( coral ),            //
     MK_TEST( sapling_grow ),     //
     MK_TEST( bamboo_grow ),      //
     MK_TEST( leaf_placement ),   //

@@ -43,11 +43,11 @@ static const std::vector<BlockID> &block_world_table( ) {
     return table;
 }
 
-BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
+BlockCell MapGen::block_world_cell( const int x, const int y, const int z ) {
     if ( y <= 0 ) {
         // Solid ground: an air void under the floor would make the light
         // cascade run removal BFS over the whole connected void volume.
-        return SANDSTONE;
+        return block_cell_pack( SANDSTONE, 0 );
     }
     // Door showcase in the free z<0 region: WOODEN, IRON and BAMBOO pairs
     // (lower at y=1, upper at y=2). Mapgen can't set rotation, so all doors
@@ -64,10 +64,10 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
         };
         for ( const auto &d : door_showcase ) {
             if ( d.x == x ) {
-                return y == 1 ? d.lower : d.upper;
+                return block_cell_pack( y == 1 ? d.lower : d.upper, 0 );
             }
         }
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     // Hanging signs (needs_place_on_any_solid.bottom => support at y+1):
     // a stone beam at y=2 with signs below it at y=1.
@@ -79,14 +79,14 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
             { -9, OAK_HANGING_SIGN }, { -7, ACACIA_HANGING_SIGN }, { -5, SPRUCE_HANGING_SIGN }, { -3, WARPED_HANGING_SIGN },
         };
         if ( y == 2 ) {
-            return x >= -9 && x <= -3 ? STONE : AIR;
+            return block_cell_pack( x >= -9 && x <= -3 ? STONE : AIR, 0 );
         }
         for ( const auto &h : hanging_showcase ) {
             if ( h.x == x ) {
-                return h.id;
+                return block_cell_pack( h.id, 0 );
             }
         }
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     // Bed showcase in the free z<0 region: foot+head pairs at yaw 0, so
     // the head cell sits one block at -z of the foot.
@@ -94,25 +94,25 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
         static const int bed_xs[] = { -9, -7, -5 };
         for ( const int bx : bed_xs ) {
             if ( x == bx ) {
-                return z == -30 ? BED : BED_HEAD;
+                return block_cell_pack( z == -30 ? BED : BED_HEAD, 0 );
             }
         }
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     // Scaffolding showcase: a 4-high column at x=-9 with a 6-cell arm off
     // its top (horizontal distances 1-6 — the Java support limit), plus a
     // freestanding frame at (0,-34) for the lone-cell look.
     if ( z == -33 && y >= 1 && y <= 4 ) {
         if ( x == -9 || ( y == 4 && x >= -8 && x <= -3 ) ) {
-            return SCAFFOLDING;
+            return block_cell_pack( SCAFFOLDING, 0 );
         }
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     if ( z == -34 && y == 1 ) {
-        return x == 0 ? SCAFFOLDING : AIR;
+        return block_cell_pack( x == 0 ? SCAFFOLDING : AIR, 0 );
     }
     if ( y != 1 ) {
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     // Fence showcase in the free z<0 region (rotation can't be set from
     // mapgen, so all gates are rotation-0 closed and span x). Covers every
@@ -123,6 +123,7 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
         static const struct {
             int x, z;
             BlockID id;
+            unsigned char rot = 0;
         } showcase[] = {
             // Oak run along x with an inline gate.
             { -9, -2, OAK_FENCE }, { -8, -2, OAK_FENCE }, { -7, -2, OAK_FENCE }, { -6, -2, FENCE_GATE }, { -5, -2, OAK_FENCE }, { -4, -2, OAK_FENCE },
@@ -162,27 +163,64 @@ BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
             { 8, -26, IRON_BARS },
             { 10, -26, IRON_BARS }, { 10, -27, IRON_BARS }, { 11, -26, GLASS_PANE }, { 11, -27, GLASS },
             { 13, -26, IRON_BARS }, { 14, -26, OAK_FENCE },
+            // Coral showcase: a pillar per fan species with its wall form
+            // mounted on all four faces (rot 0 faces +z, 2 faces -z,
+            // 3 faces +x, 1 faces -x — the plate hugs the support edge),
+            // the standing fan a row in front, then standing plants and
+            // solid coral blocks. Live family at z=-38..-41, dead at
+            // z=-44..-47, plants at z=-50/-52, blocks at z=-56/-58.
+            { -9, -40, STONE }, { -9, -41, TUBE_CORAL_WALL_FAN, 2 }, { -9, -39, TUBE_CORAL_WALL_FAN }, { -10, -40, TUBE_CORAL_WALL_FAN, 1 }, { -8, -40, TUBE_CORAL_WALL_FAN, 3 },
+            { -5, -40, STONE }, { -5, -41, BRAIN_CORAL_WALL_FAN, 2 }, { -5, -39, BRAIN_CORAL_WALL_FAN }, { -6, -40, BRAIN_CORAL_WALL_FAN, 1 }, { -4, -40, BRAIN_CORAL_WALL_FAN, 3 },
+            { -1, -40, STONE }, { -1, -41, BUBBLE_CORAL_WALL_FAN, 2 }, { -1, -39, BUBBLE_CORAL_WALL_FAN }, { -2, -40, BUBBLE_CORAL_WALL_FAN, 1 }, { 0, -40, BUBBLE_CORAL_WALL_FAN, 3 },
+            { 3, -40, STONE }, { 3, -41, FIRE_CORAL_WALL_FAN, 2 }, { 3, -39, FIRE_CORAL_WALL_FAN }, { 2, -40, FIRE_CORAL_WALL_FAN, 1 }, { 4, -40, FIRE_CORAL_WALL_FAN, 3 },
+            { 7, -40, STONE }, { 7, -41, HORN_CORAL_WALL_FAN, 2 }, { 7, -39, HORN_CORAL_WALL_FAN }, { 6, -40, HORN_CORAL_WALL_FAN, 1 }, { 8, -40, HORN_CORAL_WALL_FAN, 3 },
+            // Old family: CORAL_FAN's wall form is CORAL_FAN_HANG; HANG2/3
+            // are unpaired purple/yellow wall forms.
+            { 11, -40, STONE }, { 11, -41, CORAL_FAN_HANG, 2 }, { 11, -39, CORAL_FAN_HANG }, { 10, -40, CORAL_FAN_HANG, 1 }, { 12, -40, CORAL_FAN_HANG, 3 },
+            { 15, -40, STONE }, { 15, -41, CORAL_FAN_HANG2, 2 }, { 15, -39, CORAL_FAN_HANG2 }, { 14, -40, CORAL_FAN_HANG2, 1 }, { 16, -40, CORAL_FAN_HANG2, 3 },
+            // Standing live fans.
+            { -9, -38, TUBE_CORAL_FAN }, { -5, -38, BRAIN_CORAL_FAN }, { -1, -38, BUBBLE_CORAL_FAN }, { 3, -38, FIRE_CORAL_FAN }, { 7, -38, HORN_CORAL_FAN },
+            { 11, -38, CORAL_FAN }, { 15, -38, CORAL_FAN_DEAD },
+            // Dead wall-fan pillars.
+            { -9, -46, STONE }, { -9, -47, DEAD_TUBE_CORAL_WALL_FAN, 2 }, { -9, -45, DEAD_TUBE_CORAL_WALL_FAN }, { -10, -46, DEAD_TUBE_CORAL_WALL_FAN, 1 }, { -8, -46, DEAD_TUBE_CORAL_WALL_FAN, 3 },
+            { -5, -46, STONE }, { -5, -47, DEAD_BRAIN_CORAL_WALL_FAN, 2 }, { -5, -45, DEAD_BRAIN_CORAL_WALL_FAN }, { -6, -46, DEAD_BRAIN_CORAL_WALL_FAN, 1 }, { -4, -46, DEAD_BRAIN_CORAL_WALL_FAN, 3 },
+            { -1, -46, STONE }, { -1, -47, DEAD_BUBBLE_CORAL_WALL_FAN, 2 }, { -1, -45, DEAD_BUBBLE_CORAL_WALL_FAN }, { -2, -46, DEAD_BUBBLE_CORAL_WALL_FAN, 1 }, { 0, -46, DEAD_BUBBLE_CORAL_WALL_FAN, 3 },
+            { 3, -46, STONE }, { 3, -47, DEAD_FIRE_CORAL_WALL_FAN, 2 }, { 3, -45, DEAD_FIRE_CORAL_WALL_FAN }, { 2, -46, DEAD_FIRE_CORAL_WALL_FAN, 1 }, { 4, -46, DEAD_FIRE_CORAL_WALL_FAN, 3 },
+            { 7, -46, STONE }, { 7, -47, DEAD_HORN_CORAL_WALL_FAN, 2 }, { 7, -45, DEAD_HORN_CORAL_WALL_FAN }, { 6, -46, DEAD_HORN_CORAL_WALL_FAN, 1 }, { 8, -46, DEAD_HORN_CORAL_WALL_FAN, 3 },
+            { 11, -46, STONE }, { 11, -47, CORAL_FAN_HANG3, 2 }, { 11, -45, CORAL_FAN_HANG3 }, { 10, -46, CORAL_FAN_HANG3, 1 }, { 12, -46, CORAL_FAN_HANG3, 3 },
+            // Standing dead fans.
+            { -9, -44, DEAD_TUBE_CORAL_FAN }, { -5, -44, DEAD_BRAIN_CORAL_FAN }, { -1, -44, DEAD_BUBBLE_CORAL_FAN }, { 3, -44, DEAD_FIRE_CORAL_FAN }, { 7, -44, DEAD_HORN_CORAL_FAN },
+            // Standing plants, live then dead.
+            { -9, -50, TUBE_CORAL }, { -5, -50, BRAIN_CORAL }, { -1, -50, BUBBLE_CORAL }, { 3, -50, FIRE_CORAL }, { 7, -50, HORN_CORAL }, { 11, -50, PURPLE_CORAL2 }, { 15, -50, CORAL },
+            { -9, -52, DEAD_TUBE_CORAL }, { -5, -52, DEAD_BRAIN_CORAL }, { -1, -52, DEAD_BUBBLE_CORAL }, { 3, -52, DEAD_FIRE_CORAL }, { 7, -52, DEAD_HORN_CORAL },
+            // Solid coral blocks, live then dead.
+            { -9, -56, TUBE_CORAL_BLOCK }, { -5, -56, BRAIN_CORAL_BLOCK }, { -1, -56, BUBBLE_CORAL_BLOCK }, { 3, -56, FIRE_CORAL_BLOCK }, { 7, -56, HORN_CORAL_BLOCK }, { 11, -56, CORAL_BLOCK },
+            { -9, -58, DEAD_TUBE_CORAL_BLOCK }, { -5, -58, DEAD_BRAIN_CORAL_BLOCK }, { -1, -58, DEAD_BUBBLE_CORAL_BLOCK }, { 3, -58, DEAD_FIRE_CORAL_BLOCK }, { 7, -58, DEAD_HORN_CORAL_BLOCK },
         };
         for ( const auto &s : showcase ) {
             if ( s.x == x && s.z == z ) {
-                return s.id;
+                return block_cell_pack( s.id, 0, s.rot );
             }
         }
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     // 32 per row along +x starting at x=2, rows stepping +z from z=2; one
     // air cell between neighbours in both directions.
     if ( x < 2 || z < 2 || ( ( x - 2 ) & 1 ) || ( ( z - 2 ) & 1 ) ) {
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     const int col = ( x - 2 ) / 2;
     const int row = ( z - 2 ) / 2;
     if ( col >= 32 ) {
-        return AIR;
+        return block_cell_pack( AIR, 0 );
     }
     const size_t k = (size_t)row * 32 + (size_t)col;
     const std::vector<BlockID> &t = block_world_table( );
-    return k < t.size( ) ? t[ k ] : AIR;
+    return block_cell_pack( k < t.size( ) ? t[ k ] : AIR, 0 );
+}
+
+BlockID MapGen::block_world_id( const int x, const int y, const int z ) {
+    return block_cell_id( block_world_cell( x, y, z ) );
 }
 
 BlockID MapGen::flat_world_id( const int x, const int y, const int z ) {

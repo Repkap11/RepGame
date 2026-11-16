@@ -13,9 +13,14 @@
   },
   "no_light": 0,
   "render_order": "Flowers",
+  "scale": [
+    16,
+    14,
+    16
+  ],
   "textures": {
     "bottom": "air",
-    "side": "graycale_coral_5",
+    "side": "graycale_coral_10",
     "top": "air"
   },
   "waterloggable": true

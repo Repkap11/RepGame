@@ -340,6 +340,31 @@ wall block back to the standing block, so drops, pick-block and the
 survival inventory all yield the shared item; wall signs also carry
 `creative: false` so the creative list shows one sign entry per species.
 
+Corals follow the same pairing pattern: every `*_CORAL_FAN` /
+`DEAD_*_CORAL_FAN` (plus the standing `*_CORAL` plants) is a
+bottom-anchored Flowers cross on `needs_place_on_any_solid.top`,
+`waterloggable` and `breaks_in_liquid`, since reefs generate submerged.
+`scale.y` matches the sprite's opaque rows (9–16 px — the fan/plant art
+hugs the bottom of the tile, so a full-cell box would pick above the
+art); the shortened quads sample the tile's bottom rows by default, so
+no `tex_offset` is needed (a negative `tex_offset.y` would shift the
+sampled window into the transparent top rows and cut the sprite off). Each of the ten
+`*_CORAL_WALL_FAN` defs — plus the old-family `CORAL_FAN_HANG{,2,3}`,
+Bedrock's wall-mounted fan forms — is a 16xHx2 plate `offset [0,0,1]`
+(one pixel off the cell edge so neither big quad lands on a cell
+boundary: no z-fighting and no culling of the wall face behind it),
+`front`-mounted, `rotate_on_placement`, `creative: false`, edges `air`,
+with the fan sprite on BOTH `front` and `back` — a one-sided plate
+vanishes from behind (chunk face-masking emits only camera-facing
+quads). `CORAL_FAN` pairs with `CORAL_FAN_HANG`; `HANG2`/`HANG3`
+(purple/yellow wall forms) have no standing counterpart. Live plants
+carry `coral_plant_*` and fans `coral_fan_*` (bushy vs flat silhouettes
+— the original import had them swapped); dead plants use
+`graycale_coral_6-10` (no dead plant art exists) and dead fans the
+Bedrock `coral_fan_*_dead` tiles, matching their wall variants.
+`test_coral` pins the shapes, sprite families, pairing, and all four
+mount rotations.
+
 Lanterns (`is_lantern`) render as two boxes (`lantern_boxes` in
 block.cpp, the same multi-box path): the 6x7x6 body and the 4x2x4 lid —
 plus the bail handle, emitted separately as a diagonal cross on the
@@ -702,13 +727,23 @@ SANDSTONE for y≤0 (solid, not a one-block floor, so the light cascade has
 no void volume to sweep) with every defined non-AIR block placed
 once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered
 `CREATIVE_BLOCKS` first then the remaining defined ids ascending — the
-layout lives in `MapGen::block_world_id`. The z<0 side also holds a
+layout lives in `MapGen::block_world_cell` (`block_world_id` unwraps the
+id for callers that ignore rotation). The z<0 side also holds a
 scaffolding showcase: a 4-high column at x=-9/z=-33 with a 6-cell arm off
 its top (horizontal distances 1-6, the Java support limit) and a
 freestanding frame at (0,-34). The z<0 half of the y=1 plane
 holds a fixed fence showcase: an oak run with an inline gate, an L corner,
 a T and a + junction, a lone post, a fence against planks, an oak fence
-against nether brick (must not connect), and a nether brick run. The ImGui debug overlay
+against nether brick (must not connect), and a nether brick run.
+
+A coral showcase lives at z=-38..-58: one stone pillar per fan species
+with its wall form mounted on all four faces (the showcase table carries
+a `rot` field — rotation 0 mounts the plate facing +z, 2 faces -z,
+3 faces +x, 1 faces -x), the standing fan a row in front (z=-38 live,
+z=-44 dead; live pillars z=-40, dead z=-46), then standing plants
+(z=-50/-52) and solid coral blocks (z=-56/-58). `CORAL_FAN`'s wall form
+is `CORAL_FAN_HANG`; `HANG2`/`HANG3` are shown as unpaired wall plates.
+The ImGui debug overlay
 shows the targeted block's `NAME (id)` ("Looking At"); spawn is
 (0.5, y=2, 0.5) facing +x/+z in creative mode.
 
