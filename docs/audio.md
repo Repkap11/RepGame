@@ -29,7 +29,9 @@ logged once). Music is streamed — decoded frames are pulled from stb_vorbis
 on demand (SDL3: the audio thread fills the persistent music stream; WASM:
 the mix callback, which Emscripten runs on the main thread) — `audio_tick`
 picks the next random track after a uniform `[gap/4, gap]` gap (the first
-track starts ~3s in). SFX are one-shots (SDL3 binds a stream per play, WASM
+track starts ~3s in). A `music_set` change (dimension hop) drops a queued
+old-set pick, cuts the in-flight track via `music_skip`, and shortens the
+gap to ~2 s so the new dimension's music takes over promptly. SFX are one-shots (SDL3 binds a stream per play, WASM
 claims a voice slot); manifest names `dig_stone_1..4` form
 the `dig_stone` pool, so `audio_play_sfx("dig_stone")` picks a random
 variant. `audio_block_dig_pool(block_id)` maps BlockID → break pool
@@ -72,7 +74,8 @@ Sources: `sounds/mc_pack` is a Minecraft assets tree (WAV) — the
 overworld tracks (game/, water/, creative/) rotate in the overworld and
 the nether tracks rotate in the nether band; the manifest's `set` column
 tags each entry and `audio.cpp` picks the set from the player's dimension
-(`docs/dimensions.md`). End/menu/records are excluded.
+(`docs/dimensions.md`) — switching dimensions cuts the current track and
+starts the new set. End/menu/records are excluded.
 `make mc_pack_build` downloads it: a tarball of
 just the manifest-listed WAVs hosted at repkap11.com/files/repgame
 (copyrighted, so untracked — not an `install` dep).

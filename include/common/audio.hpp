@@ -39,7 +39,9 @@ static inline float audio_distance_gain( const double dist ) {
 void audio_init( );
 // Per-tick housekeeping: schedules the next ambient track after a random
 // gap and reaps finished one-shot SFX streams. `music_set` is the dimension
-// music set (DIM_MUSIC_* in dimension_profile.hpp) the rotation draws from.
+// music set (DIM_MUSIC_* in dimension_profile.hpp) the rotation draws from;
+// when it changes (dimension hop) the in-flight track is cut and the new
+// set starts after a short delay instead of the full random gap.
 void audio_tick( long tick_number, int music_set );
 // Plays a random variant of the named SFX pool (manifest names dig_1..dig_n
 // all belong to base "dig"). Unknown/empty pools are ignored.

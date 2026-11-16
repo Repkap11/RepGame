@@ -289,11 +289,14 @@ float sfx_gain = 1.0f;
 
 // Track scheduling: the audio thread sets music_want when it runs out of
 // track; the game thread (audio_tick) picks the next index and hands it over
-// through next_track.
+// through next_track. music_skip is the reverse direction: the game thread
+// asks the audio thread to cut the in-flight track (dimension change).
 std::atomic<int> next_track{ -1 };
 std::atomic<bool> music_want{ false };
 std::atomic<int> current_track{ -1 }; // audio thread writes, game thread reads
+std::atomic<bool> music_skip{ false };
 int last_track = -1;
+int last_music_set = -1;
 long gap_until_tick = 0;
 long gap_min_ticks = 0;
 long gap_span_ticks = 0;
@@ -425,6 +428,9 @@ static void SDLCALL audio_mix_cb( void *userdata, Uint8 *stream, int len ) {
     static float mix_buf[ 4096 ];
     int filled = 0;
     while ( filled < floats_total ) {
+        if ( music_skip.exchange( false ) ) {
+            music_close_track( );
+        }
         if ( !music_vorbis ) {
             const int idx = next_track.exchange( -1 );
             if ( idx < 0 ) {
@@ -593,6 +599,11 @@ static void SDLCALL music_feed( void *userdata, SDL_AudioStream *stream, int add
     static float buf[ 4096 * 2 ];
     int floats_wanted = additional_amount / ( int )sizeof( float );
     while ( floats_wanted > 0 ) {
+        if ( music_skip.exchange( false ) && music_vorbis ) {
+            stb_vorbis_close( music_vorbis );
+            music_vorbis = nullptr;
+            current_track.store( -1 );
+        }
         if ( !music_vorbis ) {
             const int idx = next_track.exchange( -1 );
             if ( idx < 0 ) {
@@ -764,13 +775,37 @@ void audio_tick( long tick_number, const int music_set ) {
     }
     const int num_music = ( int )( sizeof( MUSIC_TRACKS ) / sizeof( MUSIC_TRACKS[ 0 ] ) ) - 1;
     // Tracks eligible in this dimension's music set (nether rotates its own
-    // list; an in-flight overworld track finishes but the next pick is
-    // nether).
+    // list).
     int set_tracks[ 32 ];
     int num_set = 0;
     for ( int i = 0; i < num_music && num_set < 32; i++ ) {
         if ( MUSIC_TRACKS[ i ].set == music_set ) {
             set_tracks[ num_set++ ] = i;
+        }
+    }
+    // Old-set music never survives a dimension change: drop a queued pick
+    // the audio thread hasn't taken yet and ask it (music_skip) to cut the
+    // in-flight track. Polled every tick — the audio thread may have claimed
+    // an old-set next_track in the same instant the set flipped.
+    int queued = next_track.load( );
+    if ( queued >= 0 && MUSIC_TRACKS[ queued ].set != music_set &&
+         next_track.compare_exchange_strong( queued, -1 ) ) {
+        music_want.store( true );
+    }
+    const int cur = current_track.load( );
+    if ( cur >= 0 && MUSIC_TRACKS[ cur ].set != music_set ) {
+        music_skip.store( true );
+    }
+    // On the change edge, shorten the inter-track gap so the new set starts
+    // promptly — unless the new set is already the one playing/queued.
+    if ( music_set != last_music_set ) {
+        const bool new_set_coming =
+            ( cur >= 0 && MUSIC_TRACKS[ cur ].set == music_set ) ||
+            ( queued >= 0 && MUSIC_TRACKS[ queued ].set == music_set );
+        last_music_set = music_set;
+        const long soon = tick_number + 2 * UPS_RATE;
+        if ( !new_set_coming && ( gap_until_tick == 0 || gap_until_tick > soon ) ) {
+            gap_until_tick = soon;
         }
     }
     if ( music_enabled && num_set > 0 && music_want.load( ) && next_track.load( ) < 0 ) {
@@ -951,6 +986,8 @@ void audio_cleanup( ) {
     }
     sfx_cache.clear( );
     current_track.store( -1 );
+    music_skip.store( false );
+    last_music_set = -1;
     audio_enabled = false;
 }
 
