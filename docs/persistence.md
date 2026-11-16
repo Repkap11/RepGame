@@ -53,10 +53,9 @@ sections below. `MapStorage` has two backends for storing blobs:
   `batch_end`), and `enable_file_index` fills the save-file index with
   one `SELECT` instead of a `readdir`.
 - **Loose files** — the classic backend: one `<kind>_<x>_<y>_<z>` file
-  per record under the world dir, tmp+rename on write. Used on Windows
-  and whenever `world.db` can't be opened (`sqlite_open` falls back).
-  `REPGAME_MAP_FILES=1` forces this backend on sqlite builds
-  (debugging/comparison only — the loose-file import is skipped too).
+  per record under the world dir, tmp+rename on write. Only used where
+  sqlite isn't built (Windows) or `world.db` can't be opened
+  (`sqlite_open` falls back).
 
 **Migration is automatic**: on `init`, `sqlite_open` imports every loose
 `<kind>_*` file it finds into `world.db` (one transaction), then unlinks

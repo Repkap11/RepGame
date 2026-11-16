@@ -21,8 +21,6 @@
 #include "common/player_data.hpp"
 #include "common/constants.hpp"
 #include "common/utils/file_utils.hpp"
-#include "common/utils/env_config.hpp"
-
 // WasmFS opens O_RDONLY OPFS files via a Blob and reads it with
 // slice().arrayBuffer(), which in Firefox needs the main thread's event
 // loop. When the reader IS the main thread (blocked waiting on the proxy
@@ -107,13 +105,10 @@ void MapStorage::init( const char *world_name ) {
     mkdir_p( this->map_name );
     pr_debug( "Map dir ready:%s", this->map_name );
 #if defined( REPGAME_MAP_SQLITE )
-    // REPGAME_MAP_FILES=1 keeps the loose-file backend — debugging and
-    // side-by-side comparison only; the world.db import is skipped too.
-    const bool use_files = env_bool( "REPGAME_MAP_FILES", false );
-    if ( !use_files && this->sqlite_open( true ) ) {
+    if ( this->sqlite_open( true ) ) {
         pr_debug( "Map backend: sqlite world.db" );
     } else {
-        pr_debug( "Map backend: loose files%s", use_files ? " (REPGAME_MAP_FILES)" : " (sqlite unavailable)" );
+        pr_debug( "Map backend: loose files (sqlite unavailable)" );
     }
 #else
     pr_debug( "Map backend: loose files" );

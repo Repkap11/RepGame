@@ -110,7 +110,7 @@ See `docs/models.md`.
   records and `player.dat`. Two backends store the record blobs: a sqlite
   `world.db` (server + linux/arm/steamframe, vendored amalgamation in
   `sqlite_build/` via `make install`) and loose `<kind>_<x>_<y>_<z>`
-  files (Windows; `REPGAME_MAP_FILES=1` forces it). WASM/Android persist
+  files (Windows only). WASM/Android persist
   no per-chunk state. The player save is a human-readable text format
   (`include/common/player_data.hpp`), with the five historical binary
   layouts still accepted on read
