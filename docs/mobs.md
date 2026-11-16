@@ -192,7 +192,11 @@ spawn where `hostile_spawn_light_ok` (`max(sky * daylight, block) < 7/15`)
 holds — `persistent=0` + `despawnable=1`. The type picked is a weighted
 roll over `MobTypeDef::night_spawn_weight` among types whose `spawn_dims`
 bit covers the player's dimension: zombie .4 / skeleton .3 / creeper .3 in
-the overworld, zombified piglin .7 / wither skeleton .3 in the nether. In
+the overworld, zombified piglin .7 / wither skeleton 1.0 in the nether.
+A non-empty `spawn_on` list whitelists the floor block on this path too
+(`mob_spawn_floor_ok`): the wither skeleton's nether-brick list ties it
+to fortress floors, while the night-only hostiles' empty list accepts
+any dark surface. In
 the nether sky light is always 0, so only block light < 7/15 gates the
 spawn — dark cavern floors work, lava-lit ground doesn't. Wander picks and
 both spawn paths veto liquid cells, so mobs don't spawn or path into
@@ -317,7 +321,8 @@ Adding a mob:
    `mob_types.hpp`): model/skin bindings, hitbox, health,
    walk/panic/chase speeds, `fall_cap`, `hover_h`, `attack_damage`, drops, sound
    pool names, natural-spawn data (`spawn_on` block list + `spawn_chance`
-   + herd size for the fresh-chunk roll, `spawn_dims` bitmask gating both
+   + herd size for the fresh-chunk roll — a non-empty `spawn_on` also
+   whitelists the night spawner's floor, `spawn_dims` bitmask gating both
    spawn paths to a dimension band, `night_spawn_weight` for the
    despawnable spawner's pick, `burns_in_daylight` for undead-overworld
    burning), AI profile (`MOB_AI_PASSIVE`,

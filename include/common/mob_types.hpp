@@ -115,7 +115,11 @@ typedef struct {
     // is a bitmask of (1u << dim) naming the dimensions the type naturally
     // spawns in — the chunk roll and the night spawner both honor it.
     // night_spawn_weight > 0 enters the type into the despawnable night
-    // spawner's weighted pick for its dims (0 = never night-spawns).
+    // spawner's weighted pick for its dims (0 = never night-spawns). A
+    // non-empty spawn_on list whitelists the floor block for both spawn
+    // paths (wither skeletons only take nether brick → fortresses); an
+    // empty list means the night spawner accepts any dark floor, which is
+    // what the night-only hostiles use.
     // burns_in_daylight opts a hostile type into daylight burning (zombie,
     // skeleton); nether mobs and creepers don't burn.
     BlockID spawn_on[ 4 ];
@@ -143,6 +147,21 @@ typedef struct {
 } MobTypeDef;
 
 extern const MobTypeDef mob_types[ MOB_TYPE_COUNT ];
+
+// Whether `floor` may carry a spawn of this type, shared by the fresh-chunk
+// natural roll and the night spawner. An empty spawn_on list (first slot
+// LAST_BLOCK_ID) is no floor restriction — night-only hostiles rely on it.
+inline bool mob_spawn_floor_ok( const MobTypeDef &def, BlockID floor ) {
+    if ( def.spawn_on[ 0 ] == LAST_BLOCK_ID ) {
+        return true;
+    }
+    for ( int i = 0; i < 4 && def.spawn_on[ i ] != LAST_BLOCK_ID; i++ ) {
+        if ( def.spawn_on[ i ] == floor ) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // The mob a spawn-egg item hatches (MobTypeDef::spawn_egg), or
 // MOB_TYPE_COUNT for non-egg items — including LAST_BLOCK_ID, the

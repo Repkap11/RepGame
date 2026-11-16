@@ -536,12 +536,16 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .sound_death = "wither_skeleton_death",
         .sound_step = "wither_skeleton_step",
         .step_gain = 0.15f,
-        .spawn_on = { SOUL_SAND, NETHERRACK, BLACKSTONE, LAST_BLOCK_ID },
-        .spawn_chance = 1.0f / 10.0f,
+        // Fortress floors only: sgf_brick's three weathering variants. The
+        // rates are high to compensate — brick only exists in fortresses, so
+        // every fortress chunk rolls a herd and the night spawner favours
+        // this type over the piglin wherever brick floors exist.
+        .spawn_on = { NETHER_BRICK, CRACKED_NETHER_BRICKS, CHISELED_NETHER_BRICKS, LAST_BLOCK_ID },
+        .spawn_chance = 1.0f,
         .herd_min = 1,
         .herd_max = 2,
         .spawn_dims = ( 1u << DIM_NETHER ),
-        .night_spawn_weight = 0.3f,
+        .night_spawn_weight = 1.0f,
         .burns_in_daylight = 0,
         .ai = MOB_AI_HOSTILE_MELEE,
         .anims = MOB_ANIM_HUMANOID_WALK | MOB_ANIM_HEAD_LOOK | MOB_ANIM_DEATH_TIP,

@@ -1797,18 +1797,20 @@ int test_mobs( ) {
             c.sidecars.mobs.clear( );
         };
         // Nether band is chunk y -96..-33 (dimension.hpp): a netherrack
-        // floor there rolls the nether table — zombified piglins and wither
-        // skeletons, never overworld types.
+        // floor there rolls the nether table — zombified piglins (wither
+        // skeletons only take nether brick), never overworld types.
         check_bool( "nether: band resolves", dimension_of_chunk( glm::ivec3( 0, -40, 0 ) ) == DIM_NETHER );
         Chunk roll_chunk;
         bool saw_herd = false;
         bool wrong_dim = false;
-        for ( int x = 0; x < 64 && !saw_herd; x++ ) {
+        bool wither_on_netherrack = false;
+        for ( int x = 0; x < 64; x++ ) {
             fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), NETHERRACK, AIR );
             if ( roll_chunk.spawn_mobs( ) ) {
                 saw_herd = true;
                 for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
                     wrong_dim |= rec.type != MOB_ZOMBIFIED_PIGLIN && rec.type != MOB_WITHER_SKELETON;
+                    wither_on_netherrack |= rec.type == MOB_WITHER_SKELETON;
                 }
             } else {
                 chunk_free_cells( roll_chunk.cells );
@@ -1817,6 +1819,29 @@ int test_mobs( ) {
         }
         check_bool( "nether roll: a netherrack chunk emits a herd", saw_herd );
         check_bool( "nether roll: only nether types", saw_herd && !wrong_dim );
+        check_bool( "nether roll: no wither skeletons on netherrack", !wither_on_netherrack );
+        if ( roll_chunk.cells != nullptr ) {
+            chunk_free_cells( roll_chunk.cells );
+            roll_chunk.cells = nullptr;
+        }
+        // Nether brick is the wither skeleton's only floor (fortresses):
+        // a brick floor emits wither skeletons and nothing else.
+        bool saw_wither = false;
+        bool brick_wrong_type = false;
+        for ( int x = 0; x < 64; x++ ) {
+            fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), NETHER_BRICK, AIR );
+            if ( roll_chunk.spawn_mobs( ) ) {
+                for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
+                    saw_wither |= rec.type == MOB_WITHER_SKELETON;
+                    brick_wrong_type |= rec.type != MOB_WITHER_SKELETON;
+                }
+            } else {
+                chunk_free_cells( roll_chunk.cells );
+                roll_chunk.cells = nullptr;
+            }
+        }
+        check_bool( "nether roll: nether brick emits wither skeletons", saw_wither );
+        check_bool( "nether roll: only wither skeletons on nether brick", !brick_wrong_type );
         if ( roll_chunk.cells != nullptr ) {
             chunk_free_cells( roll_chunk.cells );
             roll_chunk.cells = nullptr;

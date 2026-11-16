@@ -1700,7 +1700,7 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
     }
     // The spawn table is per-dimension: types opt in with a spawn_dims bit
     // and a night_spawn_weight — zombie .4 / skeleton .3 / creeper .3 in
-    // the overworld, zombified piglin .7 / wither skeleton .3 in the nether.
+    // the overworld, zombified piglin .7 / wither skeleton 1.0 in the nether.
     double weight_total = 0.0;
     for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
         const MobTypeDef &def = mob_types[ t ];
@@ -1779,6 +1779,11 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
             }
         }
         if ( type == MOB_TYPE_COUNT ) {
+            continue;
+        }
+        // A non-empty spawn_on list whitelists the floor here too — the
+        // wither skeleton's nether-brick list keeps it on fortress floors.
+        if ( !mob_spawn_floor_ok( mob_types[ type ], world.get_loaded_block( glm::ivec3( bx, top, bz ) ).id ) ) {
             continue;
         }
         if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {

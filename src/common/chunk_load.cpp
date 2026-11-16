@@ -140,14 +140,7 @@ bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
                     continue;
                 }
                 const BlockID floor_id = this->id_at( Chunk::get_index_from_coords( x, top, z ) );
-                bool floor_ok = false;
-                for ( int si = 0; si < 4 && def.spawn_on[ si ] != LAST_BLOCK_ID; si++ ) {
-                    if ( def.spawn_on[ si ] == floor_id ) {
-                        floor_ok = true;
-                        break;
-                    }
-                }
-                if ( !floor_ok ) {
+                if ( !mob_spawn_floor_ok( def, floor_id ) ) {
                     continue;
                 }
                 bool fits = true;
