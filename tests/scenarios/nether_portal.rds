@@ -51,11 +51,12 @@ screenshot nether_portal
 # Step out of the plate (must_exit releases on non-portal loaded ground),
 # then walk back in: the same nether portal must send us home — back
 # inside the ORIGINAL overworld ring, still lit. The destination frame is
-# materialized by mapgen at these nether-band coords (interior x 22-23,
-# y -5905..-5903, z 29).
-goto 22.5 -5904 33.5
+# materialized by mapgen at these nether-band coords (interior x 30-31,
+# y -5886..-5884, z 41 — a basalt shelf; the column under the drop is a
+# lava lake).
+goto 30.5 -5883.4 45.5
 wait_idle 10 6000
-goto 22.5 -5903 29.5
+goto 30.5 -5884 41.5
 wait 240
 wait_idle 10 6000
 chatopen /
@@ -81,8 +82,8 @@ signkey enter
 wait 2
 assert_chat Dimension: nether
 # Reuses the same nether portal built on the first hop — no second frame.
-assert_pos 23.0 -5903.4 29.5 2
-assert_block 22 -5904 29 PORTAL
+assert_pos 31.0 -5884.4 41.5 2
+assert_block 30 -5884 41 PORTAL
 
 # Fourth leg: a nether portal far outside the search radius (x ~200 vs
 # the overworld ring at x ~21) — the destination search misses and the
