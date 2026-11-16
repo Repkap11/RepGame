@@ -9,6 +9,8 @@
 #include "common/utils/env_config.hpp"
 #include "common/utils/frame_stats.hpp"
 #include "common/rep_tests.hpp"
+#include "common/vendor/stb_image.hpp"
+#include "binary_blobs.hpp"
 #ifdef REPGAME_LINUX
 #include "linux/wayland_cursor_warp.hpp"
 #endif
@@ -31,6 +33,29 @@ static SDL_GLContext sdl_context = nullptr;
 // to cap FPS at the refresh rate; the 'v' key toggles it at runtime via
 // input.toggle_vsync.
 static bool hw_vsync_enabled = true;
+
+// The same icon the Android launcher uses (bitmaps/icons/icon_512.png),
+// embedded as a blob by CMake and shown in the OS title bar/task switcher.
+// The window decoration is all this covers on Windows — the .exe file icon
+// comes from the windres resource in CMakeLists.txt.
+MK_BLOB( icons, window_icon, png );
+
+static void repgame_set_window_icon( ) {
+    int w = 0, h = 0, n = 0;
+    unsigned char *pixels = stbi_load_from_memory( reinterpret_cast<unsigned char *>( window_icon.source ), window_icon.length, &w, &h, &n, 4 );
+    if ( pixels == nullptr ) {
+        pr_debug( "Window icon PNG decode failed: %s", stbi_failure_reason( ) );
+        return;
+    }
+    SDL_Surface *icon = SDL_CreateSurfaceFrom( w, h, SDL_PIXELFORMAT_RGBA32, pixels, w * 4 );
+    if ( icon == nullptr ) {
+        pr_debug( "Window icon surface failed: %s", SDL_GetError( ) );
+    } else if ( !SDL_SetWindowIcon( sdl_window, icon ) ) {
+        pr_debug( "SDL_SetWindowIcon failed: %s", SDL_GetError( ) );
+    }
+    SDL_DestroySurface( icon );
+    stbi_image_free( pixels );
+}
 
 static void repgame_apply_vsync( ) {
     if ( !SDL_GL_SetSwapInterval( hw_vsync_enabled ? 1 : 0 ) ) {
@@ -277,6 +302,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
         pr_debug( "Creating the SDL window failed: %s", SDL_GetError( ) );
         repgame_fatal( );
     }
+    repgame_set_window_icon( );
     pr_debug( "Window on display: %d", SDL_GetDisplayForWindow( sdl_window ) );
     sdl_context = SDL_GL_CreateContext( sdl_window );
     if ( !sdl_context ) {

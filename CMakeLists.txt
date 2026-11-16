@@ -225,6 +225,10 @@ set(REPGAME_BLOB_SOURCES)
 if(REPGAME_BUILD_CLIENT AND NOT REPGAME_PLATFORM STREQUAL "wasm")
 	repgame_asset_blobs(asset_blobs shader_processed DEFINES ${REPGAME_PLATFORM_SHADER_DEFINES})
 	list(APPEND REPGAME_BLOB_SOURCES ${asset_blobs})
+	# Window/taskbar icon for SDL_SetWindowIcon. bitmaps/icons/ stays outside
+	# the bitmaps/*.png glob — Android uses its launcher mipmaps instead.
+	repgame_blob(icon_blob icons window_icon png ${CMAKE_SOURCE_DIR}/bitmaps/icons/icon_512.png)
+	list(APPEND REPGAME_BLOB_SOURCES ${icon_blob})
 
 	if(REPGAME_AUDIO)
 		# Sound blob per manifest entry; the .ogg conversion stays in make —
@@ -346,6 +350,13 @@ if(REPGAME_BUILD_CLIENT)
 		# The Windows client shares the Linux native socket transport via
 		# the socket_compat shim (winsock2).
 		list(APPEND platform_srcs ${CMAKE_SOURCE_DIR}/src/linux/multiplayer.cpp)
+		# windres embeds the .ico into RepGame.exe (explorer/taskbar icon);
+		# the .rc is generated with an absolute path since windres resolves
+		# ICON filenames against the build dir, not the source dir.
+		enable_language(RC)
+		file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/repgame.rc
+			CONTENT "IDI_ICON1 ICON \"${CMAKE_SOURCE_DIR}/bitmaps/icons/icon.ico\"\n")
+		list(APPEND platform_srcs ${CMAKE_BINARY_DIR}/repgame.rc)
 	else()
 		file(GLOB platform_srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/linux/*.cpp)
 	endif()
