@@ -31,8 +31,10 @@ static BlockID portal_site_block( World *world, const int x, const int y, const 
 // overworld's terrain band (mountain cap to lava layer).
 static void portal_band_bounds( const DimensionId dim, int &y_top, int &y_bottom, int &ledge_y ) {
     if ( dim == DIM_NETHER ) {
-        y_top = DIM_BY_MIN_N + 170;
-        y_bottom = DIM_BY_MIN_N + 34;
+        // Scan the open cavern: from just over the lava sea up to a hair
+        // under the lowest possible roof base. The ledge sits on the sea.
+        y_top = DIM_BY_MIN_N + static_cast<int>( MGN_ROOF_MID - 20.0f );
+        y_bottom = DIM_BY_MIN_N + MGN_LAVA_SEA + 2;
         ledge_y = DIM_BY_MIN_N + MGN_LAVA_SEA + 1;
     } else {
         y_top = 300;

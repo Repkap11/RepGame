@@ -22,9 +22,10 @@
 //
 // Layout (local y = encoded y - DIM_BY_MIN_N, [0, DIM_BLOCK_SPAN)):
 //   ly   0..~5    jittered bedrock floor
-//   ly  ~5..floor_h   netherrack floor mass (cave worms + ore pockets)
-//   ly  floor_h..roof_base  open cavern; air at/below MGN_LAVA_SEA is lava;
-//                         pillar columns pull the two masses together
+//   ly  ~5..floor_h   netherrack floor mass (deep cave layer + ore pockets)
+//   ly  floor_h..roof_base  open cavern; air at/below MGN_LAVA_SEA is lava —
+//                         basin-sagged lakebeds bowl under the sea; pillar
+//                         columns pull the two masses together
 //   ly  roof_base..+MGN_ROOF_THICK  netherrack roof mass (glowstone clusters
 //                         near its base, exposed where carving opens them)
 //   ly  > roof_base+MGN_ROOF_THICK+jitter  solid bedrock — the remaining
@@ -39,17 +40,35 @@
 #endif
 
 // Band layout constants (MGN_LAVA_SEA/MGN_FLOOR_MID/MGN_ROOF_MID) live in
-// map_gen_consts.hpp so plain host code can see them too.
+// map_gen_consts.hpp so plain host code can see them too. Noise fields
+// here use MAP_SEED + 40..78 — pick a fresh offset above 78 for new ones
+// (overworld seed maps are listed in map_gen_fields.hpp).
 
 // 2D floor height: broad rolling shape plus a craggy high-frequency detail
-// layer, local-y ~[20, 90]. No mid-frequency octave — the ~20-block-scale
-// hills made the open floor tiring to navigate.
+// layer, local-y ~[60, 130]. No mid-frequency octave — the ~20-block-scale
+// hills made the open floor tiring to navigate. A low-frequency basin field
+// then sags columns near the lava sea down toward a deep noisy bed, so lava
+// lakes bowl toward their centres instead of sitting on shallow noise dips.
 MG_FN2( float, mgn_floor_height, int, x, int, z ) {
-    return MGN_FLOOR_MID + ( MAP_GEN_PERLIN2D( x, z, 0.01f, 3, MAP_SEED + 42 ) - 0.5f ) * 60.0f +
-           ( MAP_GEN_PERLIN2D( x, z, 0.16f, 2, MAP_SEED + 57 ) - 0.5f ) * 9.0f;
+    MG_VAR( float, h, MGN_FLOOR_MID + ( MAP_GEN_PERLIN2D( x, z, 0.01f, 3, MAP_SEED + 42 ) - 0.5f ) * 60.0f +
+                        ( MAP_GEN_PERLIN2D( x, z, 0.16f, 2, MAP_SEED + 57 ) - 0.5f ) * 9.0f )
+    // The pull ramps across the basin field's upper tail; `near` fades it
+    // out ~48 blocks above the sea so highlands keep their height instead
+    // of being cratered. The bed target is its own noisy surface well
+    // under the sea — submerged terrain keeps relief and lakes deepen
+    // toward the basin centre (down to ~ly 14 over the bedrock).
+    MG_LET( float, basin, MAP_GEN_PERLIN2D( x, z, 0.007f, 2, MAP_SEED + 77 ) )
+    MG_VAR( float, bpull, MG_TERN( basin > 0.58f, ( basin - 0.58f ) * 3.5f, 0.0f ) )
+    if ( bpull > 1.0f ) {
+        bpull = 1.0f;
+    }
+    MG_LET( float, near, MG_MIN( MG_MAX( ( MG_F32( MGN_LAVA_SEA ) + 48.0f - h ) / 24.0f, 0.0f ), 1.0f ) )
+    MG_LET( float, bed, MG_F32( MGN_LAVA_SEA ) - 8.0f - MAP_GEN_PERLIN2D( x, z, 0.03f, 2, MAP_SEED + 78 ) * 38.0f )
+    h = h + ( MG_MIN( h, bed ) - h ) * bpull * near;
+    return h;
 }
 
-// Underside of the roof mass, local-y ~[170, 210], with the same craggy
+// Underside of the roof mass, local-y ~[200, 250], with the same craggy
 // detail so ceilings are ragged like the floor.
 MG_FN2( float, mgn_roof_base, int, x, int, z ) {
     return MGN_ROOF_MID + ( MAP_GEN_PERLIN2D( x, z, 0.015f, 3, MAP_SEED + 44 ) - 0.5f ) * 40.0f +
@@ -109,7 +128,7 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     // pillar the deformed roof_base sits at mid-height, and capping there
     // would make the pillar's upper half bedrock, drawing the merge seam
     // it exists to hide. The band is ~4000 tall but the cavern only needs
-    // ~240 — everything past this cap is unreachable solid bedrock filler
+    // ~300 — everything past this cap is unreachable solid bedrock filler
     // up to the band top (and this early-out skips carving/ore noise).
     MG_LET( float, bedrock_roof, MAP_GEN_PERLIN2D( x, z, 0.6f, 1, MAP_SEED + 41 ) )
     if ( MG_F32( ly ) >= roof_raw + MGN_ROOF_THICK + bedrock_roof * 4.0f ) {
@@ -138,27 +157,34 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
     if ( shelf > 0.60f && MG_F32( ly ) > shelf_h - shelf_th && MG_F32( ly ) < shelf_h + shelf_th ) {
         solid = 1;
     }
-    // Cave worms chew through the floor and roof masses — but always stop
+    // Cave worms chew through the floor and roof masses — but fade out
     // short of either bedrock: a rock skin over the floor keeps caverns off
     // the void band below, and a skin under the roof cap keeps netherrack
     // covering the bedrock overhead (carving that reached the cap exposed it
-    // as bare patches). carve_keep protects fused pillar columns from being
-    // severed back open — but floors at 0.35 rather than zero so the big
-    // wall faces keep their pocketed texture instead of going glass-smooth.
+    // as bare patches). The fades ramp the carve threshold down with depth
+    // instead of clipping on a plane, so pockets pinch shut in rounded
+    // bowls — no flat floors at a fixed ly where lava ponds would pool
+    // against a noise-independent surface. carve_keep protects fused pillar
+    // columns from being severed back open — but floors at 0.35 rather than
+    // zero so the big wall faces keep their pocketed texture instead of
+    // going glass-smooth.
     MG_LET( float, carve_cap, roof_raw + MGN_ROOF_THICK - 6.0f )
     MG_LET( float, carve_keep, 1.0f - pull * 0.65f )
+    MG_LET( float, cave_fade, MG_MIN( MG_MAX( MG_F32( ly - 7 ) / 14.0f, 0.0f ), 1.0f ) )
     // Fine-scale worms pockmark the walls — sharper texture on top of the
     // big hollows. Kept sparse so it roughens faces instead of shaving
     // floating dust off them.
     MG_LET( float, cave, MAP_GEN_PERLIN3D( x, y, z, 0.045f, 3, MAP_SEED + 45 ) )
     MG_LET( float, cave_fine, MAP_GEN_PERLIN3D( x, y, z, 0.12f, 2, MAP_SEED + 60 ) )
-    if ( solid != 0 && ( cave < 0.30f * carve_keep || cave_fine < 0.14f * carve_keep ) && ly > 8 &&
+    if ( solid != 0 && ( cave < 0.30f * carve_keep * cave_fade || cave_fine < 0.14f * carve_keep * cave_fade ) &&
          MG_F32( ly ) < carve_cap ) {
         solid = 0;
     }
-    // Large low-frequency hollows open up the cavern volume.
+    // Large low-frequency hollows open up the cavern volume — reaching deep
+    // into the under-floor rock now that the stack sits higher.
+    MG_LET( float, hollow_fade, MG_MIN( MG_MAX( MG_F32( ly - 12 ) / 22.0f, 0.0f ), 1.0f ) )
     MG_LET( float, hollow, MAP_GEN_PERLIN3D( x, y, z, 0.008f, 2, MAP_SEED + 46 ) )
-    if ( solid != 0 && hollow < 0.42f * carve_keep && MG_F32( ly ) > 20.0f && MG_F32( ly ) < carve_cap ) {
+    if ( solid != 0 && hollow < 0.42f * carve_keep * hollow_fade && MG_F32( ly ) < carve_cap ) {
         solid = 0;
     }
     if ( solid == 0 ) {
@@ -203,15 +229,16 @@ MG_FN3( BlockID, mgn_pick_block, int, x, int, y, int, z ) {
                 if ( shelf > 0.60f && MG_F32( ly - 1 ) > shelf_h - shelf_th && MG_F32( ly - 1 ) < shelf_h + shelf_th ) {
                     bs = 1;
                 }
+                MG_LET( float, bcfade, MG_MIN( MG_MAX( MG_F32( ly - 8 ) / 14.0f, 0.0f ), 1.0f ) )
                 MG_LET( float, bc, MAP_GEN_PERLIN3D( x, y - 1, z, 0.045f, 3, MAP_SEED + 45 ) )
                 MG_LET( float, bcf, MAP_GEN_PERLIN3D( x, y - 1, z, 0.12f, 2, MAP_SEED + 60 ) )
-                if ( bs != 0 && ( bc < 0.30f * carve_keep || bcf < 0.14f * carve_keep ) && ly - 1 > 8 &&
+                if ( bs != 0 && ( bc < 0.30f * carve_keep * bcfade || bcf < 0.14f * carve_keep * bcfade ) &&
                      MG_F32( ly - 1 ) < carve_cap ) {
                     bs = 0;
                 }
+                MG_LET( float, bhfade, MG_MIN( MG_MAX( MG_F32( ly - 13 ) / 22.0f, 0.0f ), 1.0f ) )
                 MG_LET( float, bh, MAP_GEN_PERLIN3D( x, y - 1, z, 0.008f, 2, MAP_SEED + 46 ) )
-                if ( bs != 0 && bh < 0.42f * carve_keep && MG_F32( ly - 1 ) > 20.0f &&
-                     MG_F32( ly - 1 ) < carve_cap ) {
+                if ( bs != 0 && bh < 0.42f * carve_keep * bhfade && MG_F32( ly - 1 ) < carve_cap ) {
                     bs = 0;
                 }
                 if ( bs != 0 ) {

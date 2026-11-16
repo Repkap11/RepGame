@@ -46,11 +46,13 @@ static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-end
 // same-band peers would generate a different base under the same diffs.
 // v20 = CHUNK_DIFF_DONE: one empty frame closing each CHUNK_DIFF_REQUEST
 // box — a v19 server never sends it, so clients would wait on a signal
-// that never comes.
+// that never comes. v21 = nether stack raised (floor/roof/lava sea mids
+// up ~40, basin lakebeds, deepened carve fades in map_gen_nether.hpp) —
+// same-band peers would generate a different base under the same diffs.
 #if REPGAME_MAP_GEN_LEGACY
-static constexpr uint8_t NET_PROTOCOL_VERSION = 20;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 21;
 #else
-static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 20;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 21;
 #endif
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.

@@ -29,9 +29,9 @@
 #define MAX_MOUNTAIN_HEIGHT 200.0f
 
 // Nether band layout (map_gen_nether.hpp), in band-local y [0, DIM_BLOCK_SPAN).
-#define MGN_LAVA_SEA 32      // Cavern air at/below this becomes LAVA.
-#define MGN_FLOOR_MID 55.0f  // Noise centre of the cavern floor surface.
-#define MGN_ROOF_MID 190.0f  // Noise centre of the roof mass underside.
+#define MGN_LAVA_SEA 60      // Cavern air at/below this becomes LAVA.
+#define MGN_FLOOR_MID 95.0f  // Noise centre of the cavern floor surface.
+#define MGN_ROOF_MID 225.0f  // Noise centre of the roof mass underside.
 #define MGN_ROOF_THICK 48.0f // Carvable roof thickness above roof_base; a
                            // jittered bedrock cap fills the rest of the band.
 

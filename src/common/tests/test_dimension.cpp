@@ -205,11 +205,11 @@ int test_dimension( ) {
     // roof_base (+jitter) the band is solid bedrock filler — no caves. ----
     {
         int filler_gaps = 0;
-        // roof_base max is MGN_ROOF_MID+20; cap = that + MGN_ROOF_THICK + 4
-        // jitter ≈ 262. Sample above it with margin.
+        // roof_base max is MGN_ROOF_MID+~25; cap = that + MGN_ROOF_THICK +
+        // 4 jitter ≈ 302. Sample above it with margin.
         for ( int x = -96; x < 96; x += 3 ) {
             for ( int z = -96; z < 96; z += 3 ) {
-                for ( int ly = 270; ly < DIM_BLOCK_SPAN - 1; ly += 61 ) {
+                for ( int ly = static_cast<int>( MGN_ROOF_MID + MGN_ROOF_THICK + 40 ); ly < DIM_BLOCK_SPAN - 1; ly += 61 ) {
                     filler_gaps += MapGen::gen_block_id( x, DIM_BY_MIN_N + ly, z ) != BEDROCK;
                 }
             }
@@ -223,7 +223,7 @@ int test_dimension( ) {
         int exposed = 0;
         for ( int x = -96; x < 96; x += 3 ) {
             for ( int z = -96; z < 96; z += 3 ) {
-                for ( int ly = 190; ly < 266; ly++ ) {
+                for ( int ly = static_cast<int>( MGN_ROOF_MID - 26 ); ly < static_cast<int>( MGN_ROOF_MID + MGN_ROOF_THICK + 34 ); ly++ ) {
                     const int y = DIM_BY_MIN_N + ly;
                     exposed += MapGen::gen_block_id( x, y, z ) == AIR && MapGen::gen_block_id( x, y + 1, z ) == BEDROCK;
                 }
@@ -438,7 +438,7 @@ int test_dimension( ) {
         check_bool( "player is in the nether band", now == DIM_NETHER );
         // Feet sit on generated ground (eye is eye_height above the floor).
         const int feet_y = static_cast<int>( floor( gs.camera.pos.y - gs.camera.eye_height ) );
-        check_bool( "feet inside nether cavern band", feet_y > DIM_BY_MIN_N + 30 && feet_y < DIM_BY_MIN_N + 200 );
+        check_bool( "feet inside nether cavern band", feet_y > DIM_BY_MIN_N + 55 && feet_y < DIM_BY_MIN_N + 220 );
         check_bool( "x/z carried over", abs( int( gs.camera.pos.x ) - 8 ) <= 33 );
     }
 

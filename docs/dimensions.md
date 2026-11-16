@@ -37,8 +37,11 @@ checks. The spare slots are inert voids (no sky, no spawns).
 ## Terrain
 
 `include/common/map_gen_nether.hpp` (`mgn_pick_block`) is the shared
-nether generator in the multi-backend dialect — bedrock floor,
-netherrack caverns, lava sea, quartz/gold veins, glowstone veins plus
+nether generator in the multi-backend dialect — bedrock floor, a ~90-block
+netherrack underworld (cave worms and big hollows fade out with depth
+rather than clipping, so lava-filled voids get rounded beds),
+basin-sagged lava lakes whose beds bowl toward their centres,
+quartz/gold veins, glowstone veins plus
 crystal clusters hanging from the cavern ceiling,
 soul sand/soil, basalt veins, magma veins clustered in the lava-sea
 band (patchy crust on the submerged seafloor and shorelines, flecks
@@ -157,11 +160,12 @@ overworld zombie/skeleton/creeper mix (docs/mobs.md).
 
 ## Multiplayer
 
-`NET_PROTOCOL_VERSION` is 20 — v18 introduced the dimension band and
+`NET_PROTOCOL_VERSION` is 21 — v18 introduced the dimension band and
 v19 dropped the floor heightfield's mid-frequency octave (base-terrain
 contract changes); v20 added `CHUNK_DIFF_DONE` so clients can tell when
 a request box's edits have all been applied (portal travel's
-readiness gate).
+readiness gate); v21 raised the nether stack and added basin lakebeds
+(another base-terrain contract change).
 
 Remote avatars are dimension-filtered in `multiplayer_avatars.cpp`:
 `update_position` despawns the mob when a position packet lands in a
