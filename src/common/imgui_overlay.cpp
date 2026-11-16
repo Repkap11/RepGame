@@ -84,7 +84,9 @@ static void fmt_count( char *buf, size_t n, long long v ) {
 }
 
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
-    imgui_overlay->shown = SHOW_IMGUI;
+    // REPGAME_IMGUI=0 hides the overlay from boot (rep-dbg sets it so its
+    // screenshots are overlay-free); 'g' still toggles at runtime.
+    imgui_overlay->shown = env_bool( "REPGAME_IMGUI", SHOW_IMGUI != 0 );
 }
 
 void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *window, SDL_GLContext gl_context ) {
@@ -146,12 +148,19 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
 
     // The overlay stays up while the pause menu is open; draw order in
     // draw_ui_pass puts the menu on top.
-    if ( imgui_overlay->shown ) {
+    {
+        // The window always Begins — fully transparent while hidden — so it
+        // exists and has finished auto-sizing long before `shown` flips on
+        // (the `imgui` script command, or 'g'). A brand-new ImGui window is
+        // skipped on its creation frame and auto-fit needs a frame of real
+        // content, so a screenshot taken right after `shown` turns on would
+        // otherwise capture a missing or half-height overlay.
+        ImGui::PushStyleVar( ImGuiStyleVar_Alpha, imgui_overlay->shown ? 1.0f : 0.0f );
         ImGuiIO &io = ImGui::GetIO( );
         // The overlay is read-only while the game owns the mouse; with the
         // cursor free (inventory/menu open) make ImGui interactive so the
         // live-tuning controls below are usable (REPGAME_IMGUI_TUNE).
-        const bool interactive = imgui_live_tune( ) && ( input.inventory_open || input.menu_open );
+        const bool interactive = imgui_overlay->shown && imgui_live_tune( ) && ( input.inventory_open || input.menu_open );
         if ( interactive ) {
             io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
         } else {
@@ -335,6 +344,7 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
 
         ImGui::End( );
         ImGui::PopStyleColor( );
+        ImGui::PopStyleVar( );
     }
     ImGui::Render( );
     ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData( ) );

@@ -57,6 +57,9 @@ for humans (`stdout.log`); the only sanctioned scraping is
 - `--rev <ref>` builds `<root>/wt/<sha>` once (`imgui_build`/`entt_build`
   symlinked in); pre-results revs get `"source":"log-shim"` results built
   from FLYMET log lines — the stats/compare pipeline still works.
+- Every run sets `REPGAME_IMGUI=0`: screenshots are free of the ImGui
+  debug overlay by default. `--env REPGAME_IMGUI=1` (or an `imgui 1`
+  script line) includes it.
 
 ## Python API
 

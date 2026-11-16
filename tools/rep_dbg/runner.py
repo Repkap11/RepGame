@@ -108,6 +108,9 @@ def run(opts, log):
     env["HOME"] = home
     env["REPGAME_RESULTS"] = results_path
     env["REPGAME_GIT"] = info["sha"]
+    # rep-dbg screenshots should be overlay-free by default; --env
+    # REPGAME_IMGUI=1 opts back in (the env.update below wins).
+    env["REPGAME_IMGUI"] = "0"
     if not opts.window:
         env["SDL_VIDEODRIVER"] = "offscreen"
         env["SDL_AUDIODRIVER"] = "dummy"
