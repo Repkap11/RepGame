@@ -72,8 +72,8 @@ species follows the painted fungal-forest patches. The same nether
 branch runs `place_nether_fortress`
 (`src/common/structure_fortress.cpp`): deterministic nether-brick
 fortresses — multi-section complexes: a two-storey keep linked by
-stepped connectors to satellite halls, with bridge arms, platforms and
-towers —
+stepped connectors to satellite halls, with corridors converging at
+shared junction halls, plus bridge arms, platforms and towers —
 anchored in the cavern band (deck at local y ~68–110, between the lava
 sea and the roof mass) with loot chests and inert `MOB_SPAWNER` blocks;
 layout, carving and loot are pure functions of world coords

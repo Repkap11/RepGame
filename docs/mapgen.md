@@ -257,12 +257,16 @@ all pure functions of world coords:
   `sgf_decode` then expands the layout with `std::mt19937_64` seeded from
   `sg_hash(cell)` — integer-only so every chunk derives the identical
   piece list. A layout is a complex: a main two-storey nether-brick keep
-  (lower hall + upper room joined by an open-riser stair) plus 2–3
-  satellite keeps at rolled offsets and deck levels, all linked by
-  stepped connector decks that tunnel their own doorways where they
-  meet each hall. Bridge arms random-walk out of the keep walls in
-  7-wide decked segments, ending in 15×15 platforms that over half the
-  time carry a hollow 11×11 tower with a chest and an inert
+  (lower hall + upper room joined by an open-riser stair) plus 4–5
+  satellite halls and 1–2 smaller junction halls at rolled compass
+  bearings, distances and deck levels. Halls run low-ceilinged (4 rows
+  inside), and everything is linked by stepped connector decks that
+  tunnel their own doorways where they meet a wall. Satellites on a
+  junction's bearing route through it — corridors converge inside a
+  real intersection room — while the rest spoke to the keep or chain to
+  a neighbouring satellite. Bridge arms random-walk out of the keep
+  walls in 7-wide decked segments, ending in 15×15 platforms that over
+  half the time carry a hollow 11×11 tower with a chest and an inert
   `MOB_SPAWNER` block (a structural anchor only — no mob behaviour);
   the upper keep room gets a spawner too.
   Stamping runs three ordered passes over every gathered layout — solid

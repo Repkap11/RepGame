@@ -26,8 +26,8 @@ assert_block -187 -5876 67 NETHER_BRICK
 assert_block -187 -5875 67 AIR
 # Lower-hall chest, upper-room chest + its inert spawner.
 assert_block -203 -5875 56 CHEST
-assert_block -171 -5867 76 CHEST
-assert_block -173 -5867 59 MOB_SPAWNER
+assert_block -171 -5869 76 CHEST
+assert_block -173 -5869 59 MOB_SPAWNER
 camera -186.5 -5870 67.5 45 -5
 screenshot fortress_keep
 echo fortress done

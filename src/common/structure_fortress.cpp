@@ -4,14 +4,18 @@
 // footprint could overlap it and writes only the cells it owns (+/-1 halo).
 //
 // Layout: a two-storey central keep (lower hall + upper room joined by a
-// stepped stair) plus 2-4 satellite halls scattered a few hundred blocks
-// out, each linked back to the keep by a stepped bridge deck that tunnels
-// its doorway on contact. Bridge arms random-walk out of keep and satellite
-// walls, ending in widened platforms that often carry a hollow tower with a
-// chest and an inert MOB_SPAWNER block. Footprints spill past cell edges,
-// so neighbouring complexes overlap and merge; supports drop from decks to
-// the cavern floor or through the lava sea to its bed. Carve passes open
-// interiors and tunnel bridge headroom through netherrack.
+// stepped stair) plus 4-5 satellite halls scattered a couple hundred
+// blocks out. 1-2 junction halls sit closer in and share one connector
+// back to the keep; satellites on a junction's bearing route through it,
+// so corridors converge inside a real intersection room rather than
+// fanning straight out of the keep, and occasional chain links cross
+// between satellites. Bridge arms random-walk out of keep and satellite
+// walls, ending in widened platforms that often carry a hollow tower
+// with a chest and an inert MOB_SPAWNER block. Footprints spill past
+// cell edges, so neighbouring complexes overlap and merge; supports
+// drop from decks to the cavern floor or through the lava sea to its
+// bed. Carve passes open interiors and tunnel bridge headroom through
+// netherrack.
 
 #include <random>
 #include <string.h>
@@ -51,7 +55,7 @@
 #define SGF_TOP_RISE 48     // highest a piece top reaches above the deck
 #define SGF_ANCHOR_TRIES 4  // anchor candidates per cell; lowest floor wins
 
-#define SGF_MAX_PIECES 288 // worst: 4 satellites x (keep + ~45-step connector + arm)
+#define SGF_MAX_PIECES 320 // worst: 5 satellites + 2 junctions, each keep + ~34-step connector + arm
 #define SGF_MAX_SLOTS 32
 #define SGF_MAX_LAYOUTS 16 // cells whose footprint can reach one chunk
 
@@ -336,21 +340,21 @@ static void sgf_arm( SGFLayout &L, const SGFAnchor &a, std::mt19937_64 &rng, con
     sgf_push_spawner( L, a, wx + 3, deck + 1, wz + 3 );
 }
 
-// One hall section: lower hall (8 rows: floor, 6 interior, roof) plus a
+// One hall section: lower hall (6 rows: floor, 4 interior, roof) plus a
 // ground chest, and when `upper` an inset upper room over the canonical +x
 // two-thirds joined by a stepped stair (with its own chest and spawner).
 // Upper pieces are pushed with aux 1 so the support pass skips their floor.
 static void sgf_emit_keep( SGFLayout &L, const SGFAnchor &a, const int kx, const int kz,
                           const int kd, const int kw, const int kdeck, const int upper ) {
-    sgf_push( L, a, SGF_KEEP, kx - kd, kdeck, kz - kw, kx + kd, kdeck + 7, kz + kw, 0 );
+    sgf_push( L, a, SGF_KEEP, kx - kd, kdeck, kz - kw, kx + kd, kdeck + 5, kz + kw, 0 );
     sgf_push_chest( L, a, kx - kd + 2, kdeck + 1, kz - kw + 2, SGF_DIR_PX );
     if ( !upper ) {
         return;
     }
-    sgf_push( L, a, SGF_KEEP, kx - kd + 3, kdeck + 8, kz - kw + 2, kx + kd, kdeck + 15, kz + kw - 2, 1 );
-    sgf_push( L, a, SGF_STAIR, kx - 3, kdeck + 1, kz + kw - 5, kx + 4, kdeck + 8, kz + kw - 3, SGF_DIR_PX );
-    sgf_push_chest( L, a, kx + kd - 2, kdeck + 9, kz + kw - 4, SGF_DIR_NX );
-    sgf_push_spawner( L, a, kx + kd - 4, kdeck + 9, kz - kw + 5 );
+    sgf_push( L, a, SGF_KEEP, kx - kd + 3, kdeck + 6, kz - kw + 2, kx + kd, kdeck + 11, kz + kw - 2, 1 );
+    sgf_push( L, a, SGF_STAIR, kx - 3, kdeck + 1, kz + kw - 5, kx + 4, kdeck + 6, kz + kw - 3, SGF_DIR_PX );
+    sgf_push_chest( L, a, kx + kd - 2, kdeck + 7, kz + kw - 4, SGF_DIR_NX );
+    sgf_push_spawner( L, a, kx + kd - 4, kdeck + 7, kz - kw + 5 );
 }
 
 // Stepped deck linking two section centres: an L path — x leg first, then
@@ -423,25 +427,65 @@ static void sgf_decode( const SGFAnchor &a, SGFLayout &L ) {
         sgf_arm( L, a, rng, deck, ax + kd, az, SGF_DIR_PX );
     }
 
-    // Satellite sections: 2-4 more halls on the eight compass points around
-    // the keep, each on its own deck level and linked back by a stepped
-    // connector — a complex of connected sections, not a single keep.
-    // Stride 3 through the direction ring spreads the picks so halls
-    // don't stack on the same side.
+    // Section ring: junction halls and satellites both sit on the eight
+    // compass points around the keep. Stride 3 through the direction ring
+    // spreads the picks so halls don't stack on the same side.
     static const int dirs[ 8 ][ 2 ] = {
         { 1, 0 }, { 1, 1 }, { 0, 1 }, { -1, 1 }, { -1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 },
     };
-    const int n_sat = 2 + rr( 0, 2 );
     const int d0 = rr( 0, 7 );
+
+    // Junction halls: 1-2 shared nodes on the ring, closer in than the
+    // satellites. Each is a small hall on its own deck level linked back
+    // to the keep — satellites on a matching bearing route through one,
+    // so corridors converge at a real intersection room.
+    const int n_jun = 1 + rr( 0, 1 );
+    int jx[ 2 ], jz[ 2 ], jdeck[ 2 ], jdir[ 2 ];
+    for ( int j = 0; j < n_jun; j++ ) {
+        const int dj = ( d0 + 2 + j * 4 ) & 7;
+        jdir[ j ] = dj;
+        const int dist = 70 + rr( 0, 50 );
+        jx[ j ] = ax + dirs[ dj ][ 0 ] * dist;
+        jz[ j ] = az + dirs[ dj ][ 1 ] * dist;
+        jdeck[ j ] = deck + 4 * ( rr( 0, 2 ) - 1 );
+        sgf_emit_keep( L, a, jx[ j ], jz[ j ], 7 + rr( 0, 2 ), 7 + rr( 0, 2 ), jdeck[ j ], 0 );
+        sgf_connector( L, a, jx[ j ], jz[ j ], ax, az, jdeck[ j ], deck );
+    }
+
+    // Satellite sections: 4-5 halls on the ring, each on its own deck
+    // level. A satellite on a junction's bearing links through the
+    // junction (the corridors meet there); otherwise it occasionally
+    // chains to the previous satellite — a crossing corridor — or spokes
+    // straight to the keep.
+    const int n_sat = 4 + rr( 0, 2 );
+    int psx = 0, psz = 0, pdeck = 0;
     for ( int i = 0; i < n_sat; i++ ) {
         const int di = ( d0 + i * 3 ) & 7;
         const int dxx = dirs[ di ][ 0 ], dzz = dirs[ di ][ 1 ];
-        const int dist = 130 + rr( 0, 140 );
+        const int dist = 90 + rr( 0, 110 );
         const int sx = ax + dxx * dist, sz = az + dzz * dist;
         const int sdeck = deck + 4 * ( rr( 0, 2 ) - 1 ); // deck-4, deck or deck+4
         const int skw = 9 + rr( 0, 3 ), skd = 11 + rr( 0, 4 );
-        sgf_emit_keep( L, a, sx, sz, skd, skw, sdeck, rr( 0, 1 ) );
-        sgf_connector( L, a, sx, sz, ax, az, sdeck, deck );
+        sgf_emit_keep( L, a, sx, sz, skd, skw, sdeck, rr( 0, 2 ) == 0 );
+        int tx = ax, tz = az, tdeck = deck;
+        for ( int j = 0; j < n_jun; j++ ) {
+            const int ddj = ( di - jdir[ j ] + 8 ) & 7;
+            if ( ddj <= 1 || ddj >= 7 ) {
+                tx = jx[ j ];
+                tz = jz[ j ];
+                tdeck = jdeck[ j ];
+            }
+        }
+        if ( tx == ax && tz == az && i > 0 && rr( 0, 99 ) < 25 &&
+             abs( sx - psx ) + abs( sz - psz ) <= 300 ) {
+            tx = psx;
+            tz = psz;
+            tdeck = pdeck;
+        }
+        sgf_connector( L, a, sx, sz, tx, tz, sdeck, tdeck );
+        psx = sx;
+        psz = sz;
+        pdeck = sdeck;
         if ( rr( 0, 99 ) < 40 ) {
             // Extra arm off the satellite's outer face.
             const int dir = dxx != 0 ? ( dxx > 0 ? SGF_DIR_PX : SGF_DIR_NX ) : ( dzz > 0 ? SGF_DIR_PZ : SGF_DIR_NZ );
@@ -648,20 +692,19 @@ static void sgf_carve_piece( Chunk &chunk, const SGFLayout &L, const SGFPiece &p
     }
     if ( p.kind == SGF_STAIR ) {
         // Floor holes for the run's headroom: wherever a tread's 3-cell
-        // clearance reaches a slab row (the keep's roof at deck+7 or the
-        // upper floor at deck+8), open it. Tread cells themselves are
-        // never carved — treads sit below their headroom cells.
+        // clearance reaches a slab row (the hall's roof at y1-1 or the
+        // upper floor at y1), open it. Tread cells themselves are never
+        // carved — treads sit below their headroom cells.
         int dx = 0, dz = 0;
         sgf_dir_delta( p.aux, &dx, &dz );
-        const int deck = p.y0 - 1;
         // Low-end corner of the run (aux points uphill).
         const int sx = dx > 0 ? p.x0 : dx < 0 ? p.x1 : p.x0;
         const int sz = dz > 0 ? p.z0 : dz < 0 ? p.z1 : p.z0;
-        for ( int i = 0; i < 8; i++ ) {
+        for ( int i = 0; i <= p.y1 - p.y0; i++ ) {
             const int tx = sx + dx * i, tz = sz + dz * i;
             const int ty = p.y0 + i;
             for ( int hy = ty + 1; hy <= ty + 3; hy++ ) {
-                if ( hy != deck + 7 && hy != deck + 8 ) {
+                if ( hy != p.y1 - 1 && hy != p.y1 ) {
                     continue;
                 }
                 if ( dx != 0 ) {
@@ -771,7 +814,7 @@ static void sgf_detail( Chunk &chunk, const SGFLayout &L, const SGFPiece &p,
         sgf_dir_delta( p.aux, &dx, &dz );
         const int sx = dx > 0 ? p.x0 : dx < 0 ? p.x1 : p.x0;
         const int sz = dz > 0 ? p.z0 : dz < 0 ? p.z1 : p.z0;
-        for ( int i = 0; i < 8; i++ ) {
+        for ( int i = 0; i <= p.y1 - p.y0; i++ ) {
             const int tx = sx + dx * i, tz = sz + dz * i;
             if ( dx != 0 ) {
                 for ( int wz = p.z0; wz <= p.z1; wz++ ) {
