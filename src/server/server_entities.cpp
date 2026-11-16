@@ -288,7 +288,7 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
     }
     if ( ce.vehicles_dirty ) {
         // Same convention as the items sidecar: an emptied chunk still
-        // writes, clearing the stale file.
+        // persists, clearing the stale file (empty lists unlink it).
         std::vector<VehicleFileRecord> out;
         for ( const auto &pair : ce.entities ) {
             const NetEntityRecord &e = pair.second;

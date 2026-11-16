@@ -199,15 +199,15 @@ class MapStorage {
     // tombstoned natural-roll indices stored after the records. Returns 1
     // when the file existed — even when it holds zero records.
     int load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRecord> &out, std::vector<uint8_t> *removed = nullptr );
-    // Writes the chunk's dropped-item records. An empty list still writes
-    // the file — unlike mobs there is no natural respawn, so an empty file
-    // and a missing one are equivalent; writing it just keeps a chunk whose
-    // items were all picked up from resurrecting stale records.
+    // Writes the chunk's dropped-item records. An empty list removes the
+    // file — a missing file and "no items" are equivalent, and unlinking
+    // keeps a chunk whose items were all picked up from resurrecting stale
+    // records without leaving an empty file behind.
     void persist_items( const glm::ivec3 &chunk_offset, const std::vector<ItemFileRecord> &items );
     // Loads dropped-item records into `out`. Returns 1 when the file existed.
     int load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFileRecord> &out );
-    // Writes the chunk's minecart records. An empty list still writes the
-    // file, same convention as items (keeps stale records from reviving).
+    // Writes the chunk's vehicle records. An empty list removes the file,
+    // same convention as items (keeps stale records from reviving).
     void persist_vehicles( const glm::ivec3 &chunk_offset, const std::vector<VehicleFileRecord> &vehicles );
     // Loads minecart records into `out`. Returns 1 when the file existed.
     int load_vehicles( const glm::ivec3 &chunk_offset, std::vector<VehicleFileRecord> &out );

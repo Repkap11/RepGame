@@ -220,8 +220,10 @@ natural roll always runs on load (pristine naturals are recreated, never
 saved; see `docs/mobs.md`). `persist_mobs` therefore *removes* the file
 when records and `removed` are both empty, and stale "populated marker"
 files from older saves are unlinked the next time that chunk is
-persisted. `persist_items` still writes whenever it runs so stale
-records don't come back. Loaders: `MobManager`/`ItemManager`
+persisted. `persist_items`/`persist_vehicles` also remove on an empty
+list — a missing file and "no items/vehicles" are equivalent, so
+unlinking clears stale records without leaving empty files behind.
+Loaders: `MobManager`/`ItemManager`
 per-chunk ownership (`docs/mobs.md`, `docs/items-crafting.md`); the
 server keeps the same files via `ServerEntities::persist_chunk_entities`.
 

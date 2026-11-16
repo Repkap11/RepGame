@@ -287,8 +287,8 @@ struct ChunkSidecars {
     int mobs_spawned;
     std::vector<uint8_t> mobs_removed;
     // Dropped-item sidecar, same pattern as mobs: items_file_present tracks
-    // whether an items file existed so the leave path rewrites it (even
-    // empty) instead of reviving stale records.
+    // whether an items file existed so the leave path persists it (empty
+    // lists unlink the file) instead of reviving stale records.
     std::vector<ItemFileRecord> items;
     int items_file_present;
     // Minecart sidecar, same pattern as items.

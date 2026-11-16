@@ -770,8 +770,8 @@ void ItemEntities::poll_owned( World &world ) {
                 j++;
             }
         }
-        // Rewrite (even empty) when there was a file so stale records don't
-        // resurrect, or when there is something to record.
+        // Persist when there was a file (an empty list unlinks it) so stale
+        // records don't resurrect, or when there is something to record.
         if ( this->storage != nullptr && item_persistence_enabled( ) && !RepGame::capture_mode( ) && !RepGame::fly_mode( ) && ( !records.empty( ) || owned.file_present ) ) {
             this->storage->persist_items( owned.pos, records );
         }

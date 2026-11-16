@@ -1038,13 +1038,20 @@ int MapStorage::load_mobs( const glm::ivec3 &chunk_offset, std::vector<MobFileRe
 }
 
 // Item file layout: u32 record_size, u32 count, then `count` ItemFileRecords.
-// Same conventions as the mobs file.
+// An empty list removes the file — a missing file and "no items" are
+// equivalent, and unlinking still clears stale records for a chunk whose
+// items were all picked up.
 void MapStorage::persist_items( const glm::ivec3 &chunk_offset, const std::vector<ItemFileRecord> &items ) {
     if ( repgame_block_world( ) ) {
         return;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_ITEMS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    if ( items.empty( ) ) {
+        remove( file_name );
+        this->index_remove( MAP_FILE_ITEMS, chunk_offset );
+        return;
+    }
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( write_ptr == NULL ) {
         pr_debug( "fopen failed for items file:%s", file_name );
@@ -1106,14 +1113,19 @@ int MapStorage::load_items( const glm::ivec3 &chunk_offset, std::vector<ItemFile
 }
 
 // Vehicle file layout: u32 record_size, u32 count, then `count`
-// VehicleFileRecords. Same conventions as the items file. The on-disk
-// name stays carts_x_y_z (no migration).
+// VehicleFileRecords. Same conventions as the items file — an empty list
+// removes the file. The on-disk name stays carts_x_y_z (no migration).
 void MapStorage::persist_vehicles( const glm::ivec3 &chunk_offset, const std::vector<VehicleFileRecord> &vehicles ) {
     if ( repgame_block_world( ) ) {
         return;
     }
     char file_name[ CHUNK_NAME_MAX_LENGTH ];
     snprintf( file_name, CHUNK_NAME_MAX_LENGTH, FILE_ROOT_CARTS, this->map_name, chunk_offset.x, chunk_offset.y, chunk_offset.z );
+    if ( vehicles.empty( ) ) {
+        remove( file_name );
+        this->index_remove( MAP_FILE_CARTS, chunk_offset );
+        return;
+    }
     FILE *write_ptr = fopen( file_name, "wb" );
     if ( write_ptr == NULL ) {
         pr_debug( "fopen failed for carts file:%s", file_name );
