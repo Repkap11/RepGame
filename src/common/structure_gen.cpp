@@ -1092,6 +1092,7 @@ void StructureGen::place( Chunk &chunk ) {
         const int coy = chunk.chunk_pos.y * CHUNK_SIZE_Y;
         const int coz = chunk.chunk_pos.z * CHUNK_SIZE_Z;
         place_nether_trees( chunk, cox, coy, coz );
+        place_nether_fortress( chunk, cox, coy, coz );
         return;
     }
     if ( dim != DIM_OVERWORLD ) {

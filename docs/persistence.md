@@ -120,6 +120,15 @@ family block keeping its own 27-slot entry under its own position, so
 merging (`CHEST`→`DOUBLE_CHEST_*_LATCH`) preserves both halves' contents
 and splitting loots/persists each half independently — no format change.
 
+Generated-structure chests (nether fortresses) are an exception: their
+contents are rolled deterministically from the chest's world position by
+`StructureGen::place_fortress_loot` right after the chest sidecar load —
+an untouched fortress writes no `chest_*` file at all, and the same chest
+re-derives on every load. The roll only fills slots that still hold a
+generated chest block and have no sidecar entry, so player edits (and
+server-authoritative contents) always win; once any edit dirties the
+chunk its touched chest persists like any other.
+
 ## Furnace files (`furnace_x_y_z`)
 
 Same envelope as the chest file:

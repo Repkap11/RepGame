@@ -65,6 +65,7 @@ int test_cake( );
 int test_grass( );
 int test_grass_persist( );
 int test_structure_border( );
+int test_fortress( );
 int test_particles( );
 int test_mobs( );
 int test_net_codec_registry( );

@@ -119,7 +119,10 @@ through the basalt deltas), dispatched in
 `map_gen.cpp` so every backend shares it. Nether chunks also get a
 `StructureGen` pass — `place_nether_trees` stamps `SHAPE_FUNGUS` huge
 fungi where the column's top solid cell is crimson/warped nylium
-(docs/dimensions.md); the other `StructureGen` passes are overworld-only.
+(docs/dimensions.md), and `place_nether_fortress`
+(`src/common/structure_fortress.cpp`) stamps nether-brick fortresses —
+see *Fortresses* below; the other `StructureGen` passes are
+overworld-only.
 
 ## World layout
 
@@ -235,6 +238,42 @@ all pure functions of world coords:
   — overhang lips, cave mouths, floating-island undersides — gets
   glow-lichen colonies and rare glow-berry vines. Reef sea pickles also
   emit a soft underwater light. All clustered in 16-block neighborhoods.
+- *Fortresses* (nether only, `src/common/structure_fortress.cpp`): one
+  fortress roll per `SGF_CELL` (384×384) world cell at ~20% frequency —
+  roughly one per 850×850 blocks. `sgf_for_cell` rolls
+  `SGF_ANCHOR_TRIES` candidate anchors in the cell's middle region and
+  keeps the one over the lowest `mgn_floor_height`, which biases
+  placement toward open cavern and lava basins; the deck then sits a
+  small gap above that floor (capped by a band-local roll in
+  `[66, 110)` — above the lava sea at 60, below the roof mass ~200+),
+  so basin anchors perch the fortress just over the lava while high
+  shelves still embed it sometimes. Rolls that would bury the keep
+  below the surface or leave too little roof clearance are rejected.
+  The footprint stays inside its cell (clipped to `SGF_EXTENT` ±152), so
+  a chunk only has to check the cells its own box overlaps.
+  `sgf_decode` then expands the layout with `std::mt19937_64` seeded from
+  `sg_hash(cell)` — integer-only so every chunk derives the identical
+  piece list. A layout is a two-storey nether-brick keep (lower hall +
+  upper room joined by an open-riser stair) with 2–4 bridge arms that
+  random-walk out of its walls in 7-wide decked segments, ending in
+  15×15 platforms that over half the time carry a hollow 11×11 tower
+  with a chest and an inert `MOB_SPAWNER` block (a structural anchor
+  only — no mob behaviour); the upper keep room gets a spawner too.
+  Stamping runs three ordered passes — solid shells, carves (hall/tower
+  interiors, walkway headroom channels, arrow slits, stair floor holes,
+  tower doors), then details (fence parapets with gaps at joins, roofline
+  battlement rings, treads, sparse shroomlight, `CHEST`/`MOB_SPAWNER`
+  slots) plus support columns probed down to solid `gen_block_id`
+  terrain (air/lava cells don't count as ground, so a column over the
+  lava sea fills the whole span and pierces the surface to the bed;
+  capped at `SGF_PILLAR_MAX` so deep voids stay column-free). Wall
+  material is `sg_hash`-weathered nether brick with cracked/chiseled
+  flecks. Nothing ever overwrites `BEDROCK`. Fortress `CHEST` blocks get
+  contents from `StructureGen::place_fortress_loot`, called by
+  `load_terrain` after the chest sidecar load: contents are rolled from
+  the chest's world position so unopened chunks re-derive the same chest
+  instead of persisting it — a sidecar entry (or a removed chest block)
+  always wins.
 
 ## Bounds contracts
 

@@ -68,6 +68,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( tnt ),             //
     MK_TEST( falling_blocks ),  //
     MK_TEST( structure_border ), //
+    MK_TEST( fortress ),         //
     MK_TEST( particles ),        //
     MK_TEST( mobs ),             //
     MK_TEST( net_codec_registry ), //

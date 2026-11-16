@@ -535,6 +535,9 @@ apply_edits:
         }
         this->containers.chests[ Chunk::get_index_from_coords( diff ) ] = pair.second;
     }
+    // Generated chest contents (fortresses). Sidecar entries already in the
+    // map always win; an untouched chunk just re-derives the same chest.
+    StructureGen::place_fortress_loot( *this );
     // Furnace contents: same sidecar pattern as chests, world-pos keyed
     // file converted to in-chunk block indices.
     this->containers.furnaces.clear( );

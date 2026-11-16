@@ -349,6 +349,7 @@ class Chunk {
     friend void light_pending_enqueue( Chunk &chunk );
     friend int test_lighting( );
     friend int test_structure_border( );
+    friend int test_fortress( );
     friend int test_item_entities( );
     friend int test_minecarts( );
     friend int test_boats( );
