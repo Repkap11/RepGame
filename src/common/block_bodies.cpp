@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/block.hpp"
 #include "common/chunk_loader.hpp"
 #include "common/chunk.hpp"
@@ -134,6 +135,9 @@ bool BlockBodies::settle_land( RepGameState &state, Body &b ) {
         state.multiplayer.set_block( cell, b.state );
         queue_neighbor_block_updates( state, cell );
         lift_bodies_above( cell, b.id );
+        if ( b.state.id == ANVIL || b.state.id == CHIPPED_ANVIL || b.state.id == DAMAGED_ANVIL || b.state.id == DEPRECATED_ANVIL ) {
+            audio_play_sfx_gain( "anvil_land", audio_distance_gain( glm::distance( state.camera.pos, glm::dvec3( cell ) + 0.5 ) ) );
+        }
         return true;
     }
     if ( !cur_block->collides_with_player ) {

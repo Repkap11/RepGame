@@ -62,12 +62,14 @@ namespace {
 
 enum BoatMedium { BOAT_IN_WATER, BOAT_UNDER_WATER, BOAT_ON_LAND, BOAT_IN_AIR };
 
+} // namespace
+
 // The water surface height above the boat's box bottom (world space), or
 // -inf when no water is under the footprint. Samples the four rotated
 // hull corners and the centre in the cells overlapping the bottom and
 // the cell above; waterlogged cells count as water, lava does not
 // (fluid_in_cell).
-double boat_water_surface( World &world, const Vehicles::Vehicle &v, const VehicleTypeDef &def ) {
+double vehicle_boat_water_surface( World &world, const Vehicles::Vehicle &v, const VehicleTypeDef &def ) {
     const double ry = glm::radians( static_cast<double>( v.yaw ) );
     const glm::dvec2 fwd( sin( ry ), -cos( ry ) );
     const glm::dvec2 side( cos( ry ), sin( ry ) );
@@ -93,8 +95,6 @@ double boat_water_surface( World &world, const Vehicles::Vehicle &v, const Vehic
     return surface;
 }
 
-} // namespace
-
 // The owned per-tick boat sim. States: UNDER_WATER (surface above the box
 // top) rises; IN_WATER floats on a damped spring to surface - draft;
 // ON_LAND crawls on voxel collision; IN_AIR falls like a derailed cart.
@@ -106,7 +106,7 @@ void vehicle_tick_boat( RepGameState &state, Vehicles::Vehicle &c, const Vehicle
     const VehicleTypeDef &def = vehicle_type_def( c.type );
     const bool ridden = c.rider || c.rider_session != 0;
 
-    const double surface = boat_water_surface( world, c, def );
+    const double surface = vehicle_boat_water_surface( world, c, def );
     const bool water = surface > c.pos.y;
     const BoatMedium pre_state = !water                          ? BOAT_ON_LAND // or air — resolved by standing below
                                  : surface > c.pos.y + def.height ? BOAT_UNDER_WATER

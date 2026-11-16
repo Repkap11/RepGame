@@ -27,9 +27,10 @@ static void bucket_swap_item( RepGameState &state, const ItemID result ) {
     state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
 }
 
-static void bucket_finish( RepGameState &state, const BlockID fluid ) {
+static void bucket_finish( RepGameState &state, const BlockID fluid, const bool filling ) {
     state.input.click_delay_right = 30;
-    audio_play_sfx( fluid == WATER ? "splash" : audio_block_dig_pool( fluid ) );
+    audio_play_sfx( fluid == WATER ? ( filling ? "bucket_fill" : "bucket_empty" )
+                                   : ( filling ? "bucket_fill_lava" : "bucket_empty_lava" ) );
 }
 
 bool repgame_use_bucket( RepGameState &state ) {
@@ -56,7 +57,7 @@ bool repgame_use_bucket( RepGameState &state ) {
         if ( state.game_mode == GameMode_Survival ) {
             bucket_swap_item( state, fluid == LAVA ? LAVA_BUCKET : WATER_BUCKET );
         }
-        bucket_finish( state, fluid );
+        bucket_finish( state, fluid, true );
         return true;
     }
     // Pour: aiming at the same fluid empties the bucket at the hit cell —
@@ -74,7 +75,7 @@ bool repgame_use_bucket( RepGameState &state ) {
                 if ( state.game_mode == GameMode_Survival ) {
                     bucket_swap_item( state, BUCKET );
                 }
-                bucket_finish( state, fluid );
+                bucket_finish( state, fluid, false );
                 return true;
             }
             target = sel.pos_fluid;
@@ -92,7 +93,7 @@ bool repgame_use_bucket( RepGameState &state ) {
         if ( state.game_mode == GameMode_Survival ) {
             bucket_swap_item( state, BUCKET );
         }
-        bucket_finish( state, fluid );
+        bucket_finish( state, fluid, false );
         return true;
     }
     const BlockState write = fluid_state( fluid, 0 );
@@ -105,6 +106,6 @@ bool repgame_use_bucket( RepGameState &state ) {
     if ( state.game_mode == GameMode_Survival ) {
         bucket_swap_item( state, BUCKET );
     }
-    bucket_finish( state, fluid );
+    bucket_finish( state, fluid, false );
     return true;
 }

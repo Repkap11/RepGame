@@ -76,6 +76,9 @@ class Vehicles {
         // streamed): advances with horizontal speed while ridden, and the
         // render pass turns it into the paddle bones' rowing anim_rot.
         float paddle_phase = 0.0f;
+        // Paddle-stroke SFX countdown for WATER vehicles — client-local
+        // one-shots, so no handle is tracked.
+        int paddle_sfx_ticks = 0;
         // WATER-physics angular velocity, degrees/s (boat steering is a
         // damped turn-rate model; mirrors take the streamed yaw instead).
         float yaw_rate = 0.0f;

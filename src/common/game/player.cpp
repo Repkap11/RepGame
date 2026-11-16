@@ -342,6 +342,11 @@ bool repgame_eat_food( RepGameState &state ) {
         state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
     }
     audio_play_sfx( "eat" );
+    // The burp caps a meal, not every bite: only when this item tops the
+    // health bar off (beta instant-eat has no finish-eating moment).
+    if ( state.vitals.health >= PLAYER_MAX_HEALTH ) {
+        audio_play_sfx( "burp" );
+    }
     state.vr.haptic_pending = true;
     return true;
 }
@@ -449,19 +454,24 @@ void repgame_tick_vitals( RepGameState &state ) {
         if ( v.air_ticks > 0 ) {
             v.air_ticks--;
         } else if ( RepGame::player_damage( state, PLAYER_DROWN_DAMAGE ) ) {
-            audio_play_sfx( "player_hurt" );
+            audio_play_sfx( "drown" );
         }
     } else {
+        // Surfacing gasp: the breath meter refills instantly, so the edge
+        // is air_ticks below max on the first dry tick.
+        if ( v.air_ticks < PLAYER_AIR_MAX_TICKS ) {
+            audio_play_sfx( "breath" );
+        }
         v.air_ticks = PLAYER_AIR_MAX_TICKS;
     }
     // Lava burns fast anywhere it touches the body; open fire burns slowly.
     if ( fluid_in_cell( eye_block ) == LAVA || fluid_in_cell( body_block ) == LAVA || fluid_in_cell( feet_block ) == LAVA ) {
         if ( RepGame::player_damage( state, PLAYER_LAVA_DAMAGE ) ) {
-            audio_play_sfx( "player_hurt" );
+            audio_play_sfx( "fire_hurt" );
         }
     } else if ( feet_block.id == FIRE || body_block.id == FIRE || feet_block.id == SOUL_FIRE || body_block.id == SOUL_FIRE ) {
         if ( RepGame::player_damage( state, PLAYER_FIRE_DAMAGE ) ) {
-            audio_play_sfx( "player_hurt" );
+            audio_play_sfx( "fire_hurt" );
         }
     } else {
         // Standing on magma burns like open fire — only when grounded (a
@@ -471,7 +481,7 @@ void repgame_tick_vitals( RepGameState &state ) {
         if ( below_feet.id == MAGMA && state.camera.standing_on_solid && !state.input.movement.sneakPressed &&
              !state.input.player_flying && !state.input.no_clip ) {
             if ( RepGame::player_damage( state, PLAYER_MAGMA_DAMAGE ) ) {
-                audio_play_sfx( "player_hurt" );
+                audio_play_sfx( "fire_hurt" );
             }
         }
     }
@@ -580,6 +590,12 @@ void RepGame::process_mouse_events( ) {
         globalGameState.input.click_delay_left = 30;
         globalGameState.block_mining.progress_ticks = 0.0f;
         globalGameState.vr.haptic_pending = true;
+        audio_play_sfx( "successful_hit" );
+        // Attack tier: a hit landed while falling is a crit, a sprinting
+        // hit knocks back, otherwise a plain strong hit — MC's ladder.
+        audio_play_sfx( !globalGameState.camera.standing_on_solid && globalGameState.camera.y_speed < -0.1 ? "attack_crit"
+                        : globalGameState.input.player_sprinting                                                            ? "attack_knockback"
+                                                                                                                            : "attack_strong" );
         if ( globalGameState.world.mobs.net_mirror_at( hit_mob ) ) {
             // A remote-owned mob: flash + sfx now, damage lands via
             // ENTITY_ACTION on the owner.
@@ -623,6 +639,8 @@ void RepGame::process_mouse_events( ) {
         globalGameState.input.click_delay_left = 30;
         globalGameState.block_mining.progress_ticks = 0.0f;
         globalGameState.vr.haptic_pending = true;
+        audio_play_sfx( "successful_hit" );
+        audio_play_sfx( "swing" );
         // Owned vehicle: local hurt (drop + remove handled inside); a mirror
         // sends ENTITY_ACTION to its owner instead.
         globalGameState.world.vehicles.hit_interact( globalGameState, hit_vehicle, globalGameState.game_mode == GameMode_Survival,
@@ -783,6 +801,7 @@ void RepGame::process_mouse_events( ) {
             BlockState toggled_state = target_state;
             toggled_state.rotation = fence_gate_toggle_rotation( target_state.rotation, getPlacedRotation( target_state.id ) );
             schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy, toggled_state, true );
+            audio_play_sfx( ( toggled_state.rotation & BLOCK_ROTATE_GATE_OPEN ) ? "fence_gate_open" : "fence_gate_close" );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -794,7 +813,7 @@ void RepGame::process_mouse_events( ) {
         if ( target_state.id != LAST_BLOCK_ID && block_definition_get_definition( target_state.id )->is_repeater && !globalGameState.input.movement.sneakPressed ) {
             schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy,
                                                                                    repeater_cycle_delay( target_state ), true );
-            audio_play_sfx( audio_block_dig_pool( target_state.id ) );
+            audio_play_sfx( "click" );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -827,7 +846,7 @@ void RepGame::process_mouse_events( ) {
                 schedule_block_update<PlayerBlockPlacedEvent>( globalGameState, 0, globalGameState.block_selection.pos_destroy, BLOCK_STATE_AIR, false,
                                                                                        BreakDrops::None, BreakDebris::None );
             }
-            audio_play_sfx( audio_block_dig_pool( target_state.id ) );
+            audio_play_sfx( "eat" );
             globalGameState.input.click_delay_right = 30;
         }
     }
@@ -899,7 +918,7 @@ void RepGame::process_mouse_events( ) {
             if ( tilled != LAST_BLOCK_ID && above_state.id != LAST_BLOCK_ID &&
                  block_definition_get_definition( above_state.id )->can_be_placed_in ) {
                 repgame_convert_block( globalGameState, pos, tilled );
-                audio_play_sfx( audio_block_dig_pool( target_state.id ) );
+                audio_play_sfx( "till" );
                 globalGameState.input.click_delay_right = 30;
             }
         }
@@ -948,7 +967,7 @@ void RepGame::process_mouse_events( ) {
         if ( globalGameState.hotbar.getSelectedItem( ) == FLINT_AND_STEEL && globalGameState.input.click_delay_right == 0 ) {
             if ( portal_ignite( globalGameState, globalGameState.block_selection.pos_create ) ||
                  portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ) {
-                audio_play_sfx( audio_block_place_pool( OBSIDIAN ) );
+                audio_play_sfx( "fire_ignite" );
                 globalGameState.input.click_delay_right = 30;
             } else {
                 const glm::ivec3 &pos = globalGameState.block_selection.pos_create;
@@ -957,6 +976,7 @@ void RepGame::process_mouse_events( ) {
                 if ( cell.id != LAST_BLOCK_ID && block_definition_get_definition( cell.id )->can_be_placed_in && below.id != LAST_BLOCK_ID &&
                      block_definition_get_definition( below.id )->collides_with_player ) {
                     change_block( 1, { FIRE, BLOCK_ROTATE_0, 0, FIRE, 0 } );
+                    audio_play_sfx( "fire_ignite" );
                     globalGameState.input.click_delay_right = 30;
                 }
             }
@@ -1004,7 +1024,7 @@ void RepGame::process_mouse_events( ) {
             if ( can_place ) {
                 const BlockID placed_block = change_block( 1, { plant_id, BLOCK_ROTATE_0, 0, plant_id, 0 } );
                 if ( placed_block != LAST_BLOCK_ID ) {
-                    audio_play_sfx( audio_block_place_pool( plant_id ) );
+                    audio_play_sfx( "crop_plant" );
                     if ( globalGameState.game_mode == GameMode_Survival ) {
                         globalGameState.hotbar.consumeSelected( 1 );
                         globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
@@ -1584,6 +1604,38 @@ void RepGame::process_movement( ) {
             }
         }
     }
+
+    // Head-level water transitions get their own cues on top of the feet
+    // splash: an enter/exit sting, a retriggered ambience bed while the head
+    // stays under, and sparse "additions" sprinkled on top. The ambience
+    // clip is ~60 s; the additions ride a short random timer.
+    {
+        static int head_water_state = -1; // -1 unknown (spawn), 0 dry, 1 wet
+        static long next_addition_tick = 0;
+        static long next_ambience_tick = 0;
+        const BlockState eye_block_now = globalGameState.world.get_loaded_block(
+            glm::ivec3( glm::round( globalGameState.camera.pos - glm::dvec3( 0.5 ) ) ) );
+        if ( eye_block_now.id != LAST_BLOCK_ID ) {
+            const int head_wet = fluid_in_cell( eye_block_now ) == WATER && !globalGameState.input.no_clip ? 1 : 0;
+            if ( head_water_state >= 0 && head_wet != head_water_state ) {
+                audio_play_sfx( head_wet ? "underwater_enter" : "underwater_exit" );
+                next_ambience_tick = globalGameState.tick_number;
+            }
+            head_water_state = head_wet;
+            if ( head_wet ) {
+                if ( globalGameState.tick_number >= next_ambience_tick ) {
+                    audio_play_sfx_gain( "underwater_ambience", 0.6f );
+                    next_ambience_tick = globalGameState.tick_number + 55 * UPS_RATE;
+                }
+                if ( globalGameState.tick_number >= next_addition_tick ) {
+                    audio_play_sfx_gain( "underwater_addition", 0.7f );
+                    next_addition_tick = globalGameState.tick_number + ( 4 + rand( ) % 10 ) * UPS_RATE;
+                }
+            } else {
+                next_addition_tick = globalGameState.tick_number;
+            }
+        }
+    }
 }
 
 // Right-click a button: powered for a timeout, then released. Wood stays
@@ -1600,6 +1652,8 @@ void repgame_press_button( RepGameState &state, const glm::ivec3 &pos ) {
         pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
         schedule_block_update<PlayerBlockPlacedEvent>( state, 0, pos, pressed_state, true );
     }
+    // Stone buttons click sharp, wooden ones thunk (MC's two click sounds).
+    audio_play_sfx( target_state.id == STONE_BUTTON || target_state.id == POLISHED_BLACKSTONE_BUTTON ? "click" : "wood_click" );
     // Always (re)queue the release: idempotent while unpressed, and it
     // revives a button saved while pressed (queued events don't
     // persist across loads).

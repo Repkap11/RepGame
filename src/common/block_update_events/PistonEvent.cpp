@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
@@ -224,6 +225,7 @@ void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
         if ( destroy ) {
             world.spawn_block_debris( destroy_pos, destroy_state, dest_i >= 2 ? chain[ dest_i - 2 ].id : head_id );
         }
+        audio_play_sfx_gain( "piston_out", audio_distance_gain( glm::distance( repGameState.camera.pos, glm::dvec3( block_pos ) + 0.5 ) ) );
     } else {
         // Unpowered: retract the head, and sticky pistons pull back the block
         // that was directly in front of it. Only pull when the head was
@@ -231,6 +233,7 @@ void piston_update( RepGameState &repGameState, const glm::ivec3 &block_pos ) {
         if ( !head_present ) {
             return;
         }
+        audio_play_sfx_gain( "piston_in", audio_distance_gain( glm::distance( repGameState.camera.pos, glm::dvec3( block_pos ) + 0.5 ) ) );
         // The base keeps drawing its extended model for the slide: the cell
         // becomes MOVING_PISTON carrying the real (power-0) base state, and a
         // stationary mover renders the powered (recessed) base until landing.

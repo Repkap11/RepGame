@@ -21,6 +21,10 @@ void vehicle_tick_boat( RepGameState &state, Vehicles::Vehicle &v, const Vehicle
 // How deep a boat's bottom rides under the water surface. Shared with
 // boat placement (spawn bottom = surface - draft).
 inline constexpr double VEHICLE_BOAT_DRAFT = 0.1;
+// The water surface height above the boat's box bottom (world space), or
+// -inf when no water is under the footprint. Used by the owned sim and by
+// the paddle-sfx picker (mirrors have no sim to stash the medium for).
+double vehicle_boat_water_surface( World &world, const Vehicles::Vehicle &v, const VehicleTypeDef &def );
 
 // Exact oriented-hull collision (vehicle_hull.cpp) for WATER vehicles:
 // the hull's true footprint — a def.length x def.width rectangle rotated

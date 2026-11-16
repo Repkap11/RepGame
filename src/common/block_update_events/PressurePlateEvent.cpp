@@ -1,5 +1,6 @@
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/schedule.hpp"
 
@@ -26,11 +27,18 @@ void PressurePlateEvent::performAction( RepGameState &repGameState ) {
     const BlockState current_state = repGameState.world.get_loaded_block( this->block_pos );
     const bool still_pressed_area = current_state.id != LAST_BLOCK_ID && block_definition_get_definition( current_state.id )->is_pressure_plate &&
                                     player_stands_on_plate( repGameState.camera.pos, repGameState.camera.player_height, repGameState.camera.eye_height, this->block_pos );
+    // Metal/stone plates click sharp, wooden ones thunk.
+    const float click_gain = audio_distance_gain( glm::distance( repGameState.camera.pos, glm::dvec3( this->block_pos ) + 0.5 ) );
+    const char *click_pool = current_state.id == STONE_PRESSURE_PLATE || current_state.id == POLISHED_BLACKSTONE_PRESSURE_PLATE ||
+                                     current_state.id == HEAVY_WEIGHTED_PRESSURE_PLATE || current_state.id == LIGHT_WEIGHTED_PRESSURE_PLATE
+                                 ? "click"
+                                 : "wood_click";
     if ( still_pressed_area ) {
         if ( current_state.current_redstone_power == 0 ) {
             BlockState pressed_state = current_state;
             pressed_state.current_redstone_power = REDSTONE_SOURCE_POWER;
             schedule_redstone_update<PlayerBlockPlacedEvent>( repGameState, 0, this->block_pos, pressed_state, true );
+            audio_play_sfx_gain( click_pool, click_gain );
         }
         schedule_redstone_update<PressurePlateEvent>( repGameState, PRESSURE_PLATE_RECHECK_GT, this->block_pos );
         return;
@@ -41,6 +49,7 @@ void PressurePlateEvent::performAction( RepGameState &repGameState ) {
         BlockState released_state = current_state;
         released_state.current_redstone_power = 0;
         schedule_redstone_update<PlayerBlockPlacedEvent>( repGameState, 0, this->block_pos, released_state, true );
+        audio_play_sfx_gain( click_pool, click_gain );
     }
     repGameState.watched_pressure_plates.erase( this->block_pos );
 }

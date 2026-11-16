@@ -1,5 +1,6 @@
 #include "common/block_update_events/DoorEvent.hpp"
 #include "common/RepGame.hpp"
+#include "common/audio.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
@@ -45,6 +46,12 @@ void DoorEvent::performAction( RepGameState &repGameState ) {
     if ( lower_state.rotation == old_lower_rot && upper_state.rotation == old_upper_rot ) {
         return;
     }
+    // door_redstone_only marks iron doors; everything else gets the wooden
+    // swing. Covers both click-toggles (TOGGLE) and redstone flips.
+    const float gain = audio_distance_gain( glm::distance( repGameState.camera.pos, glm::dvec3( lower_pos ) + 0.5 ) );
+    audio_play_sfx_gain( lower->door_redstone_only ? ( open ? "door_iron_open" : "door_iron_close" )
+                                                   : ( open ? "door_wood_open" : "door_wood_close" ),
+                         gain );
     world.set_loaded_block( lower_pos, lower_state );
     repGameState.multiplayer.set_block( lower_pos, lower_state, NET_BU_FLAG_NO_DEBRIS );
     world.set_loaded_block( upper_pos, upper_state );

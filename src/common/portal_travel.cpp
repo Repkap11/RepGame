@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "common/portal.hpp"
+#include "common/audio.hpp"
 #include "common/game/game_state.hpp"
 #include "common/world.hpp"
 #include "common/block_definitions.hpp"
@@ -276,6 +277,10 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
     const double mid = w / 2.0;
     const glm::dvec3 feet = axis ? glm::dvec3( center.x + 0.5, center.y + 1.0, center.z + mid )
                                  : glm::dvec3( center.x + mid, center.y + 1.0, center.z + 0.5 );
+    // Travel whoosh on the one-time hop only — NOT inside
+    // portal_teleport_feet, which the pending freeze calls every tick
+    // while destination chunks stream in (that stacked the clip).
+    audio_play_sfx_gain( "portal_travel", 0.2f );
     portal_teleport_feet( state, feet );
     PortalState &p = state.portal;
     p.cooldown = PORTAL_COOLDOWN_TICKS;
@@ -511,6 +516,12 @@ void repgame_portal_tick( RepGameState &state ) {
     }
     if ( p.must_exit || p.cooldown > 0 ) {
         return;
+    }
+    // First tick inside: the dwell shimmer — quiet, the clip is a shrill
+    // one at full gain. Retriggered only on re-entry — must_exit/cooldown
+    // exits leave ticks_inside at 0 without replaying.
+    if ( p.ticks_inside == 0 ) {
+        audio_play_sfx_gain( "portal_trigger", 0.15f );
     }
     if ( ++p.ticks_inside >= PORTAL_TRAVEL_TICKS ) {
         p.ticks_inside = 0;

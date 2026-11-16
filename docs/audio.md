@@ -34,13 +34,27 @@ old-set pick, cuts the in-flight track via `music_skip`, and shortens the
 gap to ~2 s so the new dimension's music takes over promptly. SFX are one-shots (SDL3 binds a stream per play, WASM
 claims a voice slot); manifest names `dig_stone_1..4` form
 the `dig_stone` pool, so `audio_play_sfx("dig_stone")` picks a random
-variant. `audio_block_dig_pool(block_id)` maps BlockID → break pool
-(dig_stone/grass/gravel/sand/snow/wood/coral, glass → the `glass` shatter);
+variant. `audio_block_dig_pool(block_id)` maps BlockID → break pool via
+`block_material()` (audio.cpp) — stone/grass/gravel/sand/snow/wood/coral
+plus cloth (wool/carpets), wet_grass (mud/moss), scaffold, bamboo, vine,
+waterlily, sweet_berry_bush, chain, lantern, honey, and the nether sets
+(netherrack, nylium, soul_sand/soil, basalt, nether_bricks/ore, netherite,
+ancient_debris, stem, fungus, roots, nether_sprouts, netherwart,
+bone_block, shroomlight); glass → the `glass` shatter. The `dig_*` pools
+fold the pack's break and place variants together.
 `audio_block_place_pool(block_id)` is the same map for placement except
 glass-type blocks → dig_stone (the pack's `random/glass*` is the shatter
 only — there is no glass place "tink"); `audio_block_step_pool(block_id)`
-is the same map for footsteps (step_* pools, glass → step_stone). For the
-currently wired SFX hooks see the `audio_play_sfx` call sites.
+is the same map for footsteps (step_* pools, glass → step_stone, and the
+no-step materials fall back to step_grass/step_stone). For the
+currently wired SFX hooks see the `audio_play_sfx` call sites — mechanisms
+(doors, pistons, buttons, pressure plates, fence gates, repeaters), boats
+(paddle strokes on a cadence, `vehicle_water_sfx` in vehicles.cpp —
+water under the hull picks paddle_water, a beached boat paddle_land),
+buckets, flint & steel + portals, mob melee (swing whoosh plus a
+crit/knockback/strong hit tier), farming (hoe till, crop plant), anvil
+landings, eating (eat + burp), and damage (drown/fire_hurt, classic_hurt
+is one of the player_hurt variants).
 Looping clips (there is no looped-playback API) are emulated by
 re-triggering the one-shot once its clip length has elapsed — a
 retriggered clip is the loop. Plays that need to end before their clip
@@ -56,7 +70,14 @@ the cart the local player rides adds the `minecart_inside` loop on a
 the pack, so convert_sounds.sh normalizes them to -34/-38dB mean and
 `CART_SFX_VOLUME` applies a further in-code cap; stopping, derailing,
 dismounting or removing the vehicle stops the
-in-flight plays instead of letting them tail out. Positional
+in-flight plays instead of letting them tail out. Ambience uses the same
+retrigger trick: while the player's head is under water `process_movement`
+(player.cpp) plays underwater_enter/exit on the transition, restarts
+underwater_ambience on a ~55 s timer and sprinkles underwater_addition on
+a 4–13 s random timer; `audio_tick` does the nether equivalent — the
+nether_mood pool every ~30–75 s and nether_addition every ~6–20 s, keyed
+off `music_set == DIM_MUSIC_NETHER` so it follows the same dimension
+signal as the music. Positional
 SFX share `audio_distance_gain(dist)` (audio.hpp): an inverse-distance
 falloff — full gain within 4 blocks, 0.5 at 8, 0.25 at 16, 0.125 at 32 —
 silent past `AUDIO_SFX_RANGE` (64); `audio_play_sfx_gain` drops gain<=0

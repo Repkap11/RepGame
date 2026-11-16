@@ -88,6 +88,33 @@ static void vehicle_rail_sfx( const RepGameState &state, Vehicles::Vehicle &c ) 
     }
 }
 
+// Paddle strokes for WATER-physics vehicles (boats): one-shots on a
+// stroke cadence while a rider rows. Water under the hull (sampled via
+// vehicle_boat_water_surface — mirrors have no sim to stash the medium
+// for) picks the paddle_water pool, a beached boat paddle_land. Mirrors
+// row off their streamed velocity; an owned boat also strokes while the
+// rider holds forward against an obstacle.
+static constexpr int BOAT_PADDLE_SFX_TICKS = UPS_RATE / 2;
+static constexpr double BOAT_PADDLE_MIN_SPEED = 0.05;
+static constexpr float BOAT_PADDLE_SFX_VOLUME = 0.6f;
+
+static void vehicle_water_sfx( RepGameState &state, Vehicles::Vehicle &c, const Vehicles::VehicleTickInput &in ) {
+    const double speed = std::sqrt( c.vel.x * c.vel.x + c.vel.z * c.vel.z ) * UPS_RATE;
+    const bool ridden = c.rider || c.rider_session != 0;
+    const bool rowing = speed > BOAT_PADDLE_MIN_SPEED || ( c.rider && in.rider_forward != 0.0 );
+    if ( !ridden || !rowing ) {
+        c.paddle_sfx_ticks = 0;
+        return;
+    }
+    if ( c.paddle_sfx_ticks-- > 0 ) {
+        return;
+    }
+    const bool in_water = vehicle_boat_water_surface( state.world, c, vehicle_type_def( c.type ) ) > c.pos.y;
+    const float gain = BOAT_PADDLE_SFX_VOLUME * audio_distance_gain( glm::distance( state.camera.pos, c.pos ) );
+    audio_play_sfx_gain( in_water ? "boat_paddle_water" : "boat_paddle_land", gain );
+    c.paddle_sfx_ticks = BOAT_PADDLE_SFX_TICKS;
+}
+
 void Vehicles::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance ) {
     this->render_chain.init( vbl_object_vertex, vbl_mob_instance, vd_data_player_object, VB_DATA_SIZE_PARTICLE, ib_data_solid, IB_SOLID_SIZE );
     this->render_inited = true;
@@ -237,6 +264,7 @@ void Vehicles::tick( RepGameState &state, const VehicleTickInput &in ) {
             if ( ( c.rider || c.rider_session != 0 ) && speed > 0.05 ) {
                 c.paddle_phase += static_cast<float>( speed * 0.9 / UPS_RATE );
             }
+            vehicle_water_sfx( state, c, in );
         }
         // Rolling sound for rail vehicles — owned carts use the velocity
         // the sim just wrote, mirrors the streamed one.

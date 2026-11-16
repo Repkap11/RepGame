@@ -275,3 +275,465 @@ arrow_hit_3|mc_pack/random/bowhit3.wav|sfx|Arrow hit
 arrow_hit_4|mc_pack/random/bowhit4.wav|sfx|Arrow hit
 minecart_base|mc_pack/minecart/base.wav|sfx|Minecart rolling
 minecart_inside|mc_pack/minecart/inside.wav|sfx|Minecart inside
+
+# Extra block materials — block_material() in audio.cpp maps ids to these.
+# dig_<mat> pools fold the pack's break/place variants together (placement
+# plays the same pool); step_<mat> only exists where the pack has a step set
+# — audio_block_step_pool falls back to grass/stone for the rest.
+dig_cloth_1|mc_pack/dig/cloth1.wav|sfx|Dig wool
+dig_cloth_2|mc_pack/dig/cloth2.wav|sfx|Dig wool
+dig_cloth_3|mc_pack/dig/cloth3.wav|sfx|Dig wool
+dig_cloth_4|mc_pack/dig/cloth4.wav|sfx|Dig wool
+step_cloth_1|mc_pack/Dstep/cloth1.wav|sfx|Step wool
+step_cloth_2|mc_pack/Dstep/cloth2.wav|sfx|Step wool
+step_cloth_3|mc_pack/Dstep/cloth3.wav|sfx|Step wool
+step_cloth_4|mc_pack/Dstep/cloth4.wav|sfx|Step wool
+dig_wet_grass_1|mc_pack/dig/wet_grass1.wav|sfx|Dig mud/moss
+dig_wet_grass_2|mc_pack/dig/wet_grass2.wav|sfx|Dig mud/moss
+dig_wet_grass_3|mc_pack/dig/wet_grass3.wav|sfx|Dig mud/moss
+dig_wet_grass_4|mc_pack/dig/wet_grass4.wav|sfx|Dig mud/moss
+step_wet_grass_1|mc_pack/Dstep/wet_grass1.wav|sfx|Step mud/moss
+step_wet_grass_2|mc_pack/Dstep/wet_grass2.wav|sfx|Step mud/moss
+step_wet_grass_3|mc_pack/Dstep/wet_grass3.wav|sfx|Step mud/moss
+step_wet_grass_4|mc_pack/Dstep/wet_grass4.wav|sfx|Step mud/moss
+step_wet_grass_5|mc_pack/Dstep/wet_grass5.wav|sfx|Step mud/moss
+step_wet_grass_6|mc_pack/Dstep/wet_grass6.wav|sfx|Step mud/moss
+dig_scaffold_1|mc_pack/block/scaffold/place1.wav|sfx|Dig scaffolding
+dig_scaffold_2|mc_pack/block/scaffold/place2.wav|sfx|Dig scaffolding
+dig_scaffold_3|mc_pack/block/scaffold/place3.wav|sfx|Dig scaffolding
+dig_scaffold_4|mc_pack/block/scaffold/place4.wav|sfx|Dig scaffolding
+step_scaffold_1|mc_pack/Dstep/scaffold1.wav|sfx|Step scaffolding
+step_scaffold_2|mc_pack/Dstep/scaffold2.wav|sfx|Step scaffolding
+step_scaffold_3|mc_pack/Dstep/scaffold3.wav|sfx|Step scaffolding
+step_scaffold_4|mc_pack/Dstep/scaffold4.wav|sfx|Step scaffolding
+step_scaffold_5|mc_pack/Dstep/scaffold5.wav|sfx|Step scaffolding
+step_scaffold_6|mc_pack/Dstep/scaffold6.wav|sfx|Step scaffolding
+step_scaffold_7|mc_pack/Dstep/scaffold7.wav|sfx|Step scaffolding
+dig_bamboo_1|mc_pack/block/bamboo/place1.wav|sfx|Dig bamboo
+dig_bamboo_2|mc_pack/block/bamboo/place2.wav|sfx|Dig bamboo
+dig_bamboo_3|mc_pack/block/bamboo/place3.wav|sfx|Dig bamboo
+dig_bamboo_4|mc_pack/block/bamboo/place4.wav|sfx|Dig bamboo
+dig_bamboo_5|mc_pack/block/bamboo/place5.wav|sfx|Dig bamboo
+dig_bamboo_6|mc_pack/block/bamboo/place6.wav|sfx|Dig bamboo
+dig_bamboo_7|mc_pack/block/bamboo/sapling_place1.wav|sfx|Dig bamboo
+dig_bamboo_8|mc_pack/block/bamboo/sapling_place2.wav|sfx|Dig bamboo
+dig_bamboo_9|mc_pack/block/bamboo/sapling_place3.wav|sfx|Dig bamboo
+dig_bamboo_10|mc_pack/block/bamboo/sapling_place4.wav|sfx|Dig bamboo
+dig_bamboo_11|mc_pack/block/bamboo/sapling_place5.wav|sfx|Dig bamboo
+dig_bamboo_12|mc_pack/block/bamboo/sapling_place6.wav|sfx|Dig bamboo
+step_bamboo_1|mc_pack/block/bamboo/step1.wav|sfx|Step bamboo
+step_bamboo_2|mc_pack/block/bamboo/step2.wav|sfx|Step bamboo
+step_bamboo_3|mc_pack/block/bamboo/step3.wav|sfx|Step bamboo
+step_bamboo_4|mc_pack/block/bamboo/step4.wav|sfx|Step bamboo
+step_bamboo_5|mc_pack/block/bamboo/step5.wav|sfx|Step bamboo
+step_bamboo_6|mc_pack/block/bamboo/step6.wav|sfx|Step bamboo
+dig_vine_1|mc_pack/block/vine/climb1.wav|sfx|Dig vine
+dig_vine_2|mc_pack/block/vine/climb2.wav|sfx|Dig vine
+dig_vine_3|mc_pack/block/vine/climb3.wav|sfx|Dig vine
+dig_vine_4|mc_pack/block/vine/climb4.wav|sfx|Dig vine
+dig_vine_5|mc_pack/block/vine/climb5.wav|sfx|Dig vine
+step_vine_1|mc_pack/block/vine/climb1.wav|sfx|Step vine
+step_vine_2|mc_pack/block/vine/climb2.wav|sfx|Step vine
+step_vine_3|mc_pack/block/vine/climb3.wav|sfx|Step vine
+step_vine_4|mc_pack/block/vine/climb4.wav|sfx|Step vine
+step_vine_5|mc_pack/block/vine/climb5.wav|sfx|Step vine
+dig_waterlily_1|mc_pack/block/waterlily/place1.wav|sfx|Dig lily pad
+dig_waterlily_2|mc_pack/block/waterlily/place2.wav|sfx|Dig lily pad
+dig_waterlily_3|mc_pack/block/waterlily/place3.wav|sfx|Dig lily pad
+dig_waterlily_4|mc_pack/block/waterlily/place4.wav|sfx|Dig lily pad
+dig_sweet_berry_bush_1|mc_pack/block/sweet_berry_bush/break1.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_2|mc_pack/block/sweet_berry_bush/break2.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_3|mc_pack/block/sweet_berry_bush/break3.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_4|mc_pack/block/sweet_berry_bush/break4.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_5|mc_pack/block/sweet_berry_bush/place1.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_6|mc_pack/block/sweet_berry_bush/place2.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_7|mc_pack/block/sweet_berry_bush/place3.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_8|mc_pack/block/sweet_berry_bush/place4.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_9|mc_pack/block/sweet_berry_bush/place5.wav|sfx|Dig berry bush
+dig_sweet_berry_bush_10|mc_pack/block/sweet_berry_bush/place6.wav|sfx|Dig berry bush
+
+# Nether materials
+dig_netherrack_1|mc_pack/block/netherrack/break1.wav|sfx|Dig netherrack
+dig_netherrack_2|mc_pack/block/netherrack/break2.wav|sfx|Dig netherrack
+dig_netherrack_3|mc_pack/block/netherrack/break3.wav|sfx|Dig netherrack
+dig_netherrack_4|mc_pack/block/netherrack/break4.wav|sfx|Dig netherrack
+dig_netherrack_5|mc_pack/block/netherrack/break5.wav|sfx|Dig netherrack
+dig_netherrack_6|mc_pack/block/netherrack/break6.wav|sfx|Dig netherrack
+step_netherrack_1|mc_pack/block/netherrack/step1.wav|sfx|Step netherrack
+step_netherrack_2|mc_pack/block/netherrack/step2.wav|sfx|Step netherrack
+step_netherrack_3|mc_pack/block/netherrack/step3.wav|sfx|Step netherrack
+step_netherrack_4|mc_pack/block/netherrack/step4.wav|sfx|Step netherrack
+step_netherrack_5|mc_pack/block/netherrack/step5.wav|sfx|Step netherrack
+step_netherrack_6|mc_pack/block/netherrack/step6.wav|sfx|Step netherrack
+dig_nylium_1|mc_pack/block/nylium/break1.wav|sfx|Dig nylium
+dig_nylium_2|mc_pack/block/nylium/break2.wav|sfx|Dig nylium
+dig_nylium_3|mc_pack/block/nylium/break3.wav|sfx|Dig nylium
+dig_nylium_4|mc_pack/block/nylium/break4.wav|sfx|Dig nylium
+dig_nylium_5|mc_pack/block/nylium/break5.wav|sfx|Dig nylium
+dig_nylium_6|mc_pack/block/nylium/break6.wav|sfx|Dig nylium
+step_nylium_1|mc_pack/block/nylium/step1.wav|sfx|Step nylium
+step_nylium_2|mc_pack/block/nylium/step2.wav|sfx|Step nylium
+step_nylium_3|mc_pack/block/nylium/step3.wav|sfx|Step nylium
+step_nylium_4|mc_pack/block/nylium/step4.wav|sfx|Step nylium
+step_nylium_5|mc_pack/block/nylium/step5.wav|sfx|Step nylium
+step_nylium_6|mc_pack/block/nylium/step6.wav|sfx|Step nylium
+dig_soul_sand_1|mc_pack/block/soul_sand/break1.wav|sfx|Dig soul sand
+dig_soul_sand_2|mc_pack/block/soul_sand/break2.wav|sfx|Dig soul sand
+dig_soul_sand_3|mc_pack/block/soul_sand/break3.wav|sfx|Dig soul sand
+dig_soul_sand_4|mc_pack/block/soul_sand/break4.wav|sfx|Dig soul sand
+dig_soul_sand_5|mc_pack/block/soul_sand/break5.wav|sfx|Dig soul sand
+dig_soul_sand_6|mc_pack/block/soul_sand/break6.wav|sfx|Dig soul sand
+dig_soul_sand_7|mc_pack/block/soul_sand/break7.wav|sfx|Dig soul sand
+dig_soul_sand_8|mc_pack/block/soul_sand/break8.wav|sfx|Dig soul sand
+dig_soul_sand_9|mc_pack/block/soul_sand/break9.wav|sfx|Dig soul sand
+step_soul_sand_1|mc_pack/block/soul_sand/step1.wav|sfx|Step soul sand
+step_soul_sand_2|mc_pack/block/soul_sand/step2.wav|sfx|Step soul sand
+step_soul_sand_3|mc_pack/block/soul_sand/step3.wav|sfx|Step soul sand
+step_soul_sand_4|mc_pack/block/soul_sand/step4.wav|sfx|Step soul sand
+step_soul_sand_5|mc_pack/block/soul_sand/step5.wav|sfx|Step soul sand
+dig_soul_soil_1|mc_pack/block/soul_soil/break1.wav|sfx|Dig soul soil
+dig_soul_soil_2|mc_pack/block/soul_soil/break2.wav|sfx|Dig soul soil
+dig_soul_soil_3|mc_pack/block/soul_soil/break3.wav|sfx|Dig soul soil
+dig_soul_soil_4|mc_pack/block/soul_soil/break4.wav|sfx|Dig soul soil
+dig_soul_soil_5|mc_pack/block/soul_soil/break5.wav|sfx|Dig soul soil
+dig_soul_soil_6|mc_pack/block/soul_soil/break6.wav|sfx|Dig soul soil
+step_soul_soil_1|mc_pack/block/soul_soil/step1.wav|sfx|Step soul soil
+step_soul_soil_2|mc_pack/block/soul_soil/step2.wav|sfx|Step soul soil
+step_soul_soil_3|mc_pack/block/soul_soil/step3.wav|sfx|Step soul soil
+step_soul_soil_4|mc_pack/block/soul_soil/step4.wav|sfx|Step soul soil
+step_soul_soil_5|mc_pack/block/soul_soil/step5.wav|sfx|Step soul soil
+dig_basalt_1|mc_pack/block/basalt/break1.wav|sfx|Dig basalt
+dig_basalt_2|mc_pack/block/basalt/break2.wav|sfx|Dig basalt
+dig_basalt_3|mc_pack/block/basalt/break3.wav|sfx|Dig basalt
+dig_basalt_4|mc_pack/block/basalt/break4.wav|sfx|Dig basalt
+dig_basalt_5|mc_pack/block/basalt/break5.wav|sfx|Dig basalt
+step_basalt_1|mc_pack/block/basalt/step1.wav|sfx|Step basalt
+step_basalt_2|mc_pack/block/basalt/step2.wav|sfx|Step basalt
+step_basalt_3|mc_pack/block/basalt/step3.wav|sfx|Step basalt
+step_basalt_4|mc_pack/block/basalt/step4.wav|sfx|Step basalt
+step_basalt_5|mc_pack/block/basalt/step5.wav|sfx|Step basalt
+step_basalt_6|mc_pack/block/basalt/step6.wav|sfx|Step basalt
+dig_nether_bricks_1|mc_pack/block/nether_bricks/break1.wav|sfx|Dig nether bricks
+dig_nether_bricks_2|mc_pack/block/nether_bricks/break2.wav|sfx|Dig nether bricks
+dig_nether_bricks_3|mc_pack/block/nether_bricks/break3.wav|sfx|Dig nether bricks
+dig_nether_bricks_4|mc_pack/block/nether_bricks/break4.wav|sfx|Dig nether bricks
+dig_nether_bricks_5|mc_pack/block/nether_bricks/break5.wav|sfx|Dig nether bricks
+dig_nether_bricks_6|mc_pack/block/nether_bricks/break6.wav|sfx|Dig nether bricks
+step_nether_bricks_1|mc_pack/block/nether_bricks/step1.wav|sfx|Step nether bricks
+step_nether_bricks_2|mc_pack/block/nether_bricks/step2.wav|sfx|Step nether bricks
+step_nether_bricks_3|mc_pack/block/nether_bricks/step3.wav|sfx|Step nether bricks
+step_nether_bricks_4|mc_pack/block/nether_bricks/step4.wav|sfx|Step nether bricks
+step_nether_bricks_5|mc_pack/block/nether_bricks/step5.wav|sfx|Step nether bricks
+step_nether_bricks_6|mc_pack/block/nether_bricks/step6.wav|sfx|Step nether bricks
+dig_nether_ore_1|mc_pack/block/nether_ore/break1.wav|sfx|Dig nether ore
+dig_nether_ore_2|mc_pack/block/nether_ore/break2.wav|sfx|Dig nether ore
+dig_nether_ore_3|mc_pack/block/nether_ore/break3.wav|sfx|Dig nether ore
+dig_nether_ore_4|mc_pack/block/nether_ore/break4.wav|sfx|Dig nether ore
+step_nether_ore_1|mc_pack/block/nether_ore/step1.wav|sfx|Step nether ore
+step_nether_ore_2|mc_pack/block/nether_ore/step2.wav|sfx|Step nether ore
+step_nether_ore_3|mc_pack/block/nether_ore/step3.wav|sfx|Step nether ore
+step_nether_ore_4|mc_pack/block/nether_ore/step4.wav|sfx|Step nether ore
+step_nether_ore_5|mc_pack/block/nether_ore/step5.wav|sfx|Step nether ore
+dig_netherite_1|mc_pack/block/netherite/break1.wav|sfx|Dig netherite
+dig_netherite_2|mc_pack/block/netherite/break2.wav|sfx|Dig netherite
+dig_netherite_3|mc_pack/block/netherite/break3.wav|sfx|Dig netherite
+dig_netherite_4|mc_pack/block/netherite/break4.wav|sfx|Dig netherite
+step_netherite_1|mc_pack/block/netherite/step1.wav|sfx|Step netherite
+step_netherite_2|mc_pack/block/netherite/step2.wav|sfx|Step netherite
+step_netherite_3|mc_pack/block/netherite/step3.wav|sfx|Step netherite
+step_netherite_4|mc_pack/block/netherite/step4.wav|sfx|Step netherite
+step_netherite_5|mc_pack/block/netherite/step5.wav|sfx|Step netherite
+step_netherite_6|mc_pack/block/netherite/step6.wav|sfx|Step netherite
+dig_ancient_debris_1|mc_pack/block/ancient_debris/break1.wav|sfx|Dig ancient debris
+dig_ancient_debris_2|mc_pack/block/ancient_debris/break2.wav|sfx|Dig ancient debris
+dig_ancient_debris_3|mc_pack/block/ancient_debris/break3.wav|sfx|Dig ancient debris
+dig_ancient_debris_4|mc_pack/block/ancient_debris/break4.wav|sfx|Dig ancient debris
+dig_ancient_debris_5|mc_pack/block/ancient_debris/break5.wav|sfx|Dig ancient debris
+dig_stem_1|mc_pack/block/stem/break1.wav|sfx|Dig stem
+dig_stem_2|mc_pack/block/stem/break2.wav|sfx|Dig stem
+dig_stem_3|mc_pack/block/stem/break3.wav|sfx|Dig stem
+dig_stem_4|mc_pack/block/stem/break4.wav|sfx|Dig stem
+dig_stem_5|mc_pack/block/stem/break5.wav|sfx|Dig stem
+dig_stem_6|mc_pack/block/stem/break6.wav|sfx|Dig stem
+step_stem_1|mc_pack/block/stem/step1.wav|sfx|Step stem
+step_stem_2|mc_pack/block/stem/step2.wav|sfx|Step stem
+step_stem_3|mc_pack/block/stem/step3.wav|sfx|Step stem
+step_stem_4|mc_pack/block/stem/step4.wav|sfx|Step stem
+step_stem_5|mc_pack/block/stem/step5.wav|sfx|Step stem
+step_stem_6|mc_pack/block/stem/step6.wav|sfx|Step stem
+dig_fungus_1|mc_pack/block/fungus/break1.wav|sfx|Dig fungus
+dig_fungus_2|mc_pack/block/fungus/break2.wav|sfx|Dig fungus
+dig_fungus_3|mc_pack/block/fungus/break3.wav|sfx|Dig fungus
+dig_fungus_4|mc_pack/block/fungus/break4.wav|sfx|Dig fungus
+dig_fungus_5|mc_pack/block/fungus/break5.wav|sfx|Dig fungus
+dig_fungus_6|mc_pack/block/fungus/break6.wav|sfx|Dig fungus
+dig_roots_1|mc_pack/block/roots/break1.wav|sfx|Dig roots
+dig_roots_2|mc_pack/block/roots/break2.wav|sfx|Dig roots
+dig_roots_3|mc_pack/block/roots/break3.wav|sfx|Dig roots
+dig_roots_4|mc_pack/block/roots/break4.wav|sfx|Dig roots
+dig_roots_5|mc_pack/block/roots/break5.wav|sfx|Dig roots
+dig_roots_6|mc_pack/block/roots/break6.wav|sfx|Dig roots
+step_roots_1|mc_pack/block/roots/step1.wav|sfx|Step roots
+step_roots_2|mc_pack/block/roots/step2.wav|sfx|Step roots
+step_roots_3|mc_pack/block/roots/step3.wav|sfx|Step roots
+step_roots_4|mc_pack/block/roots/step4.wav|sfx|Step roots
+step_roots_5|mc_pack/block/roots/step5.wav|sfx|Step roots
+dig_nether_sprouts_1|mc_pack/block/nether_sprouts/break1.wav|sfx|Dig nether sprouts
+dig_nether_sprouts_2|mc_pack/block/nether_sprouts/break2.wav|sfx|Dig nether sprouts
+dig_nether_sprouts_3|mc_pack/block/nether_sprouts/break3.wav|sfx|Dig nether sprouts
+dig_nether_sprouts_4|mc_pack/block/nether_sprouts/break4.wav|sfx|Dig nether sprouts
+step_nether_sprouts_1|mc_pack/block/nether_sprouts/step1.wav|sfx|Step nether sprouts
+step_nether_sprouts_2|mc_pack/block/nether_sprouts/step2.wav|sfx|Step nether sprouts
+step_nether_sprouts_3|mc_pack/block/nether_sprouts/step3.wav|sfx|Step nether sprouts
+step_nether_sprouts_4|mc_pack/block/nether_sprouts/step4.wav|sfx|Step nether sprouts
+step_nether_sprouts_5|mc_pack/block/nether_sprouts/step5.wav|sfx|Step nether sprouts
+dig_netherwart_1|mc_pack/block/netherwart/break1.wav|sfx|Dig nether wart
+dig_netherwart_2|mc_pack/block/netherwart/break2.wav|sfx|Dig nether wart
+dig_netherwart_3|mc_pack/block/netherwart/break3.wav|sfx|Dig nether wart
+dig_netherwart_4|mc_pack/block/netherwart/break4.wav|sfx|Dig nether wart
+dig_netherwart_5|mc_pack/block/netherwart/break5.wav|sfx|Dig nether wart
+dig_netherwart_6|mc_pack/block/netherwart/break6.wav|sfx|Dig nether wart
+step_netherwart_1|mc_pack/block/netherwart/step1.wav|sfx|Step nether wart
+step_netherwart_2|mc_pack/block/netherwart/step2.wav|sfx|Step nether wart
+step_netherwart_3|mc_pack/block/netherwart/step3.wav|sfx|Step nether wart
+step_netherwart_4|mc_pack/block/netherwart/step4.wav|sfx|Step nether wart
+step_netherwart_5|mc_pack/block/netherwart/step5.wav|sfx|Step nether wart
+dig_bone_block_1|mc_pack/block/bone_block/break1.wav|sfx|Dig bone block
+dig_bone_block_2|mc_pack/block/bone_block/break2.wav|sfx|Dig bone block
+dig_bone_block_3|mc_pack/block/bone_block/break3.wav|sfx|Dig bone block
+dig_bone_block_4|mc_pack/block/bone_block/break4.wav|sfx|Dig bone block
+dig_bone_block_5|mc_pack/block/bone_block/break5.wav|sfx|Dig bone block
+step_bone_block_1|mc_pack/block/bone_block/step1.wav|sfx|Step bone block
+step_bone_block_2|mc_pack/block/bone_block/step2.wav|sfx|Step bone block
+step_bone_block_3|mc_pack/block/bone_block/step3.wav|sfx|Step bone block
+step_bone_block_4|mc_pack/block/bone_block/step4.wav|sfx|Step bone block
+step_bone_block_5|mc_pack/block/bone_block/step5.wav|sfx|Step bone block
+dig_shroomlight_1|mc_pack/block/shroomlight/break1.wav|sfx|Dig shroomlight
+dig_shroomlight_2|mc_pack/block/shroomlight/break2.wav|sfx|Dig shroomlight
+dig_shroomlight_3|mc_pack/block/shroomlight/break3.wav|sfx|Dig shroomlight
+dig_shroomlight_4|mc_pack/block/shroomlight/break4.wav|sfx|Dig shroomlight
+dig_shroomlight_5|mc_pack/block/shroomlight/break5.wav|sfx|Dig shroomlight
+step_shroomlight_1|mc_pack/block/shroomlight/step1.wav|sfx|Step shroomlight
+step_shroomlight_2|mc_pack/block/shroomlight/step2.wav|sfx|Step shroomlight
+step_shroomlight_3|mc_pack/block/shroomlight/step3.wav|sfx|Step shroomlight
+step_shroomlight_4|mc_pack/block/shroomlight/step4.wav|sfx|Step shroomlight
+step_shroomlight_5|mc_pack/block/shroomlight/step5.wav|sfx|Step shroomlight
+step_shroomlight_6|mc_pack/block/shroomlight/step6.wav|sfx|Step shroomlight
+dig_chain_1|mc_pack/block/chain/break1.wav|sfx|Dig chain
+dig_chain_2|mc_pack/block/chain/break2.wav|sfx|Dig chain
+dig_chain_3|mc_pack/block/chain/break3.wav|sfx|Dig chain
+dig_chain_4|mc_pack/block/chain/break4.wav|sfx|Dig chain
+step_chain_1|mc_pack/block/chain/step1.wav|sfx|Step chain
+step_chain_2|mc_pack/block/chain/step2.wav|sfx|Step chain
+step_chain_3|mc_pack/block/chain/step3.wav|sfx|Step chain
+step_chain_4|mc_pack/block/chain/step4.wav|sfx|Step chain
+step_chain_5|mc_pack/block/chain/step5.wav|sfx|Step chain
+step_chain_6|mc_pack/block/chain/step6.wav|sfx|Step chain
+dig_honey_1|mc_pack/block/honeyblock/break1.wav|sfx|Dig honey block
+dig_honey_2|mc_pack/block/honeyblock/break2.wav|sfx|Dig honey block
+dig_honey_3|mc_pack/block/honeyblock/break3.wav|sfx|Dig honey block
+dig_honey_4|mc_pack/block/honeyblock/break4.wav|sfx|Dig honey block
+dig_honey_5|mc_pack/block/honeyblock/break5.wav|sfx|Dig honey block
+step_honey_1|mc_pack/block/honeyblock/step1.wav|sfx|Step honey block
+step_honey_2|mc_pack/block/honeyblock/step2.wav|sfx|Step honey block
+step_honey_3|mc_pack/block/honeyblock/step3.wav|sfx|Step honey block
+step_honey_4|mc_pack/block/honeyblock/step4.wav|sfx|Step honey block
+step_honey_5|mc_pack/block/honeyblock/step5.wav|sfx|Step honey block
+dig_lantern_1|mc_pack/block/lantern/break1.wav|sfx|Dig lantern
+dig_lantern_2|mc_pack/block/lantern/break2.wav|sfx|Dig lantern
+dig_lantern_3|mc_pack/block/lantern/break3.wav|sfx|Dig lantern
+dig_lantern_4|mc_pack/block/lantern/break4.wav|sfx|Dig lantern
+dig_lantern_5|mc_pack/block/lantern/break5.wav|sfx|Dig lantern
+dig_lantern_6|mc_pack/block/lantern/break6.wav|sfx|Dig lantern
+dig_lantern_7|mc_pack/block/lantern/place1.wav|sfx|Dig lantern
+dig_lantern_8|mc_pack/block/lantern/place2.wav|sfx|Dig lantern
+dig_lantern_9|mc_pack/block/lantern/place3.wav|sfx|Dig lantern
+dig_lantern_10|mc_pack/block/lantern/place4.wav|sfx|Dig lantern
+dig_lantern_11|mc_pack/block/lantern/place5.wav|sfx|Dig lantern
+dig_lantern_12|mc_pack/block/lantern/place6.wav|sfx|Dig lantern
+
+# Mechanism toggles — doors/gates funnel through DoorEvent / the interact
+# sites; iron variants are for redstone-only doors.
+door_wood_open_1|mc_pack/block/wooden_door/open.wav|sfx|Door open
+door_wood_open_2|mc_pack/block/wooden_door/open2.wav|sfx|Door open
+door_wood_open_3|mc_pack/block/wooden_door/open3.wav|sfx|Door open
+door_wood_open_4|mc_pack/block/wooden_door/open4.wav|sfx|Door open
+door_wood_close_1|mc_pack/block/wooden_door/close.wav|sfx|Door close
+door_wood_close_2|mc_pack/block/wooden_door/close2.wav|sfx|Door close
+door_wood_close_3|mc_pack/block/wooden_door/close3.wav|sfx|Door close
+door_wood_close_4|mc_pack/block/wooden_door/close4.wav|sfx|Door close
+door_wood_close_5|mc_pack/block/wooden_door/close5.wav|sfx|Door close
+door_wood_close_6|mc_pack/block/wooden_door/close6.wav|sfx|Door close
+door_iron_open_1|mc_pack/block/iron_door/open1.wav|sfx|Iron door open
+door_iron_open_2|mc_pack/block/iron_door/open2.wav|sfx|Iron door open
+door_iron_open_3|mc_pack/block/iron_door/open3.wav|sfx|Iron door open
+door_iron_open_4|mc_pack/block/iron_door/open4.wav|sfx|Iron door open
+door_iron_close_1|mc_pack/block/iron_door/close1.wav|sfx|Iron door close
+door_iron_close_2|mc_pack/block/iron_door/close2.wav|sfx|Iron door close
+door_iron_close_3|mc_pack/block/iron_door/close3.wav|sfx|Iron door close
+door_iron_close_4|mc_pack/block/iron_door/close4.wav|sfx|Iron door close
+fence_gate_open_1|mc_pack/block/fence_gate/open1.wav|sfx|Fence gate open
+fence_gate_open_2|mc_pack/block/fence_gate/open2.wav|sfx|Fence gate open
+fence_gate_close_1|mc_pack/block/fence_gate/close1.wav|sfx|Fence gate close
+fence_gate_close_2|mc_pack/block/fence_gate/close2.wav|sfx|Fence gate close
+piston_out|mc_pack/tile/piston/out.wav|sfx|Piston extend
+piston_in|mc_pack/tile/piston/in.wav|sfx|Piston retract
+click|mc_pack/random/click.wav|sfx|Button click
+wood_click|mc_pack/random/wood_click.wav|sfx|Wooden click
+
+# Buckets
+bucket_fill_1|mc_pack/item/bucket/fill1.wav|sfx|Bucket fill
+bucket_fill_2|mc_pack/item/bucket/fill2.wav|sfx|Bucket fill
+bucket_fill_3|mc_pack/item/bucket/fill3.wav|sfx|Bucket fill
+bucket_empty_1|mc_pack/item/bucket/empty1.wav|sfx|Bucket empty
+bucket_empty_2|mc_pack/item/bucket/empty2.wav|sfx|Bucket empty
+bucket_empty_3|mc_pack/item/bucket/empty3.wav|sfx|Bucket empty
+bucket_fill_lava_1|mc_pack/item/bucket/fill_lava1.wav|sfx|Bucket fill lava
+bucket_fill_lava_2|mc_pack/item/bucket/fill_lava2.wav|sfx|Bucket fill lava
+bucket_fill_lava_3|mc_pack/item/bucket/fill_lava3.wav|sfx|Bucket fill lava
+bucket_empty_lava_1|mc_pack/item/bucket/empty_lava1.wav|sfx|Bucket empty lava
+bucket_empty_lava_2|mc_pack/item/bucket/empty_lava2.wav|sfx|Bucket empty lava
+bucket_empty_lava_3|mc_pack/item/bucket/empty_lava3.wav|sfx|Bucket empty lava
+
+# Fire & portals
+fire_ignite|mc_pack/fire/ignite.wav|sfx|Flint and steel
+portal_trigger|mc_pack/portal/trigger.wav|sfx|Portal trigger
+portal_travel|mc_pack/portal/travel.wav|sfx|Portal travel
+
+# Player damage variants, melee, surfacing
+drown_1|mc_pack/entity/player/hurt/drown1.wav|sfx|Drowning
+drown_2|mc_pack/entity/player/hurt/drown2.wav|sfx|Drowning
+drown_3|mc_pack/entity/player/hurt/drown3.wav|sfx|Drowning
+drown_4|mc_pack/entity/player/hurt/drown4.wav|sfx|Drowning
+fire_hurt_1|mc_pack/entity/player/hurt/fire_hurt1.wav|sfx|Burning
+fire_hurt_2|mc_pack/entity/player/hurt/fire_hurt2.wav|sfx|Burning
+fire_hurt_3|mc_pack/entity/player/hurt/fire_hurt3.wav|sfx|Burning
+player_hurt_4|mc_pack/random/classic_hurt.wav|sfx|Player hurt
+breath|mc_pack/random/breath.wav|sfx|Breath after surfacing
+splash_3|mc_pack/random/splash.wav|sfx|Splash
+successful_hit|mc_pack/random/successful_hit.wav|sfx|Melee hit
+
+# Farming + anvil
+till_1|mc_pack/item/hoe/till1.wav|sfx|Hoe till
+till_2|mc_pack/item/hoe/till2.wav|sfx|Hoe till
+till_3|mc_pack/item/hoe/till3.wav|sfx|Hoe till
+till_4|mc_pack/item/hoe/till4.wav|sfx|Hoe till
+crop_plant_1|mc_pack/item/plant/crop1.wav|sfx|Crop plant
+crop_plant_2|mc_pack/item/plant/crop2.wav|sfx|Crop plant
+crop_plant_3|mc_pack/item/plant/crop3.wav|sfx|Crop plant
+crop_plant_4|mc_pack/item/plant/crop4.wav|sfx|Crop plant
+anvil_land|mc_pack/random/anvil_land.wav|sfx|Anvil land
+
+# Boats — rolling-style loops retriggered by vehicle_water_sfx
+boat_paddle_water_1|mc_pack/entity/boat/paddle_water1.wav|sfx|Boat paddle
+boat_paddle_water_2|mc_pack/entity/boat/paddle_water2.wav|sfx|Boat paddle
+boat_paddle_water_3|mc_pack/entity/boat/paddle_water3.wav|sfx|Boat paddle
+boat_paddle_water_4|mc_pack/entity/boat/paddle_water4.wav|sfx|Boat paddle
+boat_paddle_water_5|mc_pack/entity/boat/paddle_water5.wav|sfx|Boat paddle
+boat_paddle_water_6|mc_pack/entity/boat/paddle_water6.wav|sfx|Boat paddle
+boat_paddle_water_7|mc_pack/entity/boat/paddle_water7.wav|sfx|Boat paddle
+boat_paddle_water_8|mc_pack/entity/boat/paddle_water8.wav|sfx|Boat paddle
+boat_paddle_land_1|mc_pack/entity/boat/paddle_land1.wav|sfx|Boat paddle land
+boat_paddle_land_2|mc_pack/entity/boat/paddle_land2.wav|sfx|Boat paddle land
+boat_paddle_land_3|mc_pack/entity/boat/paddle_land3.wav|sfx|Boat paddle land
+boat_paddle_land_4|mc_pack/entity/boat/paddle_land4.wav|sfx|Boat paddle land
+boat_paddle_land_5|mc_pack/entity/boat/paddle_land5.wav|sfx|Boat paddle land
+boat_paddle_land_6|mc_pack/entity/boat/paddle_land6.wav|sfx|Boat paddle land
+
+# Underwater ambience — head-in-water transitions and a retriggered bed
+underwater_enter_1|mc_pack/ambient/underwater/enter1.wav|sfx|Enter water
+underwater_enter_2|mc_pack/ambient/underwater/enter2.wav|sfx|Enter water
+underwater_enter_3|mc_pack/ambient/underwater/enter3.wav|sfx|Enter water
+underwater_exit_1|mc_pack/ambient/underwater/exit1.wav|sfx|Exit water
+underwater_exit_2|mc_pack/ambient/underwater/exit2.wav|sfx|Exit water
+underwater_exit_3|mc_pack/ambient/underwater/exit3.wav|sfx|Exit water
+underwater_ambience|mc_pack/ambient/underwater/underwater_ambience.wav|sfx|Underwater ambience
+underwater_addition_1|mc_pack/ambient/underwater/additions/animal1.wav|sfx|Underwater addition
+underwater_addition_2|mc_pack/ambient/underwater/additions/animal2.wav|sfx|Underwater addition
+underwater_addition_3|mc_pack/ambient/underwater/additions/bass_whale1.wav|sfx|Underwater addition
+underwater_addition_4|mc_pack/ambient/underwater/additions/bass_whale2.wav|sfx|Underwater addition
+underwater_addition_5|mc_pack/ambient/underwater/additions/bubbles1.wav|sfx|Underwater addition
+underwater_addition_6|mc_pack/ambient/underwater/additions/bubbles2.wav|sfx|Underwater addition
+underwater_addition_7|mc_pack/ambient/underwater/additions/bubbles3.wav|sfx|Underwater addition
+underwater_addition_8|mc_pack/ambient/underwater/additions/bubbles4.wav|sfx|Underwater addition
+underwater_addition_9|mc_pack/ambient/underwater/additions/bubbles5.wav|sfx|Underwater addition
+underwater_addition_10|mc_pack/ambient/underwater/additions/bubbles6.wav|sfx|Underwater addition
+underwater_addition_11|mc_pack/ambient/underwater/additions/crackles1.wav|sfx|Underwater addition
+underwater_addition_12|mc_pack/ambient/underwater/additions/crackles2.wav|sfx|Underwater addition
+underwater_addition_13|mc_pack/ambient/underwater/additions/dark1.wav|sfx|Underwater addition
+underwater_addition_14|mc_pack/ambient/underwater/additions/dark2.wav|sfx|Underwater addition
+underwater_addition_15|mc_pack/ambient/underwater/additions/dark3.wav|sfx|Underwater addition
+underwater_addition_16|mc_pack/ambient/underwater/additions/dark4.wav|sfx|Underwater addition
+underwater_addition_17|mc_pack/ambient/underwater/additions/driplets1.wav|sfx|Underwater addition
+underwater_addition_18|mc_pack/ambient/underwater/additions/driplets2.wav|sfx|Underwater addition
+underwater_addition_19|mc_pack/ambient/underwater/additions/earth_crack.wav|sfx|Underwater addition
+underwater_addition_20|mc_pack/ambient/underwater/additions/water1.wav|sfx|Underwater addition
+underwater_addition_21|mc_pack/ambient/underwater/additions/water2.wav|sfx|Underwater addition
+
+# Nether ambience — biome mood/addition files folded into shared pools
+nether_mood_1|mc_pack/ambient/nether/nether_wastes/mood1.wav|sfx|Nether mood
+nether_mood_2|mc_pack/ambient/nether/nether_wastes/mood2.wav|sfx|Nether mood
+nether_mood_3|mc_pack/ambient/nether/nether_wastes/mood3.wav|sfx|Nether mood
+nether_mood_4|mc_pack/ambient/nether/nether_wastes/mood4.wav|sfx|Nether mood
+nether_mood_5|mc_pack/ambient/nether/nether_wastes/mood5.wav|sfx|Nether mood
+nether_mood_6|mc_pack/ambient/nether/crimson_forest/mood1.wav|sfx|Nether mood
+nether_mood_7|mc_pack/ambient/nether/crimson_forest/mood2.wav|sfx|Nether mood
+nether_mood_8|mc_pack/ambient/nether/crimson_forest/mood3.wav|sfx|Nether mood
+nether_mood_9|mc_pack/ambient/nether/crimson_forest/mood4.wav|sfx|Nether mood
+nether_mood_10|mc_pack/ambient/nether/soulsand_valley/mood1.wav|sfx|Nether mood
+nether_mood_11|mc_pack/ambient/nether/soulsand_valley/mood2.wav|sfx|Nether mood
+nether_mood_12|mc_pack/ambient/nether/soulsand_valley/mood3.wav|sfx|Nether mood
+nether_mood_13|mc_pack/ambient/nether/soulsand_valley/mood4.wav|sfx|Nether mood
+nether_mood_14|mc_pack/ambient/nether/warped_forest/mood1.wav|sfx|Nether mood
+nether_mood_15|mc_pack/ambient/nether/warped_forest/mood2.wav|sfx|Nether mood
+nether_mood_16|mc_pack/ambient/nether/warped_forest/mood3.wav|sfx|Nether mood
+nether_mood_17|mc_pack/ambient/nether/warped_forest/mood4.wav|sfx|Nether mood
+nether_mood_18|mc_pack/ambient/nether/warped_forest/mood5.wav|sfx|Nether mood
+nether_mood_19|mc_pack/ambient/nether/warped_forest/mood6.wav|sfx|Nether mood
+nether_mood_20|mc_pack/ambient/nether/warped_forest/mood7.wav|sfx|Nether mood
+nether_mood_21|mc_pack/ambient/nether/warped_forest/mood8.wav|sfx|Nether mood
+nether_mood_22|mc_pack/ambient/nether/warped_forest/mood9.wav|sfx|Nether mood
+nether_addition_1|mc_pack/ambient/nether/nether_wastes/addition1.wav|sfx|Nether addition
+nether_addition_2|mc_pack/ambient/nether/nether_wastes/addition2.wav|sfx|Nether addition
+nether_addition_3|mc_pack/ambient/nether/nether_wastes/addition3.wav|sfx|Nether addition
+nether_addition_4|mc_pack/ambient/nether/nether_wastes/addition4.wav|sfx|Nether addition
+nether_addition_5|mc_pack/ambient/nether/nether_wastes/addition5.wav|sfx|Nether addition
+nether_addition_6|mc_pack/ambient/nether/nether_wastes/addition6.wav|sfx|Nether addition
+nether_addition_7|mc_pack/ambient/nether/nether_wastes/addition7.wav|sfx|Nether addition
+nether_addition_8|mc_pack/ambient/nether/nether_wastes/addition8.wav|sfx|Nether addition
+nether_addition_9|mc_pack/ambient/nether/crimson_forest/addition1.wav|sfx|Nether addition
+nether_addition_10|mc_pack/ambient/nether/crimson_forest/addition2.wav|sfx|Nether addition
+nether_addition_11|mc_pack/ambient/nether/crimson_forest/addition3.wav|sfx|Nether addition
+nether_addition_12|mc_pack/ambient/nether/warped_forest/addition1.wav|sfx|Nether addition
+nether_addition_13|mc_pack/ambient/nether/warped_forest/addition2.wav|sfx|Nether addition
+nether_addition_14|mc_pack/ambient/nether/warped_forest/addition3.wav|sfx|Nether addition
+nether_addition_15|mc_pack/ambient/nether/warped_forest/addition4.wav|sfx|Nether addition
+nether_addition_16|mc_pack/ambient/nether/warped_forest/addition5.wav|sfx|Nether addition
+nether_addition_17|mc_pack/ambient/nether/warped_forest/addition6.wav|sfx|Nether addition
+
+# Melee — swing whoosh on every attack; strong/crit/knockback on hits by
+# damage tier; sweep for the classic all-in-one hit noise
+swing_1|mc_pack/entity/player/attack/weak1.wav|sfx|Melee swing
+swing_2|mc_pack/entity/player/attack/weak2.wav|sfx|Melee swing
+swing_3|mc_pack/entity/player/attack/weak3.wav|sfx|Melee swing
+swing_4|mc_pack/entity/player/attack/weak4.wav|sfx|Melee swing
+attack_strong_1|mc_pack/entity/player/attack/strong1.wav|sfx|Melee strong hit
+attack_strong_2|mc_pack/entity/player/attack/strong2.wav|sfx|Melee strong hit
+attack_strong_3|mc_pack/entity/player/attack/strong3.wav|sfx|Melee strong hit
+attack_strong_4|mc_pack/entity/player/attack/strong4.wav|sfx|Melee strong hit
+attack_strong_5|mc_pack/entity/player/attack/strong5.wav|sfx|Melee strong hit
+attack_strong_6|mc_pack/entity/player/attack/strong6.wav|sfx|Melee strong hit
+attack_crit_1|mc_pack/entity/player/attack/crit1.wav|sfx|Melee crit
+attack_crit_2|mc_pack/entity/player/attack/crit2.wav|sfx|Melee crit
+attack_crit_3|mc_pack/entity/player/attack/crit3.wav|sfx|Melee crit
+attack_knockback_1|mc_pack/entity/player/attack/knockback1.wav|sfx|Melee knockback
+attack_knockback_2|mc_pack/entity/player/attack/knockback2.wav|sfx|Melee knockback
+attack_knockback_3|mc_pack/entity/player/attack/knockback3.wav|sfx|Melee knockback
+attack_knockback_4|mc_pack/entity/player/attack/knockback4.wav|sfx|Melee knockback
+attack_sweep_1|mc_pack/entity/player/attack/sweep1.wav|sfx|Melee sweep
+attack_sweep_2|mc_pack/entity/player/attack/sweep2.wav|sfx|Melee sweep
+attack_sweep_3|mc_pack/entity/player/attack/sweep3.wav|sfx|Melee sweep
+attack_sweep_4|mc_pack/entity/player/attack/sweep4.wav|sfx|Melee sweep
+attack_sweep_5|mc_pack/entity/player/attack/sweep5.wav|sfx|Melee sweep
+attack_sweep_6|mc_pack/entity/player/attack/sweep6.wav|sfx|Melee sweep
+attack_sweep_7|mc_pack/entity/player/attack/sweep7.wav|sfx|Melee sweep

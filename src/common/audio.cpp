@@ -1,5 +1,6 @@
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/utils/env_config.hpp"
 
 #include <stdio.h>
@@ -85,13 +86,7 @@ static const char *block_material( int block_id ) {
     case BEETROOT_2:
     case BEETROOTS:
     case REEDS:
-    case BAMBOO:
-    case BAMBOO_SAPLING:
-    case WATERLILY:
     case MELON_STEM:
-    case NETHER_WART_1:
-    case NETHER_WART_2:
-    case NETHER_WART_3:
     case CHORUS_PLANT:
     case CHORUS_FLOWER:
     case CHORUS_2:
@@ -195,8 +190,235 @@ static const char *block_material( int block_id ) {
     case REDSTONE_LAMP:
     case LIT_REDSTONE_LAMP:
         return "glass";
-    case LADDER:
+    // Wool + carpets -> cloth
+    case BLACK_CARPET:
+    case BLACK_WOOL:
+    case BLACK_WOOL_DOUBLE_SLAB:
+    case BLACK_WOOL_SLAB:
+    case BLACK_WOOL_STAIRS:
+    case BLUE_CARPET:
+    case BLUE_WOOL:
+    case BLUE_WOOL_DOUBLE_SLAB:
+    case BLUE_WOOL_SLAB:
+    case BLUE_WOOL_STAIRS:
+    case BROWN_CARPET:
+    case BROWN_WOOL:
+    case BROWN_WOOL_DOUBLE_SLAB:
+    case BROWN_WOOL_SLAB:
+    case BROWN_WOOL_STAIRS:
+    case CARPET:
+    case CYAN_CARPET:
+    case CYAN_WOOL:
+    case CYAN_WOOL_DOUBLE_SLAB:
+    case CYAN_WOOL_SLAB:
+    case CYAN_WOOL_STAIRS:
+    case GRAY_CARPET:
+    case GRAY_WOOL:
+    case GRAY_WOOL_DOUBLE_SLAB:
+    case GRAY_WOOL_SLAB:
+    case GRAY_WOOL_STAIRS:
+    case GREEN_CARPET:
+    case GREEN_WOOL:
+    case GREEN_WOOL_DOUBLE_SLAB:
+    case GREEN_WOOL_SLAB:
+    case GREEN_WOOL_STAIRS:
+    case LIGHT_BLUE_CARPET:
+    case LIGHT_BLUE_WOOL:
+    case LIGHT_BLUE_WOOL_DOUBLE_SLAB:
+    case LIGHT_BLUE_WOOL_SLAB:
+    case LIGHT_BLUE_WOOL_STAIRS:
+    case LIGHT_GRAY_CARPET:
+    case LIGHT_GRAY_WOOL:
+    case LIGHT_GRAY_WOOL_DOUBLE_SLAB:
+    case LIGHT_GRAY_WOOL_SLAB:
+    case LIGHT_GRAY_WOOL_STAIRS:
+    case LIME_CARPET:
+    case LIME_WOOL:
+    case LIME_WOOL_DOUBLE_SLAB:
+    case LIME_WOOL_SLAB:
+    case LIME_WOOL_STAIRS:
+    case MAGENTA_CARPET:
+    case MAGENTA_WOOL:
+    case MAGENTA_WOOL_DOUBLE_SLAB:
+    case MAGENTA_WOOL_SLAB:
+    case MAGENTA_WOOL_STAIRS:
+    case ORANGE_CARPET:
+    case ORANGE_WOOL:
+    case ORANGE_WOOL_DOUBLE_SLAB:
+    case ORANGE_WOOL_SLAB:
+    case ORANGE_WOOL_STAIRS:
+    case PINK_CARPET:
+    case PINK_WOOL:
+    case PINK_WOOL_DOUBLE_SLAB:
+    case PINK_WOOL_SLAB:
+    case PINK_WOOL_STAIRS:
+    case PURPLE_CARPET:
+    case PURPLE_WOOL:
+    case PURPLE_WOOL_DOUBLE_SLAB:
+    case PURPLE_WOOL_SLAB:
+    case PURPLE_WOOL_STAIRS:
+    case RED_CARPET:
+    case RED_WOOL:
+    case RED_WOOL_DOUBLE_SLAB:
+    case RED_WOOL_SLAB:
+    case RED_WOOL_STAIRS:
+    case WHITE_CARPET:
+    case WHITE_WOOL:
+    case WHITE_WOOL_DOUBLE_SLAB:
+    case WHITE_WOOL_SLAB:
+    case WHITE_WOOL_STAIRS:
+    case WOOL:
+    case YELLOW_CARPET:
+    case YELLOW_WOOL:
+    case YELLOW_WOOL_DOUBLE_SLAB:
+    case YELLOW_WOOL_SLAB:
+    case YELLOW_WOOL_STAIRS:
+        return "cloth";
+    // Mud + moss -> wet grass
+    case MOSS_BLOCK:
+    case MOSS_CARPET:
+    case MUD:
+    case MUDDY_MANGROVE_ROOTS:
+    case PALE_MOSS_CARPET:
+        return "wet_grass";
+    // Nether terrain + woods
+    case NETHERRACK:
+        return "netherrack";
+    case CRIMSON_NYLIUM:
+    case WARPED_NYLIUM:
+        return "nylium";
+    case SOUL_SAND:
+        return "soul_sand";
+    case SOUL_SOIL:
+        return "soul_soil";
+    case BASALT:
+    case POLISHED_BASALT:
+    case SMOOTH_BASALT:
+        return "basalt";
+    case CHISELED_NETHER_BRICKS:
+    case CRACKED_NETHER_BRICKS:
+    case NETHER_BRICK:
+    case NETHER_BRICK_DOUBLE_SLAB:
+    case NETHER_BRICK_FENCE:
+    case NETHER_BRICK_SLAB:
+    case NETHER_BRICK_STAIRS:
+    case NETHER_BRICK_WALL:
+    case RED_NETHER_BRICK:
+    case RED_NETHER_BRICK_DOUBLE_SLAB:
+    case RED_NETHER_BRICK_SLAB:
+    case RED_NETHER_BRICK_STAIRS:
+    case RED_NETHER_BRICK_WALL:
+        return "nether_bricks";
+    case NETHER_GOLD_ORE:
+    case QUARTZ_ORE:
+        return "nether_ore";
+    case NETHERITE_BLOCK:
+        return "netherite";
+    case ANCIENT_DEBRIS:
+        return "ancient_debris";
+    case CRIMSON_BUTTON:
+    case CRIMSON_DOOR:
+    case CRIMSON_DOOR_UPPER:
+    case CRIMSON_DOUBLE_SLAB:
+    case CRIMSON_FENCE:
+    case CRIMSON_FENCE_GATE:
+    case CRIMSON_HANGING_SIGN:
+    case CRIMSON_HYPHAE:
+    case CRIMSON_PLANKS:
+    case CRIMSON_PRESSURE_PLATE:
+    case CRIMSON_SHELF:
+    case CRIMSON_SLAB:
+    case CRIMSON_STAIRS:
+    case CRIMSON_STANDING_SIGN:
+    case CRIMSON_STEM:
+    case CRIMSON_TRAPDOOR:
+    case CRIMSON_WALL_SIGN:
+    case STRIPPED_CRIMSON_HYPHAE:
+    case STRIPPED_CRIMSON_STEM:
+    case STRIPPED_WARPED_HYPHAE:
+    case STRIPPED_WARPED_STEM:
+    case WARPED_BUTTON:
+    case WARPED_DOOR:
+    case WARPED_DOOR_UPPER:
+    case WARPED_DOUBLE_SLAB:
+    case WARPED_FENCE:
+    case WARPED_FENCE_GATE:
+    case WARPED_HANGING_SIGN:
+    case WARPED_HYPHAE:
+    case WARPED_PLANKS:
+    case WARPED_PRESSURE_PLATE:
+    case WARPED_SHELF:
+    case WARPED_SLAB:
+    case WARPED_STAIRS:
+    case WARPED_STANDING_SIGN:
+    case WARPED_STEM:
+    case WARPED_TRAPDOOR:
+    case WARPED_WALL_SIGN:
+        return "stem";
+    case CRIMSON_FUNGUS:
+    case WARPED_FUNGUS:
+        return "fungus";
+    case CRIMSON_ROOTS:
+    case HANGING_ROOTS:
+    case MANGROVE_ROOTS:
+    case WARPED_ROOTS:
+        return "roots";
+    case NETHER_SPROUTS:
+        return "nether_sprouts";
+    case NETHER_WART_1:
+    case NETHER_WART_2:
+    case NETHER_WART_3:
+    case NETHER_WART_BLOCK:
+    case WARPED_WART_BLOCK:
+        return "netherwart";
+    case BONE_BLOCK:
+        return "bone_block";
+    case SHROOMLIGHT:
+        return "shroomlight";
+    // Plants + misc materials
+    case BAMBOO:
+    case BAMBOO_IN_POT:
+    case BAMBOO_SAPLING:
+        return "bamboo";
+    case CAVE_VINES:
+    case CAVE_VINES_BODY_WITH_BERRIES:
+    case CAVE_VINES_HEAD_WITH_BERRIES:
+    case TWISTING_VINES:
+    case VINE:
+    case WEEPING_VINES:
+        return "vine";
+    case SWEET_BERRY_BUSH:
+        return "sweet_berry_bush";
+    case WATERLILY:
+        return "waterlily";
+    case CHAIN:
+    case COPPER_CHAIN:
+    case EXPOSED_COPPER_CHAIN:
+    case OXIDIZED_COPPER_CHAIN:
+    case WAXED_COPPER_CHAIN:
+    case WAXED_EXPOSED_COPPER_CHAIN:
+    case WAXED_OXIDIZED_COPPER_CHAIN:
+    case WAXED_WEATHERED_COPPER_CHAIN:
+    case WEATHERED_COPPER_CHAIN:
+        return "chain";
+    case COPPER_LANTERN:
+    case EXPOSED_COPPER_LANTERN:
+    case LANTERN:
+    case OXIDIZED_COPPER_LANTERN:
+    case SEALANTERN:
+    case SOUL_LANTERN:
+    case WAXED_COPPER_LANTERN:
+    case WAXED_EXPOSED_COPPER_LANTERN:
+    case WAXED_OXIDIZED_COPPER_LANTERN:
+    case WAXED_WEATHERED_COPPER_LANTERN:
+    case WEATHERED_COPPER_LANTERN:
+        return "lantern";
+    case HONEYCOMB_BLOCK:
+    case HONEY_BLOCK:
+        return "honey";
     case SCAFFOLDING:
+        return "scaffold";
+    case LADDER:
         return "ladder";
     default:
         return "stone";
@@ -236,7 +458,18 @@ const char *audio_block_place_pool( int block_id ) {
 const char *audio_block_step_pool( int block_id ) {
     const char *mat = block_material( block_id );
     // No glass footstep files in the pack — glass steps sound like stone.
-    return strcmp( mat, "glass" ) == 0 ? "step_stone" : block_pool( "step", mat );
+    if ( strcmp( mat, "glass" ) == 0 ) {
+        return "step_stone";
+    }
+    // Materials with no step set in the pack fall back to the closest
+    // existing pool — soft things step like grass, hard things like stone.
+    if ( strcmp( mat, "fungus" ) == 0 || strcmp( mat, "sweet_berry_bush" ) == 0 || strcmp( mat, "waterlily" ) == 0 ) {
+        return "step_grass";
+    }
+    if ( strcmp( mat, "ancient_debris" ) == 0 || strcmp( mat, "lantern" ) == 0 ) {
+        return "step_stone";
+    }
+    return block_pool( "step", mat );
 }
 
 #if defined( REPGAME_AUDIO )
@@ -825,6 +1058,30 @@ void audio_tick( long tick_number, const int music_set ) {
             music_want.store( false );
             next_track.store( idx );
         }
+    }
+    // Nether ambience: sparse mood/addition one-shots while the player is in
+    // the nether set. They're mood sounds (no source position) so plain
+    // pools played on a slow random timer is the whole feature.
+    static long nether_mood_at = 0;
+    static long nether_addition_at = 0;
+    if ( music_set == DIM_MUSIC_NETHER ) {
+        if ( nether_mood_at == 0 ) {
+            nether_mood_at = tick_number + 5 * UPS_RATE;
+        }
+        if ( tick_number >= nether_mood_at ) {
+            audio_play_sfx_gain( "nether_mood", 0.8f );
+            nether_mood_at = tick_number + ( 30 + rand( ) % 45 ) * UPS_RATE;
+        }
+        if ( nether_addition_at == 0 ) {
+            nether_addition_at = tick_number + 3 * UPS_RATE;
+        }
+        if ( tick_number >= nether_addition_at ) {
+            audio_play_sfx( "nether_addition" );
+            nether_addition_at = tick_number + ( 6 + rand( ) % 14 ) * UPS_RATE;
+        }
+    } else {
+        nether_mood_at = 0;
+        nether_addition_at = 0;
     }
 #if !defined( REPGAME_WASM )
     // Reap finished plays: once a flushed stream has no queued input and
