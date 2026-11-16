@@ -63,7 +63,8 @@ int ChunkLoader::light_emit_at( const Chunk &chunk, const int index ) {
     if ( !chunk.cells ) {
         return 0;
     }
-    return block_definition_get_definition( block_cell_id( chunk.cells[ index ] ) )->emits_light;
+    const BlockCell cell = chunk.cells[ index ];
+    return light_emit_level( block_definition_get_definition( block_cell_id( cell ) ), block_cell_powered( cell ) );
 }
 
 // Bit i of chunk.light.air_mask mirrors the opacity of cells[i]: set = the
@@ -225,6 +226,20 @@ BlockID ChunkLoader::light_block_id_at( const glm::ivec3 &block_pos ) const {
         return LAST_BLOCK_ID; // chunk_pos raced with slot reuse
     }
     return chunk->get_block( local ).id;
+}
+
+// Same lookup as light_block_id_at but for the cell's powered bit — the
+// emission floor of a lit_variant block (the powered lamp) depends on it.
+bool ChunkLoader::light_powered_at( const glm::ivec3 &block_pos ) const {
+    const Chunk *chunk = this->get_chunk( light_chunk_pos_of( block_pos ) );
+    if ( !chunk || chunk->load_state ) {
+        return false;
+    }
+    const glm::ivec3 local = block_pos - chunk->chunk_pos * CHUNK_SIZE_I;
+    if ( !light_local_ok( local ) ) {
+        return false; // chunk_pos raced with slot reuse
+    }
+    return chunk->get_block( local ).current_redstone_power != 0;
 }
 
 // Trilinear sample of the light volume for non-terrain draws (player avatars,
@@ -722,7 +737,14 @@ void ChunkLoader::light_remove_step( const LightRemoveSeed &seed ) {
         }
         const int expected = light_offered( seed.old_value, seed.channel, d, n_id );
         if ( nv <= expected ) {
-            const int floor_v = seed.channel == LIGHT_CHANNEL_BLOCK ? block_definition_get_definition( n_id )->emits_light * LIGHT_RAW_PER_LEVEL : 0;
+            const Block *n_def = block_definition_get_definition( n_id );
+            // Powered-aware floor: a lit_variant cell (the powered lamp)
+            // emits at its variant's level only while its power bit is set.
+            // Fetch the bit lazily — variant blocks are rare, so ordinary
+            // cells never pay for the extra state read.
+            const bool n_powered = n_def->lit_variant != LAST_BLOCK_ID &&
+                                   ( interior ? light_cell_powered_at( chunk->cells, n_local ) : this->light_powered_at( n ) );
+            const int floor_v = seed.channel == LIGHT_CHANNEL_BLOCK ? light_emit_level( n_def, n_powered ) * LIGHT_RAW_PER_LEVEL : 0;
             // Strictly interior (no halo mirrors): write the floor directly
             // instead of going through light_set's mirror matrix.
             const bool strict = n_local.x > 0 && n_local.x < CHUNK_SIZE_X - 1 && n_local.y > 0 && n_local.y < CHUNK_SIZE_Y - 1 && n_local.z > 0 && n_local.z < CHUNK_SIZE_Z - 1;
@@ -950,7 +972,7 @@ void ChunkLoader::light_recheck_block( const glm::ivec3 &block_pos ) {
         }
     }
 
-    const int emit = def->emits_light * LIGHT_RAW_PER_LEVEL;
+    const int emit = light_emit_level( def, st.current_redstone_power != 0 ) * LIGHT_RAW_PER_LEVEL;
     for ( int ch = 0; ch < 2; ch++ ) {
         const int floor_v = ch == LIGHT_CHANNEL_BLOCK ? emit : 0;
         const int old_v = this->light_get( block_pos, ch );

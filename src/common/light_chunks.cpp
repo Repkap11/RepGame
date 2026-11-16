@@ -1032,7 +1032,7 @@ void light_fill_chunk( Chunk &chunk ) {
         if ( shade_mask && def->blocks_light_down ) {
             shade_mask[ i >> 3 ] |= static_cast<unsigned char>( 1u << ( i & 7 ) );
         }
-        const int emit = def->emits_light;
+        const int emit = light_emit_level( def, block_cell_powered( chunk.cells[ i ] ) );
         if ( emit <= 0 ) {
             continue;
         }

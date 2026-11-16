@@ -244,6 +244,22 @@ inline int light_offered( const int v, const int channel, const int d, const Blo
 inline BlockID light_cell_id_at( const BlockCell *cells, const glm::ivec3 &local ) {
     return cells ? block_cell_id( cells[ Chunk::get_index_from_coords( local ) ] ) : AIR;
 }
+// The powered bit of the cell at `local` in a cells[] volume (see
+// light_cell_id_at). Null volume -> false.
+inline bool light_cell_powered_at( const BlockCell *cells, const glm::ivec3 &local ) {
+    return cells && block_cell_powered( cells[ Chunk::get_index_from_coords( local ) ] );
+}
+// A cell's block-light emission floor in display levels: the def's
+// emits_light, or the lit variant's while the cell is powered — a powered
+// mechanism's "on" state is the cell's power bit on the same id, not a
+// block swap (block_adjust_coord_based_on_state does the same swap for the
+// redstone lamp's texture).
+inline int light_emit_level( const Block *def, const bool powered ) {
+    if ( powered && def->lit_variant != LAST_BLOCK_ID ) {
+        return block_definition_get_definition( def->lit_variant )->emits_light;
+    }
+    return def->emits_light;
+}
 
 // Gate check for a diagonal step local -> local+sd.d. Returns true when a
 // shared-face route is open: some gate face M is non-opaque, C->M isn't a

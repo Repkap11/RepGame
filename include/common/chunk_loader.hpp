@@ -356,6 +356,7 @@ class ChunkLoader {
     void light_set( const glm::ivec3 &block_pos, int channel, int value );
     void light_set_nb( Chunk *const nb_cache[ 27 ], Chunk &owner, const glm::ivec3 &block_pos, int channel, int value );
     BlockID light_block_id_at( const glm::ivec3 &block_pos ) const;
+    bool light_powered_at( const glm::ivec3 &block_pos ) const;
     void light_mark_dirty( Chunk &chunk, const glm::ivec3 &local );
     void light_mark_texel( Chunk &chunk, const glm::ivec3 &local );
     void light_mark_dirty_now( Chunk &chunk, const glm::ivec3 &local );
