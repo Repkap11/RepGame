@@ -5,6 +5,7 @@
 #include "server/server.hpp"
 #include "common/constants.hpp"
 #include "common/item.hpp"
+#include "common/mob_types.hpp"
 
 #include <algorithm>
 #include <climits>
@@ -252,6 +253,13 @@ void ServerEntities::persist_chunk_entities( ServerChunkEntities &ce, const glm:
             }
             if ( ( e.flags & NET_MOB_FLAG_NATURAL ) && !( e.flags & NET_MOB_FLAG_TOUCHED ) ) {
                 continue; // pristine natural: re-rolled, not saved
+            }
+            // Hostile types left the deterministic roll — a legacy nether
+            // natural (piglin/wither skeleton) stops persisting rather than
+            // being restored forever. Player-caused spawns have no NATURAL
+            // flag and keep saving.
+            if ( ( e.flags & NET_MOB_FLAG_NATURAL ) && e.type < MOB_TYPE_COUNT && mob_types[ e.type ].spawn_chance <= 0.0f ) {
+                continue;
             }
             MobFileRecord rec = {};
             rec.type = static_cast<uint16_t>( e.type );

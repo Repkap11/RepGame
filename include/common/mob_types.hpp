@@ -110,12 +110,14 @@ typedef struct {
     // Base volume of sound_step before distance falloff (Java plays mob
     // steps quietly, e.g. 0.15 for pigs).
     float step_gain;
-    // Natural spawning (phase 2): spawn_chance per eligible fresh chunk, on
-    // top of any spawn_on block, in herds of herd_min..herd_max. spawn_dims
+    // Natural spawning (phase 2): two disjoint paths. spawn_chance per
+    // eligible fresh chunk, on top of any spawn_on block, in herds of
+    // herd_min..herd_max is the seed-deterministic *farm-animal* roll —
+    // hostile types leave it at 0: they spawn only near the player and are
+    // never persisted. night_spawn_weight > 0 enters the type into the
+    // despawnable near-player spawner's weighted pick (0 = never). spawn_dims
     // is a bitmask of (1u << dim) naming the dimensions the type naturally
-    // spawns in — the chunk roll and the night spawner both honor it.
-    // night_spawn_weight > 0 enters the type into the despawnable night
-    // spawner's weighted pick for its dims (0 = never night-spawns). A
+    // spawns in — the chunk roll and the night spawner both honor it. A
     // non-empty spawn_on list whitelists the floor block for both spawn
     // paths (wither skeletons only take nether brick → fortresses); an
     // empty list means the night spawner accepts any dark floor, which is

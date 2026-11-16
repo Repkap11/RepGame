@@ -492,9 +492,10 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .sound_step = "zombie_step",
         .step_gain = 0.15f,
         .spawn_on = { NETHERRACK, CRIMSON_NYLIUM, LAST_BLOCK_ID, LAST_BLOCK_ID },
-        .spawn_chance = 1.0f / 3.0f,
-        .herd_min = 2,
-        .herd_max = 4,
+        // Hostile: no deterministic roll — the near-player spawner only.
+        .spawn_chance = 0.0f,
+        .herd_min = 0,
+        .herd_max = 0,
         .spawn_dims = ( 1u << DIM_NETHER ),
         .night_spawn_weight = 0.7f,
         .burns_in_daylight = 0,
@@ -537,13 +538,13 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .sound_step = "wither_skeleton_step",
         .step_gain = 0.15f,
         // Fortress floors only: sgf_brick's three weathering variants. The
-        // rates are high to compensate — brick only exists in fortresses, so
-        // every fortress chunk rolls a herd and the night spawner favours
-        // this type over the piglin wherever brick floors exist.
+        // near-player spawner is the sole source (hostile, never rolled or
+        // persisted); the weight outranks the piglin's .7 so successful
+        // spawns on brick are almost always wither skeletons.
         .spawn_on = { NETHER_BRICK, CRACKED_NETHER_BRICKS, CHISELED_NETHER_BRICKS, LAST_BLOCK_ID },
-        .spawn_chance = 1.0f,
-        .herd_min = 1,
-        .herd_max = 2,
+        .spawn_chance = 0.0f,
+        .herd_min = 0,
+        .herd_max = 0,
         .spawn_dims = ( 1u << DIM_NETHER ),
         .night_spawn_weight = 1.0f,
         .burns_in_daylight = 0,

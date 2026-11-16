@@ -1274,6 +1274,17 @@ int test_mobs( ) {
         check_bool( "cap: MAX_MOBS mirrors don't block local spawn", mobs2.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 ) );
 
         check_bool( "cap: capped=false bypasses", mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1, false ) );
+
+        // Seed-derived naturals are exempt: a full window of roll products
+        // doesn't count and can't starve emergent spawns.
+        MobManager mobs3;
+        for ( int i = 0; i < MAX_MOBS; i++ ) {
+            mobs3.spawn_any( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+            mobs3.mobs.back( ).natural_id = net_natural_mob_id( glm::ivec3( i, 0, 0 ), 0 );
+        }
+        check_bool( "cap: naturals don't count toward MAX_MOBS", mobs3.under_mob_cap( ) );
+        check_bool( "cap: capped spawn accepted past a full natural window",
+                    mobs3.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 ) );
     }
 
     // --- 20: every non-remote type has a working spawn egg ---------------
@@ -1796,60 +1807,31 @@ int test_mobs( ) {
             }
             c.sidecars.mobs.clear( );
         };
-        // Nether band is chunk y -96..-33 (dimension.hpp): a netherrack
-        // floor there rolls the nether table — zombified piglins (wither
-        // skeletons only take nether brick), never overworld types.
+        // Nether band is chunk y -96..-33 (dimension.hpp). Every nether type
+        // is hostile — near-player-spawner only — so the seeded farm roll
+        // emits nothing there, on netherrack or on fortress brick alike.
         check_bool( "nether: band resolves", dimension_of_chunk( glm::ivec3( 0, -40, 0 ) ) == DIM_NETHER );
         Chunk roll_chunk;
-        bool saw_herd = false;
-        bool wrong_dim = false;
-        bool wither_on_netherrack = false;
-        for ( int x = 0; x < 64; x++ ) {
+        bool nether_roll = false;
+        for ( int x = 0; x < 32 && !nether_roll; x++ ) {
             fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), NETHERRACK, AIR );
-            if ( roll_chunk.spawn_mobs( ) ) {
-                saw_herd = true;
-                for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
-                    wrong_dim |= rec.type != MOB_ZOMBIFIED_PIGLIN && rec.type != MOB_WITHER_SKELETON;
-                    wither_on_netherrack |= rec.type == MOB_WITHER_SKELETON;
-                }
-            } else {
-                chunk_free_cells( roll_chunk.cells );
-                roll_chunk.cells = nullptr;
-            }
-        }
-        check_bool( "nether roll: a netherrack chunk emits a herd", saw_herd );
-        check_bool( "nether roll: only nether types", saw_herd && !wrong_dim );
-        check_bool( "nether roll: no wither skeletons on netherrack", !wither_on_netherrack );
-        if ( roll_chunk.cells != nullptr ) {
+            nether_roll |= roll_chunk.spawn_mobs( );
             chunk_free_cells( roll_chunk.cells );
             roll_chunk.cells = nullptr;
         }
-        // Nether brick is the wither skeleton's only floor (fortresses):
-        // a brick floor emits wither skeletons and nothing else.
-        bool saw_wither = false;
-        bool brick_wrong_type = false;
-        for ( int x = 0; x < 64; x++ ) {
+        check_bool( "nether roll: netherrack floors emit nothing", !nether_roll );
+        nether_roll = false;
+        for ( int x = 0; x < 32 && !nether_roll; x++ ) {
             fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), NETHER_BRICK, AIR );
-            if ( roll_chunk.spawn_mobs( ) ) {
-                for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
-                    saw_wither |= rec.type == MOB_WITHER_SKELETON;
-                    brick_wrong_type |= rec.type != MOB_WITHER_SKELETON;
-                }
-            } else {
-                chunk_free_cells( roll_chunk.cells );
-                roll_chunk.cells = nullptr;
-            }
-        }
-        check_bool( "nether roll: nether brick emits wither skeletons", saw_wither );
-        check_bool( "nether roll: only wither skeletons on nether brick", !brick_wrong_type );
-        if ( roll_chunk.cells != nullptr ) {
+            nether_roll |= roll_chunk.spawn_mobs( );
             chunk_free_cells( roll_chunk.cells );
             roll_chunk.cells = nullptr;
         }
-        // The same floor in the overworld band spawns nothing — overworld
-        // types don't take netherrack and nether types are dim-gated.
+        check_bool( "nether roll: fortress brick emits nothing", !nether_roll );
+        // A netherrack floor in the overworld band spawns nothing either —
+        // overworld types don't take netherrack.
         fill_floor( roll_chunk, glm::ivec3( 0, 0, 0 ), NETHERRACK, AIR );
-        check_bool( "nether types: gated out of the overworld", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
+        check_bool( "netherrack floor: no roll in the overworld", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
         chunk_free_cells( roll_chunk.cells );
         roll_chunk.cells = nullptr;
         // And grass in a nether chunk rolls nothing either (the overworld
@@ -1858,12 +1840,67 @@ int test_mobs( ) {
         check_bool( "overworld types: gated out of the nether", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
         chunk_free_cells( roll_chunk.cells );
         roll_chunk.cells = nullptr;
-        // A netherrack floor under lava produces no spots — headroom cells
-        // holding liquid veto the spawn (no lava-sea-floor herds).
-        fill_floor( roll_chunk, glm::ivec3( 0, -40, 0 ), NETHERRACK, LAVA );
-        check_bool( "nether roll: no spawning under lava", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
+        // An overworld grass floor under lava produces no spots — headroom
+        // cells holding liquid veto the spawn.
+        fill_floor( roll_chunk, glm::ivec3( 0, 0, 0 ), GRASS, LAVA );
+        check_bool( "roll: no spawning under lava", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
         chunk_free_cells( roll_chunk.cells );
         roll_chunk.cells = nullptr;
+        // The floor whitelist still gates the spawner's picks: wither
+        // skeletons take only the three fortress brick variants, piglins
+        // only nether soils, and an empty list accepts anything.
+        check_bool( "floor: wither takes the brick variants",
+                    mob_spawn_floor_ok( mob_types[ MOB_WITHER_SKELETON ], NETHER_BRICK ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_WITHER_SKELETON ], CRACKED_NETHER_BRICKS ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_WITHER_SKELETON ], CHISELED_NETHER_BRICKS ) );
+        check_bool( "floor: wither refuses netherrack", !mob_spawn_floor_ok( mob_types[ MOB_WITHER_SKELETON ], NETHERRACK ) );
+        check_bool( "floor: piglin takes netherrack + nylium",
+                    mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], NETHERRACK ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], CRIMSON_NYLIUM ) );
+        check_bool( "floor: piglin refuses grass", !mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], GRASS ) );
+        check_bool( "floor: empty list accepts any block", mob_spawn_floor_ok( mob_types[ MOB_ZOMBIE ], STONE ) );
+    }
+
+    // --- 30: adopt drops hostile NATURAL records (legacy nether saves) -----
+    {
+        MobManager mobs;
+        Chunk c;
+        c.chunk_pos = glm::ivec3( 30, 0, 0 );
+        c.sidecars.mobs.clear( );
+        const double bx = 30 * CHUNK_SIZE_X + 8.5;
+        MobFileRecord rec = { 0, 0, 0.0, 0.0, 0.0, 0.0f, 0.0f, 0u, 0u, 0 };
+        rec.x = bx;
+        rec.y = 11.0;
+        rec.z = 8.5;
+        rec.health = 20.0f;
+        rec.flags = NET_MOB_FLAG_NATURAL;
+        // A natural piglin/wither record predates hostiles leaving the roll.
+        rec.type = MOB_ZOMBIFIED_PIGLIN;
+        rec.net_id = net_natural_mob_id( c.chunk_pos, 0 );
+        c.sidecars.mobs.push_back( rec );
+        rec.type = MOB_WITHER_SKELETON;
+        rec.net_id = net_natural_mob_id( c.chunk_pos, 1 );
+        c.sidecars.mobs.push_back( rec );
+        // A farm-animal natural and a player-caused (non-natural) hostile
+        // both still adopt.
+        rec.type = MOB_PIG;
+        rec.net_id = net_natural_mob_id( c.chunk_pos, 2 );
+        c.sidecars.mobs.push_back( rec );
+        rec.type = MOB_ZOMBIE;
+        rec.flags = 0;
+        rec.net_id = 0;
+        c.sidecars.mobs.push_back( rec );
+        mobs.adopt_chunk( world, c );
+        int hostile_naturals = 0;
+        int pigs = 0;
+        int zombies = 0;
+        for ( const auto &m : mobs.mobs ) {
+            hostile_naturals += m.type == MOB_ZOMBIFIED_PIGLIN || m.type == MOB_WITHER_SKELETON;
+            pigs += m.type == MOB_PIG;
+            zombies += m.type == MOB_ZOMBIE;
+        }
+        check_bool( "adopt: legacy hostile naturals dropped", hostile_naturals == 0 );
+        check_bool( "adopt: farm natural + plain record kept", pigs == 1 && zombies == 1 );
     }
 
     return failures;

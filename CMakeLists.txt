@@ -514,6 +514,7 @@ if(REPGAME_BUILD_SERVER)
 		src/common/sign.cpp
 		src/common/smelting.cpp
 		src/common/item.cpp
+		src/common/mob_types.cpp
 		src/common/vehicle_types.cpp
 		src/common/block_definitions.cpp)
 	add_executable(RepGameServer ${server_srcs} ${server_common})

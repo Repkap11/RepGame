@@ -256,9 +256,12 @@ class MobManager {
     // going away).
     void drop_held_parts( Mob &mob );
     bool spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int persistent );
-    // True while locally owned world mobs (uid == 0 && !net.mirror — not
-    // avatars, not mirrors) are under MAX_MOBS. The capped spawn paths gate
-    // on this; storage itself is uncapped.
+    // True while locally owned non-natural world mobs (uid == 0 &&
+    // !net.mirror && natural_id == 0 — not avatars, not mirrors, not
+    // seed-derived roll products) are under MAX_MOBS. Naturals are exempt:
+    // the deterministic roll bounds the farm-animal population so a loaded
+    // window full of livestock can't starve emergent spawns. Storage itself
+    // is uncapped.
     bool under_mob_cap( ) const;
     // Streamed NET_MOB_FLAG_* bits for a mob (dynamic + provenance bits).
     static uint32_t mob_net_flags( const Mob &mob );
@@ -282,10 +285,11 @@ class MobManager {
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_mob_instance,
                const VertexBufferLayout &vbl_block_object_instance, const VertexBufferLayout &vbl_item_instance );
     void init_storage( MapStorage *storage ) { this->storage = storage; }
-    // capped=false: bypass MAX_MOBS — persisted-mob restores (adopted
-    // touched mobs must never be dropped) and explicit player/debug spawns
-    // (spawn eggs, `n`, dbgcmd) always go through; the cap only bounds
-    // emergent population sources (natural roll, spawner, roll restores).
+    // capped=false: bypass MAX_MOBS — adopted mobs (persisted restores must
+    // never be dropped, and natural roll products are seed-bounded rather
+    // than capped) and explicit player/debug spawns (spawn eggs, `n`,
+    // dbgcmd) always go through; the cap only bounds non-seed emergent
+    // population (the despawnable spawner gates on it).
     bool spawn( MobType type, const glm::dvec3 &pos, float yaw, int persistent = 1, bool capped = true );
     // Block world (REPGAME_BLOCK_WORLD): one of each mob type in a column at
     // x=-3 (z = 2,5,8,...), facing the block grid with `no_ai` set — they

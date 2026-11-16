@@ -205,12 +205,14 @@ Despawnables are removed > 64 blocks out, randomly at
 1/(8·UPS_RATE)/tick past 40, or when their feet chunk leaves
 `CHUNK_LIVE`, and are never persisted.
 
-`MAX_MOBS` (256) caps only emergent population sources — the night
-spawner and fresh natural-roll products call `spawn` with the default
-`capped=true` and check `under_mob_cap()` (owned non-mirror, non-avatar
-count). Explicit spawns pass `capped=false` and always go through:
-spawn eggs, the `n` key, `dbgcmd::mob`, `REPGAME_MOB_TEST` fixtures and
-persisted-mob restores. It is not a storage or render limit:
+`MAX_MOBS` (256) caps only non-seed population — the night spawner
+gates on `under_mob_cap()` (owned non-mirror, non-avatar, non-natural
+count). Seed-derived naturals are exempt: the deterministic roll bounds
+the farm-animal population, so a loaded window full of livestock can't
+starve hostile spawns. Everything else passes `capped=false` and always
+goes through: spawn eggs, the `n` key, `dbgcmd::mob`, `REPGAME_MOB_TEST`
+fixtures and every adopted record (persisted restores and natural roll
+products alike). It is not a storage or render limit:
 `spawn_any` never refuses, so avatars, mirrored mobs and owned transfers
 always fit, and the live count can exceed the cap.
 
@@ -321,7 +323,8 @@ Adding a mob:
    `mob_types.hpp`): model/skin bindings, hitbox, health,
    walk/panic/chase speeds, `fall_cap`, `hover_h`, `attack_damage`, drops, sound
    pool names, natural-spawn data (`spawn_on` block list + `spawn_chance`
-   + herd size for the fresh-chunk roll — a non-empty `spawn_on` also
+   + herd size for the deterministic farm-animal roll — hostile types
+   leave it 0 — a non-empty `spawn_on` also
    whitelists the night spawner's floor, `spawn_dims` bitmask gating both
    spawn paths to a dimension band, `night_spawn_weight` for the
    despawnable spawner's pick, `burns_in_daylight` for undead-overworld
@@ -381,7 +384,10 @@ that must never respawn (readers copy the shared prefix and skip
 
 Natural-spawn products are *provenance-tracked* rather than saved
 wholesale. The terrain worker's roll (`spawn_chance` ≈1/12 per type,
-seeded `hash(chunk_pos, type, MAP_SEED)`) is deterministic, so a
+seeded `hash(chunk_pos, type, MAP_SEED)`) is the farm-animal table —
+hostile types keep `spawn_chance` 0 and never produce records (all
+nether mobs included; they exist only through the despawnable
+near-player spawner). The roll is deterministic, so a
 *pristine* natural mob (`NET_MOB_FLAG_NATURAL` && !`NET_MOB_FLAG_TOUCHED`)
 needs no record — it is recreated by re-rolling on every load, and a
 chunk holding only pristine mobs leaves no `mobs_` file behind
@@ -404,7 +410,9 @@ The worker loads records + tombstones and *always* re-rolls into
 persists+removes mobs whose owning chunk leaves the active window
 (parked/reused — `CHUNK_LOADING` at the same position has not left).
 `World::cleanup` persists every owned chunk. `despawnable` (night-spawn)
-mobs are never written. No writes in capture or fly
+mobs are never written, and a `NATURAL` record whose type no longer
+rolls (legacy nether hostiles) is dropped at adopt/server-persist rather
+than restored forever. No writes in capture or fly
 mode — and no local reads/writes at all in multiplayer, where the server
 holds `mobs_`/`items_` sidecars and the same pristine/touched rules (see
 `docs/entities.md` "Multiplayer entity sync"). Natural spawn stands herds on `spawn_on`

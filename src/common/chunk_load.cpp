@@ -97,7 +97,8 @@ static uint64_t mob_spawn_seed( const glm::ivec3 &pos, int type ) {
 
 // Natural spawn roll for a freshly generated chunk: per mob type, the hash
 // decides whether a herd appears; members stand on `spawn_on` column tops
-// that have hitbox headroom inside the chunk.
+// that have hitbox headroom inside the chunk. Only farm animals carry a
+// nonzero spawn_chance — hostiles come from the near-player spawner.
 bool Chunk::spawn_mobs( const std::set<uint8_t> *skip ) {
     if ( this->cells == nullptr ) {
         return false;

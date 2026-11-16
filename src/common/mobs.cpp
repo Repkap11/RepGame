@@ -162,7 +162,10 @@ bool MobManager::spawn( MobType type, const glm::dvec3 &pos, float yaw, int pers
 bool MobManager::under_mob_cap( ) const {
     int total = 0;
     for ( const Mob &mob : this->mobs ) {
-        total += mob.uid == 0 && !mob.net.mirror;
+        // Seed-derived naturals don't count: the deterministic roll bounds
+        // the farm-animal population, not MAX_MOBS (a pen's touched naturals
+        // keep their natural_id, so livestock is exempt too).
+        total += mob.uid == 0 && !mob.net.mirror && mob.natural_id == 0;
     }
     return total < MAX_MOBS;
 }
@@ -1423,11 +1426,18 @@ void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
         }
     }
     for ( const MobFileRecord &record : chunk.sidecars.mobs ) {
-        // A persisted (touched) mob is restored uncapped — dropping it would
-        // lose a mob the save file says we hold. Fresh roll products are
-        // population-capped like any other new spawn.
-        if ( this->spawn( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1,
-                          !( record.flags & NET_MOB_FLAG_TOUCHED ) ) ) {
+        // A NATURAL record whose type no longer rolls (legacy zombified
+        // piglins / wither skeletons from before hostiles left the roll)
+        // is dropped: hostile mobs are never persisted under the current
+        // model. Player-caused spawns (eggs, bred babies) carry no NATURAL
+        // flag and still restore.
+        if ( ( record.flags & NET_MOB_FLAG_NATURAL ) && record.type < MOB_TYPE_COUNT && mob_types[ record.type ].spawn_chance <= 0.0f ) {
+            continue;
+        }
+        // Uncapped: persisted (touched) mobs must never be dropped, and
+        // fresh roll products are seed-bounded rather than population-capped
+        // — naturals are exempt from MAX_MOBS entirely.
+        if ( this->spawn( static_cast<MobType>( record.type ), glm::dvec3( record.x, record.y, record.z ), record.yaw, 1, false ) ) {
             Mob &mob = this->mobs.back( );
             mob.variant = record.variant;
             mob.health = record.health;
