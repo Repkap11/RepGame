@@ -356,6 +356,12 @@ if(REPGAME_SQLITE)
 	add_library(repgame_sqlite OBJECT ${CMAKE_SOURCE_DIR}/sqlite_build/sqlite3.c)
 	# Vendored C — don't hold it to the project warning set.
 	target_compile_options(repgame_sqlite PRIVATE -w)
+	# CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE is global; without this the
+	# gcc-compiled TU would emit .gnu.lto bitcode that ld.lld can't read.
+	# The <CONFIG> property wins over the generic one, so clear each config.
+	foreach(cfg DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+		set_target_properties(repgame_sqlite PROPERTIES INTERPROCEDURAL_OPTIMIZATION_${cfg} OFF)
+	endforeach()
 	target_compile_definitions(repgame_platform INTERFACE REPGAME_MAP_SQLITE)
 	target_include_directories(repgame_platform SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/sqlite_build)
 endif()
