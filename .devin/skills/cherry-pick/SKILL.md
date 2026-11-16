@@ -7,9 +7,15 @@ description: Cherry-pick (never merge) commits from local or remote/agent branch
 
 The user keeps work spread across local branches (`work`, `worktree`,
 `worktree2`, misc topic branches) and remote agent branches
-(`origin/devin/*`, `origin/copilot-*`, …). The job: get specific commits
+(`origin/devin/*`, `origin/copilot-*`, …). The job: get pending commits
 onto `master` via `git cherry-pick` — **never `git merge`** — resolve any
 conflicts, and prove the result builds.
+
+**Default scope is every commit on every branch based on master** — the
+user expects all queued work landed, not just the branch that prompted
+the session (e.g. the one a `git fetch` just pulled down, or the one
+visible in the IDE). Only narrow the scope when the user names a
+specific branch or commits. Step 1 shows how to enumerate the queue.
 
 Remotes: `origin` (GitHub) is the canonical upstream — `origin/master` is
 the real master. `repkap11` is only the user's off-site backup mirror;
@@ -40,8 +46,11 @@ git worktree list
   `tools/rep_dbg/worktree.py`), or run `make install` there:
   ```sh
   main=$(git worktree list --porcelain | awk '/^worktree/{print $2; exit}')
-  ln -s "$main/imgui_build" "$main/entt_build" ~/Software/Rep/RepGame_master/
+  ln -s "$main/imgui_build" "$main/entt_build" "$main/bedrock-samples" \
+      ~/Software/Rep/RepGame_master/
   ```
+  (`bedrock-samples` is needed by `make blocks-import`/`mobs-import` —
+  missing it fails with "missing geo file".)
 
 ## Step 1 — sync master, pick the commits
 
@@ -51,8 +60,32 @@ git status -sb                                  # behind origin/master?
 git merge --ff-only origin/master               # fast-forward if behind
 ```
 
-Figure out exactly what to pick — confirm with the user if the branch has
-more commits than they expect:
+Enumerate everything queued for master — every ref with commits ahead
+where master is an ancestor of the tip:
+
+```sh
+for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes); do
+  case "$ref" in master|origin/master|repkap11/*|origin/HEAD) continue;; esac
+  ahead=$(git rev-list --count master..$ref 2>/dev/null) || continue
+  [ "$ahead" -gt 0 ] || continue
+  if git merge-base --is-ancestor master $ref; then
+    echo "PICK      $ahead $ref"
+  else
+    echo "diverged  $ahead $ref"
+  fi
+done
+```
+
+- **PICK** = based on current master — pick ALL of these by default;
+  that's the job. Confirm with the user only if the list is longer or
+  different than they described.
+- **diverged** = forked off older history (old topic branches). Do NOT
+  pick these unless the user names them — their diff vs master contains
+  unrelated reverts and conflict resolution would be guesswork.
+- `repkap11/*` is excluded even when based — it's the backup mirror; the
+  same commits should exist under `origin/*` or local branches.
+
+Then dedupe and pick each branch's commits oldest-first:
 
 ```sh
 git log --oneline master..<ref>                 # what the branch adds
@@ -61,6 +94,10 @@ git cherry-pick -x $(git rev-list --reverse --no-merges master..<ref>)
 ```
 
 - `-x` appends `(cherry picked from commit …)` — always use it.
+- The same patch often sits on two branches (a commit plus a cherry-pick
+  of it, or two agent branches with the same change). `git cherry` uses
+  patch-id, so once a patch is on master its twins show `-` — pick each
+  unique patch once.
 - Pick individual shas when the user names specific commits; use the
   `rev-list` form for a whole branch (skips merge commits).
 - Sources with **uncommitted** changes can't be picked — ask the user to
