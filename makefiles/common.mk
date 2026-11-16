@@ -56,12 +56,18 @@ APPIMAGE_OUT ?= out/appimage
 # from repkap11.com (same pattern as the glew zip in windows.mk) rather than
 # tracked in git. Not an `install` dep — `make mc_pack_build` once, manually.
 # The dir target makes it idempotent: skipped when sounds/mc_pack exists.
+#
+# Asset policy: repkap11.com is the ONLY upstream for sound sources. Never
+# fetch WAVs/OGGs from Mojang's asset CDN (or anywhere else) except with
+# repkap11's explicit permission. When the manifest gains sources, they must
+# be added to mc_pack_full.tar.gz and re-uploaded to
+# repkap11.com/files/repgame/ so fresh checkouts stay complete.
 mc_pack_build: sounds/mc_pack
 sounds/mc_pack:
 	mkdir -p sounds
-	wget -q https://repkap11.com/files/repgame/mc_pack.tar.gz -O mc_pack.tar.gz
-	bsdtar -xvzf mc_pack.tar.gz -C sounds
-	rm -rf mc_pack.tar.gz
+	wget -q https://repkap11.com/files/repgame/mc_pack_full.tar.gz -O mc_pack_full.tar.gz
+	bsdtar -xvzf mc_pack_full.tar.gz -C sounds
+	rm -rf mc_pack_full.tar.gz
 ifneq ($(wildcard sounds),)
 REPGAME_AUDIO ?= 1
 endif

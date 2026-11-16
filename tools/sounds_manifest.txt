@@ -13,6 +13,13 @@
 # overworld (game/, game/water, game/creative) and nether (game/nether)
 # tracks are listed; end, menu and record discs are excluded. To drop or add
 # an entry, edit this file.
+#
+# SOURCING POLICY: sources come only from mc_pack_full.tar.gz on
+# repkap11.com (`make mc_pack_build`). Never fetch assets from Mojang's
+# asset CDN or any third party except with repkap11's explicit permission.
+# New sources added here must first be packed into mc_pack_full.tar.gz and
+# re-uploaded to repkap11.com/files/repgame/ so fresh checkouts stay
+# complete — ask repkap11 to update the tarball before merging.
 calm_1|mc_pack/music/game/calm1.wav|music|Minecraft
 calm_2|mc_pack/music/game/calm2.wav|music|Clark
 calm_3|mc_pack/music/game/calm3.wav|music|Sweden

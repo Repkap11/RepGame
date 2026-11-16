@@ -101,6 +101,12 @@ starts the new set. End/menu/records are excluded.
 just the manifest-listed WAVs hosted at repkap11.com/files/repgame
 (copyrighted, so untracked — not an `install` dep).
 
+Sourcing policy: repkap11.com is the only upstream for sound assets.
+Never download WAVs/OGGs from Mojang's asset CDN (or any third party)
+except with repkap11's explicit permission. When the manifest gains
+sources, pack them into `mc_pack_full.tar.gz` and ask repkap11 to
+re-upload it before merging so fresh checkouts stay complete.
+
 - `REPGAME_AUDIO` — `0` disables all audio (default on when built with
   audio). Audio is also skipped entirely in capture mode.
 - `REPGAME_MUSIC` — `0` mutes music only (SFX still play).

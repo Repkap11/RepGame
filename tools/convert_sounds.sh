@@ -33,6 +33,10 @@ case "${1:-}" in
         type=$(echo "$line" | cut -d'|' -f3)
         if [ ! -f "$src" ]; then
             echo "convert_sounds.sh: missing source '$src'" >&2
+            echo "  -> refresh your pack with 'make mc_pack_build' (repkap11.com tarball)." >&2
+            echo "  -> if the entry is new, the tarball needs repkap11 to re-upload it" >&2
+            echo "     first — do not fetch assets from Mojang's CDN without permission" >&2
+            echo "     (see the sourcing policy in tools/sounds_manifest.txt)." >&2
             exit 1
         fi
         quality=3
