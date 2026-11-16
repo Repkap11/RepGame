@@ -45,3 +45,5 @@ wither_skeleton|models/entity/wither_skeleton.geo.json|geometry.skeleton.wither.
 # The blaze: head + 12 detached rods all pivoting at y=24 (bedrock keeps the
 # rod spin/float in animations; here MOB_ANIM_BLAZE_RODS drives them).
 blaze|models/entity/blaze.geo.json|geometry.blaze|textures/entity/blaze.tga
+# The enderman: 46-px-tall humanoid; its rest pose already hangs the arms.
+enderman|models/entity/enderman.geo.json|geometry.enderman.v1.8|textures/entity/enderman/enderman.tga

@@ -747,3 +747,13 @@ blaze_hurt_3|mc_pack/mob/blaze/hit3.wav|sfx|Blaze hurt
 blaze_hurt_4|mc_pack/mob/blaze/hit4.wav|sfx|Blaze hurt
 blaze_death|mc_pack/mob/blaze/death.wav|sfx|Blaze death
 blaze_shoot|mc_pack/mob/ghast/fireball4.wav|sfx|Blaze fireball launch
+enderman_say_1|mc_pack/mob/endermen/idle1.wav|sfx|Enderman idle
+enderman_say_2|mc_pack/mob/endermen/idle2.wav|sfx|Enderman idle
+enderman_say_3|mc_pack/mob/endermen/idle3.wav|sfx|Enderman idle
+enderman_say_4|mc_pack/mob/endermen/idle4.wav|sfx|Enderman idle
+enderman_say_5|mc_pack/mob/endermen/idle5.wav|sfx|Enderman idle
+enderman_hurt_1|mc_pack/mob/endermen/hit1.wav|sfx|Enderman hurt
+enderman_hurt_2|mc_pack/mob/endermen/hit2.wav|sfx|Enderman hurt
+enderman_hurt_3|mc_pack/mob/endermen/hit3.wav|sfx|Enderman hurt
+enderman_hurt_4|mc_pack/mob/endermen/hit4.wav|sfx|Enderman hurt
+enderman_death|mc_pack/mob/endermen/death.wav|sfx|Enderman death

@@ -1350,6 +1350,9 @@
   "ender_chest_top": {
     "source": "textures/blocks/ender_chest_top"
   },
+  "ender_pearl": {
+    "source": "textures/items/ender_pearl"
+  },
   "endframe_eye": {
     "source": "textures/blocks/endframe_eye"
   },
@@ -5250,6 +5253,9 @@
   },
   "spawn_egg_creeper": {
     "source": "textures/items/spawn_eggs/spawn_egg_creeper"
+  },
+  "spawn_egg_enderman": {
+    "source": "textures/items/spawn_eggs/spawn_egg_enderman"
   },
   "spawn_egg_pig": {
     "source": "textures/items/spawn_eggs/spawn_egg_pig"

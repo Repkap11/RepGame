@@ -69,4 +69,4 @@ as an undercoat marker) — a=0 stays cutout.
   the spawn — capture mode freezes AI/physics so poses are as authored.
 - In-game: `n` drops a mob three blocks ahead, cycling pig → cow →
   chicken → sheep → zombie → creeper → bee → cat → skeleton →
-  zombified_piglin → wither_skeleton on successive presses.
+  zombified_piglin → wither_skeleton → blaze → enderman on successive presses.

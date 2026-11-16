@@ -1781,6 +1781,30 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         if ( type == MOB_TYPE_COUNT ) {
             continue;
         }
+        const MobTypeDef &def = mob_types[ type ];
+        // Nether picks respect the type's spawn_on floor whitelist — that's
+        // how the enderman stays a warped-forest mob. Overworld hostiles
+        // keep the any-dark-surface rule.
+        if ( player_dim == DIM_NETHER && def.spawn_on[ 0 ] != LAST_BLOCK_ID ) {
+            const BlockID floor_id = world.get_loaded_block( glm::ivec3( bx, top, bz ) ).id;
+            bool floor_ok = false;
+            for ( int si = 0; si < 4 && def.spawn_on[ si ] != LAST_BLOCK_ID; si++ ) {
+                floor_ok |= def.spawn_on[ si ] == floor_id;
+            }
+            if ( !floor_ok ) {
+                continue;
+            }
+        }
+        // Taller mobs need their real headroom: the generic check above only
+        // cleared 2 cells (the enderman is 2.9).
+        const int headroom = static_cast<int>( ceilf( def.hitbox_h ) );
+        bool headroom_ok = true;
+        for ( int y = top + 3; y <= top + headroom; y++ ) {
+            headroom_ok &= spawnable_air_at( world, glm::ivec3( bx, y, bz ) );
+        }
+        if ( !headroom_ok ) {
+            continue;
+        }
         if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {
             Mob &mob = this->mobs.back( );
             mob.despawnable = 1;

@@ -1031,7 +1031,7 @@ int test_mobs( ) {
     {
         const MobType new_types[] = { MOB_COW,       MOB_CHICKEN,          MOB_SHEEP,     MOB_ZOMBIE,
                                     MOB_CREEPER,   MOB_BEE,              MOB_CAT,       MOB_ZOMBIFIED_PIGLIN,
-                                    MOB_WITHER_SKELETON };
+                                    MOB_WITHER_SKELETON, MOB_ENDERMAN };
         for ( MobType t : new_types ) {
             const MobTypeDef &tdef = mob_types[ t ];
             MobManager mobs;
@@ -1839,6 +1839,28 @@ int test_mobs( ) {
         check_bool( "nether roll: no spawning under lava", !roll_chunk.spawn_mobs( ) && roll_chunk.sidecars.mobs.empty( ) );
         chunk_free_cells( roll_chunk.cells );
         roll_chunk.cells = nullptr;
+        // Warped (green) nylium in the nether band rolls only endermen —
+        // the other nether types don't take it as a floor.
+        bool saw_enderman = false;
+        bool other_type = false;
+        for ( int x = 0; x < 64 && !saw_enderman; x++ ) {
+            fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), WARPED_NYLIUM, AIR );
+            if ( roll_chunk.spawn_mobs( ) ) {
+                saw_enderman = true;
+                for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
+                    other_type |= rec.type != MOB_ENDERMAN;
+                }
+            } else {
+                chunk_free_cells( roll_chunk.cells );
+                roll_chunk.cells = nullptr;
+            }
+        }
+        check_bool( "nether roll: a warped-nylium chunk emits endermen", saw_enderman );
+        check_bool( "nether roll: warped nylium only emits endermen", saw_enderman && !other_type );
+        if ( roll_chunk.cells != nullptr ) {
+            chunk_free_cells( roll_chunk.cells );
+            roll_chunk.cells = nullptr;
+        }
     }
 
     return failures;

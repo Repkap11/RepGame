@@ -91,3 +91,5 @@
     "FIRE_CHARGE",
     "BLAZE_ROD",
     "BLAZE_SPAWN_EGG",
+    "ENDER_PEARL",
+    "ENDERMAN_SPAWN_EGG",
