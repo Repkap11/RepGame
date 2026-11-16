@@ -1025,7 +1025,7 @@ int test_mobs( ) {
     {
         const MobType new_types[] = { MOB_COW,       MOB_CHICKEN,          MOB_SHEEP,     MOB_ZOMBIE,
                                     MOB_CREEPER,   MOB_BEE,              MOB_CAT,       MOB_ZOMBIFIED_PIGLIN,
-                                    MOB_WITHER_SKELETON };
+                                    MOB_WITHER_SKELETON, MOB_ENDERMAN };
         for ( MobType t : new_types ) {
             const MobTypeDef &tdef = mob_types[ t ];
             MobManager mobs;
@@ -1868,6 +1868,29 @@ int test_mobs( ) {
         check_bool( "floor: piglin refuses brick + grass", !mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], NETHER_BRICK ) &&
                                                           !mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], GRASS ) );
         check_bool( "floor: empty list accepts any block", mob_spawn_floor_ok( mob_types[ MOB_ZOMBIE ], STONE ) );
+
+        // Warped (green) nylium in the nether band rolls only endermen —
+        // the other nether types don't take it as a floor.
+        bool saw_enderman = false;
+        bool saw_other = false;
+        for ( int x = 0; x < 64 && !saw_enderman; x++ ) {
+            fill_floor( roll_chunk, glm::ivec3( x, -40, 0 ), WARPED_NYLIUM, AIR );
+            if ( roll_chunk.spawn_mobs( ) ) {
+                saw_enderman = true;
+                for ( const MobFileRecord &rec : roll_chunk.sidecars.mobs ) {
+                    saw_other |= rec.type != MOB_ENDERMAN;
+                }
+            } else {
+                chunk_free_cells( roll_chunk.cells );
+                roll_chunk.cells = nullptr;
+            }
+        }
+        check_bool( "nether roll: a warped-nylium chunk emits endermen", saw_enderman );
+        check_bool( "nether roll: warped nylium only emits endermen", saw_enderman && !saw_other );
+        if ( roll_chunk.cells != nullptr ) {
+            chunk_free_cells( roll_chunk.cells );
+            roll_chunk.cells = nullptr;
+        }
     }
 
     // --- 30: adopt drops hostile NATURAL records (legacy nether saves) -----

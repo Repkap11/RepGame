@@ -1832,7 +1832,9 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         }
         // A non-empty spawn_on list whitelists the floor here too — the
         // wither skeleton's nether-brick list keeps it on fortress floors.
-        if ( !mob_spawn_floor_ok( mob_types[ type ], world.get_loaded_block( glm::ivec3( bx, top, bz ) ).id ) ) {
+        // Nether picks only: the enderman's warped-nylium list must not
+        // veto its overworld night spawns, which take any dark surface.
+        if ( player_dim == DIM_NETHER && !mob_spawn_floor_ok( mob_types[ type ], world.get_loaded_block( glm::ivec3( bx, top, bz ) ).id ) ) {
             diag.bad_floor++;
             continue;
         }

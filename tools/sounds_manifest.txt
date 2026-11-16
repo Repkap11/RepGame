@@ -769,3 +769,13 @@ ghast_hurt_5|mc_pack/mob/ghast/scream5.wav|sfx|Ghast hurt
 ghast_death|mc_pack/mob/ghast/death.wav|sfx|Ghast death
 ghast_charge|mc_pack/mob/ghast/charge.wav|sfx|Ghast charge scream
 ghast_shoot|mc_pack/mob/ghast/fireball4.wav|sfx|Ghast fireball launch
+enderman_say_1|mc_pack/mob/endermen/idle1.wav|sfx|Enderman idle
+enderman_say_2|mc_pack/mob/endermen/idle2.wav|sfx|Enderman idle
+enderman_say_3|mc_pack/mob/endermen/idle3.wav|sfx|Enderman idle
+enderman_say_4|mc_pack/mob/endermen/idle4.wav|sfx|Enderman idle
+enderman_say_5|mc_pack/mob/endermen/idle5.wav|sfx|Enderman idle
+enderman_hurt_1|mc_pack/mob/endermen/hit1.wav|sfx|Enderman hurt
+enderman_hurt_2|mc_pack/mob/endermen/hit2.wav|sfx|Enderman hurt
+enderman_hurt_3|mc_pack/mob/endermen/hit3.wav|sfx|Enderman hurt
+enderman_hurt_4|mc_pack/mob/endermen/hit4.wav|sfx|Enderman hurt
+enderman_death|mc_pack/mob/endermen/death.wav|sfx|Enderman death

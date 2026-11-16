@@ -54,3 +54,5 @@ blaze|models/entity/blaze.geo.json|geometry.blaze|textures/entity/blaze.tga
 # declared 64x32 texel space) — the repo copies are downscaled to 64x32
 # since skin texels map 1:1 onto atlas layer pixels.
 ghast|repo:data/models/ghast.geo.json|geometry.ghast|repo:data/models/ghast.png,repo:data/models/ghast_shooting.png
+# The enderman: 46-px-tall humanoid; its rest pose already hangs the arms.
+enderman|models/entity/enderman.geo.json|geometry.enderman.v1.8|textures/entity/enderman/enderman.tga

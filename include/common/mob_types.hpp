@@ -27,6 +27,7 @@ enum MobType {
     MOB_WITHER_SKELETON,
     MOB_BLAZE,
     MOB_GHAST,
+    MOB_ENDERMAN,
     MOB_TYPE_COUNT
 };
 

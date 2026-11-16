@@ -1,8 +1,9 @@
 # Mobs
 
 Client-local mobs — passive pig, cow, chicken, sheep, bee and cat plus
-hostile zombie, creeper and skeleton in the overworld and zombified piglin,
-wither skeleton, blaze and ghast in the nether — and network-driven remote players (`MOB_PLAYER`),
+hostile zombie, creeper and skeleton in the overworld, zombified piglin,
+wither skeleton, blaze and ghast in the nether, and the enderman in both —
+and network-driven remote players (`MOB_PLAYER`),
 driven by a type table and models imported from Bedrock
 `geo.json`. Simulation (gravity, collision,
 auto-jump, buoyancy, idle/wander/panic AI, hostile chase/fuse/ranged AI, hit
@@ -80,6 +81,13 @@ to `out->arrow_shots`, and `RepGame::tick_entities` spawns it as a
 the player hitboxes instead of `mobs.raycast`, so a skeleton can't
 friendly-fire another mob and can't be hit by its own arrow. A
 `fall_cap` per type limits downward speed (chickens and bees glide at 0.02).
+Endermen (`MOB_AI_HOSTILE_MELEE`) are the 2.9-tall end mob — 40 hp and a
+harder melee hit than the zombie. MC's neutral/provoked AI (aggro on eye
+contact), teleport and block carrying don't exist here, so they're
+always-hostile like the zombified piglin. They spawn in the overworld via
+the night spawner and in the nether's warped (green nylium) forests: the
+fresh-chunk roll only takes `WARPED_NYLIUM` floors and the nether night
+spawner honors `spawn_on` too. Drops 0-1 `ENDER_PEARL`.
 Blazes (`MOB_AI_HOSTILE_BLAZE`) are nether archers: they hover ~1 block
 off the ground (`hover_h`) and share the skeleton's strafing stand-off
 band, but the attack is a 3-shot fireball volley — when the attack
@@ -209,15 +217,17 @@ spawn where `hostile_spawn_light_ok` (`max(sky * daylight, block) < 7/15`)
 holds — `persistent=0` + `despawnable=1`. The type picked is a weighted
 roll over `MobTypeDef::night_spawn_weight` among types whose `spawn_dims`
 bit covers the player's dimension: zombie .4 / skeleton .3 / creeper .3 in
-the overworld, zombified piglin .7 / wither skeleton 1.0 / ghast .1 in
-the nether.
+the overworld, zombified piglin .7 / wither skeleton 1.0 / ghast .1 /
+enderman .15 in the nether, and enderman .15 in the overworld.
 A non-empty `spawn_on` list whitelists the floor block on this path too
-(`mob_spawn_floor_ok`): the wither skeleton's nether-brick list ties it
-to fortress floors, the piglin's list covers the whole natural nether
-floor family (netherrack, soul sand/soil, basalt, blackstone, both
+(`mob_spawn_floor_ok`), nether picks only: the wither skeleton's
+nether-brick list ties it to fortress floors, the ghast takes
+netherrack/soul sand/blackstone, the enderman warped nylium only, and
+the piglin's list covers the whole natural nether floor family
+(netherrack, soul sand/soil, basalt, blackstone, both
 nyliums) — nether brick deliberately excluded so fortress floors stay
-wither-only — while the night-only hostiles' empty list accepts
-any dark surface. In
+wither-only — while overworld picks and the night-only hostiles' empty
+list accept any dark surface. In
 the nether sky light is always 0, so only block light < 7/15 gates the
 spawn — dark cavern floors work, lava-lit ground doesn't. Wander picks and
 both spawn paths veto liquid cells, so mobs don't spawn or path into
@@ -259,8 +269,8 @@ always fit, and the live count can exceed the cap.
   The mob can still be hit (hurt flash + tip-over death) but never moves.
 - `n` — debug spawn key: drops a mob three blocks in front of the
   player, cycling pig → cow → chicken → sheep → zombie → creeper → bee →
-  cat → skeleton → zombified_piglin → wither_skeleton → blaze → ghast on successive
-  presses (`MobManager::spawn_in_front`; edge-triggered
+  cat → skeleton → zombified_piglin → wither_skeleton → blaze → ghast →
+  enderman on successive presses (`MobManager::spawn_in_front`; edge-triggered
   through `Input`, handled in `RepGame::tick`, persistent, uncapped).
   The ImGui overlay shows `Mobs: <n> (players <m>)` — remote players
   count separately.
