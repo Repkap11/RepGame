@@ -718,6 +718,32 @@ nether_addition_15|mc_pack/ambient/nether/warped_forest/addition4.wav|sfx|Nether
 nether_addition_16|mc_pack/ambient/nether/warped_forest/addition5.wav|sfx|Nether addition
 nether_addition_17|mc_pack/ambient/nether/warped_forest/addition6.wav|sfx|Nether addition
 
+# Cave ambience — mood noises for fully-enclosed spaces (skylight 0 at the
+# player's head), played on a slow random timer
+cave_1|mc_pack/ambient/cave/cave1.wav|sfx|Cave ambience
+cave_2|mc_pack/ambient/cave/cave2.wav|sfx|Cave ambience
+cave_3|mc_pack/ambient/cave/cave3.wav|sfx|Cave ambience
+cave_4|mc_pack/ambient/cave/cave4.wav|sfx|Cave ambience
+cave_5|mc_pack/ambient/cave/cave5.wav|sfx|Cave ambience
+cave_6|mc_pack/ambient/cave/cave6.wav|sfx|Cave ambience
+cave_7|mc_pack/ambient/cave/cave7.wav|sfx|Cave ambience
+cave_8|mc_pack/ambient/cave/cave8.wav|sfx|Cave ambience
+cave_9|mc_pack/ambient/cave/cave9.wav|sfx|Cave ambience
+cave_10|mc_pack/ambient/cave/cave10.wav|sfx|Cave ambience
+cave_11|mc_pack/ambient/cave/cave11.wav|sfx|Cave ambience
+cave_12|mc_pack/ambient/cave/cave12.wav|sfx|Cave ambience
+cave_13|mc_pack/ambient/cave/cave13.wav|sfx|Cave ambience
+cave_14|mc_pack/ambient/cave/cave14.wav|sfx|Cave ambience
+cave_15|mc_pack/ambient/cave/cave15.wav|sfx|Cave ambience
+cave_16|mc_pack/ambient/cave/cave16.wav|sfx|Cave ambience
+cave_17|mc_pack/ambient/cave/cave17.wav|sfx|Cave ambience
+cave_18|mc_pack/ambient/cave/cave18.wav|sfx|Cave ambience
+cave_19|mc_pack/ambient/cave/cave19.wav|sfx|Cave ambience
+cave_20|mc_pack/ambient/cave/cave20.wav|sfx|Cave ambience
+cave_21|mc_pack/ambient/cave/cave21.wav|sfx|Cave ambience
+cave_22|mc_pack/ambient/cave/cave22.wav|sfx|Cave ambience
+cave_23|mc_pack/ambient/cave/cave23.wav|sfx|Cave ambience
+
 # Melee — swing whoosh on every attack; strong/crit/knockback on hits by
 # damage tier; sweep for the classic all-in-one hit noise
 swing_1|mc_pack/entity/player/attack/weak1.wav|sfx|Melee swing

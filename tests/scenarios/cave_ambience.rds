@@ -1,0 +1,18 @@
+# Cave ambience detection: a sealed stone box is fully enclosed — skylight
+# 0 inside (in_cave, the gate on the cave mood pool) — while open air above
+# it keeps full sky. Flat world: SANDSTONE floor at y=0, AIR above.
+wait_idle 20 6000
+fill 10 60 10 14 64 14 STONE
+wait 10
+fill 11 61 11 13 63 13 AIR
+wait 30
+# Inside the sealed box: sky 0 => audio_tick's in_cave path.
+assert_light 12 62 12 sky == 0
+goto 12.5 62.5 12.5
+wait 30
+assert_light 12 62 12 sky == 0
+# Open sky above the box: full skylight => not a cave.
+goto 12.5 80.5 12.5
+wait 10
+assert_light 12 80 12 sky == 15
+echo cave_ambience done

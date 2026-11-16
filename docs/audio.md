@@ -77,7 +77,14 @@ underwater_ambience on a ~55 s timer and sprinkles underwater_addition on
 a 4–13 s random timer; `audio_tick` does the nether equivalent — the
 nether_mood pool every ~30–75 s and nether_addition every ~6–20 s, keyed
 off `music_set == DIM_MUSIC_NETHER` so it follows the same dimension
-signal as the music. Positional
+signal as the music. Cave ambience rides the same
+mood mechanism: `advance_clocks` (game_tick.cpp) probes the packed light
+volume once per tick — `light_probe` on the sky channel at the head cell,
+an O(1) read with no scan — and passes `in_cave` (sky 0 = fully enclosed)
+to `audio_tick`, which plays the `cave` pool every ~60–120 s after a
+~10 s entry delay, overworld only (the nether band always reads sky 0
+and has its own mood pool); the timer resets when the player steps back
+into the open. Positional
 SFX share `audio_distance_gain(dist)` (audio.hpp): an inverse-distance
 falloff — full gain within 4 blocks, 0.5 at 8, 0.25 at 16, 0.125 at 32 —
 silent past `AUDIO_SFX_RANGE` (64); `audio_play_sfx_gain` drops gain<=0
