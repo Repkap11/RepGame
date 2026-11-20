@@ -960,27 +960,15 @@ int scaffolding_pick_boxes( unsigned nmask, bool side_panels, BlockBox out[ SCAF
 }
 
 int fire_pick_boxes( const Block *block, BlockBox out[ FENCE_MAX_BOXES ] ) {
-    if ( block->id == FIRE ) {
-        // The crossed quads span the full cell; fire_0 frame 0's opaque
-        // rows end 3px below the cell top, so the drawn flames cover
-        // y 0..13px across the whole footprint.
-        out[ 0 ].scale[ 0 ] = 16;
-        out[ 0 ].scale[ 1 ] = 13;
-        out[ 0 ].scale[ 2 ] = 16;
-        out[ 0 ].offset[ 0 ] = 0;
-        out[ 0 ].offset[ 1 ] = 0;
-        out[ 0 ].offset[ 2 ] = 0;
-    } else {
-        // Soul fire draws its cross inside the def box (6x11x6 at 5,0,5)
-        // and the sampled texture window is opaque up to the top row —
-        // the def box is the drawn region.
-        out[ 0 ].scale[ 0 ] = static_cast<signed char>( block->scale.x );
-        out[ 0 ].scale[ 1 ] = static_cast<signed char>( block->scale.y );
-        out[ 0 ].scale[ 2 ] = static_cast<signed char>( block->scale.z );
-        out[ 0 ].offset[ 0 ] = static_cast<signed char>( block->offset.x );
-        out[ 0 ].offset[ 1 ] = static_cast<signed char>( block->offset.y );
-        out[ 0 ].offset[ 2 ] = static_cast<signed char>( block->offset.z );
-    }
+    // The crossed quads span the full cell; across the fire_0/soul_fire_0
+    // flipbook frames the tallest flames end 1px below the cell top, so
+    // the drawn flames cover y 0..15px across the whole footprint.
+    out[ 0 ].scale[ 0 ] = 16;
+    out[ 0 ].scale[ 1 ] = 15;
+    out[ 0 ].scale[ 2 ] = 16;
+    out[ 0 ].offset[ 0 ] = 0;
+    out[ 0 ].offset[ 1 ] = 0;
+    out[ 0 ].offset[ 2 ] = 0;
     out[ 0 ].skip_faces = 0;
     return 1;
 }

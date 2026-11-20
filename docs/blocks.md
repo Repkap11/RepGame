@@ -442,12 +442,11 @@ bulb base y 0-4 plus the 2-wide shaft y 4-16, shaft bottom cap skipped;
 the 4x16x4 def column is the collision hull while the rendered pair is
 the pick model and iso icon.
 
-Fire blocks (FIRE, SOUL_FIRE — `block_is_fire`) render as crossed quads,
-and raycast/selection outline pick against the region the fire texture
-actually draws (`fire_pick_boxes`): FIRE's quads span the full cell but
-fire_0 frame 0's opaque rows end 3px below the top, giving a 16x13x16
-box; soul fire draws inside its def box (6x11x6 at 5,0,5), which is the
-pick shape. Collision is unaffected — fire has
+Fire blocks (FIRE, SOUL_FIRE — `block_is_fire`) render as crossed quads
+spanning the full cell, and raycast/selection outline pick against the
+region the fire texture actually draws (`fire_pick_boxes`): across the
+fire_0/soul_fire_0 flipbook frames the tallest flames end 1px below the
+top, giving a shared 16x15x16 box. Collision is unaffected — fire has
 `collides_with_player: false`.
 
 `"spine_shell": true` (cactus) replaces the block's mesh with Java's

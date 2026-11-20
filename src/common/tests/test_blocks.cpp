@@ -2190,27 +2190,26 @@ int test_support_drops( ) {
     check_bool( "end rod def: solid 4x16x4 hitbox",
                 end_rod_def->collides_with_player && end_rod_def->scale.x == 4 && end_rod_def->scale.y == 16 &&
                     end_rod_def->offset.x == 6 );
-    // Fire picks/outlines cover the region the fire texture draws: FIRE's
-    // crossed quads span the full cell but fire_0 frame 0's opaque rows
-    // end 3px below the top (16x13x16); soul fire draws inside its def
-    // box (6x11x6 at 5,0,5).
+    // Fire picks/outlines cover the region the fire texture draws: both
+    // fires' crossed quads span the full cell and the tallest flipbook
+    // frames end 1px below the top (16x15x16).
     const Block *fire_def = block_definition_get_definition( FIRE );
     const Block *soul_fire_def = block_definition_get_definition( SOUL_FIRE );
     BlockBox fire_bx[ FENCE_MAX_BOXES ];
     check_bool( "fire: pick box covers the drawn flames",
-                fire_pick_boxes( fire_def, fire_bx ) == 1 && fire_bx[ 0 ].scale[ 0 ] == 16 && fire_bx[ 0 ].scale[ 1 ] == 13 &&
+                fire_pick_boxes( fire_def, fire_bx ) == 1 && fire_bx[ 0 ].scale[ 0 ] == 16 && fire_bx[ 0 ].scale[ 1 ] == 15 &&
                     fire_bx[ 0 ].scale[ 2 ] == 16 && fire_bx[ 0 ].offset[ 0 ] == 0 && fire_bx[ 0 ].offset[ 1 ] == 0 &&
                     fire_bx[ 0 ].offset[ 2 ] == 0 && fire_bx[ 0 ].skip_faces == 0 );
-    check_bool( "fire: soul fire pick box is its def box",
-                fire_pick_boxes( soul_fire_def, fire_bx ) == 1 && fire_bx[ 0 ].scale[ 0 ] == 6 && fire_bx[ 0 ].scale[ 1 ] == 11 &&
-                    fire_bx[ 0 ].scale[ 2 ] == 6 && fire_bx[ 0 ].offset[ 0 ] == 5 && fire_bx[ 0 ].offset[ 1 ] == 0 &&
-                    fire_bx[ 0 ].offset[ 2 ] == 5 && fire_bx[ 0 ].skip_faces == 0 );
+    check_bool( "fire: soul fire pick box matches fire's",
+                fire_pick_boxes( soul_fire_def, fire_bx ) == 1 && fire_bx[ 0 ].scale[ 0 ] == 16 && fire_bx[ 0 ].scale[ 1 ] == 15 &&
+                    fire_bx[ 0 ].scale[ 2 ] == 16 && fire_bx[ 0 ].offset[ 0 ] == 0 && fire_bx[ 0 ].offset[ 1 ] == 0 &&
+                    fire_bx[ 0 ].offset[ 2 ] == 0 && fire_bx[ 0 ].skip_faces == 0 );
     check_bool( "fire: FIRE and SOUL_FIRE are fire, campfires aren't",
                 block_is_fire( FIRE ) && block_is_fire( SOUL_FIRE ) && !block_is_fire( CAMPFIRE ) && !block_is_fire( SOUL_CAMPFIRE ) );
     {
-        // Raycast: the box only reaches y 13/16 — a horizontal ray at
-        // y+0.5 hits the flames, one at y+0.9 clears the top; a downward
-        // ray stops on the top face (hit_t 0.6875 of the 2-block drop).
+        // Raycast: the box only reaches y 15/16 — a horizontal ray at
+        // y+0.5 hits the flames, one at y+0.95 clears the top; a downward
+        // ray stops on the top face (hit_t 0.5625 of the 2-block drop).
         world.set_loaded_block( glm::ivec3( 30, 10, 40 ), stone );
         world.set_loaded_block( glm::ivec3( 30, 11, 40 ), { FIRE, 0, 0, FIRE, 0 } );
         glm::ivec3 out( -1, -1, -1 );
@@ -2220,19 +2219,18 @@ int test_support_drops( ) {
                     RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.5, 40.5 ), glm::dvec3( 32.5, 11.5, 40.5 ), out, &which_face ) &&
                         out == glm::ivec3( 30, 11, 40 ) );
         check_bool( "fire ray: horizontal ray above the flames misses",
-                    !RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.9, 40.5 ), glm::dvec3( 32.5, 11.9, 40.5 ), out, &which_face ) );
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.95, 40.5 ), glm::dvec3( 32.5, 11.95, 40.5 ), out, &which_face ) );
         check_bool( "fire ray: downward ray hits the flames' top",
                     RayTraversal::find_block_from_to( world, glm::dvec3( 30.5, 12.5, 40.5 ), glm::dvec3( 30.5, 10.5, 40.5 ), out, &which_face, 0, &hit_t ) &&
-                        out == glm::ivec3( 30, 11, 40 ) && which_face == FACE_TOP && fabs( hit_t - 0.6875 ) < 0.001 );
-        // Soul fire: same column, but the box is its def box — the centre
-        // ray stops on the 11/16 top (hit_t 0.8125) while a horizontal
-        // ray outside the 5..11px footprint misses.
+                        out == glm::ivec3( 30, 11, 40 ) && which_face == FACE_TOP && fabs( hit_t - 0.5625 ) < 0.001 );
+        // Soul fire picks through the same 16x15x16 box — the downward
+        // ray stops on the same 15/16 top.
         world.set_loaded_block( glm::ivec3( 30, 11, 40 ), { SOUL_FIRE, 0, 0, SOUL_FIRE, 0 } );
-        check_bool( "fire ray: soul fire downward ray hits the def-box top",
+        check_bool( "fire ray: soul fire downward ray hits the flames' top",
                     RayTraversal::find_block_from_to( world, glm::dvec3( 30.5, 12.5, 40.5 ), glm::dvec3( 30.5, 10.5, 40.5 ), out, &which_face, 0, &hit_t ) &&
-                        out == glm::ivec3( 30, 11, 40 ) && which_face == FACE_TOP && fabs( hit_t - 0.8125 ) < 0.001 );
-        check_bool( "fire ray: soul fire ray outside the footprint misses",
-                    !RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.5, 40.1 ), glm::dvec3( 32.5, 11.5, 40.1 ), out, &which_face ) );
+                        out == glm::ivec3( 30, 11, 40 ) && which_face == FACE_TOP && fabs( hit_t - 0.5625 ) < 0.001 );
+        check_bool( "fire ray: soul fire ray above the flames misses",
+                    !RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.95, 40.5 ), glm::dvec3( 32.5, 11.95, 40.5 ), out, &which_face ) );
         world.set_loaded_block( glm::ivec3( 30, 11, 40 ), BLOCK_STATE_AIR );
     }
 
