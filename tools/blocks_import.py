@@ -39,6 +39,7 @@ if OUT_DIR:
     OUT_RECIPES = os.path.join(OUT_DIR, "recipes_gen.inc")
     OUT_SMELT = os.path.join(OUT_DIR, "smelting_gen.inc")
     OUT_PNG = os.path.join(OUT_DIR, "blocks.png")
+    OUT_ANIM = os.path.join(OUT_DIR, "texture_anim_gen.hpp")
 else:
     OUT_IDS = os.path.join(ROOT, "include", "common", "block_ids_gen.hpp")
     OUT_ITEM_IDS = os.path.join(ROOT, "include", "common", "item_ids_gen.hpp")
@@ -50,6 +51,7 @@ else:
     OUT_RECIPES = os.path.join(ROOT, "src", "common", "recipes_gen.inc")
     OUT_SMELT = os.path.join(ROOT, "src", "common", "smelting_gen.inc")
     OUT_PNG = os.path.join(ROOT, "bitmaps", "blocks.png")
+    OUT_ANIM = os.path.join(ROOT, "include", "common", "texture_anim_gen.hpp")
 
 LAST_BLOCK_ID = 2047
 # ItemID space: 0..LAST_BLOCK_ID-1 are block items (same value as BlockID),
@@ -202,7 +204,8 @@ def item_tool(it):
 DROP_KEYS = {"item", "min", "max", "chance"}
 RECIPE_KEYS = {"pattern", "key", "ingredients", "result", "count"}
 
-TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract", "flip"}
+TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract", "flip",
+                 "animated", "ticks"}
 
 SHAPES_JSON = os.path.join(DATA_DIR, "shapes.json")
 
@@ -1082,25 +1085,26 @@ def apply_tint(img, tint, name):
     return Image.merge("RGBA", (r.point(lut_r), g.point(lut_g), b_.point(lut_b), a))
 
 
-def resolve_image(name, meta):
-    """Find the source image for a texture, apply frame crop + tint."""
+def load_strip(name, meta):
+    """Find the source image for a texture and normalize it to TILE-wide.
+
+    Returns (img, src). Bedrock animated strips can be authored at >1x tile
+    resolution: the flow textures are 32-wide stacks of square 32x32 frames.
+    An image whose width is a multiple of TILE and whose height is a
+    multiple of its width holds square frames at that scale — downscale to
+    TILE-wide so per-frame crops see TILE squares. TILE-wide strips are
+    already at scale and skip the resample.
+    """
     src = meta.get("source")
     path = find_image_path(src, name)
     img = Image.open(path).convert("RGBA")
-    frame = meta.get("frame", 0)
-    if not isinstance(frame, int) or frame < 0:
-        fail("texture %r: bad frame %r" % (name, frame))
-    # Bedrock animated strips can be authored at >1x tile resolution: the
-    # flow textures are 32-wide stacks of square 32x32 frames. An image
-    # whose width is a multiple of TILE and whose height is a multiple of
-    # its width holds square frames at that scale — downscale to TILE-wide
-    # so the per-frame crop below sees TILE squares. TILE-wide strips are
-    # already at scale and skip the resample.
     if img.width != TILE and img.width % TILE == 0 and img.height % img.width == 0:
         img = img.resize((TILE, img.height * TILE // img.width), Image.Resampling.LANCZOS)
-    img = img.crop((0, frame * TILE, TILE, (frame + 1) * TILE))
-    if img.size != (TILE, TILE):
-        fail("texture %r (%s): not %dx%d after frame crop (is %s)" % (name, os.path.relpath(path, ROOT), TILE, TILE, img.size))
+    return img, src
+
+
+def postprocess_tile(img, name, meta, src):
+    """Apply tint/alpha/overlay/extract/flip to one TILE-square tile."""
     tint = meta.get("tint")
     if tint is not None:
         img = apply_tint(img, tint, name)
@@ -1207,6 +1211,80 @@ def resolve_image(name, meta):
     return img
 
 
+def resolve_image(name, meta):
+    """Resolve a texture to a single TILE-square tile (frame crop + postprocess)."""
+    img, src = load_strip(name, meta)
+    frame = meta.get("frame", 0)
+    if not isinstance(frame, int) or frame < 0:
+        fail("texture %r: bad frame %r" % (name, frame))
+    img = img.crop((0, frame * TILE, TILE, (frame + 1) * TILE))
+    if img.size != (TILE, TILE):
+        fail("texture %r (%s): not %dx%d after frame crop" % (name, src or name, TILE, TILE))
+    return postprocess_tile(img, name, meta, src)
+
+
+def load_flipbook_entries():
+    """Bedrock's textures/flipbook_textures.json (JSONC: // comment header)
+    holds the authored playback info per animated tile: ticks_per_frame
+    (default 1) and an optional frames list giving the strip indices in
+    playback order. Returns [] when the file is absent."""
+    path = os.path.join(BEDROCK_SAMPLES, "textures", "flipbook_textures.json")
+    if not os.path.exists(path):
+        return []
+    with open(path) as f:
+        raw = re.sub(r"^\s*//.*$", "", f.read(), flags=re.M)
+    return json.loads(raw)
+
+
+def resolve_anim(name, meta, fb_by_tile, fb_by_source):
+    """Resolve an "animated" texture to (tiles, ticks): one TILE-square tile
+    per playback position, in playback order, plus the ticks-per-frame rate
+    (20 ticks/s — the shader steps frames on u_Time).
+
+    Playback info comes from the Bedrock flipbook entry matching this
+    texture — by atlas_tile name, else by flipbook_texture == source (our
+    names don't always match Bedrock's atlas tiles, e.g. lava_still vs
+    still_lava). "ticks" in textures.json overrides the entry; a texture
+    with no flipbook entry plays sequential frames and must set "ticks".
+    """
+    if "frame" in meta:
+        fail("texture %r: 'frame' and 'animated' are mutually exclusive" % name)
+    if meta.get("random_rotate"):
+        fail("texture %r: 'random_rotate' and 'animated' are mutually exclusive" % name)
+    img, src = load_strip(name, meta)
+    if img.width != TILE or img.height % TILE or img.height // TILE < 2:
+        fail("texture %r: 'animated' needs a vertical strip of >= 2 %dx%d "
+             "frames (got %dx%d)" % (name, TILE, TILE, img.width, img.height))
+    strip_frames = img.height // TILE
+    entry = fb_by_tile.get(name)
+    if entry is None and src:
+        cands = fb_by_source.get(src, [])
+        if len(cands) > 1:
+            fail("texture %r: %d flipbook entries name %r — match by "
+                 "atlas_tile instead" % (name, len(cands), src))
+        entry = cands[0] if cands else None
+    ticks = meta.get("ticks")
+    if ticks is None and entry is not None:
+        # Bedrock default when ticks_per_frame is omitted is 1.
+        ticks = entry.get("ticks_per_frame", 1)
+    if ticks is None:
+        fail("texture %r: 'animated' but no flipbook entry — set \"ticks\" "
+             "(20/s) explicitly" % name)
+    if not isinstance(ticks, int) or ticks < 1:
+        fail("texture %r: bad ticks %r" % (name, ticks))
+    order = entry.get("frames") if entry else None
+    if order is None:
+        order = list(range(strip_frames))
+    if not all(isinstance(f, int) and 0 <= f < strip_frames for f in order):
+        fail("texture %r: flipbook frames %r out of range for a %d-frame "
+             "strip" % (name, order, strip_frames))
+    tiles = []
+    for f in order:
+        tile = img.crop((0, f * TILE, TILE, (f + 1) * TILE))
+        tiles.append(postprocess_tile(tile, name, meta, src))
+    return tiles, ticks
+
+
 def main():
     if not os.path.isdir(BEDROCK_SAMPLES):
         fail("BEDROCK_SAMPLES %r does not exist - run `make bedrock_samples_build` "
@@ -1289,9 +1367,40 @@ def main():
     # Resolve every texture once (frame/tint/alpha applied), then collapse
     # byte-identical tiles into a single layer. The canonical name is the
     # alphabetically first member; other names still get TEX_* defines.
+    # "animated" textures resolve to one tile per playback position: the
+    # base name keeps playback frame 0, positions 1+ are stored under the
+    # synthetic name <name>__f<pos>. Those layers pack contiguously at the
+    # end of the atlas ([TEXTURE_ANIM_BASE, TEXTURE_COUNT)) and never merge,
+    # so the shader can step frames by adding to the layer index.
+    anim = {}  # base name -> {"frames": playback positions, "ticks": per frame}
+    anim_layer_names = set()
+    fb_lookups = None
+
+    def anim_tiles(name):
+        nonlocal fb_lookups
+        if fb_lookups is None:
+            fb_entries = load_flipbook_entries()
+            fb_by_tile = {e.get("atlas_tile"): e for e in fb_entries if e.get("atlas_tile")}
+            fb_by_source = {}
+            for e in fb_entries:
+                fb_by_source.setdefault(e.get("flipbook_texture"), []).append(e)
+            fb_lookups = (fb_by_tile, fb_by_source)
+        return resolve_anim(name, tex_meta[name], *fb_lookups)
+
     images = {}
     for name in sorted(used):
-        images[name] = resolve_image(name, tex_meta.get(name, {}))
+        meta = tex_meta.get(name, {})
+        if meta.get("animated"):
+            tiles, ticks = anim_tiles(name)
+            anim[name] = {"frames": len(tiles), "ticks": ticks}
+            images[name] = tiles[0]
+            for p in range(1, len(tiles)):
+                synth = "%s__f%03d" % (name, p)
+                images[synth] = tiles[p]
+                anim_layer_names.add(synth)
+            anim_layer_names.add(name)
+        else:
+            images[name] = resolve_image(name, meta)
 
     # Silhouette (mask) shapes: the 4 side faces become generated
     # <face_tex>__<shape> tiles — the fully resolved face image (frame/tint/
@@ -1428,6 +1537,8 @@ def main():
 
     canon_members = {}  # canonical name -> [member names]
     for name in sorted(images):
+        if name in anim_layer_names:
+            continue  # animated spans must stay contiguous — never dedup
         key = images[name].tobytes()
         canon_members.setdefault(key, []).append(name)
     members = {}
@@ -1440,18 +1551,30 @@ def main():
     canonical_names = sorted(members)
 
     # Layer order: rotatable layers first (a layer is rotatable if ANY member
-    # has random_rotate), then the rest; sorted by canonical name.
+    # has random_rotate), then the rest; sorted by canonical name. Animated
+    # playback frames pack last, contiguous per texture (name-sorted), so
+    # [TEXTURE_ANIM_BASE, TEXTURE_COUNT) is one flat span the shader indexes
+    # with TEX_ANIM_TABLE. A block still references the base name — the
+    # first playback layer — so non-chunk-shader consumers see frame 0.
     rotatable_canon = sorted(
         c for c in canonical_names
         if any(tex_meta.get(n, {}).get("random_rotate") for n in members[c]))
     rest_canon = sorted(set(canonical_names) - set(rotatable_canon))
-    layer_order = rotatable_canon + rest_canon
+    anim_canon = []
+    for name in sorted(anim):
+        anim_canon.append(name)
+        anim_canon.extend("%s__f%03d" % (name, p)
+                          for p in range(1, anim[name]["frames"]))
+    layer_order = rotatable_canon + rest_canon + anim_canon
+    for canon in anim_canon:
+        members[canon] = [canon]
+        canonical[canon] = canon
     layers = {}
     for i, canon in enumerate(layer_order):
         for n in members[canon]:
             layers[n] = i
     count = len(layer_order)
-    merged_count = len(used) - count
+    merged_count = len(used) - len(rotatable_canon) - len(rest_canon)
     # Merged sets mixing rotatable and non-rotatable members: the non-rotatable
     # members now ride the rotatable layer — flag for review.
     mixed_rotatable = [(c, members[c]) for c in rotatable_canon
@@ -1596,9 +1719,30 @@ def main():
             out.append("#define TEX_%s %d\n" % (name.upper(), layers[name]))
     out.append("\n#define TEXTURE_COUNT %d\n" % count)
     out.append("#define TEXTURE_ROTATABLE_COUNT %d\n" % len(rotatable_canon))
+    # First animated span layer; [TEXTURE_ANIM_BASE, TEXTURE_COUNT) holds
+    # every animated texture's playback frames, contiguous per texture.
+    anim_base = len(rotatable_canon) + len(rest_canon)
+    out.append("#define TEXTURE_ANIM_BASE %d\n" % anim_base)
+    out.append("#define TEXTURE_ANIM_COUNT %d\n" % (count - anim_base))
     out.append("#define BLOCK_TEXTURE_ATLAS_ROWS %d\n" % rows)
     out.append("\n#endif\n")
     write_if_changed(OUT_TEX, "".join(out))
+
+    # include/common/texture_anim_gen.hpp — the flipbook playback table the
+    # fragment shader indexes by layer - TEXTURE_ANIM_BASE: one uvec3 per
+    # animated span layer {span_first_layer, playback_len, ticks_per_frame}.
+    # GLSL-only content (uvec3) — nothing but shaders may include it.
+    out = [HEADER, "#ifndef REPGAME_TEXTURE_ANIM_GEN_HPP\n#define REPGAME_TEXTURE_ANIM_GEN_HPP\n\n"]
+    anim_entries = []
+    for name in sorted(anim):
+        a = anim[name]
+        anim_entries += ["    uvec3( %du, %du, %du )" % (layers[name], a["frames"], a["ticks"])] * a["frames"]
+    if not anim_entries:
+        anim_entries = ["    uvec3( 0u, 0u, 0u )"]
+    out.append("const uvec3 TEX_ANIM_TABLE[%d] = uvec3[](\n%s\n);\n" %
+               (max(count - anim_base, 1), ",\n".join(anim_entries)))
+    out.append("\n#endif\n")
+    write_if_changed(OUT_ANIM, "".join(out))
 
     # src/common/block_definitions_gen.inc — all 6 textures + icon for every
     # block, then non-default fields.
@@ -1670,8 +1814,8 @@ def main():
     os.makedirs(os.path.dirname(CREATIVE_REPORT), exist_ok=True)
     write_if_changed(CREATIVE_REPORT, "material\tname\tid\thidden duplicates\n" + "".join(rep_lines))
 
-    print("blocks_import: %d blocks, %d textures (%d rotatable), atlas %dx%d -> %s" %
-          (len(blocks), count, len(rotatable_canon), atlas.width, atlas.height,
+    print("blocks_import: %d blocks, %d textures (%d rotatable, %d animated frames), atlas %dx%d -> %s" %
+          (len(blocks), count, len(rotatable_canon), count - anim_base, atlas.width, atlas.height,
            ", ".join(os.path.relpath(p, ROOT) for p in (OUT_IDS, OUT_ITEM_IDS, OUT_TEX, OUT_INC, OUT_ITEM_INC, OUT_ITEM_NAMES, OUT_DROPS, OUT_RECIPES, OUT_PNG))))
     pickable = sum(1 for b in blocks.values() if b.get("is_pickable", True))
     hidden_n = sum(len(v) for v in hidden.values())

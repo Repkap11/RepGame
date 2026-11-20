@@ -179,8 +179,14 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     {
         const long long t_world_draw_start = repgame_now_us( );
         // Wrapped to an hour so shader sine functions keep float precision.
-        const float time_s = static_cast<float>( fmod( repgame_now_us( ) / 1.0e6, 3600.0 ) );
-        int chunk_debug_flags = 0;
+        // Wall-clock driving every u_Time consumer (particles, fluid shading,
+        // flipbook animation). Pinned to 0 in capture mode so animated
+        // blocks stay frame-deterministic between capture runs.
+        const float time_s = run_policy( ).capture.enabled ? 0.0f : static_cast<float>( fmod( repgame_now_us( ) / 1.0e6, 3600.0 ) );
+        // Seed from the last value set through World::set_chunk_debug_flags
+        // (the script `flags` command) so those bits persist across frames;
+        // capture mode then replaces them with the current view's flags.
+        int chunk_debug_flags = globalGameState.world.get_chunk_debug_flags( );
         if ( run_policy().capture.enabled && run_policy().capture.view_index < static_cast<int>( run_policy().capture.views.size( ) ) ) {
             chunk_debug_flags = run_policy().capture.views[ run_policy().capture.view_index ].flags;
         }

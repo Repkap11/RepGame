@@ -662,6 +662,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_DrawToReflection", 0 );
     this->chunkLoader.shader.set_uniform1f( "u_ReflectionHeight", 0 );
     this->chunkLoader.shader.set_uniform1i_texture( "u_Texture", blocksTexture );
+    // Flipbook animation (anim_layer in chunk_fragment) runs in every pass —
+    // the fluid shading below only gates the extra X_HIGH effects.
+    this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
     this->chunkLoader.shader.set_uniform3f( "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
     this->chunkLoader.shader.set_uniform1f( "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
@@ -789,7 +792,6 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // attachment uses replace blending, so the translucent surface fragment
     // overwrites the terrain's fog factor — with air-range fog here, distant
     // terrain stays visible through water while submerged.
-    this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
     this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Water ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Stencil water

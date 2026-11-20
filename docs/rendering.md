@@ -266,6 +266,34 @@ as the order flips (multiply fixes exactly this); and without
 after-water mode, water draws after glass so water seen through glass
 composites on top of the glass tint rather than behind it.
 
+### Animated terrain textures
+
+Textures marked `"animated"` in `data/textures.json` (docs/blocks.md) are
+flipbooks: the importer packs every playback frame as its own atlas layer in
+the `[TEXTURE_ANIM_BASE, TEXTURE_COUNT)` tail span and emits
+`TEX_ANIM_TABLE` (`include/common/texture_anim_gen.hpp`). A face still
+arrives in `chunk_fragment.glsl` with the texture's *logical* id — the first
+playback layer — and `anim_layer()` remaps it to the current frame
+(`mod(u_Time, len*dt)/dt`, 20 ticks/s) before every atlas sample, so the
+remap is a pure fragment-side layer swap: no per-frame CPU work, no mesh
+changes, and `v_blockID` stays logical for the water/lava checks and the
+cutout hash. Fire, soul fire, water/lava still+flow, magma, portal, sea
+lantern, the campfires, sculk/sculk vein and cauldron water animate this
+way; the Bedrock `flipbook_textures.json` supplies authored frame order and
+tick rates. Only the terrain shader applies the remap — block defs still
+reference the base name (frame 0), so icons, held blocks and debris render
+the static first frame. At X_HIGH the dedicated water pass layers the
+existing procedural scroll/warp (`u_FluidAnim` branches) on top of the
+animated frames.
+
+`u_Time` is the shared frame-start clock (`fmod(now, 3600)` in
+`RepGame::draw`, set for every chunk pass, not just the water pass).
+Determinism: capture mode pins `time_s` to 0 so screenshots can't jitter,
+and `u_DebugFlags` bit 512 freezes `anim_layer()` at playback frame 0 (the
+fluid scroll/warp still runs — it's part of the X_HIGH look, not the
+flipbook) for scenarios that need a static world while the game clock keeps
+running.
+
 ## World-space text (signs, nametags)
 
 Sign front text renders as real 3D geometry, not screen overlays.

@@ -227,6 +227,7 @@ class World {
     // Binds u_DebugFlags on the chunk shader: REPGAME_CAPTURE per-view flags,
     // plus bit 32 in normal play when the mipmapped light volume is off.
     void set_chunk_debug_flags( int flags );
+    int get_chunk_debug_flags( ) const { return chunkLoader.debug_flags; }
     void cleanup( MapStorage &map_storage );
     int get_num_drawable_chunks( ) const { return chunkLoader.num_drawable; }
     int get_num_remeshed_chunks( ) const { return chunkLoader.num_remeshed_this_frame; }

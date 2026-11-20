@@ -394,12 +394,14 @@
     "source": "textures/blocks/calibrated_sculk_sensor_amethyst"
   },
   "campfire": {
+    "animated": true,
     "source": "textures/blocks/campfire"
   },
   "campfire_log": {
     "source": "textures/blocks/campfire_log"
   },
   "campfire_log_lit": {
+    "animated": true,
     "source": "textures/blocks/campfire_log_lit"
   },
   "candle": {
@@ -445,6 +447,7 @@
     "source": "textures/blocks/cauldron_top"
   },
   "cauldron_water": {
+    "animated": true,
     "source": "textures/blocks/cauldron_water"
   },
   "cave_vines_body": {
@@ -1590,6 +1593,7 @@
     "tint": "#70B55D"
   },
   "fire_0": {
+    "animated": true,
     "source": "textures/blocks/fire_0"
   },
   "fireball": {
@@ -2123,9 +2127,11 @@
     "source": "textures/blocks/large_amethyst_bud"
   },
   "lava_flow": {
+    "animated": true,
     "source": "textures/blocks/lava_flow"
   },
   "lava_still": {
+    "animated": true,
     "source": "textures/blocks/lava_still"
   },
   "leaf_litter": {
@@ -2308,6 +2314,7 @@
     "source": "textures/items/candles/magenta_candle"
   },
   "magma": {
+    "animated": true,
     "source": "textures/blocks/magma"
   },
   "mangrove_door_bottom": {
@@ -2837,6 +2844,7 @@
     "source": "textures/blocks/poplar_trapdoor"
   },
   "portal": {
+    "animated": true,
     "source": "textures/blocks/portal"
   },
   "potatoes_stage_0": {
@@ -3243,6 +3251,7 @@
     "source": "textures/blocks/scaffolding_top"
   },
   "sculk": {
+    "animated": true,
     "source": "textures/blocks/sculk"
   },
   "sculk_catalyst_bottom": {
@@ -3264,9 +3273,11 @@
     "source": "textures/blocks/sculk_shrieker_inner_top"
   },
   "sculk_vein": {
+    "animated": true,
     "source": "textures/blocks/sculk_vein"
   },
   "sea_lantern": {
+    "animated": true,
     "source": "textures/blocks/sea_lantern"
   },
   "sea_pickle": {
@@ -5117,12 +5128,15 @@
     "source": "textures/blocks/snow"
   },
   "soul_campfire": {
+    "animated": true,
     "source": "textures/blocks/soul_campfire"
   },
   "soul_campfire_log_lit": {
+    "animated": true,
     "source": "textures/blocks/soul_campfire_log_lit"
   },
   "soul_fire_0": {
+    "animated": true,
     "source": "textures/blocks/soul_fire_0"
   },
   "soul_lantern": {
@@ -5641,15 +5655,20 @@
     "source": "textures/blocks/warped_wart_block"
   },
   "water_flow": {
+    "animated": true,
+    "ticks": 2,
     "alpha": 140,
     "source": "textures/blocks/water_flow"
   },
   "water_still": {
+    "animated": true,
+    "ticks": 2,
     "alpha": 140,
     "source": "textures/blocks/water_still",
     "tint": "#C7FBFF"
   },
   "water_still_grey": {
+    "animated": true,
     "source": "textures/blocks/water_still_grey"
   },
   "weathered_chiseled_copper": {

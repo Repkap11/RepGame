@@ -59,6 +59,7 @@ Per-view `flags` is a bitmask bound to `u_DebugFlags` in the chunk shader
 | 64  | Screen-space face grow off (vertex-side flag applied by the C++ draw loop; works on all platforms) |
 | 128 | Hashed alpha test + brightness dither off — plain 0.1 cutoff |
 | 256 | Brightness dither off only (hashed alpha test still on) |
+| 512 | Flipbook animation frozen at playback frame 0 (fire, fluids, magma, portal, ...). Redundant under capture — `time_s` is already pinned — but useful in `rep-dbg script` scenarios (`flags 512`) where the game clock keeps running |
 
 Pressing F12 in normal play logs the exact render camera in `REPGAME_CAPTURE`
 format (`Capture view: REPGAME_CAPTURE="..."`) with full precision

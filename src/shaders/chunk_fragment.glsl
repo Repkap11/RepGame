@@ -3,6 +3,7 @@
 // volume divisor below always matches the compiled chunk geometry.
 #include "common/chunk_dimensions.hpp"
 #include "common/texture_ids_gen.hpp"
+#include "common/texture_anim_gen.hpp"
 #define eps 0.00001f
 // Edge length of the per-chunk light volume in texels (interior + 1-cell halo).
 // Per-axis: internal dims need not be equal (e.g. X/Z=128, Y=64).
@@ -84,8 +85,10 @@ uniform vec3 u_SkyAvgColor;
 // fading alpha toward an unknown backdrop.
 uniform sampler2DArray u_SkyTexture;
 
-// X_HIGH fluid effects: set only during the dedicated water pass (which draws
-// both WATER and LAVA, RenderOrder_Water). u_Time is always 0 unless u_FluidAnim.
+// u_Time is set for every pass (it also drives the flipbook animation
+// below). u_FluidAnim is the X_HIGH procedural water/lava shading — set
+// only during the dedicated water pass (which draws both WATER and LAVA,
+// RenderOrder_Water).
 uniform float u_Time;
 uniform int u_FluidAnim;
 
@@ -109,6 +112,21 @@ in vec3 v_light_pos;
 
 flat in uint v_blockID;
 flat in int v_block_auto_rotates;
+
+// Flipbook-animated textures (fire, fluids, magma, ...): the atlas layers in
+// [TEXTURE_ANIM_BASE, TEXTURE_COUNT) hold each animated texture's playback
+// frames contiguously, and TEX_ANIM_TABLE maps every layer in the span to
+// {span_first_layer, playback_len, ticks_per_frame} — ticks at 20/s. A face
+// arrives with the span's first layer id; remap it to the current frame.
+// u_DebugFlags bit 512 freezes animation at playback frame 0.
+uint anim_layer(uint id) {
+    if(id >= uint(TEXTURE_ANIM_BASE) && (u_DebugFlags & 512) == 0) {
+        uvec3 e = TEX_ANIM_TABLE[id - uint(TEXTURE_ANIM_BASE)];
+        float dt = float(e.z) * 0.05f;
+        id = e.x + uint(mod(u_Time, float(e.y) * dt) / dt);
+    }
+    return id;
+}
 
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 reflection;
@@ -189,6 +207,9 @@ void main() {
     vec2 working_hi = max(v_tex_max - (0.5f / 16.0f), working_lo);
     working = clamp(working, working_lo, working_hi);
 
+    // Atlas layer the face samples after flipbook animation; v_blockID
+    // stays the unanimated id for comparisons/hashes below.
+    uint layer = anim_layer(v_blockID);
     vec4 texColor;
     if(u_FluidAnim == 0 && v_face_normal.y > 0.5f &&
        (v_blockID == uint(TEX_WATER_FLOW) || v_blockID == uint(TEX_LAVA_FLOW))) {
@@ -198,13 +219,13 @@ void main() {
         // match the source surface's hue. (At X_HIGH the u_FluidAnim
         // branch below shades tops with the flow strip.)
         uint still_layer = v_blockID == uint(TEX_WATER_FLOW) ? uint(TEX_WATER_STILL) : uint(TEX_LAVA_STILL);
-        texColor = texture(u_Texture, vec3(v_TexCoordBlock, still_layer));
+        texColor = texture(u_Texture, vec3(v_TexCoordBlock, anim_layer(still_layer)));
     } else {
-        texColor = textureGrad(u_Texture, vec3(working, v_blockID), uv_dx, uv_dy);
+        texColor = textureGrad(u_Texture, vec3(working, layer), uv_dx, uv_dy);
     }
     // u_DebugFlags bit 2: texture detail off — resample at a coarse mip.
     if((u_DebugFlags & 2) != 0) {
-        texColor.rgb = textureLod(u_Texture, vec3(working, v_blockID), 4.0).rgb;
+        texColor.rgb = textureLod(u_Texture, vec3(working, layer), 4.0).rgb;
     }
 
     if(texColor.a == 0.0f) {
@@ -223,8 +244,8 @@ void main() {
             // the next, a stretched rim stripe along every quad edge. The
             // fluid layers are fully opaque and tile under GL_REPEAT, so
             // out-of-range UVs wrap instead of bleeding neighbor texels.
-            vec4 c1 = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, v_blockID));
-            vec4 c2 = texture(u_Texture, vec3(v_TexCoordBlock * 0.63f - flow * 1.3f - warp * 0.7f, v_blockID));
+            vec4 c1 = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, layer));
+            vec4 c2 = texture(u_Texture, vec3(v_TexCoordBlock * 0.63f - flow * 1.3f - warp * 0.7f, layer));
             texColor = mix(c1, c2, 0.5f);
             if(texColor.a == 0.0f) {
                 discard;
@@ -242,7 +263,7 @@ void main() {
             // Slow scroll + a faint emissive pulse, but no positional warp —
             // lava shouldn't wiggle like water.
             vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
-            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow, v_blockID));
+            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow, layer));
             texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
             if(texColor.a == 0.0f) {
                 discard;
@@ -273,7 +294,7 @@ void main() {
             // reads as a different fluid. Water keeps the flow strip — the
             // deep tint below unifies it with the still tile.
             uint top_layer = (is_lava && v_face_normal.y > 0.5f) ? uint(TEX_LAVA_STILL) : v_blockID;
-            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, top_layer));
+            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, anim_layer(top_layer)));
             if(texColor.a == 0.0f) {
                 discard;
             }

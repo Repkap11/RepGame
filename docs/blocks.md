@@ -103,6 +103,16 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
   `bed_head_top` needs `"transpose"` to move the pillow band from the x
   edge to the head edge.
 - `keep` — pack even when no block references it (e.g. `player_selection`).
+- `animated` — the source is a vertically stacked flipbook strip; every
+  playback position becomes its own atlas layer and the terrain fragment
+  shader steps frames on `u_Time` (docs/rendering.md). Mutually exclusive
+  with `frame` and `random_rotate`. Playback rate/order come from the
+  matching entry in Bedrock's `textures/flipbook_textures.json` — looked up
+  by `atlas_tile` == texture name, else by `flipbook_texture` == `source`;
+  an entry's omitted `ticks_per_frame` means the Bedrock default of 1.
+- `ticks` — ticks per playback frame at 20 ticks/s for an `animated`
+  texture. Overrides the flipbook entry; required when the texture has no
+  flipbook entry at all (it then plays the strip top-to-bottom).
 
 `make bedrock_samples_build` clones Mojang's bedrock-samples (pinned
 `BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored);
@@ -116,7 +126,11 @@ includers):
 - `include/common/block_ids_gen.hpp` — `BlockID` enum, explicit values + aliases
 - `include/common/texture_ids_gen.hpp` — `#define`-only `TEX_<NAME>` layer ids
   (safe for the shader preprocessor; compare as `uint(TEX_*)` in GLSL), plus
-  `TEXTURE_COUNT`, `TEXTURE_ROTATABLE_COUNT`, `BLOCK_TEXTURE_ATLAS_ROWS`
+  `TEXTURE_COUNT`, `TEXTURE_ROTATABLE_COUNT`, `TEXTURE_ANIM_BASE`,
+  `TEXTURE_ANIM_COUNT`, `BLOCK_TEXTURE_ATLAS_ROWS`
+- `include/common/texture_anim_gen.hpp` — `TEX_ANIM_TABLE`, one `uvec3`
+  per animated span layer `{span_first_layer, playback_len, ticks_per_frame}`
+  (GLSL-only; indexed by `layer - TEXTURE_ANIM_BASE`)
 - `src/common/block_definitions_gen.inc` — all 6 `textures[]` + `icon_texture`
   per block plus non-default fields
 - `src/common/block_names_gen.inc` / `src/common/texture_names_gen.inc` —
@@ -125,9 +139,13 @@ includers):
 - `bitmaps/blocks.png` — 24-column atlas, layer `i` at col `i%24`, row `i/24`
 
 Layer order is deterministic: `random_rotate` textures first (name-sorted),
-then the rest name-sorted, so the vertex shader tests
-`texture_id < uint(TEXTURE_ROTATABLE_COUNT)` — all layers are 0-based end to
-end. Adding a block = add `data/blocks/foo.json` (+ tile under
+then the rest name-sorted, then every `animated` texture's playback frames
+contiguous per texture (name-sorted) — so the vertex shader tests
+`texture_id < uint(TEXTURE_ROTATABLE_COUNT)` and the fragment shader tests
+`id >= TEXTURE_ANIM_BASE`. Animated layers never dedup (the span must stay
+contiguous); a block references the base name — playback frame 0 — so
+non-terrain consumers (items, held blocks, icons) show the static first
+frame. Adding a block = add `data/blocks/foo.json` (+ tile under
 `data/textures/` or a `source` in `textures.json`), `make blocks-import`,
 rebuild. `make mobs-import` similarly regenerates `mob_models_gen.hpp` +
 `mobs.png` from `tools/mobs_manifest.txt` (see `docs/mobs.md`). For scripting,
