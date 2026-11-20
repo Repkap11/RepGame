@@ -3,6 +3,8 @@
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
 #define TINT_UNDER_WATER_OBJECT_ALWAYS 2
+// Same warm artificial-light tint as chunk_fragment.glsl — keep in sync.
+#define BLOCK_LIGHT_TINT vec3(1.0, 0.90, 0.75)
 
 precision highp float;
 precision lowp sampler2DArray;
@@ -94,17 +96,19 @@ void main( ) {
     }
     // Non-sky objects (mobs, debris) modulate their CPU-sampled flood-fill
     // light: the sky channel scales with the day/night factor, the block
-    // channel (torches etc.) doesn't — same combine as chunk_fragment.
-    // v_light is the per-face directional shade applied on top. u_MinAmbient
-    // linearly lifts non-sky objects so unlit caves aren't invisible; the sky itself
-    // keeps the old path (v_light * daylight) or the night sky would wash out.
-    float scene_light;
+    // channel (torches etc.) doesn't and is tinted warm — same combine as
+    // chunk_fragment. v_light is the per-face directional shade applied on
+    // top. u_MinAmbient linearly lifts non-sky objects so unlit caves
+    // aren't invisible; the sky itself keeps the old path
+    // (v_light * daylight) or the night sky would wash out.
+    vec3 scene_light;
     if ( u_IsSky == 0 ) {
-        scene_light = v_light * mix( u_MinAmbient, 1.0, max( v_light_field.x * u_Daylight, v_light_field.y ) );
+        vec3 lit = max( vec3( v_light_field.x * u_Daylight ), BLOCK_LIGHT_TINT * v_light_field.y );
+        scene_light = v_light * mix( vec3( u_MinAmbient ), vec3( 1.0 ), lit );
     } else {
-        scene_light = v_light * u_Daylight;
+        scene_light = vec3( v_light * u_Daylight );
     }
-    vec4 lightedColor = texColor * vec4( scene_light, scene_light, scene_light, u_ExtraAlpha );
+    vec4 lightedColor = texColor * vec4( scene_light, u_ExtraAlpha );
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;

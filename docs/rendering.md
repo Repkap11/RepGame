@@ -113,6 +113,9 @@ per-platform defines in `chunk_dimensions.hpp`). The chunk torus is always alloc
   the light volume are treated as open). The effective mip level is capped
   at `LIGHT_LOD_MAX`, so raising the bias past the cap has no further
   effect.
+- `BLOCK_LIGHT_TINT` — warm tint on the block-light channel (torches,
+  lava) vs neutral skylight; compile-time define mirrored in
+  `src/shaders/chunk_fragment.glsl` and `src/shaders/object_fragment.glsl`.
 - `REPGAME_NIGHT_AMBIENT` / `REPGAME_MIN_AMBIENT` — night brightness floors
   (0-1, defaults 0.20 / 0.05). `night_ambient` is the moonlight floor on the
   daylight factor (outdoor night: terrain, sky, mobs, fog all scale by it);

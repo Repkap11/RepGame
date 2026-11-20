@@ -36,6 +36,10 @@
 // toward solid, and lod where it is fully solid.
 #define CUTOUT_FADE_START 0.3
 #define CUTOUT_FADE_END 1.2
+// Artificial (block-channel) light colour: a warm torch-glow tint so
+// lamp/fire-lit areas read orange against neutral daylight. The same
+// define lives in object_fragment.glsl — keep them in sync.
+#define BLOCK_LIGHT_TINT vec3(1.0, 0.90, 0.75)
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
 #define TINT_UNDER_WATER_OBJECT_ALWAYS 2
@@ -531,15 +535,18 @@ void main() {
     // u_MinAmbient lifts the result linearly (0 -> m, 1 -> 1): cells with no
     // skylight and no block light (deep caves) still get a faint ambient
     // instead of pure black, without flattening light falloff the way a
-    // max() floor would.
-    float scene_light = mix(u_MinAmbient, 1.0, max(light_sample.r * u_Daylight, light_sample.g));
+    // max() floor would. The block channel is tinted warm
+    // (BLOCK_LIGHT_TINT) while skylight stays neutral; the per-channel
+    // max() keeps the brighter source per colour band, so torchlight
+    // bleeding into a daylit edge leaves a warm fringe.
+    vec3 scene_light = mix(vec3(u_MinAmbient), vec3(1.0), max(vec3(light_sample.r * u_Daylight), BLOCK_LIGHT_TINT * light_sample.g));
     // u_DebugFlags bit 1: lighting off.
     if((u_DebugFlags & 1) != 0) {
-        scene_light = 1.0;
+        scene_light = vec3(1.0);
     }
     // u_DebugFlags bit 16: per-face shading off.
     float face_light_used = (u_DebugFlags & 16) != 0 ? 1.0 : v_face_light;
-    vec4 lightedColor = texColor * vec4(face_light_used * scene_light, face_light_used * scene_light, face_light_used * scene_light, u_ExtraAlpha);
+    vec4 lightedColor = texColor * vec4(face_light_used * scene_light, u_ExtraAlpha);
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;

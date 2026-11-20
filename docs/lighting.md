@@ -251,7 +251,10 @@ the player flew close enough to make those chunks near.
 scale the shaders multiply skylight by; `REPGAME_MIN_AMBIENT` /
 `REPGAME_NIGHT_AMBIENT` are the absolute floor and the daylight-factor
 floor (imgui overlay + pause menu adjustables, persisted in
-`player.dat`). Worker count and claim radius:
+`player.dat`). The two channels also differ in colour: skylight stays
+neutral while block light is multiplied by `BLOCK_LIGHT_TINT` (a warm
+torch-glow orange, compile-time define in `chunk_fragment.glsl` and
+`object_fragment.glsl`), so torch-lit areas read warm against daylight. Worker count and claim radius:
 `REPGAME_LIGHT_WORKERS`, `REPGAME_LIGHT_CLAIM_RADIUS`. Debug counters
 (`light_dbg_*`) feed the `loader` section of `ImGuiDebugVars` and
 `ChunkLoader::LoaderDebugStats`.
