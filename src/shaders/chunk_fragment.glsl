@@ -217,8 +217,14 @@ void main() {
         if(v_blockID == uint(TEX_WATER_STILL)) { // WATER top texture
             vec2 flow = vec2(u_Time * 0.045f, u_Time * 0.032f);
             vec2 warp = vec2(sin(wpos.x * 1.7f + u_Time * 1.8f), sin(wpos.y * 1.5f + u_Time * 1.4f)) * 0.18f;
-            vec4 c1 = texture(u_Texture, vec3(working + flow + warp, v_blockID));
-            vec4 c2 = texture(u_Texture, vec3(working * 0.63f - flow * 1.3f - warp * 0.7f, v_blockID));
+            // v_TexCoordBlock, not the clamped `working`: the scroll is added
+            // after the clamp, so the pinned outer half-texel can't move with
+            // the texture — it holds one texel until the scroll steps it to
+            // the next, a stretched rim stripe along every quad edge. The
+            // fluid layers are fully opaque and tile under GL_REPEAT, so
+            // out-of-range UVs wrap instead of bleeding neighbor texels.
+            vec4 c1 = texture(u_Texture, vec3(v_TexCoordBlock + flow + warp, v_blockID));
+            vec4 c2 = texture(u_Texture, vec3(v_TexCoordBlock * 0.63f - flow * 1.3f - warp * 0.7f, v_blockID));
             texColor = mix(c1, c2, 0.5f);
             if(texColor.a == 0.0f) {
                 discard;
@@ -236,7 +242,7 @@ void main() {
             // Slow scroll + a faint emissive pulse, but no positional warp —
             // lava shouldn't wiggle like water.
             vec2 flow = vec2(u_Time * 0.008f, u_Time * 0.011f);
-            texColor = texture(u_Texture, vec3(working + flow, v_blockID));
+            texColor = texture(u_Texture, vec3(v_TexCoordBlock + flow, v_blockID));
             texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
             if(texColor.a == 0.0f) {
                 discard;
