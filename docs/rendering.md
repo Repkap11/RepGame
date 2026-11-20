@@ -68,8 +68,19 @@ is `docs/chunks.md`; the light model these tunables feed is
   the way out. The blue tint and the alpha-fade skip are likewise
   per-fragment now (fragment below the plane, camera medium not air), so
   above-surface terrain seen from a submerged camera keeps its air-side
-  treatment — the full-screen underwater wash stays camera-wide. Cameras
-  below
+  treatment — the full-screen underwater wash stays camera-wide. From
+  inside the water, above-surface fragments also take two extra passes at
+  the medium's color: a tint scaled by the submerged length of the
+  camera→fragment ray (a shore mob seen through the column keeps the
+  water's cast), and an exit-angle occlusion — everything above the surface
+  seen from underwater converges toward the murk (`colorFog` boost, not
+  distance-paced), ~1.0 at grazing angles easing to ~0.6 near the zenith
+  (`smoothstep(0.6, 0.9, cosExit)`), so land mobs and shoreline blend into
+  the murk band behind them while a lighter patch survives overhead. In
+  the no-framebuffer path those fragments also skip the alpha fade — it
+  would open a sky-colored hole through the silhouette, since the sky
+  pass drew first.
+  Cameras below
   the plane in air (dry caves, the nether) skip the split — the plane
   crossing is geometric, so a view from above ground into dry
   below-sea-level air (open shafts, ravines) still murks.

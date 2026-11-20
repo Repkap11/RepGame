@@ -77,10 +77,20 @@ void main( ) {
     } else {
         texColor.rgb = mix( texColor.rgb, vec3( 1.0 ), v_flash );
     }
-    // Same per-fragment water-side test as chunk_fragment: above-surface
-    // geometry seen from a submerged camera isn't in the medium.
-    if ( u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) {
-        texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
+    // Same water-side tint as chunk_fragment: full mix inside the medium,
+    // scaled by the water-column crossing for above-surface geometry seen
+    // from a submerged camera — a mob on land still reads through water.
+    if ( u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER ) {
+        float tintAmt = 0.5f;
+        if ( v_world_coords.y >= ( -0.125f - u_Origin.y - eps ) ) {
+            float surfY = -0.125f - u_Origin.y;
+            float loY = min( u_CameraPos.y, v_world_coords.y );
+            float hiY = max( u_CameraPos.y, v_world_coords.y );
+            float crossFrac = ( clamp( surfY, loY, hiY ) - loY ) / max( hiY - loY, eps );
+            float crossLen = distance( v_world_coords.xyz, u_CameraPos ) * crossFrac;
+            tintAmt *= clamp( crossLen / u_WaterFogNear, 0.0f, 1.0f );
+        }
+        texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), tintAmt );
     }
     // Non-sky objects (mobs, debris) modulate their CPU-sampled flood-fill
     // light: the sky channel scales with the day/night factor, the block
@@ -131,6 +141,14 @@ void main( ) {
         float waterFogLinear = clamp((waterPathEff - u_WaterFogNear) / (u_WaterFogFar - u_WaterFogNear), 0.0, 1.0);
         float fogLinear = 1.0 - (1.0 - airFogLinear) * (1.0 - waterFogLinear);
         float waterShare = waterFogLinear / max(fogLinear, 0.001);
+        // Same surface-crossing occlusion as chunk_fragment: above-surface
+        // geometry seen from inside converges to murk, easing at the zenith.
+        float aboveOcc = 0.0f;
+        if(cameraUnderWater && v_world_coords.y > surfY + eps) {
+            float cosExit = (v_world_coords.y - u_CameraPos.y) / max(dist, eps);
+            aboveOcc = mix(1.0f, 0.6f, smoothstep(0.6f, 0.9f, cosExit));
+            waterShare = 1.0f;
+        }
         // Same edge convergence as chunk_fragment: the murk target yields
         // to the sky over the second half of the air fog band.
         float airFade = clamp((airFogLinear - 0.3f) / 0.4f, 0.0f, 1.0f);
@@ -142,6 +160,9 @@ void main( ) {
         float colorHalf = (!cameraUnderWater && u_CameraPos.y >= surfY) ? mix(0.5f, 1.0f, waterShare) : 0.5f;
         float colorFog = clamp(fogLinear / colorHalf, 0.0, 1.0);
         colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
+        // Same TIR occlusion as chunk_fragment — the mirror is not
+        // absorption, so it isn't paced by the fog distance.
+        colorFog = max(colorFog, aboveOcc);
         float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
         alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
         vec3 dynamicFogColor = mix(u_SkyAvgColor, u_WaterFogColor, waterShare);
@@ -170,7 +191,11 @@ void main( ) {
             } else {
                 // Skip the alpha fade underwater — see the chunk shader: it
                 // reveals the untinted sky and breaks alpha>0 validity checks.
-                if(!belowWater) {
+                // Above-surface fragments seen from inside the water need it
+                // off too: the surface crossing already occludes them via
+                // colorFog, and fading to alpha 0 shows the bright sky
+                // backdrop through the silhouette instead.
+                if(!belowWater && !(cameraUnderWater && v_world_coords.y > surfY + eps)) {
                     finalColor.a *= (1.0 - alphaFog);
                 }
                 fogFactor = vec4(0.0, 0.0, 0.0, 0.0);

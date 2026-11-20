@@ -401,12 +401,24 @@ void main() {
     if(u_ShowRotation != -2.0f) {
         texColor.rgb *= adjusted_face;
     }
-    // Water-side is per-fragment now, not per-camera: a submerged head
-    // still sees above-surface terrain through the surface, so only what
-    // sits in the medium takes the tint. A dry camera's submerged seabed
-    // stays untinted (the murk does that work), same as before.
-    if(u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER && v_world_coords.y < (-0.125f - u_Origin.y - eps)) {
-        texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), 0.45f);
+    // Water-side is per-fragment now, not per-camera: only what sits in
+    // the medium takes the full tint. A submerged head seeing
+    // above-surface geometry still views it through the water column
+    // between eye and surface — tint by that crossing length so a mob or
+    // shore block just overhead reads through the medium too, while thin
+    // crossings keep most of the above-water color. A dry camera's
+    // submerged seabed stays untinted (the murk does that work).
+    if(u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER) {
+        float tintAmt = 0.45f;
+        if(v_world_coords.y >= (-0.125f - u_Origin.y - eps)) {
+            float surfY = -0.125f - u_Origin.y;
+            float loY = min(u_CameraPos.y, v_world_coords.y);
+            float hiY = max(u_CameraPos.y, v_world_coords.y);
+            float crossFrac = (clamp(surfY, loY, hiY) - loY) / max(hiY - loY, eps);
+            float crossLen = distance(v_world_coords, u_CameraPos) * crossFrac;
+            tintAmt *= clamp(crossLen / u_WaterFogNear, 0.0f, 1.0f);
+        }
+        texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), tintAmt);
     }
 
     // Flood-fill light: v_light_pos is the face position +0.5*normal — the
@@ -580,6 +592,17 @@ void main() {
        !cameraUnderWater && u_CameraPos.y >= surfY && v_world_coords.y <= surfY + eps) {
         waterShare = 1.0f;
     }
+    // Above-surface geometry seen from inside the water is filtered by
+    // the surface crossing, not by open air: it all converges toward the
+    // murk, with the blend easing only toward the zenith — the Snell
+    // window reads as a lighter patch, not a clear view out. Grazing rays
+    // would mirror entirely anyway (TIR at ~48 deg from vertical).
+    float aboveOcc = 0.0f;
+    if(cameraUnderWater && v_world_coords.y > surfY + eps) {
+        float cosExit = (v_world_coords.y - u_CameraPos.y) / max(dist, eps);
+        aboveOcc = mix(1.0f, 0.6f, smoothstep(0.6f, 0.9f, cosExit));
+        waterShare = 1.0f;
+    }
     // The render edge has to converge to the sky like the terrain around
     // it, or the chunk border shows as a navy band: yield the murk target
     // across the middle of the AIR fog band so distant water dissolves on
@@ -600,6 +623,9 @@ void main() {
     float colorHalf = (!cameraUnderWater && u_CameraPos.y >= surfY) ? mix(0.5f, 1.0f, waterShare) : 0.5f;
     float colorFog = clamp(fogLinear / colorHalf, 0.0f, 1.0f);
     colorFog = colorFog * colorFog * (3.0f - 2.0f * colorFog);
+    // The surface crossing occludes, it doesn't absorb — the blend isn't
+    // paced by the fog distance.
+    colorFog = max(colorFog, aboveOcc);
     // Alpha fade: starts at 50% of the fog range, reaches full at the edge.
     float alphaFog = clamp((fogLinear - 0.5f) / 0.5f, 0.0f, 1.0f);
     alphaFog = alphaFog * alphaFog * (3.0f - 2.0f * alphaFog);

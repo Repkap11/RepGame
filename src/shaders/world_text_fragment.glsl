@@ -62,6 +62,14 @@ void main() {
     float waterFogLinear = clamp((waterPathEff - u_WaterFogNear) / (u_WaterFogFar - u_WaterFogNear), 0.0, 1.0);
     float fogLinear = 1.0 - (1.0 - airFogLinear) * (1.0 - waterFogLinear);
     float waterShare = waterFogLinear / max(fogLinear, 0.001);
+    // Same surface-crossing occlusion as chunk_fragment: above-surface
+    // geometry seen from inside converges to murk, easing at the zenith.
+    float aboveOcc = 0.0f;
+    if(cameraUnderWater && v_world_coords.y > surfY + 0.00001f) {
+        float cosExit = (v_world_coords.y - u_CameraPos.y) / max(dist, 0.00001f);
+        aboveOcc = mix(1.0f, 0.6f, smoothstep(0.6f, 0.9f, cosExit));
+        waterShare = 1.0f;
+    }
     // Same edge convergence as chunk_fragment: the murk target yields to
     // the sky over the second half of the air fog band.
     float airFade = clamp((airFogLinear - 0.3f) / 0.4f, 0.0f, 1.0f);
@@ -72,6 +80,8 @@ void main() {
     float colorHalf = (!cameraUnderWater && u_CameraPos.y >= surfY) ? mix(0.5f, 1.0f, waterShare) : 0.5f;
     float colorFog = clamp(fogLinear / colorHalf, 0.0, 1.0);
     colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
+    // Same TIR occlusion as chunk_fragment — not paced by fog distance.
+    colorFog = max(colorFog, aboveOcc);
     float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
     alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
     finalColor.rgb = mix(finalColor.rgb, mix(u_SkyAvgColor, u_WaterFogColor, waterShare), colorFog);
@@ -79,7 +89,10 @@ void main() {
         fogFactor = vec4(colorFog, 0.0, waterShare, alphaFog);
         finalColor.a = 1.0;
     } else {
-        if (!belowWater) {
+        // Above-surface text seen from inside the water keeps its alpha:
+        // colorFog already converges it to murk, and the fade would open a
+        // sky-colored hole (same fix as object_fragment).
+        if (!belowWater && !(cameraUnderWater && v_world_coords.y > surfY + 0.00001f)) {
             finalColor.a *= (1.0 - alphaFog);
         }
         fogFactor = vec4(0.0);
