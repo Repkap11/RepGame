@@ -77,7 +77,9 @@ void main( ) {
     } else {
         texColor.rgb = mix( texColor.rgb, vec3( 1.0 ), v_flash );
     }
-    if ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || ( u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) ) {
+    // Same per-fragment water-side test as chunk_fragment: above-surface
+    // geometry seen from a submerged camera isn't in the medium.
+    if ( u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER && v_world_coords.y < ( -0.125f - u_Origin.y - eps ) ) {
         texColor = mix( texColor, vec4( 0.122f, 0.333f, 1.0f, 1.0f ), 0.5f );
     }
     // Non-sky objects (mobs, debris) modulate their CPU-sampled flood-fill
@@ -129,9 +131,16 @@ void main( ) {
         float waterFogLinear = clamp((waterPathEff - u_WaterFogNear) / (u_WaterFogFar - u_WaterFogNear), 0.0, 1.0);
         float fogLinear = 1.0 - (1.0 - airFogLinear) * (1.0 - waterFogLinear);
         float waterShare = waterFogLinear / max(fogLinear, 0.001);
-        bool belowWater = u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS ||
-                          (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (surfY - eps));
-        float colorFog = clamp(fogLinear / 0.5, 0.0, 1.0);
+        // Same edge convergence as chunk_fragment: the murk target yields
+        // to the sky over the second half of the air fog band.
+        float airFade = clamp((airFogLinear - 0.3f) / 0.4f, 0.0f, 1.0f);
+        waterShare *= 1.0f - airFade * airFade * (3.0f - 2.0f * airFade);
+        bool belowWater = u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER &&
+                          v_world_coords.y < (surfY - eps);
+        // Same as chunk_fragment: a dry camera's water murk ramps over the
+        // whole band; everything else saturates by half range.
+        float colorHalf = (!cameraUnderWater && u_CameraPos.y >= surfY) ? mix(0.5f, 1.0f, waterShare) : 0.5f;
+        float colorFog = clamp(fogLinear / colorHalf, 0.0, 1.0);
         colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
         float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
         alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);

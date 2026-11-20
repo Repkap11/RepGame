@@ -60,7 +60,16 @@ is `docs/chunks.md`; the light model these tunables feed is
   above-surface terrain stays visible from underwater. The water share of
   the total fog rides the fog attachment's B channel so the composite picks
   the sky-vs-murk blend target per pixel; without a framebuffer (LOW) the
-  same mix happens in-shader against the sky-texture sample. Cameras below
+  same mix happens in-shader against the sky-texture sample. The murk
+  target itself yields back to the sky across the middle of the air fog
+  band (`airFade` in the fragment shaders) so distant water dissolves into
+  the haze on the terrain's schedule instead of banding at the chunk
+  border; in-water `airFogLinear` is 0, so underwater keeps its murk all
+  the way out. The blue tint and the alpha-fade skip are likewise
+  per-fragment now (fragment below the plane, camera medium not air), so
+  above-surface terrain seen from a submerged camera keeps its air-side
+  treatment — the full-screen underwater wash stays camera-wide. Cameras
+  below
   the plane in air (dry caves, the nether) skip the split — the plane
   crossing is geometric, so a view from above ground into dry
   below-sea-level air (open shafts, ravines) still murks.

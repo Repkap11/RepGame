@@ -401,7 +401,11 @@ void main() {
     if(u_ShowRotation != -2.0f) {
         texColor.rgb *= adjusted_face;
     }
-    if(u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS || (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - u_Origin.y - eps))) {
+    // Water-side is per-fragment now, not per-camera: a submerged head
+    // still sees above-surface terrain through the surface, so only what
+    // sits in the medium takes the tint. A dry camera's submerged seabed
+    // stays untinted (the murk does that work), same as before.
+    if(u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER && v_world_coords.y < (-0.125f - u_Origin.y - eps)) {
         texColor = mix(texColor, vec4(0.122f, 0.333f, 1.0f, 1.0f), 0.45f);
     }
 
@@ -576,12 +580,25 @@ void main() {
        !cameraUnderWater && u_CameraPos.y >= surfY && v_world_coords.y <= surfY + eps) {
         waterShare = 1.0f;
     }
+    // The render edge has to converge to the sky like the terrain around
+    // it, or the chunk border shows as a navy band: yield the murk target
+    // across the middle of the AIR fog band so distant water dissolves on
+    // roughly the same schedule the terrain fades on. In-water
+    // airFogLinear is 0, so underwater keeps its murk all the way out.
+    float airFade = clamp((airFogLinear - 0.3f) / 0.4f, 0.0f, 1.0f);
+    waterShare *= 1.0f - airFade * airFade * (3.0f - 2.0f * airFade);
     // Per-fragment "below the surface" still gates the water tint and the
-    // alpha-fade skip, so a straddled view keeps its waterline split.
-    bool belowWater = u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS ||
-                      (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (surfY - eps));
-    // Color blend: reaches 100% fog color by 50% of the fog range.
-    float colorFog = clamp(fogLinear / 0.5f, 0.0f, 1.0f);
+    // alpha-fade skip, so a straddled view — and now a fully submerged one
+    // looking up — keeps its waterline split.
+    bool belowWater = u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER &&
+                      v_world_coords.y < (surfY - eps);
+    // Color blend: reaches 100% fog color by 50% of the fog range — its
+    // second half is spent on the alpha fade. For a dry camera looking in,
+    // the water murk has no alpha fade below the surface, so its ramp
+    // spans the whole band and builds gradually instead of snapping to
+    // full at half range. In-water viewing keeps the tuned half-range pace.
+    float colorHalf = (!cameraUnderWater && u_CameraPos.y >= surfY) ? mix(0.5f, 1.0f, waterShare) : 0.5f;
+    float colorFog = clamp(fogLinear / colorHalf, 0.0f, 1.0f);
     colorFog = colorFog * colorFog * (3.0f - 2.0f * colorFog);
     // Alpha fade: starts at 50% of the fog range, reaches full at the edge.
     float alphaFog = clamp((fogLinear - 0.5f) / 0.5f, 0.0f, 1.0f);

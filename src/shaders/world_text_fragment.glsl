@@ -62,9 +62,15 @@ void main() {
     float waterFogLinear = clamp((waterPathEff - u_WaterFogNear) / (u_WaterFogFar - u_WaterFogNear), 0.0, 1.0);
     float fogLinear = 1.0 - (1.0 - airFogLinear) * (1.0 - waterFogLinear);
     float waterShare = waterFogLinear / max(fogLinear, 0.001);
-    bool belowWater = u_TintUnderWater == 2 ||
-                      (u_TintUnderWater == 1 && v_world_coords.y < (surfY - 0.00001f));
-    float colorFog = clamp(fogLinear / 0.5, 0.0, 1.0);
+    // Same edge convergence as chunk_fragment: the murk target yields to
+    // the sky over the second half of the air fog band.
+    float airFade = clamp((airFogLinear - 0.3f) / 0.4f, 0.0f, 1.0f);
+    waterShare *= 1.0f - airFade * airFade * (3.0f - 2.0f * airFade);
+    bool belowWater = u_TintUnderWater != 0 && v_world_coords.y < (surfY - 0.00001f);
+    // Same as chunk_fragment: a dry camera's water murk ramps over the
+    // whole band; everything else saturates by half range.
+    float colorHalf = (!cameraUnderWater && u_CameraPos.y >= surfY) ? mix(0.5f, 1.0f, waterShare) : 0.5f;
+    float colorFog = clamp(fogLinear / colorHalf, 0.0, 1.0);
     colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
     float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
     alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
