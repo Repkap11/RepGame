@@ -376,7 +376,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // daylight like the sky target.
     const float depthBelow = ( WATER_HEIGHT - 1.0f ) - y_height; // WATER_LEVEL(0) + WATER_HEIGHT - 1 = surface Y
     const float depthF = glm::clamp( depthBelow / 30.0f, 0.0f, 1.0f );
-    glm::vec3 water_murk = glm::mix( glm::vec3( 0.07f, 0.20f, 0.68f ), glm::vec3( 0.015f, 0.05f, 0.22f ), depthF );
+    glm::vec3 water_murk = glm::mix( glm::vec3( 0.045f, 0.13f, 0.46f ), glm::vec3( 0.008f, 0.03f, 0.14f ), depthF );
     if ( dim_prof->has_sky ) {
         water_murk *= daylight;
     }

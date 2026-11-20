@@ -260,8 +260,8 @@ void main() {
             // Push the water texel toward a deeper blue and keep most of the
             // surface coverage even looking straight down — the terrain blend
             // underneath reads as "transparent" otherwise.
-            texColor.rgb = mix(texColor.rgb, vec3(0.04f, 0.18f, 0.58f), 0.78f);
-            texColor.a *= 0.8f + 0.2f * fresnel;
+            texColor.rgb = mix(texColor.rgb, vec3(0.03f, 0.13f, 0.46f), 0.82f);
+            texColor.a *= 0.9f + 0.1f * fresnel;
         } else if(v_blockID == uint(TEX_LAVA_STILL)) { // LAVA top texture
             // Slow scroll + a faint emissive pulse, but no positional warp —
             // lava shouldn't wiggle like water.
@@ -306,8 +306,8 @@ void main() {
                 // sloped surface reads as the same water body.
                 vec3 viewDir = normalize(u_CameraPos - v_world_coords);
                 float fresnel = 0.18f + 0.82f * pow(1.0f - clamp(abs(viewDir.y), 0.0f, 1.0f), 3.0f);
-                texColor.rgb = mix(texColor.rgb, vec3(0.04f, 0.18f, 0.58f), 0.78f);
-                texColor.a *= 0.8f + 0.2f * fresnel;
+                texColor.rgb = mix(texColor.rgb, vec3(0.03f, 0.13f, 0.46f), 0.82f);
+                texColor.a *= 0.9f + 0.1f * fresnel;
             } else {
                 texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
             }
