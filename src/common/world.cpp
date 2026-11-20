@@ -353,7 +353,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // the shaders, so the seabed murks over when viewed from above and
     // above-surface terrain stays visible from underwater.
     const float water_fog_near = 8.0f;
-    const float water_fog_far = 45.0f;
+    const float water_fog_far = 90.0f;
     // The fog blend's in-shader phase targets the sky average; the
     // submerged share of each ray targets the water murk instead (per
     // fragment via waterShare, and per pixel in the composite through the
