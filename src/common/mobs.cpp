@@ -1953,7 +1953,8 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
         }
         if ( def.anims & MOB_ANIM_GHAST_TENTACLES ) {
             // Bedrock animation.ghast.move: each tentacles_N bone sways
-            // ±11.5° on x around its 23° rest splay (baked into the geo),
+            // ±11.5° on x around its -23° rest splay (baked into the geo —
+            // negative tips the tentacles back so they drag behind),
             // phased ~1 rad apart per tentacle at a ~1 Hz rate — the slow
             // wing_phase reuse keeps the drift gentle.
             if ( strncmp( bone.name, "tentacles_", 10 ) == 0 ) {
