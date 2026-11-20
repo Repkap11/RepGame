@@ -175,6 +175,7 @@ class MobManager {
         int volley_ticks = 0; // blaze: >0 during a 3-shot volley, fires every 5 ticks
         int burn_acc;       // daylight-burn damage accumulator ticks
         float wing_phase;   // wing-flap oscillator
+        float anim_phase;   // constant-rate tick clock for fixed-speed bone animators (blaze rods)
         // Breeding (types with MobTypeDef::breed_items): love_ticks > 0 is
         // love mode — the mob seeks a same-type partner also in love until
         // a close pair produces a baby (no expiry); breed_cooldown > 0

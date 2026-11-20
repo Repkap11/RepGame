@@ -217,6 +217,7 @@ bool MobManager::spawn_any( MobType type, const glm::dvec3 &pos, float yaw, int 
     mob.burn_acc = 0;
     std::uniform_real_distribution<float> phase_pick( 0.0f, 6.2832f );
     mob.wing_phase = phase_pick( this->rng );
+    mob.anim_phase = phase_pick( this->rng );
     mob.love_ticks = 0;
     mob.breed_cooldown = 0;
     mob.age_ticks = 0;
@@ -524,6 +525,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     mob.prev_yaw = mob.yaw;
     // Wing-flap oscillator: gentle bob on the ground, fast flap airborne.
     mob.wing_phase += mob.standing ? 0.06f : 0.4f;
+    mob.anim_phase += 1.0f;
     if ( mob.hurt_ticks > 0 ) {
         mob.hurt_ticks--;
     }
@@ -1963,13 +1965,26 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
             }
         }
         if ( def.anims & MOB_ANIM_BLAZE_RODS ) {
-            // Blaze rods: the 12 upperBodyPartsN bones all share the y=24
-            // pivot, so rotating them about Y orbits the whole ring; a
-            // slow per-rod bob keeps them floating (wing_phase reused).
+            // Bedrock animation.blaze.move: the 12 upperBodyPartsN bones
+            // share one cube at the centre and the position channel rides
+            // each on a ring around the head — outer r=9 (rods 0-3) at
+            // -360°/s, middle r=7 (4-7) at +108°/s, inner r=5 (8-11) at
+            // -180°/s — with a fixed y offset (+2, -2, -11 px) and a ±1 px
+            // per-rod bob. anim_phase is a constant-rate clock: the orbit
+            // speeds are fixed, so wing_phase's state-varying rate won't do.
             if ( strncmp( bone.name, "upperBodyParts", 14 ) == 0 ) {
                 const int rod = atoi( bone.name + 14 );
-                bone_anim[ i ].y += glm::degrees( mob.wing_phase * 0.3f );
-                bone_offset[ i ].y = 3.0f * sinf( mob.wing_phase + rod * 0.6f );
+                const int ring = rod / 4;
+                static const float ring_r[ 3 ] = { 9.0f, 7.0f, 5.0f };
+                static const float ring_w[ 3 ] = { -360.0f, 108.0f, -180.0f }; // deg/s
+                static const float ring_p[ 3 ] = { 0.0f, 45.0f, 27.0f };       // deg
+                static const float ring_y[ 3 ] = { 2.0f, -2.0f, -11.0f };      // px
+                const float t_s = mob.anim_phase / UPS_RATE;
+                const float a = glm::radians( ring_p[ ring ] + ( rod % 4 ) * 90.0f + ring_w[ ring ] * t_s );
+                bone_offset[ i ].x = ring_r[ ring ] * cosf( a );
+                bone_offset[ i ].z = ring_r[ ring ] * sinf( a );
+                const float bob_phase = rod * ( ring == 2 ? 21.48f : 28.64f ); // deg
+                bone_offset[ i ].y = ring_y[ ring ] + cosf( glm::radians( 286.4f * t_s + bob_phase ) );
             }
         }
         if ( def.anims & MOB_ANIM_HUMANOID_WALK ) {
@@ -2395,6 +2410,7 @@ void MobManager::tick_mirror( Mob &mob, const glm::dvec3 &player_pos ) {
     const float amp_target = static_cast<float>( fmin( hd * ( UPS_RATE / 20.0 ) * 4.0, 1.0 ) );
     mob.leg_amp += ( amp_target - mob.leg_amp ) * 0.2f;
     mob.wing_phase += 0.06f;
+    mob.anim_phase += 1.0f;
     if ( mob.hurt_ticks > 0 ) {
         mob.hurt_ticks--;
     }

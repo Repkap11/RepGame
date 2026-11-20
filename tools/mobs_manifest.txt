@@ -42,8 +42,10 @@ boat|repo:data/models/boat.geo.json|geometry.boat|textures/entity/boat/boat_oak.
 # 1.16 model); bone names are lowercase like the piglin's.
 zombified_piglin|models/entity/piglin.geo.json|geometry.piglin|textures/entity/piglin/zombie_piglin.png
 wither_skeleton|models/entity/wither_skeleton.geo.json|geometry.skeleton.wither.v1.8|textures/entity/skeleton/wither_skeleton.png
-# The blaze: head + 12 detached rods all pivoting at y=24 (bedrock keeps the
-# rod spin/float in animations; here MOB_ANIM_BLAZE_RODS drives them).
+# The blaze: head + 12 detached rods all sharing one cube at the y=24
+# pivot — Bedrock spreads them onto three counter-rotating rings in
+# animation.blaze.move; here MOB_ANIM_BLAZE_RODS drives the same
+# per-bone position offsets on Mob::anim_phase.
 blaze|models/entity/blaze.geo.json|geometry.blaze|textures/entity/blaze.tga
 # The ghast: the Bedrock geo is authored at 4.5 pixels/texel with per-face
 # UVs, so the repo copy at data/models/ghast.geo.json rescales it to texel

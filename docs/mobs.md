@@ -98,8 +98,13 @@ billboard `FIRE_CHARGE` sprite — docs/entities.md), then a ~4 s
 cooldown. Pressed against the player they hit on contact like a melee
 mob instead. There's no natural spawn (`spawn_chance` 0): the
 `BLAZE_SPAWN_EGG`, `n`-key debug cycle or `REPGAME_MOB_TEST` place them.
-The `MOB_ANIM_BLAZE_RODS` animator orbits the 12 `upperBodyParts` bones
-about their shared pivot and bobs them on `wing_phase`. Drops 0-1
+The `MOB_ANIM_BLAZE_RODS` animator reproduces `animation.blaze.move`:
+the 12 `upperBodyParts` bones all share one cube at the centre, and
+per-bone position offsets ride them on three rings around the head —
+outer r=9 at -360°/s, middle r=7 at +108°/s, inner r=5 at -180°/s, with
+fixed y offsets (+2, -2, -11 px) and a ±1 px per-rod bob. The orbit runs
+on `Mob::anim_phase`, a constant-rate tick clock (`wing_phase`'s
+state-varying rate would speed the rings up while flying). Drops 0-1
 `BLAZE_ROD`.
 Ghasts (`MOB_AI_HOSTILE_GHAST`) share the blaze's strafing stand-off AI
 but keep a wider band (~12–24 blocks), acquire targets out to 32 (drop
