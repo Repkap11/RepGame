@@ -17239,10 +17239,7 @@ block_definitions[ 1138 ].icon_is_isometric = false;
 block_definitions[ 1138 ].is_seethrough = true;
 block_definitions[ 1138 ].needs_place_on_any_solid[ FACE_TOP ] = true;
 block_definitions[ 1138 ].no_light = 0;
-block_definitions[ 1138 ].offset = { 5, 0, 5 };
 block_definitions[ 1138 ].renderOrder = RenderOrder_Flowers;
-block_definitions[ 1138 ].scale = { 6, 11, 6 };
-block_definitions[ 1138 ].tex_offset = { -5, 0, -5 };
 
 // SOUL_LANTERN (1139)
 block_definitions[ 1139 ].textures[ FACE_TOP ] = TEX_SOUL_LANTERN_CAP;
