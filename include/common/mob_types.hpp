@@ -153,7 +153,8 @@ typedef struct {
     // Render scale on the model's 1/16-block units, like
     // VehicleTypeDef::model_scale: 1.0 for every mob whose geo is authored
     // at the standard 16 px/block. The ghast is 4.5 — its repo-authored
-    // geo is stored at 1/4.5 so box UVs stay 1 texel per model pixel.
+    // geo is stored at 1/4.5 so box UVs stay 1 texel per model pixel; the
+    // wither skeleton is 1.2 — Bedrock sizes it up with minecraft:scale.
     float model_scale;
 } MobTypeDef;
 

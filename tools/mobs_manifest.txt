@@ -55,4 +55,9 @@ blaze|models/entity/blaze.geo.json|geometry.blaze|textures/entity/blaze.tga
 # since skin texels map 1:1 onto atlas layer pixels.
 ghast|repo:data/models/ghast.geo.json|geometry.ghast|repo:data/models/ghast.png,repo:data/models/ghast_shooting.png
 # The enderman: 46-px-tall humanoid; its rest pose already hangs the arms.
-enderman|models/entity/enderman.geo.json|geometry.enderman.v1.8|textures/entity/enderman/enderman.tga
+# The v1.8 geo authors the face cube at y=24 (inside the torso) and lifts it
+# in animation.enderman.base_pose — head.move parks it on the body at 38-46
+# (and sets the head-look pivot at the neck); the hat overlay is a head
+# child and stays put. The legs are likewise authored 4px under the feet —
+# leg moves put them at ground level (pivot stays at the hip).
+enderman|models/entity/enderman.geo.json|geometry.enderman.v1.8|textures/entity/enderman/enderman.tga|head.move=0,14,0;rightLeg.move=0,4,0;leftLeg.move=0,4,0

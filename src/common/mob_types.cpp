@@ -531,8 +531,8 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .skins = { MOB_SKIN_WITHER_SKELETON },
         .skin_count = 1,
         .hitbox_w = 0.7f,
-        .hitbox_h = 2.0f,
-        .eye_h = 1.8f,
+        .hitbox_h = 2.4f,
+        .eye_h = 2.1f,
         .max_health = 20.0f,
         .walk_speed = 0.007f,
         .panic_speed = 0.0f,
@@ -571,7 +571,9 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .bone_body = "body",
         .bone_wings = { NULL, NULL },
         .gait_scale = 0.0f,
-        .model_scale = 1.0f,
+        // Bedrock applies minecraft:scale=1.2 to the skeleton-sized geo —
+        // a real wither skeleton is 2.4 blocks tall, not skeleton-sized.
+        .model_scale = 1.2f,
     },
     /* MOB_BLAZE */ {
         // Nether hostile: floats on a ring of spinning head rods and lobs
