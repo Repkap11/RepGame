@@ -186,7 +186,8 @@ in dimensions whose profile clears `natural_spawns` — `docs/dimensions.md`):
 every 2 s, while fewer than the dimension's `mob_cap` despawnable
 hostiles live (12 overworld, 24 nether — the nether runs denser), up to 4
 attempts pick a random ring 24–44 blocks out, scan down from
-player_y + 16 (40 cells) for a colliding top block with 2 standable
+player_y + 16 to player_y − 63 (the despawn bound — anything deeper would
+be culled next tick) for a colliding top block with 2 standable
 (non-colliding, non-liquid) cells above inside a `CHUNK_LIVE` chunk, and
 spawn where `hostile_spawn_light_ok` (`max(sky * daylight, block) < 7/15`)
 holds — `persistent=0` + `despawnable=1`. The type picked is a weighted
@@ -195,7 +196,10 @@ bit covers the player's dimension: zombie .4 / skeleton .3 / creeper .3 in
 the overworld, zombified piglin .7 / wither skeleton 1.0 in the nether.
 A non-empty `spawn_on` list whitelists the floor block on this path too
 (`mob_spawn_floor_ok`): the wither skeleton's nether-brick list ties it
-to fortress floors, while the night-only hostiles' empty list accepts
+to fortress floors, the piglin's list covers the whole natural nether
+floor family (netherrack, soul sand/soil, basalt, blackstone, both
+nyliums) — nether brick deliberately excluded so fortress floors stay
+wither-only — while the night-only hostiles' empty list accepts
 any dark surface. In
 the nether sky light is always 0, so only block light < 7/15 gates the
 spawn — dark cavern floors work, lava-lit ground doesn't. Wander picks and

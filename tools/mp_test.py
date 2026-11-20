@@ -1770,6 +1770,57 @@ def sc_dimension(run, A, B):
     run.wait("B lost A's avatar again", lambda: len(avatars(B)) == 0, timeout=60)
 
 
+def sc_nether_spawner(run, A, B):
+    """Nether near-player spawner over MP: despawnable hostiles appear next
+    to a real player and KEEP appearing after the player relocates.
+    Regression for the field report of ~8 spawns, then 0 forever after
+    moving (spawner pins covered here are the own-chunk gate and the
+    negative-y floor scan)."""
+    # A real (unpinned) client: REPGAME_FLY would disable the spawner via
+    # RepGame::fly_mode(). /fly keeps it airborne after teleports.
+    N = run.client("N", POS_A, fly=False)
+    run.wait_ready(N)
+    N.cmd("chat /fly on")
+    N.cmd("chat /dimension nether")
+    run.wait("N in nether band",
+             lambda: (N.dump.last_state() or {}).get("pos", [0, 0, 0])[1] < -2000,
+             timeout=180)
+
+    def despawnables(c):
+        return [m for m in mobs_of(c.dump.last_state()) if m.get("despawnable")]
+
+    # First site: piglins/withers must show up near the player.
+    run.wait("nether hostiles appear", lambda: len(despawnables(N)) > 0, timeout=300)
+    p1 = (N.dump.last_state() or {})["pos"]
+
+    # The user killed a couple before the drought — exercise the remove path.
+    victim = despawnables(N)[0]
+    N.cmd("hit %s" % victim["net_id"])
+    run.wait("killed mob removed",
+             lambda: all(m["net_id"] != victim["net_id"] for m in mobs_of(N.dump.last_state())),
+             timeout=240)
+
+    # Relocate ~250 blocks east at the same height and lay a netherrack pad
+    # 24-47 blocks out so every scan column has a whitelisted floor
+    # regardless of how deep the local cavern runs.
+    nx, ny, nz = p1[0] + 250.0, p1[1], p1[2]
+    N.goto(nx, ny, nz)
+    run.wait("N relocated",
+             lambda: dist((N.dump.last_state() or {}).get("pos", [0, 0, 0]), (nx, ny, nz)) < 3,
+             timeout=60)
+    run.wait("roles cover the new spot",
+             lambda: (N.dump.last_state() or {}).get("roles", {}).get("owner", 0) > 0,
+             timeout=180)
+    pad_y = int(ny) - 12
+    for bx in range(int(nx) + 22, int(nx) + 47):
+        for bz in range(int(nz) - 6, int(nz) + 7):
+            N.cmd("setblock %d %d %d NETHERRACK" % (bx, pad_y, bz))
+    # The old site's despawnables must be gone (distance/role-revoke drop).
+    run.wait("old hostiles gone", lambda: len(despawnables(N)) == 0, timeout=240)
+    # And the spawner must repopulate at the new spot.
+    run.wait("hostiles after move", lambda: len(despawnables(N)) > 0, timeout=300)
+
+
 def sc_avatar_at_mob_cap(run, A, B):
     """A full mob list must not drop a late joiner's avatar (MAX_MOBS gates
     locally created mobs, not storage)."""
@@ -1818,6 +1869,7 @@ SCENARIOS = [
     ("first_view_correct", sc_first_view_correct),
     ("avatar_at_mob_cap", sc_avatar_at_mob_cap),
     ("dimension", sc_dimension),
+    ("nether_spawner", sc_nether_spawner),
     ("containers", sc_containers),
     ("sign_text", sc_sign_text),
     ("chat", sc_chat),

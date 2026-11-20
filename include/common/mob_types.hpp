@@ -124,7 +124,7 @@ typedef struct {
     // what the night-only hostiles use.
     // burns_in_daylight opts a hostile type into daylight burning (zombie,
     // skeleton); nether mobs and creepers don't burn.
-    BlockID spawn_on[ 4 ];
+    BlockID spawn_on[ 8 ];
     float spawn_chance;
     int herd_min;
     int herd_max;
@@ -157,7 +157,7 @@ inline bool mob_spawn_floor_ok( const MobTypeDef &def, BlockID floor ) {
     if ( def.spawn_on[ 0 ] == LAST_BLOCK_ID ) {
         return true;
     }
-    for ( int i = 0; i < 4 && def.spawn_on[ i ] != LAST_BLOCK_ID; i++ ) {
+    for ( int i = 0; i < 8 && def.spawn_on[ i ] != LAST_BLOCK_ID; i++ ) {
         if ( def.spawn_on[ i ] == floor ) {
             return true;
         }

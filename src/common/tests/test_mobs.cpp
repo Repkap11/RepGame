@@ -1854,10 +1854,16 @@ int test_mobs( ) {
                         mob_spawn_floor_ok( mob_types[ MOB_WITHER_SKELETON ], CRACKED_NETHER_BRICKS ) &&
                         mob_spawn_floor_ok( mob_types[ MOB_WITHER_SKELETON ], CHISELED_NETHER_BRICKS ) );
         check_bool( "floor: wither refuses netherrack", !mob_spawn_floor_ok( mob_types[ MOB_WITHER_SKELETON ], NETHERRACK ) );
-        check_bool( "floor: piglin takes netherrack + nylium",
+        check_bool( "floor: piglin takes the whole natural nether floor family",
                     mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], NETHERRACK ) &&
-                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], CRIMSON_NYLIUM ) );
-        check_bool( "floor: piglin refuses grass", !mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], GRASS ) );
+                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], SOUL_SAND ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], SOUL_SOIL ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], BASALT ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], BLACKSTONE ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], CRIMSON_NYLIUM ) &&
+                        mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], WARPED_NYLIUM ) );
+        check_bool( "floor: piglin refuses brick + grass", !mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], NETHER_BRICK ) &&
+                                                          !mob_spawn_floor_ok( mob_types[ MOB_ZOMBIFIED_PIGLIN ], GRASS ) );
         check_bool( "floor: empty list accepts any block", mob_spawn_floor_ok( mob_types[ MOB_ZOMBIE ], STONE ) );
     }
 
@@ -1901,6 +1907,182 @@ int test_mobs( ) {
         }
         check_bool( "adopt: legacy hostile naturals dropped", hostile_naturals == 0 );
         check_bool( "adopt: farm natural + plain record kept", pigs == 1 && zombies == 1 );
+    }
+
+    // --- 31: tick_spawner: nether floors, daylight, cap, MP ownership ------
+    {
+        // A 3x3 live-chunk pad in the nether band (chunk y -40) with a
+        // uniform floor at local y=10 — every candidate in the spawner's
+        // 24-44 ring lands on it. Hand-built chunks have no light volume, so
+        // light_sample reads the uniform 0 (sky=0, block=0): dark — which is
+        // also what the real nether reports since it has no sky.
+        const int pad_floor_y = -40 * CHUNK_SIZE_Y + 10;
+        auto make_pad = [&]( BlockID floor_id ) {
+            for ( int cx = -1; cx <= 1; cx++ ) {
+                for ( int cz = -1; cz <= 1; cz++ ) {
+                    const glm::ivec3 cp( cx, -40, cz );
+                    Chunk &c = world.chunkLoader.chunkArray[ chunk_slot_from_pos( cp ) ];
+                    if ( c.cells != nullptr ) {
+                        chunk_free_cells( c.cells );
+                    }
+                    c.cells = chunk_alloc_cells( );
+                    c.chunk_pos = cp;
+                    c.chunk_mod = cp;
+                    c.load_state = CHUNK_LIVE;
+                    for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+                        for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                            c.cells[ Chunk::get_index_from_coords( glm::ivec3( x, 10, z ) ) ] = block_cell_pack( floor_id, 0, 0, 0 );
+                        }
+                    }
+                }
+            }
+        };
+        const glm::dvec3 feet( 31.5, pad_floor_y + 1.0, 31.5 );
+        const glm::dvec3 eye = feet + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 );
+        // Push the 2 s countdown over the edge so exactly one spawn cycle
+        // (up to 4 attempts) runs per tick.
+        auto fire = [&]( MobManager &mobs, const glm::dvec3 &pos, long world_time ) {
+            mobs.spawn_ticks = 2 * UPS_RATE;
+            MobTickInput in = { true, world_time, PLAYER_EYE_HEIGHT };
+            mobs.tick( world, pos, &in );
+        };
+        auto count_type = []( const MobManager &mobs, MobType t ) {
+            int n = 0;
+            for ( const MobManager::Mob &m : mobs.mobs ) {
+                n += m.type == t;
+            }
+            return n;
+        };
+        const long noon = DAY_LENGTH_TICKS / 4;
+        const long midnight = DAY_LENGTH_TICKS / 2;
+
+        // Netherrack grows zombified piglins — despawnable and standing on
+        // the floor. Nether spawning ignores the overworld clock (the band
+        // has no sky): noon and midnight both work.
+        make_pad( NETHERRACK );
+        {
+            MobManager mobs;
+            for ( int i = 0; i < 15 && count_type( mobs, MOB_ZOMBIFIED_PIGLIN ) == 0; i++ ) {
+                fire( mobs, eye, noon );
+            }
+            check_bool( "spawner: netherrack grows piglins at noon", count_type( mobs, MOB_ZOMBIFIED_PIGLIN ) > 0 );
+            check_bool( "spawner: withers refuse netherrack", count_type( mobs, MOB_WITHER_SKELETON ) == 0 );
+            bool flags = true, on_floor = true;
+            for ( const MobManager::Mob &m : mobs.mobs ) {
+                flags &= m.despawnable == 1 && m.persistent == 0;
+                on_floor &= fabs( m.pos.y - ( pad_floor_y + 1.0 ) ) < 0.01;
+            }
+            check_bool( "spawner: piglins despawnable, on the floor", flags && on_floor );
+        }
+        {
+            MobManager mobs;
+            for ( int i = 0; i < 15 && count_type( mobs, MOB_ZOMBIFIED_PIGLIN ) == 0; i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner: netherrack grows piglins at midnight", count_type( mobs, MOB_ZOMBIFIED_PIGLIN ) > 0 );
+        }
+
+        // Fortress brick grows wither skeletons only — the piglin's
+        // netherrack/nylium list rejects it.
+        {
+            make_pad( NETHER_BRICK );
+            MobManager mobs;
+            for ( int i = 0; i < 15 && mobs.mobs.empty( ); i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner: brick grows wither skeletons", count_type( mobs, MOB_WITHER_SKELETON ) > 0 );
+            check_bool( "spawner: brick rejects piglins",
+                        count_type( mobs, MOB_ZOMBIFIED_PIGLIN ) == 0 && mobs.mobs.size( ) == static_cast<size_t>( count_type( mobs, MOB_WITHER_SKELETON ) ) );
+        }
+
+        // Blackstone (basalt delta / basalt plains floors) grows piglins —
+        // the field report was zero spawns over a blackstone surface.
+        {
+            make_pad( BLACKSTONE );
+            MobManager mobs;
+            for ( int i = 0; i < 15 && count_type( mobs, MOB_ZOMBIFIED_PIGLIN ) == 0; i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner: blackstone grows piglins", count_type( mobs, MOB_ZOMBIFIED_PIGLIN ) > 0 );
+        }
+
+        // A floor neither type accepts grows nothing at all.
+        {
+            make_pad( GRASS );
+            MobManager mobs;
+            for ( int i = 0; i < 10; i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner: no nether type takes grass", mobs.mobs.empty( ) );
+            make_pad( NETHERRACK ); // restore for the tests below
+        }
+
+        // The dimension mob_cap (nether: 24) bounds despawnable spawns.
+        {
+            MobManager mobs;
+            for ( int i = 0; i < 24; i++ ) {
+                mobs.spawn( MOB_ZOMBIFIED_PIGLIN, feet + glm::dvec3( 1.0, 0.0, 1.0 ), 0.0f, 0 );
+                mobs.mobs.back( ).despawnable = 1;
+            }
+            for ( int i = 0; i < 10; i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner: full mob_cap blocks new spawns", mobs.mobs.size( ) == 24 );
+        }
+
+        // The population builds up under the cap over successive cycles.
+        {
+            MobManager mobs;
+            for ( int i = 0; i < 60 && mobs.mobs.size( ) < 24; i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner: population reaches the nether cap", mobs.mobs.size( ) == 24 );
+        }
+
+        // Hovering too high: the ring scan only reaches ~63 blocks below the
+        // feet — a flyer well above the floor gets no spawns.
+        {
+            MobManager mobs;
+            const glm::dvec3 high_eye = eye + glm::dvec3( 0.0, 90.0, 0.0 );
+            for ( int i = 0; i < 10; i++ ) {
+                fire( mobs, high_eye, midnight );
+            }
+            check_bool( "spawner: no floor in the scan window", mobs.mobs.empty( ) );
+        }
+
+        // Despawn rules: a despawnable 70 blocks out is removed on the next
+        // tick; a non-despawnable at the same range stays.
+        {
+            MobManager mobs;
+            mobs.spawn( MOB_ZOMBIFIED_PIGLIN, feet + glm::dvec3( 70.0, 0.0, 0.0 ), 0.0f, 0 );
+            mobs.mobs.back( ).despawnable = 1;
+            mobs.spawn( MOB_ZOMBIFIED_PIGLIN, feet + glm::dvec3( 75.0, 0.0, 0.0 ), 0.0f, 0 );
+            mobs.tick( world, eye );
+            check_bool( "despawnable: removed past 64 blocks",
+                        mobs.mobs.size( ) == 1 && mobs.mobs[ 0 ].despawnable == 0 );
+        }
+
+        // Multiplayer: the spawner only places into chunks the client owns —
+        // a player holding no OWNER roles in the nether sees no spawns.
+        {
+            Multiplayer mp;
+            NetEntities net( &mp );
+            MobManager mobs;
+            mobs.set_multiplayer_mode( true, &net );
+            for ( int i = 0; i < 8; i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner MP: no owner roles -> no spawns", mobs.mobs.empty( ) );
+            for ( int cx = -1; cx <= 1; cx++ ) {
+                for ( int cz = -1; cz <= 1; cz++ ) {
+                    net.test_set_role( glm::ivec3( cx, -40, cz ), NET_ROLE_OWNER );
+                }
+            }
+            for ( int i = 0; i < 15 && mobs.mobs.empty( ); i++ ) {
+                fire( mobs, eye, midnight );
+            }
+            check_bool( "spawner MP: owned chunks accept spawns", !mobs.mobs.empty( ) );
+        }
     }
 
     return failures;

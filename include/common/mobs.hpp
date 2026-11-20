@@ -94,6 +94,32 @@ inline bool hostile_spawn_light_ok( float sky, float block, float daylight ) {
     return v < 7.0f / 15.0f;
 }
 
+// Debug-overlay tally of the live mob list by provenance/ownership: owned
+// mobs split into seed-derived naturals (natural_id != 0 — cap-exempt),
+// despawnables (the near-player spawner's mob_cap pool) and everything
+// else persistent (eggs, bred babies, restored non-naturals); remote-owned
+// mobs count as mirrors and remote players as avatars.
+struct MobPopulation {
+    int natural = 0;
+    int despawnable = 0;
+    int other = 0;
+    int mirror = 0;
+    int players = 0;
+};
+
+// Cumulative near-player spawner outcomes — which gate rejects each
+// attempt. The "0 mobs" breakdown for the debug overlay and mp-test dumps.
+struct MobSpawnDiag {
+    long attempts = 0;
+    long no_floor = 0;    // scan window found no solid
+    long no_headroom = 0; // first solid's two cells above blocked or liquid
+    long not_live = 0;    // destination chunk not CHUNK_LIVE
+    long not_owned = 0;   // MP: destination chunk has another/no owner
+    long too_bright = 0;  // light gate rejected
+    long bad_floor = 0;   // rolled type's spawn_on whitelist rejected the floor
+    long spawned = 0;
+};
+
 // Client-local passive mobs. Simulation (physics, wander AI) runs on the game
 // tick; rendering rebuilds one instanced RenderChain<ParticleVertex,
 // MobPartInstance> per frame with CPU-evaluated bone transforms from the
@@ -234,6 +260,7 @@ class MobManager {
     MapStorage *storage;
     long poll_count;
     long spawn_ticks; // 2 s countdown for the night spawner
+    MobSpawnDiag spawn_diag;
     RenderChain<ParticleVertex, MobPartInstance> render_chain;
     // Held items (remote-player avatars): same meshes/shaders as
     // ItemEntities' dropped items — isometric block items draw as small
@@ -427,7 +454,23 @@ class MobManager {
         }
         return n;
     }
+    void population( MobPopulation &out ) const {
+        for ( const Mob &mob : this->mobs ) {
+            if ( mob.uid != 0 ) {
+                out.players++;
+            } else if ( mob.net.mirror ) {
+                out.mirror++;
+            } else if ( mob.natural_id != 0 ) {
+                out.natural++;
+            } else if ( mob.despawnable ) {
+                out.despawnable++;
+            } else {
+                out.other++;
+            }
+        }
+    }
     bool is_enabled( ) const { return this->enabled; }
+    const MobSpawnDiag &spawner_diag( ) const { return this->spawn_diag; }
     void cleanup( );
 };
 

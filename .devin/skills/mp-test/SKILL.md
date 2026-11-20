@@ -99,7 +99,10 @@ Two line types:
   - top level: `tick`, `session` (string), `connected` (0/1),
     `world_time`, `pos` (camera, `[x,y,z]` floats), `health` (half-hearts),
     `dead`, `air_ticks`, `tag` (when dumped via
-    `dump <tag>`), `roles` `{"owner":N,"viewer":N}`.
+    `dump <tag>`), `roles` `{"owner":N,"viewer":N}`,
+    `spawner` `{"attempts","no_floor","no_headroom","not_live","not_owned","too_bright","bad_floor","spawned"}`
+    — cumulative near-player spawner outcomes per rejection gate (the "0
+    mobs" breakdown).
   - `inventory`: `{ITEM_NAME: total}` across hotbar + survival.
   - `items`: `{net_id, remote, pickup_pending, item, item_name, count,
     pos, vel, age, grounded, in_water, spin_seed, yaw, bob}`.

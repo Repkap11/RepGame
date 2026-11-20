@@ -5,6 +5,7 @@
 #include "common/utils/env_config.hpp"
 #include "common/audio.hpp"
 #include "common/block_definitions.hpp"
+#include "common/dimension_profile.hpp"
 #include "common/map_gen.hpp"
 #include "common/utils/frame_stats.hpp"
 
@@ -265,8 +266,20 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         ImGui::Text( "Particles: %d (%d debris, %d primed TNT, %d falling blocks)",
                      debug_vars.debris_particles + debug_vars.primed_tnt + debug_vars.falling_blocks,
                      debug_vars.debris_particles, debug_vars.primed_tnt, debug_vars.falling_blocks );
-        ImGui::Text( "Mobs: %d (players %d)", static_cast<int>( state.world.mobs.count( ) - state.world.mobs.remote_count( ) ),
-                     static_cast<int>( state.world.mobs.remote_count( ) ) );
+        {
+            MobPopulation pop = {};
+            state.world.mobs.population( pop );
+            const int mob_cap = dimension_profile( dimension_of_pos( debug_vars.player_pos ) )->mob_cap;
+            ImGui::Text( "Mobs: %d (natural %d, hostile %d/%d, other %d) mirror %d players %d",
+                         pop.natural + pop.despawnable + pop.other, pop.natural, pop.despawnable, mob_cap, pop.other,
+                         pop.mirror, pop.players );
+            const MobSpawnDiag &sd = state.world.mobs.spawner_diag( );
+            if ( sd.attempts > 0 ) {
+                ImGui::Text( "Spawn tries: %ld (no-floor %ld, headroom %ld, not-live %ld, not-owned %ld, bright %ld, floor %ld) -> %ld",
+                             sd.attempts, sd.no_floor, sd.no_headroom, sd.not_live, sd.not_owned, sd.too_bright,
+                             sd.bad_floor, sd.spawned );
+            }
+        }
         ImGui::Text( "Items: %d  Arrows: %d", debug_vars.item_entities, static_cast<int>( state.world.arrows.count( ) ) );
 
         if ( imgui_live_tune( ) ) {

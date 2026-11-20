@@ -82,6 +82,7 @@ class ChunkLoader {
     friend void light_fill_chunk( Chunk &chunk );
     friend int test_async_remesh( );
     friend int test_chunk_diff_gate( );
+    friend int test_mobs( );
 
     TerrainLoadingThread terrain_loading_thread;
     glm::ivec3 chunk_center;

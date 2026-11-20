@@ -246,6 +246,13 @@ void mp_test::dump_state( RepGameState &state, const char *tag ) {
     int owners, viewers;
     net.role_counts( &owners, &viewers );
     jput( ",\"roles\":{\"owner\":%d,\"viewer\":%d}", owners, viewers );
+    // Near-player spawner outcome tally — which gate eats the attempts.
+    {
+        const MobSpawnDiag &sd = state.world.mobs.spawner_diag( );
+        jput( ",\"spawner\":{\"attempts\":%ld,\"no_floor\":%ld,\"no_headroom\":%ld,\"not_live\":%ld,"
+              "\"not_owned\":%ld,\"too_bright\":%ld,\"bad_floor\":%ld,\"spawned\":%ld}",
+              sd.attempts, sd.no_floor, sd.no_headroom, sd.not_live, sd.not_owned, sd.too_bright, sd.bad_floor, sd.spawned );
+    }
     jput( "}" );
     jflush( );
 }

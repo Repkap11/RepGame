@@ -1697,8 +1697,8 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
     }
 }
 
-// Every 2 s: while fewer than 12 night-spawned hostiles are alive, try up to
-// 4 times to place one on a dark surface 24-44 blocks from the player.
+// Every 2 s: while under the dimension's hostile mob_cap, try up to 4
+// times to place one on a dark surface 24-44 blocks from the player.
 void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, const MobTickInput &in ) {
     if ( ++this->spawn_ticks < 2 * UPS_RATE ) {
         return;
@@ -1742,6 +1742,8 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
     std::uniform_real_distribution<double> type_roll( 0.0, 1.0 );
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     for ( int attempt = 0; attempt < 4; attempt++ ) {
+        MobSpawnDiag &diag = this->spawn_diag;
+        diag.attempts++;
         const double angle = angle_pick( this->rng );
         const double dist = dist_pick( this->rng );
         const double sx = player_feet.x + sin( angle ) * dist;
@@ -1749,29 +1751,44 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         const int bx = static_cast<int>( floor( sx ) );
         const int bz = static_cast<int>( floor( sz ) );
         int top = -1;
-        for ( int y = player_y + 16; y > player_y + 16 - 40; y-- ) {
+        bool top_found = false;
+        // Scan the column down to the despawn distance: deeper results would
+        // be culled next tick anyway (>64 blocks). Nether caverns are tall —
+        // a hovering player's ring columns often dip well past 24 below.
+        for ( int y = player_y + 16; y > player_y - 63; y-- ) {
             if ( solid_at( world, glm::ivec3( bx, y, bz ) ) ) {
                 top = y;
+                top_found = true;
                 break;
             }
         }
         // Needs a floor with two standable cells above for the mob —
-        // non-colliding and not liquid (no seabed/lava-floor spawns).
-        if ( top < 0 || !spawnable_air_at( world, glm::ivec3( bx, top + 1, bz ) ) || !spawnable_air_at( world, glm::ivec3( bx, top + 2, bz ) ) ) {
+        // non-colliding and not liquid (no seabed/lava-floor spawns). The
+        // found flag is required: the nether band sits at negative world y,
+        // so a top<0 sentinel would veto every nether floor.
+        if ( !top_found ) {
+            diag.no_floor++;
+            continue;
+        }
+        if ( !spawnable_air_at( world, glm::ivec3( bx, top + 1, bz ) ) || !spawnable_air_at( world, glm::ivec3( bx, top + 2, bz ) ) ) {
+            diag.no_headroom++;
             continue;
         }
         const glm::dvec3 feet_pos( sx, top + 1.0, sz );
         const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( feet_pos / csize ) );
         const Chunk *chunk = world.chunkLoader.get_chunk( feet_chunk );
         if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
+            diag.not_live++;
             continue;
         }
         // Multiplayer: the night spawner only places into chunks we own.
         if ( this->mp_mode && ( this->net == nullptr || !this->net->owns_chunk( feet_chunk ) ) ) {
+            diag.not_owned++;
             continue;
         }
         const glm::vec2 light = world.chunkLoader.light_sample( glm::vec3( feet_pos ) + glm::vec3( 0.0f, 0.5f, 0.0f ) );
         if ( !hostile_spawn_light_ok( light.x, light.y, daylight ) ) {
+            diag.too_bright++;
             continue;
         }
         const double roll = type_roll( this->rng ) * weight_total;
@@ -1794,14 +1811,16 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
         // A non-empty spawn_on list whitelists the floor here too — the
         // wither skeleton's nether-brick list keeps it on fortress floors.
         if ( !mob_spawn_floor_ok( mob_types[ type ], world.get_loaded_block( glm::ivec3( bx, top, bz ) ).id ) ) {
+            diag.bad_floor++;
             continue;
         }
         if ( this->spawn_any( type, feet_pos, yaw_pick( this->rng ), 0 ) ) {
             Mob &mob = this->mobs.back( );
             mob.despawnable = 1;
             this->announce_spawn( mob );
+            diag.spawned++;
             live++;
-            if ( live >= 12 ) {
+            if ( live >= profile->mob_cap ) {
                 return;
             }
         }
