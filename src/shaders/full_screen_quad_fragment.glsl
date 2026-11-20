@@ -108,6 +108,18 @@ float colorFogMultisample(ivec2 coord) {
     return fogMS;
 }
 
+// Fog attachment B = water share: how much of the fragment's fog came from
+// the submerged leg of the view ray. Picks the composite's blend target —
+// sky for air-fogged pixels, water murk for water-fogged ones.
+float waterShareMultisample(ivec2 coord) {
+    float m = 0.0;
+    for(int i = 0; i < u_TextureSamples; i++) {
+        m += texelFetch(u_FogTexture, coord, i).b;
+    }
+    m /= float(u_TextureSamples);
+    return m;
+}
+
 // The chunk shader writes 1.0 into the fog attachment's G channel for lava
 // fragments — the stencil can't tell lava from water.
 float lavaMaskMultisample(ivec2 coord) {
@@ -374,9 +386,12 @@ void main() {
         // render boundary where the horizon fog color (used in the chunk
         // shader) doesn't match the actual sky at that elevation.
         float colorBlend = clamp(pow(fogFactor, 0.5), 0.0, 1.0);
-        // Underwater the blend target is the water murk (the same depth-graded
-        // color the in-shader phase blends toward), not the sky attachment.
-        vec3 fogTarget = (u_Underwater != 0) ? u_WaterFogColor : skyColor;
+        // The blend target is the sky for air-fogged pixels and the water
+        // murk (the same depth-graded color the in-shader phase blends
+        // toward) for water-fogged ones, weighted by the fog attachment's
+        // water share — a fully submerged view reads waterShare ~1, the old
+        // u_Underwater behavior.
+        vec3 fogTarget = mix(skyColor, u_WaterFogColor, waterShareMultisample(multiCoords));
         vec3 result = mix(finalColor.rgb, fogTarget, colorBlend);
         if(u_Underwater != 0) {
             // The wash still applies so the whole view keeps the blue cast.

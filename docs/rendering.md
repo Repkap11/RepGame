@@ -46,6 +46,24 @@ is `docs/chunks.md`; the light model these tunables feed is
   capped at 38% of render distance so small render distances look
   unchanged. In dimensions without a skybox the profile's `fog_*` tint and
   range apply instead (nether: short red-brown — `docs/dimensions.md`).
+
+  Water fog splits each view ray at the sea-level plane per fragment
+  (`chunk_fragment.glsl`/`object_fragment.glsl`/`world_text_fragment.glsl`):
+  the above-surface leg fogs over the air range toward the sky average, the
+  submerged leg fogs over the short `u_WaterFog*` range toward a
+  camera-depth-graded murk (`u_WaterFogColor`), combined as independent
+  absorption. For a dry camera the submerged leg counts double — bottom
+  light crosses the column down and back. Sea-level water faces report
+  full water share when entered from above (they mark the ray's entry into
+  the medium), so the surface veil and far water target the murk rather
+  than the sky. The seabed therefore cuts off when viewed from above, and
+  above-surface terrain stays visible from underwater. The water share of
+  the total fog rides the fog attachment's B channel so the composite picks
+  the sky-vs-murk blend target per pixel; without a framebuffer (LOW) the
+  same mix happens in-shader against the sky-texture sample. Cameras below
+  the plane in air (dry caves, the nether) skip the split — the plane
+  crossing is geometric, so a view from above ground into dry
+  below-sea-level air (open shafts, ravines) still murks.
 - `REPGAME_RENDER_DISTANCE` — initial horizontal render distance in chunks
   (1..`CHUNK_RADIUS_XZ`, default `CHUNK_RADIUS_XZ_DEFAULT`; both are
 per-platform defines in `chunk_dimensions.hpp`). The chunk torus is always allocated

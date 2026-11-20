@@ -246,7 +246,7 @@ void WorldTextRenderer::append_billboard( const glm::vec3 &anchor, const glm::ve
 }
 
 void WorldTextRenderer::flush( const Renderer &renderer, const glm::mat4 &mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin, float fog_near, float fog_far, float water_fog_near, float water_fog_far,
-                               const glm::vec3 &sky_avg_color, int underwater_wash, int opaque_fog, int water_tint_type ) {
+                               const glm::vec3 &sky_avg_color, const glm::vec3 &water_fog_color, int underwater_wash, int opaque_fog, int water_tint_type ) {
     if ( !this->initialized || this->batch_quads == 0 ) {
         return;
     }
@@ -255,6 +255,7 @@ void WorldTextRenderer::flush( const Renderer &renderer, const glm::mat4 &mvp, c
     shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     shader.set_uniform3f( "u_Origin", origin.x, origin.y, origin.z );
     shader.set_uniform3f( "u_SkyAvgColor", sky_avg_color.r, sky_avg_color.g, sky_avg_color.b );
+    shader.set_uniform3f( "u_WaterFogColor", water_fog_color.r, water_fog_color.g, water_fog_color.b );
     shader.set_uniform1f( "u_FogNear", fog_near );
     shader.set_uniform1f( "u_FogFar", fog_far );
     shader.set_uniform1f( "u_WaterFogNear", water_fog_near );

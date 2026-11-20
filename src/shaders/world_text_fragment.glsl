@@ -14,6 +14,8 @@ uniform float u_WaterFogNear;
 uniform float u_WaterFogFar;
 uniform vec3 u_CameraPos;
 uniform vec3 u_SkyAvgColor;
+// Same as chunk_fragment: fog target for the submerged leg of the view ray.
+uniform vec3 u_WaterFogColor;
 uniform vec3 u_Origin;
 uniform int u_OpaqueFog;
 uniform int u_Underwater;
@@ -40,19 +42,35 @@ void main() {
     // blends toward the sky average over the first half of the fog range,
     // alpha fades over the second.
     float dist = distance(v_world_coords, u_CameraPos);
+    // Same medium-split fog as chunk_fragment: air range on the
+    // above-surface leg of the view ray, water range on the submerged leg.
+    float surfY = -0.125f - u_Origin.y;
+    float loY = min(u_CameraPos.y, v_world_coords.y);
+    float hiY = max(u_CameraPos.y, v_world_coords.y);
+    float waterPath = dist * clamp((clamp(surfY, loY, hiY) - loY) / max(hiY - loY, 0.00001f), 0.0f, 1.0f);
+    // Same gate as chunk_fragment: a camera below the sea plane in air
+    // (dry caves, the nether) isn't looking through water.
     bool cameraUnderWater = u_TintUnderWater != 0;
+    if(!cameraUnderWater && u_CameraPos.y < surfY) {
+        waterPath = 0.0f;
+    }
+    float airPath = dist - waterPath;
+    float airFogLinear = clamp((airPath - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
+    // Same two-way column as chunk_fragment: a dry camera sees light that
+    // crossed the water down and back, so the leg counts double.
+    float waterPathEff = (!cameraUnderWater && u_CameraPos.y >= surfY) ? waterPath * 2.0f : waterPath;
+    float waterFogLinear = clamp((waterPathEff - u_WaterFogNear) / (u_WaterFogFar - u_WaterFogNear), 0.0, 1.0);
+    float fogLinear = 1.0 - (1.0 - airFogLinear) * (1.0 - waterFogLinear);
+    float waterShare = waterFogLinear / max(fogLinear, 0.001);
     bool belowWater = u_TintUnderWater == 2 ||
-                      (u_TintUnderWater == 1 && v_world_coords.y < (-0.125f - u_Origin.y - 0.00001f));
-    float fogNear = cameraUnderWater ? u_WaterFogNear : u_FogNear;
-    float fogFar = cameraUnderWater ? u_WaterFogFar : u_FogFar;
-    float fogLinear = clamp((dist - fogNear) / (fogFar - fogNear), 0.0, 1.0);
+                      (u_TintUnderWater == 1 && v_world_coords.y < (surfY - 0.00001f));
     float colorFog = clamp(fogLinear / 0.5, 0.0, 1.0);
     colorFog = colorFog * colorFog * (3.0 - 2.0 * colorFog);
     float alphaFog = clamp((fogLinear - 0.5) / 0.5, 0.0, 1.0);
     alphaFog = alphaFog * alphaFog * (3.0 - 2.0 * alphaFog);
-    finalColor.rgb = mix(finalColor.rgb, u_SkyAvgColor, colorFog);
+    finalColor.rgb = mix(finalColor.rgb, mix(u_SkyAvgColor, u_WaterFogColor, waterShare), colorFog);
     if (u_OpaqueFog == 1) {
-        fogFactor = vec4(colorFog, 0.0, 0.0, alphaFog);
+        fogFactor = vec4(colorFog, 0.0, waterShare, alphaFog);
         finalColor.a = 1.0;
     } else {
         if (!belowWater) {

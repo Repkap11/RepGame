@@ -80,6 +80,9 @@ uniform float u_WaterFogNear;
 uniform float u_WaterFogFar;
 uniform vec3 u_CameraPos;
 uniform vec3 u_SkyAvgColor;
+// Fog target for the submerged leg of each view ray (depth-graded water
+// murk); u_SkyAvgColor is the target above the surface.
+uniform vec3 u_WaterFogColor;
 // Sky texture (equirect sphere map, layer 0): lets the no-framebuffer fog
 // path blend toward the actual sky color behind each fragment instead of
 // fading alpha toward an unknown backdrop.
@@ -536,17 +539,47 @@ void main() {
     // The fog color is sampled from the sky texture at the horizon in the
     // view direction, so it matches the actual sky color behind the terrain.
     float dist = distance(v_world_coords, u_CameraPos);
-    // Underwater murk: the fog range is determined by the medium the
-    // *camera* is in — with the head under water, even blocks above the
-    // surface are viewed through water and fog over the short range.
+    // Fog follows the medium each part of the view ray travels through, not
+    // the camera alone: split the camera->fragment segment at the sea-level
+    // plane, run the air range on the above-surface leg and the water range
+    // on the submerged leg. The seabed murks over when seen from above, and
+    // far above-surface terrain stays visible from underwater.
+    float surfY = -0.125f - u_Origin.y;
+    float loY = min(u_CameraPos.y, v_world_coords.y);
+    float hiY = max(u_CameraPos.y, v_world_coords.y);
+    float waterPath = dist * clamp((clamp(surfY, loY, hiY) - loY) / max(hiY - loY, eps), 0.0f, 1.0f);
+    // A camera below the plane in air (dry caves below sea level, the
+    // nether's below-plane bands) isn't looking through water — the split
+    // only applies looking down from above or from inside actual water.
     bool cameraUnderWater = u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER;
+    if(!cameraUnderWater && u_CameraPos.y < surfY) {
+        waterPath = 0.0f;
+    }
+    float airPath = dist - waterPath;
+    float airFogLinear = clamp((airPath - u_FogNear) / (u_FogFar - u_FogNear), 0.0f, 1.0f);
+    // Light from a submerged fragment crosses the water column twice for a
+    // dry camera — down from the surface, back up to the eye — so the
+    // submerged leg counts double. In water the one-way path is what the
+    // fog range was tuned for.
+    float waterPathEff = (!cameraUnderWater && u_CameraPos.y >= surfY) ? waterPath * 2.0f : waterPath;
+    float waterFogLinear = clamp((waterPathEff - u_WaterFogNear) / (u_WaterFogFar - u_WaterFogNear), 0.0f, 1.0f);
+    // Independent absorption per medium; the water share picks the blend
+    // target (sky average vs murk) here and rides to the composite in the
+    // fog attachment's B channel.
+    float fogLinear = 1.0f - (1.0f - airFogLinear) * (1.0f - waterFogLinear);
+    float waterShare = waterFogLinear / max(fogLinear, 0.001f);
+    // A sea-level water face under a dry camera is where the ray enters the
+    // medium: everything beyond it is submerged, so the pixel's fog target
+    // is the murk — the same value the seabed behind reports. The face's
+    // own geometric share is ~0 because it sits on the plane.
+    if((v_blockID == uint(TEX_WATER_STILL) || v_blockID == uint(TEX_WATER_FLOW)) &&
+       !cameraUnderWater && u_CameraPos.y >= surfY && v_world_coords.y <= surfY + eps) {
+        waterShare = 1.0f;
+    }
     // Per-fragment "below the surface" still gates the water tint and the
     // alpha-fade skip, so a straddled view keeps its waterline split.
     bool belowWater = u_TintUnderWater == TINT_UNDER_WATER_OBJECT_ALWAYS ||
-                      (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (-0.125f - u_Origin.y - eps));
-    float fogNear = cameraUnderWater ? u_WaterFogNear : u_FogNear;
-    float fogFar = cameraUnderWater ? u_WaterFogFar : u_FogFar;
-    float fogLinear = clamp((dist - fogNear) / (fogFar - fogNear), 0.0f, 1.0f);
+                      (u_TintUnderWater == TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL && v_world_coords.y < (surfY - eps));
     // Color blend: reaches 100% fog color by 50% of the fog range.
     float colorFog = clamp(fogLinear / 0.5f, 0.0f, 1.0f);
     colorFog = colorFog * colorFog * (3.0f - 2.0f * colorFog);
@@ -557,10 +590,12 @@ void main() {
     if((u_DebugFlags & 8) != 0) {
         colorFog = 0.0;
         alphaFog = 0.0;
+        waterShare = 0.0;
     }
 
-    // Use the pre-computed average sky color as the fog color.
-    vec3 dynamicFogColor = u_SkyAvgColor;
+    // Blend target: sky average for the air leg of the ray, water murk for
+    // the submerged leg, weighted by which medium supplies the fog.
+    vec3 dynamicFogColor = mix(u_SkyAvgColor, u_WaterFogColor, waterShare);
 
     // Multiply-filter mode: how much of the filter's coverage survives the
     // distance-fog alpha fade below, so far-away glass stops tinting.
@@ -581,10 +616,11 @@ void main() {
             // R carries colorFog so the water reflection overlay can apply
             // the same first-stage (sky average) blend as the surface. G
             // flags lava: the stencil marks every fluid pixel, but lava
-            // gets no reflection overlay in the water composite.
+            // gets no reflection overlay in the water composite. B is the
+            // water share so the composite picks sky vs murk per pixel.
             fogFactor = vec4(colorFog,
                              (v_blockID == uint(TEX_LAVA_STILL) || v_blockID == uint(TEX_LAVA_FLOW)) ? 1.0f : 0.0f,
-                             0.0f, alphaFog);
+                             waterShare, alphaFog);
             // Underwater fragments skip the alpha fade: it was designed to
             // dissolve terrain into the sky, but underwater the murk comes
             // from the color blend and reduced alpha reveals untinted sky /
@@ -634,7 +670,8 @@ void main() {
                 // the composite blends toward it again by sqrt(alphaFog).
                 float skyFade = 1.0f - (1.0f - alphaFog) * (1.0f - sqrt(alphaFog));
                 coverage_fade = 1.0f - skyFade;
-                finalColor.rgb = mix(finalColor.rgb, skyHere, skyFade);
+                // The submerged leg targets water murk, not the sky sample.
+                finalColor.rgb = mix(finalColor.rgb, mix(skyHere, u_WaterFogColor, waterShare), skyFade);
             } else if(u_shouldDiscardAlpha != 1.0f) {
                 // Same see-through surface as the framebuffer path, but only
                 // for translucent fragments — opaque terrain keeps alpha 1.
