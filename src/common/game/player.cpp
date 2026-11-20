@@ -473,9 +473,10 @@ void repgame_tick_vitals( RepGameState &state ) {
         }
     } else {
         // Surfacing gasp: the breath meter refills instantly, so the edge
-        // is air_ticks below max on the first dry tick.
+        // is air_ticks below max on the first dry tick. Gain scales with
+        // the fraction of the meter actually refilled.
         if ( v.air_ticks < PLAYER_AIR_MAX_TICKS ) {
-            audio_play_sfx( "breath" );
+            audio_play_sfx_gain( "breath", 0.5f * (float)( PLAYER_AIR_MAX_TICKS - v.air_ticks ) / (float)PLAYER_AIR_MAX_TICKS );
         }
         v.air_ticks = PLAYER_AIR_MAX_TICKS;
     }
