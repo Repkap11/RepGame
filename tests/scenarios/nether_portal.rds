@@ -6,7 +6,11 @@
 # PORTAL_TRAVEL_TICKS (80) trips repgame_portal_tick's dwell counter and
 # drops the player on generated nether ground; portal_pending_tick then
 # finds or builds the destination portal once the torus catches up.
-# /dimension reports the band, so assert_chat verifies each hop.
+# Linking applies the 8:1 scale: the source frame's interior centre maps
+# to the destination anchor by /8 when nether-bound and *8 when
+# overworld-bound, and the existing-portal search and the build site
+# centre on that anchor (portal_scale_coord). /dimension reports the
+# band, so assert_chat verifies each hop.
 wait_idle 20 6000
 debug 0
 imgui 0
@@ -34,7 +38,10 @@ assert_block 21 72 30 PORTAL
 assert_block 20 72 30 OBSIDIAN
 
 # Stand inside the plate. Gravity settles feet on the bottom frame row;
-# feet and body cells both land on PORTAL cells.
+# feet and body cells both land on PORTAL cells. The source centre
+# (21,72,30) maps to the nether anchor (2,3): the destination frame is
+# materialized by mapgen there (ring x 20..23, y -5825..-5821, z -20 —
+# a basalt shelf), and arrival stands the player inside the new plate.
 goto 21.5 73 30.5
 wait 120
 wait_idle 10 6000
@@ -44,19 +51,16 @@ wait 2
 signkey enter
 wait 2
 assert_chat Dimension: nether
-# The destination portal materializes around the drop point; the camera
-# sits inside or beside it — red fog, no skybox, plate in view.
+assert_pos 22.0 -5822.4 -19.5 2
+assert_block 21 -5824 -20 PORTAL
 screenshot nether_portal
 
-# Step out of the plate (must_exit releases on non-portal loaded ground),
-# then walk back in: the same nether portal must send us home — back
-# inside the ORIGINAL overworld ring, still lit. The destination frame is
-# materialized by mapgen at these nether-band coords (interior x 30-31,
-# y -5886..-5884, z 41 — a basalt shelf; the column under the drop is a
-# lava lake).
-goto 30.5 -5883.4 45.5
-wait_idle 10 6000
-goto 30.5 -5884 41.5
+# Pop up through the frame top: crossing the lintel's obsidian/AIR band
+# releases must_exit, then the player settles back inside the plate and
+# the dwell re-trips. The nether frame's centre (21,-5823,-20) maps to the
+# overworld anchor (168,-160) — outside the original portal's search box,
+# so a SECOND overworld frame is built there and we land inside it.
+goto 21.5 -5819.4 -19.5
 wait 240
 wait_idle 10 6000
 chatopen /
@@ -65,11 +69,16 @@ wait 2
 signkey enter
 wait 2
 assert_chat Dimension: overworld
-assert_pos 22.0 72.6 30.5 2
-assert_block 21 72 30 PORTAL
+# The built frame: ring x 167..170, y -10..-6, z -160, interior
+# x 168..169, y -9..-7 — ~1 block off the scaled anchor.
+assert_pos 169.0 -7.4 -159.5 2
+assert_block 168 -9 -160 PORTAL
+assert_block 167 -10 -160 OBSIDIAN
 
-# Third leg: step out of the overworld plate and re-enter — the nether
-# side must reuse the portal it already built (no second frame).
+# Third leg: back into the ORIGINAL overworld portal — the nether anchor
+# (2,3) has the leg-1 frame (at x 20..23, z -20, ~29 blocks off the
+# anchor) inside its search box, so that same nether portal is reused:
+# no new frame.
 goto 24.5 73 30.5
 wait 15
 goto 21.5 73 30.5
@@ -81,13 +90,13 @@ wait 2
 signkey enter
 wait 2
 assert_chat Dimension: nether
-# Reuses the same nether portal built on the first hop — no second frame.
-assert_pos 31.0 -5884.4 41.5 2
-assert_block 30 -5884 41 PORTAL
+# Reuses the same nether portal built on the first hop.
+assert_pos 22.0 -5822.4 -19.5 2
+assert_block 21 -5824 -20 PORTAL
 
-# Fourth leg: a nether portal far outside the search radius (x ~200 vs
-# the overworld ring at x ~21) — the destination search misses and the
-# frame is BUILT on loaded overworld terrain. The site scan must skip
+# Fourth leg: a nether portal far off the scaled anchor (x ~200 ->
+# overworld anchor x ~1600) — the destination search misses and the frame
+# is BUILT on loaded overworld terrain. The site scan must skip
 # rows outside the loaded window, so the frame lands on the real surface,
 # not the WATER_LEVEL+2 ledge embedded in rock.
 rd 2
@@ -109,13 +118,14 @@ assert_block 200 -5903 32 PORTAL
 # tunnel through the 1-block row into the cleared pocket below.
 goto 200.5 -5902 32.5
 wait 240
-# The new overworld frame must sit on the terrain surface: sill obsidian on
-# the grass at y5, portal interior above it — not the y2 ledge and not buried.
-assert_block 200 5 31 OBSIDIAN
-assert_block 200 6 31 PORTAL
-assert_block 200 7 31 PORTAL
-assert_block 200 9 31 OBSIDIAN
 wait_idle 10 6000
+# The new overworld frame sits on the terrain surface right at the scaled
+# anchor: ring x 1599..1602, y 9..13, z 256, interior x 1600..1601,
+# y 10..12 — sill obsidian on the grass, portal interior above it, not the
+# y2 ledge and not buried.
+assert_pos 1601.0 11.6 256.5 2
+assert_block 1600 11 256 PORTAL
+assert_block 1599 9 256 OBSIDIAN
 chatopen /
 type dimension
 wait 2
