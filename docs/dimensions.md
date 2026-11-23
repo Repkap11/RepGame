@@ -181,10 +181,6 @@ dimension name (`dim_name`, `dim_local_block_y`).
   player on generated overworld ground at the same x/z (the fountain
   sits at x/z 0, i.e. world spawn). The pad wait (`pending_platform`)
   just holds the player until the pad's chunk is live.
-- `/dimension [overworld|nether|end]` (`chat_commands.cpp`) is the portal-less
-  debug path: same landing-column search at unscaled x/z (top-down in
-  the End — islands hang in a void), no frame built. The spare slot and
-  same-dimension travel are refused.
 - `/nether` and `/overworld` (`portal_travel_no_build`) run the real portal
   trip minus the frame: 8:1-scaled anchor, hold-and-resolve freeze,
   early/resolve adoption of an existing PORTAL cell, pocket carve on

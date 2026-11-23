@@ -9,19 +9,19 @@
 # Linking applies the 8:1 scale: the source frame's interior centre maps
 # to the destination anchor by /8 when nether-bound and *8 when
 # overworld-bound, and the existing-portal search and the build site
-# centre on that anchor (portal_scale_coord). /dimension reports the
-# band, so assert_chat verifies each hop.
+# centre on that anchor (portal_scale_coord). /pos reports the band in
+# its dimension field, so assert_chat verifies each hop.
 wait_idle 20 6000
 debug 0
 imgui 0
 
 # Baseline: the flat test world starts in the overworld band.
 chatopen /
-type dimension
+type pos
 wait 2
 signkey enter
 wait 2
-assert_chat Dimension: overworld
+assert_chat - overworld
 
 # Stage a lit 4x5 portal: obsidian ring at x 20..23, y 70..74, z 30;
 # `ignite` runs the real portal_ignite path — it validates the ring and
@@ -46,11 +46,11 @@ goto 21.5 73 30.5
 wait 120
 wait_idle 10 6000
 chatopen /
-type dimension
+type pos
 wait 2
 signkey enter
 wait 2
-assert_chat Dimension: nether
+assert_chat - nether
 assert_pos 22.0 -5822.4 -19.5 2
 assert_block 21 -5824 -20 PORTAL
 screenshot nether_portal
@@ -64,11 +64,11 @@ goto 21.5 -5819.4 -19.5
 wait 240
 wait_idle 10 6000
 chatopen /
-type dimension
+type pos
 wait 2
 signkey enter
 wait 2
-assert_chat Dimension: overworld
+assert_chat - overworld
 # The built frame: ring x 167..170, y -10..-6, z -160, interior
 # x 168..169, y -9..-7 — ~1 block off the scaled anchor.
 assert_pos 169.0 -7.4 -159.5 2
@@ -85,11 +85,11 @@ goto 21.5 73 30.5
 wait 240
 wait_idle 10 6000
 chatopen /
-type dimension
+type pos
 wait 2
 signkey enter
 wait 2
-assert_chat Dimension: nether
+assert_chat - nether
 # Reuses the same nether portal built on the first hop.
 assert_pos 22.0 -5822.4 -19.5 2
 assert_block 21 -5824 -20 PORTAL
@@ -127,24 +127,20 @@ assert_pos 1601.0 11.6 256.5 2
 assert_block 1600 11 256 PORTAL
 assert_block 1599 9 256 OBSIDIAN
 chatopen /
-type dimension
+type pos
 wait 2
 signkey enter
 wait 2
-assert_chat Dimension: overworld
+assert_chat - overworld
 
-# Return through the command path: same landing-column search, no frame.
+# Return through the command path — already in the overworld, so
+# /overworld is a no-op error.
 chatopen /
-type dimension overworld
+type overworld
 wait 2
 signkey enter
 wait 60
-chatopen /
-type dimension
-wait 2
-signkey enter
-wait 2
-assert_chat Dimension: overworld
+assert_chat Already in the overworld
 
 # Breaking a frame block pops the adjacent PORTAL cell via the
 # survive rule, cascading the interior clear. goto first so the original

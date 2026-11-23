@@ -1745,8 +1745,8 @@ def sc_dimension(run, A, B):
     run.wait("baseline /tp moves B", lambda: dist(
         (B.dump.last_state() or {}).get("pos", [0, 0, 0]), A.pos) < 5, timeout=60)
 
-    # A travels to the nether through the /dimension portal path.
-    A.cmd("chat /dimension nether")
+    # A travels to the nether through the /nether portal path.
+    A.cmd("chat /nether")
     run.wait("A in nether band", lambda: pos_y(A) < -2000, timeout=60)
 
     # B's dimension filter removes A's avatar, while the streamed position
@@ -1765,7 +1765,7 @@ def sc_dimension(run, A, B):
              lambda: len(avatars(A)) >= 1 and len(avatars(B)) >= 1, timeout=120)
 
     # A returns; B (still in the nether) loses the avatar once more.
-    A.cmd("chat /dimension overworld")
+    A.cmd("chat /overworld")
     run.wait("A back in overworld", lambda: pos_y(A) > -2000, timeout=60)
     run.wait("B lost A's avatar again", lambda: len(avatars(B)) == 0, timeout=60)
 
@@ -1781,7 +1781,7 @@ def sc_nether_spawner(run, A, B):
     N = run.client("N", POS_A, fly=False)
     run.wait_ready(N)
     N.cmd("chat /fly on")
-    N.cmd("chat /dimension nether")
+    N.cmd("chat /nether")
     run.wait("N in nether band",
              lambda: (N.dump.last_state() or {}).get("pos", [0, 0, 0])[1] < -2000,
              timeout=180)

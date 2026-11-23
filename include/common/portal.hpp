@@ -155,9 +155,10 @@ bool portal_destination_ready( RepGameState &state, int &unmet );
 // materializes a pending destination frame once its chunks load.
 void repgame_portal_tick( RepGameState &state );
 
-// Teleport the player into `dim` at the same x/z on generated ground (the
-// /dimension command path — no 8:1 scaling, no portal built). False when
-// the destination is unreachable (spare bands, already there).
+// Teleport the player into `dim` at the same x/z on generated ground —
+// the portal-less drop used by the END_PORTAL End->overworld return
+// (no 8:1 scaling, no portal built). False when the destination is
+// unreachable (spare bands, already there).
 bool portal_travel_to_dimension( RepGameState &state, DimensionId dim );
 
 // /nether and /overworld (chat_commands.cpp): portal-style travel —

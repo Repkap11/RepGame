@@ -18,11 +18,11 @@ goto 432.5 -5845 -139.5
 wait 120
 wait_idle 10 6000
 chatopen /
-type dimension
+type pos
 wait 2
 signkey enter
 wait 2
-assert_chat Dimension: nether
+assert_chat - nether
 # Keep: floor brick under the anchor, carved hall interior above it.
 assert_block 432 -5854 -140 NETHER_BRICK
 assert_block 432 -5853 -140 AIR
