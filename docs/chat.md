@@ -59,13 +59,18 @@ as billboarded nametags (`docs/rendering.md` "World-space text"), so a
 ## Commands
 
 `/`-prefixed lines never hit the wire — `chat_commands.cpp` dispatches
-them locally and reports through INFO/ERROR log lines:
+them locally and reports through INFO/ERROR log lines. Coordinate args
+use the player-facing **display frame** for y — every dimension band
+reads overworld-like y (blocks -1984..1983), and a value outside the
+band folds back into the player's current one, so a `/tp`/`/setblock` y
+can never cross dimensions (`dim_display_block_y`/`dim_encode_block_y`,
+`docs/dimensions.md`):
 
 | Command | Does |
 |---|---|
 | `/help [command]` | List commands, or one command's usage |
 | `/clear` | Empty the log |
-| `/pos` | Feet position, dimension name, block, chunk, facing |
+| `/pos` | Feet position, dimension name, block, chunk, facing — y fields in the display frame |
 | `/tp <x> <y> <z>` | Teleport feet to coords (`~` keeps current); `/tp <player>` goes to a remote avatar — works across dimension bands since the streamed position is kept even when the avatar is hidden. Zeroes velocity/fall state |
 | `/nether` / `/overworld` | Portal-style travel (8:1-scaled anchor, holds for chunks, adopts an existing exit portal) but never builds a destination frame — lands on generated ground |
 | `/repheim` | Travel to repheim (the new-terrain overworld band) — portal-less landing path (`docs/dimensions.md`) |

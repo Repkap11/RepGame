@@ -191,7 +191,10 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         ImGui::Begin( "RepGame", nullptr, windowFlags );
         const FrameTimeStats::Summary &fps = frame_stats.summary( );
         ImGui::Text( "FPS avg:%5.1f  1%%:%5.1f  0.1%%:%5.1f  (%6.2f ms)", fps.avg_fps, fps.low1_fps, fps.low01_fps, fps.avg_ms );
-        ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x, debug_vars.player_pos.y, debug_vars.player_pos.z );
+        // The y coordinate reads in the display frame (overworld-like) so the
+        // dimension band encoding stays invisible to the player.
+        ImGui::Text( "Player Pos: %9.1f %9.1f %9.1f", debug_vars.player_pos.x,
+                     dim_display_block_y( static_cast<double>( debug_vars.player_pos.y ) ), debug_vars.player_pos.z );
         {
             const DimensionId pdim = dimension_of_pos( debug_vars.player_pos );
             ImGui::Text( "Dimension: %s (local y %d)", dim_name( pdim ), dim_local_block_y( static_cast<int>( debug_vars.player_pos.y ) ) );

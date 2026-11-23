@@ -92,11 +92,19 @@ static std::string chat_tail( const std::vector<std::string> &args, const size_t
 }
 
 // Three position args starting at `i` -> block coords, '~'-relative to
-// the feet position.
+// the feet position. Y is player-facing: commands take the display frame
+// (every dimension reads overworld-like y) and the result folds back into
+// the player's current band, so a coordinate can never cross dimensions.
 static bool chat_parse_pos3( RepGameState &state, const std::vector<std::string> &args, const size_t i, glm::dvec3 &out ) {
     const glm::dvec3 feet = chat_feet( state );
-    return chat_parse_coord( args[ i ], feet.x, out.x ) && chat_parse_coord( args[ i + 1 ], feet.y, out.y ) &&
-           chat_parse_coord( args[ i + 2 ], feet.z, out.z );
+    const DimensionId dim = dimension_of_pos( feet );
+    const bool ok = chat_parse_coord( args[ i ], feet.x, out.x ) &&
+                    chat_parse_coord( args[ i + 1 ], dim_display_block_y( feet.y ), out.y ) &&
+                    chat_parse_coord( args[ i + 2 ], feet.z, out.z );
+    if ( ok ) {
+        out.y = dim_encode_block_y( dim, out.y );
+    }
+    return ok;
 }
 
 // ---- handlers -----------------------------------------------------------
@@ -160,9 +168,11 @@ static void cmd_pos( RepGameState &state, const std::vector<std::string> &args )
     static const char *dirs[ 8 ] = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" };
     const char *facing = dirs[ static_cast<int>( floorf( ( yaw + 22.5f ) / 45.0f ) ) % 8 ];
     char buf[ 192 ];
+    // Y reports in the display frame (overworld-like) — the band encoding
+    // stays invisible in chat output.
     snprintf( buf, sizeof( buf ), "pos %.1f %.1f %.1f - %s y%d, block %d %d %d, chunk %d %d %d, facing %s (yaw %.0f)",
-              feet.x, feet.y, feet.z, dim_name( dim ), dim_local_block_y( block.y ), block.x, block.y, block.z, chunk.x,
-              chunk.y, chunk.z, facing, yaw );
+              feet.x, dim_display_block_y( feet.y ), feet.z, dim_name( dim ), dim_display_block_y( block.y ), block.x,
+              dim_display_block_y( block.y ), block.z, chunk.x, dim_display_chunk_y( chunk.y ), chunk.z, facing, yaw );
     chat_info( state, buf );
 }
 
