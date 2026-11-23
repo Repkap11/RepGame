@@ -32,16 +32,16 @@ int test_dimension( ) {
         }
     };
     // Marks CHUNK_LIVE every chunk overlapping the pending-travel search
-    // box (src_center +- PORTAL_SEARCH_R on x/z, the dim band's full y
+    // box (dst_center +- PORTAL_SEARCH_R on x/z, the dim band's full y
     // span) inside the active window — portal_destination_ready's whole
     // requirement. `skip` leaves one chunk non-live; returns the count.
-    auto live_search_box = [ & ]( World &world, const glm::ivec3 &src_center, DimensionId dim, const glm::ivec3 *skip ) {
+    auto live_search_box = [ & ]( World &world, const glm::ivec3 &dst_center, DimensionId dim, const glm::ivec3 *skip ) {
         ChunkLoader &cl = world.chunkLoader;
         const int y_min = dim == DIM_NETHER ? DIM_BY_MIN_N : DIM_BY_MIN_O;
         const int y_max = dim == DIM_NETHER ? DIM_BY_MAX_N : DIM_BY_MAX_O;
         const glm::ivec3 cs( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-        const glm::ivec3 cmin = glm::floor( glm::vec3( src_center.x - PORTAL_SEARCH_R, y_min, src_center.z - PORTAL_SEARCH_R ) / glm::vec3( cs ) );
-        const glm::ivec3 cmax = glm::floor( glm::vec3( src_center.x + PORTAL_SEARCH_R, y_max, src_center.z + PORTAL_SEARCH_R ) / glm::vec3( cs ) );
+        const glm::ivec3 cmin = glm::floor( glm::vec3( dst_center.x - PORTAL_SEARCH_R, y_min, dst_center.z - PORTAL_SEARCH_R ) / glm::vec3( cs ) );
+        const glm::ivec3 cmax = glm::floor( glm::vec3( dst_center.x + PORTAL_SEARCH_R, y_max, dst_center.z + PORTAL_SEARCH_R ) / glm::vec3( cs ) );
         int n = 0;
         for ( int cy = cmin.y; cy <= cmax.y; cy++ ) {
             for ( int cx = cmin.x; cx <= cmax.x; cx++ ) {
@@ -58,8 +58,8 @@ int test_dimension( ) {
         return n;
     };
     // A pending travel aimed at `dim`, held at hold_feet with the search
-    // centred on src_center — the state portal_travel leaves behind.
-    auto stage_pending = [ & ]( RepGameState &gs, DimensionId dim, const glm::dvec3 &hold_feet, const glm::ivec3 &src_center ) {
+    // centred on dst_center — the state portal_travel leaves behind.
+    auto stage_pending = [ & ]( RepGameState &gs, DimensionId dim, const glm::dvec3 &hold_feet, const glm::ivec3 &dst_center ) {
         PortalState &p = gs.portal;
         p.must_exit = 1;
         p.pending_build = 1;
@@ -68,7 +68,7 @@ int test_dimension( ) {
         p.pending_h = 3;
         p.pending_dim = dim;
         p.hold_feet = hold_feet;
-        p.src_center = src_center;
+        p.dst_center = dst_center;
         p.pending_start_tick = gs.tick_number;
         p.pending_diff_snap = 0;
         p.pending_wait_logged = 0;
@@ -383,7 +383,7 @@ int test_dimension( ) {
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
         gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 4.5, 10.4, 6.5 ), glm::ivec3( 4, 10, 6 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         repgame_portal_tick( gs );
         const glm::dvec3 feet = feet_of( gs );
         check_bool( "arrival inside the plate", floor( feet.x ) == 4 && floor( feet.z ) == 6 && feet.y == 9.0 );
@@ -414,6 +414,9 @@ int test_dimension( ) {
             repgame_portal_tick( gs );
         }
         check_bool( "dwell travelled to nether", dimension_of_pos( gs.camera.pos ) == DIM_NETHER );
+        // The 8:1 scale: the ring's centre (x 4, z 6) maps to (0, 0) in the
+        // nether — floor division toward -inf, not truncation.
+        check_bool( "destination x/z scaled by 8", gs.portal.dst_center.x == 0 && gs.portal.dst_center.z == 0 );
         check_bool( "destination copies axis", gs.portal.pending_axis == 1 );
         check_bool( "destination copies size", gs.portal.pending_w == 3 && gs.portal.pending_h == 5 );
         check_bool( "arrival sets must_exit", gs.portal.must_exit == 1 && gs.portal.pending_build == 1 );
@@ -423,6 +426,35 @@ int test_dimension( ) {
         repgame_portal_tick( gs );
         check_bool( "unloaded cells keep must_exit", gs.portal.must_exit == 1 );
         check_bool( "unloaded cells keep pending build", gs.portal.pending_build == 1 );
+    }
+
+    // ---- Nether -> overworld travel multiplies x/z by 8 ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        // Same 3x5 z-facing ring shape, staged in the nether band — the
+        // covering chunk must be live with cells for the writes to land.
+        const int ny = DIM_BY_MIN_N + 300;
+        make_chunk_live( world, glm::ivec3( glm::floor( glm::vec3( 4, ny, 6 ) / glm::vec3( CHUNK_SIZE_I ) ) ), 1 );
+        for ( int dz = 4; dz <= 8; dz++ ) {
+            for ( int dy = ny; dy <= ny + 6; dy++ ) {
+                const bool edge = dz == 4 || dz == 8 || dy == ny || dy == ny + 6;
+                if ( edge ) {
+                    world.set_loaded_block( glm::ivec3( 4, dy, dz ), { OBSIDIAN, 0, 0, OBSIDIAN, 0 } );
+                }
+            }
+        }
+        check_bool( "nether ring ignites", portal_ignite( gs, glm::ivec3( 4, ny + 2, 6 ) ) );
+        gs.camera.pos = glm::dvec3( 4.5, ny + 2.4 + PLAYER_EYE_HEIGHT, 6.5 );
+        for ( int i = 0; i < PORTAL_TRAVEL_TICKS + 2; i++ ) {
+            repgame_portal_tick( gs );
+        }
+        check_bool( "dwell travelled to overworld", dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD );
+        // Centre x 4, z 6 in the nether -> x 32, z 48 in the overworld.
+        check_bool( "overworld x/z scaled by 8", gs.portal.dst_center.x == 32 && gs.portal.dst_center.z == 48 );
     }
 
     // ---- /dimension travel: same x/z, lands in the band ----
@@ -457,7 +489,7 @@ int test_dimension( ) {
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
         // Every in-window box chunk live except (1,0,1).
         const glm::ivec3 missing( 1, 0, 1 );
-        const int n_live = live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, &missing );
+        const int n_live = live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, &missing );
         check_bool( "gate: search box covered by test", n_live >= 80 );
         // Drift the camera — the freeze must re-snap it back to the hold.
         gs.camera.pos = glm::dvec3( 30.0, 60.0, 30.0 );
@@ -483,7 +515,7 @@ int test_dimension( ) {
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
         gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         // Window still centred elsewhere (right after a hop it holds the
         // old dimension's centre).
         gs.world.chunkLoader.chunk_center = glm::ivec3( 0, -60, 0 );
@@ -496,7 +528,7 @@ int test_dimension( ) {
     }
 
     // ---- Far existing portal is found (not re-built) ----
-    // A lit frame ~50 blocks from src_center and >40 above the hold y —
+    // A lit frame ~50 blocks from dst_center and >40 above the hold y —
     // the old ±48/±40 drop-centred box would have missed it.
     {
         RepGameState &gs = *new RepGameState( );
@@ -516,7 +548,7 @@ int test_dimension( ) {
         }
         world.set_loaded_block( glm::ivec3( 10, 7, 10 ), { STONE, 0, 0, STONE, 0 } );
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 5, 10, 5 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         repgame_portal_tick( gs );
         const glm::dvec3 feet = feet_of( gs );
         check_bool( "far portal: resolved", gs.portal.pending_build == 0 );
@@ -561,7 +593,7 @@ int test_dimension( ) {
             world.set_loaded_block( glm::ivec3( 12, dy, 10 ), { OBSIDIAN, 0, 0, OBSIDIAN, 0 } );
         }
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 6.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         repgame_portal_tick( gs );
         check_bool( "veto: resolved", gs.portal.pending_build == 0 );
         check_bool( "veto: planted ring untouched", world.get_loaded_block( glm::ivec3( 10, 9, 10 ) ).id == OBSIDIAN &&
@@ -600,7 +632,7 @@ int test_dimension( ) {
             }
         }
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 11.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         repgame_portal_tick( gs );
         check_bool( "surface scan: resolved once box is live", gs.portal.pending_build == 0 );
         // Pass A must land on the loaded floor: sill row at y=10, portal
@@ -622,7 +654,7 @@ int test_dimension( ) {
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
         gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         gs.multiplayer.active = true;
         gs.multiplayer.diff_boxes_sent = 5;
         gs.multiplayer.diff_boxes_done = 3;
@@ -652,7 +684,7 @@ int test_dimension( ) {
         gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
         world.set_loaded_block( glm::ivec3( 10, 7, 10 ), { STONE, 0, 0, STONE, 0 } );
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         gs.multiplayer.active = true;
         gs.multiplayer.diff_boxes_sent = 5;
         gs.multiplayer.diff_boxes_done = 3;
@@ -664,7 +696,7 @@ int test_dimension( ) {
         // Reconnect resets both counters — sent below the old target must
         // re-snapshot or the gate could never pass.
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         gs.multiplayer.active = true;
         gs.multiplayer.diff_boxes_sent = 9;
         gs.multiplayer.diff_boxes_done = 6;
@@ -703,7 +735,7 @@ int test_dimension( ) {
         check_bool( "give-up: pending cleared", gs.portal.pending_build == 0 );
         check_bool( "give-up: feet at hold", glm::distance( feet_of( gs ), glm::dvec3( 10.5, 8.0, 10.5 ) ) < 0.001 );
         // A wrongly-built frame would land inside the ±24 site spiral of
-        // src_center or on the ledge — all covered by this window.
+        // dst_center or on the ledge — all covered by this window.
         bool stray = false;
         for ( int x = -20; x <= 40 && !stray; x++ ) {
             for ( int y = -5; y <= 25 && !stray; y++ ) {
@@ -733,7 +765,7 @@ int test_dimension( ) {
             }
         }
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 5, 10, 5 ) );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, nullptr );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
         // MP diffs outstanding keep the gate unmet until the hard cap.
         gs.multiplayer.active = true;
         gs.multiplayer.diff_boxes_sent = 4;
@@ -770,7 +802,7 @@ int test_dimension( ) {
         stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 8.0, 10.5 ), glm::ivec3( 5, 10, 5 ) );
         // One in-window box chunk still missing -> the gate stays unmet.
         const glm::ivec3 missing( 1, 0, 1 );
-        live_search_box( world, gs.portal.src_center, DIM_OVERWORLD, &missing );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, &missing );
         // Land exactly on a scan tick so the wait's periodic adopt runs.
         gs.portal.pending_start_tick = gs.tick_number - PORTAL_ADOPT_SCAN_TICKS;
         repgame_portal_tick( gs );

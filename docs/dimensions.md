@@ -16,8 +16,10 @@ The overworld band is centered on y=0 so existing saves stay in slot 0.
 Everything keyed on `ivec3 chunk_pos` — chunk files, block updates, entity
 sync, the server — works unchanged; band separation (≈4000 blocks) is far
 wider than the vertical load radius, so a torus never straddles two bands.
-There is deliberately **no 8:1 coordinate compression**: portal travel keeps
-x/z.
+Portal travel applies Minecraft's **8:1 coordinate compression** — one block
+in the nether is eight in the overworld: a source portal's x/z maps to the
+destination anchor by /8 when nether-bound and *8 when overworld-bound
+(`PORTAL_COORD_SCALE`, `portal_scale_coord`).
 
 All helpers live in `include/common/dimension.hpp`:
 `dimension_of_chunk/block_y/pos`, `dim_local_*` (band-local y),
@@ -109,14 +111,15 @@ dimension name (`dim_name`, `dim_local_block_y`).
   horizontal directions and vertically — breaking any frame block pops
   the adjacent cell, cascading through the whole interior.
 - **Travel**: `repgame_portal_tick` counts `PORTAL_TRAVEL_TICKS` (80)
-  inside a portal, then `portal_travel` records the source frame's
-  interior centre (`src_center`), drops the player on generated ground
-  in the other band (`hold_feet`), and freezes them there — each
+  inside a portal, then `portal_travel` scales the source frame's
+  interior centre x/z by the 8:1 ratio into the destination anchor
+  (`dst_center`), drops the player on generated ground near it
+  (`hold_feet`), and freezes them there — each
   pending tick re-snaps position and zeroes velocity until the
   destination resolves.
 - **Readiness** (`portal_destination_ready`): the resolve waits for
   (1) the loader window to reach the hold chunk, (2) every chunk
-  overlapping the search box (src_center x/z ± `PORTAL_SEARCH_R`, full
+  overlapping the search box (dst_center x/z ± `PORTAL_SEARCH_R`, full
   destination y band) inside the *active* window to be `CHUNK_LIVE`, and
   (3) in multiplayer, `CHUNK_DIFF_DONE` confirmation of every diff box
   sent when the gate first passed (a snapshot — new requests can't
@@ -138,9 +141,9 @@ dimension name (`dim_name`, `dim_local_block_y`).
   visible snap from the predicted site to the real portal. A nearer
   portal in a still-unsettled chunk can still win at resolve.
 - **Resolve**: `portal_find_nearest` scans the box's live chunks for the
-  closest existing PORTAL cell (horizontal distance to src_center, |dy|
+  closest existing PORTAL cell (horizontal distance to dst_center, |dy|
   tie-break) and the player is stood inside its plate; otherwise the
-  build site is picked from the *loaded* world (spiral from src_center,
+  build site is picked from the *loaded* world (spiral from dst_center,
   not the hold point) and any candidate whose clearance volume —
   u in [-2, w+1], v in [-3, 3], y in [0, h+2] — holds PORTAL/OBSIDIAN/
   BEDROCK is vetoed, so a new frame never overlaps or carves into an
@@ -151,8 +154,8 @@ dimension name (`dim_name`, `dim_local_block_y`).
 - **Carve**: `portal_carve_pocket` still opens a pocket around embedded
   sites, but never writes over PORTAL, OBSIDIAN or BEDROCK.
 - `/dimension [overworld|nether]` (`chat_commands.cpp`) is the portal-less
-  debug path: same landing-column search, no frame built. Spare slots and
-  same-dimension travel are refused.
+  debug path: same landing-column search at unscaled x/z, no frame built.
+  Spare slots and same-dimension travel are refused.
 
 ## Rules
 
