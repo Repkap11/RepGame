@@ -211,8 +211,12 @@ dimension name (`dim_name`) with y in the display frame.
   just holds the player until the pad's chunk is live.
 - `/repheim` (`chat_commands.cpp`) is the portal-less debug path to the
   repheim band: the same landing-column search at unscaled x/z, no frame
-  built. The scan window is the overworld's [-90, 300] shifted into the
-  wrapped band's upper half, so below-sea floors fall back to the ledge.
+  built. The scan runs the overworld's [-90, 300] window in the rep
+  frame — `portal_scan_block_y` maps each row through
+  `repheim_encoded_block_y` — so below-sea floors (encoded in the band's
+  wrapped HI half) are reachable. Likewise `portal_band_span` returns the
+  wrapping span for repheim and its consumers filter chunks to the band,
+  since no single contiguous encoded range covers it.
 - `/nether` and `/overworld` (`portal_travel_no_build`) run the real portal
   trip minus the frame: 8:1-scaled anchor, hold-and-resolve freeze,
   early/resolve adoption of an existing PORTAL cell, pocket carve on

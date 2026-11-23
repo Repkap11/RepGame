@@ -27,9 +27,19 @@ static BlockID portal_site_block( World *world, const int x, const int y, const 
     return world ? world->get_loaded_block( glm::ivec3( x, y, z ) ).id : MapGen::gen_block_id( x, y, z );
 }
 
+// Scan-frame y -> encoded block y. The repheim band wraps the signed
+// chunk-y field, so its scan bounds are rep-frame values ([-90,300] —
+// rep frame 0 is sea level) that must be mapped row by row: rep [0,300]
+// encodes [-7936,-7636] and rep [-90,-1] encodes [7846,7935]. Every other
+// dimension's scan frame is the encoded block y itself.
+static int portal_scan_block_y( const DimensionId dim, const int sy ) {
+    return dim == DIM_REPHEIM ? repheim_encoded_block_y( sy ) : sy;
+}
+
 // The band's landing-scan y range plus the open-void ledge height — inside
 // the nether cavern (below the roof base, over the lava sea) or the
-// overworld's terrain band (mountain cap to lava layer).
+// overworld's terrain band (mountain cap to lava layer). y_top/y_bottom are
+// scan-frame values (see portal_scan_block_y); ledge_y is an encoded block y.
 static void portal_band_bounds( const DimensionId dim, int &y_top, int &y_bottom, int &ledge_y ) {
     if ( dim == DIM_NETHER ) {
         // Scan the open cavern: from just over the lava sea up to a hair
@@ -44,12 +54,11 @@ static void portal_band_bounds( const DimensionId dim, int &y_top, int &y_bottom
         y_bottom = DIM_BY_MIN_E + MGE_SCAN_BOT;
         ledge_y = DIM_BY_MIN_E + MGE_PAD_Y;
     } else if ( dim == DIM_REPHEIM ) {
-        // The overworld scan window in the rep frame, shifted into the
-        // band's wrapped top half: rep frame [sea level, 300] is encoded
-        // [-7936, -7636]. Below-sea floors (rep frame < 0) sit in the other
-        // half and are out of reach — deep-ocean columns get the ledge.
-        y_top = DIM_BY_MIN_3_LO + 300;
-        y_bottom = DIM_BY_MIN_3_LO;
+        // The overworld's terrain window in the rep frame — including the
+        // below-sea half (ocean floors), which the wrapped band encodes
+        // in [7846,7935]. The ledge floats at sea level.
+        y_top = 300;
+        y_bottom = -90;
         ledge_y = DIM_BY_MIN_3_LO + WATER_LEVEL + 2;
     } else {
         y_top = 300;
@@ -60,6 +69,8 @@ static void portal_band_bounds( const DimensionId dim, int &y_top, int &y_bottom
 
 // The full block-y span of a dimension band — the existing-portal search
 // box's y extent (a shelf far above/below the drop can hold the exit).
+// The repheim band's two encoded halves aren't one contiguous range, so it
+// returns the wrapping span instead — consumers filter chunks to the band.
 static void portal_band_span( const DimensionId dim, int &y_min, int &y_max ) {
     if ( dim == DIM_NETHER ) {
         y_min = DIM_BY_MIN_N;
@@ -67,6 +78,9 @@ static void portal_band_span( const DimensionId dim, int &y_min, int &y_max ) {
     } else if ( dim == DIM_END ) {
         y_min = DIM_BY_MIN_E;
         y_max = DIM_BY_MAX_E;
+    } else if ( dim == DIM_REPHEIM ) {
+        y_min = DIM_BY_MIN_3_LO;
+        y_max = DIM_BY_MAX_3_HI;
     } else {
         y_min = DIM_BY_MIN_O;
         y_max = DIM_BY_MAX_O;
@@ -101,7 +115,8 @@ static bool portal_clearance_ok( World &world, const glm::ivec3 &origin, const i
 static bool portal_column_try( const DimensionId dim, const int x, const int z, const glm::ivec3 &du, const int w, const int h, int &floor_y, World *world ) {
     int y_top, y_bottom, ledge_y;
     portal_band_bounds( dim, y_top, y_bottom, ledge_y );
-    for ( int y = y_top; y >= y_bottom; y-- ) {
+    for ( int sy = y_top; sy >= y_bottom; sy-- ) {
+        const int y = portal_scan_block_y( dim, sy );
         // Unloaded cells are "unknown at this y", not "no site": the
         // overworld scan range is wider than the loaded window, so a
         // LAST_BLOCK_ID just skips the row — it must not poison the
@@ -143,7 +158,8 @@ static bool portal_column_surface( const DimensionId dim, const int x, const int
     portal_band_bounds( dim, y_top, y_bottom, ledge_y );
     const bool top_down = dim == DIM_END;
     for ( int d = 0; d <= y_top - y_bottom; d++ ) {
-        const int y = top_down ? y_top - d : y_bottom + d;
+        const int sy = top_down ? y_top - d : y_bottom + d;
+        const int y = portal_scan_block_y( dim, sy );
         const BlockID id = portal_site_block( world, x, y, z );
         if ( id == LAST_BLOCK_ID ) {
             continue; // skip unknown rows — same rule as portal_column_try
@@ -153,7 +169,9 @@ static bool portal_column_surface( const DimensionId dim, const int x, const int
         }
         // A solid cell on the far side of an unloaded one is the window's
         // edge, not a real floor — demand the approach-side cell is known.
-        if ( world != nullptr && portal_site_block( world, x, y + ( top_down ? 1 : -1 ), z ) == LAST_BLOCK_ID ) {
+        // (approach cell is also scan-frame mapped: repheim's -1/0 seam is
+        // encoded 7935/-7936, not adjacent in encoded space.)
+        if ( world != nullptr && portal_site_block( world, x, portal_scan_block_y( dim, sy + ( top_down ? 1 : -1 ) ), z ) == LAST_BLOCK_ID ) {
             continue;
         }
         floor_y = y;
@@ -357,6 +375,11 @@ bool portal_destination_ready( RepGameState &state, int &unmet ) {
     const glm::ivec3 cmin = glm::floor( glm::vec3( p.dst_center.x - PORTAL_SEARCH_R, y_min, p.dst_center.z - PORTAL_SEARCH_R ) / glm::vec3( cs ) );
     const glm::ivec3 cmax = glm::floor( glm::vec3( p.dst_center.x + PORTAL_SEARCH_R, y_max, p.dst_center.z + PORTAL_SEARCH_R ) / glm::vec3( cs ) );
     for ( int cy = cmin.y; cy <= cmax.y; cy++ ) {
+        // The repheim span wraps the whole torus — skip other bands' chunks
+        // (harmless one-liner for the contiguous bands too).
+        if ( dimension_of_chunk( cy ) != static_cast<DimensionId>( p.pending_dim ) ) {
+            continue;
+        }
         for ( int cx = cmin.x; cx <= cmax.x; cx++ ) {
             for ( int cz = cmin.z; cz <= cmax.z; cz++ ) {
                 const glm::ivec3 cp( cx, cy, cz );
@@ -404,7 +427,7 @@ static bool portal_try_adopt( RepGameState &state, const bool quiet_miss ) {
     const glm::ivec3 search_center( p.dst_center.x, static_cast<int>( floor( p.hold_feet.y ) ), p.dst_center.z );
     const auto t0 = std::chrono::steady_clock::now( );
     glm::ivec3 found;
-    const bool have_portal = portal_find_nearest( state.world, search_center, y_min, y_max, found );
+    const bool have_portal = portal_find_nearest( state.world, static_cast<DimensionId>( p.pending_dim ), search_center, y_min, y_max, found );
     const long long search_us = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now( ) - t0 ).count( );
     if ( have_portal || !quiet_miss ) {
         pr_debug( "portal search: %lld us (%s)", search_us, have_portal ? "found" : "missed" );
