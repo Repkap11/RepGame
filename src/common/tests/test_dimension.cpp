@@ -640,7 +640,7 @@ int test_dimension( ) {
         gs.tick_number = 0;
         gs.camera.pos = glm::dvec3( 64.5, 80.0, 40.5 );
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
-        check_bool( "no_build: spare refused", !portal_travel_no_build( gs, DIM_SPARE_2 ) );
+        check_bool( "no_build: spare refused", !portal_travel_no_build( gs, DIM_SPARE_3 ) );
         check_bool( "no_build: same-dimension refused", !portal_travel_no_build( gs, DIM_OVERWORLD ) );
         check_bool( "no_build: nether travel lands", portal_travel_no_build( gs, DIM_NETHER ) );
         check_bool( "no_build: anchor x/z scaled /8", gs.portal.dst_center.x == 8 && gs.portal.dst_center.z == 5 );
