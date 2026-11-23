@@ -254,9 +254,28 @@ glass covers water pixels. Weighted-blended OIT would be the full fix.
 
 Since translucent faces no longer write depth, water emits no faces
 against translucent neighbours (`liquid_boundary` in
-`include/common/mesh_vis_logic.hpp`) — otherwise the coplanar water quad
-shows through the glass (`tests/scenarios/glass_in_water.rds`). This
-includes the water top face under glass at the surface.
+`include/common/mesh_vis_logic.hpp` and its CPU twin
+`fluid_face_vis_mask` in `chunk_mesh.cpp`): a face there would draw in
+the water pass, then the glass's own alpha would halve it, and a
+dry-backed wall would read as dry — unlike opaque-order `GLASS`, whose
+water boundary shows at full strength through the texture's discarded
+pixels.
+
+The replacement is a "film" — a copy of the face in the
+`RenderOrder_Transparent` bucket, never used by meshed blocks — which
+`World::draw` renders as its own pass after Translucent with the water
+uniforms, blending the water over the glass exactly like the
+regular-glass composite (`emit_boundary_films` in `chunk_mesh.cpp`; the
+bucket shares the water cube/IB in `chunk_render.cpp`). The film sits
+exactly on the boundary plane and the film call uses `GL_LEQUAL` so it
+still draws over the glass in blend modes that write translucent depth,
+and it stays single-sided — from the water side you still see through a
+submerged glass wall into the air pocket. Every would-be-visible face
+gets a film: a dry-backed wall or ceiling shows the water
+(`tests/scenarios/glass_room_water.rds`, `glass_wall_water.rds`), and a
+block with water on both sides shows the boundary surface through the
+glass like regular glass does
+(`tests/scenarios/glass_in_water.rds`).
 
 Water (`RenderOrder_Water`) still writes depth in every mode: the depth
 snapshot taken after the water pass feeds the X_HIGH water composite/SSR in

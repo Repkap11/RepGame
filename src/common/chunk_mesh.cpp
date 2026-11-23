@@ -138,22 +138,41 @@ static unsigned int fluid_pack_corners( const BlockCell *cells, int x, int y, in
 // lava carry no_light = NO_LIGHT_BRIGHT, so phase 1 can't encode a hidden
 // face; recomputing here (CPU-only, over the same halo cells) keeps the
 // HIP/WGSL path correct too.
-static unsigned int fluid_face_vis_mask( const BlockCell *cells, const GPUBlockDef *defs, int x, int y, int z, const BlockID fluid ) {
+static unsigned int fluid_face_vis_mask( const BlockCell *cells, const GPUBlockDef *defs, int x, int y, int z, const BlockID fluid, unsigned int *boundary_out = nullptr ) {
     unsigned int vis = 0;
+    unsigned int boundary = 0;
     for ( int face = FACE_TOP; face < NUM_FACES_IN_CUBE; face++ ) {
         const BlockCell nc = cells[ Chunk::get_index_from_coords( x + FACE_DIR_X_OFFSETS[ face ], y + FACE_DIR_Y_OFFSETS[ face ], z + FACE_DIR_Z_OFFSETS[ face ] ) ];
         const BlockID nid = block_cell_id( nc );
         const int nrot = block_cell_rotation( nc );
         const GPUBlockDef &ndef = defs[ nid ];
-        const int liquid_boundary = block_cell_waterlogged( nc ) != 0 || ndef.renderOrder == RenderOrder_Translucent;
+        // Waterlogged cells count as water, and translucent neighbours
+        // (stained glass, ice, ...) always hide the water-pass face — the
+        // same liquid_boundary rule as mesh_vis_logic.hpp. The translucent
+        // pass draws over the water pass, so a face emitted there would be
+        // halved by the glass alpha; every face that would be emitted is
+        // re-emitted as a post-translucent "film" instead
+        // (emit_boundary_films), matching what opaque-order glass shows —
+        // including when water sits on both sides of the glass.
+        int liquid_boundary = block_cell_waterlogged( nc ) != 0;
+        const bool translucent = ndef.renderOrder == RenderOrder_Translucent;
+        liquid_boundary |= translucent;
         int face_vis;
+        int film_vis;
         if ( face == FACE_TOP ) {
             face_vis = nid != fluid && !liquid_boundary;
+            film_vis = nid != fluid && translucent;
         } else {
             const int opposing_face = OPPOSITE_FACE[ mesh_rotated_face( face, nrot ) ];
-            face_vis = mesh_face_seethrough( ndef, block_cell_powered( nc ), nrot, opposing_face ) != 0 && nid != fluid && !liquid_boundary;
+            const int see_through = mesh_face_seethrough( ndef, block_cell_powered( nc ), nrot, opposing_face ) != 0 && nid != fluid;
+            face_vis = see_through && !liquid_boundary;
+            film_vis = see_through && translucent;
         }
         vis |= static_cast<unsigned int>( face_vis != 0 ) << face;
+        boundary |= static_cast<unsigned int>( film_vis != 0 ) << face;
+    }
+    if ( boundary_out != nullptr ) {
+        *boundary_out = boundary;
     }
     return vis;
 }
@@ -429,6 +448,62 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
     profiling_mesh_vis_light_us.fetch_add( t_phase1, std::memory_order_relaxed );
     t_ph1 = now_us( );
 #endif
+    // Water-boundary films: a fluid face against a translucent block is
+    // culled from the water pass (liquid_boundary) — the glass pass would
+    // halve it with its own alpha and the view would read as dry, unlike
+    // the same face against opaque-order glass (which keeps the water
+    // visible through the texture's discarded pixels). The replacement is
+    // a copy in the order-0 bucket — meshed terrain never uses it — which
+    // world.cpp draws after the translucent pass so the water composites
+    // over the glass, exactly like the regular-glass boundary. The copy
+    // sits exactly on the boundary plane — the film draw in world.cpp
+    // uses GL_LEQUAL so it still wins against the glass's own depth in
+    // blend modes that write translucent depth. Every would-be-visible
+    // face gets a film — water on both sides of a pane shows the
+    // boundary surface through it, same as regular glass.
+    Block *water_block = block_definition_get_definition( WATER );
+    auto emit_boundary_films = [ & ]( int x, int y, int z, unsigned int boundary, unsigned int corners ) {
+        const bool fluid_flat = corners == FLUID_CORNERS_FLAT;
+        for ( int f = FACE_TOP; f < NUM_FACES_IN_CUBE; f++ ) {
+            if ( !( boundary & ( 1u << f ) ) ) {
+                continue;
+            }
+            ensure_capacity( RenderOrder_Transparent, 1 );
+            if ( num_instances[ RenderOrder_Transparent ] + 1 > capacity[ RenderOrder_Transparent ] ) {
+                break; // OOM
+            }
+            BlockCoords *film = &emit_buf[ RenderOrder_Transparent ][ num_instances[ RenderOrder_Transparent ] ];
+            num_instances[ RenderOrder_Transparent ] += 1;
+            film->x = chunk_pos.x * CHUNK_SIZE_X + x;
+            film->y = chunk_pos.y * CHUNK_SIZE_Y + y;
+            film->z = chunk_pos.z * CHUNK_SIZE_Z + z;
+            film->mesh_x = 1;
+            film->mesh_y = 1;
+            film->mesh_z = 1;
+            film->face_shift = BLOCK_COORDS_FLUID;
+            film->scale_x = water_block->scale.x;
+            film->scale_y = water_block->scale.y;
+            film->scale_z = water_block->scale.z;
+            film->offset_x = water_block->offset.x;
+            film->offset_y = water_block->offset.y;
+            film->offset_z = water_block->offset.z;
+            film->tex_offset_x = water_block->tex_offset.x;
+            film->tex_offset_y = water_block->tex_offset.y;
+            film->tex_offset_z = water_block->tex_offset.z;
+            film->fluid_h0 = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( corners & 0xffu );
+            film->fluid_h[ 0 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 8 ) & 0xffu );
+            film->fluid_h[ 1 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 16 ) & 0xffu );
+            film->fluid_h[ 2 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 24 ) & 0xffu );
+            for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
+                film->face[ i ] = water_block->textures[ i ];
+                film->packed_lighting[ i ] = i == f ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
+            }
+            if ( !fluid_flat ) {
+                film->face[ FACE_TOP ] = water_block->textures[ FACE_FRONT ];
+            }
+        }
+    };
+
     // Fluid surfaces (CPU-only — also corrects GPU-meshed workingSpace):
     // per-cell corner heights for emission + the greedy merge check, and a
     // packed_lighting rewrite. Phase 1 marks a fluid face "lit" with the
@@ -449,9 +524,13 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                         continue;
                     }
                     s_fluid_corners[ index ] = fluid_pack_corners( cells, x, y, z );
-                    const unsigned int vis = fluid_face_vis_mask( cells, fluid_defs, x, y, z, id );
+                    unsigned int boundary = 0;
+                    const unsigned int vis = fluid_face_vis_mask( cells, fluid_defs, x, y, z, id, &boundary );
                     for ( int f = FACE_TOP; f < NUM_FACES_IN_CUBE; f++ ) {
                         workingSpace[ index ].packed_lighting[ f ] = ( vis >> f ) & 1u ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
+                    }
+                    if ( boundary != 0 ) {
+                        emit_boundary_films( x, y, z, boundary, s_fluid_corners[ index ] );
                     }
                 }
             }
@@ -660,13 +739,17 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                             waterCoord->fluid_h[ 0 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 8 ) & 0xffu );
                             waterCoord->fluid_h[ 1 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 16 ) & 0xffu );
                             waterCoord->fluid_h[ 2 ] = fluid_flat ? FLUID_SOURCE_HEIGHT : static_cast<unsigned char>( ( corners >> 24 ) & 0xffu );
-                            const unsigned int vis = fluid_face_vis_mask( cells, mesh_def_table( ), x, y, z, WATER );
+                            unsigned int boundary = 0;
+                            const unsigned int vis = fluid_face_vis_mask( cells, mesh_def_table( ), x, y, z, WATER, &boundary );
                             for ( int i = 0; i < NUM_FACES_IN_CUBE; i++ ) {
                                 waterCoord->face[ i ] = water->textures[ i ];
                                 waterCoord->packed_lighting[ i ] = ( vis >> i ) & 1u ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
                             }
                             if ( !fluid_flat ) {
                                 waterCoord->face[ FACE_TOP ] = water->textures[ FACE_FRONT ];
+                            }
+                            if ( boundary != 0 ) {
+                                emit_boundary_films( x, y, z, boundary, corners );
                             }
                         }
                     }

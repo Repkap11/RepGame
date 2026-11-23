@@ -343,9 +343,12 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
     }
 
     // pr_debug( "Drawing %d chunks", this->numLoadedChunks );
-    for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder > 0; renderOrder-- ) {
+    // Order 0 (RenderOrder_Transparent) is reachable only through an
+    // explicit mask bit: meshed blocks never emit it, but the fluid
+    // boundary films do — world.cpp draws that bucket after Translucent.
+    for ( int renderOrder = LAST_RENDER_ORDER - 1; renderOrder >= 0; renderOrder-- ) {
         if ( order_mask & render_order_bit( static_cast<RenderOrder>( renderOrder ) ) ) {
-            shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent);
+            shader.set_uniform1f( "u_shouldDiscardAlpha", renderOrder != RenderOrder_Water && renderOrder != RenderOrder_Translucent && renderOrder != RenderOrder_Transparent );
             // Screen-space face grow, opaque only: water/translucent/flowers
             // are blended, so overlapping grown edges would blend twice and
             // show as dark dashed lines. Debug-flag bit 64 disables it.
@@ -374,7 +377,8 @@ void ChunkLoader::draw( const glm::mat4 &mvp, const Renderer &renderer, const Te
             // box is occluded can't show water or flowers either.
             const bool occl = occlusion_enabled( ) && !draw_reflect;
             // Blended layers walk the sorted list backwards (back-to-front).
-            const bool back_to_front = renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent;
+            const bool back_to_front = renderOrder == RenderOrder_Water || renderOrder == RenderOrder_Translucent ||
+                                       renderOrder == RenderOrder_Transparent;
             // Translucent pass (REPGAME_TRANSLUCENT_BLEND): draw with depth
             // writes off so a pane drawn first can't punch order-dependent
             // holes in panes/water behind it; the depth TEST stays on so

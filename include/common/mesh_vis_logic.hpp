@@ -55,9 +55,12 @@ if ( visible != 0 ) {
         if ( block.is_seethrough_face[ coverage_face ] != 0u && block.hides_self[ rotated_face ] != 0u ) { // water and glass
             // Waterlogged cells count as water: water (and lava) draws no
             // surface faces against them. Nor against translucent blocks
-            // (stained glass, ice, ...): the glass draws its own face there,
-            // and since the translucent pass writes no depth a coplanar water
-            // quad would show through it.
+            // (stained glass, ice, ...) — the water quad would draw before
+            // the glass blends over it, halving it, so a dry-backed wall
+            // reads as dry. Instead every such face is re-emitted as a
+            // post-translucent "film" copy (fluid_face_vis_mask /
+            // emit_boundary_films in chunk_mesh.cpp), matching the regular
+            // opaque-order glass composite.
             MG_LET( int, liquid_boundary,
                     MG_TERN( block.renderOrder == RenderOrder_Water &&
                                  ( mesh_cell_waterlogged( next_to_cell ) != 0 || block_next_to.renderOrder == RenderOrder_Translucent ),

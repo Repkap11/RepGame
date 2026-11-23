@@ -159,6 +159,15 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     water.ib_offset[ 1 ] = 0;
     water.ib_count[ 1 ] = 0;
 
+    // Order-0 bucket carries the fluid boundary films (chunk_mesh.cpp) —
+    // they are BLOCK_COORDS_FLUID instances, so they share the water cube
+    // and index tables. Drawn after Translucent (see world.cpp).
+    RenderLayer &films = this->layers[ RenderOrder_Transparent ];
+    films.ib_offset[ 0 ] = s_ib_water_off[ water_mask ];
+    films.ib_count[ 0 ] = s_ib_water_cnt[ water_mask ];
+    films.ib_offset[ 1 ] = 0;
+    films.ib_count[ 1 ] = 0;
+
     RenderLayer &flowers = this->layers[ RenderOrder_Flowers ];
     flowers.ib_offset[ 0 ] = flowers.ib_offset[ 1 ] = s_ib_flowers_off;
     flowers.ib_count[ 0 ] = flowers.ib_count[ 1 ] = render_order_ib_size( RenderOrder_Flowers );
@@ -196,6 +205,7 @@ void Chunk::ensure_gl_init( ) {
         const VertexBuffer *vb_prt;
         switch ( renderOrder ) {
             case RenderOrder_Water:
+            case RenderOrder_Transparent: // boundary films are fluid instances
                 vb_prt = s_vb_block_water;
                 break;
             default:

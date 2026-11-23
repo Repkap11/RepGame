@@ -1,0 +1,40 @@
+# Stained-glass room fully submerged in a walled flat-world pool. Water
+# emits a face against a translucent neighbour only when the cell beyond
+# the glass isn't the same fluid (mesh_vis_logic.hpp liquid_boundary), so
+# a dry-backed glass wall or ceiling still shows water through it — the
+# underwater feel from inside. Companion to glass_in_water.rds, which
+# pins the fully-submerged clean-glass case. Screenshots must be
+# eyeball-compared; the asserts only pin the world state.
+# flags 9 = lighting off + fog off so the underwater view isn't murk.
+wait_idle 20 6000
+# Basin
+fill 1 1 1 16 10 1 STONE
+fill 1 1 16 16 10 16 STONE
+fill 1 1 2 1 10 15 STONE
+fill 16 1 2 16 10 15 STONE
+# Glass room x5..11 y2..6 z5..11 built as six shells so the interior
+# (untouched flat-world air) is never written by fill.
+fill 5 2 5 11 2 11 MAGENTA_STAINED_GLASS
+fill 5 6 5 11 6 11 MAGENTA_STAINED_GLASS
+fill 5 3 5 5 5 11 MAGENTA_STAINED_GLASS
+fill 11 3 5 11 5 11 MAGENTA_STAINED_GLASS
+fill 6 3 5 10 5 5 MAGENTA_STAINED_GLASS
+fill 6 3 11 10 5 11 MAGENTA_STAINED_GLASS
+# Water around and above the room; the interior column stays air.
+fill 2 1 2 4 8 15 WATER
+fill 12 1 2 15 8 15 WATER
+fill 5 1 2 11 8 4 WATER
+fill 5 1 12 11 8 15 WATER
+fill 5 7 5 11 8 11 WATER
+wait 10
+wait_idle 20 6000
+assert_block 8 6 8 MAGENTA_STAINED_GLASS
+assert_block 8 4 8 AIR
+assert_block 8 7 8 WATER
+flags 9
+# Inside the dry room, looking up through the glass wall/ceiling at the
+# water — side and bottom faces should be drawn.
+camera 8.5 3.5 8.5 180 -35
+wait 30
+screenshot inside
+echo glass_room_water done
