@@ -170,9 +170,9 @@ void repgame_resolve_pending_spawn( RepGameState &state ) {
         // Bed gone or unreachable: forget the point and respawn at the
         // world-spawn column (camera re-aimed so that column loads).
         state.spawn_point_set = false;
-        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( DIM_OVERWORLD ) ) + 2.0, 0.5 );
     }
-    const int top_bound = ( int )ceil( MapGen::maxTerrainHeight( ) );
+    const int top_bound = ( int )ceil( MapGen::maxTerrainHeight( DIM_OVERWORLD ) );
     for ( int y = top_bound; y >= BEDROCK_LEVEL; y-- ) {
         const BlockState bs = state.world.get_loaded_block( glm::ivec3( 0, y, 0 ) );
         if ( bs.id == LAST_BLOCK_ID ) {

@@ -2,17 +2,19 @@
 // and the WGSL WebGPU kernel). In scope at the include site:
 //   x, y, z      - world block coords (ints)
 //   index        - destination index into the chunk's block array
-//   plus, per generator:
-//     new    - col: const MapGenColumn for this (x, z), computed per column
-//     legacy - terrainHeight: float terrain height for this (x, z)
+//   col          - MapGenColumn for this (x, z): valid when the chunk is in
+//                  the repheim band, zeroed otherwise
+//   terrainHeight - float legacy terrain height for this (x, z): valid for
+//                   every non-repheim chunk
 // Produces finalBlockId, which the includer stores.
 //
 // y is the absolute encoded block y, so the dimension dispatch needs no extra
 // plumbing: the nether band runs mgn_pick_block, the end band runs
-// mge_pick_block, everything else stays on the overworld generator (the spare
-// band falls through to the overworld pick — below-bedrock y is bedrock,
-// above-terrain y is air, which doubles as solid filler between the active
-// bands).
+// mge_pick_block, the repheim band runs the reworked generator (mg_pick_block)
+// on the rep frame (band-local y mapped to the overworld's [-1984,1983],
+// see dimension.hpp), and everything else runs the legacy overworld picker.
+// The backend loop computes `col` only for repheim-band chunks and
+// `terrainHeight` only for the rest, so each chunk pays for one generator.
 #if defined( REPGAME_WGSL_GEN )
 var finalBlockId : u32;
 #else
@@ -22,10 +24,13 @@ if ( DIM_IS_NETHER_BY( y ) ) {
     finalBlockId = mgn_pick_block( x, y, z );
 } else if ( DIM_IS_END_BY( y ) ) {
     finalBlockId = mge_pick_block( x, y, z );
-} else {
-#if REPGAME_MAP_GEN_LEGACY
-    finalBlockId = mgl_pick_block( x, y, z, terrainHeight );
+} else if ( DIM_IS_REPHEIM_BY( y ) ) {
+#if defined( REPGAME_WGSL_GEN )
+    let rep_y = select( y - DIM_BY_MIN_3_LO, y - DIM_BY_MIN_3_HI - 1984, y >= DIM_BY_MIN_3_HI );
+    finalBlockId = mg_pick_block( x, rep_y, z, col );
 #else
-    finalBlockId = mg_pick_block( x, y, z, col );
+    finalBlockId = mg_pick_block( x, repheim_gen_block_y( y ), z, col );
 #endif
+} else {
+    finalBlockId = mgl_pick_block( x, y, z, terrainHeight );
 }

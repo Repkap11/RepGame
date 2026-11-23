@@ -17,19 +17,24 @@
 // column, which is exactly what happened before this existed).
 #define SG_NO_SURFACE -1000000
 
-#if !REPGAME_MAP_GEN_LEGACY
-// The reworked generator only — under legacy builds every function below is
-// unused (StructureGen::place dispatches to place_legacy) and the mg_* fields
-// it relies on are compiled out of map_gen_fields.hpp.
+// Reworked-generator structures: run for the repheim band only, in the rep
+// frame (band-local y mapped to the overworld's [-1984,1983], dimension.hpp).
+// All y values below are rep-frame, so mg_* fields evaluate repheim terrain.
 
-// Reads pure map gen on world coords — two chunks always agree.
+// Reads pure map gen on rep-frame coords — two chunks always agree. Not
+// MapGen::gen_block_id: that maps overworld-frame y to the legacy picker.
+static BlockID sg_rep_frame_block( const int x, const int y, const int z ) {
+    const MapGenColumn col = mg_column_info( x, z );
+    return mg_pick_block( x, y, z, col );
+}
+
 static int sg_world_is_next_to( const int wx, const int wy, const int wz, const BlockID block ) {
     for ( int i = -1; i < 2; i++ ) {
         for ( int j = -1; j < 2; j++ ) {
             if ( i == 0 && j == 0 ) {
                 continue;
             }
-            if ( MapGen::gen_block_id( wx + i, wy, wz + j ) == block ) {
+            if ( sg_rep_frame_block( wx + i, wy, wz + j ) == block ) {
                 return 1;
             }
         }
@@ -89,7 +94,7 @@ static bool sg_tree_for_cell( const int cx, const int cz, int *out_tx, int *out_
     // still roll normal species; place_trees gates on the found surface
     // itself, since a submerged base height can hide an island top above.
     const bool swampy_biome = sg_is_swampy( biome, weird );
-    const float th = swampy_biome ? MapGen::calculateTerrainHeight( tx, tz ) : 0.0f;
+    const float th = swampy_biome ? mg_base_height( tx, tz ) : 0.0f;
     const bool swamp = swampy_biome && th != 0.0f && th > WATER_LEVEL - 7.5f && th < WATER_LEVEL + 1.0f;
 
     float density;
@@ -342,7 +347,7 @@ void StructureGen::place_trees( Chunk &chunk, const int cox, const int coy, cons
                         if ( dx == 0 && dz == 0 ) {
                             continue;
                         }
-                        wet_edge = MapGen::gen_block_id( tx + dx, WATER_LEVEL - 1, tz + dz ) == WATER;
+                        wet_edge = sg_rep_frame_block( tx + dx, WATER_LEVEL - 1, tz + dz ) == WATER;
                     }
                 }
                 if ( !wet_edge ) {
@@ -514,7 +519,7 @@ void StructureGen::place_decorations( Chunk &chunk, const int cox, const int coy
                             sg_write_decor( chunk, lx, surface_y, lz, fr < 0.4f ? PINK_TULIP : fr < 0.7f ? ALLIUM : sg_pick_flower( wx, wz ) );
                         }
                     } else if ( sg_is_swampy( biome, weird ) && roll < 0.08f &&
-                                mg_is_swamp( biome, weird, MapGen::calculateTerrainHeight( wx, wz ) ) ) {
+                                mg_is_swamp( biome, weird, mg_base_height( wx, wz ) ) ) {
                         // Propagules rooted in the mud flats.
                         sg_write_decor( chunk, lx, surface_y, lz, MANGROVE_PROPAGULE );
                     } else if ( weird <= 0.40f && perlin_noise2d( wx, wz, 0.006f, 2, MAP_SEED + 73 ) > 0.64f ) {
@@ -654,7 +659,7 @@ static bool sg_feature_for_cell( const int cx, const int cz, SGFeature *f ) {
     }
     f->ax = cx * SG_FEATURE_CELL + 12.0f + sg_roll( cx, cz, 61 ) * ( SG_FEATURE_CELL - 24.0f );
     f->az = cz * SG_FEATURE_CELL + 12.0f + sg_roll( cx, cz, 62 ) * ( SG_FEATURE_CELL - 24.0f );
-    const float anchor_h = MapGen::calculateTerrainHeight( (int)f->ax, (int)f->az );
+    const float anchor_h = mg_base_height( (int)f->ax, (int)f->az );
     const float biome = mg_biome( (int)f->ax, (int)f->az );
     // Features stand on land — except icebergs, which need open cold ocean.
     if ( anchor_h < WATER_LEVEL + 1.5f ) {
@@ -996,7 +1001,6 @@ void StructureGen::place_formations( Chunk &chunk, const int cox, const int coy,
     }
 }
 
-#endif // !REPGAME_MAP_GEN_LEGACY
 
 // ---------------------------------------------------------------------------
 // Nether fungal trees (crimson/warped huge fungi), stamped under both
@@ -1095,22 +1099,25 @@ void StructureGen::place( Chunk &chunk ) {
         place_nether_fortress( chunk, cox, coy, coz );
         return;
     }
-    if ( dim != DIM_OVERWORLD ) {
-        // Spare bands generate no structures; the nether's other terrain
-        // features (lava sea, glowstone clusters, biome patches) are baked
-        // into mgn_pick_block.
+    if ( dim == DIM_OVERWORLD ) {
+        place_legacy( chunk );
         return;
     }
-#if REPGAME_MAP_GEN_LEGACY
-    place_legacy( chunk );
-#else
+    if ( dim != DIM_REPHEIM ) {
+        // The end band generates no structures; its chorus and island
+        // features are baked into mge_pick_block.
+        return;
+    }
+    // Repheim runs the reworked generator's structure passes in the rep
+    // frame: coy is the rep-frame y of this chunk's lowest block, so every
+    // tree/feature lands exactly as a reworked-generator overworld would
+    // place it at this x/z.
     const int cox = chunk.chunk_pos.x * CHUNK_SIZE_X;
-    const int coy = chunk.chunk_pos.y * CHUNK_SIZE_Y;
+    const int coy = repheim_gen_block_y( chunk.chunk_pos.y * CHUNK_SIZE_Y );
     const int coz = chunk.chunk_pos.z * CHUNK_SIZE_Z;
     SgHeightGrid hg( cox, coz );
     place_trees( chunk, cox, coy, coz );
     place_features( chunk, cox, coy, coz );
     place_decorations( chunk, cox, coy, coz, hg );
     place_formations( chunk, cox, coy, coz, hg );
-#endif
 }

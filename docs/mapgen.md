@@ -40,34 +40,27 @@ the light pass in step 6 is expanded in `docs/lighting.md`.
 `TERRAIN_GEN_PROFILING` (constants.hpp) prints per-stage timings every 100
 chunks.
 
-## Picking a generator
+## Two generators, dispatched per band
 
-`REPGAME_MAP_GEN_LEGACY` (`include/common/map_gen_consts.hpp`) selects the
-generator at compile time for **every** backend:
+Both generators are compiled into **every** backend and the band picks
+which runs (`map_logic.hpp` dispatches on `DIM_IS_*_BY`):
 
-- `1` (the `#ifndef` default) — the legacy generator: the pre-overhaul code
-  as it existed at commit `101a348`, fields in
+- **overworld band** — the legacy generator: the pre-overhaul code as it
+  existed at commit `101a348`, fields in
   `include/common/map_gen_fields_legacy.hpp`, structures in
   `src/common/structure_gen_legacy.cpp`.
-- `0` — the reworked generator: fields in
+- **repheim band** — the reworked generator: fields in
   `include/common/map_gen_fields.hpp` (noodly caves, overhangs, biomes,
   floating islands, lava layer, geodes), structures in
-  `src/common/structure_gen.cpp`.
+  `src/common/structure_gen.cpp`. It evaluates in the rep frame
+  (`repheim_gen_block_y`, `docs/dimensions.md`), so repheim terrain is
+  identical to a new-gen overworld at the same x/z.
 
-There is no make flag for it — flip the `#define` in `map_gen_consts.hpp`
-or add `-DREPGAME_MAP_GEN_LEGACY=0` to the platform `CFLAGS_*` in
-`makefiles/*.mk` (a command-line `CFLAGS_LINUX=...` would replace, not
-append). Only one generator is compiled per binary — `map_gen_fields.hpp`
-`#include`s the legacy file under `#if REPGAME_MAP_GEN_LEGACY` — so A/B
-comparisons need two builds. `MAP_SEED` (currently `0`) is the global seed;
+There is no build selection anymore — the `REPGAME_MAP_GEN_LEGACY` flag
+was removed when repheim landed (net protocol v24, see
+docs/multiplayer.md). `MAP_SEED` (currently `0`) is the global seed;
 each noise field adds a fixed offset to it (seed maps are commented in
 `map_gen_fields.hpp` — pick an unused offset for new fields).
-
-The selection is also folded into `NET_PROTOCOL_VERSION`'s 0x80 bit
-(`include/common/net/packet.hpp`): the server only ships diffs over
-client-generated terrain, so mismatched builds are rejected on the first
-frame — a `=0` client can't join the legacy live server (and vice
-versa). Matched builds still peer normally.
 
 ## One source, four backends
 
@@ -79,13 +72,13 @@ worlds are identical by construction (modulo float rounding):
 |---|---|---|
 | Dialect macros | `include/common/wgsl_dialect.hpp` | `MG_FN*`, `MG_LET/VAR/DECL`, `MG_F32/I32`, `MG_TERN`, `MG_ABS`… expand to C++ or WGSL depending on `REPGAME_WGSL_GEN` |
 | Noise | `include/common/perlin_noise_shared.hpp` | 256-entry permutation hash + smooth-interpolated value noise; `perlin_noise2d/3d` return `[0, 1]` |
-| World constants | `include/common/map_gen_consts.hpp` | `REPGAME_MAP_GEN_LEGACY`, `MAP_SEED`, layout constants, `MapGenColumn` — pure preprocessor so the WGSL pass sees it |
+| World constants | `include/common/map_gen_consts.hpp` | `MAP_SEED`, layout constants, `MapGenColumn` — pure preprocessor so the WGSL pass sees it |
 | Fields + block picker | `include/common/map_gen_fields{,_legacy}.hpp` | The generator itself; includer defines `MG_QUAL` and `MAP_GEN_PERLIN2D/3D` |
-| Per-cell glue | `include/common/map_logic.hpp` | `#include`d inside each backend's per-y loop; produces `finalBlockId` from `col` (new) or `terrainHeight` (legacy) |
+| Per-cell glue | `include/common/map_logic.hpp` | `#include`d inside each backend's per-y loop; dispatches on the band and produces `finalBlockId` from `col` (repheim), `terrainHeight` (overworld) or the nether/end pickers |
 
 The backends share the same shape: one thread/invocation per (x, z) column
-computes the 2D context once (`mgl_base_height` or `mg_column_info`), then a
-per-y loop runs `map_logic.hpp`:
+computes the 2D context once — `mg_column_info` in the repheim band,
+`mgl_base_height` elsewhere — then a per-y loop runs `map_logic.hpp`:
 
 - **CPU** — `MapGen::load_block_c` (`src/common/map_gen.cpp`). Always
   available; also the per-chunk fallback for the GPU paths.
@@ -134,7 +127,7 @@ and tree-reach bounds in `map_gen.hpp` (`MAPGEN_TREE_CELL`,
 and the terrain changes on every backend at once — that is the point of the
 single-source dialect.
 
-## Legacy generator (`REPGAME_MAP_GEN_LEGACY=1`)
+## Legacy generator (overworld band)
 
 `mgl_base_height` sums four transforms of 2D noise — broad `level`,
 cubed `mountains`, `hills`, small `ground` — and `mgl_pick_block` decides
@@ -156,7 +149,7 @@ two-block TALL_GRASS pairs (lower + `TALL_GRASS_UPPER` above, falling
 back to SHORT_GRASS when the cell above can't take it) — see
 `tall_plant_partner` in `docs/blocks.md`.
 
-## New generator (`REPGAME_MAP_GEN_LEGACY=0`)
+## New generator (repheim band)
 
 Two stages: each column first computes a `MapGenColumn` via
 `mg_column_info` (cached context the per-y loop reuses), then

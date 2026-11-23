@@ -22,12 +22,12 @@ __global__ void hip_set_block( BlockCell *cells, int chunk_x, int chunk_y, int c
         int x = ( col_idx / CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_x;
         int z = ( col_idx % CHUNK_SIZE_INTERNAL_Z ) - 1 + chunk_z;
 
-        // Compute 2D column context once per column (biome, height, steepness).
-#if REPGAME_MAP_GEN_LEGACY
-        const float terrainHeight = mgl_base_height( x, z );
-#else
-        const MapGenColumn col = mg_column_info( x, z );
-#endif
+        // Compute 2D column context once per column: the reworked
+        // generator's MapGenColumn for repheim-band chunks, the legacy
+        // terrain height for every other band (map_logic.hpp).
+        const bool repheim_band = DIM_IS_REPHEIM_BY( chunk_y );
+        const MapGenColumn col = repheim_band ? mg_column_info( x, z ) : MapGenColumn{ };
+        const float terrainHeight = repheim_band ? 0.0f : mgl_base_height( x, z );
 
         // Loop over Y; only 3D noise (overhang, caves, ores) is recomputed per Y
         for ( int y = chunk_y - 1; y < chunk_y + CHUNK_SIZE_Y + 1; y++ ) {

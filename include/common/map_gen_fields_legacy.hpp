@@ -4,14 +4,14 @@
 // at commit 101a348, written in the C++/WGSL dual dialect
 // (include/common/wgsl_dialect.hpp) so one file feeds every backend —
 // host C++, CUDA, HIP, and the WebGPU compute shader emitted by running this
-// file through cpp with -DREPGAME_WGSL_GEN. Selected when
-// REPGAME_MAP_GEN_LEGACY is 1 (see constants.hpp).
+// file through cpp with -DREPGAME_WGSL_GEN. Always compiled alongside the
+// reworked generator — map_logic.hpp dispatches overworld-band cells to
+// mgl_pick_block and repheim-band cells to mg_pick_block.
 //
 // Interface contract shared with map_gen_fields.hpp so the backend loops and
 // MapGen methods can dispatch without knowing which generator is live:
 //   mgl_base_height( x, z )                    -> terrainHeight (float)
 //   mgl_pick_block( x, y, z, terrainHeight )   -> BlockID
-//   mg_biome / mg_weird                        -> [0,1] fields for structures
 // plus the *_transform helpers MapGen::maxTerrainHeight() sweeps.
 
 #include "common/wgsl_dialect.hpp"
@@ -73,15 +73,6 @@ MG_FN2( float, mgl_base_height, int, x, int, z ) {
     MG_LET( float, mountains, mgl_mountains_transform( MAP_GEN_PERLIN2D( x, z, 0.008f, 3, MAP_SEED + 2 ) ) )
     MG_LET( float, level, mgl_level_transform( MAP_GEN_PERLIN2D( x, z, 0.004f, 2, MAP_SEED + 5 ) ) )
     return level + mountains + hills + ground;
-}
-
-// Structure gen picks tree species off these; legacy terrain has no biome
-// fields, so sample the same frequencies the new gen uses — trees still vary.
-MG_FN2( float, mg_biome, int, x, int, z ) {
-    return MAP_GEN_PERLIN2D( x, z, 0.0035f, 2, MAP_SEED + 7 );
-}
-MG_FN2( float, mg_weird, int, x, int, z ) {
-    return MAP_GEN_PERLIN2D( x, z, 0.005f, 2, MAP_SEED + 8 );
 }
 
 // The old per-block decision (formerly map_logic.hpp at 101a348), as a

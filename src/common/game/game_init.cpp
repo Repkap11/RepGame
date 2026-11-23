@@ -84,7 +84,7 @@ void RepGame::initializeGameState( const char *world_name ) {
     // stand on it. (Terrain only — structures may still decorate the cell.)
     double spawn_y;
     {
-        int top = (int)ceil( MapGen::maxTerrainHeight( ) );
+        int top = (int)ceil( MapGen::maxTerrainHeight( DIM_OVERWORLD ) );
         while ( top > BEDROCK_LEVEL &&
                 !block_definition_get_definition( MapGen::gen_block_id( 0, top, 0 ) )->collides_with_player ) {
             top--;

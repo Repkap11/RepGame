@@ -86,10 +86,10 @@ int test_dimension( ) {
     check_bool( "cy -96 is nether", dimension_of_chunk( -96 ) == DIM_NETHER );
     check_bool( "cy 32 is end", dimension_of_chunk( 32 ) == DIM_END );
     check_bool( "cy 95 is end", dimension_of_chunk( 95 ) == DIM_END );
-    check_bool( "cy 96 is spare 3", dimension_of_chunk( 96 ) == DIM_SPARE_3 );
-    check_bool( "cy 127 is spare 3", dimension_of_chunk( 127 ) == DIM_SPARE_3 );
-    check_bool( "cy -97 is spare 3 (wrap)", dimension_of_chunk( -97 ) == DIM_SPARE_3 );
-    check_bool( "cy -128 is spare 3 (wrap)", dimension_of_chunk( -128 ) == DIM_SPARE_3 );
+    check_bool( "cy 96 is repheim", dimension_of_chunk( 96 ) == DIM_REPHEIM );
+    check_bool( "cy 127 is repheim", dimension_of_chunk( 127 ) == DIM_REPHEIM );
+    check_bool( "cy -97 is repheim (wrap)", dimension_of_chunk( -97 ) == DIM_REPHEIM );
+    check_bool( "cy -128 is repheim (wrap)", dimension_of_chunk( -128 ) == DIM_REPHEIM );
 
     // ---- Band edges: block y ----
     check_bool( "by -1984 is overworld", dimension_of_block_y( DIM_BY_MIN_O ) == DIM_OVERWORLD );
@@ -98,7 +98,7 @@ int test_dimension( ) {
     check_bool( "by -5952 is nether", dimension_of_block_y( DIM_BY_MIN_N ) == DIM_NETHER );
     check_bool( "by 1984 is end", dimension_of_block_y( DIM_BY_MIN_E ) == DIM_END );
     check_bool( "by 5951 is end", dimension_of_block_y( DIM_BY_MAX_E ) == DIM_END );
-    check_bool( "by 5952 is spare 3", dimension_of_block_y( DIM_BY_MIN_3_HI ) == DIM_SPARE_3 );
+    check_bool( "by 5952 is repheim", dimension_of_block_y( DIM_BY_MIN_3_HI ) == DIM_REPHEIM );
     check_bool( "end/overworld bands touch", DIM_BY_MAX_O + 1 == DIM_BY_MIN_E );
     check_bool( "by -1984/-1985 bands touch", DIM_BY_MAX_N + 1 == DIM_BY_MIN_O );
 
@@ -416,13 +416,14 @@ int test_dimension( ) {
         check_bool( "broken ring kills pool cell", !end_portal_cell_survives( world, glm::ivec3( 41, 40, 41 ), pool ) );
     }
 
-    // ---- /dimension end travels; spare 3 stays refused. ----
+    // ---- /dimension end travels; repheim travels too. ----
     {
         RepGameState &gs = *new RepGameState( );
         gs.tick_number = 0;
         gs.camera.pos = glm::dvec3( 8.5, 80.0, 8.5 );
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
-        check_bool( "spare 3 refused", !portal_travel_to_dimension( gs, DIM_SPARE_3 ) );
+        check_bool( "repheim travel lands", portal_travel_to_dimension( gs, DIM_REPHEIM ) );
+        check_bool( "player is in the repheim band", dimension_of_pos( gs.camera.pos ) == DIM_REPHEIM );
         check_bool( "end travel lands", portal_travel_to_dimension( gs, DIM_END ) );
         check_bool( "player is in the end band", dimension_of_pos( gs.camera.pos ) == DIM_END );
         const int feet_y = static_cast<int>( floor( gs.camera.pos.y - gs.camera.eye_height ) );
@@ -623,7 +624,6 @@ int test_dimension( ) {
         gs.tick_number = 0;
         gs.camera.pos = glm::dvec3( 8.5, 80.0, 8.5 );
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
-        check_bool( "spare dimension refused", !portal_travel_to_dimension( gs, DIM_SPARE_3 ) );
         check_bool( "same-dimension refused", !portal_travel_to_dimension( gs, DIM_OVERWORLD ) );
         check_bool( "nether travel lands", portal_travel_to_dimension( gs, DIM_NETHER ) );
         const DimensionId now = dimension_of_pos( gs.camera.pos );
@@ -640,7 +640,7 @@ int test_dimension( ) {
         gs.tick_number = 0;
         gs.camera.pos = glm::dvec3( 64.5, 80.0, 40.5 );
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
-        check_bool( "no_build: spare refused", !portal_travel_no_build( gs, DIM_SPARE_3 ) );
+        check_bool( "no_build: repheim refused", !portal_travel_no_build( gs, DIM_REPHEIM ) );
         check_bool( "no_build: same-dimension refused", !portal_travel_no_build( gs, DIM_OVERWORLD ) );
         check_bool( "no_build: nether travel lands", portal_travel_no_build( gs, DIM_NETHER ) );
         check_bool( "no_build: anchor x/z scaled /8", gs.portal.dst_center.x == 8 && gs.portal.dst_center.z == 5 );

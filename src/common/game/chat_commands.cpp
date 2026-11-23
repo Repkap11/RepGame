@@ -38,7 +38,7 @@ struct ChatCmd {
 };
 
 // Defined at the bottom, after every handler; cmd_help iterates it too.
-extern const ChatCmd CHAT_COMMANDS_TABLE[ 20 ];
+extern const ChatCmd CHAT_COMMANDS_TABLE[ 21 ];
 
 // One coordinate token: a plain number, '~' (the player's component), or
 // '~N'/'~-N' (player-relative offset). `base` is the feet-relative origin
@@ -193,6 +193,7 @@ static void cmd_tp( RepGameState &state, const std::vector<std::string> &args ) 
     chat_teleport( state, feet );
 }
 
+
 // /nether + /overworld: portal-style travel (scaled anchor, adoption) via
 // portal_travel_no_build — identical to stepping through a portal except no
 // destination frame is ever written.
@@ -220,6 +221,24 @@ static void cmd_overworld( RepGameState &state, const std::vector<std::string> &
     cmd_dim_travel( state, args, DIM_OVERWORLD, "/overworld" );
 }
 
+// /repheim: portal-less travel to the repheim band (new-terrain overworld),
+// same landing mechanics as /dimension repheim — travel by portal is TBD.
+static void cmd_repheim( RepGameState &state, const std::vector<std::string> &args ) {
+    if ( args.size( ) != 1 ) {
+        chat_err( state, "Usage: /repheim" );
+        return;
+    }
+    if ( dimension_of_pos( state.camera.pos ) == DIM_REPHEIM ) {
+        chat_err( state, std::string( "Already in " ) + dim_name( DIM_REPHEIM ) );
+        return;
+    }
+    if ( !portal_travel_to_dimension( state, DIM_REPHEIM ) ) {
+        chat_err( state, std::string( "No landing spot found in " ) + dim_name( DIM_REPHEIM ) );
+        return;
+    }
+    chat_info( state, std::string( "Travelled to " ) + dim_name( DIM_REPHEIM ) );
+}
+
 // /spawn: the (0,0) world column, resolved like a fresh spawn — hover until
 // the column loads, then stand on its topmost colliding block. The bed
 // respawn point is bypassed (spawn_world_pending) but kept.
@@ -228,7 +247,7 @@ static void cmd_spawn( RepGameState &state, const std::vector<std::string> &args
         chat_err( state, "Usage: /spawn" );
         return;
     }
-    state.camera.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+    state.camera.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( DIM_OVERWORLD ) ) + 2.0, 0.5 );
     state.camera.y_speed = 0.0;
     state.camera.horizontal_vel = glm::dvec2( 0.0 );
     state.vitals.fall_dist = 0.0;
@@ -499,11 +518,12 @@ static void cmd_me( RepGameState &state, const std::vector<std::string> &args ) 
     }
 }
 
-const ChatCmd CHAT_COMMANDS_TABLE[ 20 ] = {
+const ChatCmd CHAT_COMMANDS_TABLE[ 21 ] = {
     { "help", "", "/help [command]", "List commands, or one command's usage.", cmd_help },
     { "clear", "", "/clear", "Clear the chat log.", cmd_clear },
     { "pos", "", "/pos", "Where you are: feet position, block, chunk, facing.", cmd_pos },
     { "tp", "teleport", "/tp <x> <y> <z> | /tp <player>", "Teleport to feet coords or a player ('~' = current).", cmd_tp },
+    { "repheim", "", "/repheim", "Travel to repheim (the new-terrain overworld band).", cmd_repheim },
     { "nether", "", "/nether", "Travel to the nether as if through a portal (x/z /8) - no portal built.", cmd_nether },
     { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8) - no portal built.", cmd_overworld },
     { "spawn", "", "/spawn", "Teleport to the world spawn column (0,0 topmost ground).", cmd_spawn },

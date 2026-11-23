@@ -3,15 +3,16 @@
 
 #include "chunk.hpp"
 
-// World-layout constants, REPGAME_MAP_GEN_LEGACY, MAP_SEED and MapGenColumn
-// live in map_gen_consts.hpp — a pure-preprocessor + dual-spelled header also
-// included by the WGSL generation pass. REPGAME_MAP_GEN_LEGACY=1 selects the
-// pre-overhaul generator (the code live at commit 101a348, fields in
-// map_gen_fields_legacy.hpp); 0 selects the reworked generator (shared
-// CPU/CUDA/HIP/WebGPU fields in map_gen_fields.hpp: noodly caves, overhangs,
-// biomes, lava layer, ...). The rest of the world (structures, waterlogging,
-// meshing) is unchanged either way.
+// World-layout constants, MAP_SEED and MapGenColumn live in
+// map_gen_consts.hpp — a pure-preprocessor + dual-spelled header also
+// included by the WGSL generation pass. Both terrain generators are always
+// compiled: the overworld band runs the legacy generator
+// (map_gen_fields_legacy.hpp, the code live at commit 101a348) and the
+// repheim band runs the reworked generator (map_gen_fields.hpp: noodly
+// caves, overhangs, biomes, lava layer, ...). The rest of the world
+// (structures, waterlogging, meshing) is unchanged either way.
 #include "common/map_gen_consts.hpp"
+#include "common/dimension.hpp"
 
 // Tree placement: the world is divided into cells of this size; each cell
 // rolls at most one tree. Also bounds the canopy reach a tree may have.
@@ -40,9 +41,15 @@ class MapGen {
     static bool load_block_webgpu( Chunk *chunk );
     static int supports_webgpu( );
     static float calculateTerrainHeight( int x, int z );
-    // Theoretical maximum of calculateTerrainHeight + overhang rise, derived
-    // from component formulas. Used for O(1) empty-chunk detection.
-    static float maxTerrainHeight( );
+    // Column surface height in a dimension's own generator frame: the
+    // legacy heightmap for the overworld band, the reworked mg_base_height
+    // for repheim. Used by the empty-chunk fast path and tests.
+    static float dimTerrainHeight( DimensionId dim, int x, int z );
+    // Theoretical maximum of a dimension's terrain height + overhang rise,
+    // derived from component formulas: the legacy bound for the overworld
+    // band, the reworked bound for repheim (rep frame shares the overworld's
+    // y range). Used for O(1) empty-chunk detection.
+    static float maxTerrainHeight( DimensionId dim );
     // CPU evaluation of a single generated block (terrain only, no structures).
     // Used by structure gen for border-crossing ground checks and by spawn
     // placement; identical formulas to all backends by construction.

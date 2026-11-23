@@ -10,7 +10,7 @@ four dimension slots and the low six bits are chunk y inside the slot:
 | 0    | overworld   | -32..31                      | -1984..1983     |
 | 1    | nether      | -96..-33                     | -5952..-1985    |
 | 2    | end         | 32..95                       | 1984..5951      |
-| 3    | spare       | 96..127 and -128..-97 (wrap) | ±5952..7936     |
+| 3    | repheim     | 96..127 and -128..-97 (wrap) | ±5952..7936     |
 
 The overworld band is centered on y=0 so existing saves stay in slot 0.
 Everything keyed on `ivec3 chunk_pos` — chunk files, block updates, entity
@@ -34,7 +34,8 @@ skybox, fog tint/range, ambient light floor, water evaporation, bed
 explosions, natural spawns, the despawnable-mob cap, music set.
 Gameplay/rendering code reads
 `dimension_profile(dim)` rather than scattering `dim == DIM_NETHER`
-checks. The remaining spare slot is an inert void (no sky, no spawns).
+checks. Repheim's row mirrors the overworld's (sky, water, safe beds,
+natural spawns, overworld music) — it is another overworld.
 
 ## Terrain
 
@@ -95,8 +96,24 @@ backend. The End's chorus JSONs use
 check in `block_supports_present`, so stacked stalks and their flower
 cap survive — breaking a lower stem still cascades upward.
 `chunk_load.cpp`'s empty-chunk early-out only applies to the overworld
-band — its "above max terrain" bound would wrongly mark End island
-chunks all-air.
+and repheim bands — its "above max terrain" bound would wrongly mark
+End island chunks all-air.
+
+Repheim (band 3) is **another overworld**: it runs the reworked
+generator — `mg_column_info`/`mg_pick_block` from
+`include/common/map_gen_fields.hpp`, the code new-terrain builds used
+to select via `REPGAME_MAP_GEN_LEGACY` (now removed) — while the
+overworld band keeps the legacy generator; both are compiled into every
+backend and `map_logic.hpp` dispatches on the band (`DIM_IS_REPHEIM_BY`,
+`DIM_IS_NETHER_BY`, `DIM_IS_END_BY`, else legacy). The band wraps, so
+generators evaluate in a **rep frame** (`repheim_gen_block_y` /
+`repheim_encoded_block_y` in `dimension.hpp`): rep frame y = band-local
+y − 1984, i.e. sea level at 0 just like the overworld — repheim terrain
+and structures are identical to a new-gen overworld at the same x/z.
+`StructureGen::place` repoints the structure passes' frame too, so
+trees/decorations/ores land the same way. There is no portal to repheim
+yet — `/repheim` lands there, and `portal_travel_no_build` still
+refuses it.
 
 ## Lighting + environment
 
@@ -181,6 +198,10 @@ dimension name (`dim_name`, `dim_local_block_y`).
   player on generated overworld ground at the same x/z (the fountain
   sits at x/z 0, i.e. world spawn). The pad wait (`pending_platform`)
   just holds the player until the pad's chunk is live.
+- `/repheim` (`chat_commands.cpp`) is the portal-less debug path to the
+  repheim band: the same landing-column search at unscaled x/z, no frame
+  built. The scan window is the overworld's [-90, 300] shifted into the
+  wrapped band's upper half, so below-sea floors fall back to the ledge.
 - `/nether` and `/overworld` (`portal_travel_no_build`) run the real portal
   trip minus the frame: 8:1-scaled anchor, hold-and-resolve freeze,
   early/resolve adoption of an existing PORTAL cell, pocket carve on
@@ -201,17 +222,19 @@ netherrack, blackstone), and the
 overworld zombie/skeleton/creeper mix (docs/mobs.md). The End rolls
 endermen on end stone — `MOB_ENDERMAN` gained the `DIM_END` bit and
 `END_STONE` floor — and the night spawner applies the spawn_on
-whitelist in the End too.
+whitelist in the End too. Repheim shares the overworld's spawn sets:
+every `DIM_OVERWORLD` spawn_dims bit is ORed with `DIM_REPHEIM`.
 
 ## Multiplayer
 
-`NET_PROTOCOL_VERSION` is 23 — v18 introduced the dimension band and
+`NET_PROTOCOL_VERSION` is 24 — v18 introduced the dimension band and
 v19 dropped the floor heightfield's mid-frequency octave (base-terrain
 contract changes); v20 added `CHUNK_DIFF_DONE` so clients can tell when
 a request box's edits have all been applied (portal travel's
 readiness gate); v21 raised the nether stack and added basin lakebeds;
-v22 added nether fortresses; v23 fills band 2 with the End generator
-(all base-terrain contract changes).
+v22 added nether fortresses; v23 fills band 2 with the End generator;
+v24 fills band 3 with the repheim band's reworked terrain and retires
+the 0x80 generator-selection bit (all base-terrain contract changes).
 
 Remote avatars are dimension-filtered in `multiplayer_avatars.cpp`:
 `update_position` despawns the mob when a position packet lands in a
@@ -228,7 +251,8 @@ items/arrows/bodies/vehicles are always torus-local.
   local/world round-trips, profiles, mob-id band separation, nether
   terrain properties (roof/floor/caverns/lava sea/no overworld blocks),
   end terrain (island/fountain/pillars/moat/outer islands/chorus),
-  portal detect/ignite/survive/cascade and travel incl. end rings.
+  portal detect/ignite/survive/cascade and travel incl. end rings and
+  the repheim band edge.
 - `tests/scenarios/nether_portal.rds` — scripted real-world walk:
   build + `ignite`, dwell-travel both ways, break-frame cascade.
 - `mp_test.py` `dimension` scenario — two clients, avatar hiding and

@@ -26,10 +26,9 @@
 #include "common/block_definitions.hpp"
 #endif
 
-#if REPGAME_MAP_GEN_LEGACY
-// The pre-overhaul generator (fields + block picker live in the legacy file).
+// Both generators are always compiled — overworld-band cells call the legacy
+// picker, repheim-band cells call the reworked picker below (map_logic.hpp).
 #include "common/map_gen_fields_legacy.hpp"
-#else
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -665,5 +664,3 @@ MG_FN4( BlockID, mg_pick_block, int, x, int, y, int, z, MapGenColumn, col ) {
     }
     return block;
 }
-
-#endif // REPGAME_MAP_GEN_LEGACY

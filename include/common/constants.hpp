@@ -111,9 +111,9 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 #define MESH_VERIFY 0 // When 1, runs both CPU and GPU meshing and compares results
 #define MAPGEN_VERIFY 0 // When 1, runs CPU mapgen alongside WebGPU and diffs chunk cells
 
-// REPGAME_MAP_GEN_LEGACY (terrain generator selection) and MAP_SEED moved to
-// map_gen_consts.hpp so the WGSL generation pass can see them without pulling
-// in C++ declarations — included here to keep this header's old contract.
+// MAP_SEED and the world-layout constants moved to map_gen_consts.hpp so the
+// WGSL generation pass can see them without pulling in C++ declarations —
+// included here to keep this header's old contract.
 #include "common/map_gen_consts.hpp"
 
 #define SHOW_IMGUI 1

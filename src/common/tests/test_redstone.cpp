@@ -432,9 +432,8 @@ int test_doors( ) {
     failures += check_id( world, "tall plant: ground gone pops lower", glm::ivec3( 30, 11, 30 ), AIR );
     failures += check_id( world, "tall plant: ground gone pops upper", glm::ivec3( 30, 12, 30 ), AIR );
 
-    // Legacy gen: every TALL_GRASS in a generated chunk pairs with its
-    // upper and vice versa.
-#if REPGAME_MAP_GEN_LEGACY
+    // Legacy gen (the overworld band): every TALL_GRASS in a generated chunk
+    // pairs with its upper and vice versa.
     {
         bool pairs_ok = true;
         int lowers = 0, uppers = 0;
@@ -472,7 +471,6 @@ int test_doors( ) {
         check_bool( "mapgen: tall-grass halves always paired", pairs_ok );
         check_bool( "mapgen: tall grass actually generates", lowers > 0 && lowers == uppers );
     }
-#endif
     return failures;
 }
 

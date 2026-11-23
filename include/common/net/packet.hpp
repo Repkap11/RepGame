@@ -30,20 +30,14 @@ static constexpr int32_t NET_CHUNK_BLOCK_SIZE = ( CHUNK_SIZE_X + 2 ) * ( CHUNK_S
 // Wire-format constants. Keep in sync with framed_socket.cpp.
 static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-endian
 // The server never sends terrain — clients generate the base world
-// locally and apply the server's edit diffs over it — so builds with
-// different terrain generators must never share a session: the same
-// diffs would land on a different "unmodified" base. The
-// REPGAME_MAP_GEN_LEGACY selection (map_gen_consts.hpp) is therefore
-// part of the wire contract: non-legacy builds set the version's 0x80
-// bit, and mismatched builds fail the per-frame version check on both
-// ends — a new-terrain client is dropped by a legacy server on the
-// first frame (and vice versa), while matched builds still peer.
-// Bump the low bits (20) on layout changes as usual; 0x80 stays
-// reserved for the generator bit. v18 = dimension bands (dimension.hpp):
-// nether-band chunk-y values generate nether terrain, so v17 peers would
-// produce a different "unmodified" base in those chunks. v19 = nether
-// floor height lost its mid-frequency octave (map_gen_nether.hpp) —
-// same-band peers would generate a different base under the same diffs.
+// locally and apply the server's edit diffs over it — so a terrain change
+// is a wire change: the same diffs would land on a different "unmodified"
+// base, and mismatched builds fail the per-frame version check on both
+// ends. v18 = dimension bands (dimension.hpp): nether-band chunk-y values
+// generate nether terrain, so v17 peers would produce a different
+// "unmodified" base in those chunks. v19 = nether floor height lost its
+// mid-frequency octave (map_gen_nether.hpp) — same-band peers would
+// generate a different base under the same diffs.
 // v20 = CHUNK_DIFF_DONE: one empty frame closing each CHUNK_DIFF_REQUEST
 // box — a v19 server never sends it, so clients would wait on a signal
 // that never comes. v21 = nether stack raised (floor/roof/lava sea mids
@@ -55,11 +49,11 @@ static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-end
 // v23 = the End dimension (map_gen_end.hpp): band slot 2 generates end
 // islands instead of empty filler, so v22 peers would produce a different
 // unmodified base under the same diffs.
-#if REPGAME_MAP_GEN_LEGACY
-static constexpr uint8_t NET_PROTOCOL_VERSION = 23;
-#else
-static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 23;
-#endif
+// v24 = the Repheim dimension (map_logic.hpp): band slot 3 generates
+// reworked-generator overworld terrain instead of empty filler, and both
+// generators are always compiled — the 0x80 generator-selection bit is
+// retired (v23's 0x80/23 and 23 peers both produce a different base).
+static constexpr uint8_t NET_PROTOCOL_VERSION = 24;
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.
 static constexpr uint32_t NET_MAX_PAYLOAD_LEN = 1u << 20; // 1 MiB

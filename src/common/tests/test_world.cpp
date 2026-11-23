@@ -12,92 +12,101 @@ int test_mapgen( ) {
         }
     };
 
-    const float max_h = MapGen::maxTerrainHeight( );
-    int lava = 0, ores = 0, overhangs = 0, above_max = 0, bedrock_gaps = 0;
-    int grass = 0, sand_like = 0, snow_like = 0;
-    for ( int x = -256; x < 256; x += 2 ) {
-        for ( int z = -256; z < 256; z += 2 ) {
-            const float h = MapGen::calculateTerrainHeight( x, z );
-            int top_solid = -10000;
-            for ( int y = -110; y <= (int)max_h; y++ ) {
-                const BlockID b = MapGen::gen_block_id( x, y, z );
-                if ( y <= BEDROCK_LEVEL - 4 && b != BEDROCK ) {
-                    bedrock_gaps++;
-                }
-                if ( b == LAVA ) {
-                    lava++;
-                }
-                if ( b == COAL_ORE || b == IRON_ORE || b == GOLD_ORE || b == COPPER_ORE || b == LAPIS_ORE ||
-                     b == REDSTONE_ORE || b == DIAMOND_ORE || b == EMERALD_ORE ) {
-                    ores++;
-                }
-                if ( b != AIR && b != WATER ) {
-                    if ( (float)y > max_h ) {
-                        above_max++;
+    struct Survey {
+        int lava = 0, ores = 0, overhangs = 0, above_max = 0, bedrock_gaps = 0;
+        int grass = 0, sand_like = 0, snow_like = 0;
+    };
+    // Survey one band's generated terrain in its generator frame: overworld
+    // y is used as-is; repheim y maps through repheim_encoded_block_y (the
+    // band's wrap), so `ry` below is the generator-frame block y either way.
+    const auto survey = []( const DimensionId dim ) -> Survey {
+        Survey s;
+        const auto by = [dim]( const int ry ) -> int {
+            return dim == DIM_REPHEIM ? repheim_encoded_block_y( ry ) : ry;
+        };
+        const float max_h = MapGen::maxTerrainHeight( dim );
+        for ( int x = -256; x < 256; x += 2 ) {
+            for ( int z = -256; z < 256; z += 2 ) {
+                const float h = MapGen::dimTerrainHeight( dim, x, z );
+                int top_solid = -10000;
+                for ( int ry = -110; ry <= (int)max_h; ry++ ) {
+                    const BlockID b = MapGen::gen_block_id( x, by( ry ), z );
+                    if ( ry <= BEDROCK_LEVEL - 4 && b != BEDROCK ) {
+                        s.bedrock_gaps++;
                     }
-                    top_solid = y;
+                    if ( b == LAVA ) {
+                        s.lava++;
+                    }
+                    if ( b == COAL_ORE || b == IRON_ORE || b == GOLD_ORE || b == COPPER_ORE || b == LAPIS_ORE ||
+                         b == REDSTONE_ORE || b == DIAMOND_ORE || b == EMERALD_ORE ) {
+                        s.ores++;
+                    }
+                    if ( b != AIR && b != WATER ) {
+                        if ( (float)ry > max_h ) {
+                            s.above_max++;
+                        }
+                        top_solid = ry;
+                    }
                 }
-            }
-            if ( top_solid > (int)ceilf( h ) + 2 &&
-                 MapGen::gen_block_id( x, (int)ceilf( h ) + 1, z ) == AIR &&
-                 MapGen::gen_block_id( x, (int)ceilf( h ) + 2, z ) == AIR ) {
-                overhangs++;
-            }
-            if ( top_solid > -10000 ) {
-                const BlockID surf = MapGen::gen_block_id( x, top_solid, z );
-                if ( surf == GRASS || surf == PODZOL || surf == MYCELIUM ) grass++;
-                if ( surf == SAND || surf == RED_SAND || surf == GRAVEL ) sand_like++;
-                if ( surf == SNOW || surf == SNOWY_GRASS ) snow_like++;
+                if ( top_solid > (int)ceilf( h ) + 2 &&
+                     MapGen::gen_block_id( x, by( (int)ceilf( h ) + 1 ), z ) == AIR &&
+                     MapGen::gen_block_id( x, by( (int)ceilf( h ) + 2 ), z ) == AIR ) {
+                    s.overhangs++;
+                }
+                if ( top_solid > -10000 ) {
+                    const BlockID surf = MapGen::gen_block_id( x, by( top_solid ), z );
+                    if ( surf == GRASS || surf == PODZOL || surf == MYCELIUM ) s.grass++;
+                    if ( surf == SAND || surf == RED_SAND || surf == GRAVEL ) s.sand_like++;
+                    if ( surf == SNOW || surf == SNOWY_GRASS ) s.snow_like++;
+                }
             }
         }
-    }
-    // Mountains are sparse, so the snowline needs a wider (cheap) survey: the
-    // heightmap alone finds tall columns, then a short y-scan finds the top
-    // block. No per-y scan over the whole area. The same pass verifies
-    // overhangs: they intentionally only form in rough/mountain terrain now
-    // (flat land stays walkably smooth), so mountain columns are where they
-    // must exist.
-    for ( int x = -2048; x < 2048; x += 8 ) {
-        for ( int z = -2048; z < 2048; z += 8 ) {
-            const float h = MapGen::calculateTerrainHeight( x, z );
-            if ( h <= MOUNTAIN_ROCK_LINE ) {
-                continue;
-            }
-            int top_solid = -10000;
-            for ( int y = (int)h + (int)OVERHANG_MAX_RISE; y >= (int)h - 5; y-- ) {
-                const BlockID b = MapGen::gen_block_id( x, y, z );
-                if ( b != AIR && b != WATER ) {
-                    top_solid = y;
-                    if ( b == SNOW || b == SNOWY_GRASS ) {
-                        snow_like++;
+        // Mountains are sparse, so the snowline needs a wider (cheap) survey: the
+        // heightmap alone finds tall columns, then a short y-scan finds the top
+        // block. No per-y scan over the whole area. The same pass verifies
+        // overhangs: they intentionally only form in rough/mountain terrain now
+        // (flat land stays walkably smooth), so mountain columns are where they
+        // must exist.
+        for ( int x = -2048; x < 2048; x += 8 ) {
+            for ( int z = -2048; z < 2048; z += 8 ) {
+                const float h = MapGen::dimTerrainHeight( dim, x, z );
+                if ( h <= MOUNTAIN_ROCK_LINE ) {
+                    continue;
+                }
+                int top_solid = -10000;
+                for ( int ry = (int)h + (int)OVERHANG_MAX_RISE; ry >= (int)h - 5; ry-- ) {
+                    const BlockID b = MapGen::gen_block_id( x, by( ry ), z );
+                    if ( b != AIR && b != WATER ) {
+                        top_solid = ry;
+                        if ( b == SNOW || b == SNOWY_GRASS ) {
+                            s.snow_like++;
+                        }
+                        break;
                     }
-                    break;
+                }
+                if ( top_solid > (int)ceilf( h ) + 2 &&
+                     MapGen::gen_block_id( x, by( (int)ceilf( h ) + 1 ), z ) == AIR &&
+                     MapGen::gen_block_id( x, by( (int)ceilf( h ) + 2 ), z ) == AIR ) {
+                    s.overhangs++;
                 }
             }
-            if ( top_solid > (int)ceilf( h ) + 2 &&
-                 MapGen::gen_block_id( x, (int)ceilf( h ) + 1, z ) == AIR &&
-                 MapGen::gen_block_id( x, (int)ceilf( h ) + 2, z ) == AIR ) {
-                overhangs++;
-            }
         }
-    }
+        return s;
+    };
 
-    check_bool( "nothing solid above maxTerrainHeight", above_max == 0 );
-    check_bool( "bedrock floor has no gaps", bedrock_gaps == 0 );
-#if REPGAME_MAP_GEN_LEGACY
-    // The legacy generator has no lava layer or overhangs, and snow only
-    // appears on rare tall mountain caps — none are guaranteed in a survey.
-    (void)lava;
-    (void)overhangs;
-    (void)snow_like;
-#else
-    check_bool( "lava layer exists below LAVA_LEVEL", lava > 0 );
-    check_bool( "terrain overhangs exist", overhangs > 0 );
-    check_bool( "snowy surfaces exist", snow_like > 0 );
-#endif
-    check_bool( "ores generate", ores > 0 );
-    check_bool( "grassy surfaces exist", grass > 0 );
-    check_bool( "sandy surfaces exist", sand_like > 0 );
+    const Survey ov = survey( DIM_OVERWORLD );
+    const Survey rep = survey( DIM_REPHEIM );
+    check_bool( "nothing solid above maxTerrainHeight", ov.above_max == 0 && rep.above_max == 0 );
+    check_bool( "bedrock floor has no gaps", ov.bedrock_gaps == 0 && rep.bedrock_gaps == 0 );
+    // The legacy generator (overworld band) has no lava layer or overhangs,
+    // and snow only on rare tall mountain caps — none are guaranteed in a
+    // survey. The reworked generator (repheim band) produces all three.
+    check_bool( "repheim: lava layer exists below LAVA_LEVEL", rep.lava > 0 );
+    check_bool( "repheim: terrain overhangs exist", rep.overhangs > 0 );
+    check_bool( "repheim: snowy surfaces exist", rep.snow_like > 0 );
+    check_bool( "ores generate", ov.ores > 0 && rep.ores > 0 );
+    check_bool( "grassy surfaces exist", ov.grass > 0 && rep.grass > 0 );
+    check_bool( "sandy surfaces exist", ov.sand_like > 0 && rep.sand_like > 0 );
     return failures;
 }
 
@@ -427,9 +436,9 @@ int test_structure_border( ) {
         const int wx0 = rcx * CHUNK_SIZE_X + CHUNK_SIZE_X / 2;
         const int wz0 = rcz * CHUNK_SIZE_Z + CHUNK_SIZE_Z / 2;
         const float h = MapGen::calculateTerrainHeight( wx0, wz0 );
-#if REPGAME_MAP_GEN_LEGACY
         // Target the legacy forest field (perlin_noise2d > 0.7 somewhere in
-        // the region) so the grid is actually in tree country.
+        // the region) so the grid is actually in tree country — overworld
+        // band chunks always run the legacy structure passes.
         bool forest = false;
         for ( int x = wx0 - CHUNK_SIZE_X; x < wx0 + 2 * CHUNK_SIZE_X && !forest; x += 5 ) {
             for ( int z = wz0 - CHUNK_SIZE_Z; z < wz0 + 2 * CHUNK_SIZE_Z && !forest; z += 5 ) {
@@ -441,11 +450,6 @@ int test_structure_border( ) {
         if ( !forest ) {
             continue;
         }
-#else
-        if ( h < WATER_LEVEL + 3.0f ) {
-            continue; // open water — trees need land
-        }
-#endif
         const int cy = (int)floorf( h / (float)CHUNK_SIZE_Y );
 
         Chunk *grid[ 3 ][ 2 ][ 3 ] = {};
