@@ -6,8 +6,9 @@
 // A portal is an obsidian ring (min interior 1x2, max 16x25) filled with
 // PORTAL blocks. Flint & steel (or a fire spread) on an interior cell ignites
 // it; standing inside for PORTAL_TRAVEL_TICKS moves the player between the
-// overworld and nether dimension bands (dimension.hpp). Travel keeps x/z —
-// no 8:1 compression — and finds or builds a destination portal.
+// overworld and nether dimension bands (dimension.hpp). Travel maps x/z by
+// the 8:1 scale (1 nether block = 8 overworld blocks) and finds or builds a
+// destination portal.
 //
 // portal.cpp holds the pure world helpers (frame detection, the survive rule
 // block_can_survive_at calls, frame building); portal_travel.cpp the per-tick
@@ -31,9 +32,13 @@ class World;
 // Ticks after a travel where portal contact doesn't count — keeps a player
 // who lands inside the destination portal from bouncing straight back.
 #define PORTAL_COOLDOWN_TICKS 60
+// The 8:1 nether<->overworld horizontal scale: a source portal's x/z maps
+// to the destination anchor by /8 (overworld -> nether) or *8
+// (nether -> overworld).
+#define PORTAL_COORD_SCALE 8
 // Horizontal half-extent of the existing-portal search box around the
-// SOURCE portal's interior centre (not the drop point — the drop can land
-// far off the source x/z and at a wildly different y).
+// SCALED destination anchor (not the drop point — the drop can land off
+// the anchor and at a wildly different y).
 #define PORTAL_SEARCH_R 64
 // Soft timeout (~10 s at UPS_RATE): the readiness gate keeps the player
 // frozen past this — it only logs that the wait is taking a while.
@@ -69,7 +74,8 @@ struct PortalState {
     int pending_dim = 0;           // destination DimensionId (site scan + search band)
     glm::dvec3 hold_feet;          // frozen drop position the player is re-snapped to —
                                    // moved inside the adopted plate when an early scan finds one
-    glm::ivec3 src_center;         // source portal interior centre (search/build origin x/z)
+    glm::ivec3 dst_center;         // destination anchor: source interior centre x/z scaled by
+                                   // PORTAL_COORD_SCALE (search/build origin x/z)
     long pending_start_tick = 0;   // tick_number when the travel began (timeout clock)
     uint32_t pending_diff_target = 0; // MP gate: diff_boxes_sent snapshot to wait for
     int pending_diff_snap = 0;     // MP gate: the snapshot above has been taken
@@ -130,6 +136,6 @@ bool portal_destination_ready( RepGameState &state, int &unmet );
 void repgame_portal_tick( RepGameState &state );
 
 // Teleport the player into `dim` at the same x/z on generated ground (the
-// /dimension command path — no portal built). False when the destination is
-// unreachable (spare bands, already there).
+// /dimension command path — no 8:1 scaling, no portal built). False when
+// the destination is unreachable (spare bands, already there).
 bool portal_travel_to_dimension( RepGameState &state, DimensionId dim );

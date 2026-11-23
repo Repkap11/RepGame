@@ -249,12 +249,22 @@ static glm::dvec3 portal_arrive_feet_frame( const PortalFrame &frame ) {
                       : glm::dvec3( u_mid, frame.lo.y, frame.lo.z + 0.5 );
 }
 
+// The 8:1 horizontal scale applied to a source portal's x/z: nether-bound
+// divides by PORTAL_COORD_SCALE (floor, so negatives map like Minecraft),
+// overworld-bound multiplies — 1 nether block is 8 overworld blocks.
+static int portal_scale_coord( const int v, const DimensionId dst ) {
+    return dst == DIM_NETHER ? static_cast<int>( floor( v / static_cast<double>( PORTAL_COORD_SCALE ) ) )
+                             : v * PORTAL_COORD_SCALE;
+}
+
 // Travel: drop the player at generated ground in the destination band and
 // freeze them on hold_feet until portal_pending_tick's readiness gate says
 // the destination chunks (and, in MP, the server's edit diffs) are in —
-// only then does it search for an existing portal or build one. A built
-// destination frame copies `src`'s axis and interior size (null → the
-// default 2x3 x-plate).
+// only then does it search for an existing portal or build one. The
+// destination anchor is the source portal's x/z scaled by the 8:1 nether
+// ratio (portal_scale_coord) — every search and the build site centre on
+// it, not on the source coordinate. A built destination frame copies
+// `src`'s axis and interior size (null → the default 2x3 x-plate).
 static void portal_travel( RepGameState &state, const DimensionId dst, const PortalFrame *src ) {
     int axis = 0, w = 2, h = 3;
     glm::ivec3 src_center( static_cast<int>( floor( state.camera.pos.x ) ), 0,
@@ -271,9 +281,11 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
         }
         src_center = glm::ivec3( ( src->lo.x + src->hi.x ) / 2, ( src->lo.y + src->hi.y ) / 2, ( src->lo.z + src->hi.z ) / 2 );
     }
+    const glm::ivec3 dst_center( portal_scale_coord( src_center.x, dst ), src_center.y,
+                                 portal_scale_coord( src_center.z, dst ) );
     glm::ivec3 center;
     int embedded;
-    portal_find_spot( dst, src_center.x, src_center.z, axis, w, h, center, embedded );
+    portal_find_spot( dst, dst_center.x, dst_center.z, axis, w, h, center, embedded );
     const double mid = w / 2.0;
     const glm::dvec3 feet = axis ? glm::dvec3( center.x + 0.5, center.y + 1.0, center.z + mid )
                                  : glm::dvec3( center.x + mid, center.y + 1.0, center.z + 0.5 );
@@ -292,7 +304,7 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
     p.pending_h = h;
     p.pending_dim = dst;
     p.hold_feet = feet;
-    p.src_center = src_center;
+    p.dst_center = dst_center;
     p.pending_start_tick = state.tick_number;
     p.pending_diff_snap = 0;
     p.pending_wait_logged = 0;
@@ -320,8 +332,8 @@ bool portal_destination_ready( RepGameState &state, int &unmet ) {
     int y_min, y_max;
     portal_band_span( static_cast<DimensionId>( p.pending_dim ), y_min, y_max );
     const glm::ivec3 cs( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-    const glm::ivec3 cmin = glm::floor( glm::vec3( p.src_center.x - PORTAL_SEARCH_R, y_min, p.src_center.z - PORTAL_SEARCH_R ) / glm::vec3( cs ) );
-    const glm::ivec3 cmax = glm::floor( glm::vec3( p.src_center.x + PORTAL_SEARCH_R, y_max, p.src_center.z + PORTAL_SEARCH_R ) / glm::vec3( cs ) );
+    const glm::ivec3 cmin = glm::floor( glm::vec3( p.dst_center.x - PORTAL_SEARCH_R, y_min, p.dst_center.z - PORTAL_SEARCH_R ) / glm::vec3( cs ) );
+    const glm::ivec3 cmax = glm::floor( glm::vec3( p.dst_center.x + PORTAL_SEARCH_R, y_max, p.dst_center.z + PORTAL_SEARCH_R ) / glm::vec3( cs ) );
     for ( int cy = cmin.y; cy <= cmax.y; cy++ ) {
         for ( int cx = cmin.x; cx <= cmax.x; cx++ ) {
             for ( int cz = cmin.z; cz <= cmax.z; cz++ ) {
@@ -367,7 +379,7 @@ static bool portal_try_adopt( RepGameState &state, const bool quiet_miss ) {
     PortalState &p = state.portal;
     int y_min, y_max;
     portal_band_span( static_cast<DimensionId>( p.pending_dim ), y_min, y_max );
-    const glm::ivec3 search_center( p.src_center.x, static_cast<int>( floor( p.hold_feet.y ) ), p.src_center.z );
+    const glm::ivec3 search_center( p.dst_center.x, static_cast<int>( floor( p.hold_feet.y ) ), p.dst_center.z );
     const auto t0 = std::chrono::steady_clock::now( );
     glm::ivec3 found;
     const bool have_portal = portal_find_nearest( state.world, search_center, y_min, y_max, found );
@@ -470,11 +482,11 @@ static void portal_pending_tick( RepGameState &state ) {
         return;
     }
 
-    // Build: pick the site from the loaded world — spiral from the source
-    // portal's x/z, clearance-vetoed against existing frames and bedrock.
+    // Build: pick the site from the loaded world — spiral from the scaled
+    // destination anchor, clearance-vetoed against existing frames/bedrock.
     glm::ivec3 site;
     int embedded;
-    portal_find_spot( dst, p.src_center.x, p.src_center.z, axis, w, h, site, embedded, &state.world );
+    portal_find_spot( dst, p.dst_center.x, p.dst_center.z, axis, w, h, site, embedded, &state.world );
     if ( want_carve || embedded ) {
         portal_carve_pocket( state, site, axis, w, h );
     }
