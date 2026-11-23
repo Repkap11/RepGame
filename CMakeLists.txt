@@ -59,7 +59,7 @@ set(REPGAME_GPU_PREBUILT_DIR "" CACHE PATH "Prebuilt GPU objects (prebuilt/gpu) 
 set(REPGAME_GPU_OUT "${CMAKE_BINARY_DIR}/gpu" CACHE PATH "Output directory for built GPU objects")
 # Static SDL3 install prefix for the cross builds (arm-sdl3 / steamframe-sdl3
 # make targets build it; the headers are on every compile line).
-set(REPGAME_SDL3_PREFIX "" CACHE PATH "Static SDL3 install prefix (arm/steamframe)")
+set(REPGAME_SDL3_PREFIX "" CACHE PATH "Static SDL3 install prefix (arm/steamframe/windows)")
 if(EXISTS /usr/bin/nvcc)
 	set(_cuda_default ON)
 else()
@@ -191,17 +191,17 @@ elseif(REPGAME_PLATFORM STREQUAL "arm" OR REPGAME_PLATFORM STREQUAL "steamframe"
 		set(REPGAME_PLATFORM_SHADER_DEFINES -DREPGAME_LINUX -DREPGAME_GLES -DREPGAME_STEAMFRAME)
 	endif()
 elseif(REPGAME_PLATFORM STREQUAL "windows")
-	# SDL3 MinGW devel only ships a shared library (libSDL3.dll.a + SDL3.dll),
-	# so Windows dynamically links SDL3 and ships SDL3.dll next to the exe.
+	# SDL3 is a static libSDL3.a built from source (make windows-sdl3) so the
+	# exe needs no DLLs beyond the ones Windows ships.
 	target_compile_definitions(repgame_platform INTERFACE
 		GLEW_STATIC GLEW_NO_GLU _WIN32_WINNT=0x0A00 REPGAME_WINDOWS)
 	target_compile_options(repgame_platform INTERFACE -fno-pie -mwindows)
 	target_link_options(repgame_platform INTERFACE -mwindows)
-	# windows_build (make windows_build): SDL3 MinGW devel + glew, used
-	# before the common includes just like INCLUDES_WINDOWS.
+	# windows_build (make windows_build): static SDL3 + glew, used before the
+	# common includes just like INCLUDES_WINDOWS.
 	target_include_directories(repgame_platform BEFORE INTERFACE
-		${CMAKE_SOURCE_DIR}/windows_build/sdl3/x86_64-w64-mingw32/include/SDL3
-		${CMAKE_SOURCE_DIR}/windows_build/sdl3/x86_64-w64-mingw32/include
+		${REPGAME_SDL3_PREFIX}/include/SDL3
+		${REPGAME_SDL3_PREFIX}/include
 		${CMAKE_SOURCE_DIR}/windows_build/glew/include)
 	set(REPGAME_PLATFORM_SHADER_DEFINES -DREPGAME_WINDOWS)
 	set(REPGAME_IMGUI_BACKEND ${CMAKE_SOURCE_DIR}/imgui_build/backends/imgui_impl_sdl3.cpp)
@@ -470,18 +470,14 @@ if(REPGAME_BUILD_CLIENT)
 	elseif(REPGAME_PLATFORM STREQUAL "windows")
 		target_link_libraries(RepGame PRIVATE
 			${CMAKE_SOURCE_DIR}/windows_build/glew/lib/libglew32.a
-			${CMAKE_SOURCE_DIR}/windows_build/sdl3/x86_64-w64-mingw32/lib/libSDL3.dll.a
+			${REPGAME_SDL3_PREFIX}/lib/libSDL3.a
 			-Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va
 			-lm -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
-			-lsetupapi -lversion -luuid -lws2_32
-			-lopengl32 -Wl,-Bstatic -lpthread -Wl,-Bdynamic
-			-static-libgcc -static-libstdc++)
-		# SDL3 is dynamically linked on Windows, so ship SDL3.dll next to the exe.
-		add_custom_command(TARGET RepGame POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy
-				${CMAKE_SOURCE_DIR}/windows_build/sdl3/x86_64-w64-mingw32/bin/SDL3.dll
-				${REPGAME_OUTPUT_DIR}/
-			VERBATIM)
+			-lsetupapi -lversion -luuid -lws2_32 -ladvapi32 -lcfgmgr32
+			-lopengl32
+			# -static (not just -static-libgcc/-static-libstdc++) also pulls
+			# winpthread in, so no libwinpthread-1.dll is needed.
+			-static)
 	elseif(REPGAME_PLATFORM STREQUAL "wasm")
 		set_target_properties(RepGame PROPERTIES SUFFIX ".js")
 		# SHELL: keeps each `-s X=Y` pair together — CMake would otherwise

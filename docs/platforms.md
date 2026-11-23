@@ -127,8 +127,10 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 
 - `make windows` — cross-compile `out/windows/RepGame.exe` (CMake
   `REPGAME_PLATFORM=windows`, mingw toolchain
-  `cmake/toolchains/windows-mingw.cmake`); `SDL3.dll` is copied next to the
-  exe post-build. A generated `repgame.rc` embeds
+  `cmake/toolchains/windows-mingw.cmake`). The exe is self-contained: SDL3 is
+  a static `libSDL3.a` built from the release tarball (`make windows-sdl3`,
+  `WINDOWS_SDL3_VERSION`) and `-static` links libgcc/libstdc++/winpthread, so
+  it only imports DLLs that ship with Windows. A generated `repgame.rc` embeds
   `bitmaps/icons/icon.ico` (the multi-size render of the Android launcher
   icon) so the .exe itself has the icon in explorer and the taskbar.
 - `make windows-run` — run the exe under wine against www.repkap11.com
