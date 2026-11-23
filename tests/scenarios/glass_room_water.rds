@@ -1,9 +1,9 @@
 # Stained-glass room fully submerged in a walled flat-world pool. Water
-# emits a face against a translucent neighbour only when the cell beyond
-# the glass isn't the same fluid (mesh_vis_logic.hpp liquid_boundary), so
-# a dry-backed glass wall or ceiling still shows water through it — the
-# underwater feel from inside. Companion to glass_in_water.rds, which
-# pins the fully-submerged clean-glass case. Screenshots must be
+# emits its boundary faces against translucent neighbours exactly like
+# opaque-order glass (mesh_vis_logic.hpp liquid_boundary only culls
+# waterlogged cells), so a dry-backed glass wall or ceiling shows tinted
+# water through it — the underwater feel from inside. Companion to
+# glass_in_water.rds. Screenshots must be
 # eyeball-compared; the asserts only pin the world state.
 # flags 9 = lighting off + fog off so the underwater view isn't murk.
 wait_idle 20 6000

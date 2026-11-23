@@ -146,17 +146,16 @@ static unsigned int fluid_face_vis_mask( const BlockCell *cells, const GPUBlockD
         const BlockID nid = block_cell_id( nc );
         const int nrot = block_cell_rotation( nc );
         const GPUBlockDef &ndef = defs[ nid ];
-        // Waterlogged cells count as water, and translucent neighbours
-        // (stained glass, ice, ...) always hide the water-pass face — the
-        // same liquid_boundary rule as mesh_vis_logic.hpp. The translucent
-        // pass draws over the water pass, so a face emitted there would be
-        // halved by the glass alpha; every face that would be emitted is
-        // re-emitted as a post-translucent "film" instead
-        // (emit_boundary_films), matching what opaque-order glass shows —
-        // including when water sits on both sides of the glass.
+        // Same liquid_boundary rule as mesh_vis_logic.hpp: waterlogged
+        // cells count as water. Faces against translucent blocks emit
+        // normally — the glass blends over them like anything else seen
+        // through it — except in the legacy blend mode, where the glass
+        // writes depth before the water pass and the coplanar face is
+        // dead. film_vis flags those faces so a copy can land in the
+        // post-translucent order-0 bucket (emit_boundary_films) when the
+        // translucent pass writes depth.
         int liquid_boundary = block_cell_waterlogged( nc ) != 0;
         const bool translucent = ndef.renderOrder == RenderOrder_Translucent;
-        liquid_boundary |= translucent;
         int face_vis;
         int film_vis;
         if ( face == FACE_TOP ) {
@@ -448,19 +447,18 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
     profiling_mesh_vis_light_us.fetch_add( t_phase1, std::memory_order_relaxed );
     t_ph1 = now_us( );
 #endif
-    // Water-boundary films: a fluid face against a translucent block is
-    // culled from the water pass (liquid_boundary) — the glass pass would
-    // halve it with its own alpha and the view would read as dry, unlike
-    // the same face against opaque-order glass (which keeps the water
-    // visible through the texture's discarded pixels). The replacement is
-    // a copy in the order-0 bucket — meshed terrain never uses it — which
-    // world.cpp draws after the translucent pass so the water composites
-    // over the glass, exactly like the regular-glass boundary. The copy
-    // sits exactly on the boundary plane — the film draw in world.cpp
-    // uses GL_LEQUAL so it still wins against the glass's own depth in
-    // blend modes that write translucent depth. Every would-be-visible
-    // face gets a film — water on both sides of a pane shows the
-    // boundary surface through it, same as regular glass.
+    // Water-boundary films: in the legacy blend mode the translucent pass
+    // writes depth before the water pass, so a fluid face coplanar with a
+    // stained-glass quad can never pass the water pass's depth test — the
+    // same face against opaque-order glass survives through the texture's
+    // discarded pixels. For that mode each would-be-visible translucent
+    // boundary face also gets a copy in the order-0 bucket — meshed terrain
+    // never uses it — which world.cpp draws after the translucent pass with
+    // GL_LEQUAL so it wins against the glass's own depth write. In every
+    // other blend mode the glass writes no depth and the water-pass face
+    // composites under it like anything else seen through glass — no film
+    // is emitted.
+    const bool emit_films = translucent_depth_write( );
     Block *water_block = block_definition_get_definition( WATER );
     auto emit_boundary_films = [ & ]( int x, int y, int z, unsigned int boundary, unsigned int corners ) {
         const bool fluid_flat = corners == FLUID_CORNERS_FLAT;
@@ -529,7 +527,7 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                     for ( int f = FACE_TOP; f < NUM_FACES_IN_CUBE; f++ ) {
                         workingSpace[ index ].packed_lighting[ f ] = ( vis >> f ) & 1u ? NO_LIGHT_BRIGHT : NO_LIGHT_NO_DRAW;
                     }
-                    if ( boundary != 0 ) {
+                    if ( emit_films && boundary != 0 ) {
                         emit_boundary_films( x, y, z, boundary, s_fluid_corners[ index ] );
                     }
                 }
@@ -748,7 +746,7 @@ void Chunk::build_mesh( const BlockCell *cells, const BlockExtra *extras, const 
                             if ( !fluid_flat ) {
                                 waterCoord->face[ FACE_TOP ] = water->textures[ FACE_FRONT ];
                             }
-                            if ( boundary != 0 ) {
+                            if ( emit_films && boundary != 0 ) {
                                 emit_boundary_films( x, y, z, boundary, corners );
                             }
                         }

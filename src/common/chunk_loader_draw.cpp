@@ -27,22 +27,8 @@ static int occlusion_enabled( ) {
     return enabled;
 }
 
-// REPGAME_TRANSLUCENT_BLEND: how the RenderOrder_Translucent pass (stained
-// glass, ice, honey, slime...) composites. See docs/rendering.md.
-typedef enum { TranslucentBlend_Legacy, TranslucentBlend_Alpha, TranslucentBlend_Multiply } TranslucentBlend;
-static TranslucentBlend translucent_blend_mode( ) {
-    static const TranslucentBlend mode = [] {
-        const char *v = env_get( "REPGAME_TRANSLUCENT_BLEND" );
-        if ( v != nullptr && strcmp( v, "legacy" ) == 0 ) {
-            return TranslucentBlend_Legacy;
-        }
-        if ( v != nullptr && strcmp( v, "multiply" ) == 0 ) {
-            return TranslucentBlend_Multiply;
-        }
-        return TranslucentBlend_Alpha;
-    }( );
-    return mode;
-}
+// TranslucentBlend / translucent_blend_mode / translucent_depth_write
+// live in render_order.cpp — the mesh side needs them too.
 
 // REPGAME_TRANSLUCENT_AFTER_WATER: world.cpp splits the translucent pass
 // per-fragment at the sea-level water plane ("split", the default), draws it

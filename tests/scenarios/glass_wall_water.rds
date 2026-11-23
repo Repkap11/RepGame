@@ -1,9 +1,9 @@
 # Three window walls holding back a pool, viewed from the dry side:
 # regular GLASS (opaque-order, reference), MAGENTA_STAINED_GLASS and
 # STAINED_GLASS_PANE (Translucent order). The water side faces must draw
-# against all three — for the translucent ones that means the
-# liquid_boundary beyond-check (mesh_vis_logic.hpp) emitting since the
-# cell past the glass is the dry room, not more water.
+# against all three — liquid_boundary (mesh_vis_logic.hpp) only culls
+# waterlogged cells, so translucent neighbours emit the face and the
+# glass tints it like anything else seen through the pane.
 # flags 9 = lighting off + fog off so the view isn't murk.
 wait_idle 20 6000
 # Basin x1..18 z1..8

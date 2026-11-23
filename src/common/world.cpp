@@ -688,8 +688,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // right here (same position as the default order), the camera side after
     // water.
     const unsigned order_all = ( 1u << LAST_RENDER_ORDER ) - 1;
-    // Order 0 (Transparent) is the fluid-boundary film bucket: it draws in
-    // its own call after the translucent pass below, never in these masks.
+    // Order 0 (Transparent) is the fluid-boundary film bucket (legacy blend
+    // mode only): it draws in its own call after the translucent pass
+    // below, never in these masks.
     const unsigned order_no_water = order_all & ~render_order_bit( RenderOrder_Water ) & ~render_order_bit( RenderOrder_Transparent );
     const TranslucentWaterOrder water_order = translucent_water_order( );
     const float split_y = ( WATER_HEIGHT - 1.0f ) - renderOriginF.y;
@@ -833,23 +834,22 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     }
 
-    // Fluid-boundary films (order-0 bucket, chunk_mesh.cpp): the faces a
-    // fluid emits against a translucent block. They composite
-    // after the glass so the water reads through the pane instead of
-    // being halved by the glass's own alpha — matching what an
-    // opaque-order pane shows. Same uniforms as the water pass; the
-    // bucket uses the water IB and blends like water.
-    this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
-    this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-    // Films sit exactly on the water|glass boundary; LEQUAL lets them
-    // draw over the glass in blend modes that write translucent depth
-    // (legacy). Nothing else ever lands at that plane, so LESS and
-    // LEQUAL are equivalent everywhere else.
-    glDepthFunc( GL_LEQUAL );
-    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Transparent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Water-boundary films
-    glDepthFunc( GL_LESS );
-    this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
-    this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
+    // Fluid-boundary films (order-0 bucket, chunk_mesh.cpp): only populated
+    // when the translucent pass writes depth (legacy blend mode) — there the
+    // coplanar water-pass face is dead, so the mesh emits a copy that draws
+    // after the glass. Same uniforms as the water pass; the bucket uses the
+    // water IB and blends like water.
+    if ( translucent_depth_write( ) ) {
+        this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
+        this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
+        // Films sit exactly on the water|glass boundary; LEQUAL lets them
+        // draw over the glass's own depth write.
+        glDepthFunc( GL_LEQUAL );
+        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Transparent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Water-boundary films
+        glDepthFunc( GL_LESS );
+        this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
+        this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
+    }
 
     if ( draw_mouse_selection ) {
         // Second outline draw, composited over water + translucent so the

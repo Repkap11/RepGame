@@ -10,3 +10,12 @@ int render_order_casts_shadow( RenderOrder renderOrder );
 int render_order_is_visible( RenderOrder renderOrder );
 int render_order_can_mesh( RenderOrder renderOrder );
 int render_order_can_be_shaded( RenderOrder renderOrder );
+
+// REPGAME_TRANSLUCENT_BLEND: how the RenderOrder_Translucent pass (stained
+// glass, ice, honey, slime...) composites. See docs/rendering.md.
+typedef enum { TranslucentBlend_Legacy, TranslucentBlend_Alpha, TranslucentBlend_Multiply } TranslucentBlend;
+TranslucentBlend translucent_blend_mode( );
+// Whether the translucent pass writes depth (legacy only). When it does,
+// a water face coplanar with the glass can never pass GL_LESS, so the
+// mesh additionally emits a post-translucent "film" copy (chunk_mesh.cpp).
+bool translucent_depth_write( );

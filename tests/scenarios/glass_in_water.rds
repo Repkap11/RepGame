@@ -1,10 +1,10 @@
 # Stained glass submerged in a walled flat-world water pool (stone basin so
 # the water can't spread; an uncontained fill flooded the world and crashed
-# the run). Regression scenario for the water-boundary films emitted
-# against translucent neighbours (mesh_vis_logic.hpp liquid_boundary +
-# emit_boundary_films): a submerged block shows the boundary surface
-# through the glass like regular glass does, and a dry-backed wall
-# shows water (glass_room_water.rds, glass_wall_water.rds).
+# the run). Regression scenario for the water faces emitted against
+# translucent neighbours (mesh_vis_logic.hpp liquid_boundary): a
+# submerged block shows the boundary surface tinted through the glass
+# like regular glass does, and a dry-backed wall shows water
+# (glass_room_water.rds, glass_wall_water.rds).
 # Screenshots must be eyeball-compared; the asserts only pin the world state.
 # flags 9 = lighting off + fog off so the underwater view isn't murk.
 wait_idle 20 6000

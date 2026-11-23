@@ -54,17 +54,15 @@ if ( visible != 0 ) {
         MG_VAR( int, face_vis, 0 )
         if ( block.is_seethrough_face[ coverage_face ] != 0u && block.hides_self[ rotated_face ] != 0u ) { // water and glass
             // Waterlogged cells count as water: water (and lava) draws no
-            // surface faces against them. Nor against translucent blocks
-            // (stained glass, ice, ...) — the water quad would draw before
-            // the glass blends over it, halving it, so a dry-backed wall
-            // reads as dry. Instead every such face is re-emitted as a
-            // post-translucent "film" copy (fluid_face_vis_mask /
-            // emit_boundary_films in chunk_mesh.cpp), matching the regular
-            // opaque-order glass composite.
+            // surface faces against them. Faces against translucent blocks
+            // (stained glass, ice, ...) DO emit, like opaque-order glass:
+            // the glass blends over the water quad in every blend mode
+            // except legacy, where the glass writes depth first and the
+            // coplanar face is dead — for that mode the CPU side also emits
+            // a post-translucent "film" copy (fluid_face_vis_mask /
+            // emit_boundary_films in chunk_mesh.cpp).
             MG_LET( int, liquid_boundary,
-                    MG_TERN( block.renderOrder == RenderOrder_Water &&
-                                 ( mesh_cell_waterlogged( next_to_cell ) != 0 || block_next_to.renderOrder == RenderOrder_Translucent ),
-                             1, 0 ) )
+                    MG_TERN( block.renderOrder == RenderOrder_Water && mesh_cell_waterlogged( next_to_cell ) != 0, 1, 0 ) )
             // hides_self mode 1 culls against any same-id neighbour; mode 2
             // (panes) only when the neighbour's yaw also matches mod 180 —
             // rotation parity, since the plate is symmetric — so a

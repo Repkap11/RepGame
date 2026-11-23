@@ -1,7 +1,28 @@
 #include "common/render_order.hpp"
 #include "common/block.hpp"
+#include "common/utils/env_config.hpp"
+
+#include <string.h>
 
 #define IB_FLOWERS_SIZE ( 3 * 4 * 2 )
+
+TranslucentBlend translucent_blend_mode( ) {
+    static const TranslucentBlend mode = [] {
+        const char *v = env_get( "REPGAME_TRANSLUCENT_BLEND" );
+        if ( v != nullptr && strcmp( v, "legacy" ) == 0 ) {
+            return TranslucentBlend_Legacy;
+        }
+        if ( v != nullptr && strcmp( v, "multiply" ) == 0 ) {
+            return TranslucentBlend_Multiply;
+        }
+        return TranslucentBlend_Alpha;
+    }( );
+    return mode;
+}
+
+bool translucent_depth_write( ) {
+    return translucent_blend_mode( ) == TranslucentBlend_Legacy;
+}
 
 int render_order_ib_size( const RenderOrder renderOrder ) {
     switch ( renderOrder ) {
