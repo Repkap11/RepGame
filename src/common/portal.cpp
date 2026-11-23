@@ -305,7 +305,7 @@ bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockS
 // per-cell chunk lookup. Ranking: horizontal distance^2, tie-break |dy|
 // to center.y. One-shot per resolve; the pending gate already promised
 // every in-window box chunk is CHUNK_LIVE.
-bool portal_find_nearest( World &world, const glm::ivec3 &center, const int y_min, const int y_max, glm::ivec3 &out ) {
+bool portal_find_nearest( World &world, const DimensionId dim, const glm::ivec3 &center, const int y_min, const int y_max, glm::ivec3 &out ) {
     const int x_min = center.x - PORTAL_SEARCH_R, x_max = center.x + PORTAL_SEARCH_R;
     const int z_min = center.z - PORTAL_SEARCH_R, z_max = center.z + PORTAL_SEARCH_R;
     const glm::ivec3 cs( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
@@ -315,6 +315,11 @@ bool portal_find_nearest( World &world, const glm::ivec3 &center, const int y_mi
     long best_h2 = 0;
     int best_dy = 0;
     for ( int cy = cmin.y; cy <= cmax.y; cy++ ) {
+        // `dim` guards the wrap: repheim's y span covers the whole torus,
+        // so a portal in another band must never be adopted.
+        if ( dimension_of_chunk( cy ) != dim ) {
+            continue;
+        }
         for ( int cx = cmin.x; cx <= cmax.x; cx++ ) {
             for ( int cz = cmin.z; cz <= cmax.z; cz++ ) {
                 const Chunk *chunk = world.get_loaded_chunk( glm::ivec3( cx, cy, cz ) * cs );

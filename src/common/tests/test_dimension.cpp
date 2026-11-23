@@ -435,6 +435,46 @@ int test_dimension( ) {
         check_bool( "back in the overworld", dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD );
     }
 
+    // ---- /repheim lands on a below-sea floor: rep frame [-90,-1] encodes
+    // in the band's wrapped HI half [7846,7935] — a scan expressed as one
+    // contiguous encoded range can't reach it. ----
+    {
+        // Find a generated ocean column (water at rep -1) whose whole
+        // +-48-column neighbourhood is ocean too (portal_find_spot's
+        // widest spiral is 2x its 24 scan radius), so wherever the site
+        // search lands it must be below rep sea level.
+        int ox = 0, oz = 0;
+        bool found_ocean = false;
+        for ( int x = -1536; x <= 1536 && !found_ocean; x += 16 ) {
+            for ( int z = -1536; z <= 1536 && !found_ocean; z += 16 ) {
+                if ( MapGen::gen_block_id( x, repheim_encoded_block_y( -1 ), z ) != WATER ) {
+                    continue;
+                }
+                bool all_ocean = true;
+                for ( int dx = -48; dx <= 48 && all_ocean; dx += 4 ) {
+                    for ( int dz = -48; dz <= 48 && all_ocean; dz += 4 ) {
+                        all_ocean = MapGen::gen_block_id( x + dx, repheim_encoded_block_y( -1 ), z + dz ) == WATER;
+                    }
+                }
+                if ( all_ocean ) {
+                    ox = x;
+                    oz = z;
+                    found_ocean = true;
+                }
+            }
+        }
+        check_bool( "found a wide repheim ocean column", found_ocean );
+        if ( found_ocean ) {
+            RepGameState &gs = *new RepGameState( );
+            gs.tick_number = 0;
+            gs.camera.pos = glm::dvec3( ox + 0.5, 80.0, oz + 0.5 );
+            gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+            check_bool( "repheim ocean travel lands", portal_travel_to_dimension( gs, DIM_REPHEIM ) );
+            const int feet_rep_y = repheim_gen_block_y( static_cast<int>( floor( feet_of( gs ).y ) ) );
+            check_bool( "repheim ocean landing is below sea level", feet_rep_y < 0 );
+        }
+    }
+
     // ---- Overworld band still generates overworld terrain ----
     {
         int overworld_blocks = 0, nether_leaks = 0;

@@ -142,7 +142,7 @@ bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockS
 // CHUNK_LIVE chunks contribute (the pending-travel gate promises everything
 // overlapping the box inside the active window is live). Ranking: horizontal
 // distance^2 to center.x/z, tie-break |dy| to center.y.
-bool portal_find_nearest( World &world, const glm::ivec3 &center, int y_min, int y_max, glm::ivec3 &out );
+bool portal_find_nearest( World &world, DimensionId dim, const glm::ivec3 &center, int y_min, int y_max, glm::ivec3 &out );
 
 // The pending-travel readiness gate (portal_travel.cpp): false while the
 // loader window hasn't reached the hold chunk, a search-box chunk inside
