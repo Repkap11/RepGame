@@ -156,6 +156,11 @@ dimension name (`dim_name`, `dim_local_block_y`).
 - `/dimension [overworld|nether]` (`chat_commands.cpp`) is the portal-less
   debug path: same landing-column search at unscaled x/z, no frame built.
   Spare slots and same-dimension travel are refused.
+- `/nether` and `/overworld` (`portal_travel_no_build`) run the real portal
+  trip minus the frame: 8:1-scaled anchor, hold-and-resolve freeze,
+  early/resolve adoption of an existing PORTAL cell, pocket carve on
+  embedded sites — but the resolve lands the player on the site instead of
+  building a frame (`PortalState::pending_no_build`).
 
 ## Rules
 

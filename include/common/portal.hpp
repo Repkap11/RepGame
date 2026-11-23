@@ -86,6 +86,8 @@ struct PortalState {
     int pending_adopted = 0;       // an early scan already moved the hold into a plate —
                                    // live-triggered scans stop, periodic ones keep
                                    // looking for a nearer portal
+    int pending_no_build = 0;      // /nether-style command travel (portal_travel_no_build):
+                                   // resolve lands on the site, never writes a frame
 };
 
 // Detect a complete empty obsidian ring containing `seed` (an interior-able
@@ -139,3 +141,10 @@ void repgame_portal_tick( RepGameState &state );
 // /dimension command path — no 8:1 scaling, no portal built). False when
 // the destination is unreachable (spare bands, already there).
 bool portal_travel_to_dimension( RepGameState &state, DimensionId dim );
+
+// /nether and /overworld (chat_commands.cpp): portal-style travel —
+// 8:1-scaled anchor, hold-and-resolve, existing-portal adoption — but the
+// resolve never builds a destination frame; the player lands on generated
+// ground (an embedded site still gets its pocket carved). False for spare
+// bands or when already in `dim`.
+bool portal_travel_no_build( RepGameState &state, DimensionId dim );

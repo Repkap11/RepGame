@@ -83,6 +83,11 @@ struct RepGameState {
     // player.dat.
     glm::ivec3 spawn_point;
     bool spawn_point_set;
+    // /spawn (chat_commands.cpp): a pending spawn aimed at the (0,0) world
+    // column that ignores spawn_point_set — the recorded bed point survives
+    // the teleport. Cleared when the spawn resolves or repgame_respawn
+    // retargets the pending spawn.
+    bool spawn_world_pending;
     double frame_rate;
     // Pressure plates with a live PressurePlateEvent check chain. Positions
     // are added when the player steps on a plate and removed by the event

@@ -142,7 +142,7 @@ void repgame_resolve_pending_spawn( RepGameState &state ) {
     if ( !state.spawn_pending ) {
         return;
     }
-    if ( state.spawn_point_set ) {
+    if ( state.spawn_point_set && !state.spawn_world_pending ) {
         // Bed respawn: stand the player on the bed cell once its column
         // reports real data. A missing or obstructed bed clears the
         // point and falls through to the world-spawn scan.
@@ -184,6 +184,7 @@ void repgame_resolve_pending_spawn( RepGameState &state ) {
             cam.pos.y = y + 1.0 + PLAYER_EYE_HEIGHT + 0.5;
             cam.y_speed = 0.0;
             state.spawn_pending = false;
+            state.spawn_world_pending = false;
             break;
         }
     }

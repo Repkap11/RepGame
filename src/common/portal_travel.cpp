@@ -265,7 +265,7 @@ static int portal_scale_coord( const int v, const DimensionId dst ) {
 // ratio (portal_scale_coord) — every search and the build site centre on
 // it, not on the source coordinate. A built destination frame copies
 // `src`'s axis and interior size (null → the default 2x3 x-plate).
-static void portal_travel( RepGameState &state, const DimensionId dst, const PortalFrame *src ) {
+static void portal_travel( RepGameState &state, const DimensionId dst, const PortalFrame *src, const bool build ) {
     int axis = 0, w = 2, h = 3;
     glm::ivec3 src_center( static_cast<int>( floor( state.camera.pos.x ) ), 0,
                            static_cast<int>( floor( state.camera.pos.z ) ) );
@@ -298,6 +298,7 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
     p.cooldown = PORTAL_COOLDOWN_TICKS;
     p.must_exit = 1;
     p.pending_build = 1;
+    p.pending_no_build = build ? 0 : 1;
     p.pending_carve = embedded;
     p.pending_axis = axis;
     p.pending_w = w;
@@ -490,6 +491,15 @@ static void portal_pending_tick( RepGameState &state ) {
     if ( want_carve || embedded ) {
         portal_carve_pocket( state, site, axis, w, h );
     }
+    if ( p.pending_no_build ) {
+        // /nether-style command travel: same site + pocket, but no frame is
+        // written — the player lands on the site's floor.
+        const double mid = w / 2.0;
+        portal_teleport_feet( state, axis ? glm::dvec3( site.x + 0.5, site.y + 1.0, site.z + mid )
+                                          : glm::dvec3( site.x + mid, site.y + 1.0, site.z + 0.5 ) );
+        p.must_exit = 1;
+        return;
+    }
     portal_build_frame( state, site, axis, w, h );
     // Stand inside the new plate: bottom interior row, centred on the axis.
     PortalFrame built;
@@ -544,7 +554,7 @@ void repgame_portal_tick( RepGameState &state ) {
             // size — detect the ring around whichever cell is lit.
             PortalFrame src;
             const glm::ivec3 seed = feet_id == PORTAL ? feet_cell : body_cell;
-            portal_travel( state, dst, portal_find_frame( state.world, seed, src ) ? &src : nullptr );
+            portal_travel( state, dst, portal_find_frame( state.world, seed, src ) ? &src : nullptr, true );
         }
     }
 }
@@ -575,5 +585,21 @@ bool portal_travel_to_dimension( RepGameState &state, const DimensionId dim ) {
     p.pending_h = 3;
     p.pending_dim = dim;
     p.hold_feet = feet;
+    p.pending_no_build = 0;
+    return true;
+}
+
+// /nether and /overworld: the portal trip itself minus the destination
+// frame — the same 8:1-scaled anchor, hold-and-resolve freeze and
+// existing-portal adoption, but the resolve lands the player on the site
+// instead of building one. False for spare bands or when already in `dim`.
+bool portal_travel_no_build( RepGameState &state, const DimensionId dim ) {
+    if ( dim != DIM_OVERWORLD && dim != DIM_NETHER ) {
+        return false;
+    }
+    if ( dimension_of_pos( state.camera.pos ) == dim ) {
+        return false;
+    }
+    portal_travel( state, dim, nullptr, false );
     return true;
 }

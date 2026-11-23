@@ -474,6 +474,20 @@ int test_dimension( ) {
         check_bool( "x/z carried over", abs( int( gs.camera.pos.x ) - 8 ) <= 33 );
     }
 
+    // ---- /nether-style travel (portal_travel_no_build): scaled anchor, pending + flag ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 64.5, 80.0, 40.5 );
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        check_bool( "no_build: spare refused", !portal_travel_no_build( gs, DIM_SPARE_2 ) );
+        check_bool( "no_build: same-dimension refused", !portal_travel_no_build( gs, DIM_OVERWORLD ) );
+        check_bool( "no_build: nether travel lands", portal_travel_no_build( gs, DIM_NETHER ) );
+        check_bool( "no_build: anchor x/z scaled /8", gs.portal.dst_center.x == 8 && gs.portal.dst_center.z == 5 );
+        check_bool( "no_build: pending + flag", gs.portal.pending_build == 1 && gs.portal.pending_no_build == 1 );
+        check_bool( "no_build: player in nether band", dimension_of_pos( gs.camera.pos ) == DIM_NETHER );
+    }
+
     // ---- Pending-travel readiness gate + freeze ----
     // A search-box chunk inside the active window that isn't live yet holds
     // the resolve off; the player is re-snapped to the hold feet each tick.
@@ -643,6 +657,43 @@ int test_dimension( ) {
                                                             world.get_loaded_block( glm::ivec3( 11, 11, 10 ) ).id == PORTAL );
         check_bool( "surface scan: no ledge frame", world.get_loaded_block( glm::ivec3( 10, 3, 10 ) ).id != PORTAL &&
                                                     world.get_loaded_block( glm::ivec3( 11, 4, 10 ) ).id != PORTAL );
+    }
+
+    // ---- No-build resolve (/nether): lands on the site, never writes a frame ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
+        // Flat stone floor under a clear cavity — the spiral's first site.
+        for ( int x = 6; x <= 16; x++ ) {
+            for ( int z = 6; z <= 14; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 10, z ), { STONE, 0, 0, STONE, 0 } );
+            }
+        }
+        stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 10.5, 11.0, 10.5 ), glm::ivec3( 10, 10, 10 ) );
+        gs.portal.pending_no_build = 1;
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
+        repgame_portal_tick( gs );
+        check_bool( "no_build resolve: pending cleared", gs.portal.pending_build == 0 );
+        const glm::dvec3 feet = feet_of( gs );
+        check_bool( "no_build resolve: feet on the site floor", feet.y == 11.0 && floor( feet.x ) == 11.0 && feet.z == 10.5 );
+        // Plain ground releases must_exit the same tick — only a landing
+        // inside a plate keeps it.
+        check_bool( "no_build resolve: must_exit released on ground", gs.portal.must_exit == 0 );
+        // Nothing was built — no PORTAL or OBSIDIAN anywhere near the site.
+        bool stray = false;
+        for ( int x = -10; x <= 30 && !stray; x++ ) {
+            for ( int y = 5; y <= 20 && !stray; y++ ) {
+                for ( int z = -10; z <= 30 && !stray; z++ ) {
+                    const BlockID id = world.get_loaded_block( glm::ivec3( x, y, z ) ).id;
+                    stray = id == PORTAL || id == OBSIDIAN;
+                }
+            }
+        }
+        check_bool( "no_build resolve: no frame written", !stray );
     }
 
     // ---- MP gate: pending until the diff boxes in flight come back DONE ----

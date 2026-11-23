@@ -1063,6 +1063,22 @@ int test_sleep( ) {
     check_near( "bed respawn stands on top", gs.camera.pos.y, Collision::block_collision_top( world, bed ) + PLAYER_EYE_HEIGHT );
     check_near( "bed respawn centered on cell", gs.camera.pos.x, 8.5 );
 
+    // /spawn: spawn_world_pending bypasses the bed point — the resolve runs
+    // the world-column scan instead (kept pending here: (0,0) is all air /
+    // unreadable above the single test chunk), and the bed point survives.
+    gs.spawn_point = bed;
+    gs.spawn_point_set = true;
+    gs.spawn_pending = true;
+    gs.spawn_world_pending = true;
+    repgame_resolve_pending_spawn( gs );
+    check_bool( "world spawn pin: bed skipped, point kept, still pending",
+                gs.spawn_pending && gs.spawn_world_pending && gs.spawn_point_set );
+
+    // repgame_respawn clears a stale /spawn pin so the bed wins again.
+    gs.spawn_world_pending = true;
+    repgame_respawn( gs );
+    check_bool( "respawn clears the world-spawn pin", !gs.spawn_world_pending && gs.spawn_pending );
+
     // Bed gone: the point clears and resolution falls back to the
     // world-spawn column (still pending in the test world — column (0,0)
     // is all air there).
