@@ -52,10 +52,13 @@ static constexpr uint32_t NET_MAGIC = 0x52475054u; // 'R','G','P','T' little-end
 // v22 = nether fortresses (structure_fortress.cpp): generated nether-band
 // terrain now includes fortress structures, so v21 peers would produce a
 // different unmodified base under the same diffs.
+// v23 = the End dimension (map_gen_end.hpp): band slot 2 generates end
+// islands instead of empty filler, so v22 peers would produce a different
+// unmodified base under the same diffs.
 #if REPGAME_MAP_GEN_LEGACY
-static constexpr uint8_t NET_PROTOCOL_VERSION = 22;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 23;
 #else
-static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 22;
+static constexpr uint8_t NET_PROTOCOL_VERSION = 0x80 + 23;
 #endif
 // Largest payload we will accept. Chunk diffs dominate; a chunk can have at
 // most CHUNK_BLOCK_SIZE (~35k) diffs, each ~12 bytes -> ~420KB. Round up.

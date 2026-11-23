@@ -36,7 +36,7 @@ static inline const DimensionProfile *dimension_profile( const DimensionId dim )
         // name          sky skybox  fog (r,g,b)            fog_range ambient water beds spawns cap music
         { "overworld", 1, 1, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 1, 0, 1, 12, DIM_MUSIC_OVERWORLD },
         { "nether", 0, 0, 0.20f, 0.03f, 0.02f, 48.0f, 0.20f, 0, 1, 1, 24, DIM_MUSIC_NETHER },
-        { "dim2", 0, 0, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 0, 0, 0, 12, DIM_MUSIC_OVERWORLD },
+        { "end", 0, 1, 0.03f, 0.01f, 0.05f, 96.0f, 0.15f, 1, 1, 1, 12, DIM_MUSIC_NETHER },
         { "dim3", 0, 0, 0.0f, 0.0f, 0.0f, 96.0f, 0.0f, 0, 0, 0, 12, DIM_MUSIC_OVERWORLD },
     };
     return &profiles[ dim >= 0 && dim < DIM_COUNT ? dim : DIM_OVERWORLD ];

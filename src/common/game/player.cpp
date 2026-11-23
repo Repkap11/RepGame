@@ -983,12 +983,15 @@ void RepGame::process_mouse_events( ) {
                 }
             }
         }
-        // Flint & steel: try to light a nether portal in the frame the click
-        // aims into first (an obsidian ring around the place cell); failing
-        // that, set the place cell alight like a normal fire strike.
+        // Flint & steel: try to light a nether or end portal in the frame
+        // the click aims into first (an obsidian ring or an end-portal ring
+        // around the place cell); failing that, set the place cell alight
+        // like a normal fire strike.
         if ( globalGameState.hotbar.getSelectedItem( ) == FLINT_AND_STEEL && globalGameState.input.click_delay_right == 0 ) {
             if ( portal_ignite( globalGameState, globalGameState.block_selection.pos_create ) ||
-                 portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ) {
+                 portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ||
+                 end_portal_ignite( globalGameState, globalGameState.block_selection.pos_create ) ||
+                 end_portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ) {
                 audio_play_sfx( "fire_ignite" );
                 globalGameState.input.click_delay_right = 30;
             } else {

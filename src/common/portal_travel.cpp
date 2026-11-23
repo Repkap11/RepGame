@@ -37,6 +37,12 @@ static void portal_band_bounds( const DimensionId dim, int &y_top, int &y_bottom
         y_top = DIM_BY_MIN_N + static_cast<int>( MGN_ROOF_MID - 20.0f );
         y_bottom = DIM_BY_MIN_N + MGN_LAVA_SEA + 2;
         ledge_y = DIM_BY_MIN_N + MGN_LAVA_SEA + 1;
+    } else if ( dim == DIM_END ) {
+        // The island layer: island tops (plus chorus) live in this window;
+        // the ledge falls back to a platform at the island's level.
+        y_top = DIM_BY_MIN_E + MGE_SCAN_TOP;
+        y_bottom = DIM_BY_MIN_E + MGE_SCAN_BOT;
+        ledge_y = DIM_BY_MIN_E + MGE_PAD_Y;
     } else {
         y_top = 300;
         y_bottom = -90;
@@ -50,6 +56,9 @@ static void portal_band_span( const DimensionId dim, int &y_min, int &y_max ) {
     if ( dim == DIM_NETHER ) {
         y_min = DIM_BY_MIN_N;
         y_max = DIM_BY_MAX_N;
+    } else if ( dim == DIM_END ) {
+        y_min = DIM_BY_MIN_E;
+        y_max = DIM_BY_MAX_E;
     } else {
         y_min = DIM_BY_MIN_O;
         y_max = DIM_BY_MAX_O;
@@ -116,13 +125,17 @@ static bool portal_column_try( const DimensionId dim, const int x, const int z, 
     return false;
 }
 
-// The pass-B fallback: bottom-up, the first solid cell in the band is the
-// cavern floor — no cavity required, the frame embeds and a pocket is
-// carved around it on arrival.
+// The pass-B fallback: the first solid cell in the band is the cavern
+// floor — no cavity required, the frame embeds and a pocket is carved
+// around it on arrival. Bottom-up for the solid masses (overworld/nether),
+// top-down for the End: its islands hang in a void, so the first solid
+// from above is the island TOP, not its belly.
 static bool portal_column_surface( const DimensionId dim, const int x, const int z, int &floor_y, World *world ) {
     int y_top, y_bottom, ledge_y;
     portal_band_bounds( dim, y_top, y_bottom, ledge_y );
-    for ( int y = y_bottom; y <= y_top; y++ ) {
+    const bool top_down = dim == DIM_END;
+    for ( int d = 0; d <= y_top - y_bottom; d++ ) {
+        const int y = top_down ? y_top - d : y_bottom + d;
         const BlockID id = portal_site_block( world, x, y, z );
         if ( id == LAST_BLOCK_ID ) {
             continue; // skip unknown rows — same rule as portal_column_try
@@ -130,9 +143,9 @@ static bool portal_column_surface( const DimensionId dim, const int x, const int
         if ( !block_definition_get_definition( id )->collides_with_player ) {
             continue;
         }
-        // A solid cell sitting on an unloaded one is the window's bottom
-        // edge, not a real floor — demand the cell below is known too.
-        if ( world != nullptr && portal_site_block( world, x, y - 1, z ) == LAST_BLOCK_ID ) {
+        // A solid cell on the far side of an unloaded one is the window's
+        // edge, not a real floor — demand the approach-side cell is known.
+        if ( world != nullptr && portal_site_block( world, x, y + ( top_down ? 1 : -1 ), z ) == LAST_BLOCK_ID ) {
             continue;
         }
         floor_y = y;
@@ -411,9 +424,14 @@ static void portal_pending_tick( RepGameState &state ) {
     const glm::ivec3 hold_cell( glm::floor( p.hold_feet ) );
 
     if ( !p.pending_build ) {
-        // /dimension carve-only drop: keep the old behaviour — wait for the
-        // drop cell, then carve the pocket around the frame site.
+        // /dimension carve-only drop and the End arrival pad: wait for the
+        // drop cell, then carve the pocket around the frame site — the pad
+        // is generated obsidian, nothing to carve there.
         if ( state.world.get_loaded_block( hold_cell ).id == LAST_BLOCK_ID ) {
+            return;
+        }
+        if ( p.pending_platform ) {
+            p.pending_platform = 0;
             return;
         }
         const int axis = p.pending_axis;
@@ -512,9 +530,26 @@ static void portal_pending_tick( RepGameState &state ) {
     p.must_exit = 1;
 }
 
+// End-portal entry: every end portal in the world leads to the one
+// obsidian pad beside the exit fountain — no x/z mapping (the source
+// x/z could be over kilometres of void), no destination build. The pad
+// wait just holds the player until the pad's chunk is live.
+static void portal_travel_end( RepGameState &state ) {
+    const glm::dvec3 feet( ( MGE_PAD_X0 + MGE_PAD_X1 + 1 ) / 2.0, DIM_BY_MIN_E + MGE_PAD_Y + 1.0,
+                           ( MGE_PAD_Z0 + MGE_PAD_Z1 + 1 ) / 2.0 );
+    audio_play_sfx_gain( "portal_travel", 0.2f );
+    portal_teleport_feet( state, feet );
+    PortalState &p = state.portal;
+    p.cooldown = PORTAL_COOLDOWN_TICKS;
+    p.must_exit = 1;
+    p.pending_platform = 1;
+    p.pending_dim = DIM_END;
+    p.hold_feet = feet;
+}
+
 void repgame_portal_tick( RepGameState &state ) {
     PortalState &p = state.portal;
-    if ( p.pending_build || p.pending_carve ) {
+    if ( p.pending_build || p.pending_carve || p.pending_platform ) {
         portal_pending_tick( state );
     }
     if ( p.cooldown > 0 ) {
@@ -526,7 +561,9 @@ void repgame_portal_tick( RepGameState &state ) {
     const glm::ivec3 body_cell( glm::round( glm::dvec3( eye.x, feet_y + PLAYER_HEIGHT / 2.0, eye.z ) - glm::dvec3( 0.5 ) ) );
     const BlockID feet_id = state.world.get_loaded_block( feet_cell ).id;
     const BlockID body_id = state.world.get_loaded_block( body_cell ).id;
-    if ( feet_id != PORTAL && body_id != PORTAL ) {
+    const int in_portal = feet_id == PORTAL || body_id == PORTAL;
+    const int in_end_portal = feet_id == END_PORTAL || body_id == END_PORTAL;
+    if ( !in_portal && !in_end_portal ) {
         p.ticks_inside = 0;
         // Only release must_exit on confirmed loaded ground: LAST_BLOCK_ID
         // means the destination torus hasn't caught up yet, and a pending
@@ -548,6 +585,17 @@ void repgame_portal_tick( RepGameState &state ) {
     if ( ++p.ticks_inside >= PORTAL_TRAVEL_TICKS ) {
         p.ticks_inside = 0;
         const DimensionId cur = dimension_of_pos( feet_cell );
+        if ( in_end_portal ) {
+            // The End's one-way hop: anywhere -> the island's arrival pad
+            // (next to the fountain, which doubles as the way out); in the
+            // End -> a drop on generated overworld ground under x/z 0.
+            if ( cur == DIM_END ) {
+                portal_travel_to_dimension( state, DIM_OVERWORLD );
+            } else {
+                portal_travel_end( state );
+            }
+            return;
+        }
         const DimensionId dst = cur == DIM_OVERWORLD ? DIM_NETHER : cur == DIM_NETHER ? DIM_OVERWORLD : cur;
         if ( dst != cur ) {
             // The destination frame copies this portal's axis and interior
@@ -562,7 +610,7 @@ void repgame_portal_tick( RepGameState &state ) {
 // /dimension: same landing logic without a portal — drop on generated ground
 // in `dim`; embedded landings still get their pocket carved (no frame).
 bool portal_travel_to_dimension( RepGameState &state, const DimensionId dim ) {
-    if ( dim != DIM_OVERWORLD && dim != DIM_NETHER ) {
+    if ( dim != DIM_OVERWORLD && dim != DIM_NETHER && dim != DIM_END ) {
         return false;
     }
     if ( dimension_of_pos( state.camera.pos ) == dim ) {

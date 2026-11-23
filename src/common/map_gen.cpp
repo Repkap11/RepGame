@@ -14,6 +14,7 @@
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
 #include "common/map_gen_nether.hpp"
+#include "common/map_gen_end.hpp"
 #include "common/creative_order_gen.hpp"
 
 static_assert( DIM_BLOCK_SPAN == DIM_CHUNK_SPAN * CHUNK_SIZE_Y, "dimension band height mismatch" );
@@ -291,6 +292,9 @@ BlockID MapGen::gen_block_id( const int x, const int y, const int z ) {
     }
     if ( DIM_IS_NETHER_BY( y ) ) {
         return mgn_pick_block( x, y, z );
+    }
+    if ( DIM_IS_END_BY( y ) ) {
+        return mge_pick_block( x, y, z );
     }
 #if REPGAME_MAP_GEN_LEGACY
     return mgl_pick_block( x, y, z, mgl_base_height( x, z ) );

@@ -17,6 +17,7 @@
 
 MK_TEXTURE( sky4, 2048, 1024, 2048, 1024 );
 MK_TEXTURE( sky_nether, 2048, 1024, 2048, 1024 );
+MK_TEXTURE( sky_end, 2048, 1024, 2048, 1024 );
 
 void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_object_position ) {
     ParticleVertex *vb_data = static_cast<ParticleVertex *>( calloc( SKY_BOX_VERTEX_COUNT, sizeof( ParticleVertex ) ) );
@@ -73,6 +74,7 @@ void SkyBox::init( const VertexBufferLayout &vbl_object_vertex, const VertexBuff
 
     this->texture.init( texture_source_sky4, 1 );
     this->texture_nether.init( texture_source_sky_nether, 1 );
+    this->texture_end.init( texture_source_sky_end, 1 );
 
     // Pre-compute the average color of the entire sky texture for use as the
     // fog color. This gives a single uniform color that is representative of
@@ -116,4 +118,5 @@ void SkyBox::destroy( ) {
     this->render_chain_sky_box.clear( );
     this->texture.destroy( );
     this->texture_nether.destroy( );
+    this->texture_end.destroy( );
 }

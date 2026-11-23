@@ -205,6 +205,97 @@ void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, const i
     }
 }
 
+// ---------------------------------------------------------------------------
+// End portals: a horizontal 5x5 ring of END_PORTAL_FRAME cells (BEDROCK
+// counts — the exit fountain's ring is bedrock) around a 3x3 interior of
+// AIR/FIRE/SOUL_FIRE/END_PORTAL; the four corner cells are ignored. Flint
+// & steel on an interior cell fills it with END_PORTAL. Standing inside
+// runs the END_PORTAL branch of repgame_portal_tick: in the End it drops
+// the player on generated overworld ground; anywhere else it lands them
+// on the central island's obsidian arrival pad beside the fountain.
+// ---------------------------------------------------------------------------
+
+static bool end_portal_interior_id( const BlockID id ) {
+    return id == AIR || id == FIRE || id == SOUL_FIRE || id == END_PORTAL;
+}
+static bool end_portal_ring_id( const BlockID id ) {
+    return id == END_PORTAL_FRAME || id == BEDROCK;
+}
+
+// Detect a complete 5x5 ring whose 3x3 interior holds `seed` — tries the
+// nine interiors containing it. `lo` gets the interior's min x/z corner.
+bool end_portal_find_frame( World &world, const glm::ivec3 &seed, glm::ivec3 &lo ) {
+    if ( !end_portal_interior_id( world.get_loaded_block( seed ).id ) ) {
+        return false;
+    }
+    for ( int ox = seed.x - 2; ox <= seed.x; ox++ ) {
+        for ( int oz = seed.z - 2; oz <= seed.z; oz++ ) {
+            bool ok = true;
+            for ( int dx = -1; dx <= 3 && ok; dx++ ) {
+                for ( int dz = -1; dz <= 3 && ok; dz++ ) {
+                    const bool interior = dx >= 0 && dx <= 2 && dz >= 0 && dz <= 2;
+                    const bool corner = ( dx == -1 || dx == 3 ) && ( dz == -1 || dz == 3 );
+                    const BlockID id = world.get_loaded_block( glm::ivec3( ox + dx, seed.y, oz + dz ) ).id;
+                    if ( interior ) {
+                        ok = end_portal_interior_id( id );
+                    } else if ( !corner ) {
+                        ok = end_portal_ring_id( id );
+                    }
+                }
+            }
+            if ( ok ) {
+                lo = glm::ivec3( ox, seed.y, oz );
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool end_portal_ignite( RepGameState &state, const glm::ivec3 &seed ) {
+    glm::ivec3 lo;
+    if ( !end_portal_find_frame( state.world, seed, lo ) ) {
+        return false;
+    }
+    for ( int dx = 0; dx < 3; dx++ ) {
+        for ( int dz = 0; dz < 3; dz++ ) {
+            const BlockState bs = { END_PORTAL, 0, 0, END_PORTAL, 0 };
+            portal_write_cell( state, lo + glm::ivec3( dx, 0, dz ), bs );
+        }
+    }
+    return true;
+}
+
+// Scan from `pos` along `dir` through END_PORTAL cells to a ring cell
+// within `max` steps — same unloaded-edge rule as portal_run_to_obsidian.
+static bool end_portal_run_to_frame( World &world, glm::ivec3 pos, const glm::ivec3 &dir, const int max ) {
+    for ( int d = 0; d < max; d++ ) {
+        pos += dir;
+        const BlockID id = world.get_loaded_block( pos ).id;
+        if ( end_portal_ring_id( id ) ) {
+            return true;
+        }
+        if ( id == LAST_BLOCK_ID ) {
+            return true;
+        }
+        if ( id != END_PORTAL ) {
+            return false;
+        }
+    }
+    return false;
+}
+
+bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockState &block_state ) {
+    // The pool is a flat ring interior: bounded END_PORTAL runs reaching a
+    // ring cell both ways along x and z, nothing vertical. Breaking a ring
+    // cell pops the adjacent cell and the cascade follows the runs.
+    const glm::ivec3 dx( 1, 0, 0 ), dz( 0, 0, 1 );
+    return end_portal_run_to_frame( world, pos, dx, 2 ) &&  //
+           end_portal_run_to_frame( world, pos, -dx, 2 ) && //
+           end_portal_run_to_frame( world, pos, dz, 2 ) &&  //
+           end_portal_run_to_frame( world, pos, -dz, 2 );
+}
+
 // Nearest PORTAL cell to `center`'s x/z inside (x/z +- PORTAL_SEARCH_R,
 // y in [y_min, y_max]), scanned per live chunk — the "find an existing
 // destination portal" half of travel. Reads cells through the Chunk rather

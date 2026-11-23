@@ -35,6 +35,19 @@
 #define MGN_ROOF_THICK 48.0f // Carvable roof thickness above roof_base; a
                            // jittered bedrock cap fills the rest of the band.
 
+// End band layout (map_gen_end.hpp), in band-local y [0, DIM_BLOCK_SPAN).
+// The End is mostly void: one fixed central island around x/z 0 with the
+// fountain + obsidian pillars, outer islands past a void moat.
+#define MGE_ISLAND_Y 2048    // Central island surface level (fountain row).
+#define MGE_PAD_Y 2048       // Obsidian arrival pad row, flush with the top.
+#define MGE_PAD_X0 4         // Pad covers x [4,8], z [-2,2] beside the fountain.
+#define MGE_PAD_X1 8
+#define MGE_PAD_Z0 ( -2 )
+#define MGE_PAD_Z1 2
+#define MGE_GAP_R 700        // Void moat radius: no outer islands inside it.
+#define MGE_SCAN_BOT 1990    // portal_find_spot floor probes scan local-y
+#define MGE_SCAN_TOP 2100    //   [MGE_SCAN_BOT, MGE_SCAN_TOP] in the End.
+
 // Terraced mesa plateaus on desert columns (map_gen_fields.hpp): the
 // heightmap quantizer can lift terrain by the plateau offset plus one step.
 #define MESA_MAX_RISE 30.0f

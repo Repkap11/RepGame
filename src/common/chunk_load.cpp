@@ -305,8 +305,11 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     {
         // Cheap CPU-side check: if the entire chunk is above the terrain surface,
         // every block is air. Skip GPU map gen, structure gen, and meshing entirely.
+        // Overworld-band columns only: the bound is an overworld surface bound —
+        // the End band floats at y~2000+ where islands hang above the void, so
+        // "above the overworld's max terrain" says nothing about them.
         const int min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1; // include -1 border
-        if ( min_y >= WATER_LEVEL ) {
+        if ( min_y >= WATER_LEVEL && dimension_of_chunk( this->chunk_pos.y ) == DIM_OVERWORLD ) {
             // If the chunk is above the theoretical max terrain height + the
             // reach of a tree growing on it, it's guaranteed empty with zero
             // perlin noise evaluation. The bound is derived from the terrain
