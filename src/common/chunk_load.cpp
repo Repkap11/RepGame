@@ -305,16 +305,19 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
     {
         // Cheap CPU-side check: if the entire chunk is above the terrain surface,
         // every block is air. Skip GPU map gen, structure gen, and meshing entirely.
-        // Overworld-band columns only: the bound is an overworld surface bound —
-        // the End band floats at y~2000+ where islands hang above the void, so
-        // "above the overworld's max terrain" says nothing about them.
+        // Overworld- and repheim-band columns only: the bound is a surface
+        // bound in each band's generator frame — the End band floats at
+        // y~2000+ where islands hang above the void, so "above the surface"
+        // says nothing about them.
         const int min_y = this->chunk_pos.y * CHUNK_SIZE_Y - 1; // include -1 border
-        if ( min_y >= WATER_LEVEL && dimension_of_chunk( this->chunk_pos.y ) == DIM_OVERWORLD ) {
+        const DimensionId chunk_dim = dimension_of_chunk( this->chunk_pos.y );
+        const int frame_min_y = chunk_dim == DIM_REPHEIM ? repheim_gen_block_y( min_y ) : min_y;
+        if ( frame_min_y >= WATER_LEVEL && ( chunk_dim == DIM_OVERWORLD || chunk_dim == DIM_REPHEIM ) ) {
             // If the chunk is above the theoretical max terrain height + the
             // reach of a tree growing on it, it's guaranteed empty with zero
             // perlin noise evaluation. The bound is derived from the terrain
             // formulas in map_gen.cpp — see MapGen::maxTerrainHeight().
-            if ( (float)min_y >= MapGen::maxTerrainHeight( ) + MAPGEN_MAX_TREE_REACH ) {
+            if ( (float)frame_min_y >= MapGen::maxTerrainHeight( chunk_dim ) + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk is air — keep cells null instead of filling a
                 // 262K-cell array with AIR. A recycled slot can still hold
                 // the previous position's cells — drop them.
@@ -338,14 +341,14 @@ void Chunk::load_terrain( MapStorage &map_storage ) {
             float max_terrain_height = -1e30f;
             for ( int x = x_start; x < x_start + CHUNK_SIZE_INTERNAL_X; x++ ) {
                 for ( int z = z_start; z < z_start + CHUNK_SIZE_INTERNAL_Z; z++ ) {
-                    float h = MapGen::calculateTerrainHeight( x, z );
+                    float h = MapGen::dimTerrainHeight( chunk_dim, x, z );
                     if ( h > max_terrain_height ) max_terrain_height = h;
                 }
             }
             // Overhang noise can add solid blocks up to OVERHANG_MAX_RISE above
             // the heightmap, and tree canopies reach a bit higher still — the
             // empty bound must include both.
-            if ( (float)min_y >= max_terrain_height + OVERHANG_MAX_RISE + MAPGEN_MAX_TREE_REACH ) {
+            if ( (float)frame_min_y >= max_terrain_height + OVERHANG_MAX_RISE + MAPGEN_MAX_TREE_REACH ) {
                 // Entire chunk (including border) is above terrain → all air
                 this->free_block_storage( );
                 chunk_free_air_mask( this->light.air_mask );

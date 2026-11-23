@@ -231,55 +231,62 @@ BlockID MapGen::flat_world_id( const int x, const int y, const int z ) {
 }
 
 float MapGen::calculateTerrainHeight( const int x, const int z ) {
-#if REPGAME_MAP_GEN_LEGACY
+    // Overworld-band terrain height: the legacy generator's field. Repheim's
+    // rep-frame height is mg_base_height at the same x/z, available to the
+    // repheim band only (the two generators never share a band).
     return mgl_base_height( x, z );
-#else
-    return mg_base_height( x, z );
-#endif
 }
 
-float MapGen::maxTerrainHeight( ) {
+float MapGen::dimTerrainHeight( const DimensionId dim, const int x, const int z ) {
+    return dim == DIM_REPHEIM ? mg_base_height( x, z ) : mgl_base_height( x, z );
+}
+
+float MapGen::maxTerrainHeight( const DimensionId dim ) {
     // perlin_noise2d returns values in [0, 1]. Each terrain component applies a pure
     // transformation to that bounded input. We compute the exact max of each transform
     // by evaluating it across the [0, 1] noise range at startup, then sum them.
     // This is pure arithmetic — no perlin noise evaluation, no world sampling.
     // If a transform formula changes, the max updates automatically.
-    static const float max_height = [] {
+    // The repheim band runs the reworked generator (its rep frame shares the
+    // overworld's y range); every other dimension takes the legacy bound.
+    static float max_heights[ 2 ] = { 0.0f, 0.0f };
+    float &max_height = max_heights[ dim == DIM_REPHEIM ];
+    if ( max_height == 0.0f ) {
         constexpr int STEPS = 10000;
         float max_ground = -1e30f, max_hills = -1e30f, max_level = -1e30f;
-#if REPGAME_MAP_GEN_LEGACY
-        float max_mountains = -1e30f;
-        for ( int i = 0; i <= STEPS; i++ ) {
-            float noise = (float)i / STEPS; // [0, 1]
-            max_ground = fmax( max_ground, mgl_ground_transform( noise ) );
-            max_hills = fmax( max_hills, mgl_hills_transform( noise ) );
-            max_mountains = fmax( max_mountains, mgl_mountains_transform( noise ) );
-            max_level = fmax( max_level, mgl_level_transform( noise ) );
+        if ( dim != DIM_REPHEIM ) {
+            float max_mountains = -1e30f;
+            for ( int i = 0; i <= STEPS; i++ ) {
+                float noise = (float)i / STEPS; // [0, 1]
+                max_ground = fmax( max_ground, mgl_ground_transform( noise ) );
+                max_hills = fmax( max_hills, mgl_hills_transform( noise ) );
+                max_mountains = fmax( max_mountains, mgl_mountains_transform( noise ) );
+                max_level = fmax( max_level, mgl_level_transform( noise ) );
+            }
+            const float bound = max_ground + max_hills + max_mountains + max_level;
+            pr_debug( "maxTerrainHeight (legacy): ground=%.2f hills=%.2f mountains=%.2f level=%.2f → %.2f",
+                max_ground, max_hills, max_mountains, max_level, bound );
+            max_height = bound;
+        } else {
+            float max_mask = -1e30f, max_ridge = -1e30f, max_rolling = -1e30f;
+            for ( int i = 0; i <= STEPS; i++ ) {
+                float noise = (float)i / STEPS; // [0, 1]
+                max_ground = fmax( max_ground, mg_ground_transform( noise ) );
+                max_hills = fmax( max_hills, mg_hills_transform( noise ) );
+                max_mask = fmax( max_mask, mg_mountain_mask( noise ) );
+                max_ridge = fmax( max_ridge, mg_mountain_ridge( noise ) );
+                max_level = fmax( max_level, mg_level_transform( noise ) );
+                max_rolling = fmax( max_rolling, mg_rolling_transform( noise ) );
+            }
+            const float mountains = max_mask * max_ridge * MAX_MOUNTAIN_HEIGHT;
+            // Mesa terracing can add up to MESA_MAX_RISE on desert columns;
+            // OVERHANG_MAX_RISE covers both overhang sheets and island tops.
+            const float bound = max_ground + max_hills + max_level + max_rolling + mountains + MESA_MAX_RISE + OVERHANG_MAX_RISE;
+            pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f level=%.2f rolling=%.2f mountains=%.2f mesa=%.2f overhang=%.2f → %.2f",
+                max_ground, max_hills, max_level, max_rolling, mountains, MESA_MAX_RISE, OVERHANG_MAX_RISE, bound );
+            max_height = bound;
         }
-        const float bound = max_ground + max_hills + max_mountains + max_level;
-        pr_debug( "maxTerrainHeight (legacy): ground=%.2f hills=%.2f mountains=%.2f level=%.2f → %.2f",
-            max_ground, max_hills, max_mountains, max_level, bound );
-        return bound;
-#else
-        float max_mask = -1e30f, max_ridge = -1e30f, max_rolling = -1e30f;
-        for ( int i = 0; i <= STEPS; i++ ) {
-            float noise = (float)i / STEPS; // [0, 1]
-            max_ground = fmax( max_ground, mg_ground_transform( noise ) );
-            max_hills = fmax( max_hills, mg_hills_transform( noise ) );
-            max_mask = fmax( max_mask, mg_mountain_mask( noise ) );
-            max_ridge = fmax( max_ridge, mg_mountain_ridge( noise ) );
-            max_level = fmax( max_level, mg_level_transform( noise ) );
-            max_rolling = fmax( max_rolling, mg_rolling_transform( noise ) );
-        }
-        const float mountains = max_mask * max_ridge * MAX_MOUNTAIN_HEIGHT;
-        // Mesa terracing can add up to MESA_MAX_RISE on desert columns;
-        // OVERHANG_MAX_RISE covers both overhang sheets and island tops.
-        const float bound = max_ground + max_hills + max_level + max_rolling + mountains + MESA_MAX_RISE + OVERHANG_MAX_RISE;
-        pr_debug( "maxTerrainHeight: ground=%.2f hills=%.2f level=%.2f rolling=%.2f mountains=%.2f mesa=%.2f overhang=%.2f → %.2f",
-            max_ground, max_hills, max_level, max_rolling, mountains, MESA_MAX_RISE, OVERHANG_MAX_RISE, bound );
-        return bound;
-#endif
-    }( );
+    }
     return max_height;
 }
 
@@ -296,25 +303,24 @@ BlockID MapGen::gen_block_id( const int x, const int y, const int z ) {
     if ( DIM_IS_END_BY( y ) ) {
         return mge_pick_block( x, y, z );
     }
-#if REPGAME_MAP_GEN_LEGACY
+    if ( DIM_IS_REPHEIM_BY( y ) ) {
+        const MapGenColumn col = mg_column_info( x, z );
+        return mg_pick_block( x, repheim_gen_block_y( y ), z, col );
+    }
     return mgl_pick_block( x, y, z, mgl_base_height( x, z ) );
-#else
-    const MapGenColumn col = mg_column_info( x, z );
-    return mg_pick_block( x, y, z, col );
-#endif
 }
 
 void MapGen::load_block_c( const Chunk *chunk ) {
     glm::ivec3 chunk_size = glm::vec3( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     glm::ivec3 chunk_offset = chunk->chunk_pos * chunk_size;
 
+    // One 2D context per column: the reworked generator's MapGenColumn for
+    // repheim-band chunks, the legacy terrain height for every other band.
+    const bool repheim_band = DIM_IS_REPHEIM_CY( chunk->chunk_pos.y );
     for ( int x = chunk_offset.x - 1; x < chunk_offset.x + CHUNK_SIZE_INTERNAL_X - 1; x++ ) {
         for ( int z = chunk_offset.z - 1; z < chunk_offset.z + CHUNK_SIZE_INTERNAL_Z - 1; z++ ) {
-#if REPGAME_MAP_GEN_LEGACY
-            const float terrainHeight = mgl_base_height( x, z );
-#else
-            const MapGenColumn col = mg_column_info( x, z );
-#endif
+            const MapGenColumn col = repheim_band ? mg_column_info( x, z ) : MapGenColumn{ };
+            const float terrainHeight = repheim_band ? 0.0f : mgl_base_height( x, z );
             for ( int y = chunk_offset.y - 1; y < chunk_offset.y + CHUNK_SIZE_INTERNAL_Y - 1; y++ ) {
                 glm::ivec3 offset = glm::ivec3( x, y, z );
                 const int index = Chunk::get_index_from_coords( offset - chunk_offset );

@@ -1,6 +1,7 @@
 // Legacy structure generation: the pre-overhaul trees/flowers/reeds as they
-// existed at commit 101a348, selected when REPGAME_MAP_GEN_LEGACY is 1
-// (see constants.hpp). This file compiles to nothing in new-terrain builds.
+// existed at commit 101a348 — always compiled; runs for the overworld band
+// (StructureGen::place dispatches repheim to the reworked passes instead)
+// (see map_gen_consts.hpp).
 //
 // Faithful port, with two mechanical adaptations only:
 //   - chunk.blocks[] direct access -> Chunk::get_block / set_block, which
@@ -23,7 +24,6 @@
 #include "common/structure_gen.hpp"
 #include "common/constants.hpp"
 
-#if REPGAME_MAP_GEN_LEGACY
 
 #include "common/perlin_noise.hpp"
 #include "common/block_definitions.hpp"
@@ -569,4 +569,4 @@ void StructureGen::place_legacy( Chunk &chunk ) {
     }
 }
 
-#endif // REPGAME_MAP_GEN_LEGACY
+

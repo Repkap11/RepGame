@@ -43,6 +43,14 @@ static void portal_band_bounds( const DimensionId dim, int &y_top, int &y_bottom
         y_top = DIM_BY_MIN_E + MGE_SCAN_TOP;
         y_bottom = DIM_BY_MIN_E + MGE_SCAN_BOT;
         ledge_y = DIM_BY_MIN_E + MGE_PAD_Y;
+    } else if ( dim == DIM_REPHEIM ) {
+        // The overworld scan window in the rep frame, shifted into the
+        // band's wrapped top half: rep frame [sea level, 300] is encoded
+        // [-7936, -7636]. Below-sea floors (rep frame < 0) sit in the other
+        // half and are out of reach — deep-ocean columns get the ledge.
+        y_top = DIM_BY_MIN_3_LO + 300;
+        y_bottom = DIM_BY_MIN_3_LO;
+        ledge_y = DIM_BY_MIN_3_LO + WATER_LEVEL + 2;
     } else {
         y_top = 300;
         y_bottom = -90;
@@ -612,7 +620,7 @@ void repgame_portal_tick( RepGameState &state ) {
 // END_PORTAL End->overworld return path; embedded landings still get
 // their pocket carved (no frame).
 bool portal_travel_to_dimension( RepGameState &state, const DimensionId dim ) {
-    if ( dim != DIM_OVERWORLD && dim != DIM_NETHER && dim != DIM_END ) {
+    if ( dim != DIM_OVERWORLD && dim != DIM_NETHER && dim != DIM_END && dim != DIM_REPHEIM ) {
         return false;
     }
     if ( dimension_of_pos( state.camera.pos ) == dim ) {

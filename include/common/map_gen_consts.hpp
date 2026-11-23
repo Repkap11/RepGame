@@ -7,16 +7,13 @@
 // below are emitted into the shader source. Any value here changes terrain
 // for every backend at once — the whole point of the single-source dialect.
 
-// Compile-time terrain generator selection, shared by all platforms and all
-// map_gen backends (CPU, CUDA, HIP, WebGPU). 1 builds the pre-overhaul
-// generator (map_gen_fields_legacy.hpp, the code live at commit 101a348);
-// 0 builds the reworked generator (noodly caves, overhangs, biomes, lava
-// layer) in map_gen_fields.hpp. The rest of the world (structures,
-// waterlogging, meshing) is unchanged either way. #ifndef so a -D override
-// can A/B the generators without editing the tree.
-#ifndef REPGAME_MAP_GEN_LEGACY
-#define REPGAME_MAP_GEN_LEGACY 1
-#endif
+// Both terrain generators are always compiled, dispatched per dimension
+// band (map_logic.hpp): the overworld band runs the legacy generator
+// (map_gen_fields_legacy.hpp, the code live at commit 101a348) and the
+// repheim band runs the reworked generator (noodly caves, overhangs,
+// biomes, lava layer) in map_gen_fields.hpp — both included by every
+// backend (CPU, CUDA, HIP, WebGPU). The rest of the world (structures,
+// waterlogging, meshing) is unchanged either way.
 
 #define MAP_SEED 0
 

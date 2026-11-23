@@ -68,6 +68,7 @@ them locally and reports through INFO/ERROR log lines:
 | `/pos` | Feet position, dimension name, block, chunk, facing |
 | `/tp <x> <y> <z>` | Teleport feet to coords (`~` keeps current); `/tp <player>` goes to a remote avatar — works across dimension bands since the streamed position is kept even when the avatar is hidden. Zeroes velocity/fall state |
 | `/nether` / `/overworld` | Portal-style travel (8:1-scaled anchor, holds for chunks, adopts an existing exit portal) but never builds a destination frame — lands on generated ground |
+| `/repheim` | Travel to repheim (the new-terrain overworld band) — portal-less landing path (`docs/dimensions.md`) |
 | `/spawn` | Teleport to the world-spawn column (0,0): waits for the column then stands on the topmost colliding block, same as a fresh spawn — bed respawn point kept |
 | `/kill` (alias `/respawn`) | Die and return to the respawn point (bed, else world spawn) — same path as the death-screen Respawn button; inventory kept |
 | `/give <item> [count]` | Add items to the hotbar like a pickup |

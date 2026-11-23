@@ -45,12 +45,16 @@ fn main( @builtin( global_invocation_id ) gid : vec3<u32> ) {
     let x = ( col_idx / CHUNK_SIZE_INTERNAL_Z ) - 1 + params.chunk_x;
     let z = ( col_idx % CHUNK_SIZE_INTERNAL_Z ) - 1 + params.chunk_z;
 
-    // Compute 2D column context once per column (biome, height, steepness).
-#if REPGAME_MAP_GEN_LEGACY
-    let terrainHeight = mgl_base_height( x, z );
-#else
-    let col = mg_column_info( x, z );
-#endif
+    // Compute 2D column context once per column: the reworked generator's
+    // MapGenColumn for repheim-band chunks, the legacy terrain height for
+    // every other band (map_logic.hpp).
+    var col : MapGenColumn;
+    var terrainHeight : f32 = 0.0;
+    if ( DIM_IS_REPHEIM_BY( params.chunk_y ) ) {
+        col = mg_column_info( x, z );
+    } else {
+        terrainHeight = mgl_base_height( x, z );
+    }
 
     // Loop over Y; only 3D noise (overhang, caves, ores) is recomputed per Y.
     for ( var y = params.chunk_y - 1; y < params.chunk_y + CHUNK_SIZE_Y + 1; y++ ) {

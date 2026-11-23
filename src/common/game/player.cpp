@@ -384,7 +384,7 @@ void repgame_respawn( RepGameState &state ) {
     if ( state.spawn_point_set ) {
         cam.pos = glm::dvec3( state.spawn_point.x + 0.5, state.spawn_point.y + 2.0, state.spawn_point.z + 0.5 );
     } else {
-        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( DIM_OVERWORLD ) ) + 2.0, 0.5 );
     }
     state.spawn_pending = true;
     state.spawn_world_pending = false; // a respawn always aims at the bed/spawn column — drop any /spawn pin

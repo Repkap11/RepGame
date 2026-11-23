@@ -342,7 +342,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // of scaling up, while still reaching full opacity at the edge to hide
     // chunk pop-in.
     static const float env_fog_range = env_float( "REPGAME_FOG_RANGE", 96.0f );
-    const float fog_range_blocks = camera_dim == DIM_OVERWORLD ? env_fog_range : dim_prof->fog_range;
+    const float fog_range_blocks = camera_dim == DIM_OVERWORLD || camera_dim == DIM_REPHEIM ? env_fog_range : dim_prof->fog_range;
     // The fog band ends at the ACTIVE render edge (runtime radius), not the
     // torus capacity, so pop-in stays hidden at small render distances.
     const float render_distance = static_cast<float>( this->chunkLoader.render_distance_blocks( ) );
