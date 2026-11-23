@@ -8571,10 +8571,12 @@ block_definitions[ 550 ].textures[ FACE_LEFT ] = TEX_END_PORTAL;
 block_definitions[ 550 ].textures[ FACE_BACK ] = TEX_END_PORTAL;
 block_definitions[ 550 ].icon_texture = TEX_END_PORTAL;
 block_definitions[ 550 ].casts_shadow = false;
+block_definitions[ 550 ].collides_with_player = false;
 block_definitions[ 550 ].emits_light = 15;
-block_definitions[ 550 ].hardness = 0.35f;
+block_definitions[ 550 ].hardness = -1.0f;
 block_definitions[ 550 ].is_seethrough = true;
 block_definitions[ 550 ].no_light = 6815743;
+block_definitions[ 550 ].piston_immovable = true;
 
 // END_PORTAL_FRAME (551)
 block_definitions[ 551 ].textures[ FACE_TOP ] = TEX_ENDFRAME_EYE;

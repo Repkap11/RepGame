@@ -402,9 +402,16 @@ int test_dimension( ) {
         check_bool( "end ring interior origin", lo == glm::ivec3( 40, 40, 40 ) );
         check_bool( "no end ring at plain air", !end_portal_find_frame( world, glm::ivec3( 60, 40, 60 ), lo ) );
         check_bool( "end ignite fills interior", end_portal_ignite( gs, glm::ivec3( 41, 40, 41 ) ) );
+        bool all_pool = true;
+        for ( int dx = 0; dx <= 2; dx++ ) {
+            for ( int dz = 0; dz <= 2; dz++ ) {
+                const glm::ivec3 cell( 40 + dx, 40, 40 + dz );
+                const BlockState st = world.get_loaded_block( cell );
+                all_pool = all_pool && st.id == END_PORTAL && end_portal_cell_survives( world, cell, st );
+            }
+        }
+        check_bool( "all 9 pool cells survive (edges included)", all_pool );
         const BlockState pool = world.get_loaded_block( glm::ivec3( 41, 40, 41 ) );
-        check_bool( "interior holds END_PORTAL", pool.id == END_PORTAL );
-        check_bool( "pool cell survives in ring", end_portal_cell_survives( world, glm::ivec3( 41, 40, 41 ), pool ) );
         world.set_loaded_block( glm::ivec3( 39, 40, 41 ), BLOCK_STATE_AIR );
         check_bool( "broken ring kills pool cell", !end_portal_cell_survives( world, glm::ivec3( 41, 40, 41 ), pool ) );
     }
