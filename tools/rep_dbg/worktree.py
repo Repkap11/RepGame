@@ -16,8 +16,10 @@ from . import build as build_mod
 # Untracked build dependencies a fresh checkout needs (see `make install`);
 # symlinked from the main tree like /tmp/repgame-temp was set up.
 # sounds/ deliberately absent: REPGAME_AUDIO defaults to 0 without it, so
-# worktree builds don't need the converted .ogg assets.
-SYMLINK_DIRS = ["imgui_build", "entt_build"]
+# worktree builds don't need the converted .ogg assets. sqlite_build is the
+# vendored amalgamation CMake hard-requires (CMakeLists:96) — same contents
+# for every rev, so symlinking the main tree's copy is safe.
+SYMLINK_DIRS = ["imgui_build", "entt_build", "sqlite_build"]
 
 
 def wt_root(root):
