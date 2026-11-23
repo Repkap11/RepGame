@@ -5489,6 +5489,7 @@ block_definitions[ 350 ].icon_is_isometric = false;
 block_definitions[ 350 ].is_seethrough = true;
 block_definitions[ 350 ].mineable = MINEABLE_AXE;
 block_definitions[ 350 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 350 ].needs_place_on_solid_but_can_stack_on_self = true;
 block_definitions[ 350 ].no_light = 0;
 block_definitions[ 350 ].renderOrder = RenderOrder_Flowers;
 
@@ -5509,6 +5510,7 @@ block_definitions[ 351 ].icon_is_isometric = false;
 block_definitions[ 351 ].is_seethrough = true;
 block_definitions[ 351 ].mineable = MINEABLE_AXE;
 block_definitions[ 351 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 351 ].needs_place_on_solid_but_can_stack_on_self = true;
 block_definitions[ 351 ].no_light = 0;
 block_definitions[ 351 ].renderOrder = RenderOrder_Flowers;
 

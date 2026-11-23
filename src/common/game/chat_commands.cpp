@@ -200,7 +200,7 @@ static void cmd_dimension( RepGameState &state, const std::vector<std::string> &
         return;
     }
     if ( args.size( ) != 2 ) {
-        chat_err( state, "Usage: /dimension [overworld|nether]" );
+        chat_err( state, "Usage: /dimension [overworld|nether|end]" );
         return;
     }
     const DimensionId dim = dim_from_name( args[ 1 ].c_str( ) );
@@ -526,7 +526,7 @@ const ChatCmd CHAT_COMMANDS_TABLE[ 21 ] = {
     { "clear", "", "/clear", "Clear the chat log.", cmd_clear },
     { "pos", "", "/pos", "Where you are: feet position, block, chunk, facing.", cmd_pos },
     { "tp", "teleport", "/tp <x> <y> <z> | /tp <player>", "Teleport to feet coords or a player ('~' = current).", cmd_tp },
-    { "dimension", "dim", "/dimension [overworld|nether]", "Report or jump to a dimension (portal-less travel).", cmd_dimension },
+    { "dimension", "dim", "/dimension [overworld|nether|end]", "Report or jump to a dimension (portal-less travel).", cmd_dimension },
     { "nether", "", "/nether", "Travel to the nether as if through a portal (x/z /8) - no portal built.", cmd_nether },
     { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8) - no portal built.", cmd_overworld },
     { "spawn", "", "/spawn", "Teleport to the world spawn column (0,0 topmost ground).", cmd_spawn },

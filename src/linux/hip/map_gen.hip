@@ -14,6 +14,7 @@
 #define MAP_GEN_PERLIN3D( x, y, z, f, d, s ) perlin_noise3d( x, y, z, f, d, s )
 #include "common/map_gen_fields.hpp"
 #include "common/map_gen_nether.hpp"
+#include "common/map_gen_end.hpp"
 
 __global__ void hip_set_block( BlockCell *cells, int chunk_x, int chunk_y, int chunk_z ) {
     int col_idx = blockIdx.x * blockDim.x + threadIdx.x;

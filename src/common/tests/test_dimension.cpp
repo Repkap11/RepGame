@@ -1,10 +1,11 @@
-// Dimension band encoding (dimension.hpp), nether generator invariants, and
-// the portal frame detection/travel helpers. The band layout lives in
-// dimension.hpp's header comment.
+// Dimension band encoding (dimension.hpp), nether + end generator
+// invariants, and the portal frame detection/travel helpers. The band
+// layout lives in dimension.hpp's header comment.
 #include "test_util.hpp"
 #include "common/dimension.hpp"
 #include "common/dimension_profile.hpp"
 #include "common/map_gen_nether.hpp"
+#include "common/map_gen_end.hpp"
 #include "common/portal.hpp"
 
 int test_dimension( ) {
@@ -83,8 +84,8 @@ int test_dimension( ) {
     check_bool( "cy 31 is overworld", dimension_of_chunk( 31 ) == DIM_OVERWORLD );
     check_bool( "cy -33 is nether", dimension_of_chunk( -33 ) == DIM_NETHER );
     check_bool( "cy -96 is nether", dimension_of_chunk( -96 ) == DIM_NETHER );
-    check_bool( "cy 32 is spare 2", dimension_of_chunk( 32 ) == DIM_SPARE_2 );
-    check_bool( "cy 95 is spare 2", dimension_of_chunk( 95 ) == DIM_SPARE_2 );
+    check_bool( "cy 32 is end", dimension_of_chunk( 32 ) == DIM_END );
+    check_bool( "cy 95 is end", dimension_of_chunk( 95 ) == DIM_END );
     check_bool( "cy 96 is spare 3", dimension_of_chunk( 96 ) == DIM_SPARE_3 );
     check_bool( "cy 127 is spare 3", dimension_of_chunk( 127 ) == DIM_SPARE_3 );
     check_bool( "cy -97 is spare 3 (wrap)", dimension_of_chunk( -97 ) == DIM_SPARE_3 );
@@ -95,7 +96,10 @@ int test_dimension( ) {
     check_bool( "by 1983 is overworld", dimension_of_block_y( DIM_BY_MAX_O ) == DIM_OVERWORLD );
     check_bool( "by -1985 is nether", dimension_of_block_y( DIM_BY_MAX_N ) == DIM_NETHER );
     check_bool( "by -5952 is nether", dimension_of_block_y( DIM_BY_MIN_N ) == DIM_NETHER );
-    check_bool( "by 1984 is spare 2", dimension_of_block_y( DIM_BY_MIN_2 ) == DIM_SPARE_2 );
+    check_bool( "by 1984 is end", dimension_of_block_y( DIM_BY_MIN_E ) == DIM_END );
+    check_bool( "by 5951 is end", dimension_of_block_y( DIM_BY_MAX_E ) == DIM_END );
+    check_bool( "by 5952 is spare 3", dimension_of_block_y( DIM_BY_MIN_3_HI ) == DIM_SPARE_3 );
+    check_bool( "end/overworld bands touch", DIM_BY_MAX_O + 1 == DIM_BY_MIN_E );
     check_bool( "by -1984/-1985 bands touch", DIM_BY_MAX_N + 1 == DIM_BY_MIN_O );
 
     // ---- local/world round-trips at the edges ----
@@ -136,6 +140,12 @@ int test_dimension( ) {
     check_bool( "nether beds explode", dimension_profile( DIM_NETHER )->beds_explode );
     check_bool( "nether has an inherent ambient floor", dimension_profile( DIM_NETHER )->min_ambient > 0.0f );
     check_bool( "overworld ambient is user-only", dimension_profile( DIM_OVERWORLD )->min_ambient == 0.0f );
+    check_bool( "end has no sky", !dimension_has_sky( DIM_END ) );
+    check_bool( "end allows water", dimension_profile( DIM_END )->water_allowed );
+    check_bool( "end beds explode", dimension_profile( DIM_END )->beds_explode );
+    check_bool( "end has an ambient floor", dimension_profile( DIM_END )->min_ambient > 0.0f );
+    check_bool( "end spawns naturally", dimension_profile( DIM_END )->natural_spawns );
+    check_bool( "dim names", strcmp( dim_name( DIM_END ), "end" ) == 0 && dim_from_name( "end" ) == DIM_END && dim_from_name( "2" ) == DIM_END );
 
     // ---- Nether generator (MapGen::gen_block_id dispatches on the band) ----
     {
@@ -272,6 +282,149 @@ int test_dimension( ) {
             }
         }
         check_bool( "nether has floating mid-cavern ledges", ledge_cols > 400 );
+    }
+
+    // ---- End generator (MapGen::gen_block_id dispatches on the band) ----
+    // The band is void except the island layer: the central dome at x/z 0
+    // (fountain + pillars + pad), outer islands past the moat.
+    {
+        int end_stone = 0, air = 0, obsidian = 0, forbidden = 0;
+        for ( int x = -128; x < 128; x += 2 ) {
+            for ( int z = -128; z < 128; z += 2 ) {
+                for ( int y = DIM_BY_MIN_E; y <= DIM_BY_MAX_E; y += 11 ) {
+                    const BlockID b = MapGen::gen_block_id( x, y, z );
+                    switch ( b ) {
+                        case END_STONE:
+                            end_stone++;
+                            break;
+                        case AIR:
+                            air++;
+                            break;
+                        case OBSIDIAN:
+                        case BEDROCK:
+                        case END_PORTAL:
+                            obsidian++;
+                            break;
+                        default:
+                            forbidden++;
+                            break;
+                    }
+                }
+            }
+        }
+        check_bool( "end island is end stone", end_stone > 500 );
+        check_bool( "end is mostly void", air > end_stone * 3 );
+        check_bool( "end pillars/pad exist", obsidian > 5 );
+        check_bool( "no overworld blocks in end", forbidden == 0 );
+    }
+
+    // ---- The exit fountain at the island centre: 3x3 END_PORTAL pool in
+    // a bedrock ring at MGE_ISLAND_Y, obsidian pad beside it. ----
+    {
+        const int fy = DIM_BY_MIN_E + MGE_ISLAND_Y;
+        check_bool( "fountain pool is end portal", MapGen::gen_block_id( 0, fy, 0 ) == END_PORTAL &&
+                                                   MapGen::gen_block_id( -1, fy, 1 ) == END_PORTAL &&
+                                                   MapGen::gen_block_id( 1, fy, -1 ) == END_PORTAL );
+        check_bool( "fountain ring is bedrock", MapGen::gen_block_id( 2, fy, 0 ) == BEDROCK &&
+                                                MapGen::gen_block_id( 0, fy, 2 ) == BEDROCK &&
+                                                MapGen::gen_block_id( -2, fy, -2 ) == BEDROCK );
+        check_bool( "fountain corner posts", MapGen::gen_block_id( 2, fy + 1, 2 ) == BEDROCK &&
+                                             MapGen::gen_block_id( -2, fy + 1, -2 ) == BEDROCK );
+        check_bool( "arrival pad is obsidian", MapGen::gen_block_id( MGE_PAD_X0, fy, 0 ) == OBSIDIAN &&
+                                               MapGen::gen_block_id( MGE_PAD_X1, fy, MGE_PAD_Z1 ) == OBSIDIAN );
+        check_bool( "island floor under pad", MapGen::gen_block_id( MGE_PAD_X0, fy - 1, 0 ) == END_STONE );
+        // The pillar ring: the (43,0) column is obsidian up through its
+        // top; cells just above it are air.
+        check_bool( "pillar column is obsidian", MapGen::gen_block_id( 43, fy + 40, 0 ) == OBSIDIAN &&
+                                                 MapGen::gen_block_id( 43, fy + 90, 0 ) == OBSIDIAN &&
+                                                 MapGen::gen_block_id( 43, fy + 91, 0 ) == AIR );
+        check_bool( "no pillar off the ring", MapGen::gen_block_id( 43, fy + 40, 20 ) != OBSIDIAN );
+    }
+
+    // ---- The moat: between the island rim and the outer islands the band
+    // is pure void. ----
+    {
+        int moat_solids = 0;
+        for ( int x = -600; x <= 600; x += 3 ) {
+            for ( int z = -600; z <= 600; z += 3 ) {
+                const int r2 = x * x + z * z;
+                if ( r2 < 130 * 130 || r2 > MGE_GAP_R * MGE_GAP_R ) {
+                    continue;
+                }
+                for ( int ly = 1850; ly <= 2200; ly += 7 ) {
+                    moat_solids += MapGen::gen_block_id( x, DIM_BY_MIN_E + ly, z ) != AIR;
+                }
+            }
+        }
+        check_bool( "the moat is void", moat_solids == 0 );
+    }
+
+    // ---- Outer islands exist past the moat, with chorus on their tops. ----
+    {
+        int outer_stone = 0, chorus = 0;
+        for ( int x = -4000; x < 4000; x += 5 ) {
+            for ( int z = -4000; z < 4000; z += 5 ) {
+                if ( x * x + z * z <= MGE_GAP_R * MGE_GAP_R ) {
+                    continue;
+                }
+                for ( int ly = 1900; ly <= 2150; ly += 3 ) {
+                    const BlockID b = MapGen::gen_block_id( x, DIM_BY_MIN_E + ly, z );
+                    outer_stone += b == END_STONE;
+                    chorus += b == CHORUS_PLANT || b == CHORUS_FLOWER;
+                }
+            }
+        }
+        check_bool( "outer islands generate", outer_stone > 200 );
+        check_bool( "chorus grows on outer islands", chorus > 20 );
+    }
+
+    // ---- End portal ring on a hand-built frame + the fountain pool's
+    // survive rule. ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        // 5x5 END_PORTAL_FRAME ring flat at y=40, interior (41..43 x 41..43
+        // on x/z at y=40). Corners left as air — they're ignored.
+        for ( int dx = -1; dx <= 3; dx++ ) {
+            for ( int dz = -1; dz <= 3; dz++ ) {
+                const bool corner = ( dx == -1 || dx == 3 ) && ( dz == -1 || dz == 3 );
+                const bool interior = dx >= 0 && dx <= 2 && dz >= 0 && dz <= 2;
+                if ( !corner && !interior ) {
+                    world.set_loaded_block( glm::ivec3( 40 + dx, 40, 40 + dz ), { END_PORTAL_FRAME, 0, 0, END_PORTAL_FRAME, 0 } );
+                }
+            }
+        }
+        glm::ivec3 lo;
+        check_bool( "end ring detected", end_portal_find_frame( world, glm::ivec3( 41, 40, 41 ), lo ) );
+        check_bool( "end ring interior origin", lo == glm::ivec3( 40, 40, 40 ) );
+        check_bool( "no end ring at plain air", !end_portal_find_frame( world, glm::ivec3( 60, 40, 60 ), lo ) );
+        check_bool( "end ignite fills interior", end_portal_ignite( gs, glm::ivec3( 41, 40, 41 ) ) );
+        const BlockState pool = world.get_loaded_block( glm::ivec3( 41, 40, 41 ) );
+        check_bool( "interior holds END_PORTAL", pool.id == END_PORTAL );
+        check_bool( "pool cell survives in ring", end_portal_cell_survives( world, glm::ivec3( 41, 40, 41 ), pool ) );
+        world.set_loaded_block( glm::ivec3( 39, 40, 41 ), BLOCK_STATE_AIR );
+        check_bool( "broken ring kills pool cell", !end_portal_cell_survives( world, glm::ivec3( 41, 40, 41 ), pool ) );
+    }
+
+    // ---- /dimension end travels; spare 3 stays refused. ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 8.5, 80.0, 8.5 );
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        check_bool( "spare 3 refused", !portal_travel_to_dimension( gs, DIM_SPARE_3 ) );
+        check_bool( "end travel lands", portal_travel_to_dimension( gs, DIM_END ) );
+        check_bool( "player is in the end band", dimension_of_pos( gs.camera.pos ) == DIM_END );
+        const int feet_y = static_cast<int>( floor( gs.camera.pos.y - gs.camera.eye_height ) );
+        check_bool( "feet inside the end island layer", feet_y > DIM_BY_MIN_E + MGE_SCAN_BOT - 10 &&
+                                                          feet_y < DIM_BY_MIN_E + MGE_SCAN_TOP + 60 );
+        // Returning through the fountain pool: END_PORTAL at feet in the
+        // End sends the player back to the overworld drop.
+        check_bool( "end->overworld travels", portal_travel_to_dimension( gs, DIM_OVERWORLD ) );
+        check_bool( "back in the overworld", dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD );
     }
 
     // ---- Overworld band still generates overworld terrain ----
@@ -463,7 +616,7 @@ int test_dimension( ) {
         gs.tick_number = 0;
         gs.camera.pos = glm::dvec3( 8.5, 80.0, 8.5 );
         gs.camera.eye_height = PLAYER_EYE_HEIGHT;
-        check_bool( "spare dimension refused", !portal_travel_to_dimension( gs, DIM_SPARE_2 ) );
+        check_bool( "spare dimension refused", !portal_travel_to_dimension( gs, DIM_SPARE_3 ) );
         check_bool( "same-dimension refused", !portal_travel_to_dimension( gs, DIM_OVERWORLD ) );
         check_bool( "nether travel lands", portal_travel_to_dimension( gs, DIM_NETHER ) );
         const DimensionId now = dimension_of_pos( gs.camera.pos );

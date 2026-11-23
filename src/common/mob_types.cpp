@@ -707,14 +707,15 @@ const MobTypeDef mob_types[ MOB_TYPE_COUNT ] = {
         .sound_death = "enderman_death",
         .sound_step = NULL,
         .step_gain = 0.0f,
-        // Warped (green) nylium only: the nether's warped forests are its
-        // home biome. The night spawner honors this floor list in the
-        // nether; overworld night spawns take any dark surface.
-        .spawn_on = { WARPED_NYLIUM, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID },
+        // Warped (green) nylium and end stone: the nether's warped forests
+        // are its home biome, and it's the End's only native spawn. The
+        // night spawner honors this floor list off the overworld; overworld
+        // night spawns take any dark surface.
+        .spawn_on = { WARPED_NYLIUM, END_STONE, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID },
         .spawn_chance = 1.0f / 6.0f,
         .herd_min = 1,
         .herd_max = 3,
-        .spawn_dims = ( 1u << DIM_OVERWORLD ) | ( 1u << DIM_NETHER ),
+        .spawn_dims = ( 1u << DIM_OVERWORLD ) | ( 1u << DIM_NETHER ) | ( 1u << DIM_END ),
         .night_spawn_weight = 0.15f,
         .burns_in_daylight = 0,
         .ai = MOB_AI_HOSTILE_MELEE,

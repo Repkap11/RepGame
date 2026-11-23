@@ -8,10 +8,11 @@
 // Produces finalBlockId, which the includer stores.
 //
 // y is the absolute encoded block y, so the dimension dispatch needs no extra
-// plumbing: the nether band runs mgn_pick_block, everything else stays on the
-// overworld generator (the spare bands fall through to the overworld pick —
-// below-bedrock y is bedrock, above-terrain y is air, which doubles as solid
-// filler between the active bands).
+// plumbing: the nether band runs mgn_pick_block, the end band runs
+// mge_pick_block, everything else stays on the overworld generator (the spare
+// band falls through to the overworld pick — below-bedrock y is bedrock,
+// above-terrain y is air, which doubles as solid filler between the active
+// bands).
 #if defined( REPGAME_WGSL_GEN )
 var finalBlockId : u32;
 #else
@@ -19,6 +20,8 @@ BlockID finalBlockId;
 #endif
 if ( DIM_IS_NETHER_BY( y ) ) {
     finalBlockId = mgn_pick_block( x, y, z );
+} else if ( DIM_IS_END_BY( y ) ) {
+    finalBlockId = mge_pick_block( x, y, z );
 } else {
 #if REPGAME_MAP_GEN_LEGACY
     finalBlockId = mgl_pick_block( x, y, z, terrainHeight );

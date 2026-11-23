@@ -86,6 +86,8 @@ struct PortalState {
     int pending_adopted = 0;       // an early scan already moved the hold into a plate —
                                    // live-triggered scans stop, periodic ones keep
                                    // looking for a nearer portal
+    int pending_platform = 0;      // End arrival-pad wait: hold until the pad's
+                                   // chunk is live, no portal to build or carve
     int pending_no_build = 0;      // /nether-style command travel (portal_travel_no_build):
                                    // resolve lands on the site, never writes a frame
 };
@@ -118,6 +120,22 @@ void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis
 // overwritten (an existing portal or unbreakable ground survives a new
 // frame landing next to it). Call BEFORE portal_build_frame.
 void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h );
+
+// Detect a complete horizontal 5x5 END_PORTAL_FRAME/BEDROCK ring whose 3x3
+// interior holds `seed` (an interior-able cell: AIR/FIRE/SOUL_FIRE/
+// END_PORTAL); the ring's corner cells are ignored. `lo` gets the
+// interior's min x/z corner at seed.y.
+bool end_portal_find_frame( World &world, const glm::ivec3 &seed, glm::ivec3 &lo );
+
+// End ignition: validate the ring at `seed` and fill the 3x3 interior with
+// END_PORTAL cells (each a PlayerBlockPlacedEvent, syncing in multiplayer).
+// Returns false when no valid ring contains the cell.
+bool end_portal_ignite( RepGameState &state, const glm::ivec3 &seed );
+
+// The block_can_survive_at rule for END_PORTAL: bounded END_PORTAL runs
+// along both horizontal axes must reach an END_PORTAL_FRAME or BEDROCK
+// ring cell. Breaking a ring cell pops the pool.
+bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockState &block_state );
 
 // Nearest PORTAL cell to `center`'s x/z inside the box x/z +- PORTAL_SEARCH_R,
 // y in [y_min, y_max] — the destination-portal search half of travel. Only

@@ -10,7 +10,7 @@
 //
 //   encoded chunk y in [-32, 31]              -> DIM_OVERWORLD (0)
 //   encoded chunk y in [-96,-33]              -> DIM_NETHER    (1)
-//   encoded chunk y in [ 32, 95]              -> DIM_SPARE_2   (2, reserved)
+//   encoded chunk y in [ 32, 95]              -> DIM_END       (2)
 //   encoded chunk y in [ 96,127] + [-128,-97] -> DIM_SPARE_3   (3, wraps)
 //
 // Each band is 64 chunks = 3968 blocks of local height. The overworld band is
@@ -27,7 +27,7 @@
 
 #define DIM_ID_OVERWORLD 0
 #define DIM_ID_NETHER 1
-#define DIM_ID_SPARE_2 2
+#define DIM_ID_END 2
 #define DIM_ID_SPARE_3 3
 #define DIM_COUNT 4
 
@@ -43,8 +43,8 @@
 #define DIM_CY_MAX_O 31
 #define DIM_CY_MIN_N ( -96 )
 #define DIM_CY_MAX_N ( -33 )
-#define DIM_CY_MIN_2 32
-#define DIM_CY_MAX_2 95
+#define DIM_CY_MIN_E 32
+#define DIM_CY_MAX_E 95
 // Band 3 wraps the signed-8-bit edge: [96,127] then [-128,-97].
 #define DIM_CY_MIN_3_HI 96
 #define DIM_CY_MAX_3_LO ( -97 )
@@ -54,8 +54,8 @@
 #define DIM_BY_MAX_O 1983
 #define DIM_BY_MIN_N ( -5952 )
 #define DIM_BY_MAX_N ( -1985 )
-#define DIM_BY_MIN_2 1984
-#define DIM_BY_MAX_2 5951
+#define DIM_BY_MIN_E 1984
+#define DIM_BY_MAX_E 5951
 #define DIM_BY_MIN_3_HI 5952
 #define DIM_BY_MAX_3_HI 7935
 #define DIM_BY_MIN_3_LO ( -7936 )
@@ -64,6 +64,7 @@
 // WGSL-safe band predicates on absolute (encoded) block y.
 #define DIM_IS_OVERWORLD_BY( by ) ( ( by ) >= DIM_BY_MIN_O && ( by ) <= DIM_BY_MAX_O )
 #define DIM_IS_NETHER_BY( by ) ( ( by ) >= DIM_BY_MIN_N && ( by ) <= DIM_BY_MAX_N )
+#define DIM_IS_END_BY( by ) ( ( by ) >= DIM_BY_MIN_E && ( by ) <= DIM_BY_MAX_E )
 
 #if !defined( REPGAME_WGSL_GEN )
 
@@ -73,7 +74,7 @@
 enum DimensionId : int {
     DIM_OVERWORLD = DIM_ID_OVERWORLD,
     DIM_NETHER = DIM_ID_NETHER,
-    DIM_SPARE_2 = DIM_ID_SPARE_2,
+    DIM_END = DIM_ID_END,
     DIM_SPARE_3 = DIM_ID_SPARE_3,
 };
 
@@ -90,8 +91,8 @@ static inline DimensionId dimension_of_chunk( const int cy_ ) {
     if ( cy >= DIM_CY_MIN_N && cy <= DIM_CY_MAX_N ) {
         return DIM_NETHER;
     }
-    if ( cy >= DIM_CY_MIN_2 && cy <= DIM_CY_MAX_2 ) {
-        return DIM_SPARE_2;
+    if ( cy >= DIM_CY_MIN_E && cy <= DIM_CY_MAX_E ) {
+        return DIM_END;
     }
     return DIM_SPARE_3;
 }
@@ -107,8 +108,8 @@ static inline DimensionId dimension_of_block_y( const int by ) {
     if ( DIM_IS_NETHER_BY( by ) ) {
         return DIM_NETHER;
     }
-    if ( by >= DIM_BY_MIN_2 && by <= DIM_BY_MAX_2 ) {
-        return DIM_SPARE_2;
+    if ( by >= DIM_BY_MIN_E && by <= DIM_BY_MAX_E ) {
+        return DIM_END;
     }
     return DIM_SPARE_3;
 }
@@ -134,8 +135,8 @@ static inline int dim_local_chunk_y( const int cy_ ) {
             return cy - DIM_CY_MIN_O;
         case DIM_NETHER:
             return cy - DIM_CY_MIN_N;
-        case DIM_SPARE_2:
-            return cy - DIM_CY_MIN_2;
+        case DIM_END:
+            return cy - DIM_CY_MIN_E;
         default:
             return cy >= DIM_CY_MIN_3_HI ? cy - DIM_CY_MIN_3_HI : cy + 128 + 32;
     }
@@ -147,8 +148,8 @@ static inline int dim_local_block_y( const int by ) {
             return by - DIM_BY_MIN_O;
         case DIM_NETHER:
             return by - DIM_BY_MIN_N;
-        case DIM_SPARE_2:
-            return by - DIM_BY_MIN_2;
+        case DIM_END:
+            return by - DIM_BY_MIN_E;
         default:
             return by >= DIM_BY_MIN_3_HI ? by - DIM_BY_MIN_3_HI : by - DIM_BY_MIN_3_LO + 1984;
     }
@@ -161,8 +162,8 @@ static inline int dim_world_chunk_y( const DimensionId dim, const int local_cy )
             return local_cy + DIM_CY_MIN_O;
         case DIM_NETHER:
             return local_cy + DIM_CY_MIN_N;
-        case DIM_SPARE_2:
-            return local_cy + DIM_CY_MIN_2;
+        case DIM_END:
+            return local_cy + DIM_CY_MIN_E;
         default:
             return local_cy < 32 ? local_cy + DIM_CY_MIN_3_HI : local_cy - 128 - 32;
     }
@@ -174,8 +175,8 @@ static inline int dim_world_block_y( const DimensionId dim, const int local_by )
             return local_by + DIM_BY_MIN_O;
         case DIM_NETHER:
             return local_by + DIM_BY_MIN_N;
-        case DIM_SPARE_2:
-            return local_by + DIM_BY_MIN_2;
+        case DIM_END:
+            return local_by + DIM_BY_MIN_E;
         default:
             return local_by < 1984 ? local_by + DIM_BY_MIN_3_HI : local_by - 1984 + DIM_BY_MIN_3_LO;
     }
@@ -187,8 +188,8 @@ static inline const char *dim_name( const DimensionId dim ) {
             return "overworld";
         case DIM_NETHER:
             return "nether";
-        case DIM_SPARE_2:
-            return "dim2";
+        case DIM_END:
+            return "end";
         default:
             return "dim3";
     }
@@ -201,8 +202,8 @@ static inline DimensionId dim_from_name( const char *name ) {
     if ( name[ 0 ] == 'n' || !strcmp( name, "1" ) ) {
         return DIM_NETHER;
     }
-    if ( !strcmp( name, "2" ) ) {
-        return DIM_SPARE_2;
+    if ( name[ 0 ] == 'e' || !strcmp( name, "2" ) ) {
+        return DIM_END;
     }
     if ( !strcmp( name, "3" ) ) {
         return DIM_SPARE_3;

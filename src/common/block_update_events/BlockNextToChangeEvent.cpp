@@ -339,6 +339,11 @@ bool block_can_survive_at( World &world, const glm::ivec3 &block_pos, const Bloc
         // cell and the pop cascades through the interior.
         return portal_cell_survives( world, block_pos, block_state );
     }
+    if ( block_state.id == END_PORTAL ) {
+        // Same rule, horizontal: the cell must sit in a complete
+        // END_PORTAL_FRAME/bedrock ring — the run scan in portal.cpp.
+        return end_portal_cell_survives( world, block_pos, block_state );
+    }
     if ( block->is_torch && block_state.rotation >= 4 ) {
         // Side-mounted torch: check the attachment block is still solid.
         // rotation 4=attached LEFT(solid at x-1), 5=FRONT(z-1), 6=RIGHT(x+1), 7=BACK(z+1)
@@ -398,7 +403,12 @@ bool block_supports_present( World &world, const glm::ivec3 &block_pos, const Bl
             // that convert to stalks bottom-up through random ticks).
             const bool bamboo_family_support = ( block_state.id == BAMBOO || block_state.id == BAMBOO_SAPLING ) &&
                                                ( next_to_block_id == BAMBOO || next_to_block_id == BAMBOO_SAPLING );
-            if ( block->needs_place_on_solid_but_can_stack_on_self && ( next_to_block_id == block_state.id || bamboo_family_support ) ) {
+            // Chorus is the same idea across two ids: stalks stack and a
+            // flower caps the column, so either supports the other.
+            const bool chorus_family_support = ( block_state.id == CHORUS_PLANT || block_state.id == CHORUS_FLOWER ) &&
+                                               ( next_to_block_id == CHORUS_PLANT || next_to_block_id == CHORUS_FLOWER );
+            if ( block->needs_place_on_solid_but_can_stack_on_self &&
+                 ( next_to_block_id == block_state.id || bamboo_family_support || chorus_family_support ) ) {
                 block_is_ok_to_place = true;
                 break;
             } else {

@@ -1,4 +1,4 @@
-# Dimensions (overworld + nether)
+# Dimensions (overworld + nether + end)
 
 RepGame has no separate per-dimension coordinate spaces. A dimension is a
 64-chunk band of the signed-8-bit chunk-y field — the narrowest field in the
@@ -9,7 +9,7 @@ four dimension slots and the low six bits are chunk y inside the slot:
 |------|-------------|------------------------------|-----------------|
 | 0    | overworld   | -32..31                      | -1984..1983     |
 | 1    | nether      | -96..-33                     | -5952..-1985    |
-| 2    | spare       | 32..95                       | 1984..5951      |
+| 2    | end         | 32..95                       | 1984..5951      |
 | 3    | spare       | 96..127 and -128..-97 (wrap) | ±5952..7936     |
 
 The overworld band is centered on y=0 so existing saves stay in slot 0.
@@ -34,7 +34,7 @@ skybox, fog tint/range, ambient light floor, water evaporation, bed
 explosions, natural spawns, the despawnable-mob cap, music set.
 Gameplay/rendering code reads
 `dimension_profile(dim)` rather than scattering `dim == DIM_NETHER`
-checks. The spare slots are inert voids (no sky, no spawns).
+checks. The remaining spare slot is an inert void (no sky, no spawns).
 
 ## Terrain
 
@@ -81,6 +81,22 @@ sea and the roof mass) with loot chests and inert `MOB_SPAWNER` blocks;
 layout, carving and loot are pure functions of world coords
 (docs/mapgen.md "Structures"). Flat/block worlds
 bypass dimensions entirely.
+
+`include/common/map_gen_end.hpp` (`mge_pick_block`) is the shared End
+generator — the band is void except an island layer around local y
+~1990–2160: a fixed central end-stone dome at x/z 0 (flat top at
+`MGE_ISLAND_Y`) holding ten obsidian pillars on a r=43 ring, the exit
+fountain (a 3x3 `END_PORTAL` pool in a 5x5 bedrock ring) and the obsidian
+arrival pad beside it; outer islands are noise-blob end-stone shelves
+past the `MGE_GAP_R` moat, topped with `CHORUS_PLANT`/`CHORUS_FLOWER`
+clumps. `map_logic.hpp` dispatches on `DIM_IS_END_BY(y)` in every
+backend. The End's chorus JSONs use
+`needs_place_on_solid_but_can_stack_on_self` plus the chorus-family
+check in `block_supports_present`, so stacked stalks and their flower
+cap survive — breaking a lower stem still cascades upward.
+`chunk_load.cpp`'s empty-chunk early-out only applies to the overworld
+band — its "above max terrain" bound would wrongly mark End island
+chunks all-air.
 
 ## Lighting + environment
 
@@ -153,9 +169,22 @@ dimension name (`dim_name`, `dim_local_block_y`).
   `must_exit` is only released on loaded non-portal ground.
 - **Carve**: `portal_carve_pocket` still opens a pocket around embedded
   sites, but never writes over PORTAL, OBSIDIAN or BEDROCK.
-- `/dimension [overworld|nether]` (`chat_commands.cpp`) is the portal-less
-  debug path: same landing-column search at unscaled x/z, no frame built.
-  Spare slots and same-dimension travel are refused.
+- **End frames**: a horizontal 5x5 ring of `END_PORTAL_FRAME` (the
+  generated fountain uses `BEDROCK` in the same role) around a 3x3
+  interior, corners ignored — `end_portal_find_frame` /
+  `end_portal_ignite` / `end_portal_cell_survives` in `portal.cpp`.
+  Flint & steel on an interior cell lights it.
+- **End travel**: `repgame_portal_tick`'s `END_PORTAL` branch — standing
+  in a pool for `PORTAL_TRAVEL_TICKS` goes to the End's obsidian pad
+  (fixed, beside the fountain — no x/z mapping, no destination build,
+  no 8:1 scaling); standing in END_PORTAL inside the End drops the
+  player on generated overworld ground at the same x/z (the fountain
+  sits at x/z 0, i.e. world spawn). The pad wait (`pending_platform`)
+  just holds the player until the pad's chunk is live.
+- `/dimension [overworld|nether|end]` (`chat_commands.cpp`) is the portal-less
+  debug path: same landing-column search at unscaled x/z (top-down in
+  the End — islands hang in a void), no frame built. The spare slot and
+  same-dimension travel are refused.
 - `/nether` and `/overworld` (`portal_travel_no_build`) run the real portal
   trip minus the frame: 8:1-scaled anchor, hold-and-resolve freeze,
   early/resolve adoption of an existing PORTAL cell, pocket carve on
@@ -173,16 +202,20 @@ fresh-chunk roll and the despawnable spawner are both gated per type by
 (on netherrack/crimson nylium) and wither skeletons (soul sand,
 netherrack, blackstone), and the
 2 s spawner picks zombified piglin .7 / wither skeleton .3 instead of the
-overworld zombie/skeleton/creeper mix (docs/mobs.md).
+overworld zombie/skeleton/creeper mix (docs/mobs.md). The End rolls
+endermen on end stone — `MOB_ENDERMAN` gained the `DIM_END` bit and
+`END_STONE` floor — and the night spawner applies the spawn_on
+whitelist in the End too.
 
 ## Multiplayer
 
-`NET_PROTOCOL_VERSION` is 21 — v18 introduced the dimension band and
+`NET_PROTOCOL_VERSION` is 23 — v18 introduced the dimension band and
 v19 dropped the floor heightfield's mid-frequency octave (base-terrain
 contract changes); v20 added `CHUNK_DIFF_DONE` so clients can tell when
 a request box's edits have all been applied (portal travel's
-readiness gate); v21 raised the nether stack and added basin lakebeds
-(another base-terrain contract change).
+readiness gate); v21 raised the nether stack and added basin lakebeds;
+v22 added nether fortresses; v23 fills band 2 with the End generator
+(all base-terrain contract changes).
 
 Remote avatars are dimension-filtered in `multiplayer_avatars.cpp`:
 `update_position` despawns the mob when a position packet lands in a
@@ -198,7 +231,8 @@ items/arrows/bodies/vehicles are always torus-local.
 - `test_dimension.cpp` — band classification (incl. the signed wrap),
   local/world round-trips, profiles, mob-id band separation, nether
   terrain properties (roof/floor/caverns/lava sea/no overworld blocks),
-  portal detect/ignite/survive/cascade and travel.
+  end terrain (island/fountain/pillars/moat/outer islands/chorus),
+  portal detect/ignite/survive/cascade and travel incl. end rings.
 - `tests/scenarios/nether_portal.rds` — scripted real-world walk:
   build + `ignite`, dwell-travel both ways, break-frame cascade.
 - `mp_test.py` `dimension` scenario — two clients, avatar hiding and
