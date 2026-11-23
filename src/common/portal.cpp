@@ -290,10 +290,12 @@ bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockS
     // ring cell both ways along x and z, nothing vertical. Breaking a ring
     // cell pops the adjacent cell and the cascade follows the runs.
     const glm::ivec3 dx( 1, 0, 0 ), dz( 0, 0, 1 );
-    return end_portal_run_to_frame( world, pos, dx, 2 ) &&  //
-           end_portal_run_to_frame( world, pos, -dx, 2 ) && //
-           end_portal_run_to_frame( world, pos, dz, 2 ) &&  //
-           end_portal_run_to_frame( world, pos, -dz, 2 );
+    // Interior is 3x3: an edge cell is 3 cells from the far ring, so the
+    // bound is 3, not the interior's own width minus one.
+    return end_portal_run_to_frame( world, pos, dx, 3 ) &&  //
+           end_portal_run_to_frame( world, pos, -dx, 3 ) && //
+           end_portal_run_to_frame( world, pos, dz, 3 ) &&  //
+           end_portal_run_to_frame( world, pos, -dz, 3 );
 }
 
 // Nearest PORTAL cell to `center`'s x/z inside (x/z +- PORTAL_SEARCH_R,
