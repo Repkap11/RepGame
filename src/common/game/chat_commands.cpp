@@ -15,6 +15,7 @@
 #include "common/chat.hpp"
 #include "common/constants.hpp"
 #include "common/item.hpp"
+#include "common/map_gen.hpp"
 #include "common/harness/debug_commands.hpp"
 #include "common/world.hpp"
 
@@ -37,7 +38,7 @@ struct ChatCmd {
 };
 
 // Defined at the bottom, after every handler; cmd_help iterates it too.
-extern const ChatCmd CHAT_COMMANDS_TABLE[ 17 ];
+extern const ChatCmd CHAT_COMMANDS_TABLE[ 21 ];
 
 // One coordinate token: a plain number, '~' (the player's component), or
 // '~N'/'~-N' (player-relative offset). `base` is the feet-relative origin
@@ -212,6 +213,63 @@ static void cmd_dimension( RepGameState &state, const std::vector<std::string> &
         return;
     }
     chat_info( state, std::string( "Travelled to " ) + dim_name( dim ) );
+}
+
+// /nether + /overworld: portal-style travel (scaled anchor, adoption) via
+// portal_travel_no_build — identical to stepping through a portal except no
+// destination frame is ever written.
+static void cmd_dim_travel( RepGameState &state, const std::vector<std::string> &args, const DimensionId dim, const char *usage ) {
+    if ( args.size( ) != 1 ) {
+        chat_err( state, std::string( "Usage: " ) + usage );
+        return;
+    }
+    if ( dimension_of_pos( state.camera.pos ) == dim ) {
+        chat_err( state, std::string( "Already in the " ) + dim_name( dim ) );
+        return;
+    }
+    if ( !portal_travel_no_build( state, dim ) ) {
+        chat_err( state, std::string( "Cannot travel to the " ) + dim_name( dim ) );
+        return;
+    }
+    chat_info( state, std::string( "Travelling to the " ) + dim_name( dim ) + " (portal-style, no portal built)" );
+}
+
+static void cmd_nether( RepGameState &state, const std::vector<std::string> &args ) {
+    cmd_dim_travel( state, args, DIM_NETHER, "/nether" );
+}
+
+static void cmd_overworld( RepGameState &state, const std::vector<std::string> &args ) {
+    cmd_dim_travel( state, args, DIM_OVERWORLD, "/overworld" );
+}
+
+// /spawn: the (0,0) world column, resolved like a fresh spawn — hover until
+// the column loads, then stand on its topmost colliding block. The bed
+// respawn point is bypassed (spawn_world_pending) but kept.
+static void cmd_spawn( RepGameState &state, const std::vector<std::string> &args ) {
+    if ( args.size( ) != 1 ) {
+        chat_err( state, "Usage: /spawn" );
+        return;
+    }
+    state.camera.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( ) ) + 2.0, 0.5 );
+    state.camera.y_speed = 0.0;
+    state.camera.horizontal_vel = glm::dvec2( 0.0 );
+    state.vitals.fall_dist = 0.0;
+    state.camera.snapshot_prev( );
+    state.spawn_pending = true;
+    state.spawn_world_pending = true;
+    chat_info( state, "Teleported to the world spawn" );
+}
+
+// /kill + /respawn: die and return to the respawn point in one step — the
+// death-screen Respawn path (full vitals, bed or world-spawn column,
+// inventory kept).
+static void cmd_kill( RepGameState &state, const std::vector<std::string> &args ) {
+    if ( args.size( ) != 1 ) {
+        chat_err( state, "Usage: /kill" );
+        return;
+    }
+    repgame_respawn( state );
+    chat_info( state, "Killed - returned to the respawn point" );
 }
 
 static void cmd_give( RepGameState &state, const std::vector<std::string> &args ) {
@@ -463,12 +521,16 @@ static void cmd_me( RepGameState &state, const std::vector<std::string> &args ) 
     }
 }
 
-const ChatCmd CHAT_COMMANDS_TABLE[ 17 ] = {
+const ChatCmd CHAT_COMMANDS_TABLE[ 21 ] = {
     { "help", "", "/help [command]", "List commands, or one command's usage.", cmd_help },
     { "clear", "", "/clear", "Clear the chat log.", cmd_clear },
     { "pos", "", "/pos", "Where you are: feet position, block, chunk, facing.", cmd_pos },
     { "tp", "teleport", "/tp <x> <y> <z> | /tp <player>", "Teleport to feet coords or a player ('~' = current).", cmd_tp },
     { "dimension", "dim", "/dimension [overworld|nether]", "Report or jump to a dimension (portal-less travel).", cmd_dimension },
+    { "nether", "", "/nether", "Travel to the nether as if through a portal (x/z /8) - no portal built.", cmd_nether },
+    { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8) - no portal built.", cmd_overworld },
+    { "spawn", "", "/spawn", "Teleport to the world spawn column (0,0 topmost ground).", cmd_spawn },
+    { "kill", "respawn", "/kill", "Die and return to your respawn point (bed or world spawn).", cmd_kill },
     { "give", "", "/give <item> [count]", "Add items to the hotbar like a pickup.", cmd_give },
     { "gamemode", "gm", "/gamemode <survival|creative>", "Switch game mode (s/c/0/1 also work).", cmd_gamemode },
     { "time", "", "/time <set|add> <ticks|day|noon|night|midnight>", "Set or add to the world clock.", cmd_time },
