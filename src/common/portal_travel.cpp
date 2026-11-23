@@ -19,7 +19,7 @@
 #define PORTAL_SCAN_RADIUS 24
 
 // The block source for the site scan: nullptr reads untouched generated
-// terrain (MapGen::gen_block_id — the hold position and /dimension picks);
+// terrain (MapGen::gen_block_id — the hold-position pick);
 // a World reads the loaded chunks (the resolve-time build-site pick). A
 // LAST_BLOCK_ID cell (unloaded) skips that scan row, never poisons the
 // column — the loaded window is narrower than the band's scan range.
@@ -173,8 +173,8 @@ static void portal_teleport_feet( RepGameState &state, const glm::dvec3 &feet ) 
 // sea (the overworld fallback is unreachable — every column has bedrock).
 // `world` != nullptr reads the loaded chunks (LAST_BLOCK_ID rows are
 // skipped as unknown) and vetoes each candidate on portal_clearance_ok; nullptr reads
-// generated terrain (hold position, /dimension — no clearance check, the
-// generated world never holds portals).
+// generated terrain (hold position — no clearance check; the generated
+// world never holds portals).
 static bool portal_find_spot( const DimensionId dim, const int bx, const int bz, const int axis, const int w, const int h, glm::ivec3 &out, int &embedded, World *world = nullptr ) {
     const glm::ivec3 du = axis ? glm::ivec3( 0, 0, 1 ) : glm::ivec3( 1, 0, 0 );
     embedded = 0;
@@ -424,7 +424,8 @@ static void portal_pending_tick( RepGameState &state ) {
     const glm::ivec3 hold_cell( glm::floor( p.hold_feet ) );
 
     if ( !p.pending_build ) {
-        // /dimension carve-only drop and the End arrival pad: wait for the
+        // The carve-only drop (portal_travel_to_dimension — the END_PORTAL
+        // End->overworld return) and the End arrival pad: wait for the
         // drop cell, then carve the pocket around the frame site — the pad
         // is generated obsidian, nothing to carve there.
         if ( state.world.get_loaded_block( hold_cell ).id == LAST_BLOCK_ID ) {
@@ -607,8 +608,9 @@ void repgame_portal_tick( RepGameState &state ) {
     }
 }
 
-// /dimension: same landing logic without a portal — drop on generated ground
-// in `dim`; embedded landings still get their pocket carved (no frame).
+// Portal-less drop on generated ground in `dim` (same x/z) — the
+// END_PORTAL End->overworld return path; embedded landings still get
+// their pocket carved (no frame).
 bool portal_travel_to_dimension( RepGameState &state, const DimensionId dim ) {
     if ( dim != DIM_OVERWORLD && dim != DIM_NETHER && dim != DIM_END ) {
         return false;

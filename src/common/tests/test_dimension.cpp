@@ -617,7 +617,7 @@ int test_dimension( ) {
         check_bool( "overworld x/z scaled by 8", gs.portal.dst_center.x == 32 && gs.portal.dst_center.z == 48 );
     }
 
-    // ---- /dimension travel: same x/z, lands in the band ----
+    // ---- portal-less travel (portal_travel_to_dimension): same x/z, lands in the band ----
     {
         RepGameState &gs = *new RepGameState( );
         gs.tick_number = 0;

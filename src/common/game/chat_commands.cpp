@@ -38,7 +38,7 @@ struct ChatCmd {
 };
 
 // Defined at the bottom, after every handler; cmd_help iterates it too.
-extern const ChatCmd CHAT_COMMANDS_TABLE[ 21 ];
+extern const ChatCmd CHAT_COMMANDS_TABLE[ 20 ];
 
 // One coordinate token: a plain number, '~' (the player's component), or
 // '~N'/'~-N' (player-relative offset). `base` is the feet-relative origin
@@ -191,28 +191,6 @@ static void cmd_tp( RepGameState &state, const std::vector<std::string> &args ) 
         return;
     }
     chat_teleport( state, feet );
-}
-
-static void cmd_dimension( RepGameState &state, const std::vector<std::string> &args ) {
-    if ( args.size( ) == 1 ) {
-        const DimensionId dim = dimension_of_pos( state.camera.pos );
-        chat_info( state, std::string( "Dimension: " ) + dim_name( dim ) );
-        return;
-    }
-    if ( args.size( ) != 2 ) {
-        chat_err( state, "Usage: /dimension [overworld|nether|end]" );
-        return;
-    }
-    const DimensionId dim = dim_from_name( args[ 1 ].c_str( ) );
-    if ( dimension_of_pos( state.camera.pos ) == dim ) {
-        chat_err( state, std::string( "Already in " ) + dim_name( dim ) );
-        return;
-    }
-    if ( !portal_travel_to_dimension( state, dim ) ) {
-        chat_err( state, std::string( "No landing spot found in " ) + dim_name( dim ) );
-        return;
-    }
-    chat_info( state, std::string( "Travelled to " ) + dim_name( dim ) );
 }
 
 // /nether + /overworld: portal-style travel (scaled anchor, adoption) via
@@ -521,12 +499,11 @@ static void cmd_me( RepGameState &state, const std::vector<std::string> &args ) 
     }
 }
 
-const ChatCmd CHAT_COMMANDS_TABLE[ 21 ] = {
+const ChatCmd CHAT_COMMANDS_TABLE[ 20 ] = {
     { "help", "", "/help [command]", "List commands, or one command's usage.", cmd_help },
     { "clear", "", "/clear", "Clear the chat log.", cmd_clear },
     { "pos", "", "/pos", "Where you are: feet position, block, chunk, facing.", cmd_pos },
     { "tp", "teleport", "/tp <x> <y> <z> | /tp <player>", "Teleport to feet coords or a player ('~' = current).", cmd_tp },
-    { "dimension", "dim", "/dimension [overworld|nether|end]", "Report or jump to a dimension (portal-less travel).", cmd_dimension },
     { "nether", "", "/nether", "Travel to the nether as if through a portal (x/z /8) - no portal built.", cmd_nether },
     { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8) - no portal built.", cmd_overworld },
     { "spawn", "", "/spawn", "Teleport to the world spawn column (0,0 topmost ground).", cmd_spawn },
