@@ -204,6 +204,35 @@ static inline int dim_world_block_y( const DimensionId dim, const int local_by )
     }
 }
 
+// Player-facing ("display") frames: every band reports y in the overworld's
+// ranges — blocks [-1984,1983], chunks [-32,31] — so the band encoding never
+// reaches chat commands or the debug overlay. For repheim the display block
+// y is exactly the rep frame (repheim_gen_block_y).
+static inline int dim_display_block_y( const int by ) {
+    return dim_local_block_y( by ) - 1984;
+}
+
+static inline double dim_display_block_y( const double y ) {
+    const int by = static_cast<int>( glm::floor( y ) );
+    return dim_display_block_y( by ) + ( y - static_cast<double>( by ) );
+}
+
+static inline int dim_display_chunk_y( const int cy ) {
+    return dim_local_chunk_y( cy ) - 32;
+}
+
+// Inverse of dim_display_block_y: a display block y -> the encoded y inside
+// `dim`'s band. Out-of-band input folds modulo the span, so a /tp y can
+// never leave the player's dimension.
+static inline double dim_encode_block_y( const DimensionId dim, const double display_y ) {
+    const int whole = static_cast<int>( glm::floor( display_y ) );
+    int local = ( whole + 1984 ) % DIM_BLOCK_SPAN;
+    if ( local < 0 ) {
+        local += DIM_BLOCK_SPAN;
+    }
+    return static_cast<double>( dim_world_block_y( dim, local ) ) + ( display_y - static_cast<double>( whole ) );
+}
+
 static inline const char *dim_name( const DimensionId dim ) {
     switch ( dim ) {
         case DIM_OVERWORLD:

@@ -275,6 +275,18 @@ int test_chat( ) {
                         fabs( gs.camera.pos.y - ( 64.0 + PLAYER_EYE_HEIGHT ) ) < 0.001 &&
                         gs.camera.y_speed == 0.0 && gs.vitals.fall_dist == 0.0 );
 
+        // Y is display-frame: coords read like the overworld inside every
+        // band, and out-of-band values fold back instead of crossing
+        // dimensions. Feet in the nether band (encoded y ~-3000):
+        gs.camera.pos = glm::dvec3( 0.0, -3000.0 + PLAYER_EYE_HEIGHT, 0.0 );
+        chat_submit( gs, "/tp 0 64 0" );
+        check_bool( "chat cmd: /tp y lands inside the player's dimension band",
+                    dimension_of_pos( gs.camera.pos ) == DIM_NETHER &&
+                        fabs( gs.camera.pos.y - ( -3904.0 + PLAYER_EYE_HEIGHT ) ) < 0.001 );
+        chat_submit( gs, "/tp 0 5000 0" );
+        check_bool( "chat cmd: /tp y folds out-of-band values into the band",
+                    dimension_of_pos( gs.camera.pos ) == DIM_NETHER );
+
         // Block coords floor fractional positions — feet at x=10.6 land
         // in block 10, not lround's 11.
         if ( block_definitions == nullptr ) {

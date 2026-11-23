@@ -122,6 +122,28 @@ int test_dimension( ) {
     check_bool( "nether local 0 is the band floor", dim_world_block_y( DIM_NETHER, 0 ) == DIM_BY_MIN_N );
     check_bool( "overworld local of y=0 is half span", dim_local_block_y( 0 ) == 1984 );
 
+    // ---- display frame: every band reads overworld-like coordinates ----
+    bool disp_ok = true;
+    for ( int dim = 0; dim < DIM_COUNT; dim++ ) {
+        for ( const int ly : { 0, 1, DIM_BLOCK_SPAN / 2, DIM_BLOCK_SPAN - 1 } ) {
+            const int by = dim_world_block_y( static_cast<DimensionId>( dim ), ly );
+            if ( dim_display_block_y( by ) != ly - 1984 ||
+                 static_cast<int>( dim_encode_block_y( static_cast<DimensionId>( dim ), ly - 1984 ) ) != by ) {
+                disp_ok = false;
+            }
+        }
+    }
+    check_bool( "display<->encoded y round-trips all bands", disp_ok );
+    check_bool( "display y of overworld is identity", dim_display_block_y( -100 ) == -100 && dim_display_block_y( 64 ) == 64 );
+    check_bool( "nether band floor displays -1984", dim_display_block_y( DIM_BY_MIN_N ) == -1984 );
+    check_bool( "repheim display y is the rep frame",
+                dim_display_block_y( DIM_BY_MIN_3_HI ) == -1984 && dim_display_block_y( DIM_BY_MIN_3_LO ) == 0 );
+    check_bool( "display chunk y of overworld is identity", dim_display_chunk_y( -10 ) == -10 && dim_display_chunk_y( 31 ) == 31 );
+    check_bool( "encode folds out-of-band display y",
+                static_cast<int>( dim_encode_block_y( DIM_OVERWORLD, -3000 ) ) == 968 &&
+                    static_cast<int>( dim_encode_block_y( DIM_OVERWORLD, 2000 ) ) == -1968 );
+    check_bool( "encode keeps the fraction", fabs( dim_encode_block_y( DIM_NETHER, 64.5 ) - -3903.5 ) < 0.0001 );
+
     // ---- Natural-mob ids stay unique + invertible across bands ----
     {
         const glm::ivec3 over_chunk( 100, -1, -77 ), nether_chunk( 100, -90, -77 );

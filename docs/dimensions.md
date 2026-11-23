@@ -27,6 +27,17 @@ All helpers live in `include/common/dimension.hpp`:
 `DIM_IS_*_BY` predicates above the `REPGAME_WGSL_GEN` guard — the mapgen
 dialect (`docs/mapgen.md`) can use only the `#define` half of the header.
 
+The band encoding is hidden from the player: user-facing y runs in the
+**display frame** — every band reads overworld-like coordinates (blocks
+-1984..1983, chunks -32..31). `dim_display_block_y`/`dim_display_chunk_y`
+convert encoded→display (repheim's display y is the rep frame), and
+`dim_encode_block_y(dim, y)` converts a display y back into a band,
+folding out-of-band input modulo the span. `/pos`, `/tp`, `/setblock`,
+`/fill`, `/summon` and the ImGui overlay's Player Pos line all use the
+display frame, so a `/tp` y can never cross dimensions; debug-only
+consumers (F12's `REPGAME_CAPTURE` log line, rep-dbg, results.jsonl)
+keep the real encoded y.
+
 ## Per-dimension profile
 
 `include/common/dimension_profile.hpp` is the policy table — skylight,
@@ -125,8 +136,8 @@ fog-colored void (`SkyBox` nether variant) with a short red-brown fog, and
 the day/night factor is pinned dark. The profile's `min_ambient` is an
 inherent light floor — `max()`'d with the player's Cave Brightness before
 it reaches the shaders, so nether caverns stay dimly visible regardless of
-that setting. `/pos` and the debug overlay show the
-dimension name (`dim_name`, `dim_local_block_y`).
+that setting. `/pos` and the debug overlay report the
+dimension name (`dim_name`) with y in the display frame.
 
 ## Portals
 
