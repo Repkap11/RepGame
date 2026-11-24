@@ -3269,6 +3269,10 @@
   "repeating_command_block_side_mipmap": {
     "source": "textures/blocks/repeating_command_block_side_mipmap"
   },
+  "repheim_portal": {
+    "animated": true,
+    "ticks": 3
+  },
   "resin_block": {
     "source": "textures/blocks/resin_block"
   },
