@@ -710,6 +710,20 @@ int test_dimension( ) {
         check_bool( "no_build: player in nether band", dimension_of_pos( gs.camera.pos ) == DIM_NETHER );
     }
 
+    // ---- repheim -> /overworld: no nether on either side, x/z unscaled ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 64.5, 80.0, 40.5 );
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        check_bool( "repheim leg lands", portal_travel_to_dimension( gs, DIM_REPHEIM ) );
+        const int rx = static_cast<int>( floor( gs.camera.pos.x ) );
+        const int rz = static_cast<int>( floor( gs.camera.pos.z ) );
+        check_bool( "repheim->overworld travels", portal_travel_no_build( gs, DIM_OVERWORLD ) );
+        check_bool( "repheim->overworld anchor x/z unscaled", gs.portal.dst_center.x == rx && gs.portal.dst_center.z == rz );
+        check_bool( "repheim->overworld lands in overworld", dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD );
+    }
+
     // ---- Pending-travel readiness gate + freeze ----
     // A search-box chunk inside the active window that isn't live yet holds
     // the resolve off; the player is re-snapped to the hold feet each tick.

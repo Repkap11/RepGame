@@ -290,10 +290,13 @@ static glm::dvec3 portal_arrive_feet_frame( const PortalFrame &frame ) {
 
 // The 8:1 horizontal scale applied to a source portal's x/z: nether-bound
 // divides by PORTAL_COORD_SCALE (floor, so negatives map like Minecraft),
-// overworld-bound multiplies — 1 nether block is 8 overworld blocks.
-static int portal_scale_coord( const int v, const DimensionId dst ) {
-    return dst == DIM_NETHER ? static_cast<int>( floor( v / static_cast<double>( PORTAL_COORD_SCALE ) ) )
-                             : v * PORTAL_COORD_SCALE;
+// nether-to-elsewhere multiplies — 1 nether block is 8 overworld blocks.
+// Trips that don't touch the nether (repheim/end -> overworld) keep x/z.
+static int portal_scale_coord( const int v, const DimensionId src, const DimensionId dst ) {
+    if ( dst == DIM_NETHER && src != DIM_NETHER ) {
+        return static_cast<int>( floor( v / static_cast<double>( PORTAL_COORD_SCALE ) ) );
+    }
+    return src == DIM_NETHER && dst != DIM_NETHER ? v * PORTAL_COORD_SCALE : v;
 }
 
 // Travel: drop the player at generated ground in the destination band and
@@ -320,8 +323,9 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
         }
         src_center = glm::ivec3( ( src->lo.x + src->hi.x ) / 2, ( src->lo.y + src->hi.y ) / 2, ( src->lo.z + src->hi.z ) / 2 );
     }
-    const glm::ivec3 dst_center( portal_scale_coord( src_center.x, dst ), src_center.y,
-                                 portal_scale_coord( src_center.z, dst ) );
+    const DimensionId src_dim = dimension_of_pos( state.camera.pos );
+    const glm::ivec3 dst_center( portal_scale_coord( src_center.x, src_dim, dst ), src_center.y,
+                                 portal_scale_coord( src_center.z, src_dim, dst ) );
     glm::ivec3 center;
     int embedded;
     portal_find_spot( dst, dst_center.x, dst_center.z, axis, w, h, center, embedded );

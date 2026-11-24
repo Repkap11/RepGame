@@ -18,8 +18,9 @@ sync, the server — works unchanged; band separation (≈4000 blocks) is far
 wider than the vertical load radius, so a torus never straddles two bands.
 Portal travel applies Minecraft's **8:1 coordinate compression** — one block
 in the nether is eight in the overworld: a source portal's x/z maps to the
-destination anchor by /8 when nether-bound and *8 when overworld-bound
-(`PORTAL_COORD_SCALE`, `portal_scale_coord`).
+destination anchor by /8 when nether-bound and *8 when leaving the nether
+(`PORTAL_COORD_SCALE`, `portal_scale_coord`). Trips with the nether on
+neither side (e.g. `/overworld` from repheim or the End) keep x/z.
 
 All helpers live in `include/common/dimension.hpp`:
 `dimension_of_chunk/block_y/pos`, `dim_local_*` (band-local y),

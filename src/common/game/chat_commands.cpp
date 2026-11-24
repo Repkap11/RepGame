@@ -535,7 +535,7 @@ const ChatCmd CHAT_COMMANDS_TABLE[ 21 ] = {
     { "tp", "teleport", "/tp <x> <y> <z> | /tp <player>", "Teleport to feet coords or a player ('~' = current).", cmd_tp },
     { "repheim", "", "/repheim", "Travel to repheim (the new-terrain overworld band).", cmd_repheim },
     { "nether", "", "/nether", "Travel to the nether as if through a portal (x/z /8) - no portal built.", cmd_nether },
-    { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8) - no portal built.", cmd_overworld },
+    { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8 from the nether) - no portal built.", cmd_overworld },
     { "spawn", "", "/spawn", "Teleport to the world spawn column (0,0 topmost ground).", cmd_spawn },
     { "kill", "respawn", "/kill", "Die and return to your respawn point (bed or world spawn).", cmd_kill },
     { "give", "", "/give <item> [count]", "Add items to the hotbar like a pickup.", cmd_give },
