@@ -791,8 +791,9 @@ no void volume to sweep) with every defined non-AIR block placed
 once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered
 `CREATIVE_BLOCKS` first then the remaining defined ids ascending. Blocks
 with an animated face texture (layers ≥ `TEXTURE_ANIM_BASE`) are split
-into their own section on the same grid mirrored across x=0 (slots at
-x=-2,-4,...) so the moving textures sit apart from the rest — the
+into their own section on the same grid mirrored off to -x (slots at
+x=-8,-10,..., clear of the mob column at x=-3) so the moving textures sit
+apart from the rest — the
 layout lives in `MapGen::block_world_cell` (`block_world_id` unwraps the
 id for callers that ignore rotation). The z<0 side also holds a
 scaffolding showcase: a 4-high column at x=-9/z=-33 with a 6-cell arm off

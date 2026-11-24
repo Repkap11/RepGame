@@ -227,8 +227,9 @@ BlockCell MapGen::block_world_cell( const int x, const int y, const int z ) {
     }
     // 32 per row along +x starting at x=2, rows stepping +z from z=2; one
     // air cell between neighbours in both directions. Animated blocks get
-    // their own section: the same grid mirrored across x=0 (slots at
-    // x=-2, -4, ...), so the moving textures sit apart from the rest.
+    // their own section: the same grid mirrored off to -x (slots at
+    // x=-8, -10, ...) — offset from the mob showcase column at x=-3 so the
+    // mobs stand clear of the moving textures.
     if ( z < 2 || ( ( z - 2 ) & 1 ) ) {
         return block_cell_pack( AIR, 0 );
     }
@@ -238,8 +239,8 @@ BlockCell MapGen::block_world_cell( const int x, const int y, const int z ) {
     if ( x >= 2 && !( ( x - 2 ) & 1 ) ) {
         col = ( x - 2 ) / 2;
         t = &block_world_table( false );
-    } else if ( x <= -2 && !( ( -x - 2 ) & 1 ) ) {
-        col = ( -x - 2 ) / 2;
+    } else if ( x <= -8 && !( ( -x - 8 ) & 1 ) ) {
+        col = ( -x - 8 ) / 2;
         t = &block_world_table( true );
     }
     if ( col < 0 || col >= 32 ) {

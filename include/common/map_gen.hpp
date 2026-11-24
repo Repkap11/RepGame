@@ -56,7 +56,8 @@ class MapGen {
     static BlockID gen_block_id( int x, int y, int z );
     // Block-world debug layout (REPGAME_BLOCK_WORLD): sandstone floor at
     // y=0, every defined block on a 32-wide grid standing on it at y=1 —
-    // static blocks at x>=2, animated blocks on a mirrored grid at x<=-2.
+    // static blocks at x>=2, animated blocks on a mirrored grid at x<=-8
+    // (clear of the mob showcase column at x=-3).
     // The z<0 showcase cells may carry rotation (wall-mounted blocks);
     // block_world_id unwraps the id for callers that don't need it.
     // O(1) per cell; used by Chunk::load_terrain and gen_block_id.

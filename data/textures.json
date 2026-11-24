@@ -2926,6 +2926,7 @@
   },
   "portal": {
     "animated": true,
+    "ticks": 3,
     "source": "textures/blocks/portal"
   },
   "potatoes_stage_0": {

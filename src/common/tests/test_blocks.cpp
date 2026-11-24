@@ -1403,15 +1403,17 @@ int test_block_world( ) {
         misplaced += MapGen::block_world_id( 2 + 2 * (int)( i % 32 ), 1, 2 + 2 * (int)( i / 32 ) ) != grid_still[ i ];
     }
     for ( size_t i = 0; i < grid_anim.size( ); i++ ) {
-        misplaced += MapGen::block_world_id( -2 - 2 * (int)( i % 32 ), 1, 2 + 2 * (int)( i / 32 ) ) != grid_anim[ i ];
+        misplaced += MapGen::block_world_id( -8 - 2 * (int)( i % 32 ), 1, 2 + 2 * (int)( i / 32 ) ) != grid_anim[ i ];
     }
     check_bool( "bw: every defined non-AIR id placed once in order", misplaced == 0 && expected_count > 0 );
     check_bool( "bw: animated section is populated", !grid_anim.empty( ) );
-    // Just past the last animated slot must be air, and the -x grid must
-    // contain only animated ids (checked via the order pass above).
+    // Just past the last animated slot must be air, and the cells between
+    // the animated section and the mob column at x=-3 stay clear.
     const size_t last_anim = grid_anim.size( );
     check_bool( "bw: air past animated section",
-                MapGen::block_world_id( -2 - 2 * (int)( last_anim % 32 ), 1, 2 + 2 * (int)( last_anim / 32 ) ) == AIR );
+                MapGen::block_world_id( -8 - 2 * (int)( last_anim % 32 ), 1, 2 + 2 * (int)( last_anim / 32 ) ) == AIR );
+    check_bool( "bw: air between animated section and mob column",
+                MapGen::block_world_id( -4, 1, 2 ) == AIR && MapGen::block_world_id( -6, 1, 2 ) == AIR );
 
     // Sign showcase (z<0): standing signs on the floor, wall signs on the
     // +z face of the stones at z=-21, hanging signs under the y=2 beam.
