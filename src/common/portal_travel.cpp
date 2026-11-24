@@ -91,8 +91,8 @@ static void portal_band_span( const DimensionId dim, int &y_min, int &y_max ) {
 
 // Loaded-world-only site veto: the frame's clearance volume — u in
 // [-2, w+1] along the axis, v in [-3, 3] normal to it, y in [0, h+2] above
-// the ring's bottom row — must hold no PORTAL, OBSIDIAN or BEDROCK. Keeps a
-// fresh build from overlapping an existing frame (lit or not) or
+// the ring's bottom row — must hold no portal cell, ring block or BEDROCK.
+// Keeps a fresh build from overlapping an existing frame (lit or not) or
 // unbreakable ground.
 static bool portal_clearance_ok( World &world, const glm::ivec3 &origin, const int axis, const int w, const int h ) {
     const glm::ivec3 du = axis ? glm::ivec3( 0, 0, 1 ) : glm::ivec3( 1, 0, 0 );
@@ -101,7 +101,7 @@ static bool portal_clearance_ok( World &world, const glm::ivec3 &origin, const i
         for ( int v = -3; v <= 3; v++ ) {
             for ( int y = 0; y <= h + 2; y++ ) {
                 const BlockID id = world.get_loaded_block( origin + du * u + dn * v + glm::ivec3( 0, y, 0 ) ).id;
-                if ( id == PORTAL || id == OBSIDIAN || id == BEDROCK ) {
+                if ( id == PORTAL || id == REPHEIM_PORTAL || id == OBSIDIAN || id == GOLD_BLOCK || id == BEDROCK ) {
                     return false;
                 }
             }
@@ -347,11 +347,11 @@ static bool portal_find_spot( const DimensionId dim, const int bx, const int bz,
     return true;
 }
 
-// Feet at the bottom of an existing portal's plate: `found` is a PORTAL
-// cell, so stand on the sill at the bottom of its interior column.
-static glm::dvec3 portal_arrive_feet_inside( RepGameState &state, const glm::ivec3 &found ) {
+// Feet at the bottom of an existing portal's plate: `found` is an
+// `interior` cell, so stand on the sill at the bottom of its column.
+static glm::dvec3 portal_arrive_feet_inside( RepGameState &state, const glm::ivec3 &found, const BlockID interior ) {
     glm::ivec3 base = found;
-    while ( state.world.get_loaded_block( glm::ivec3( base.x, base.y - 1, base.z ) ).id == PORTAL ) {
+    while ( state.world.get_loaded_block( glm::ivec3( base.x, base.y - 1, base.z ) ).id == interior ) {
         base.y--;
     }
     return glm::dvec3( base.x + 0.5, base.y, base.z + 0.5 );
@@ -388,7 +388,7 @@ static int portal_scale_coord( const int v, const DimensionId src, const Dimensi
 // ratio (portal_scale_coord) — every search and the build site centre on
 // it, not on the source coordinate. A built destination frame copies
 // `src`'s axis and interior size (null → the default 2x3 x-plate).
-static void portal_travel( RepGameState &state, const DimensionId dst, const PortalFrame *src, const bool build ) {
+static void portal_travel( RepGameState &state, const DimensionId dst, const PortalFrame *src, const bool build, const int kind_fallback ) {
     int axis = 0, w = 2, h = 3;
     glm::ivec3 src_center( static_cast<int>( floor( state.camera.pos.x ) ), 0,
                            static_cast<int>( floor( state.camera.pos.z ) ) );
@@ -428,6 +428,7 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
     p.pending_w = w;
     p.pending_h = h;
     p.pending_dim = dst;
+    p.pending_kind = src ? src->kind : kind_fallback;
     p.hold_feet = feet;
     p.dst_center = dst_center;
     p.pending_start_tick = state.tick_number;
@@ -513,7 +514,8 @@ static bool portal_try_adopt( RepGameState &state, const bool quiet_miss ) {
     const glm::ivec3 search_center( p.dst_center.x, static_cast<int>( floor( p.hold_feet.y ) ), p.dst_center.z );
     const auto t0 = std::chrono::steady_clock::now( );
     glm::ivec3 found;
-    const bool have_portal = portal_find_nearest( state.world, static_cast<DimensionId>( p.pending_dim ), search_center, y_min, y_max, found );
+    const bool have_portal = portal_find_nearest( state.world, static_cast<DimensionId>( p.pending_dim ), search_center, y_min, y_max, found,
+                                                  PORTAL_KINDS[p.pending_kind].interior );
     const long long search_us = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now( ) - t0 ).count( );
     if ( have_portal || !quiet_miss ) {
         pr_debug( "portal search: %lld us (%s)", search_us, have_portal ? "found" : "missed" );
@@ -524,7 +526,7 @@ static bool portal_try_adopt( RepGameState &state, const bool quiet_miss ) {
     PortalFrame frame;
     const glm::dvec3 feet = portal_find_frame( state.world, found, frame )
                                 ? portal_arrive_feet_frame( frame )
-                                : portal_arrive_feet_inside( state, found );
+                                : portal_arrive_feet_inside( state, found, PORTAL_KINDS[p.pending_kind].interior );
     p.hold_feet = feet;
     portal_teleport_feet( state, feet );
     p.must_exit = 1;
@@ -630,7 +632,7 @@ static void portal_pending_tick( RepGameState &state ) {
     if ( floating ) {
         // Over open lava/water: the standing ring the player lands on —
         // laid for /nether-style landings too (they stand on the slab).
-        portal_build_platform( state, site, axis, w );
+        portal_build_platform( state, site, axis, w, p.pending_kind );
     }
     if ( p.pending_no_build ) {
         // /nether-style command travel: same site + pocket, but no frame is
@@ -641,7 +643,7 @@ static void portal_pending_tick( RepGameState &state ) {
         p.must_exit = 1;
         return;
     }
-    portal_build_frame( state, site, axis, w, h );
+    portal_build_frame( state, site, axis, w, h, p.pending_kind );
     // Stand inside the new plate: bottom interior row, centred on the axis.
     PortalFrame built;
     built.lo = site + glm::ivec3( 0, 1, 0 );
@@ -708,8 +710,9 @@ void repgame_portal_tick( RepGameState &state ) {
     const BlockID feet_id = state.world.get_loaded_block( feet_cell ).id;
     const BlockID body_id = state.world.get_loaded_block( body_cell ).id;
     const int in_portal = feet_id == PORTAL || body_id == PORTAL;
+    const int in_rep_portal = feet_id == REPHEIM_PORTAL || body_id == REPHEIM_PORTAL;
     const int in_end_portal = feet_id == END_PORTAL || body_id == END_PORTAL;
-    if ( !in_portal && !in_end_portal ) {
+    if ( !in_portal && !in_rep_portal && !in_end_portal ) {
         p.ticks_inside = 0;
         // Only release must_exit on confirmed loaded ground: LAST_BLOCK_ID
         // means the destination torus hasn't caught up yet, and a pending
@@ -742,13 +745,25 @@ void repgame_portal_tick( RepGameState &state ) {
             }
             return;
         }
+        if ( in_rep_portal ) {
+            // The repgate pairs the overworld and repheim bands 1:1 — in
+            // other bands a gold frame does nothing (same as a nether
+            // portal outside its pair).
+            const DimensionId dst = cur == DIM_OVERWORLD ? DIM_REPHEIM : cur == DIM_REPHEIM ? DIM_OVERWORLD : cur;
+            if ( dst != cur ) {
+                PortalFrame src;
+                const glm::ivec3 seed = feet_id == REPHEIM_PORTAL ? feet_cell : body_cell;
+                portal_travel( state, dst, portal_find_frame( state.world, seed, src ) ? &src : nullptr, true, PORTAL_KIND_REPHEIM );
+            }
+            return;
+        }
         const DimensionId dst = cur == DIM_OVERWORLD ? DIM_NETHER : cur == DIM_NETHER ? DIM_OVERWORLD : cur;
         if ( dst != cur ) {
             // The destination frame copies this portal's axis and interior
             // size — detect the ring around whichever cell is lit.
             PortalFrame src;
             const glm::ivec3 seed = feet_id == PORTAL ? feet_cell : body_cell;
-            portal_travel( state, dst, portal_find_frame( state.world, seed, src ) ? &src : nullptr, true );
+            portal_travel( state, dst, portal_find_frame( state.world, seed, src ) ? &src : nullptr, true, PORTAL_KIND_NETHER );
         }
     }
 }
@@ -795,6 +810,6 @@ bool portal_travel_no_build( RepGameState &state, const DimensionId dim ) {
     if ( dimension_of_pos( state.camera.pos ) == dim ) {
         return false;
     }
-    portal_travel( state, dim, nullptr, false );
+    portal_travel( state, dim, nullptr, false, PORTAL_KIND_NETHER );
     return true;
 }

@@ -630,7 +630,7 @@ int test_dimension( ) {
         failures += check_id( world, "carve keeps bedrock", glm::ivec3( 17, 12, 12 ), BEDROCK );
 
         // portal_build_frame honours axis + interior w/h (3x5 along z).
-        portal_build_frame( gs, glm::ivec3( 20, 8, 10 ), 1, 3, 5 );
+        portal_build_frame( gs, glm::ivec3( 20, 8, 10 ), 1, 3, 5, PORTAL_KIND_NETHER );
         failures += check_id( world, "built sill", glm::ivec3( 20, 8, 11 ), OBSIDIAN );
         failures += check_id( world, "built lintel", glm::ivec3( 20, 14, 11 ), OBSIDIAN );
         failures += check_id( world, "built side -z", glm::ivec3( 20, 10, 9 ), OBSIDIAN );
@@ -718,6 +718,115 @@ int test_dimension( ) {
         check_bool( "dwell travelled to overworld", dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD );
         // Centre x 4, z 6 in the nether -> x 32, z 48 in the overworld.
         check_bool( "overworld x/z scaled by 8", gs.portal.dst_center.x == 32 && gs.portal.dst_center.z == 48 );
+    }
+
+    // ---- Repgate: gold-block ring + REPHEIM_PORTAL interior, 1x2 min ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        // 3x4 gold ring in the x-y plane at (10..12, 10..13, 10):
+        // a 1x2 interior (11, 11..12) — the repgate's minimum.
+        const glm::ivec3 o( 10, 10, 10 );
+        for ( int dx = 0; dx < 3; dx++ ) {
+            for ( int dy = 0; dy < 4; dy++ ) {
+                const bool edge = dx == 0 || dx == 2 || dy == 0 || dy == 3;
+                if ( edge ) {
+                    world.set_loaded_block( o + glm::ivec3( dx, dy, 0 ), { GOLD_BLOCK, 0, 0, GOLD_BLOCK, 0 } );
+                }
+            }
+        }
+        PortalFrame frame;
+        check_bool( "repgate: 1x2 gold frame detected", portal_find_frame( world, glm::ivec3( 11, 11, 10 ), frame ) );
+        check_bool( "repgate: kind is repheim", frame.kind == PORTAL_KIND_REPHEIM );
+        check_bool( "repgate: frame interior is 1x2", frame.axis == 0 && frame.lo == glm::ivec3( 11, 11, 10 ) &&
+                                                    frame.hi == glm::ivec3( 11, 12, 10 ) );
+        check_bool( "repgate: ignite fills with REPHEIM_PORTAL", portal_ignite( gs, glm::ivec3( 11, 11, 10 ) ) );
+        test_run_game_ticks( gs, 2 );
+        check_bool( "repgate: interior holds repheim portal", world.get_loaded_block( glm::ivec3( 11, 12, 10 ) ).id == REPHEIM_PORTAL );
+        const BlockState rep_cell = world.get_loaded_block( glm::ivec3( 11, 12, 10 ) );
+        check_bool( "repgate: cell survives in gold ring", portal_cell_survives( world, glm::ivec3( 11, 12, 10 ), rep_cell ) );
+        world.set_loaded_block( glm::ivec3( 10, 12, 10 ), BLOCK_STATE_AIR );
+        check_bool( "repgate: broken ring kills cell", !portal_cell_survives( world, glm::ivec3( 11, 12, 10 ), rep_cell ) );
+    }
+
+    // ---- Repgate min-size: a 1x2 obsidian ring must NOT ignite (nether min 2x3) ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        const glm::ivec3 o( 10, 10, 10 );
+        for ( int dx = 0; dx < 3; dx++ ) {
+            for ( int dy = 0; dy < 4; dy++ ) {
+                const bool edge = dx == 0 || dx == 2 || dy == 0 || dy == 3;
+                if ( edge ) {
+                    world.set_loaded_block( o + glm::ivec3( dx, dy, 0 ), { OBSIDIAN, 0, 0, OBSIDIAN, 0 } );
+                }
+            }
+        }
+        PortalFrame frame;
+        check_bool( "nether: 1x2 interior refused", !portal_find_frame( world, glm::ivec3( 11, 11, 10 ), frame ) );
+        check_bool( "nether: 1x2 ignite refused", !portal_ignite( gs, glm::ivec3( 11, 11, 10 ) ) );
+    }
+
+    // ---- Repgate travel: overworld -> repheim at 1:1 x/z ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        // 1x2 repgate in the x-y plane at (10..12, 10..13, 10).
+        for ( int dx = 10; dx <= 12; dx++ ) {
+            for ( int dy = 10; dy <= 13; dy++ ) {
+                const bool edge = dx == 10 || dx == 12 || dy == 10 || dy == 13;
+                if ( edge ) {
+                    world.set_loaded_block( glm::ivec3( dx, dy, 10 ), { GOLD_BLOCK, 0, 0, GOLD_BLOCK, 0 } );
+                }
+            }
+        }
+        portal_ignite( gs, glm::ivec3( 11, 11, 10 ) );
+        gs.camera.pos = glm::dvec3( 11.5, 11.4 + PLAYER_EYE_HEIGHT, 10.5 );
+        for ( int i = 0; i < PORTAL_TRAVEL_TICKS + 2; i++ ) {
+            repgame_portal_tick( gs );
+        }
+        check_bool( "repgate: dwell travelled to repheim", dimension_of_pos( gs.camera.pos ) == DIM_REPHEIM );
+        // 1:1 mapping: the ring's centre x/z carries over unscaled.
+        check_bool( "repgate: anchor x/z unscaled", gs.portal.dst_center.x == 11 && gs.portal.dst_center.z == 10 );
+        check_bool( "repgate: pending kind is repheim", gs.portal.pending_kind == PORTAL_KIND_REPHEIM );
+        check_bool( "repgate: destination copies 1x2", gs.portal.pending_w == 1 && gs.portal.pending_h == 2 );
+    }
+
+    // ---- Repgate travel: repheim -> overworld at 1:1 x/z ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        // Gold ring staged in the repheim band — encoded y for rep frame
+        // ~200 lands in the band's lower half.
+        const int ry = repheim_encoded_block_y( 200 );
+        make_chunk_live( world, glm::ivec3( glm::floor( glm::vec3( 11, ry, 10 ) / glm::vec3( CHUNK_SIZE_I ) ) ), 1 );
+        for ( int dx = 10; dx <= 12; dx++ ) {
+            for ( int dy = ry; dy <= ry + 3; dy++ ) {
+                const bool edge = dx == 10 || dx == 12 || dy == ry || dy == ry + 3;
+                if ( edge ) {
+                    world.set_loaded_block( glm::ivec3( dx, dy, 10 ), { GOLD_BLOCK, 0, 0, GOLD_BLOCK, 0 } );
+                }
+            }
+        }
+        check_bool( "repgate: repheim ring ignites", portal_ignite( gs, glm::ivec3( 11, ry + 1, 10 ) ) );
+        gs.camera.pos = glm::dvec3( 11.5, ry + 1.4 + PLAYER_EYE_HEIGHT, 10.5 );
+        for ( int i = 0; i < PORTAL_TRAVEL_TICKS + 2; i++ ) {
+            repgame_portal_tick( gs );
+        }
+        check_bool( "repgate: dwell travelled to overworld", dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD );
+        check_bool( "repgate: return anchor x/z unscaled", gs.portal.dst_center.x == 11 && gs.portal.dst_center.z == 10 );
     }
 
     // ---- portal-less travel (portal_travel_to_dimension): same x/z, lands in the band ----
@@ -1081,10 +1190,10 @@ int test_dimension( ) {
         world.set_loaded_block( glm::ivec3( 20, ny, 5 ), { PORTAL, 0, 0, PORTAL, 0 } );
         glm::ivec3 found;
         check_bool( "nether search: 15 off the anchor is missed",
-                    !portal_find_nearest( world, DIM_NETHER, glm::ivec3( 5, ny, 5 ), DIM_BY_MIN_N, DIM_BY_MAX_N, found ) );
+                    !portal_find_nearest( world, DIM_NETHER, glm::ivec3( 5, ny, 5 ), DIM_BY_MIN_N, DIM_BY_MAX_N, found, PORTAL ) );
         world.set_loaded_block( glm::ivec3( 12, ny, 5 ), { PORTAL, 0, 0, PORTAL, 0 } );
         check_bool( "nether search: 7 off the anchor is found",
-                    portal_find_nearest( world, DIM_NETHER, glm::ivec3( 5, ny, 5 ), DIM_BY_MIN_N, DIM_BY_MAX_N, found ) &&
+                    portal_find_nearest( world, DIM_NETHER, glm::ivec3( 5, ny, 5 ), DIM_BY_MIN_N, DIM_BY_MAX_N, found, PORTAL ) &&
                         found == glm::ivec3( 12, ny, 5 ) );
     }
 
