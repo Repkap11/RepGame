@@ -6,7 +6,7 @@ RepGame is a Minecraft clone written by @Repkap11 in C++.
 
 <p align="center">
   <img src="screenshots/nether.png" alt="The Nether" width="32%"/>
-  <img src="screenshots/new_terrain.png" alt="New terrain generator" width="32%"/>
+  <img src="screenshots/repheim.png" alt="New terrain generator" width="32%"/>
   <img src="screenshots/end.png" alt="The End" width="32%"/>
 </p>
 

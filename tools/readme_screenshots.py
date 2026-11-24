@@ -10,7 +10,7 @@ Scenes:
                blocks up — the same shot as screenshots/repgame.png
   nether       the nether cavern band (slot 1, encoded y -5952..-1985, see
                docs/dimensions.md): lava sea + shelf ledges at x/z 0
-  new_terrain  the repheim band (slot 3) — the reworked generator, identical
+  repheim      the repheim band (slot 3) — the reworked generator, identical
                to a new-gen overworld at the same x/z. Same camera as the
                overworld shot, at the repheim-encoded y.
   end          the End (slot 2): island + obsidian pillars at x/z 0
@@ -39,8 +39,8 @@ REP_DBG = os.path.join(REPO, "tools", "rep-dbg")
 #   end     = 1984 + local y      (local ~2048 island surface, ~2074 above it)
 SCENES = {
     "overworld": {"build": "release", "spec": "0.5,66,0.5,90,9"},
-    "nether": {"build": "release", "spec": "96,-5860,0,270,15"},
-    "new_terrain": {"build": "release", "spec": "300,-7856,200,225,10"},
+    "nether": {"build": "release", "spec": "2823,-5816,-249,270,15"},
+    "repheim": {"build": "release", "spec": "300,-7856,200,225,10"},
     "end": {"build": "release", "spec": "130,4058,0.5,270,14"},
 }
 
