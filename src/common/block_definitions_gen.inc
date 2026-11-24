@@ -22679,15 +22679,27 @@ block_definitions[ 1507 ].piston_immovable = true;
 block_definitions[ 1507 ].rotate_on_placement = true;
 block_definitions[ 1507 ].scale = { 16, 9, 16 };
 
-// undefined (1508)
-block_definitions[ 1508 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 1508 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1508 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1508 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1508 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1508 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1508 ].icon_texture = TEX_AIR;
-block_definitions[ 1508 ].is_pickable = false;
+// REPHEIM_PORTAL (1508)
+block_definitions[ 1508 ].textures[ FACE_TOP ] = TEX_REPHEIM_PORTAL;
+block_definitions[ 1508 ].textures[ FACE_BOTTOM ] = TEX_REPHEIM_PORTAL;
+block_definitions[ 1508 ].textures[ FACE_RIGHT ] = TEX_REPHEIM_PORTAL;
+block_definitions[ 1508 ].textures[ FACE_FRONT ] = TEX_REPHEIM_PORTAL;
+block_definitions[ 1508 ].textures[ FACE_LEFT ] = TEX_REPHEIM_PORTAL;
+block_definitions[ 1508 ].textures[ FACE_BACK ] = TEX_REPHEIM_PORTAL;
+block_definitions[ 1508 ].icon_texture = TEX_REPHEIM_PORTAL;
+block_definitions[ 1508 ].affected_by_redstone_power = false;
+block_definitions[ 1508 ].casts_shadow = false;
+block_definitions[ 1508 ].collides_with_player = false;
+block_definitions[ 1508 ].emits_light = 11;
+block_definitions[ 1508 ].hardness = -1.0f;
+block_definitions[ 1508 ].hides_self = { true, true, false };
+block_definitions[ 1508 ].is_seethrough = true;
+block_definitions[ 1508 ].offset = { 0, 0, 6 };
+block_definitions[ 1508 ].piston_immovable = true;
+block_definitions[ 1508 ].renderOrder = RenderOrder_Translucent;
+block_definitions[ 1508 ].rotate_on_placement = true;
+block_definitions[ 1508 ].scale = { 16, 16, 4 };
+block_definitions[ 1508 ].tex_offset = { 0, 0, -6 };
 
 // undefined (1509)
 block_definitions[ 1509 ].textures[ FACE_TOP ] = TEX_AIR;

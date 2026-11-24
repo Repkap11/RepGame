@@ -1507,7 +1507,7 @@
     "BEETROOT_1",
     "BEETROOT_2",
     "BED_HEAD",
-    nullptr,
+    "REPHEIM_PORTAL",
     nullptr,
     nullptr,
     nullptr,

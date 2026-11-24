@@ -1,14 +1,17 @@
 #pragma once
 
 // ---------------------------------------------------------------------------
-// portal.hpp — nether portal frames, ignition, survival and travel.
+// portal.hpp — portal frames, ignition, survival and travel.
 //
-// A portal is an obsidian ring (min interior 1x2, max 16x25) filled with
-// PORTAL blocks. Flint & steel (or a fire spread) on an interior cell ignites
-// it; standing inside for PORTAL_TRAVEL_TICKS moves the player between the
-// overworld and nether dimension bands (dimension.hpp). Travel maps x/z by
-// the 8:1 scale (1 nether block = 8 overworld blocks) and finds or builds a
-// destination portal.
+// A portal is a ring (min/max interior set by its PortalKind) filled with
+// portal blocks: an obsidian ring holds PORTAL and bridges the overworld and
+// nether bands; a gold-block ring holds REPHEIM_PORTAL and bridges the
+// overworld and repheim bands (dimension.hpp). Flint & steel (or a fire
+// spread) on an interior cell ignites it; standing inside for
+// PORTAL_TRAVEL_TICKS moves the player. Nether travel maps x/z by the 8:1
+// scale (1 nether block = 8 overworld blocks); repheim travel keeps x/z
+// 1:1 (repheim is another overworld at the same coordinates). Travel finds
+// or builds a destination portal.
 //
 // portal.cpp holds the pure world helpers (frame detection, the survive rule
 // block_can_survive_at calls, frame building); portal_travel.cpp the per-tick
@@ -62,11 +65,29 @@ static inline int portal_search_radius( const DimensionId dim ) {
 // instead of a visible snap from the predicted site to the real portal.
 #define PORTAL_ADOPT_SCAN_TICKS ( UPS_RATE / 2 )
 
-// A detected empty obsidian ring ready for ignition.
+// A portal type: which block forms the ring, which fills the interior, and
+// the smallest interior the ring accepts (the repgate admits a 1x2 hole —
+// vanilla's nether portal wants 2x3).
+struct PortalKind {
+    BlockID ring;     // frame material (OBSIDIAN / GOLD_BLOCK)
+    BlockID interior; // lit interior cell (PORTAL / REPHEIM_PORTAL)
+    int min_w;        // smallest interior width along the axis
+    int min_h;        // smallest interior height
+};
+
+enum {
+    PORTAL_KIND_NETHER = 0,
+    PORTAL_KIND_REPHEIM = 1,
+    PORTAL_KIND_COUNT = 2,
+};
+extern const PortalKind PORTAL_KINDS[PORTAL_KIND_COUNT];
+
+// A detected empty ring ready for ignition.
 struct PortalFrame {
     glm::ivec3 lo; // interior min corner (inclusive)
     glm::ivec3 hi; // interior max corner (inclusive)
     int axis;      // 0 = interior spans x (plate thin in z), 1 = spans z
+    int kind;      // PORTAL_KIND_* — ring material + interior cell type
 };
 
 // Per-player portal state on RepGameState.
@@ -80,6 +101,7 @@ struct PortalState {
     int pending_w = 2;             // frame to build: interior width along the axis
     int pending_h = 3;             // frame to build: interior height
     int pending_dim = 0;           // destination DimensionId (site scan + search band)
+    int pending_kind = PORTAL_KIND_NETHER; // portal type to find/build at the destination
     glm::dvec3 hold_feet;          // frozen drop position the player is re-snapped to —
                                    // moved inside the adopted plate when an early scan finds one
     glm::ivec3 dst_center;         // destination anchor: source interior centre x/z scaled by
@@ -100,26 +122,28 @@ struct PortalState {
                                    // resolve lands on the site, never writes a frame
 };
 
-// Detect a complete empty obsidian ring containing `seed` (an interior-able
-// cell: AIR/FIRE/SOUL_FIRE/PORTAL). Tries both plane axes; fills `frame`.
+// Detect a complete empty ring containing `seed` (an interior-able cell:
+// AIR/FIRE/SOUL_FIRE/the kind's portal cell). Tries both plane axes and
+// every PORTAL_KINDS entry; fills `frame` (frame.kind says which matched).
 bool portal_find_frame( World &world, const glm::ivec3 &seed, PortalFrame &frame );
 
-// Ignite: validate the ring at `seed` and fill the interior with PORTAL
-// blocks (each a PlayerBlockPlacedEvent, so it syncs in multiplayer).
+// Ignite: validate the ring at `seed` and fill the interior with the kind's
+// portal blocks (each a PlayerBlockPlacedEvent, so it syncs in multiplayer).
 // Returns false when no valid frame contains the cell.
 bool portal_ignite( RepGameState &state, const glm::ivec3 &seed );
 
-// The block_can_survive_at rule for PORTAL: the cell must sit inside a
-// complete ring — scanning along its plane axis and y from the cell reaches
-// obsidian on both sides through only PORTAL cells. Breaking any frame block
-// pops the adjacent cell, which cascades through the interior.
+// The block_can_survive_at rule for PORTAL/REPHEIM_PORTAL (kind picked by
+// block_state.id): the cell must sit inside a complete ring — scanning along
+// its plane axis and y from the cell reaches the kind's ring block on both
+// sides through only its portal cells. Breaking any frame block pops the
+// adjacent cell, which cascades through the interior.
 bool portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockState &block_state );
 
-// Build a lit (w+2)x(h+2) obsidian ring (interior w×h) with its bottom row
+// Build a lit (w+2)x(h+2) ring of `kind` (interior w×h) with its bottom row
 // at `center.y` and the interior spanning `axis` over `center` — the
 // destination half of travel when no portal is found. Callers pass the
 // source frame's axis and interior size so both ends look the same.
-void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h );
+void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h, int kind );
 
 // Clear an air pocket around a destination frame site (same `center` and
 // w/h as portal_build_frame): a room over the frame's open faces so a
@@ -130,10 +154,10 @@ void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis
 void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h );
 
 // The standing ring for a frame floated over open lava/water (same
-// `center`/w as portal_build_frame): an obsidian slab at center.y covering
-// the ring's bottom row plus one cell on every side. Fills only air-like
-// and fluid cells — solids and PORTAL cells are kept.
-void portal_build_platform( RepGameState &state, const glm::ivec3 &center, int axis, int w );
+// `center`/w as portal_build_frame): a slab of the kind's ring material at
+// center.y covering the ring's bottom row plus one cell on every side.
+// Fills only air-like and fluid cells — solids and portal cells are kept.
+void portal_build_platform( RepGameState &state, const glm::ivec3 &center, int axis, int w, int kind );
 
 // Detect a complete horizontal 5x5 END_PORTAL_FRAME/BEDROCK ring whose 3x3
 // interior holds `seed` (an interior-able cell: AIR/FIRE/SOUL_FIRE/
@@ -151,12 +175,13 @@ bool end_portal_ignite( RepGameState &state, const glm::ivec3 &seed );
 // ring cell. Breaking a ring cell pops the pool.
 bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockState &block_state );
 
-// Nearest PORTAL cell to `center`'s x/z inside the box x/z +- portal_search_radius( dim ),
-// y in [y_min, y_max] — the destination-portal search half of travel. Only
-// CHUNK_LIVE chunks contribute (the pending-travel gate promises everything
-// overlapping the box inside the active window is live). Ranking: horizontal
+// Nearest `interior` portal cell to `center`'s x/z inside the box
+// x/z +- portal_search_radius( dim ), y in [y_min, y_max] — the
+// destination-portal search half of travel. Only CHUNK_LIVE chunks
+// contribute (the pending-travel gate promises everything overlapping
+// the box inside the active window is live). Ranking: horizontal
 // distance^2 to center.x/z, tie-break |dy| to center.y.
-bool portal_find_nearest( World &world, DimensionId dim, const glm::ivec3 &center, int y_min, int y_max, glm::ivec3 &out );
+bool portal_find_nearest( World &world, DimensionId dim, const glm::ivec3 &center, int y_min, int y_max, glm::ivec3 &out, BlockID interior );
 
 // The pending-travel readiness gate (portal_travel.cpp): false while the
 // loader window hasn't reached the hold chunk, a search-box chunk inside

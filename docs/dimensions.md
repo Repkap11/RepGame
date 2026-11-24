@@ -20,8 +20,10 @@ Portal travel applies Minecraft's **8:1 coordinate compression** — one block
 in the nether is eight in the overworld: a source portal's x/z maps to the
 destination anchor by /8 when nether-bound and *8 when leaving the nether
 (`PORTAL_COORD_SCALE`, `portal_scale_coord`). Trips with the nether on
-neither side (e.g. `/overworld` from repheim) keep x/z; End trips ignore
-x/z entirely (fixed pad in, respawn point out — see "End travel").
+neither side keep x/z — the repgate (overworld↔repheim) is the in-game
+case, landing on the mirror site since repheim is the same terrain at the
+same coordinates; End trips ignore x/z entirely (fixed pad in, respawn
+point out — see "End travel").
 
 All helpers live in `include/common/dimension.hpp`:
 `dimension_of_chunk/block_y/pos`, `dim_local_*` (band-local y),
@@ -124,9 +126,10 @@ generators evaluate in a **rep frame** (`repheim_gen_block_y` /
 y − 1984, i.e. sea level at 0 just like the overworld — repheim terrain
 and structures are identical to a new-gen overworld at the same x/z.
 `StructureGen::place` repoints the structure passes' frame too, so
-trees/decorations/ores land the same way. There is no portal to repheim
-yet — `/repheim` lands there, and `portal_travel_no_build` still
-refuses it.
+trees/decorations/ores land the same way. The repgate (see *Portals*)
+is the in-game path to repheim — gold ring, flint & steel, 1:1 x/z.
+`/repheim` remains the portal-less debug drop; `portal_travel_no_build`
+still refuses it.
 
 ## Lighting + environment
 
@@ -144,18 +147,26 @@ dimension name (`dim_name`) with y in the display frame.
 ## Portals
 
 `include/common/portal.hpp` — `portal.cpp` (world helpers) +
-`portal_travel.cpp` (per-tick `PortalState` on `RepGameState`).
+`portal_travel.cpp` (per-tick `PortalState` on `RepGameState`). Two portal
+kinds share all of this machinery via `PORTAL_KINDS`
+(ring/interior/min-size): the nether portal (`OBSIDIAN` ring, `PORTAL`
+interior, min interior 2x3) and the repgate (`GOLD_BLOCK` ring,
+`REPHEIM_PORTAL` interior — the portal flipbook recolored gold — min
+interior 1x2).
 
-- **Frame**: an obsidian ring, interior 1x2..16x25
+- **Frame**: a ring of the kind's material, interior up to 16x25
   (`PORTAL_MAX_INTERIOR_W/H`), detected by `portal_find_frame` from any
-  AIR/FIRE/SOUL_FIRE/PORTAL interior cell.
+  AIR/FIRE/SOUL_FIRE/interior cell — each kind tried in turn, the
+  match recorded in `PortalFrame::kind`.
 - **Ignition**: `portal_ignite` validates the ring and fills the interior
-  with PORTAL cells — each a `PlayerBlockPlacedEvent`, so ignition syncs
-  in multiplayer. Flint & steel use calls it; a fire spread can too.
+  with the kind's portal cells — each a `PlayerBlockPlacedEvent`, so
+  ignition syncs in multiplayer. Flint & steel use calls it; a fire
+  spread can too.
 - **Survival**: `portal_cell_survives` (the `block_can_survive_at` rule)
-  requires runs to obsidian through PORTAL cells along both in-plane
-  horizontal directions and vertically — breaking any frame block pops
-  the adjacent cell, cascading through the whole interior.
+  requires runs to the kind's ring through its own interior cells along
+  both in-plane horizontal directions and vertically — breaking any
+  frame block pops the adjacent cell, cascading through the whole
+  interior.
 - **Travel**: `repgame_portal_tick` counts `PORTAL_TRAVEL_TICKS` (80)
   inside a portal, then `portal_travel` scales the source frame's
   interior centre x/z by the 8:1 ratio into the destination anchor
@@ -193,10 +204,10 @@ dimension name (`dim_name`) with y in the display frame.
   tie-break) and the player is stood inside its plate; otherwise the
   build site is picked from the *loaded* world (spiral from dst_center,
   not the hold point) and any candidate whose clearance volume —
-  u in [-2, w+1], v in [-3, 3], y in [0, h+2] — holds PORTAL/OBSIDIAN/
-  BEDROCK is vetoed, so a new frame never overlaps or carves into an
-  existing one. A built frame copies the source's axis and interior
-  size; landing inside any portal sets `must_exit` +
+  u in [-2, w+1], v in [-3, 3], y in [0, h+2] — holds a portal cell,
+  ring block or BEDROCK is vetoed, so a new frame never overlaps or
+  carves into an existing one. A built frame copies the source's axis,
+  interior size and kind; landing inside any portal sets `must_exit` +
   `PORTAL_COOLDOWN_TICKS` so you don't bounce straight back —
   `must_exit` is only released on loaded non-portal ground.
 - **Site order** (`portal_find_spot`): portal travel (and `/nether`,
@@ -206,13 +217,23 @@ dimension name (`dim_name`) with y in the display frame.
   ±64 overworld box), unclamped (48) overworld-bound. It tries a *dry*
   floor (no fluid in the cavity), then a **floating** site — a column
   open down to a lava/water surface (`portal_column_float`) gets the
-  frame one block above the surface on an obsidian slab one cell wider
-  than the ring's bottom row on every side (`portal_build_platform`,
-  which fills only air/fluid cells) — then the old scans (wet floor,
-  embedded surface, the lava-sea/sea-level ledge — which also gets the
-  slab). `portal_travel_to_dimension` skips the link passes and the cap.
+  frame one block above the surface on a slab of the ring's material
+  one cell wider than the ring's bottom row on every side
+  (`portal_build_platform`, which fills only air/fluid cells) — then the
+  old scans (wet floor, embedded surface, the lava-sea/sea-level ledge —
+  which also gets the slab). `portal_travel_to_dimension` skips the link
+  passes and the cap.
 - **Carve**: `portal_carve_pocket` still opens a pocket around embedded
-  sites, but never writes over PORTAL, OBSIDIAN or BEDROCK.
+  sites, but never writes over either kind's ring or interior, or
+  BEDROCK.
+- **Repgate travel**: `repgame_portal_tick`'s `REPHEIM_PORTAL` branch
+  pairs overworld↔repheim only (a repgate in the nether or end does
+  nothing): same dwell, hold-and-resolve, adopt and build logic, but the
+  anchor is unscaled x/z and `PortalState::pending_kind` carries
+  `PORTAL_KIND_REPHEIM` so the destination frame is built (or adopted)
+  in gold — a repgate in repheim returns to the overworld. The site
+  scan lands on the same column search `/repheim` uses (`portal_scan_block_y`
+  through `repheim_encoded_block_y`).
 - **End frames**: a horizontal 5x5 ring of `END_PORTAL_FRAME` (the
   generated fountain uses `BEDROCK` in the same role) around a 3x3
   interior, corners ignored — `end_portal_find_frame` /

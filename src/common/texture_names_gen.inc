@@ -920,6 +920,7 @@
     "repeating_command_block_conditional_mipmap",
     "repeating_command_block_front_mipmap",
     "repeating_command_block_side_mipmap",
+    "repheim_portal",
     "resin_block",
     "resin_bricks",
     "resin_clump",
