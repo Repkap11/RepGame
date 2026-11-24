@@ -38,7 +38,7 @@ struct ChatCmd {
 };
 
 // Defined at the bottom, after every handler; cmd_help iterates it too.
-extern const ChatCmd CHAT_COMMANDS_TABLE[ 21 ];
+extern const ChatCmd CHAT_COMMANDS_TABLE[ 22 ];
 
 // One coordinate token: a plain number, '~' (the player's component), or
 // '~N'/'~-N' (player-relative offset). `base` is the feet-relative origin
@@ -228,7 +228,27 @@ static void cmd_nether( RepGameState &state, const std::vector<std::string> &arg
 }
 
 static void cmd_overworld( RepGameState &state, const std::vector<std::string> &args ) {
+    // Leaving the End never maps x/z: like its fountain, /overworld from the
+    // End returns to the respawn point.
+    if ( args.size( ) == 1 && portal_return_from_end( state ) ) {
+        chat_info( state, "Returned from the end to your respawn point" );
+        return;
+    }
     cmd_dim_travel( state, args, DIM_OVERWORLD, "/overworld" );
+}
+
+// /end: always the End's fixed arrival pad beside the exit fountain, like
+// stepping into any end portal.
+static void cmd_end( RepGameState &state, const std::vector<std::string> &args ) {
+    if ( args.size( ) != 1 ) {
+        chat_err( state, "Usage: /end" );
+        return;
+    }
+    if ( !portal_travel_end( state ) ) {
+        chat_err( state, std::string( "Already in the " ) + dim_name( DIM_END ) );
+        return;
+    }
+    chat_info( state, std::string( "Travelling to the " ) + dim_name( DIM_END ) );
 }
 
 // /repheim: portal-less travel to the repheim band (new-terrain overworld),
@@ -528,14 +548,15 @@ static void cmd_me( RepGameState &state, const std::vector<std::string> &args ) 
     }
 }
 
-const ChatCmd CHAT_COMMANDS_TABLE[ 21 ] = {
+const ChatCmd CHAT_COMMANDS_TABLE[ 22 ] = {
     { "help", "", "/help [command]", "List commands, or one command's usage.", cmd_help },
     { "clear", "", "/clear", "Clear the chat log.", cmd_clear },
     { "pos", "", "/pos", "Where you are: feet position, block, chunk, facing.", cmd_pos },
     { "tp", "teleport", "/tp <x> <y> <z> | /tp <player>", "Teleport to feet coords or a player ('~' = current).", cmd_tp },
     { "repheim", "", "/repheim", "Travel to repheim (the new-terrain overworld band).", cmd_repheim },
     { "nether", "", "/nether", "Travel to the nether as if through a portal (x/z /8) - no portal built.", cmd_nether },
-    { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8 from the nether) - no portal built.", cmd_overworld },
+    { "overworld", "", "/overworld", "Travel to the overworld as if through a portal (x/z *8 from the nether, respawn point from the end) - no portal built.", cmd_overworld },
+    { "end", "", "/end", "Travel to the end's fixed arrival pad (leave via its fountain or /overworld to return to your respawn point).", cmd_end },
     { "spawn", "", "/spawn", "Teleport to the world spawn column (0,0 topmost ground).", cmd_spawn },
     { "kill", "respawn", "/kill", "Die and return to your respawn point (bed or world spawn).", cmd_kill },
     { "give", "", "/give <item> [count]", "Add items to the hotbar like a pickup.", cmd_give },

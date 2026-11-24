@@ -14,6 +14,7 @@
 #include "common/dimension_profile.hpp"
 #include "common/harness/debug_commands.hpp" // dbgcmd::goto_
 #include "common/Logging.hpp"
+#include "common/RepGame.hpp" // repgame_goto_respawn_point
 
 // Spiral radius for the generated-ground column scan.
 #define PORTAL_SCAN_RADIUS 24
@@ -459,8 +460,8 @@ static void portal_pending_tick( RepGameState &state ) {
     const glm::ivec3 hold_cell( glm::floor( p.hold_feet ) );
 
     if ( !p.pending_build ) {
-        // The carve-only drop (portal_travel_to_dimension — the END_PORTAL
-        // End->overworld return) and the End arrival pad: wait for the
+        // The carve-only drop (portal_travel_to_dimension — /repheim) and
+        // the End arrival pad: wait for the
         // drop cell, then carve the pocket around the frame site — the pad
         // is generated obsidian, nothing to carve there.
         if ( state.world.get_loaded_block( hold_cell ).id == LAST_BLOCK_ID ) {
@@ -569,8 +570,11 @@ static void portal_pending_tick( RepGameState &state ) {
 // End-portal entry: every end portal in the world leads to the one
 // obsidian pad beside the exit fountain — no x/z mapping (the source
 // x/z could be over kilometres of void), no destination build. The pad
-// wait just holds the player until the pad's chunk is live.
-static void portal_travel_end( RepGameState &state ) {
+// wait just holds the player until the pad's chunk is live. Also /end.
+bool portal_travel_end( RepGameState &state ) {
+    if ( dimension_of_pos( state.camera.pos ) == DIM_END ) {
+        return false;
+    }
     const glm::dvec3 feet( ( MGE_PAD_X0 + MGE_PAD_X1 + 1 ) / 2.0, DIM_BY_MIN_E + MGE_PAD_Y + 1.0,
                            ( MGE_PAD_Z0 + MGE_PAD_Z1 + 1 ) / 2.0 );
     audio_play_sfx_gain( "portal_travel", 0.2f );
@@ -581,6 +585,26 @@ static void portal_travel_end( RepGameState &state ) {
     p.pending_platform = 1;
     p.pending_dim = DIM_END;
     p.hold_feet = feet;
+    return true;
+}
+
+// Leaving the End (fountain pool or /overworld): no x/z mapping — the
+// player goes back to their respawn point (bed, else the world-spawn
+// column) via the spawn_pending ground snap, vitals untouched.
+bool portal_return_from_end( RepGameState &state ) {
+    if ( dimension_of_pos( state.camera.pos ) != DIM_END ) {
+        return false;
+    }
+    audio_play_sfx_gain( "portal_travel", 0.2f );
+    PortalState &p = state.portal;
+    p.pending_build = 0;
+    p.pending_carve = 0;
+    p.pending_platform = 0;
+    p.pending_no_build = 0;
+    p.cooldown = PORTAL_COOLDOWN_TICKS;
+    p.must_exit = 1;
+    repgame_goto_respawn_point( state );
+    return true;
 }
 
 void repgame_portal_tick( RepGameState &state ) {
@@ -624,9 +648,9 @@ void repgame_portal_tick( RepGameState &state ) {
         if ( in_end_portal ) {
             // The End's one-way hop: anywhere -> the island's arrival pad
             // (next to the fountain, which doubles as the way out); in the
-            // End -> a drop on generated overworld ground under x/z 0.
+            // End -> back to the player's respawn point.
             if ( cur == DIM_END ) {
-                portal_travel_to_dimension( state, DIM_OVERWORLD );
+                portal_return_from_end( state );
             } else {
                 portal_travel_end( state );
             }
@@ -644,8 +668,8 @@ void repgame_portal_tick( RepGameState &state ) {
 }
 
 // Portal-less drop on generated ground in `dim` (same x/z) — the
-// END_PORTAL End->overworld return path; embedded landings still get
-// their pocket carved (no frame).
+// /repheim path; embedded landings still get their pocket carved (no
+// frame).
 bool portal_travel_to_dimension( RepGameState &state, const DimensionId dim ) {
     if ( dim != DIM_OVERWORLD && dim != DIM_NETHER && dim != DIM_END && dim != DIM_REPHEIM ) {
         return false;

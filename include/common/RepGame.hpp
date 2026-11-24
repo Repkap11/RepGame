@@ -241,6 +241,12 @@ void repgame_tick_vitals( RepGameState &state );
 // closed, player back on the world-spawn column — inventory kept.
 void repgame_respawn( RepGameState &state );
 
+// Respawn-point teleport without the vitals reset: aims the player at the
+// recorded bed (else the world-spawn column) and sets spawn_pending so the
+// ground snap runs once the column loads. Used by repgame_respawn and the
+// End -> overworld return (portal_return_from_end).
+void repgame_goto_respawn_point( RepGameState &state );
+
 // Right-clicking a bed: records it as the respawn point, and in the night
 // half of the day sleeps the world clock to the next dawn (refused while
 // hostiles are near — the spawn point is set regardless). True when the

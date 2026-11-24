@@ -20,7 +20,8 @@ Portal travel applies Minecraft's **8:1 coordinate compression** — one block
 in the nether is eight in the overworld: a source portal's x/z maps to the
 destination anchor by /8 when nether-bound and *8 when leaving the nether
 (`PORTAL_COORD_SCALE`, `portal_scale_coord`). Trips with the nether on
-neither side (e.g. `/overworld` from repheim or the End) keep x/z.
+neither side (e.g. `/overworld` from repheim) keep x/z; End trips ignore
+x/z entirely (fixed pad in, respawn point out — see "End travel").
 
 All helpers live in `include/common/dimension.hpp`:
 `dimension_of_chunk/block_y/pos`, `dim_local_*` (band-local y),
@@ -206,10 +207,16 @@ dimension name (`dim_name`) with y in the display frame.
 - **End travel**: `repgame_portal_tick`'s `END_PORTAL` branch — standing
   in a pool for `PORTAL_TRAVEL_TICKS` goes to the End's obsidian pad
   (fixed, beside the fountain — no x/z mapping, no destination build,
-  no 8:1 scaling); standing in END_PORTAL inside the End drops the
-  player on generated overworld ground at the same x/z (the fountain
-  sits at x/z 0, i.e. world spawn). The pad wait (`pending_platform`)
-  just holds the player until the pad's chunk is live.
+  no 8:1 scaling; `portal_travel_end`); standing in END_PORTAL inside the
+  End returns the player to their **respawn point** — the recorded bed,
+  else the world-spawn column (`portal_return_from_end` →
+  `repgame_goto_respawn_point`, the death respawn minus the vitals
+  reset, resolved by the `spawn_pending` ground snap). The pad wait
+  (`pending_platform`) just holds the player until the pad's chunk is
+  live.
+- `/end` takes the same fixed-pad trip as an end portal; `/overworld`
+  from the End takes the fountain's respawn-point return instead of the
+  portal-style x/z drop.
 - `/repheim` (`chat_commands.cpp`) is the portal-less debug path to the
   repheim band: the same landing-column search at unscaled x/z, no frame
   built. The scan runs the overworld's [-90, 300] window in the rep

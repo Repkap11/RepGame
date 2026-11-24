@@ -156,10 +156,20 @@ bool portal_destination_ready( RepGameState &state, int &unmet );
 void repgame_portal_tick( RepGameState &state );
 
 // Teleport the player into `dim` at the same x/z on generated ground —
-// the portal-less drop used by the END_PORTAL End->overworld return
-// (no 8:1 scaling, no portal built). False when the destination is
-// unreachable (spare bands, already there).
+// the portal-less drop used by /repheim (no 8:1 scaling, no portal
+// built). False when the destination is unreachable (spare bands,
+// already there).
 bool portal_travel_to_dimension( RepGameState &state, DimensionId dim );
+
+// End-portal entry and /end: always the End's fixed obsidian arrival pad
+// beside the exit fountain, held until the pad's chunk is live. False
+// when already in the End.
+bool portal_travel_end( RepGameState &state );
+
+// Leaving the End (the fountain pool, or /overworld from the End): back
+// to the player's respawn point — the recorded bed, else the world-spawn
+// column — vitals untouched. False when not in the End.
+bool portal_return_from_end( RepGameState &state );
 
 // /nether and /overworld (chat_commands.cpp): portal-style travel —
 // 8:1-scaled anchor, hold-and-resolve, existing-portal adoption — but the

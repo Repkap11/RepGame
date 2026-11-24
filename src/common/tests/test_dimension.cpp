@@ -451,10 +451,48 @@ int test_dimension( ) {
         const int feet_y = static_cast<int>( floor( gs.camera.pos.y - gs.camera.eye_height ) );
         check_bool( "feet inside the end island layer", feet_y > DIM_BY_MIN_E + MGE_SCAN_BOT - 10 &&
                                                           feet_y < DIM_BY_MIN_E + MGE_SCAN_TOP + 60 );
-        // Returning through the fountain pool: END_PORTAL at feet in the
-        // End sends the player back to the overworld drop.
         check_bool( "end->overworld travels", portal_travel_to_dimension( gs, DIM_OVERWORLD ) );
         check_bool( "back in the overworld", dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD );
+    }
+
+    // ---- /end + the fountain return: fixed pad in, respawn point out ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        const glm::dvec3 pad( ( MGE_PAD_X0 + MGE_PAD_X1 + 1 ) / 2.0, DIM_BY_MIN_E + MGE_PAD_Y + 1.0,
+                              ( MGE_PAD_Z0 + MGE_PAD_Z1 + 1 ) / 2.0 );
+        glm::dvec3 arrive[ 2 ];
+        const glm::dvec3 starts[ 2 ] = { glm::dvec3( 8.5, 80.0, 8.5 ), glm::dvec3( -3000.5, 120.0, 4567.5 ) };
+        for ( int i = 0; i < 2; i++ ) {
+            gs.camera.pos = starts[ i ];
+            check_bool( "/end travels", portal_travel_end( gs ) );
+            arrive[ i ] = gs.camera.pos - glm::dvec3( 0.0, gs.camera.eye_height, 0.0 );
+            check_bool( "/end lands in the end band", dimension_of_pos( gs.camera.pos ) == DIM_END );
+            check_bool( "/end lands on the pad", glm::length( arrive[ i ] - pad ) < 1e-6 );
+            check_bool( "/end refused inside the end", !portal_travel_end( gs ) );
+        }
+        check_bool( "/end destination is fixed", glm::length( arrive[ 0 ] - arrive[ 1 ] ) < 1e-6 );
+
+        // No bed: the world-spawn column, pending the ground snap.
+        gs.camera.pos = pad + glm::dvec3( 30.0, gs.camera.eye_height, -20.0 );
+        gs.spawn_point_set = false;
+        gs.spawn_pending = false;
+        check_bool( "end return travels", portal_return_from_end( gs ) );
+        check_bool( "end return -> world spawn column", gs.camera.pos.x == 0.5 && gs.camera.pos.z == 0.5 &&
+                                                            dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD && gs.spawn_pending );
+        check_bool( "end return refused outside the end", !portal_return_from_end( gs ) );
+
+        // With a bed: aims at the bed column, vitals untouched.
+        gs.camera.pos = pad + glm::dvec3( 0.0, gs.camera.eye_height, 0.0 );
+        gs.spawn_point_set = true;
+        gs.spawn_point = glm::ivec3( 123, 70, -456 );
+        gs.spawn_pending = false;
+        gs.vitals.health = 5;
+        check_bool( "end return (bed) travels", portal_return_from_end( gs ) );
+        check_bool( "end return -> bed column", gs.camera.pos.x == 123.5 && gs.camera.pos.z == -455.5 &&
+                                                    dimension_of_pos( gs.camera.pos ) == DIM_OVERWORLD && gs.spawn_pending );
+        check_bool( "end return keeps vitals", gs.vitals.health == 5 );
     }
 
     // ---- /repheim lands on a below-sea floor: rep frame [-90,-1] encodes

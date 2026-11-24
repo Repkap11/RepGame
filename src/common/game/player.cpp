@@ -365,6 +365,25 @@ bool repgame_eat_food( RepGameState &state ) {
     return true;
 }
 
+// Aim the player at the respawn column — the recorded bed when
+// spawn_point_set, else the world-spawn column — and let spawn_pending
+// snap them onto its ground once it loads. Vitals are untouched: shared
+// by the death-screen respawn and the End -> overworld return.
+void repgame_goto_respawn_point( RepGameState &state ) {
+    state.vitals.fall_dist = 0.0;
+    CameraState &cam = state.camera;
+    cam.horizontal_vel = glm::dvec2( 0.0 );
+    cam.y_speed = 0.0;
+    if ( state.spawn_point_set ) {
+        cam.pos = glm::dvec3( state.spawn_point.x + 0.5, state.spawn_point.y + 2.0, state.spawn_point.z + 0.5 );
+    } else {
+        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( DIM_OVERWORLD ) ) + 2.0, 0.5 );
+    }
+    state.spawn_pending = true;
+    state.spawn_world_pending = false; // a respawn always aims at the bed/spawn column — drop any /spawn pin
+    cam.snapshot_prev( );
+}
+
 // Death-screen exit: stand the player back on the spawn column — the
 // recorded bed when spawn_point_set, else the world-spawn column — with
 // full vitals, inventory kept. spawn_pending reuses the same topmost-
@@ -377,18 +396,7 @@ void repgame_respawn( RepGameState &state ) {
     v.hurt_cooldown = 0;
     v.regen_accum = 0;
     v.dead = false;
-    v.fall_dist = 0.0;
-    CameraState &cam = state.camera;
-    cam.horizontal_vel = glm::dvec2( 0.0 );
-    cam.y_speed = 0.0;
-    if ( state.spawn_point_set ) {
-        cam.pos = glm::dvec3( state.spawn_point.x + 0.5, state.spawn_point.y + 2.0, state.spawn_point.z + 0.5 );
-    } else {
-        cam.pos = glm::dvec3( 0.5, ceil( MapGen::maxTerrainHeight( DIM_OVERWORLD ) ) + 2.0, 0.5 );
-    }
-    state.spawn_pending = true;
-    state.spawn_world_pending = false; // a respawn always aims at the bed/spawn column — drop any /spawn pin
-    cam.snapshot_prev( );
+    repgame_goto_respawn_point( state );
     state.ui.pause.set_dead( state, false );
     state.input.menu_open = false;
 }
