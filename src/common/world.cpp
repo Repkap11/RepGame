@@ -360,9 +360,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // fragment via waterShare, and per pixel in the composite through the
     // fog attachment's B channel).
     glm::vec3 fog_blend_color = this->skyBox.get_avg_color( );
-    if ( !dim_prof->has_sky ) {
-        // No sky: fog blends toward the dimension's fixed haze instead of a
-        // sky panorama average.
+    if ( !dim_prof->skybox ) {
+        // No skybox: fog blends toward the dimension's fixed haze instead of
+        // a sky average (the End keys off skybox rather than has_sky: it has
+        // no skylight, but its noise sky is the correct fog target).
         fog_blend_color = glm::vec3( dim_prof->fog_r, dim_prof->fog_g, dim_prof->fog_b );
     }
     // The rendered sky is the sky texture dimmed by u_Daylight, so the fog
@@ -406,6 +407,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // No-framebuffer fog blends toward the actual sky color (chunk_fragment
     // samples the equirect sky texture at the view direction).
     this->chunkLoader.shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
+    // End portal/gateway screen-space starfield textures (chunk_fragment).
+    this->chunkLoader.shader.set_uniform1i_texture( "u_EndNoise", this->skyBox.get_end_noise_texture( ) );
+    this->chunkLoader.shader.set_uniform1i_texture( "u_EndStars", this->skyBox.get_end_stars_texture( ) );
+    // In the End the sky is cube-mapped noise: the no-framebuffer fog blend
+    // resamples it the same way the object sky pass does.
+    this->chunkLoader.shader.set_uniform1i( "u_EndSky", camera_dim == DIM_END ? 1 : 0 );
     // Opaque fog stores the fog factor in a dedicated fog texture (attachment 2)
     // for post-process sky blending. Works in all framebuffer modes since the
     // fog texture is separate from the reflection texture. Underwater it blends
@@ -578,6 +585,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform1f( "u_ExtraAlpha", 1.0f );
     this->object_shader.set_uniform_mat4f( "u_MVP", mvp );
     this->object_shader.set_uniform1i( "u_IsSky", 0 );
+    // Read only by the sky pass: cube-mapped constant noise instead of the
+    // day-lit panorama when the camera is in the End.
+    this->object_shader.set_uniform1i( "u_EndSky", camera_dim == DIM_END ? 1 : 0 );
 
     this->debris_shader.set_uniform1i( "u_DrawToReflection", 0 );
     this->debris_shader.set_uniform1i_texture( "u_Texture", blocksTexture );

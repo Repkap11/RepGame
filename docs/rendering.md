@@ -11,6 +11,11 @@ quality tiers, not shader variants; Android/WASM have no offscreen
 framebuffer (`SUPPORTS_FRAME_BUFFER=0`), so they always render the forward
 LOW-tier path (no reflections/post-process).
 
+The End dimension's two procedural effects — cube-mapped noise sky and the
+end portal/gateway screen-space starfield — are documented in
+`docs/dimensions.md` ("End rendering"); the shared GLSL is
+`include/common/end_sky_glsl.hpp`.
+
 ## Pause menu
 
 - Escape (desktop) or the "Menu" button / Back (Android) opens the pause menu

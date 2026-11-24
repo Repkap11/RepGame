@@ -1,4 +1,5 @@
 #version 300 es
+#include "common/end_sky_glsl.hpp"
 #define eps 0.00001f
 #define TINT_UNDER_WATER_OBJECT_NEVER 0
 #define TINT_UNDER_WATER_OBJECT_UNDER_Y_LEVEL 1
@@ -22,6 +23,10 @@ uniform vec3 u_Origin;
 // shader on every tier), so it must be declared unconditionally too — the
 // min-ambient floor uses it to keep the night sky from washing out.
 uniform int u_IsSky;
+// 1 when the sky pass draws the End dimension: the panorama sample is
+// replaced by vanilla's noise cube (16 texture repeats per face edge) and
+// the day/night dimming drops out — the End sky is constant.
+uniform int u_EndSky;
 uniform int u_OpaqueFog;
 // Set only on the item-sprite program: sample exact atlas texels (texelFetch,
 // lod 0) so the extrusion slices alpha-test per texel without mipmap bleed.
@@ -77,6 +82,15 @@ void main( ) {
     if ( texColor.a == 0.0 ) {
         discard;
     }
+    if ( u_IsSky == 1 && u_EndSky == 1 ) {
+        // End sky: the sphere position is the view direction (the dome is
+        // camera-centred), so dominant-axis cube-map it and tile the noise.
+        // Lod 0 + NEAREST keep the static crisp at any resolution. The
+        // #282828 tint is vanilla's: the noise texture itself is bright.
+        vec2 cube_uv = end_sky_cube_uv( normalize( v_world_coords.xyz ) );
+        texColor = textureLod( u_Texture, vec3( cube_uv, v_blockID ), 0.0 );
+        texColor.rgb *= 0.157f;
+    }
     // Flash overlay: positive is the white primed-TNT blink, negative is the
     // red mob hurt tint (mob_vertex).
     if ( v_flash < 0.0 ) {
@@ -111,7 +125,9 @@ void main( ) {
         vec3 lit = max( vec3( v_light_field.x * u_Daylight ), BLOCK_LIGHT_TINT * v_light_field.y );
         scene_light = v_light * mix( vec3( u_MinAmbient ), vec3( 1.0 ), lit );
     } else {
-        scene_light = vec3( v_light * u_Daylight );
+        // The End sky is constant — its noise texture already carries the
+        // dimension's fixed darkness, no day/night dimming.
+        scene_light = vec3( v_light * ( u_EndSky == 1 ? 1.0f : u_Daylight ) );
     }
     vec4 lightedColor = texColor * vec4( scene_light, u_ExtraAlpha );
 

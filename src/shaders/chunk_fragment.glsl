@@ -4,6 +4,7 @@
 #include "common/chunk_dimensions.hpp"
 #include "common/texture_ids_gen.hpp"
 #include "common/texture_anim_gen.hpp"
+#include "common/end_sky_glsl.hpp"
 #define eps 0.00001f
 // Edge length of the per-chunk light volume in texels (interior + 1-cell halo).
 // Per-axis: internal dims need not be equal (e.g. X/Z=128, Y=64).
@@ -94,6 +95,20 @@ uniform float u_SeaSurfaceY;
 // path blend toward the actual sky color behind each fragment instead of
 // fading alpha toward an unknown backdrop.
 uniform sampler2DArray u_SkyTexture;
+// Tiling noises behind the end portal/gateway screen-space starfield
+// (end_sky_glsl.hpp) — end portal blocks sample these instead of their
+// atlas tile. u_ViewportSize (same uniform the vertex stage uses for the
+// face grow) turns gl_FragCoord into the screen-projected UV the effect
+// keys on: the starfield is glued to the screen, so the portal surface
+// reads as a window into the void rather than a textured plate.
+uniform sampler2DArray u_EndNoise;
+uniform sampler2DArray u_EndStars;
+uniform vec2 u_ViewportSize;
+// Same dimension flag the object sky pass reads: in the End the sky is
+// cube-mapped noise (not the equirect panorama), so the no-framebuffer
+// fog blend below must resample the sky the same way or distant terrain
+// fades toward the wrong backdrop.
+uniform int u_EndSky;
 
 // u_Time is set for every pass (it also drives the flipbook animation
 // below). u_FluidAnim is the X_HIGH procedural water/lava shading — set
@@ -431,6 +446,24 @@ void main() {
     if(u_ShowRotation != -2.0f) {
         texColor.rgb *= adjusted_face;
     }
+    // End portal/gateway starfield: vanilla's rendertype_end_portal — a
+    // screen-projected noise background plus 15 additive star layers (the
+    // gateway adds a 16th blue one), each layer rotated/scaled/phased
+    // differently and scrolling slowly upward. Fully unlit (see the
+    // lightedColor override below); the atlas tile is irrelevant.
+    // u_DebugFlags bit 512 freezes the scroll like the flipbook animation.
+    bool end_portal_face = v_blockID == uint(TEX_END_PORTAL) || v_blockID == uint(TEX_END_GATEWAY);
+    if(end_portal_face) {
+        vec2 sp = gl_FragCoord.xy / u_ViewportSize;
+        float game_time = ((u_DebugFlags & 512) != 0 ? 0.0f : u_Time) / 1200.0f;
+        vec3 starfield = textureLod(u_EndNoise, vec3(sp, 0.0), 0.0).rgb * END_PORTAL_LAYER_COLORS[0];
+        int layer_count = v_blockID == uint(TEX_END_GATEWAY) ? 16 : 15;
+        for(int i = 0; i < layer_count; i++) {
+            vec2 layer_uv = end_portal_layer_uv(sp, float(i + 1), game_time);
+            starfield += textureLod(u_EndStars, vec3(layer_uv, 0.0), 0.0).rgb * END_PORTAL_LAYER_COLORS[i];
+        }
+        texColor = vec4(starfield, 1.0);
+    }
     // Water-side is per-fragment now, not per-camera: only what sits in
     // the medium takes the full tint. A submerged head seeing
     // above-surface geometry still views it through the water column
@@ -573,6 +606,11 @@ void main() {
     // u_DebugFlags bit 16: per-face shading off.
     float face_light_used = (u_DebugFlags & 16) != 0 ? 1.0 : v_face_light;
     vec4 lightedColor = texColor * vec4(face_light_used * scene_light, u_ExtraAlpha);
+    if(end_portal_face) {
+        // The starfield is unlit in vanilla — applying scene light would
+        // dim it with the day/night cycle and the face orientation.
+        lightedColor = vec4(texColor.rgb, u_ExtraAlpha);
+    }
 
     vec4 finalColor = lightedColor;
     vec4 finalReflection = lightedColor;
@@ -731,7 +769,15 @@ void main() {
                 skyUVdx.x -= floor(skyUVdx.x + 0.5f);
                 skyUVdy.x -= floor(skyUVdy.x + 0.5f);
                 // Same dimming as the sky pass: sky v_light is 1 (FACE_TOP).
-                vec3 skyHere = textureGrad(u_SkyTexture, vec3(skyUV, 0.0), skyUVdx, skyUVdy).rgb * u_Daylight;
+                vec3 skyHere;
+                if (u_EndSky == 1) {
+                    // Mirror object_fragment's End sky: cube-mapped crisp
+                    // noise with the #282828 tint, no day/night dimming.
+                    vec2 cubeUV = end_sky_cube_uv(dir);
+                    skyHere = textureLod(u_SkyTexture, vec3(cubeUV, 0.0), 0.0f).rgb * 0.157f;
+                } else {
+                    skyHere = textureGrad(u_SkyTexture, vec3(skyUV, 0.0), skyUVdx, skyUVdy).rgb * u_Daylight;
+                }
                 // Match the sky pass's water tint (object_fragment): the dome
                 // is blue-mixed while the camera is in water — wholly when
                 // deep, below the waterline when straddling the surface (the
