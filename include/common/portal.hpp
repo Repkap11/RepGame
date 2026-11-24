@@ -38,8 +38,16 @@ class World;
 #define PORTAL_COORD_SCALE 8
 // Horizontal half-extent of the existing-portal search box around the
 // SCALED destination anchor (not the drop point — the drop can land off
-// the anchor and at a wildly different y).
+// the anchor and at a wildly different y), in overworld blocks. The
+// nether box is scaled down by PORTAL_COORD_SCALE (portal_search_radius)
+// so both directions cover the same ground: a ±64 nether box would link
+// overworld portals up to 512 blocks apart to one nether portal.
 #define PORTAL_SEARCH_R 64
+
+// The existing-portal search half-extent for a destination band.
+static inline int portal_search_radius( const DimensionId dim ) {
+    return dim == DIM_NETHER ? PORTAL_SEARCH_R / PORTAL_COORD_SCALE : PORTAL_SEARCH_R;
+}
 // Soft timeout (~10 s at UPS_RATE): the readiness gate keeps the player
 // frozen past this — it only logs that the wait is taking a while.
 #define PORTAL_RESOLVE_TIMEOUT_TICKS ( 10 * UPS_RATE )
@@ -121,6 +129,12 @@ void portal_build_frame( RepGameState &state, const glm::ivec3 &center, int axis
 // frame landing next to it). Call BEFORE portal_build_frame.
 void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, int axis, int w, int h );
 
+// The standing ring for a frame floated over open lava/water (same
+// `center`/w as portal_build_frame): an obsidian slab at center.y covering
+// the ring's bottom row plus one cell on every side. Fills only air-like
+// and fluid cells — solids and PORTAL cells are kept.
+void portal_build_platform( RepGameState &state, const glm::ivec3 &center, int axis, int w );
+
 // Detect a complete horizontal 5x5 END_PORTAL_FRAME/BEDROCK ring whose 3x3
 // interior holds `seed` (an interior-able cell: AIR/FIRE/SOUL_FIRE/
 // END_PORTAL); the ring's corner cells are ignored. `lo` gets the
@@ -137,7 +151,7 @@ bool end_portal_ignite( RepGameState &state, const glm::ivec3 &seed );
 // ring cell. Breaking a ring cell pops the pool.
 bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockState &block_state );
 
-// Nearest PORTAL cell to `center`'s x/z inside the box x/z +- PORTAL_SEARCH_R,
+// Nearest PORTAL cell to `center`'s x/z inside the box x/z +- portal_search_radius( dim ),
 // y in [y_min, y_max] — the destination-portal search half of travel. Only
 // CHUNK_LIVE chunks contribute (the pending-travel gate promises everything
 // overlapping the box inside the active window is live). Ranking: horizontal

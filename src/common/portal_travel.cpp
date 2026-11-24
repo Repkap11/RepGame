@@ -9,6 +9,7 @@
 #include "common/game/game_state.hpp"
 #include "common/world.hpp"
 #include "common/block_definitions.hpp"
+#include "common/fluid.hpp"
 #include "common/map_gen.hpp" // map_gen_consts.hpp: MGN_LAVA_SEA ledge fallback
 #include "common/multiplayer.hpp"
 #include "common/dimension_profile.hpp"
@@ -109,11 +110,16 @@ static bool portal_clearance_ok( World &world, const glm::ivec3 &origin, const i
     return true;
 }
 
+static bool portal_is_fluid( const BlockID id ) {
+    return block_is_fluid( block_definition_get_definition( id ) );
+}
+
 // A column at (x,z) is a portal site when the w+2 ring-floor cells at y
 // collide and the w×(h+1) interior+lintel cavity above them is clear of
-// solids and lava. `y` is the floor cell — the ring's bottom obsidian row
-// replaces it. The footprint runs along `du` (the frame axis).
-static bool portal_column_try( const DimensionId dim, const int x, const int z, const glm::ivec3 &du, const int w, const int h, int &floor_y, World *world ) {
+// solids and lava (`dry`: of any fluid — no frame on a sea floor). `y` is
+// the floor cell — the ring's bottom obsidian row replaces it. The
+// footprint runs along `du` (the frame axis).
+static bool portal_column_try( const DimensionId dim, const int x, const int z, const glm::ivec3 &du, const int w, const int h, int &floor_y, World *world, const bool dry = false ) {
     int y_top, y_bottom, ledge_y;
     portal_band_bounds( dim, y_top, y_bottom, ledge_y );
     for ( int sy = y_top; sy >= y_bottom; sy-- ) {
@@ -137,7 +143,8 @@ static bool portal_column_try( const DimensionId dim, const int x, const int z, 
             for ( int k = 1; k <= h + 1 && cavity_ok && column_loaded; k++ ) {
                 const BlockID id = portal_site_block( world, x + du.x * u, y + k, z + du.z * u );
                 column_loaded = id != LAST_BLOCK_ID;
-                cavity_ok = column_loaded && id != LAVA && !block_definition_get_definition( id )->collides_with_player;
+                cavity_ok = column_loaded && id != LAVA && !block_definition_get_definition( id )->collides_with_player &&
+                            !( dry && portal_is_fluid( id ) );
             }
         }
         if ( !column_loaded || !cavity_ok ) {
@@ -147,6 +154,53 @@ static bool portal_column_try( const DimensionId dim, const int x, const int z, 
         return true;
     }
     return false;
+}
+
+// A floating site: the column at (x,z) is open down to a fluid surface
+// (the first non-air cell below the scan top is lava/water — the nether's
+// lava sea, an ocean), and the frame floats one block above it. `floor_y`
+// is the slab row (surface + 1): the ring's bottom row plus the standing
+// ring around it (portal_build_platform), u in [-2, w+1], v in [-1, 1].
+// Every slab cell must be known, with air (no solid, no fluid) above it —
+// 2 cells of headroom on the ring, the full frame height on the frame row.
+static bool portal_column_float( const DimensionId dim, const int x, const int z, const glm::ivec3 &du, const glm::ivec3 &dn, const int w, const int h, int &floor_y, World *world ) {
+    int y_top, y_bottom, ledge_y;
+    portal_band_bounds( dim, y_top, y_bottom, ledge_y );
+    // The nether's y_bottom sits 2 over the lava sea — reach the surface.
+    int sy = y_top;
+    for ( ; sy >= y_bottom - 2; sy-- ) {
+        const BlockID id = portal_site_block( world, x, portal_scan_block_y( dim, sy ), z );
+        if ( id == LAST_BLOCK_ID ) {
+            continue;
+        }
+        if ( portal_is_fluid( id ) ) {
+            break;
+        }
+        if ( block_definition_get_definition( id )->collides_with_player ) {
+            return false;
+        }
+    }
+    if ( sy < y_bottom - 2 ) {
+        return false;
+    }
+    const int fsy = sy + 1;
+    for ( int u = -2; u <= w + 1; u++ ) {
+        for ( int v = -1; v <= 1; v++ ) {
+            const int cx = x + du.x * u + dn.x * v, cz = z + du.z * u + dn.z * v;
+            if ( portal_site_block( world, cx, portal_scan_block_y( dim, fsy ), cz ) == LAST_BLOCK_ID ) {
+                return false;
+            }
+            const int k_max = v == 0 && u >= -1 && u <= w ? h + 1 : 2;
+            for ( int k = 1; k <= k_max; k++ ) {
+                const BlockID id = portal_site_block( world, cx, portal_scan_block_y( dim, fsy + k ), cz );
+                if ( id == LAST_BLOCK_ID || portal_is_fluid( id ) || block_definition_get_definition( id )->collides_with_player ) {
+                    return false;
+                }
+            }
+        }
+    }
+    floor_y = portal_scan_block_y( dim, fsy );
+    return true;
 }
 
 // The pass-B fallback: the first solid cell in the band is the cavern
@@ -192,6 +246,33 @@ static void portal_teleport_feet( RepGameState &state, const glm::dvec3 &feet ) 
     state.vitals.fall_dist = 0.0;
 }
 
+// Square-ring spiral out from (bx,bz) to radius r_max: the first column
+// `try_column` accepts ends the walk.
+template <typename F>
+static bool portal_spiral( const int bx, const int bz, const int r_max, F &&try_column ) {
+    for ( int r = 0; r <= r_max; r++ ) {
+        for ( int dx = -r; dx <= r; dx++ ) {
+            for ( int dz = -r; dz <= r; dz++ ) {
+                if ( ( r == 0 || abs( dx ) == r || abs( dz ) == r ) && try_column( bx + dx, bz + dz ) ) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// How far a nether-bound build may drift off the anchor and still link
+// both ways: the next trip from the same overworld portal searches only
+// portal_search_radius( DIM_NETHER ) around the anchor, and the return
+// trip multiplies the drift by PORTAL_COORD_SCALE against the overworld's
+// PORTAL_SEARCH_R box (the source's own /8 rounding eats the last block).
+// Overworld-bound drift divides by 8 on the way back, so its widest scan
+// (PORTAL_SCAN_RADIUS * 2) already fits — no cap there.
+static int portal_max_drift( const DimensionId dim ) {
+    return dim == DIM_NETHER ? portal_search_radius( DIM_NETHER ) - 1 : PORTAL_SCAN_RADIUS * 2;
+}
+
 // Find the frame origin (ring corner: interior spans u in [0,w), floor row
 // at center.y) near (bx,bz) in `dim`, for a frame spanning `axis` with a
 // w×h interior. Spirals outward column by column.
@@ -202,67 +283,66 @@ static void portal_teleport_feet( RepGameState &state, const glm::dvec3 &feet ) 
 // skipped as unknown) and vetoes each candidate on portal_clearance_ok; nullptr reads
 // generated terrain (hold position — no clearance check; the generated
 // world never holds portals).
-static bool portal_find_spot( const DimensionId dim, const int bx, const int bz, const int axis, const int w, const int h, glm::ivec3 &out, int &embedded, World *world = nullptr ) {
+// `floating` != nullptr enables the link-preserving passes (portal
+// travel): a dry site near the anchor wins, then a frame floated over
+// open lava/water — before the old wet-floor/embedded scans — and every
+// pass is clamped to portal_max_drift, so the exit never lands where the
+// return trip (or the next trip from the same source) can't find it.
+// `*floating` reports a floated (or ledge) site: the resolve lays
+// portal_build_platform under it.
+static bool portal_find_spot( const DimensionId dim, const int bx, const int bz, const int axis, const int w, const int h, glm::ivec3 &out, int &embedded, World *world = nullptr, int *floating = nullptr ) {
     const glm::ivec3 du = axis ? glm::ivec3( 0, 0, 1 ) : glm::ivec3( 1, 0, 0 );
+    const glm::ivec3 dn = axis ? glm::ivec3( 1, 0, 0 ) : glm::ivec3( 0, 0, 1 );
     embedded = 0;
+    if ( floating ) {
+        *floating = 0;
+    }
     int floor_y;
-    for ( int r = 0; r <= PORTAL_SCAN_RADIUS; r++ ) {
-        for ( int dx = -r; dx <= r; dx++ ) {
-            for ( int dz = -r; dz <= r; dz++ ) {
-                if ( r != 0 && abs( dx ) != r && abs( dz ) != r ) {
-                    continue;
-                }
-                if ( portal_column_try( dim, bx + dx, bz + dz, du, w, h, floor_y, world ) ) {
-                    const glm::ivec3 origin( bx + dx, floor_y, bz + dz );
-                    if ( world == nullptr || portal_clearance_ok( *world, origin, axis, w, h ) ) {
-                        out = origin;
-                        return true;
-                    }
-                }
-            }
+    // A column whose pass test set floor_y becomes the site unless the
+    // loaded world's clearance check vetoes it.
+    const auto accept = [ & ]( const int x, const int z ) {
+        const glm::ivec3 origin( x, floor_y, z );
+        if ( world != nullptr && !portal_clearance_ok( *world, origin, axis, w, h ) ) {
+            return false;
+        }
+        out = origin;
+        return true;
+    };
+    const int max_r = floating ? portal_max_drift( dim ) : PORTAL_SCAN_RADIUS * 2;
+    const int scan_r = glm::min( PORTAL_SCAN_RADIUS, max_r );
+    if ( floating ) {
+        if ( portal_spiral( bx, bz, scan_r, [ & ]( int x, int z ) { return portal_column_try( dim, x, z, du, w, h, floor_y, world, true ) && accept( x, z ); } ) ) {
+            return true;
+        }
+        if ( portal_spiral( bx, bz, scan_r, [ & ]( int x, int z ) { return portal_column_float( dim, x, z, du, dn, w, h, floor_y, world ) && accept( x, z ); } ) ) {
+            *floating = 1;
+            return true;
         }
     }
-    for ( int r = 0; r <= PORTAL_SCAN_RADIUS * 2; r++ ) {
-        for ( int dx = -r; dx <= r; dx++ ) {
-            for ( int dz = -r; dz <= r; dz++ ) {
-                if ( r != 0 && abs( dx ) != r && abs( dz ) != r ) {
-                    continue;
-                }
-                if ( portal_column_surface( dim, bx + dx, bz + dz, floor_y, world ) ) {
-                    const glm::ivec3 origin( bx + dx, floor_y, bz + dz );
-                    if ( world == nullptr || portal_clearance_ok( *world, origin, axis, w, h ) ) {
-                        embedded = 1;
-                        out = origin;
-                        return true;
-                    }
-                }
-            }
-        }
+    if ( portal_spiral( bx, bz, scan_r, [ & ]( int x, int z ) { return portal_column_try( dim, x, z, du, w, h, floor_y, world ) && accept( x, z ); } ) ) {
+        return true;
+    }
+    embedded = 1;
+    if ( portal_spiral( bx, bz, max_r, [ & ]( int x, int z ) { return portal_column_surface( dim, x, z, floor_y, world ) && accept( x, z ); } ) ) {
+        return true;
     }
     int y_top, y_bottom, ledge_y;
     portal_band_bounds( dim, y_top, y_bottom, ledge_y );
+    // The ledge floats over the lava sea / at sea level: it gets the
+    // standing ring too when the caller lays platforms.
+    if ( floating ) {
+        *floating = 1;
+    }
     // The lava-sea ledge, walked along the same spiral columns until one
     // passes the clearance check; when none does the ledge is used anyway
     // (still better than failing the travel outright).
+    floor_y = ledge_y;
     if ( world != nullptr ) {
-        for ( int r = 0; r <= PORTAL_SCAN_RADIUS * 2; r++ ) {
-            for ( int dx = -r; dx <= r; dx++ ) {
-                for ( int dz = -r; dz <= r; dz++ ) {
-                    if ( r != 0 && abs( dx ) != r && abs( dz ) != r ) {
-                        continue;
-                    }
-                    const glm::ivec3 origin( bx + dx, ledge_y, bz + dz );
-                    if ( portal_clearance_ok( *world, origin, axis, w, h ) ) {
-                        embedded = 1;
-                        out = origin;
-                        return true;
-                    }
-                }
-            }
+        if ( portal_spiral( bx, bz, max_r, accept ) ) {
+            return true;
         }
         pr_debug( "portal build: no cleared ledge site, using the centre column anyway" );
     }
-    embedded = 1;
     out = glm::ivec3( bx, ledge_y, bz );
     return true;
 }
@@ -328,8 +408,8 @@ static void portal_travel( RepGameState &state, const DimensionId dst, const Por
     const glm::ivec3 dst_center( portal_scale_coord( src_center.x, src_dim, dst ), src_center.y,
                                  portal_scale_coord( src_center.z, src_dim, dst ) );
     glm::ivec3 center;
-    int embedded;
-    portal_find_spot( dst, dst_center.x, dst_center.z, axis, w, h, center, embedded );
+    int embedded, floating;
+    portal_find_spot( dst, dst_center.x, dst_center.z, axis, w, h, center, embedded, nullptr, &floating );
     const double mid = w / 2.0;
     const glm::dvec3 feet = axis ? glm::dvec3( center.x + 0.5, center.y + 1.0, center.z + mid )
                                  : glm::dvec3( center.x + mid, center.y + 1.0, center.z + 0.5 );
@@ -377,8 +457,9 @@ bool portal_destination_ready( RepGameState &state, int &unmet ) {
     int y_min, y_max;
     portal_band_span( static_cast<DimensionId>( p.pending_dim ), y_min, y_max );
     const glm::ivec3 cs( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-    const glm::ivec3 cmin = glm::floor( glm::vec3( p.dst_center.x - PORTAL_SEARCH_R, y_min, p.dst_center.z - PORTAL_SEARCH_R ) / glm::vec3( cs ) );
-    const glm::ivec3 cmax = glm::floor( glm::vec3( p.dst_center.x + PORTAL_SEARCH_R, y_max, p.dst_center.z + PORTAL_SEARCH_R ) / glm::vec3( cs ) );
+    const int sr = portal_search_radius( static_cast<DimensionId>( p.pending_dim ) );
+    const glm::ivec3 cmin = glm::floor( glm::vec3( p.dst_center.x - sr, y_min, p.dst_center.z - sr ) / glm::vec3( cs ) );
+    const glm::ivec3 cmax = glm::floor( glm::vec3( p.dst_center.x + sr, y_max, p.dst_center.z + sr ) / glm::vec3( cs ) );
     for ( int cy = cmin.y; cy <= cmax.y; cy++ ) {
         // The repheim span wraps the whole torus — skip other bands' chunks
         // (harmless one-liner for the contiguous bands too).
@@ -541,10 +622,15 @@ static void portal_pending_tick( RepGameState &state ) {
     // Build: pick the site from the loaded world — spiral from the scaled
     // destination anchor, clearance-vetoed against existing frames/bedrock.
     glm::ivec3 site;
-    int embedded;
-    portal_find_spot( dst, p.dst_center.x, p.dst_center.z, axis, w, h, site, embedded, &state.world );
+    int embedded, floating;
+    portal_find_spot( dst, p.dst_center.x, p.dst_center.z, axis, w, h, site, embedded, &state.world, &floating );
     if ( want_carve || embedded ) {
         portal_carve_pocket( state, site, axis, w, h );
+    }
+    if ( floating ) {
+        // Over open lava/water: the standing ring the player lands on —
+        // laid for /nether-style landings too (they stand on the slab).
+        portal_build_platform( state, site, axis, w );
     }
     if ( p.pending_no_build ) {
         // /nether-style command travel: same site + pocket, but no frame is

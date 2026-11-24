@@ -4,6 +4,7 @@
 #include "test_util.hpp"
 #include "common/dimension.hpp"
 #include "common/dimension_profile.hpp"
+#include "common/fluid.hpp"
 #include "common/map_gen_nether.hpp"
 #include "common/map_gen_end.hpp"
 #include "common/portal.hpp"
@@ -33,7 +34,7 @@ int test_dimension( ) {
         }
     };
     // Marks CHUNK_LIVE every chunk overlapping the pending-travel search
-    // box (dst_center +- PORTAL_SEARCH_R on x/z, the dim band's full y
+    // box (dst_center +- portal_search_radius on x/z, the dim band's full y
     // span) inside the active window — portal_destination_ready's whole
     // requirement. `skip` leaves one chunk non-live; returns the count.
     auto live_search_box = [ & ]( World &world, const glm::ivec3 &dst_center, DimensionId dim, const glm::ivec3 *skip ) {
@@ -41,8 +42,9 @@ int test_dimension( ) {
         const int y_min = dim == DIM_NETHER ? DIM_BY_MIN_N : DIM_BY_MIN_O;
         const int y_max = dim == DIM_NETHER ? DIM_BY_MAX_N : DIM_BY_MAX_O;
         const glm::ivec3 cs( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
-        const glm::ivec3 cmin = glm::floor( glm::vec3( dst_center.x - PORTAL_SEARCH_R, y_min, dst_center.z - PORTAL_SEARCH_R ) / glm::vec3( cs ) );
-        const glm::ivec3 cmax = glm::floor( glm::vec3( dst_center.x + PORTAL_SEARCH_R, y_max, dst_center.z + PORTAL_SEARCH_R ) / glm::vec3( cs ) );
+        const int sr = portal_search_radius( dim );
+        const glm::ivec3 cmin = glm::floor( glm::vec3( dst_center.x - sr, y_min, dst_center.z - sr ) / glm::vec3( cs ) );
+        const glm::ivec3 cmax = glm::floor( glm::vec3( dst_center.x + sr, y_max, dst_center.z + sr ) / glm::vec3( cs ) );
         int n = 0;
         for ( int cy = cmin.y; cy <= cmax.y; cy++ ) {
             for ( int cx = cmin.x; cx <= cmax.x; cx++ ) {
@@ -968,6 +970,122 @@ int test_dimension( ) {
             }
         }
         check_bool( "no_build resolve: no frame written", !stray );
+    }
+
+    // ---- Floating site: a frame over open lava/water floats one above the
+    // surface on an obsidian standing ring, instead of sinking to the sea
+    // floor (water) or drifting off to a far shore (lava). ----
+    for ( const BlockID fluid : { LAVA, WATER } ) {
+        const char *fname = fluid == LAVA ? "lava" : "water";
+        char name[ 96 ];
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+        gs.world.chunkLoader.chunk_center = glm::ivec3( 0, 0, 0 );
+        // A pool 6 deep (y 5..10) on a stone bed covering the whole spiral.
+        for ( int x = 0; x < CHUNK_SIZE_X; x++ ) {
+            for ( int z = 0; z < CHUNK_SIZE_Z; z++ ) {
+                world.set_loaded_block( glm::ivec3( x, 4, z ), { STONE, 0, 0, STONE, 0 } );
+                for ( int y = 5; y <= 10; y++ ) {
+                    world.set_loaded_block( glm::ivec3( x, y, z ), fluid_state( fluid, 0 ) );
+                }
+            }
+        }
+        stage_pending( gs, DIM_OVERWORLD, glm::dvec3( 31.0, 12.0, 30.5 ), glm::ivec3( 30, 10, 30 ) );
+        live_search_box( world, gs.portal.dst_center, DIM_OVERWORLD, nullptr );
+        repgame_portal_tick( gs );
+        snprintf( name, sizeof( name ), "float %s: resolved", fname );
+        check_bool( name, gs.portal.pending_build == 0 );
+        // Frame origin (30, 11, 30) on the anchor: ring x 29..32, interior
+        // x 30..31, y 12..14; slab x 28..33, z 29..31 at y 11.
+        bool slab = true;
+        for ( int x = 28; x <= 33; x++ ) {
+            for ( int z = 29; z <= 31; z++ ) {
+                slab = slab && world.get_loaded_block( glm::ivec3( x, 11, z ) ).id == OBSIDIAN;
+            }
+        }
+        snprintf( name, sizeof( name ), "float %s: obsidian slab above the surface", fname );
+        check_bool( name, slab );
+        snprintf( name, sizeof( name ), "float %s: slab is one ring wide", fname );
+        check_bool( name, world.get_loaded_block( glm::ivec3( 27, 11, 30 ) ).id == AIR &&
+                              world.get_loaded_block( glm::ivec3( 30, 11, 32 ) ).id == AIR );
+        snprintf( name, sizeof( name ), "float %s: portal on the slab", fname );
+        check_bool( name, world.get_loaded_block( glm::ivec3( 30, 12, 30 ) ).id == PORTAL &&
+                              world.get_loaded_block( glm::ivec3( 31, 14, 30 ) ).id == PORTAL &&
+                              world.get_loaded_block( glm::ivec3( 30, 15, 30 ) ).id == OBSIDIAN );
+        snprintf( name, sizeof( name ), "float %s: surface left in place", fname );
+        check_bool( name, world.get_loaded_block( glm::ivec3( 30, 10, 30 ) ).id == fluid &&
+                              world.get_loaded_block( glm::ivec3( 33, 10, 31 ) ).id == fluid );
+        snprintf( name, sizeof( name ), "float %s: nothing on the sea floor", fname );
+        check_bool( name, world.get_loaded_block( glm::ivec3( 30, 4, 30 ) ).id == STONE &&
+                              world.get_loaded_block( glm::ivec3( 30, 6, 30 ) ).id == fluid );
+        const glm::dvec3 feet = feet_of( gs );
+        snprintf( name, sizeof( name ), "float %s: player stands in the plate", fname );
+        check_bool( name, feet.y == 12.0 && floor( feet.z ) == 30 && feet.x >= 30.0 && feet.x <= 32.0 );
+    }
+
+    // ---- Generated nether: a trip anchored over the open lava sea floats
+    // beside the anchor (the hold scan reads generated terrain) instead of
+    // drifting to a shore up to 24 blocks off — 192 overworld blocks on the
+    // way back, far outside the return search. ----
+    {
+        const int sea = DIM_BY_MIN_N + MGN_LAVA_SEA;
+        int ax = 0, az = 0;
+        bool found_sea = false;
+        for ( int x = -1024; x <= 1024 && !found_sea; x += 8 ) {
+            for ( int z = -1024; z <= 1024 && !found_sea; z += 8 ) {
+                bool open = true;
+                // Open past the nether drift cap (7) + the 2-wide frame,
+                // so no dry site can win.
+                for ( int dx = -10; dx <= 10 && open; dx++ ) {
+                    for ( int dz = -10; dz <= 10 && open; dz++ ) {
+                        open = MapGen::gen_block_id( x + dx, sea, z + dz ) == LAVA &&
+                               MapGen::gen_block_id( x + dx, sea + 1, z + dz ) == AIR &&
+                               MapGen::gen_block_id( x + dx, sea + 8, z + dz ) == AIR;
+                    }
+                }
+                if ( open ) {
+                    ax = x;
+                    az = z;
+                    found_sea = true;
+                }
+            }
+        }
+        check_bool( "found an open nether lava sea", found_sea );
+        if ( found_sea ) {
+            RepGameState &gs = *new RepGameState( );
+            gs.tick_number = 0;
+            gs.camera.pos = glm::dvec3( ax * PORTAL_COORD_SCALE + 0.5, 80.0, az * PORTAL_COORD_SCALE + 0.5 );
+            gs.camera.eye_height = PLAYER_EYE_HEIGHT;
+            check_bool( "lava sea: travel lands", portal_travel_no_build( gs, DIM_NETHER ) );
+            const glm::dvec3 feet = feet_of( gs );
+            check_bool( "lava sea: hold floats on the slab over the sea", feet.y == sea + 2.0 );
+            check_bool( "lava sea: hold stays beside the anchor", fabs( feet.x - ax ) <= 6.0 && fabs( feet.z - az ) <= 6.0 );
+        }
+    }
+
+    // ---- The nether search box is PORTAL_SEARCH_R / PORTAL_COORD_SCALE:
+    // a nether portal 15 blocks off the anchor (120 overworld blocks) is
+    // not adopted; one 7 blocks off is. ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        const int ny = DIM_BY_MIN_N + 300;
+        make_chunk_live( world, glm::ivec3( glm::floor( glm::vec3( 5, ny, 5 ) / glm::vec3( CHUNK_SIZE_I ) ) ), 1 );
+        check_bool( "nether search radius is scaled", portal_search_radius( DIM_NETHER ) == PORTAL_SEARCH_R / PORTAL_COORD_SCALE &&
+                                                          portal_search_radius( DIM_OVERWORLD ) == PORTAL_SEARCH_R );
+        world.set_loaded_block( glm::ivec3( 20, ny, 5 ), { PORTAL, 0, 0, PORTAL, 0 } );
+        glm::ivec3 found;
+        check_bool( "nether search: 15 off the anchor is missed",
+                    !portal_find_nearest( world, DIM_NETHER, glm::ivec3( 5, ny, 5 ), DIM_BY_MIN_N, DIM_BY_MAX_N, found ) );
+        world.set_loaded_block( glm::ivec3( 12, ny, 5 ), { PORTAL, 0, 0, PORTAL, 0 } );
+        check_bool( "nether search: 7 off the anchor is found",
+                    portal_find_nearest( world, DIM_NETHER, glm::ivec3( 5, ny, 5 ), DIM_BY_MIN_N, DIM_BY_MAX_N, found ) &&
+                        found == glm::ivec3( 12, ny, 5 ) );
     }
 
     // ---- MP gate: pending until the diff boxes in flight come back DONE ----

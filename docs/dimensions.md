@@ -165,7 +165,9 @@ dimension name (`dim_name`) with y in the display frame.
   destination resolves.
 - **Readiness** (`portal_destination_ready`): the resolve waits for
   (1) the loader window to reach the hold chunk, (2) every chunk
-  overlapping the search box (dst_center x/z ± `PORTAL_SEARCH_R`, full
+  overlapping the search box (dst_center x/z ± `portal_search_radius`:
+  `PORTAL_SEARCH_R` = 64 in the overworld, 64/8 = 8 in the nether, so
+  both directions link the same ~64-overworld-block area; full
   destination y band) inside the *active* window to be `CHUNK_LIVE`, and
   (3) in multiplayer, `CHUNK_DIFF_DONE` confirmation of every diff box
   sent when the gate first passed (a snapshot — new requests can't
@@ -197,6 +199,18 @@ dimension name (`dim_name`) with y in the display frame.
   size; landing inside any portal sets `must_exit` +
   `PORTAL_COOLDOWN_TICKS` so you don't bounce straight back —
   `must_exit` is only released on loaded non-portal ground.
+- **Site order** (`portal_find_spot`): portal travel (and `/nether`,
+  `/overworld`) clamps every pass to `portal_max_drift` — 7 blocks
+  nether-bound (the next trip from the same overworld portal only
+  searches ±8, and the return trip multiplies the drift by 8 against the
+  ±64 overworld box), unclamped (48) overworld-bound. It tries a *dry*
+  floor (no fluid in the cavity), then a **floating** site — a column
+  open down to a lava/water surface (`portal_column_float`) gets the
+  frame one block above the surface on an obsidian slab one cell wider
+  than the ring's bottom row on every side (`portal_build_platform`,
+  which fills only air/fluid cells) — then the old scans (wet floor,
+  embedded surface, the lava-sea/sea-level ledge — which also gets the
+  slab). `portal_travel_to_dimension` skips the link passes and the cap.
 - **Carve**: `portal_carve_pocket` still opens a pocket around embedded
   sites, but never writes over PORTAL, OBSIDIAN or BEDROCK.
 - **End frames**: a horizontal 5x5 ring of `END_PORTAL_FRAME` (the

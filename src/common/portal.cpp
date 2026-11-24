@@ -6,6 +6,7 @@
 #include "common/game/game_state.hpp"
 #include "common/world.hpp"
 #include "common/block_definitions.hpp"
+#include "common/fluid.hpp"
 #include "common/multiplayer.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp" // queue_neighbor_block_updates
 #include "common/Logging.hpp"
@@ -205,6 +206,30 @@ void portal_carve_pocket( RepGameState &state, const glm::ivec3 &center, const i
     }
 }
 
+// Floating sites (open lava/water under the frame): an obsidian slab one
+// block wider than the ring's bottom row on every side — u in [-2, w+1],
+// v in [-1, 1] at center.y. Only air-like and fluid cells are filled;
+// solids (a shore the slab overlaps) and PORTAL cells are left alone.
+void portal_build_platform( RepGameState &state, const glm::ivec3 &center, const int axis, const int w ) {
+    const glm::ivec3 du = axis ? glm::ivec3( 0, 0, 1 ) : glm::ivec3( 1, 0, 0 );
+    const glm::ivec3 dn = axis ? glm::ivec3( 1, 0, 0 ) : glm::ivec3( 0, 0, 1 );
+    const BlockState obsidian = { OBSIDIAN, 0, 0, OBSIDIAN, 0 };
+    for ( int u = -2; u <= w + 1; u++ ) {
+        for ( int v = -1; v <= 1; v++ ) {
+            const glm::ivec3 pos = center + du * u + dn * v;
+            const BlockID id = state.world.get_loaded_block( pos ).id;
+            if ( id == LAST_BLOCK_ID || id == PORTAL ) {
+                continue;
+            }
+            const Block *def = block_definition_get_definition( id );
+            if ( def->collides_with_player && !block_is_fluid( def ) ) {
+                continue;
+            }
+            portal_write_cell( state, pos, obsidian );
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // End portals: a horizontal 5x5 ring of END_PORTAL_FRAME cells (BEDROCK
 // counts — the exit fountain's ring is bedrock) around a 3x3 interior of
@@ -298,7 +323,7 @@ bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockS
            end_portal_run_to_frame( world, pos, -dz, 3 );
 }
 
-// Nearest PORTAL cell to `center`'s x/z inside (x/z +- PORTAL_SEARCH_R,
+// Nearest PORTAL cell to `center`'s x/z inside (x/z +- portal_search_radius,
 // y in [y_min, y_max]), scanned per live chunk — the "find an existing
 // destination portal" half of travel. Reads cells through the Chunk rather
 // than get_loaded_block per cell: one pass over each chunk's array, no
@@ -306,8 +331,9 @@ bool end_portal_cell_survives( World &world, const glm::ivec3 &pos, const BlockS
 // to center.y. One-shot per resolve; the pending gate already promised
 // every in-window box chunk is CHUNK_LIVE.
 bool portal_find_nearest( World &world, const DimensionId dim, const glm::ivec3 &center, const int y_min, const int y_max, glm::ivec3 &out ) {
-    const int x_min = center.x - PORTAL_SEARCH_R, x_max = center.x + PORTAL_SEARCH_R;
-    const int z_min = center.z - PORTAL_SEARCH_R, z_max = center.z + PORTAL_SEARCH_R;
+    const int sr = portal_search_radius( dim );
+    const int x_min = center.x - sr, x_max = center.x + sr;
+    const int z_min = center.z - sr, z_max = center.z + sr;
     const glm::ivec3 cs( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     const glm::ivec3 cmin = glm::floor( glm::vec3( x_min, y_min, z_min ) / glm::vec3( cs ) );
     const glm::ivec3 cmax = glm::floor( glm::vec3( x_max, y_max, z_max ) / glm::vec3( cs ) );
