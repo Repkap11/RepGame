@@ -3,6 +3,7 @@
 void test_setup_world( World &world ) {
     ChunkLoader &cl = world.chunkLoader;
     cl.chunkArray = new Chunk[ MAX_LOADED_CHUNKS ]( );
+    cl.slot_tickers = static_cast<uint8_t *>( calloc( MAX_LOADED_CHUNKS, sizeof( uint8_t ) ) );
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
         cl.chunkArray[ i ].light.stale_word = &cl.light_stale_bits[ i >> 6 ];
         cl.chunkArray[ i ].light.stale_bit = 1ull << ( i & 63 );

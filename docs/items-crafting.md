@@ -287,3 +287,10 @@ charcoal, every log/plank family and sticks, with `ticks` in UPS_RATE
 units. Ore *blocks* drop themselves (not `RAW_*`) via their `"drops"`
 entries; the raw items remain valid furnace input for saves/mining tools
 that produce them.
+
+`World::tick_furnaces` advances each loaded chunk's furnaces one game tick
+(singleplayer; the server is authoritative in multiplayer). It scans
+`ChunkLoader::slot_tickers` — a per-slot byte set wherever a tickable
+container can appear (chunk finalize, `get_or_create_furnace_contents`)
+and cleared lazily once a live slot's maps are empty — instead of walking
+every chunk slot each tick.

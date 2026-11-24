@@ -271,6 +271,11 @@ void ChunkLoader::finalize_loaded_chunk( Chunk &chunk, Multiplayer &multiplayer,
     // is_loading first): light jobs and seeds popped mid-finalize see the
     // chunk as loaded rather than missing.
     chunk.set_load_state( CHUNK_LIVE );
+    // The worker filled the container maps during load — flag the slot for
+    // the per-tick tickables scan.
+    if ( !chunk.containers.furnaces.empty( ) ) {
+        this->mark_slot_ticking( chunk );
+    }
     this->live_finalize_count++;
     // Slot reuse: drop any async-remesh state the previous position left
     // behind (a stale in-flight seq would wrongly gate the new mesh).
@@ -345,6 +350,7 @@ void ChunkLoader::init( const glm::dvec3 &camera_pos, const VertexBufferLayout &
     this->blended_chunks = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
     this->slot_want = static_cast<uint8_t *>( calloc( MAX_LOADED_CHUNKS, sizeof( uint8_t ) ) );
     this->slot_listed = static_cast<uint8_t *>( calloc( MAX_LOADED_CHUNKS, sizeof( uint8_t ) ) );
+    this->slot_tickers = static_cast<uint8_t *>( calloc( MAX_LOADED_CHUNKS, sizeof( uint8_t ) ) );
     this->repop_must = static_cast<Chunk **>( calloc( MAX_LOADED_CHUNKS, sizeof( Chunk * ) ) );
     this->num_drawable = 0;
     this->num_blended = 0;
@@ -1408,6 +1414,7 @@ void ChunkLoader::cleanup( MapStorage &map_storage ) {
     free( this->blended_chunks );
     free( this->slot_want );
     free( this->slot_listed );
+    free( this->slot_tickers );
     free( this->repop_must );
     this->occl_vb.destroy( );
     this->occl_va.destroy( );

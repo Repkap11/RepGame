@@ -208,5 +208,54 @@ int test_furnace( ) {
         check_bool( "net contents: kind arity mismatch rejected", !net_deserialize_container_contents( r5, in_p5 ) );
     }
 
+    // slot_tickers: a furnace created through get_or_create marks its slot
+    // and tick_furnaces smelts it; breaking the block erases the contents
+    // and the next tick clears the byte.
+    {
+        World world;
+        test_setup_world( world );
+        ChunkLoader &cl = world.chunkLoader;
+        const size_t slot = static_cast<size_t>( chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) );
+        const glm::ivec3 pos( 10, 10, 10 );
+        world.set_loaded_block( pos, { FURNACE, 0, 0, FURNACE, 0 } );
+        FurnaceContents *contents = world.get_or_create_furnace_contents( pos );
+        check_bool( "slot_tickers: get_or_create returns contents", contents != nullptr );
+        if ( contents != nullptr ) {
+            contents->slots[ FURNACE_SLOT_INPUT ] = { RAW_IRON, 1 };
+            contents->slots[ FURNACE_SLOT_FUEL ] = { COAL, 1 };
+            check_bool( "slot_tickers: create marks slot", cl.slot_tickers[ slot ] == 1 );
+            for ( int i = 0; i < SMELT_TICKS + 2; i++ ) {
+                world.tick_furnaces( );
+            }
+            check_bool( "slot_tickers: tick smelts", contents->slots[ FURNACE_SLOT_OUTPUT ].item_id == IRON_INGOT );
+            world.set_loaded_block( pos, BLOCK_STATE_AIR );
+            check_bool( "slot_tickers: break still marked until tick", cl.slot_tickers[ slot ] == 1 );
+            world.tick_furnaces( );
+            check_bool( "slot_tickers: tick clears empty slot", cl.slot_tickers[ slot ] == 0 );
+        }
+    }
+
+    // A worker-populated furnaces map on a LIVE chunk ticks once the slot
+    // is marked (finalize_loaded_chunk does this in game; it needs a live
+    // Multiplayer so the test calls the same mark helper directly).
+    {
+        World world;
+        test_setup_world( world );
+        ChunkLoader &cl = world.chunkLoader;
+        Chunk &chunk = cl.chunkArray[ chunk_slot_from_pos( glm::ivec3( 0, 0, 0 ) ) ];
+        const size_t slot = static_cast<size_t>( &chunk - cl.chunkArray );
+        const glm::ivec3 pos( 20, 10, 20 );
+        world.set_loaded_block( pos, { FURNACE, 0, 0, FURNACE, 0 } );
+        const int index = Chunk::get_index_from_coords( pos - chunk.chunk_pos * CHUNK_SIZE_I );
+        FurnaceContents &contents = chunk.containers.furnaces[ index ];
+        contents.slots[ FURNACE_SLOT_INPUT ] = { RAW_IRON, 1 };
+        contents.slots[ FURNACE_SLOT_FUEL ] = { COAL, 1 };
+        check_bool( "slot_tickers: direct fill unmarked", cl.slot_tickers[ slot ] == 0 );
+        cl.mark_slot_ticking( chunk );
+        check_bool( "slot_tickers: mark sets byte", cl.slot_tickers[ slot ] == 1 );
+        world.tick_furnaces( );
+        check_bool( "slot_tickers: worker-filled furnace ticks", contents.burn_ticks > 0 || contents.cook_progress > 0 );
+    }
+
     return failures;
 }

@@ -43,6 +43,7 @@ class World {
     friend int test_chunk_diff_gate( );
     friend int test_falling_blocks( );
     friend int test_arrows( );
+    friend int test_furnace( );
     // Portal travel's readiness gate (portal_travel.cpp) — needs the
     // private ChunkLoader handle for the active-window/live-chunk check.
     friend bool portal_destination_ready( RepGameState &state, int &unmet );

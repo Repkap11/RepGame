@@ -84,6 +84,7 @@ class ChunkLoader {
     friend int test_async_remesh( );
     friend int test_chunk_diff_gate( );
     friend int test_mobs( );
+    friend int test_furnace( );
 
     TerrainLoadingThread terrain_loading_thread;
     glm::ivec3 chunk_center;
@@ -154,6 +155,18 @@ class ChunkLoader {
     // rebuild re-derives slot_want from the truth fields periodically.
     uint8_t *slot_want;
     uint8_t *slot_listed;
+    // "May hold tickable containers" byte per slot (furnaces today; future
+    // kinds like hoppers share it). Set eagerly wherever a tickable
+    // container can appear — chunk finalize and World's create accessors —
+    // cleared lazily by World::tick_furnaces once a LIVE slot's maps are all
+    // empty: a stale 1 costs one re-check, a missing 1 skips ticking
+    // forever.
+    uint8_t *slot_tickers = nullptr;
+    void mark_slot_ticking( const Chunk &chunk ) {
+        if ( this->slot_tickers != nullptr ) {
+            this->slot_tickers[ static_cast<size_t>( &chunk - this->chunkArray ) ] = 1;
+        }
+    }
     int compact_slot_list( Chunk **list, int *n, int sorted_n, uint8_t bit );
     // Absolute camera position (render_origin + camera_pos) at the last sort
     // of each list; tracking absolute coords keeps a render-origin snap from

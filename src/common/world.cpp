@@ -13,6 +13,7 @@
 #include "common/block_update_events/FluidUpdateEvent.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -1327,6 +1328,7 @@ FurnaceContents *World::get_or_create_furnace_contents( const glm::ivec3 &block_
         const glm::ivec3 diff = block_pos - chunk.chunk_pos * CHUNK_SIZE_I;
         const int index = Chunk::get_index_from_coords( diff );
         chunk.containers.furnaces_loaded = 1;
+        this->chunkLoader.mark_slot_ticking( chunk );
         return &chunk.containers.furnaces[ index ]; // default-constructs an empty furnace
     }
     return nullptr;
@@ -1508,11 +1510,23 @@ bool World::set_container_slot( NetContainerKind kind, const glm::ivec3 &block_p
 }
 
 void World::tick_furnaces( ) {
-    // Scan every chunk slot: furnaces are rare, so the per-slot check is a
-    // map-empty test on chunks that have any furnace data at all.
+    // slot_tickers limits the scan to slots that may hold tickable
+    // containers (furnaces today) instead of walking all MAX_LOADED_CHUNKS:
+    // set eagerly when containers appear, cleared lazily here once a LIVE
+    // slot's maps are all empty.
+    ChunkLoader &cl = this->chunkLoader;
+    if ( cl.slot_tickers == nullptr || cl.chunkArray == nullptr ) {
+        return;
+    }
     for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk &chunk = this->chunkLoader.chunkArray[ i ];
-        if ( chunk.load_state || chunk.containers.furnaces.empty( ) ) {
+        if ( !cl.slot_tickers[ i ] ) {
+            continue;
+        }
+        Chunk &chunk = cl.chunkArray[ i ];
+        // No tickable container maps left: clear the byte. A future kind
+        // appends `&& chunk.containers.hoppers.empty()` here.
+        if ( chunk.load_state != CHUNK_LIVE || chunk.containers.furnaces.empty( ) ) {
+            cl.slot_tickers[ i ] = 0;
             continue;
         }
         const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
@@ -1543,6 +1557,23 @@ void World::tick_furnaces( ) {
             }
         }
     }
+#ifdef REPGAME_DEBUG
+    // Mirror-verify like rebuild_drawable_list's: a LIVE chunk with
+    // tickable containers but a 0 byte would silently never tick — re-scan
+    // the truth fields every so often and assert on divergence.
+    static int verify_countdown = 0;
+    if ( --verify_countdown <= 0 ) {
+        verify_countdown = 60;
+        for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
+            const Chunk &chunk = cl.chunkArray[ i ];
+            if ( chunk.load_state == CHUNK_LIVE && !chunk.containers.furnaces.empty( ) && !cl.slot_tickers[ i ] ) {
+                pr_debug( "slot_tickers miss slot=%d pos=(%d,%d,%d)", i,
+                          chunk.chunk_pos.x, chunk.chunk_pos.y, chunk.chunk_pos.z );
+                assert( cl.slot_tickers[ i ] != 0 );
+            }
+        }
+    }
+#endif
 }
 
 void World::spawn_block_debris( const glm::ivec3 &block_pos, const BlockState &prev_state, const BlockID new_id, const int num_particles ) {
