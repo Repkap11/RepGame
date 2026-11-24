@@ -474,7 +474,7 @@ if(REPGAME_BUILD_CLIENT)
 			-Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va
 			-lm -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
 			-lsetupapi -lversion -luuid -lws2_32 -ladvapi32 -lcfgmgr32
-			-lopengl32
+			-lopengl32 -lpthread
 			# -static (not just -static-libgcc/-static-libstdc++) also pulls
 			# winpthread in, so no libwinpthread-1.dll is needed.
 			-static)

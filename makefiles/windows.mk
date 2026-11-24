@@ -44,9 +44,10 @@ windows_build : $(WINDOWS_DEP)
 # with the mingw toolchain.
 $(WINDOWS_SDL3_PREFIX)/lib/libSDL3.a :
 	mkdir -p $(WINDOWS_SDL3_DIR)
+	rm -rf $(WINDOWS_SDL3_SRC)
 	cd $(WINDOWS_SDL3_DIR) && \
-		wget -q https://github.com/libsdl-org/SDL/releases/download/release-$(WINDOWS_SDL3_VERSION)/SDL3-$(WINDOWS_SDL3_VERSION).tar.gz && \
-		tar xzf SDL3-$(WINDOWS_SDL3_VERSION).tar.gz
+		wget -q -O SDL3-$(WINDOWS_SDL3_VERSION)-src.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-$(WINDOWS_SDL3_VERSION)/SDL3-$(WINDOWS_SDL3_VERSION).tar.gz && \
+		tar xzf SDL3-$(WINDOWS_SDL3_VERSION)-src.tar.gz
 	cmake -S $(WINDOWS_SDL3_SRC) -B $(WINDOWS_SDL3_SRC)/build -G Ninja \
 		-DCMAKE_TOOLCHAIN_FILE=$(abspath cmake/toolchains/windows-mingw.cmake) \
 		-DCMAKE_BUILD_TYPE=Release \
