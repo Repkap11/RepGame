@@ -477,7 +477,9 @@ const char *audio_block_step_pool( int block_id ) {
 #include <atomic>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <time.h>
+#include <unordered_map>
 #include <vector>
 
 #include "common/RepGame.hpp" // capture_mode
@@ -1135,21 +1137,82 @@ void audio_play_sfx( const char *base_name ) {
     audio_play_sfx_handle( base_name, 1.0f );
 }
 
-void audio_play_sfx_gain( const char *base_name, float gain ) {
-    audio_play_sfx_handle( base_name, gain );
+void audio_play_sfx_gain( const char *base_name, float gain, float pitch_jitter ) {
+    audio_play_sfx_handle( base_name, gain, pitch_jitter );
 }
 
-uint64_t audio_play_sfx_handle( const char *base_name, float gain ) {
-    // gain <= 0 is a silenced distant play (audio_distance_gain cutoff) —
-    // don't burn a stream/voice on it.
-    if ( !audio_enabled || gain <= 0.0f ) {
+uint64_t audio_play_sfx_handle( const char *base_name, float gain, float pitch_jitter ) {
+    // Below AUDIO_SFX_MIN_GAIN a play is inaudible anyway (silenced distant
+    // plays past the audio_distance_gain cutoff land here too) — don't burn
+    // a stream/voice on it.
+    if ( !audio_enabled || gain < AUDIO_SFX_MIN_GAIN ) {
         return 0;
     }
+    // Same-pool retrigger throttle: a pool restarting within
+    // AUDIO_SFX_RETRIGGER_MS at no louder gain is a burst artifact (a crowd
+    // of mobs stepping on the same tick), not a new sound. The entry is
+    // only stamped when a play actually starts (below).
+    static std::unordered_map<std::string, std::pair<uint64_t, float>> sfx_last_start;
+    const uint64_t now_ms = ( uint64_t )SDL_GetTicks( );
+    const auto last = sfx_last_start.find( base_name );
+    if ( last != sfx_last_start.end( ) &&
+         audio_sfx_throttled( last->second.first, last->second.second, now_ms, gain, AUDIO_SFX_RETRIGGER_MS ) ) {
+        return 0;
+    }
+#if defined( REPGAME_WASM )
+    // Voice budget: past AUDIO_SFX_MAX_ACTIVE non-fading plays, either drop
+    // the new play (it's no louder than the quietest) or fade-stop the
+    // quietest voice — the mix callback finishes the fade and frees it.
+    {
+        float active_gains[ 32 ];
+        int active_idx[ 32 ];
+        int n_active = 0;
+        for ( int i = 0; i < ( int )( sizeof( voices ) / sizeof( voices[ 0 ] ) ); i++ ) {
+            if ( voices[ i ].data && !voices[ i ].stopping ) {
+                active_gains[ n_active ] = voices[ i ].gain;
+                active_idx[ n_active ] = i;
+                n_active++;
+            }
+        }
+        const int victim = audio_sfx_pick_victim( active_gains, n_active, gain, AUDIO_SFX_MAX_ACTIVE );
+        if ( victim == -2 ) {
+            return 0;
+        }
+        if ( victim >= 0 ) {
+            voices[ active_idx[ victim ] ].stopping = true;
+        }
+    }
+#else
+    // Same budget on the bound streams: the audio_tick reap loop fades a
+    // stopping stream out over ~50 ms, then unbinds it.
+    {
+        float active_gains[ 64 ];
+        int active_idx[ 64 ];
+        int n_active = 0;
+        for ( size_t i = 0; i < tracked_sfx.size( ) && n_active < ( int )( sizeof( active_idx ) / sizeof( active_idx[ 0 ] ) ); i++ ) {
+            if ( !tracked_sfx[ i ].stopping ) {
+                active_gains[ n_active ] = tracked_sfx[ i ].gain;
+                active_idx[ n_active ] = ( int )i;
+                n_active++;
+            }
+        }
+        const int victim = audio_sfx_pick_victim( active_gains, n_active, sfx_gain * gain, AUDIO_SFX_MAX_ACTIVE );
+        if ( victim == -2 ) {
+            return 0;
+        }
+        if ( victim >= 0 ) {
+            tracked_sfx[ active_idx[ victim ] ].stopping = true;
+        }
+    }
+#endif
     const SfxPcm *pcm = sfx_pool_pcm( base_name );
     if ( pcm == nullptr ) {
         return 0;
     }
 #if defined( REPGAME_WASM )
+    // pitch_jitter is ignored on WASM — voices play the source-rate PCM
+    // directly and the mix callback does no resampling.
+    ( void )pitch_jitter;
     // Claim a free voice slot; the mix callback plays the (already
     // device-format) PCM. Voices point into the cache — no copy.
     for ( SfxVoice &v : voices ) {
@@ -1161,6 +1224,7 @@ uint64_t audio_play_sfx_handle( const char *base_name, float gain ) {
             v.gain = gain;
             v.tracked_id = id;
             v.stopping = false;
+            sfx_last_start[ base_name ] = { now_ms, gain };
             return id;
         }
     }
@@ -1172,6 +1236,12 @@ uint64_t audio_play_sfx_handle( const char *base_name, float gain ) {
     if ( !s ) {
         pr_debug( "audio: stream create failed: %s", SDL_GetError( ) );
         return 0;
+    }
+    if ( pitch_jitter > 0.0f ) {
+        // Uniform j in [-jitter, jitter] — same rand() source as the
+        // variant pick in sfx_pool_pcm (never the MobManager sim rng).
+        const float j = pitch_jitter * ( 2.0f * ( float )rand( ) / ( float )RAND_MAX - 1.0f );
+        SDL_SetAudioStreamFrequencyRatio( s, 1.0f + j );
     }
     const float full_gain = sfx_gain * gain;
     SDL_SetAudioStreamGain( s, full_gain );
@@ -1188,6 +1258,7 @@ uint64_t audio_play_sfx_handle( const char *base_name, float gain ) {
     }
     const uint64_t id = tracked_next_id++;
     tracked_sfx.push_back( TrackedSfx{ id, s, full_gain, 1.0f, false } );
+    sfx_last_start[ base_name ] = { now_ms, gain };
     return id;
 #endif
 }

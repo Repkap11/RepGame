@@ -67,6 +67,8 @@ int test_structure_border( );
 int test_fortress( );
 int test_particles( );
 int test_mobs( );
+int test_audio_sfx_budget( );
+int test_audio_sfx_throttle( );
 int test_net_codec_registry( );
 int test_net_containers( );
 int test_net_entities( );

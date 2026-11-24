@@ -87,8 +87,24 @@ and has its own mood pool); the timer resets when the player steps back
 into the open. Positional
 SFX share `audio_distance_gain(dist)` (audio.hpp): an inverse-distance
 falloff — full gain within 4 blocks, 0.5 at 8, 0.25 at 16, 0.125 at 32 —
-silent past `AUDIO_SFX_RANGE` (64); `audio_play_sfx_gain` drops gain<=0
-plays without claiming a stream. The ImGui
+silent past `AUDIO_SFX_RANGE` (64). One-shot pileups (a crowd of mobs all
+saying/stepping at once) are kept cheap and mixable by three policies in
+`audio_play_sfx_handle`, all checked before any decode/stream work, with
+constants in `include/common/audio.hpp` next to `audio_distance_gain`:
+plays below `AUDIO_SFX_MIN_GAIN` (0.02) are skipped; a pool that started
+within `AUDIO_SFX_RETRIGGER_MS` (40 ms) drops a same-pool replay that isn't
+louder (same-tick bursts); and the voice budget `AUDIO_SFX_MAX_ACTIVE`
+(24) caps concurrent non-fading plays — over budget the new play is
+dropped when it isn't louder than the quietest active one, otherwise the
+quietest is fade-stopped (`audio_sfx_pick_victim`/`audio_sfx_throttled`
+are pure helpers, unit-tested in `src/common/tests/test_audio.cpp`; the
+fade itself reuses the normal `stopping` path — SDL3's reap loop, WASM's
+mix callback). Mob say/step plays also pass a per-play `pitch_jitter`
+(0.15 say / 0.1 step) which randomizes the SDL3 stream's frequency ratio
+by ±jitter so N identical clips don't phase; it draws from `rand()` like
+the variant pick, never the deterministic mob sim rng, and is a no-op on
+WASM (voices play source-rate PCM — no resampler in the mix callback).
+The ImGui
 overlay shows `Music: <title>` while a track plays.
 
 IMPORTANT: the device is opened with `SDL_OpenAudioDevice` and the music

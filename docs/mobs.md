@@ -422,7 +422,11 @@ Adding a mob:
    the cat uses 0.3 — its 10-px legs at full swing read as extra tails).
 4. Optional sounds: append `sfx` entries to `tools/sounds_manifest.txt`
    (base + `_N` variants pool, e.g. `pig_say_1..3`; `pig_death`,
-   `pig_step_1..5`).
+   `pig_step_1..5`). `sound_say` plays every 10–30 s and `sound_step` every
+   ~0.7 blocks of ground travel, scaled by `audio_distance_gain` and with a
+   per-play pitch jitter (0.15 / 0.1) so crowds don't phase — both are also
+   subject to the global SFX budget/throttle in `audio_play_sfx_handle`
+   (docs/audio.md).
 
 A manifest entry with no `MobTypeDef`/`MOB_*` enum is a model-only import:
 it still yields `MOB_MODEL_*`/`MOB_SKIN_*` + `mob_cubes_*`/`mob_bones_*`

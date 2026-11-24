@@ -1237,12 +1237,12 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     if ( def.sound_say != NULL && --mob.say_ticks <= 0 ) {
         std::uniform_int_distribution<int> say( 10 * UPS_RATE, 30 * UPS_RATE );
         mob.say_ticks = say( this->rng );
-        audio_play_sfx_gain( def.sound_say, audio_distance_gain( dist ) );
+        audio_play_sfx_gain( def.sound_say, audio_distance_gain( dist ), 0.15f );
     }
     mob.step_acc += static_cast<float>( got_h );
     if ( def.sound_step != NULL && standing && mob.step_acc >= 0.7f ) {
         mob.step_acc = 0.0f;
-        audio_play_sfx_gain( def.sound_step, def.step_gain * audio_distance_gain( dist ) );
+        audio_play_sfx_gain( def.sound_step, def.step_gain * audio_distance_gain( dist ), 0.1f );
     }
 }
 
@@ -2595,12 +2595,12 @@ void MobManager::tick_mirror( Mob &mob, const glm::dvec3 &player_pos ) {
     if ( def.sound_say != NULL && --mob.say_ticks <= 0 ) {
         std::uniform_int_distribution<int> say( 10 * UPS_RATE, 30 * UPS_RATE );
         mob.say_ticks = say( this->rng );
-        audio_play_sfx_gain( def.sound_say, audio_distance_gain( dist ) );
+        audio_play_sfx_gain( def.sound_say, audio_distance_gain( dist ), 0.15f );
     }
     mob.step_acc += static_cast<float>( hd );
     if ( def.sound_step != NULL && mob.step_acc >= 0.7f ) {
         mob.step_acc = 0.0f;
-        audio_play_sfx_gain( def.sound_step, def.step_gain * audio_distance_gain( dist ) );
+        audio_play_sfx_gain( def.sound_step, def.step_gain * audio_distance_gain( dist ), 0.1f );
     }
 }
 

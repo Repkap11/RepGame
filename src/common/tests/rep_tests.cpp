@@ -69,6 +69,8 @@ constexpr Test all_tests[] = {  //
     MK_TEST( fortress ),         //
     MK_TEST( particles ),        //
     MK_TEST( mobs ),             //
+    MK_TEST( audio_sfx_budget ), //
+    MK_TEST( audio_sfx_throttle ), //
     MK_TEST( net_codec_registry ), //
     MK_TEST( net_containers ),  //
     MK_TEST( net_entities ),     //
