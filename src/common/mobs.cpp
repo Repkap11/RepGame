@@ -1150,7 +1150,7 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     }
 
     mob.walk_dist += static_cast<float>( got_h );
-    const float amp_target = got_h > 1e-4 ? 1.0f : 0.0f;
+    const float amp_target = static_cast<float>( fmin( got_h * ( UPS_RATE / 20.0 ) * 4.0, 1.0 ) );
     mob.leg_amp += ( amp_target - mob.leg_amp ) * 0.15f;
 
     // Sounds: ambient say every 10-30 s, step every ~0.7 blocks of ground
