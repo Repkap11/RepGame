@@ -1,0 +1,111 @@
+#! terrain
+#! timeout 420
+#! env REPGAME_RENDER_DISTANCE 2
+# Repgate e2e: a GOLD_BLOCK ring (min interior 1x2) lit with REPHEIM_PORTAL
+# bridges overworld <-> repheim at 1:1 x/z. The destination repgate is
+# built on repheim terrain at the unscaled anchor (x21 z30 -> ring
+# x20..22, y-7932..-7929 encoded = rep frame y4..7). The pending freeze
+# re-snaps gotos until the destination torus is live and the frame is
+# built/adopted — wait_idle first, then step out of the plate.
+debug 0
+imgui 0
+wait_idle 15 3000
+
+# Baseline: the terrain world starts in the overworld band.
+chatopen /
+type pos
+wait 2
+signkey enter
+wait 2
+assert_chat - overworld
+
+# Stage a minimum 1x2 repgate: gold ring x 20..22, y 70..73, z 30;
+# interior re-opened to AIR (x21, y71..72) before ignition.
+fill 20 70 30 22 73 30 GOLD_BLOCK
+wait 5
+fill 21 71 30 21 72 30 AIR
+wait 5
+ignite 21 71 30
+wait 5
+assert_block 21 71 30 REPHEIM_PORTAL
+assert_block 21 72 30 REPHEIM_PORTAL
+assert_block 20 71 30 GOLD_BLOCK
+assert_block 22 71 30 GOLD_BLOCK
+
+# Gold interior on screen: camera south of the z=30 plate looking +z.
+camera 21.5 72.5 26.0 180 12
+wait 15
+screenshot repgate_overworld
+release
+
+# Ride: dwell 80 ticks in the plate -> repheim (1:1 x/z anchor); the
+# pending build resolves once the repheim torus is live.
+goto 21.5 73 30.5
+wait 200
+wait_idle 10 4000
+wait 100
+chatopen /
+type pos
+wait 2
+signkey enter
+wait 2
+assert_chat 5.0 30.5 - repheim
+# Arrived inside the built repgate: feet on the sill at encoded -7931
+# (eye -7929.4), interior cells above, gold ring alongside.
+assert_pos 21.5 -7929.4 30.5 1
+assert_block 21 -7931 30 REPHEIM_PORTAL
+assert_block 21 -7930 30 REPHEIM_PORTAL
+assert_block 20 -7930 30 GOLD_BLOCK
+assert_block 22 -7930 30 GOLD_BLOCK
+screenshot repgate_repheim
+
+# Return leg: leave the plate (clears must_exit), re-enter, ride home;
+# the original overworld repgate is adopted (same anchor).
+goto 24.5 -7929 33.5
+wait 60
+goto 21.5 -7929 30.5
+wait 200
+wait_idle 10 4000
+wait 100
+chatopen /
+type pos
+wait 2
+signkey enter
+wait 2
+assert_chat 71.0 30.5 - overworld
+assert_pos 21.5 72.6 30.5 1
+assert_block 21 71 30 REPHEIM_PORTAL
+assert_block 20 71 30 GOLD_BLOCK
+
+# Breaking a ring block pops the REPHEIM_PORTAL interior (survive cascade).
+goto 24.5 73 33.5
+wait 60
+setblock 20 71 30 AIR
+wait 10
+assert_block 21 71 30 AIR
+assert_block 21 72 30 AIR
+assert_block 20 71 30 AIR
+
+# A repgate in the nether is inert: build+ignite one there, stand inside
+# past PORTAL_TRAVEL_TICKS, stay in the nether.
+goto 200.5 -5900 40.5
+wait 400
+fill 199 -5907 39 203 -5901 41 AIR
+wait 5
+fill 200 -5906 40 202 -5903 40 GOLD_BLOCK
+wait 5
+fill 201 -5905 40 201 -5904 40 AIR
+wait 5
+ignite 201 -5905 40
+wait 5
+assert_block 201 -5904 40 REPHEIM_PORTAL
+goto 201.5 -5903 40.5
+wait 200
+chatopen /
+type pos
+wait 2
+signkey enter
+wait 2
+assert_chat - nether
+
+echo repgate done
