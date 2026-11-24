@@ -359,7 +359,8 @@ matching and the output slot are documented with the item/recipe data in
   pause menu — Android's system back and the WASM browser-back path
   both route through it.
 - `ImGuiOverlay` (`SUPPORTS_IMGUI_OVERLAY` platforms): `shown` toggled
-  by 'g' or `REPGAME_IMGUI` (default `SHOW_IMGUI`) at start; `ImGuiDebugVars` (position, world
+  by 'g', persisted as `player.dat`'s `show_imgui` (default hidden,
+  `SHOW_IMGUI`), `REPGAME_IMGUI` overrides at start; `ImGuiDebugVars` (position, world
   time, daylight, ambient floors, `LoaderDebugStats`, entity counts) is
   refreshed per frame from `RepGame::draw`. `draw_ui_pass` draws it
   first — the bottom UI layer — so the hotbar, inventory panels (the

@@ -14,6 +14,7 @@
 //   min_ambient <float>
 //   health <float>                        (absent -> full)
 //   name <str>                            (absent -> empty; requested player name)
+//   show_imgui <0|1>                      (absent -> SHOW_IMGUI, hidden)
 //   hotbar_selected <int>
 //   hotbar <slot> <item_id> <quantity>     (one line per non-empty slot)
 //   survival <slot> <item_id> <quantity>
@@ -211,6 +212,8 @@ std::string player_data_serialize( const PlayerData &data ) {
         snprintf( line, sizeof( line ), "spawn %d %d %d\n", data.spawn_x, data.spawn_y, data.spawn_z );
         out += line;
     }
+    snprintf( line, sizeof( line ), "show_imgui %d\n", data.show_imgui ? 1 : 0 );
+    out += line;
     snprintf( line, sizeof( line ), "hotbar_selected %d\n", data.selected_hotbar_slot );
     out += line;
     write_slots( out, "hotbar", data.hotbar_inventory, HOTBAR_WIDTH * HOTBAR_HEIGHT );
@@ -386,6 +389,10 @@ static bool player_data_parse_text( const char *buf, size_t len, PlayerData &out
                 out.spawn_x = static_cast<int>( sx );
                 out.spawn_y = static_cast<int>( sy );
                 out.spawn_z = static_cast<int>( sz );
+            }
+        } else if ( key_len == 10 && memcmp( s, "show_imgui", 10 ) == 0 ) {
+            if ( parse_int( v, &v, iv ) ) {
+                out.show_imgui = iv != 0;
             }
         } else if ( key_len == 15 && memcmp( s, "hotbar_selected", 15 ) == 0 ) {
             if ( parse_int( v, &v, iv ) ) {

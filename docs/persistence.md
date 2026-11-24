@@ -298,6 +298,7 @@ min_ambient <float>
 health <float>
 name <str>
 spawn <x> <y> <z>
+show_imgui <0|1>
 hotbar_selected <int>
 hotbar <slot> <item_id> <quantity>
 survival <slot> <item_id> <quantity>
@@ -314,6 +315,9 @@ or negative in old saves means full; a saved 0 means the player quit on
 the death screen and loads as a fresh spawn (health restored to max,
 `spawn_pending` re-pins the spawn column). The transient fields —
 breath, hurt cooldown, dead, fall distance — are not saved.
+
+`show_imgui` is the ImGui debug overlay's 'g' toggle; absent (old saves,
+fresh worlds) means hidden (`SHOW_IMGUI`). `REPGAME_IMGUI` overrides it.
 
 `name` is the requested multiplayer display name (`docs/chat.md`):
 written only when non-empty, absent means init defaults to `Player`.

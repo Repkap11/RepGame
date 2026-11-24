@@ -195,6 +195,7 @@ void RepGame::initializeGameState( const char *world_name ) {
         globalGameState.world_time = saved_data.world_time;
         globalGameState.spawn_point_set = saved_data.has_spawn;
         globalGameState.spawn_point = glm::ivec3( saved_data.spawn_x, saved_data.spawn_y, saved_data.spawn_z );
+        globalGameState.ui.imgui.shown = saved_data.show_imgui;
         // Saved render distance wins over the default but not over an
         // explicit REPGAME_RENDER_DISTANCE. Old saves lack the field (0)
         // and corrupt values below 1 fall back to the default; oversized
@@ -322,6 +323,7 @@ RepGameState *RepGame::init( const char *world_name, const bool connect_multi, c
     globalGameState.ui.held_slot.item_id = LAST_BLOCK_ID;
     globalGameState.ui.held_slot.quantity = 0;
     globalGameState.ui.holding_slot = false;
+    globalGameState.ui.imgui.shown = SHOW_IMGUI != 0;
 
     initializeGameState( world_name );
 
@@ -380,6 +382,7 @@ void RepGame::save_player_data( ) {
     saved_data.spawn_x = globalGameState.spawn_point.x;
     saved_data.spawn_y = globalGameState.spawn_point.y;
     saved_data.spawn_z = globalGameState.spawn_point.z;
+    saved_data.show_imgui = globalGameState.ui.imgui.shown;
 
     globalGameState.map_storage.write_player_data( saved_data );
 }

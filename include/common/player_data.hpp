@@ -58,6 +58,8 @@ struct PlayerData {
     int spawn_x = 0;
     int spawn_y = 0;
     int spawn_z = 0;
+    // ImGui debug overlay visibility ('g'). Absent in old saves -> hidden.
+    bool show_imgui = SHOW_IMGUI != 0;
 };
 
 // Serializes player data to the text format written to player.dat.

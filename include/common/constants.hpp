@@ -116,7 +116,7 @@ static_assert( CHUNK_RADIUS_Y > 0, "CHUNK_RADIUS_Y too small" );
 // included here to keep this header's old contract.
 #include "common/map_gen_consts.hpp"
 
-#define SHOW_IMGUI 1
+#define SHOW_IMGUI 0
 
 #define BLOCK_SCALE_OFFSET 0.2f
 

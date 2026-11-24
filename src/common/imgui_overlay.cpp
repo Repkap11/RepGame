@@ -85,9 +85,10 @@ static void fmt_count( char *buf, size_t n, long long v ) {
 }
 
 void imgui_overlay_init( ImGuiOverlay *imgui_overlay ) {
-    // REPGAME_IMGUI=0 hides the overlay from boot (rep-dbg sets it so its
-    // screenshots are overlay-free); 'g' still toggles at runtime.
-    imgui_overlay->shown = env_bool( "REPGAME_IMGUI", SHOW_IMGUI != 0 );
+    // `shown` arrives holding the player.dat value (SHOW_IMGUI without a
+    // save). REPGAME_IMGUI overrides it (rep-dbg sets 0 so its screenshots
+    // are overlay-free); 'g' still toggles at runtime.
+    imgui_overlay->shown = env_bool( "REPGAME_IMGUI", imgui_overlay->shown );
 }
 
 void imgui_overlay_attach_to_window( ImGuiOverlay *ui_overlay, SDL_Window *window, SDL_GLContext gl_context ) {

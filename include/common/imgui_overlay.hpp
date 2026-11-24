@@ -2,7 +2,8 @@
 
 typedef struct {
     // Runtime visibility of the debug overlay, toggled by the 'g' key.
-    // SHOW_IMGUI is the initial value.
+    // Initial value: player.dat's show_imgui (SHOW_IMGUI without a save),
+    // overridden by REPGAME_IMGUI.
     bool shown;
 } ImGuiOverlay;
 
