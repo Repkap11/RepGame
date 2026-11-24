@@ -212,8 +212,9 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
 
 - `make server-install` — one-time setup for a server-only host: apt-installs
   just `SERVER_PACKAGES` (clang, ccache, cmake, ninja, wget, bsdtar, tmux) and
-  fetches `entt_build/`. No SDL3/GLEW/CUDA/HIP/imgui — use it instead of
-  `make install` on repkap11.com.
+  fetches `sqlite_build/`. No SDL3/GLEW/CUDA/HIP/imgui/EnTT — the server
+  never compiles against them (EnTT's include dir is on the client target
+  only) — so use it instead of `make install` on repkap11.com.
 - `make server-deploy` — rsync `out/server/RepGameServer` to
   repkap11.com's `/home/paul/website/repgame/` like the other deploy
   targets. The VPS is too small to compile optimized builds, so nothing

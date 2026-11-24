@@ -16,8 +16,6 @@ typedef struct Test {
 
 #define MK_TEST( name ) { #name, &test_##name }
 
-// ecs is defined in test_core.cpp but deliberately left out of the table
-// (see commit 512c08d).
 constexpr Test all_tests[] = {  //
     MK_TEST( vr_projection ),   //
     MK_TEST( min_ambient_step ), //

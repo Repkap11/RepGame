@@ -7,6 +7,7 @@
 #include "common/Particle.hpp"
 #include "common/RenderChain.hpp"
 #include "common/mob_types.hpp"
+#include "common/mob_stress.hpp"
 #include "common/net/packet.hpp"
 #include "common/net/net_sync.hpp"
 #include "common/utils/map_storage.hpp"
@@ -98,13 +99,15 @@ inline bool hostile_spawn_light_ok( float sky, float block, float daylight ) {
 // mobs split into seed-derived naturals (natural_id != 0 — cap-exempt),
 // despawnables (the near-player spawner's mob_cap pool) and everything
 // else persistent (eggs, bred babies, restored non-naturals); remote-owned
-// mobs count as mirrors and remote players as avatars.
+// mobs count as mirrors and remote players as avatars. `frozen` overlaps
+// the others: local mobs with no_ai set (showcase / frozen stress mobs).
 struct MobPopulation {
     int natural = 0;
     int despawnable = 0;
     int other = 0;
     int mirror = 0;
     int players = 0;
+    int frozen = 0;
 };
 
 // Cumulative near-player spawner outcomes — which gate rejects each
@@ -272,6 +275,17 @@ class MobManager {
     // Multiplayer sync hub; bound while multiplayer_mode (hostname given).
     NetEntities *net = nullptr;
     bool mp_mode = false;
+    // Mob stress world (REPGAME_MOB_WORLD, common/mob_stress.hpp): every
+    // mob in this manager is a stress mob. tick() tops the population back
+    // up to stress_target once a second (undead burn, creepers, kills) and
+    // trims the newest past it; stress_next cycles grid cells and types.
+    MobStressSpec stress;
+    int stress_target = 0;
+    bool stress_ai = true;
+    long stress_next = 0;
+    long stress_ticks = 0;
+    void stress_spawn_one( );
+    void stress_rebalance( );
 
     void tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos,
                    const MobTickInput *in, MobTickOutput *out );
@@ -324,6 +338,18 @@ class MobManager {
     // stand still but can still be hit and killed. Called once from init()
     // unless REPGAME_MOB_TEST overrides it.
     void spawn_block_world_showcase( );
+    // Mob stress world: adopt `spec` (called from init() with the
+    // REPGAME_MOB_WORLD spec; rep_tests pass their own) and fill the arena
+    // grid to spec.count. A disabled spec turns the mode off.
+    void init_stress( const MobStressSpec &spec );
+    bool stress_active( ) const { return this->stress.enabled( ); }
+    const MobStressSpec &stress_spec( ) const { return this->stress; }
+    int stress_target_count( ) const { return this->stress_target; }
+    // Clamped to [0, spec.capacity]; applied immediately.
+    void set_stress_target( int target );
+    bool stress_ai_enabled( ) const { return this->stress_ai; }
+    // false freezes every local stress mob (no_ai), true resumes AI/physics.
+    void set_stress_ai( bool ai );
     // Network-driven mobs (remote players): spawned/posed/removed by the
     // multiplayer layer via a stable uid. persistent=0, invisible to the
     // raycast and the mob count, immune to the chunk-live freeze. Works even
@@ -468,6 +494,7 @@ class MobManager {
             } else {
                 out.other++;
             }
+            out.frozen += mob.uid == 0 && mob.no_ai != 0;
         }
     }
     bool is_enabled( ) const { return this->enabled; }

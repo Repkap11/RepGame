@@ -139,8 +139,13 @@ void MobManager::init( const VertexBufferLayout &vbl_object_vertex, const Vertex
     }
     // Block world: a static mob line-up next to the block grid (MOB_TEST
     // wins when both are set — its fixtures are the authored showcase).
+    // The mob world fills its arena instead.
     if ( repgame_block_world( ) && this->enabled && spec == NULL ) {
-        this->spawn_block_world_showcase( );
+        if ( repgame_mob_world( ) ) {
+            this->init_stress( mob_stress_spec( ) );
+        } else {
+            this->spawn_block_world_showcase( );
+        }
     }
 }
 
@@ -378,6 +383,77 @@ void MobManager::spawn_block_world_showcase( ) {
         }
         if ( this->spawn( type, pos, 90.0f, 0, false ) ) {
             this->mobs.back( ).no_ai = 1;
+        }
+    }
+}
+
+void MobManager::init_stress( const MobStressSpec &spec ) {
+    this->stress = spec;
+    this->stress_target = spec.count;
+    this->stress_ai = spec.ai;
+    this->stress_next = 0;
+    this->stress_ticks = 0;
+    if ( !spec.enabled( ) ) {
+        return;
+    }
+    this->stress_rebalance( );
+    pr_debug( "mob world: %zu mobs (%zu types, capacity %d, arena %dx%d, ai %s)", this->mobs.size( ), spec.types.size( ),
+              spec.capacity, spec.extent( ), spec.extent( ), spec.ai ? "on" : "off" );
+}
+
+// One stress mob on the next grid cell, cycling the spec's types. Remote
+// avatars (MOB_AI_REMOTE) are posed like REPGAME_MOB_TEST entries and hold
+// a torch so the held-item chains are exercised too.
+void MobManager::stress_spawn_one( ) {
+    const long n = this->stress_next++;
+    const MobType type = this->stress.types[ static_cast<size_t>( n ) % this->stress.types.size( ) ];
+    const glm::dvec3 pos = mob_stress_cell_pos( this->stress, static_cast<int>( n % this->stress.capacity ) );
+    std::uniform_real_distribution<float> pick_yaw( -180.0f, 180.0f );
+    const float yaw = pick_yaw( this->rng );
+    if ( mob_types[ type ].ai == MOB_AI_REMOTE ) {
+        const uint32_t uid = this->spawn_remote( type );
+        if ( uid != 0 ) {
+            this->set_remote_pose( uid, pos + glm::dvec3( 0.0, PLAYER_EYE_HEIGHT, 0.0 ), yaw, 0.0f );
+            static const ItemID torch = item_id_from_name( "torch" );
+            if ( torch != LAST_BLOCK_ID ) {
+                this->set_remote_held_item( uid, torch );
+            }
+        }
+        return;
+    }
+    if ( this->spawn( type, pos, yaw, 0, false ) ) {
+        this->mobs.back( ).no_ai = this->stress_ai ? 0 : 1;
+    }
+}
+
+// Trim the newest mobs past the target, then refill up to it.
+void MobManager::stress_rebalance( ) {
+    const size_t target = static_cast<size_t>( this->stress_target );
+    while ( this->mobs.size( ) > target ) {
+        this->remove_mob( this->mobs.end( ) - 1 );
+    }
+    while ( this->mobs.size( ) < target ) {
+        const size_t before = this->mobs.size( );
+        this->stress_spawn_one( );
+        if ( this->mobs.size( ) == before ) {
+            break; // spawning refused (mobs disabled) — don't spin
+        }
+    }
+}
+
+void MobManager::set_stress_target( const int target ) {
+    if ( !this->stress.enabled( ) ) {
+        return;
+    }
+    this->stress_target = target < 0 ? 0 : ( target > this->stress.capacity ? this->stress.capacity : target );
+    this->stress_rebalance( );
+}
+
+void MobManager::set_stress_ai( const bool ai ) {
+    this->stress_ai = ai;
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.uid == 0 ) {
+            mob.no_ai = ai ? 0 : 1;
         }
     }
 }
@@ -1435,7 +1511,7 @@ bool MobManager::is_sheared_at( const int index ) const {
 void MobManager::adopt_chunk( World &world, Chunk &chunk ) {
     // Multiplayer: mob files live server-side; the roll runs on CHUNK_ROLE
     // OWNER instead, so local pending_mobs are discarded.
-    if ( !this->enabled || this->test_mode || this->mp_mode ) {
+    if ( !this->enabled || this->test_mode || this->mp_mode || this->stress.enabled( ) ) {
         chunk.sidecars.mobs.clear( );
         chunk.sidecars.mobs_removed.clear( );
         return;
@@ -1586,6 +1662,11 @@ void MobManager::tick( World &world, const glm::dvec3 &player_pos, const MobTick
     // Remote mobs tick in every mode (they're driven by the network, not the
     // world); everything else freezes under REPGAME_MOBS=0 and capture mode.
     const bool freeze = !this->enabled || RepGame::capture_mode( );
+    // Mob world: hold the population at the target (deaths refill once a
+    // second, in the same grid/type rotation).
+    if ( this->stress.enabled( ) && !freeze && ++this->stress_ticks % UPS_RATE == 0 ) {
+        this->stress_rebalance( );
+    }
     const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
     const float player_eye = in != nullptr ? in->player_eye_height : PLAYER_EYE_HEIGHT;
     const glm::dvec3 player_feet = player_pos - glm::dvec3( 0.0, player_eye, 0.0 );
@@ -2070,6 +2151,7 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
 }
 
 void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, HeartParticles *hearts, float time_s ) {
+    PROFILE_SCOPE( "mobs_render" );
     if ( !this->render_inited ) {
         return;
     }
@@ -2263,6 +2345,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
 }
 
 void MobManager::draw( const Renderer &renderer, const Shader &shader ) {
+    PROFILE_SCOPE( "mobs_draw" );
     if ( !this->render_inited ) {
         return;
     }
@@ -2284,6 +2367,7 @@ void MobManager::draw( const Renderer &renderer, const Shader &shader ) {
 }
 
 void MobManager::draw_held( const Renderer &renderer, const Shader &block_object_shader, const Shader &item_sprite_shader ) {
+    PROFILE_SCOPE( "mobs_draw" );
     if ( !this->render_inited ) {
         return;
     }

@@ -37,8 +37,11 @@ Then read *Results model* once (that is where every answer lives), skim
   `{"type":"metric","tick":N,"fly_phase":0-2,"rd":N,"pos":[x,y,z],
   "loader":{...all LoaderDebugStats fields...},"light":{k:v,...}}`.
   With `REPGAME_PROFILE=1` the record also carries
-  `"prof":{<slot>:{n,us,max_us},...}` — see *Profile timers*.
-  `light` carries the `light_dbg_stats` k=v counters as numbers where
+  `"prof":{<slot>:{n,us,max_us},...}` — see *Profile timers*. Every
+  record ends with `"mobs":{"total","players","mirror","natural",
+  "despawnable","other","frozen"}` (`results::format_mobs`, the
+  `MobPopulation` split; `frozen` overlaps the others — local `no_ai`
+  mobs). `light` carries the `light_dbg_stats` k=v counters as numbers where
   numeric; the `| us:` section's keys are prefixed `us_`. Those counters
   are interval counters reset by every `light_dbg_stats` call: in fly mode
   they cover one FLYMET interval (`REPGAME_FLY_METRICS`), otherwise one
@@ -230,6 +233,16 @@ overlay in a shot (a script can also toggle it mid-run with `imgui 1`).
     10 s, override with `ab --duration S`). Default metrics are the
     window fields: `window.fps`, `window.prof.draw_frame.us_per_call`,
     `window.prof.tick.us_per_call`.
+  - `mob-stress` — the mob stress world (`REPGAME_MOB_WORLD=500`,
+    docs/mobs.md) with the camera parked behind the arena's +z wall,
+    `REPGAME_PROFILE=1` and the same `fly_settled` window. Its default
+    metrics (`scenarios.SCENARIO_WINDOW_METRICS`) add the `mobs_tick`,
+    `mobs_render`, `mobs_draw`, `world_draw` and `arrows_tick` window
+    scopes and `stats.metric.mobs.{total,frozen}.mean`. Sweep the
+    population per cfg (commas survive the cfg spec):
+    `rep-dbg ab --cfg n100=current:REPGAME_MOB_WORLD=100
+    --cfg n1000=current:REPGAME_MOB_WORLD=1000
+    --cfg frozen=current:REPGAME_MOB_WORLD=1000,ai=0 --reps 3 mob-stress`.
 
   Or pass preset args literally after `--`, e.g.
   `rep-dbg ab --cfg a=current --cfg b=current --reps 2 -- fly --ticks
@@ -265,7 +278,10 @@ aggregate cleanly and A/B well.
   `game_render.cpp` ("draw_frame"), `world.cpp` ("world_draw"),
   `light.cpp`/`light_chunks.cpp` ("light_bfs" — per-column BFS drain on the light workers, "light_finalize"),
   `terrain_loading_thread.cpp` ("terrain_job"), `chunk_mesh.cpp`
-  ("chunk_mesh"), `mobs.cpp` ("mobs_tick"), `player.cpp`
+  ("chunk_mesh"), `mobs.cpp` ("mobs_tick", "mobs_render" —
+  `update_render`, "mobs_draw" — `draw` + `draw_held`, so `n` counts
+  every pass incl. water reflection), `arrows.cpp` ("arrows_tick"),
+  `item_entities.cpp` ("items_tick"), `player.cpp`
   ("player_movement", "block_updates"). Implementation:
   `src/common/utils/profile.cpp`.
 

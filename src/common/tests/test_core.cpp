@@ -1,12 +1,8 @@
-// ecs / vr projection / min_ambient / angle-wrap / teleport-parse tests —
+// vr projection / min_ambient / angle-wrap / teleport-parse tests —
 // split out of rep_tests.cpp.
 #include "test_util.hpp"
 #include "common/utils/angles.hpp"
 #include "common/harness/run_policy.hpp"
-int test_ecs( ) {
-    ECS ecs = ECS( );
-    return ecs.test_ecs( );
-}
 
 // A symmetric ±45° horizontal/vertical FOV through the off-axis OpenXR
 // projection helper must equal glm::perspective(90°, 1, n, f).

@@ -53,6 +53,21 @@ int test_results( ) {
                         "\"async_promoted\":21,\"async_in_flight\":22},"
                         "\"light\":{\"loop\":9}}" );
 
+    MobPopulation pop = {};
+    pop.players = 1;
+    pop.mirror = 2;
+    pop.natural = 3;
+    pop.despawnable = 4;
+    pop.other = 5;
+    pop.frozen = 6;
+    const std::string mobs = results::format_mobs( 15, pop );
+    fails += check_str( "mobs", mobs,
+                        "{\"total\":15,\"players\":1,\"mirror\":2,\"natural\":3,\"despawnable\":4,\"other\":5,\"frozen\":6}" );
+    const std::string with_mobs = results::format_metric( 100, 1, 6, glm::dvec3( 1.5, 80.25, -2.0 ), s, "{\"loop\":9}", "{\"tick\":{}}", mobs );
+    const std::string tail = ",\"light\":{\"loop\":9},\"prof\":{\"tick\":{}},\"mobs\":" + mobs + "}";
+    fails += check_str( "metric prof+mobs", with_mobs.size( ) > tail.size( ) ? with_mobs.substr( with_mobs.size( ) - tail.size( ) ) : with_mobs,
+                        tail );
+
     fails += check_str( "event bare", results::format_event( 42, "fly_settled", "" ),
                         "{\"type\":\"event\",\"tick\":42,\"name\":\"fly_settled\"}" );
     fails += check_str( "event detail", results::format_event( 43, "capture_shot", "\"view\":2,\"timeout\":0" ),

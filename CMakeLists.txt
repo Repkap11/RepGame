@@ -73,11 +73,11 @@ endif()
 option(REPGAME_CUDA "Build CUDA GPU objects" ${_cuda_default})
 option(REPGAME_HIP "Build HIP GPU objects" ${_hip_default})
 
-if(NOT EXISTS ${CMAKE_SOURCE_DIR}/entt_build)
-	message(FATAL_ERROR "entt_build/ is missing — run `make install` (or `make server-install` on a server-only host) first")
+# The dedicated server never includes EnTT or ImGui, so a server-only host
+# doesn't need entt_build/ or imgui_build/.
+if(REPGAME_BUILD_CLIENT AND NOT EXISTS ${CMAKE_SOURCE_DIR}/entt_build)
+	message(FATAL_ERROR "entt_build/ is missing — run `make install` first")
 endif()
-# The dedicated server never includes ImGui, so a server-only host doesn't
-# need imgui_build/.
 if(REPGAME_BUILD_CLIENT AND NOT EXISTS ${CMAKE_SOURCE_DIR}/imgui_build)
 	message(FATAL_ERROR "imgui_build/ is missing — run `make install` first")
 endif()
@@ -134,8 +134,6 @@ target_include_directories(repgame_flags INTERFACE
 	${CMAKE_SOURCE_DIR}/include
 	${CMAKE_SOURCE_DIR}/imgui_build
 	${CMAKE_SOURCE_DIR}/imgui_build/backends)
-target_include_directories(repgame_flags SYSTEM INTERFACE
-	${CMAKE_SOURCE_DIR}/entt_build/src)
 
 # Platform-specific compile/link config. repgame_platform carries the
 # defines/includes/pic flags that differ per platform.
@@ -406,6 +404,8 @@ if(REPGAME_BUILD_CLIENT)
 	endif()
 
 	target_link_libraries(RepGame PRIVATE repgame_flags repgame_platform)
+	# Client-only: the dedicated server must build without entt_build/.
+	target_include_directories(RepGame SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/entt_build/src)
 
 	# Vendored headers only — glm/entt/imgui are ~40% of a typical TU's
 	# parse time. No project headers (a pch edit would rebuild the
@@ -560,8 +560,7 @@ if(REPGAME_BUILD_SERVER)
 	target_link_libraries(RepGameServer PRIVATE repgame_flags repgame_platform)
 	# No SDL/imgui: the server host builds without client deps.
 	if(REPGAME_PCH)
-		target_precompile_headers(RepGameServer PRIVATE
-			<glm/glm.hpp> <entt/entity/registry.hpp>)
+		target_precompile_headers(RepGameServer PRIVATE <glm/glm.hpp>)
 	endif()
 	set_target_properties(RepGameServer PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/out/server)

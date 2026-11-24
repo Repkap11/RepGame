@@ -1778,6 +1778,78 @@ int test_mobs( ) {
         check_bool( "showcase: AIR cells over SANDSTONE floor", cells_ok );
     }
 
+    // --- 28d: mob stress world (REPGAME_MOB_WORLD spec, arena, population)
+    {
+        const MobStressSpec off = mob_stress_parse( nullptr );
+        check_bool( "stress parse: null/empty/zero/garbage is off",
+                    !off.enabled( ) && !mob_stress_parse( "" ).enabled( ) && !mob_stress_parse( "0" ).enabled( ) &&
+                        !mob_stress_parse( "pig" ).enabled( ) );
+        const MobStressSpec s = mob_stress_parse( "20,ai=0,pig,bogus,cow" );
+        check_bool( "stress parse: count/ai/types (unknown token skipped)",
+                    s.count == 20 && !s.ai && s.types.size( ) == 2 && s.types[ 0 ] == MOB_PIG && s.types[ 1 ] == MOB_COW );
+        check_bool( "stress parse: capacity defaults to count, side=ceil(sqrt)",
+                    s.capacity == 20 && s.side == 5 && s.extent( ) == 5 * MOB_STRESS_SPACING && s.origin == -s.extent( ) / 2 );
+        const MobStressSpec all = mob_stress_parse( "7,max=50" );
+        check_bool( "stress parse: default types = every type, max raises capacity",
+                    all.ai && all.types.size( ) == MOB_TYPE_COUNT && all.capacity == 50 && all.side == 8 );
+        check_bool( "stress parse: count clamped", mob_stress_parse( "999999" ).count == MOB_STRESS_MAX );
+
+        // Arena: sandstone floor, 2-high stone ring just outside the
+        // interior, air inside and above the wall.
+        const int lo = s.origin - 1, hi = s.origin + s.extent( );
+        check_bool( "stress arena: floor sandstone (inside + outside)",
+                    block_cell_id( mob_stress_arena_cell( s, 0, 0, 0 ) ) == SANDSTONE &&
+                        block_cell_id( mob_stress_arena_cell( s, hi + 40, -3, lo - 40 ) ) == SANDSTONE );
+        check_bool( "stress arena: wall ring at y=1..2 on all four sides",
+                    block_cell_id( mob_stress_arena_cell( s, lo, 1, 0 ) ) == STONE && block_cell_id( mob_stress_arena_cell( s, hi, 2, 0 ) ) == STONE &&
+                        block_cell_id( mob_stress_arena_cell( s, 0, 1, lo ) ) == STONE && block_cell_id( mob_stress_arena_cell( s, 0, 2, hi ) ) == STONE &&
+                        block_cell_id( mob_stress_arena_cell( s, lo, 1, hi ) ) == STONE );
+        check_bool( "stress arena: air above the wall and outside the ring",
+                    block_cell_id( mob_stress_arena_cell( s, lo, 3, 0 ) ) == AIR && block_cell_id( mob_stress_arena_cell( s, lo - 1, 1, 0 ) ) == AIR &&
+                        block_cell_id( mob_stress_arena_cell( s, lo, 1, hi + 1 ) ) == AIR );
+        bool cells_inside = true;
+        for ( int i = 0; i < s.capacity; i++ ) {
+            const glm::dvec3 p = mob_stress_cell_pos( s, i );
+            const glm::ivec3 c( glm::floor( p ) );
+            cells_inside &= c.x > lo && c.x < hi && c.z > lo && c.z < hi && p.y == 1.0 &&
+                            block_cell_id( mob_stress_arena_cell( s, c.x, 1, c.z ) ) == AIR;
+        }
+        check_bool( "stress arena: every grid cell is interior air", cells_inside );
+
+        // Population: types cycle, avatars get uids, AI toggle, target
+        // clamp/trim, and the once-a-second refill after a death.
+        MobManager mobs;
+        mobs.spawner_enabled = false;
+        mobs.init_stress( mob_stress_parse( "12,pig,player" ) );
+        int pigs = 0, avatars = 0;
+        for ( const MobManager::Mob &mob : mobs.mobs ) {
+            pigs += mob.type == MOB_PIG && mob.uid == 0 && mob.no_ai == 0;
+            avatars += mob.type == MOB_PLAYER && mob.uid != 0;
+        }
+        check_bool( "stress pop: fills to count, types round-robin", mobs.mobs.size( ) == 12 && pigs == 6 && avatars == 6 );
+        mobs.set_stress_ai( false );
+        MobPopulation pop = {};
+        mobs.population( pop );
+        check_bool( "stress pop: AI off freezes every local mob", pop.frozen == 6 && pop.players == 6 && !mobs.stress_ai_enabled( ) );
+        mobs.set_stress_target( 4 );
+        check_bool( "stress pop: lower target trims", mobs.mobs.size( ) == 4 && mobs.stress_target_count( ) == 4 );
+        mobs.set_stress_target( 1000 );
+        check_bool( "stress pop: target clamped to capacity", mobs.mobs.size( ) == 12 && mobs.stress_target_count( ) == 12 );
+        bool refill_frozen = true;
+        mobs.remove_mob( mobs.mobs.begin( ) );
+        mobs.remove_mob( mobs.mobs.begin( ) );
+        for ( int i = 0; i < UPS_RATE; i++ ) {
+            mobs.tick( world, player_pos );
+        }
+        for ( const MobManager::Mob &mob : mobs.mobs ) {
+            refill_frozen &= mob.uid != 0 || mob.no_ai == 1;
+        }
+        check_bool( "stress pop: deaths refill within a second", mobs.mobs.size( ) == 12 );
+        check_bool( "stress pop: refills inherit the AI toggle", refill_frozen );
+        mobs.init_stress( MobStressSpec( ) );
+        check_bool( "stress pop: disabled spec turns the mode off", !mobs.stress_active( ) );
+    }
+
     // --- 29: nether roll: spawn_dims keeps each table in its dimension -----
     {
         // Fill a chunk with a netherrack floor like the 6c grass roll.

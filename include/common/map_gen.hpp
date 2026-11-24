@@ -60,6 +60,7 @@ class MapGen {
     // (clear of the mob showcase column at x=-3).
     // The z<0 showcase cells may carry rotation (wall-mounted blocks);
     // block_world_id unwraps the id for callers that don't need it.
+    // The mob world (REPGAME_MOB_WORLD) swaps in mob_stress_arena_cell.
     // O(1) per cell; used by Chunk::load_terrain and gen_block_id.
     static BlockCell block_world_cell( int x, int y, int z );
     static BlockID block_world_id( int x, int y, int z );

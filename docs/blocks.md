@@ -785,7 +785,9 @@ spawning and the night spawner are off too, but one of each mob type
 stands in a column at x=-3 (z = 2,5,8,...) facing +x toward the block
 grid with AI disabled (`MobManager::spawn_block_world_showcase`,
 `Mob::no_ai`) — they can still be hit and killed. `REPGAME_MOB_TEST`
-replaces the showcase. The ground is solid
+replaces the showcase. `REPGAME_MOB_WORLD` (the mob stress world,
+docs/mobs.md) runs on the same plumbing but swaps the whole layout below
+for a walled mob arena. The ground is solid
 SANDSTONE for y≤0 (solid, not a one-block floor, so the light cascade has
 no void volume to sweep) with every defined non-AIR block placed
 once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered

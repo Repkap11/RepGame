@@ -2,12 +2,22 @@
 
 #include <stdlib.h>
 
+// REPGAME_MOB_WORLD="<count>[,...]" runs the mob stress world: the block
+// world's no-terrain/no-disk/no-network mode with a walled mob arena in
+// place of the block grid (spec parsing: common/mob_stress.hpp).
+static inline bool repgame_mob_world( ) {
+    static const bool enabled = getenv( "REPGAME_MOB_WORLD" ) != nullptr &&
+                                atoi( getenv( "REPGAME_MOB_WORLD" ) ) > 0;
+    return enabled;
+}
+
 // REPGAME_BLOCK_WORLD=1 runs the "block world" debug mode: a flat sandstone
 // floor with every defined block laid out on a grid instead of generated
 // terrain. No map gen, structures, mobs, disk I/O or server connection.
+// The mob world implies it (same plumbing, different layout).
 static inline bool repgame_block_world( ) {
-    static const bool enabled = getenv( "REPGAME_BLOCK_WORLD" ) != nullptr &&
-                                atoi( getenv( "REPGAME_BLOCK_WORLD" ) ) != 0;
+    static const bool enabled = repgame_mob_world( ) || ( getenv( "REPGAME_BLOCK_WORLD" ) != nullptr &&
+                                                           atoi( getenv( "REPGAME_BLOCK_WORLD" ) ) != 0 );
     return enabled;
 }
 

@@ -18,6 +18,7 @@
 #include "common/multiplayer.hpp"
 #include "common/net_entities.hpp"
 #include "common/ui_overlay_buffers.hpp"
+#include "common/utils/profile.hpp"
 
 // Per-tick constants at UPS_RATE (144). Gravity and air drag are MC's item
 // values (0.04/tick², 0.98 at 20 TPS) rescaled to 144 UPS: ~16 blocks/s²
@@ -372,6 +373,7 @@ static double item_surface_at( World &world, const glm::ivec3 &cell, const Block
 }
 
 void ItemEntities::tick( RepGameState &state ) {
+    PROFILE_SCOPE( "items_tick" );
     World &world = state.world;
     this->now_tick = state.tick_number;
     const bool freeze = RepGame::capture_mode( );

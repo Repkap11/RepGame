@@ -1,5 +1,7 @@
 #include "common/utils/file_utils.hpp"
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>

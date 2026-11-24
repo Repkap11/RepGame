@@ -161,8 +161,10 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
         ImGuiIO &io = ImGui::GetIO( );
         // The overlay is read-only while the game owns the mouse; with the
         // cursor free (inventory/menu open) make ImGui interactive so the
-        // live-tuning controls below are usable (REPGAME_IMGUI_TUNE).
-        const bool interactive = imgui_overlay->shown && imgui_live_tune( ) && ( input.inventory_open || input.menu_open );
+        // live-tuning controls below are usable (REPGAME_IMGUI_TUNE, or the
+        // mob world's Mob Stress controls).
+        const bool interactive = imgui_overlay->shown && ( imgui_live_tune( ) || state.world.mobs.stress_active( ) ) &&
+                                 ( input.inventory_open || input.menu_open );
         if ( interactive ) {
             io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
         } else {
@@ -285,6 +287,27 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
             }
         }
         ImGui::Text( "Items: %d  Arrows: %d", debug_vars.item_entities, static_cast<int>( state.world.arrows.count( ) ) );
+
+        // Mob world (REPGAME_MOB_WORLD): population + AI controls, usable
+        // with the cursor free (open the pause menu or inventory).
+        if ( state.world.mobs.stress_active( ) ) {
+            MobManager &mobs = state.world.mobs;
+            ImGui::Separator( );
+            if ( ImGui::CollapsingHeader( "Mob Stress", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+                MobPopulation pop = {};
+                mobs.population( pop );
+                ImGui::Text( "Live %d / target %d (capacity %d)  frozen %d  avatars %d", static_cast<int>( mobs.count( ) ),
+                             mobs.stress_target_count( ), mobs.stress_spec( ).capacity, pop.frozen, pop.players );
+                int target = mobs.stress_target_count( );
+                if ( ImGui::SliderInt( "Target", &target, 0, mobs.stress_spec( ).capacity ) ) {
+                    mobs.set_stress_target( target );
+                }
+                bool ai = mobs.stress_ai_enabled( );
+                if ( ImGui::Checkbox( "AI + physics", &ai ) ) {
+                    mobs.set_stress_ai( ai );
+                }
+            }
+        }
 
         if ( imgui_live_tune( ) ) {
             ImGui::Separator( );

@@ -5,6 +5,33 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from rep_dbg import ab
+from rep_dbg import scenarios
+
+
+class TestScenarios(unittest.TestCase):
+    def test_every_window_names_a_scenario(self):
+        for name in scenarios.WINDOWS:
+            self.assertIn(name, scenarios.SCENARIOS)
+            self.assertIn("after_event", scenarios.WINDOWS[name])
+
+    def test_mob_stress(self):
+        env = scenarios.SCENARIOS["mob-stress"]
+        self.assertEqual(env["REPGAME_PROFILE"], "1")
+        self.assertTrue(int(env["REPGAME_MOB_WORLD"].split(",")[0]) > 0)
+        # Parked: fly speed 0, so the window measures a stationary camera.
+        self.assertEqual(env["REPGAME_FLY"].split(",")[5], "0")
+        fields = scenarios.window_metrics("mob-stress")
+        self.assertIn("window.prof.mobs_render.us_per_call", fields)
+        self.assertIn("stats.metric.mobs.total.mean", fields)
+        self.assertEqual(fields[:len(scenarios.WINDOW_METRICS)], scenarios.WINDOW_METRICS)
+
+    def test_window_metrics_default(self):
+        self.assertEqual(scenarios.window_metrics("idle"), scenarios.WINDOW_METRICS)
+
+    def test_cfg_spec_keeps_mob_world_commas(self):
+        tree, env = ab.parse_spec("current:REPGAME_MOB_WORLD=2000,ai=0,pig")
+        self.assertEqual(tree, "current")
+        self.assertEqual(env, {"REPGAME_MOB_WORLD": "2000,ai=0,pig"})
 
 
 class TestSpec(unittest.TestCase):

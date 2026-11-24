@@ -33,7 +33,6 @@
 #include "common/hotbar.hpp"
 #include "common/survival_inventory.hpp"
 #include "common/renderer/texture.hpp"
-#include "common/utils/ecs.hpp"
 #include "common/game/player_state.hpp"
 #include "common/game/vr_state.hpp"
 #include "common/portal.hpp"

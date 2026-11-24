@@ -5,6 +5,7 @@
 #include "common/chunk_loader.hpp" // LoaderDebugStats
 
 struct RepGameState;
+struct MobPopulation;
 
 // Structured run-results writer (REPGAME_RESULTS=<path>): one JSONL event
 // stream per run — a "header" line, periodic "metric" records, "event"
@@ -15,7 +16,9 @@ struct RepGameState;
 namespace results {
 // Pure record formatters (no trailing newline) — rep_tests cover these.
 std::string format_metric( long tick, int fly_phase, int rd, const glm::dvec3 &pos, const LoaderDebugStats &s, const std::string &light_json,
-                           const std::string &prof_json = "" );
+                           const std::string &prof_json = "", const std::string &mobs_json = "" );
+// The metric's "mobs" object: live total plus the MobPopulation split.
+std::string format_mobs( int total, const MobPopulation &pop );
 std::string format_event( long tick, const char *name, const std::string &detail_json );
 std::string format_probe( long tick, const glm::ivec3 &pos, int block, const char *name, int rotation, int sky, int blocklight );
 std::string format_assert( long tick, int line, const char *cmd, bool ok, const char *expected, const char *actual );

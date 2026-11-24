@@ -388,7 +388,7 @@ def _do_ab(opts):
     if opts.metric:
         fields = opts.metric
     elif window:
-        fields = scenarios.WINDOW_METRICS
+        fields = scenarios.window_metrics(opts.scenario)
     else:
         fields = list(ab_mod.DEFAULT_METRICS)
         if opts.profile:

@@ -89,6 +89,12 @@ linux-run2: linux
 linux-run-blocks: linux
 	REPGAME_BLOCK_WORLD=1 ./$(LINUX_OUT)/release/$(TARGET) BlockWorld
 
+# Mob stress world: `make linux-run-mobs MOBS="2000,ai=0,pig"` — the
+# REPGAME_MOB_WORLD spec (count[,ai=0|1][,max=N][,types...], docs/mobs.md).
+MOBS ?= 500
+linux-run-mobs: linux
+	REPGAME_MOB_WORLD="$(MOBS)" ./$(LINUX_OUT)/release/$(TARGET) MobWorld
+
 dev: linux_debug-run
 
 linux_debug-run: linux_debug

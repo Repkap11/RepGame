@@ -16,6 +16,7 @@
 #include "common/mobs.hpp"
 #include "common/net_entities.hpp"
 #include "common/utils/collision.hpp"
+#include "common/utils/profile.hpp"
 #include "common/utils/ray_traversal.hpp"
 #include "common/world.hpp"
 
@@ -233,6 +234,7 @@ void ArrowEntities::remove_arrow( const size_t i ) {
 }
 
 void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::vector<MobRemoteTarget> *remote_targets ) {
+    PROFILE_SCOPE( "arrows_tick" );
     World &world = state.world;
     // Bind the sync hub while multiplayer is on; entities with net.id 0
     // behave exactly like single player.

@@ -21,6 +21,9 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
   (`make dev` is an alias)
 - `make linux-run-blocks` — launch the block world (`REPGAME_BLOCK_WORLD=1`,
   see `docs/blocks.md`)
+- `make linux-run-mobs MOBS="500[,ai=0][,pig,...]"` — the mob stress world
+  (`REPGAME_MOB_WORLD`, docs/mobs.md); headless numbers via the
+  `mob-stress` rep-dbg scenario (docs/debug-tools.md)
 - `make linux-vr` / `make linux-vr-run` — OpenXR client build / run against
   a locally built Monado simulated HMD (`docs/vr.md`)
 - `make server` / `make server-run` — build / run the dedicated server
@@ -32,7 +35,8 @@ presets in `CMakePresets.json`. The make targets below are thin wrappers
   AppImage, flatpak) and all deploy targets: `docs/platforms.md`.
 
 `REPGAME_PCH` (CMake option, default ON) precompiles the vendored headers —
-glm/entt/imgui/SDL3 for the client (SDL2 on wasm), glm/entt for the server.
+glm/entt/imgui/SDL3 for the client (SDL2 on wasm), glm for the server
+(the server never includes EnTT — its include dir is client-target only).
 Vendored headers only, never project headers: a PCH edit rebuilds the
 serialized pch before every TU. `-DREPGAME_PCH=OFF` on the cmake command
 line disables it for troubleshooting.

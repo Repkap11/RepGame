@@ -3,8 +3,8 @@
 #include <mutex>
 #include <vector>
 
-#include "common/RepGame.hpp"
 #include "common/chunk.hpp"
+#include "common/light.hpp"
 
 // Chunk buffers are fixed-size and never resized, so freed buffers go into
 // free lists rather than back to malloc: multi-megabyte allocations bypass

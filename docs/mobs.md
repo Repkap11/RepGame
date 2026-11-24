@@ -287,6 +287,53 @@ always fit, and the live count can exceed the cap.
   pattern as bone meal). Block interactions still win: clicking a chest
   opens it unless sneaking.
 
+### Mob stress world (`REPGAME_MOB_WORLD`)
+
+A debug world for measuring how mob tick/render cost scales with
+population. `make linux-run-mobs MOBS="<spec>"` (default `500`) launches
+it; the spec is
+
+```
+REPGAME_MOB_WORLD="<count>[,ai=0|1][,max=<n>][,<type>...]"
+```
+
+- `count` — initial population and the held target (clamped to
+  `MOB_STRESS_MAX`).
+- `ai=0` — start frozen (`Mob::no_ai`): render + animation cost only,
+  no AI/physics.
+- `max=<n>` — arena capacity (default `count`); the ceiling of the
+  ImGui target slider.
+- `<type>...` — `mob_types[]` names cycled round-robin (default every
+  type, including the `player` avatar, which holds a torch so the
+  held-item chains are exercised).
+
+Parsing and the layout live in `common/mob_stress.hpp`
+(`mob_stress_parse`, `mob_stress_arena_cell`, `mob_stress_cell_pos`).
+`repgame_mob_world()` implies `repgame_block_world()`, so terrain, disk,
+network, the night spawner and the natural roll are all off exactly as in
+the block world. `MapGen::block_world_cell` swaps in the arena: sandstone
+at y≤0, a 2-high stone wall ring just outside a square interior of
+`ceil(sqrt(capacity))` cells per side (`MOB_STRESS_SPACING` blocks apart,
+centered on the origin), air elsewhere. Flyers (ghast, blaze, bee) can
+cross the wall.
+
+`MobManager::init_stress` fills the grid. While the spec is enabled
+every mob in the manager is a stress mob: `tick()` rebalances once a
+second (`stress_rebalance` — refill to `stress_target` in the same
+grid/type rotation after undead burn, creeper fuses or kills, and trim
+the newest past it). The player starts creative and flying behind the
++z wall, facing the arena. The ImGui overlay ('g') shows a **Mob Stress**
+panel — live/target/capacity, frozen and avatar counts, a target slider
+and an "AI + physics" toggle (`set_stress_target` / `set_stress_ai`);
+it's interactive while the cursor is free (open the pause menu or
+inventory).
+
+Measurement: the `mob-stress` rep-dbg scenario parks the camera over the
+arena with `REPGAME_PROFILE=1` and reports the `mobs_tick`,
+`mobs_render`, `mobs_draw` (both draw passes), `world_draw` and
+`arrows_tick` scopes plus the metric record's `mobs` population block —
+docs/debug-tools.md has the sweep recipe.
+
 Remote players: `MultiplayerAvatars` is a thin adapter over `MobManager`
 (`player_id → uid` map) — `add`/`update_position`/`remove` translate to
 `spawn_remote`/`set_remote_pose`/`remove_remote` on a `MOB_PLAYER` mob.

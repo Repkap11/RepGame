@@ -20,6 +20,7 @@
 // the chunk's idle-save/eviction, drop the cache entry at eviction (no
 // subscribers — nothing keeps a sign cache pinned).
 
+#include <cstdint>
 #include <map>
 
 #include <glm/glm.hpp>

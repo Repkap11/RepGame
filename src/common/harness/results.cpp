@@ -170,8 +170,13 @@ std::string results::light_json_from_dbg( const char *dbg ) {
     return out;
 }
 
+std::string results::format_mobs( const int total, const MobPopulation &pop ) {
+    return strfmt( "{\"total\":%d,\"players\":%d,\"mirror\":%d,\"natural\":%d,\"despawnable\":%d,\"other\":%d,\"frozen\":%d}",
+                   total, pop.players, pop.mirror, pop.natural, pop.despawnable, pop.other, pop.frozen );
+}
+
 std::string results::format_metric( long tick, int fly_phase, int rd, const glm::dvec3 &pos, const LoaderDebugStats &s, const std::string &light_json,
-                                    const std::string &prof_json ) {
+                                    const std::string &prof_json, const std::string &mobs_json ) {
     char buf[ 2048 ];
     snprintf( buf, sizeof( buf ),
               "{\"type\":\"metric\",\"tick\":%ld,\"fly_phase\":%d,\"rd\":%d,\"pos\":[%.4f,%.4f,%.4f],"
@@ -191,6 +196,10 @@ std::string results::format_metric( long tick, int fly_phase, int rd, const glm:
     if ( !prof_json.empty( ) ) {
         out += ",\"prof\":";
         out += prof_json;
+    }
+    if ( !mobs_json.empty( ) ) {
+        out += ",\"mobs\":";
+        out += mobs_json;
     }
     return out + "}";
 }
@@ -272,8 +281,11 @@ void results::metric( const RepGameState &state, const LoaderDebugStats &s, cons
     if ( !active( ) ) {
         return;
     }
+    MobPopulation pop = {};
+    state.world.mobs.population( pop );
     write_line( format_metric( state.tick_number, run_policy( ).fly.phase, state.input.render_distance, state.camera.pos, s,
-                               light_json_from_dbg( light_dbg ), profile::json_and_reset( ) ) );
+                               light_json_from_dbg( light_dbg ), profile::json_and_reset( ),
+                               format_mobs( static_cast<int>( state.world.mobs.count( ) ), pop ) ) );
 }
 
 void results::event( long tick, const char *name, const char *fmt, ... ) {

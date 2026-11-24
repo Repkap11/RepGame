@@ -5,7 +5,6 @@
 // these run, in order. Test bodies must keep the exact `int test_*()` global
 // signature — several classes friend them for private access.
 
-int test_ecs( );
 int test_vr_projection( );
 int test_min_ambient_step( );
 int test_angle_wrap( );

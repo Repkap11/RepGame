@@ -52,6 +52,7 @@ the index, not the reference.
 | `REPGAME_MOBS` | on | all | `0` disables local mobs (spawn/sim/persistence), not remote players | docs/mobs.md |
 | `REPGAME_MOB_SPAWNER` | on | all | `0` disables only the night spawner | docs/mobs.md |
 | `REPGAME_MOB_TEST` | unset | all | `"type,x,y,z,yaw[,pitch[,sneak[,item]]][;...]"` deterministic mob spawns; disables natural spawn + mob-file loading | docs/mobs.md |
+| `REPGAME_MOB_WORLD` | unset | all | `"<count>[,ai=0\|1][,max=N][,type...]"` runs the mob stress world (implies the block world's no-terrain/disk/network mode; walled arena, population held at the target) | docs/mobs.md |
 | `REPGAME_MP_CTL` | unset | all | append-only command file drained each tick (mp-test seam) | mp-test skill |
 | `REPGAME_MP_DUMP` | unset | all | JSONL dump path; presence enables the mp-test client harness | mp-test skill |
 | `REPGAME_MP_DUMP_EVERY` | 5 | all | state-dump cadence in ticks | mp-test skill |

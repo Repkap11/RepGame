@@ -19,6 +19,7 @@
 #include "common/chat.hpp"
 #include "common/light.hpp"
 #include "common/map_gen.hpp"
+#include "common/mob_stress.hpp"
 #include "common/game/game_internal.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
 
@@ -224,6 +225,21 @@ void RepGame::initializeGameState( const char *world_name ) {
                 globalGameState.spawn_pending = true;
             }
         }
+    }
+    if ( repgame_mob_world( ) ) {
+        // Mob world: flying above the middle of the arena's +z wall, facing
+        // -z (the center) and tipped down over the crowd. Applied after the
+        // saved-data block (the block world reads no player.dat, so that
+        // block must stay skipped) and with spawn_pending cleared so its
+        // ground snap doesn't pull us down to the arena center (0,0).
+        globalGameState.spawn_pending = false;
+        const MobStressSpec &stress = mob_stress_spec( );
+        const double back = stress.origin + stress.extent( ) + 6.0;
+        globalGameState.camera.pos = glm::dvec3( 0.5, 6.0 + stress.extent( ) * 0.25, back );
+        globalGameState.camera.angle_H = 0.0f;
+        globalGameState.camera.angle_V = 30.0f;
+        globalGameState.input.player_flying = true;
+        globalGameState.input.no_clip = false;
     }
     // Display name precedence: saved player.dat name > "Player" (the
     // server dedupes collisions into Player_2, ...). Candidates are

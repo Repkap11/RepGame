@@ -13,6 +13,7 @@
 // (the name replay). Join/rename/leave notifications are SYSTEM chat
 // lines; every chat line is logged to server stdout.
 
+#include <cstdint>
 #include <map>
 #include <string>
 

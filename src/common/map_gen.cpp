@@ -8,6 +8,7 @@
 #include "common/chunk_loader.hpp"
 #include "common/utils/env_config.hpp"
 #include "common/chunk.hpp"
+#include "common/mob_stress.hpp"
 
 #define MG_QUAL static inline
 #define MAP_GEN_PERLIN2D( x, z, f, d, s ) perlin_noise2d( x, z, f, d, s )
@@ -65,6 +66,9 @@ static const std::vector<BlockID> &block_world_table( bool animated ) {
 }
 
 BlockCell MapGen::block_world_cell( const int x, const int y, const int z ) {
+    if ( repgame_mob_world( ) ) {
+        return mob_stress_arena_cell( mob_stress_spec( ), x, y, z );
+    }
     if ( y <= 0 ) {
         // Solid ground: an air void under the floor would make the light
         // cascade run removal BFS over the whole connected void volume.
