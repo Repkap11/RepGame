@@ -16,32 +16,52 @@
 #include "common/map_gen_nether.hpp"
 #include "common/map_gen_end.hpp"
 #include "common/creative_order_gen.hpp"
+#include "common/texture_ids_gen.hpp"
 
 static_assert( DIM_BLOCK_SPAN == DIM_CHUNK_SPAN * CHUNK_SIZE_Y, "dimension band height mismatch" );
 
+// A block is "animated" when any face texture lands in the flipbook span
+// ([TEXTURE_ANIM_BASE, TEXTURE_COUNT)) — the fragment shader steps those
+// layers on u_Time.
+static bool block_world_animated( BlockID id ) {
+    const Block *def = block_definition_get_definition( id );
+    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+        if ( def->textures[ f ] >= TEXTURE_ANIM_BASE ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Block-world order: the creative list first (material-grouped), then every
-// other defined non-AIR id in ascending order. Built once.
-static const std::vector<BlockID> &block_world_table( ) {
-    static const std::vector<BlockID> table = []( ) {
-        std::vector<BlockID> t;
-        unsigned char in_list[ LAST_BLOCK_ID ] = { 0 };
-        for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
-            // The creative list ends with pure items — not placeable blocks.
-            if ( !item_is_block( CREATIVE_BLOCKS[ i ] ) ) {
-                continue;
-            }
-            t.push_back( static_cast<BlockID>( CREATIVE_BLOCKS[ i ] ) );
-            in_list[ CREATIVE_BLOCKS[ i ] ] = 1;
+// other defined non-AIR id in ascending order — split so animated blocks
+// get their own table for the mirrored -x section. Built once each.
+static std::vector<BlockID> block_world_table_build( bool animated ) {
+    std::vector<BlockID> t;
+    unsigned char in_list[ LAST_BLOCK_ID ] = { 0 };
+    for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+        // The creative list ends with pure items — not placeable blocks.
+        if ( !item_is_block( CREATIVE_BLOCKS[ i ] ) ) {
+            continue;
         }
-        in_list[ AIR ] = 1;
-        for ( unsigned int id = 0; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
-            if ( !in_list[ id ] && block_id_defined( id ) ) {
-                t.push_back( static_cast<BlockID>( id ) );
-            }
+        const BlockID bid = static_cast<BlockID>( CREATIVE_BLOCKS[ i ] );
+        if ( block_world_animated( bid ) == animated ) {
+            t.push_back( bid );
         }
-        return t;
-    }( );
-    return table;
+        in_list[ CREATIVE_BLOCKS[ i ] ] = 1;
+    }
+    in_list[ AIR ] = 1;
+    for ( unsigned int id = 0; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
+        if ( !in_list[ id ] && block_id_defined( id ) && block_world_animated( static_cast<BlockID>( id ) ) == animated ) {
+            t.push_back( static_cast<BlockID>( id ) );
+        }
+    }
+    return t;
+}
+static const std::vector<BlockID> &block_world_table( bool animated ) {
+    static const std::vector<BlockID> table_still = block_world_table_build( false );
+    static const std::vector<BlockID> table_anim = block_world_table_build( true );
+    return animated ? table_anim : table_still;
 }
 
 BlockCell MapGen::block_world_cell( const int x, const int y, const int z ) {
@@ -206,18 +226,27 @@ BlockCell MapGen::block_world_cell( const int x, const int y, const int z ) {
         return block_cell_pack( AIR, 0 );
     }
     // 32 per row along +x starting at x=2, rows stepping +z from z=2; one
-    // air cell between neighbours in both directions.
-    if ( x < 2 || z < 2 || ( ( x - 2 ) & 1 ) || ( ( z - 2 ) & 1 ) ) {
+    // air cell between neighbours in both directions. Animated blocks get
+    // their own section: the same grid mirrored across x=0 (slots at
+    // x=-2, -4, ...), so the moving textures sit apart from the rest.
+    if ( z < 2 || ( ( z - 2 ) & 1 ) ) {
         return block_cell_pack( AIR, 0 );
     }
-    const int col = ( x - 2 ) / 2;
     const int row = ( z - 2 ) / 2;
-    if ( col >= 32 ) {
+    int col = -1;
+    const std::vector<BlockID> *t = nullptr;
+    if ( x >= 2 && !( ( x - 2 ) & 1 ) ) {
+        col = ( x - 2 ) / 2;
+        t = &block_world_table( false );
+    } else if ( x <= -2 && !( ( -x - 2 ) & 1 ) ) {
+        col = ( -x - 2 ) / 2;
+        t = &block_world_table( true );
+    }
+    if ( col < 0 || col >= 32 ) {
         return block_cell_pack( AIR, 0 );
     }
     const size_t k = (size_t)row * 32 + (size_t)col;
-    const std::vector<BlockID> &t = block_world_table( );
-    return block_cell_pack( k < t.size( ) ? t[ k ] : AIR, 0 );
+    return block_cell_pack( k < t->size( ) ? ( *t )[ k ] : AIR, 0 );
 }
 
 BlockID MapGen::block_world_id( const int x, const int y, const int z ) {

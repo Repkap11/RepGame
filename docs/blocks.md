@@ -113,6 +113,14 @@ repo-authored 16x16 tiles; `data/textures.json` carries per-texture metadata:
 - `ticks` — ticks per playback frame at 20 ticks/s for an `animated`
   texture. Overrides the flipbook entry; required when the texture has no
   flipbook entry at all (it then plays the strip top-to-bottom).
+- `frames` — explicit playback order (a list of strip frame indices, like
+  Java's .mcmeta `frames`) for an `animated` texture, overriding the
+  flipbook entry's own order. `lava_still` uses it to ping-pong
+  frames 0-19 then back down to 1 instead of cycling all 32.
+- `blend` — for an `animated` texture, crossfade toward the next frame
+  across each frame's display time (Java .mcmeta `interpolate`) instead of
+  hard-stepping; wraps last frame back to first. For sparse strips like
+  magma/sculk whose few frames would visibly jump.
 
 `make bedrock_samples_build` clones Mojang's bedrock-samples (pinned
 `BEDROCK_SAMPLES_TAG`) into `bedrock-samples/` (git-ignored);
@@ -128,9 +136,10 @@ includers):
   (safe for the shader preprocessor; compare as `uint(TEX_*)` in GLSL), plus
   `TEXTURE_COUNT`, `TEXTURE_ROTATABLE_COUNT`, `TEXTURE_ANIM_BASE`,
   `TEXTURE_ANIM_COUNT`, `BLOCK_TEXTURE_ATLAS_ROWS`
-- `include/common/texture_anim_gen.hpp` — `TEX_ANIM_TABLE`, one `uvec3`
-  per animated span layer `{span_first_layer, playback_len, ticks_per_frame}`
-  (GLSL-only; indexed by `layer - TEXTURE_ANIM_BASE`)
+- `include/common/texture_anim_gen.hpp` — `TEX_ANIM_TABLE`, one `uvec4`
+  per animated span layer `{span_first_layer, playback_len,
+  ticks_per_frame, blend}` (GLSL-only; indexed by
+  `layer - TEXTURE_ANIM_BASE`)
 - `src/common/block_definitions_gen.inc` — all 6 `textures[]` + `icon_texture`
   per block plus non-default fields
 - `src/common/block_names_gen.inc` / `src/common/texture_names_gen.inc` —
@@ -780,7 +789,10 @@ replaces the showcase. The ground is solid
 SANDSTONE for y≤0 (solid, not a one-block floor, so the light cascade has
 no void volume to sweep) with every defined non-AIR block placed
 once at y=1 on a 2-spaced grid (32 per row, starting at x=2/z=2), ordered
-`CREATIVE_BLOCKS` first then the remaining defined ids ascending — the
+`CREATIVE_BLOCKS` first then the remaining defined ids ascending. Blocks
+with an animated face texture (layers ≥ `TEXTURE_ANIM_BASE`) are split
+into their own section on the same grid mirrored across x=0 (slots at
+x=-2,-4,...) so the moving textures sit apart from the rest — the
 layout lives in `MapGen::block_world_cell` (`block_world_id` unwraps the
 id for callers that ignore rotation). The z<0 side also holds a
 scaffolding showcase: a 4-high column at x=-9/z=-33 with a 6-cell arm off

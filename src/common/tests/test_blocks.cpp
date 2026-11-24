@@ -9,6 +9,7 @@
 #include "common/ui_overlay_buffers.hpp"
 #include "common/mesh_gen.hpp"
 #include "common/creative_order_gen.hpp"
+#include "common/texture_ids_gen.hpp"
 // Same CPU-side include as chunk_mesh.cpp: pulls mesh_face_seethrough et al. in
 // as static inline helpers for the slab coverage checks.
 #define MG_QUAL static inline
@@ -1340,8 +1341,9 @@ int test_cake( ) {
 }
 
 // Block-world debug layout (REPGAME_BLOCK_WORLD path — block_world_id itself
-// is env-independent): sandstone floor, grid order = CREATIVE_BLOCKS then
-// remaining defined ids ascending, one air cell between neighbours.
+// is env-independent): sandstone floor, static blocks on the +x grid,
+// animated blocks on the mirrored -x grid; each ordered CREATIVE_BLOCKS
+// then remaining defined ids ascending, one air cell between neighbours.
 int test_block_world( ) {
     if ( block_definitions == nullptr ) {
         block_definitions_initilize_definitions( nullptr );
@@ -1358,49 +1360,58 @@ int test_block_world( ) {
     check_bool( "bw: floor is sandstone far away", MapGen::block_world_id( -500, 0, 700 ) == SANDSTONE );
     check_bool( "bw: air above floor", MapGen::block_world_id( 2, 2, 2 ) == AIR );
     check_bool( "bw: sandstone below floor", MapGen::block_world_id( 2, -1, 2 ) == SANDSTONE );
-    check_bool( "bw: grid slot 0 is CREATIVE_BLOCKS[0]", MapGen::block_world_id( 2, 1, 2 ) == CREATIVE_BLOCKS[ 0 ] );
-    check_bool( "bw: grid slot 1 is CREATIVE_BLOCKS[1]", MapGen::block_world_id( 4, 1, 2 ) == CREATIVE_BLOCKS[ 1 ] );
-    check_bool( "bw: slot 32 wraps to next row", MapGen::block_world_id( 2, 1, 4 ) == CREATIVE_BLOCKS[ 32 ] );
     check_bool( "bw: air gap between slots", MapGen::block_world_id( 3, 1, 2 ) == AIR );
     check_bool( "bw: air gap between rows", MapGen::block_world_id( 2, 1, 3 ) == AIR );
     check_bool( "bw: air before grid start", MapGen::block_world_id( 1, 1, 2 ) == AIR );
     check_bool( "bw: air past row width", MapGen::block_world_id( 2 + 64, 1, 2 ) == AIR );
 
-    // Every defined non-AIR id must appear on the grid exactly once.
-    unsigned char expected[ LAST_BLOCK_ID ] = { 0 };
-    unsigned char seen[ LAST_BLOCK_ID ] = { 0 };
-    int expected_count = 0;
-    for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
-        // The creative list ends with pure items, which the block world skips.
-        if ( item_is_block( CREATIVE_BLOCKS[ i ] ) ) {
-            expected[ CREATIVE_BLOCKS[ i ] ] = 1;
+    // Expected grid order per section: creative blocks (skipping the pure
+    // items at the list tail) then remaining defined ids ascending, split
+    // by whether any face texture is animated.
+    auto anim = []( unsigned int id ) {
+        const Block *def = block_definition_get_definition( static_cast<BlockID>( id ) );
+        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+            if ( def->textures[ f ] >= TEXTURE_ANIM_BASE ) {
+                return true;
+            }
         }
+        return false;
+    };
+    unsigned char expected[ LAST_BLOCK_ID ] = { 0 };
+    std::vector<BlockID> grid_still, grid_anim;
+    for ( unsigned int i = 0; i < CREATIVE_BLOCK_COUNT; i++ ) {
+        if ( !item_is_block( CREATIVE_BLOCKS[ i ] ) ) {
+            continue;
+        }
+        expected[ CREATIVE_BLOCKS[ i ] ] = 1;
+        ( anim( CREATIVE_BLOCKS[ i ] ) ? grid_anim : grid_still ).push_back( static_cast<BlockID>( CREATIVE_BLOCKS[ i ] ) );
     }
     for ( unsigned int id = 1; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
         if ( !expected[ id ] && block_id_defined( id ) ) {
             expected[ id ] = 1;
+            ( anim( id ) ? grid_anim : grid_still ).push_back( static_cast<BlockID>( id ) );
         }
     }
     expected[ AIR ] = 0;
-    for ( unsigned int id = 0; id < (unsigned int)LAST_BLOCK_ID; id++ ) {
-        expected_count += expected[ id ];
+    int expected_count = (int)grid_still.size( ) + (int)grid_anim.size( );
+
+    // Every expected id must fill its grid slot in order on the matching
+    // section: +x for static, -x mirrored for animated. Slot equality also
+    // proves no dupes or strays.
+    int misplaced = 0;
+    for ( size_t i = 0; i < grid_still.size( ); i++ ) {
+        misplaced += MapGen::block_world_id( 2 + 2 * (int)( i % 32 ), 1, 2 + 2 * (int)( i / 32 ) ) != grid_still[ i ];
     }
-    int seen_count = 0, dupes = 0, strays = 0;
-    for ( int k = 0; k < expected_count + 64; k++ ) {
-        const BlockID id = MapGen::block_world_id( 2 + 2 * ( k % 32 ), 1, 2 + 2 * ( k / 32 ) );
-        if ( id == AIR ) {
-            continue;
-        }
-        if ( !expected[ id ] ) {
-            strays++;
-        } else if ( seen[ id ] ) {
-            dupes++;
-        } else {
-            seen[ id ] = 1;
-            seen_count++;
-        }
+    for ( size_t i = 0; i < grid_anim.size( ); i++ ) {
+        misplaced += MapGen::block_world_id( -2 - 2 * (int)( i % 32 ), 1, 2 + 2 * (int)( i / 32 ) ) != grid_anim[ i ];
     }
-    check_bool( "bw: every defined non-AIR id placed once", seen_count == expected_count && dupes == 0 && strays == 0 );
+    check_bool( "bw: every defined non-AIR id placed once in order", misplaced == 0 && expected_count > 0 );
+    check_bool( "bw: animated section is populated", !grid_anim.empty( ) );
+    // Just past the last animated slot must be air, and the -x grid must
+    // contain only animated ids (checked via the order pass above).
+    const size_t last_anim = grid_anim.size( );
+    check_bool( "bw: air past animated section",
+                MapGen::block_world_id( -2 - 2 * (int)( last_anim % 32 ), 1, 2 + 2 * (int)( last_anim / 32 ) ) == AIR );
 
     // Sign showcase (z<0): standing signs on the floor, wall signs on the
     // +z face of the stones at z=-21, hanging signs under the y=2 beam.

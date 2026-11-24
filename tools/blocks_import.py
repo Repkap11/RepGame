@@ -205,7 +205,7 @@ DROP_KEYS = {"item", "min", "max", "chance"}
 RECIPE_KEYS = {"pattern", "key", "ingredients", "result", "count"}
 
 TEX_META_KEYS = {"source", "random_rotate", "tint", "alpha", "frame", "keep", "overlay", "extract", "flip",
-                 "animated", "ticks"}
+                 "animated", "ticks", "blend", "frames"}
 
 SHAPES_JSON = os.path.join(DATA_DIR, "shapes.json")
 
@@ -1244,8 +1244,9 @@ def resolve_anim(name, meta, fb_by_tile, fb_by_source):
     Playback info comes from the Bedrock flipbook entry matching this
     texture — by atlas_tile name, else by flipbook_texture == source (our
     names don't always match Bedrock's atlas tiles, e.g. lava_still vs
-    still_lava). "ticks" in textures.json overrides the entry; a texture
-    with no flipbook entry plays sequential frames and must set "ticks".
+    still_lava). "ticks"/"frames" in textures.json override the entry's
+    rate/playback order; a texture with no flipbook entry plays sequential
+    frames and must set "ticks".
     """
     if "frame" in meta:
         fail("texture %r: 'frame' and 'animated' are mutually exclusive" % name)
@@ -1272,11 +1273,13 @@ def resolve_anim(name, meta, fb_by_tile, fb_by_source):
              "(20/s) explicitly" % name)
     if not isinstance(ticks, int) or ticks < 1:
         fail("texture %r: bad ticks %r" % (name, ticks))
-    order = entry.get("frames") if entry else None
+    order = meta.get("frames")
+    if order is None:
+        order = entry.get("frames") if entry else None
     if order is None:
         order = list(range(strip_frames))
     if not all(isinstance(f, int) and 0 <= f < strip_frames for f in order):
-        fail("texture %r: flipbook frames %r out of range for a %d-frame "
+        fail("texture %r: frames %r out of range for a %d-frame "
              "strip" % (name, order, strip_frames))
     tiles = []
     for f in order:
@@ -1335,6 +1338,10 @@ def main():
             unknown = set(m) - TEX_META_KEYS
             if unknown:
                 fail("textures.json: %r has unknown keys %s" % (name, sorted(unknown)))
+            if m.get("blend") and not m.get("animated"):
+                fail("textures.json: %r: \"blend\" requires \"animated\"" % name)
+            if "frames" in m and not m.get("animated"):
+                fail("textures.json: %r: \"frames\" requires \"animated\"" % name)
 
     # Resolve every block's faces + icon and collect the referenced textures.
     resolved = {}  # bid -> {"faces": [6 names], "icon": name}
@@ -1392,7 +1399,8 @@ def main():
         meta = tex_meta.get(name, {})
         if meta.get("animated"):
             tiles, ticks = anim_tiles(name)
-            anim[name] = {"frames": len(tiles), "ticks": ticks}
+            anim[name] = {"frames": len(tiles), "ticks": ticks,
+                          "blend": bool(meta.get("blend"))}
             images[name] = tiles[0]
             for p in range(1, len(tiles)):
                 synth = "%s__f%03d" % (name, p)
@@ -1729,17 +1737,19 @@ def main():
     write_if_changed(OUT_TEX, "".join(out))
 
     # include/common/texture_anim_gen.hpp — the flipbook playback table the
-    # fragment shader indexes by layer - TEXTURE_ANIM_BASE: one uvec3 per
-    # animated span layer {span_first_layer, playback_len, ticks_per_frame}.
-    # GLSL-only content (uvec3) — nothing but shaders may include it.
+    # fragment shader indexes by layer - TEXTURE_ANIM_BASE: one uvec4 per
+    # animated span layer {span_first_layer, playback_len, ticks_per_frame,
+    # blend} where blend crossfades between frames (Java's "interpolate").
+    # GLSL-only content (uvec4) — nothing but shaders may include it.
     out = [HEADER, "#ifndef REPGAME_TEXTURE_ANIM_GEN_HPP\n#define REPGAME_TEXTURE_ANIM_GEN_HPP\n\n"]
     anim_entries = []
     for name in sorted(anim):
         a = anim[name]
-        anim_entries += ["    uvec3( %du, %du, %du )" % (layers[name], a["frames"], a["ticks"])] * a["frames"]
+        anim_entries += ["    uvec4( %du, %du, %du, %du )" %
+                         (layers[name], a["frames"], a["ticks"], a["blend"])] * a["frames"]
     if not anim_entries:
-        anim_entries = ["    uvec3( 0u, 0u, 0u )"]
-    out.append("const uvec3 TEX_ANIM_TABLE[%d] = uvec3[](\n%s\n);\n" %
+        anim_entries = ["    uvec4( 0u, 0u, 0u, 0u )"]
+    out.append("const uvec4 TEX_ANIM_TABLE[%d] = uvec4[](\n%s\n);\n" %
                (max(count - anim_base, 1), ",\n".join(anim_entries)))
     out.append("\n#endif\n")
     write_if_changed(OUT_ANIM, "".join(out))

@@ -123,16 +123,31 @@ flat in int v_block_auto_rotates;
 // Flipbook-animated textures (fire, fluids, magma, ...): the atlas layers in
 // [TEXTURE_ANIM_BASE, TEXTURE_COUNT) hold each animated texture's playback
 // frames contiguously, and TEX_ANIM_TABLE maps every layer in the span to
-// {span_first_layer, playback_len, ticks_per_frame} — ticks at 20/s. A face
-// arrives with the span's first layer id; remap it to the current frame.
+// {span_first_layer, playback_len, ticks_per_frame, blend} — ticks at 20/s.
+// A face arrives with the span's first layer id; remap it to the current
+// frame. blend (Java's .mcmeta "interpolate") crossfades toward the next
+// frame across each frame's display time so sparse strips like magma/sculk
+// read as a continuous pulse; the loop wraps last->first.
+// Returns {layer_a, layer_b, mix} — sample layer_b only when mix > 0.
 // u_DebugFlags bit 512 freezes animation at playback frame 0.
-uint anim_layer(uint id) {
+vec3 anim_layers(uint id) {
+    vec3 r = vec3(float(id), float(id), 0.0f);
     if(id >= uint(TEXTURE_ANIM_BASE) && (u_DebugFlags & 512) == 0) {
-        uvec3 e = TEX_ANIM_TABLE[id - uint(TEXTURE_ANIM_BASE)];
+        uvec4 e = TEX_ANIM_TABLE[id - uint(TEXTURE_ANIM_BASE)];
         float dt = float(e.z) * 0.05f;
-        id = e.x + uint(mod(u_Time, float(e.y) * dt) / dt);
+        float pos = mod(u_Time, float(e.y) * dt) / dt;
+        uint f0 = uint(pos);
+        r.x = float(e.x + f0);
+        if(e.w != 0u) {
+            r.y = float(e.x + (f0 + 1u) % e.y);
+            r.z = fract(pos);
+        }
     }
-    return id;
+    return r;
+}
+
+uint anim_layer(uint id) {
+    return uint(anim_layers(id).x);
 }
 
 layout(location = 0) out vec4 color;
@@ -215,8 +230,10 @@ void main() {
     working = clamp(working, working_lo, working_hi);
 
     // Atlas layer the face samples after flipbook animation; v_blockID
-    // stays the unanimated id for comparisons/hashes below.
-    uint layer = anim_layer(v_blockID);
+    // stays the unanimated id for comparisons/hashes below. al.y/al.z are
+    // the blend-flagged second frame + mix (none for unflagged textures).
+    vec3 al = anim_layers(v_blockID);
+    uint layer = uint(al.x);
     vec4 texColor;
     if(u_FluidAnim == 0 && v_face_normal.y > 0.5f &&
        (v_blockID == uint(TEX_WATER_FLOW) || v_blockID == uint(TEX_LAVA_FLOW))) {
@@ -228,11 +245,17 @@ void main() {
         uint still_layer = v_blockID == uint(TEX_WATER_FLOW) ? uint(TEX_WATER_STILL) : uint(TEX_LAVA_STILL);
         texColor = texture(u_Texture, vec3(v_TexCoordBlock, anim_layer(still_layer)));
     } else {
-        texColor = textureGrad(u_Texture, vec3(working, layer), uv_dx, uv_dy);
+        texColor = textureGrad(u_Texture, vec3(working, al.x), uv_dx, uv_dy);
+        if(al.z > 0.0f) {
+            texColor = mix(texColor, textureGrad(u_Texture, vec3(working, al.y), uv_dx, uv_dy), al.z);
+        }
     }
     // u_DebugFlags bit 2: texture detail off — resample at a coarse mip.
     if((u_DebugFlags & 2) != 0) {
         texColor.rgb = textureLod(u_Texture, vec3(working, layer), 4.0).rgb;
+        if(al.z > 0.0f) {
+            texColor.rgb = mix(texColor.rgb, textureLod(u_Texture, vec3(working, al.y), 4.0).rgb, al.z);
+        }
     }
 
     if(texColor.a == 0.0f) {

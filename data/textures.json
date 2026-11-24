@@ -402,6 +402,8 @@
   },
   "campfire_log_lit": {
     "animated": true,
+    "blend": true,
+    "ticks": 20,
     "source": "textures/blocks/campfire_log_lit"
   },
   "candle": {
@@ -2200,10 +2202,14 @@
   },
   "lava_flow": {
     "animated": true,
+    "ticks": 4,
     "source": "textures/blocks/lava_flow"
   },
   "lava_still": {
     "animated": true,
+    "frames": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+               18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    "ticks": 4,
     "source": "textures/blocks/lava_still"
   },
   "leaf_litter": {
@@ -2387,6 +2393,8 @@
   },
   "magma": {
     "animated": true,
+    "blend": true,
+    "ticks": 8,
     "source": "textures/blocks/magma"
   },
   "mangrove_door_bottom": {
@@ -3324,6 +3332,7 @@
   },
   "sculk": {
     "animated": true,
+    "blend": true,
     "source": "textures/blocks/sculk"
   },
   "sculk_catalyst_bottom": {
@@ -3346,6 +3355,7 @@
   },
   "sculk_vein": {
     "animated": true,
+    "blend": true,
     "source": "textures/blocks/sculk_vein"
   },
   "sea_lantern": {
@@ -5205,6 +5215,8 @@
   },
   "soul_campfire_log_lit": {
     "animated": true,
+    "blend": true,
+    "ticks": 20,
     "source": "textures/blocks/soul_campfire_log_lit"
   },
   "soul_fire_0": {
@@ -5728,7 +5740,7 @@
   },
   "water_flow": {
     "animated": true,
-    "ticks": 2,
+    "ticks": 1,
     "alpha": 140,
     "source": "textures/blocks/water_flow"
   },

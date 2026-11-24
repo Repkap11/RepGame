@@ -333,11 +333,15 @@ flipbooks: the importer packs every playback frame as its own atlas layer in
 the `[TEXTURE_ANIM_BASE, TEXTURE_COUNT)` tail span and emits
 `TEX_ANIM_TABLE` (`include/common/texture_anim_gen.hpp`). A face still
 arrives in `chunk_fragment.glsl` with the texture's *logical* id — the first
-playback layer — and `anim_layer()` remaps it to the current frame
+playback layer — and `anim_layers()` remaps it to the current frame
 (`mod(u_Time, len*dt)/dt`, 20 ticks/s) before every atlas sample, so the
 remap is a pure fragment-side layer swap: no per-frame CPU work, no mesh
 changes, and `v_blockID` stays logical for the water/lava checks and the
-cutout hash. Fire, soul fire, water/lava still+flow, magma, portal, sea
+cutout hash. Textures with `"blend": true` in `data/textures.json` (Java's
+.mcmeta `interpolate` — currently magma, sculk, sculk vein, the strips too
+sparse for stepping) additionally sample the *next* frame and `mix` by the
+fractional position, wrapping last→first so the loop stays seamless. Fire,
+soul fire, water/lava still+flow, magma, portal, sea
 lantern, the campfires, sculk/sculk vein and cauldron water animate this
 way; the Bedrock `flipbook_textures.json` supplies authored frame order and
 tick rates. Only the terrain shader applies the remap — block defs still
