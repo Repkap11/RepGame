@@ -41,6 +41,9 @@ int test_chunk_diff_gate( ) {
         check_bool( "predicate: uncovered position unsettles", !cl.chunk_settled( slot0, gs.multiplayer ) );
         gs.multiplayer.active = false;
         check_bool( "predicate: offline always settles", cl.chunk_settled( slot0, gs.multiplayer ) );
+        gs.multiplayer.connect_pending = true;
+        check_bool( "predicate: connecting unsettles", !cl.chunk_settled( slot0, gs.multiplayer ) );
+        gs.multiplayer.connect_pending = false;
         gs.multiplayer.active = true;
         cl.diff_gate_override = 0;
         check_bool( "predicate: gate override off settles", cl.chunk_settled( slot0, gs.multiplayer ) );
@@ -150,6 +153,52 @@ int test_chunk_diff_gate( ) {
         check_bool( "force: cap reveals despite outstanding seq",
                     chunk.load_state == CHUNK_LIVE && cl.settle_wait_list.empty( ) );
         gs.multiplayer.active = false;
+    }
+
+    // ---- Connect window: terrain landing before the socket is up waits ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        test_setup_world( gs.world );
+        ChunkLoader &cl = gs.world.chunkLoader;
+        Chunk &chunk = cl.chunkArray[ slot0 ];
+        chunk.load_state = CHUNK_LOADING;
+        gs.multiplayer.connect_pending = true;
+        cl.slot_diff_req[ slot0 ] = glm::ivec3( 9, 9, 9 );
+        cl.finalize_loaded_chunk( chunk, gs.multiplayer, cp0 );
+        check_bool( "connecting: finalize defers", chunk.load_state == CHUNK_SETTLE_WAIT && cl.settle_wait_list.size( ) == 1 );
+        // Long connect: the wait clock doesn't run, so no force-reveal.
+        cl.settle_wait_list[ 0 ].defer_us -= 20 * 1000000;
+        cl.settle_scan( gs.multiplayer, cp0, LLONG_MAX );
+        check_bool( "connecting: scan holds + restarts clock",
+                    chunk.load_state == CHUNK_SETTLE_WAIT && cl.settle_wait_list.size( ) == 1 &&
+                        cl.settle_wait_list[ 0 ].defer_us > 0 );
+        // Connected: the uncovered slot gets its own request, then settles.
+        gs.multiplayer.connect_pending = false;
+        gs.multiplayer.active = true;
+        cl.settle_scan( gs.multiplayer, cp0, LLONG_MAX );
+        check_bool( "connected: uncovered slot requested",
+                    cl.slot_diff_req[ slot0 ] == cp0 && gs.multiplayer.diff_boxes_sent == 1 &&
+                        cl.slot_diff_seq[ slot0 ] == 1 && chunk.load_state == CHUNK_SETTLE_WAIT );
+        chunk.gl_initialized = 1;
+        gs.multiplayer.diff_boxes_done = 1;
+        cl.settle_scan( gs.multiplayer, cp0, LLONG_MAX );
+        check_bool( "connected: DONE reveals", chunk.load_state == CHUNK_LIVE && cl.settle_wait_list.empty( ) );
+        gs.multiplayer.active = false;
+    }
+
+    // ---- Failed connect: deferred slots settle immediately ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        test_setup_world( gs.world );
+        ChunkLoader &cl = gs.world.chunkLoader;
+        Chunk &chunk = cl.chunkArray[ slot0 ];
+        chunk.load_state = CHUNK_LOADING;
+        gs.multiplayer.connect_pending = true;
+        cl.finalize_loaded_chunk( chunk, gs.multiplayer, cp0 );
+        gs.multiplayer.connect_pending = false;
+        chunk.gl_initialized = 1;
+        cl.settle_scan( gs.multiplayer, cp0, LLONG_MAX );
+        check_bool( "connect failed: reveals", chunk.load_state == CHUNK_LIVE && cl.settle_wait_list.empty( ) );
     }
 
     // ---- Stale entries: a slot that moved on drops out of the list ----

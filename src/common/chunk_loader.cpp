@@ -470,8 +470,15 @@ bool ChunkLoader::diff_gate_enabled( ) const {
 // slot must carry a stamp for its current position whose sequence the
 // diff_boxes_done watermark has already passed.
 bool ChunkLoader::chunk_settled( int slot_i, const Multiplayer &multiplayer ) const {
-    if ( !this->diff_gate_enabled( ) || !multiplayer.is_active( ) ) {
+    if ( !this->diff_gate_enabled( ) ) {
         return true;
+    }
+    // Still connecting: no request can be out yet, so nothing is settled —
+    // revealing now would flash generated terrain until the connect box's
+    // diffs land (the slow WASM WebSocket handshake always loses that race).
+    // A failed connect clears connect_pending and settles everything.
+    if ( !multiplayer.is_active( ) ) {
+        return !multiplayer.is_connecting( );
     }
     const Chunk &chunk = this->chunkArray[ slot_i ];
     return this->slot_diff_req[ slot_i ] == chunk.chunk_pos &&
@@ -494,11 +501,23 @@ void ChunkLoader::settle_scan( Multiplayer &multiplayer, const glm::ivec3 &cente
             this->settle_wait_list.pop_back( );
             continue;
         }
+        // The reask/force windows measure an unanswered request, so they
+        // start once the connect resolves rather than at the defer.
+        if ( multiplayer.is_connecting( ) ) {
+            this->settle_wait_list[ i ].defer_us = t0;
+            i++;
+            continue;
+        }
         const long long deferred_for = t0 - sw.defer_us;
         const bool forced = deferred_for >= SETTLE_FORCE_US;
         const bool reveal = forced || this->chunk_settled( sw.slot, multiplayer );
         if ( !reveal ) {
-            if ( !sw.reasked && deferred_for >= SETTLE_REASK_US &&
+            // Deferred while connecting and not covered by the connect box:
+            // ask now that the socket is up (finalize's backstop couldn't).
+            if ( this->slot_diff_req[ sw.slot ] != chunk.chunk_pos && multiplayer.request_chunk( chunk.chunk_pos ) ) {
+                this->slot_diff_req[ sw.slot ] = chunk.chunk_pos;
+                this->slot_diff_seq[ sw.slot ] = multiplayer.diff_boxes_sent_count( );
+            } else if ( !sw.reasked && deferred_for >= SETTLE_REASK_US &&
                  this->slot_diff_req[ sw.slot ] == chunk.chunk_pos &&
                  multiplayer.request_chunk( chunk.chunk_pos ) ) {
                 this->slot_diff_seq[ sw.slot ] = multiplayer.diff_boxes_sent_count( );

@@ -248,7 +248,7 @@ class ChunkLoader {
     void stamp_diff_request_box( const glm::ivec3 &center, const glm::ivec3 &box_min, const glm::ivec3 &box_size, uint32_t seq );
     // Diff-gated reveal: a generated chunk waits as CHUNK_SETTLE_WAIT until
     // chunk_settled — its covering request's DONE has arrived (or the gate
-    // is off / multiplayer inactive). Deferred slots are scanned every frame
+    // is off / multiplayer neither active nor connecting). Deferred slots are scanned every frame
     // and re-finalized on settle so the first live state already carries
     // every applied diff. REPGAME_CHUNK_DIFF_GATE=0 disables the gate;
     // diff_gate_override mirrors async_remesh_override for tests

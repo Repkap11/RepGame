@@ -217,8 +217,14 @@ settled — bounded by `CHUNK_FINALIZE_BUDGET_US`, so a burst of DONEs
 streams in over a few frames — and the staged `pending_diffs` drain
 inside it, so the first live state already carries every edit. A slot
 unanswered for ~3 s re-issues its covering request once; past ~15 s it
-force-reveals with a warning rather than leaving a hole. Disconnect
-settles everything immediately (`is_active()` false).
+force-reveals with a warning rather than leaving a hole. While the
+connect is still in flight (`is_connecting()`) nothing is settled —
+otherwise chunks generated before the socket comes up (the WASM
+WebSocket handshake routinely loses that race) would reveal undiffed and
+flash when the connect box lands. Those entries' reask/force clocks only
+start once the connect resolves, and any not covered by the connect box
+get their own request in `settle_scan`. A failed connect or a disconnect
+settles everything immediately (neither active nor connecting).
 
 Diffs routinely beat terrain gen to the client, so a result for a
 non-live chunk goes into `Multiplayer::pending_diffs` and lands during
