@@ -1,0 +1,23 @@
+{
+  "affected_by_redstone_power": false,
+  "breaks_in_liquid": true,
+  "casts_shadow": false,
+  "collides_with_player": false,
+  "hardness": 0,
+  "icon": "seagrass",
+  "icon_is_isometric": false,
+  "id": 1510,
+  "is_pickable": false,
+  "is_seethrough": true,
+  "is_tall_plant_upper": true,
+  "name": "TALL_SEAGRASS_UPPER",
+  "no_light": 0,
+  "render_order": "Flowers",
+  "tall_plant_partner": "TALL_SEAGRASS",
+  "textures": {
+    "bottom": "air",
+    "side": "seagrass_doubletall_top_a",
+    "top": "air"
+  },
+  "waterloggable": true
+}

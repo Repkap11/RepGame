@@ -22701,25 +22701,50 @@ block_definitions[ 1508 ].rotate_on_placement = true;
 block_definitions[ 1508 ].scale = { 16, 16, 4 };
 block_definitions[ 1508 ].tex_offset = { 0, 0, -6 };
 
-// undefined (1509)
+// TALL_SEAGRASS (1509)
 block_definitions[ 1509 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 1509 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1509 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1509 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1509 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1509 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1509 ].icon_texture = TEX_AIR;
-block_definitions[ 1509 ].is_pickable = false;
+block_definitions[ 1509 ].textures[ FACE_RIGHT ] = TEX_SEAGRASS_DOUBLETALL_BOTTOM_A;
+block_definitions[ 1509 ].textures[ FACE_FRONT ] = TEX_SEAGRASS_DOUBLETALL_BOTTOM_A;
+block_definitions[ 1509 ].textures[ FACE_LEFT ] = TEX_SEAGRASS_DOUBLETALL_BOTTOM_A;
+block_definitions[ 1509 ].textures[ FACE_BACK ] = TEX_SEAGRASS_DOUBLETALL_BOTTOM_A;
+block_definitions[ 1509 ].icon_texture = TEX_SEAGRASS;
+block_definitions[ 1509 ].affected_by_redstone_power = false;
+block_definitions[ 1509 ].breaks_in_liquid = true;
+block_definitions[ 1509 ].casts_shadow = false;
+block_definitions[ 1509 ].collides_with_player = false;
+block_definitions[ 1509 ].hardness = 0.0f;
+block_definitions[ 1509 ].icon_is_isometric = false;
+block_definitions[ 1509 ].is_seethrough = true;
+block_definitions[ 1509 ].mineable = MINEABLE_SHOVEL;
+block_definitions[ 1509 ].needs_place_on_any_solid[ FACE_TOP ] = true;
+block_definitions[ 1509 ].no_light = 0;
+block_definitions[ 1509 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1509 ].tall_plant_partner = TALL_SEAGRASS_UPPER;
+block_definitions[ 1509 ].waterloggable = true;
 
-// undefined (1510)
+// TALL_SEAGRASS_UPPER (1510)
 block_definitions[ 1510 ].textures[ FACE_TOP ] = TEX_AIR;
 block_definitions[ 1510 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 1510 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 1510 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 1510 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 1510 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 1510 ].icon_texture = TEX_AIR;
+block_definitions[ 1510 ].textures[ FACE_RIGHT ] = TEX_SEAGRASS_DOUBLETALL_TOP_A;
+block_definitions[ 1510 ].textures[ FACE_FRONT ] = TEX_SEAGRASS_DOUBLETALL_TOP_A;
+block_definitions[ 1510 ].textures[ FACE_LEFT ] = TEX_SEAGRASS_DOUBLETALL_TOP_A;
+block_definitions[ 1510 ].textures[ FACE_BACK ] = TEX_SEAGRASS_DOUBLETALL_TOP_A;
+block_definitions[ 1510 ].icon_texture = TEX_SEAGRASS;
+block_definitions[ 1510 ].affected_by_redstone_power = false;
+block_definitions[ 1510 ].breaks_in_liquid = true;
+block_definitions[ 1510 ].casts_shadow = false;
+block_definitions[ 1510 ].collides_with_player = false;
+block_definitions[ 1510 ].hardness = 0.0f;
+block_definitions[ 1510 ].icon_is_isometric = false;
 block_definitions[ 1510 ].is_pickable = false;
+block_definitions[ 1510 ].is_seethrough = true;
+block_definitions[ 1510 ].is_tall_plant_upper = true;
+block_definitions[ 1510 ].mineable = MINEABLE_SHOVEL;
+block_definitions[ 1510 ].no_light = 0;
+block_definitions[ 1510 ].renderOrder = RenderOrder_Flowers;
+block_definitions[ 1510 ].tall_plant_partner = TALL_SEAGRASS;
+block_definitions[ 1510 ].waterloggable = true;
 
 // undefined (1511)
 block_definitions[ 1511 ].textures[ FACE_TOP ] = TEX_AIR;

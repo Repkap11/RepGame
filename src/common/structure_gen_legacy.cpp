@@ -10,6 +10,8 @@
 //   - BlockState gained the trailing `waterlogged` field.
 //   - Etho trees: ~1 in 100 trees gets a glowstone top log (gameplay
 //     deviation from the faithful port).
+//   - Pass 3 plants seagrass/kelp on shallow seabeds — new content, the
+//     original had nothing underwater (gameplay deviation).
 //
 // Trees are no longer clipped at chunk borders: every chunk re-derives all
 // trees whose parts could land in its block array (halo included) from pure
@@ -112,6 +114,42 @@ static int sgl_is_reed_roll( int x, int z ) {
 // threshold needs). Pure function of the trunk column, so every chunk agrees.
 static int sgl_is_etho_tree( const int x, const int z ) {
     return noise2( x, z, MAP_SEED + 11 ) < 3; // 3/256 ~ 1.2%
+}
+
+// Depth band for seabed plants: the floor top must sit at least two cells
+// under the waterline (the plant cell stays submerged) and within ~12 of it
+// (deep oceans stay barren) — the same band the reworked generator uses.
+#define LEGACY_SEABED_MIN_Y ( WATER_LEVEL - 11 )
+#define LEGACY_SEABED_MAX_Y ( WATER_LEVEL - 2 )
+
+// Finds the water cell directly above a plantable seabed — the cell a water
+// plant occupies — as a pure function of world coords, so every chunk derives
+// the same cell and writes only the ones inside its own array. Returns the
+// world y of the plant cell, or SGL_NO_SEABED when the column can't grow
+// plants (dry land, deep ocean, or a rock/cave floor). The sentinel can't be
+// -1: every valid plant y is already negative.
+#define SGL_NO_SEABED -1000000
+static int sgl_seabed_plant_y( const int wx, const int wz ) {
+    const float h = MapGen::calculateTerrainHeight( wx, wz );
+    // Caves can only carve the floor lower, so a heightmap outside this band
+    // can never hold a plantable floor.
+    if ( h > (float)( WATER_LEVEL - 1 ) || h <= (float)LEGACY_SEABED_MIN_Y ) {
+        return SGL_NO_SEABED;
+    }
+    for ( int y = WATER_LEVEL - 1; y >= LEGACY_SEABED_MIN_Y; y-- ) {
+        const BlockID below = MapGen::gen_block_id( wx, y, wz );
+        if ( below == WATER ) {
+            continue;
+        }
+        // First non-water cell is the seabed; the water cell above it is the
+        // plant cell. Cave mouths (AIR) and bare rock grow nothing.
+        if ( y <= LEGACY_SEABED_MAX_Y &&
+             ( below == SAND || below == GRAVEL || below == DIRT ) ) {
+            return y + 1;
+        }
+        return SGL_NO_SEABED;
+    }
+    return SGL_NO_SEABED;
 }
 
 static int sgl_poll_fits( int x, int y, int z, const int height ) {
@@ -565,6 +603,72 @@ void StructureGen::place_legacy( Chunk &chunk ) {
                     }
                 }
             } // end loops
+        }
+    }
+
+    // ---- Pass 3: underwater vegetation ------------------------------------
+    // New for the overworld band — the original had nothing underwater.
+    // Per-column rolls on world coords over the interior plus the +-1 halo
+    // (like the new-gen decoration pass): a plant cell on a chunk edge is
+    // written identically by every chunk holding it — the halo-mirroring
+    // contract. Plant cells live at world y [WATER_LEVEL - 11, WATER_LEVEL -
+    // 1]; slabs that can't reach that band skip the whole pass.
+    if ( coy - 1 <= WATER_LEVEL - 1 && coy + CHUNK_SIZE_Y >= WATER_LEVEL - 11 ) {
+        for ( int x = -1; x <= CHUNK_SIZE_X; x++ ) {
+            const int world_x = cox + x;
+            for ( int z = -1; z <= CHUNK_SIZE_Z; z++ ) {
+                const int world_z = coz + z;
+                const int plant_wy = sgl_seabed_plant_y( world_x, world_z );
+                if ( plant_wy == SGL_NO_SEABED ) {
+                    continue;
+                }
+                // Meadow patches at ~70-block wavelength so seagrass comes in
+                // fields, not a uniform sprinkle. Seed offsets +19/+39/+55
+                // are unused elsewhere (seed map: map_gen_fields.hpp). The
+                // rolls run before any write decision because a column can
+                // cross a y-border: the seabed sits in the slab below, but a
+                // tall top can reach this chunk's -1 halo — each cell is
+                // written iff it lands inside this array and is still WATER.
+                const float roll = perlin_noise2d( world_x, world_z, 1.0f, 1, MAP_SEED + 39 );
+                const int reach = WATER_LEVEL - plant_wy;
+                int span = 0;               // cells of the plant, lowest first
+                BlockID span_id = AIR;
+                BlockID span_upper = AIR;   // second cell when it differs
+                if ( perlin_noise2d( world_x, world_z, 0.015f, 2, MAP_SEED + 19 ) <= 0.55f ) {
+                    // Sparse strands between meadows: single seagrass only.
+                    if ( roll < 0.015f ) {
+                        span = 1;
+                        span_id = SEAGRASS;
+                    }
+                } else if ( roll < 0.07f && reach >= 2 ) {
+                    // Kelp column: 2 cells minimum, sometimes all the way to
+                    // the surface. Height is a second per-column roll.
+                    const float hr = perlin_noise2d( world_x, world_z, 1.0f, 1, MAP_SEED + 55 );
+                    span = 2 + (int)( hr * (float)( reach - 1 ) );
+                    span_id = KELP;
+                } else if ( roll < 0.13f && reach >= 2 ) {
+                    // Two-block tall seagrass (mirrors the TALL_GRASS pair).
+                    span = 2;
+                    span_id = TALL_SEAGRASS;
+                    span_upper = TALL_SEAGRASS_UPPER;
+                } else if ( roll < 0.26f ) {
+                    span = 1;
+                    span_id = SEAGRASS;
+                }
+                for ( int i = 0; i < span; i++ ) {
+                    const int ly = plant_wy + i - coy;
+                    if ( ly < -1 || ly > CHUNK_SIZE_Y ) {
+                        continue; // outside this slab — another chunk writes it
+                    }
+                    const glm::ivec3 cell( x, ly, z );
+                    if ( chunk.get_block( cell ).id != WATER ) {
+                        break;
+                    }
+                    const BlockID id = i == 1 && span_upper != AIR ? span_upper : span_id;
+                    const Block *def = block_definition_get_definition( id );
+                    chunk.set_block( cell, { id, BLOCK_ROTATE_0, def->initial_redstone_power, id, 0 } );
+                }
+            }
         }
     }
 }

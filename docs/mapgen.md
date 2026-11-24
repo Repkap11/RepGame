@@ -147,7 +147,17 @@ top log ("Etho trees"). `FOREST_DEBUG` paints every column as a tree for
 debugging. The decoration pass (`sgl_is_long_grass_roll`) also plants
 two-block TALL_GRASS pairs (lower + `TALL_GRASS_UPPER` above, falling
 back to SHORT_GRASS when the cell above can't take it) — see
-`tall_plant_partner` in `docs/blocks.md`.
+`tall_plant_partner` in `docs/blocks.md`. A separate underwater pass
+(new content — the original had none) plants seagrass meadows and kelp
+on shallow SAND/GRAVEL/DIRT seabeds: per-column rolls on world coords
+derive the plant cell purely from mapgen (`sgl_seabed_plant_y`), so it
+works even when the seabed sits in a different y-slab than the
+waterline, and the ±1-halo column loop keeps edge cells mirrored.
+Inside a meadow the pass lays SEAGRASS, two-block TALL_SEAGRASS pairs
+(`TALL_SEAGRASS_UPPER` above), or KELP columns of 2+ cells that
+sometimes reach the waterline; a column that crosses a y-border writes
+only the cells inside each chunk's array, which is why the rolls run
+before any bounds decision.
 
 ## New generator (repheim band)
 

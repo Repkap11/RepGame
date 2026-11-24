@@ -3368,6 +3368,12 @@
   "seagrass": {
     "source": "textures/blocks/seagrass"
   },
+  "seagrass_doubletall_bottom_a": {
+    "source": "textures/blocks/seagrass_doubletall_bottom_a.tga"
+  },
+  "seagrass_doubletall_top_a": {
+    "source": "textures/blocks/seagrass_doubletall_top_a.tga"
+  },
   "short_dry_grass": {
     "source": "textures/blocks/short_dry_grass"
   },

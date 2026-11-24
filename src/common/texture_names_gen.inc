@@ -950,6 +950,8 @@
     "sculk_shrieker_inner_top",
     "sea_pickle",
     "seagrass",
+    "seagrass_doubletall_bottom_a",
+    "seagrass_doubletall_top_a",
     "seeds_beetroot",
     "seeds_wheat",
     "shears",
