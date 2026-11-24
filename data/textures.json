@@ -2112,6 +2112,7 @@
     "source": "textures/blocks/jungle_trapdoor"
   },
   "kelp_a": {
+    "animated": true,
     "source": "textures/blocks/kelp_a"
   },
   "ladder": {
@@ -3366,13 +3367,16 @@
     "source": "textures/items/sea_pickle"
   },
   "seagrass": {
+    "animated": true,
     "source": "textures/blocks/seagrass"
   },
   "seagrass_doubletall_bottom_a": {
-    "source": "textures/blocks/seagrass_doubletall_bottom_a.tga"
+    "animated": true,
+    "source": "textures/blocks/seagrass_doubletall_bottom_a"
   },
   "seagrass_doubletall_top_a": {
-    "source": "textures/blocks/seagrass_doubletall_top_a.tga"
+    "animated": true,
+    "source": "textures/blocks/seagrass_doubletall_top_a"
   },
   "short_dry_grass": {
     "source": "textures/blocks/short_dry_grass"
