@@ -203,7 +203,12 @@ dimension name (`dim_name`) with y in the display frame.
   generated fountain uses `BEDROCK` in the same role) around a 3x3
   interior, corners ignored — `end_portal_find_frame` /
   `end_portal_ignite` / `end_portal_cell_survives` in `portal.cpp`.
-  Flint & steel on an interior cell lights it.
+  Flint & steel on an interior cell lights it. The `END_PORTAL` block
+  is MC's 12/16-tall plate (`scale` in `data/blocks/end_portal.json`;
+  travel checks the cell, not the box). Bedrock's
+  `textures/blocks/end_portal` is a rounded sprite with transparent
+  corners, so the `end_portal` entry in `data/textures.json` `extract`s
+  interior patches over them to make the tile opaque.
 - **End travel**: `repgame_portal_tick`'s `END_PORTAL` branch — standing
   in a pool for `PORTAL_TRAVEL_TICKS` goes to the End's obsidian pad
   (fixed, beside the fountain — no x/z mapping, no destination build,

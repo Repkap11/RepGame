@@ -8577,6 +8577,7 @@ block_definitions[ 550 ].hardness = -1.0f;
 block_definitions[ 550 ].is_seethrough = true;
 block_definitions[ 550 ].no_light = 6815743;
 block_definitions[ 550 ].piston_immovable = true;
+block_definitions[ 550 ].scale = { 16, 12, 16 };
 
 // END_PORTAL_FRAME (551)
 block_definitions[ 551 ].textures[ FACE_TOP ] = TEX_ENDFRAME_EYE;
