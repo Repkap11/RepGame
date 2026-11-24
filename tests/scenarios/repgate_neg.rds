@@ -1,0 +1,35 @@
+#! terrain
+#! timeout 120
+#! env REPGAME_RENDER_DISTANCE 2
+# Negative: nether portals now require a 2x3 minimum interior — a 1x2
+# obsidian ring must NOT ignite. The `ignite` line is EXPECTED to record a
+# failed assert ("no complete obsidian frame here"); the run's overall
+# status is therefore "failed" by design. The AIR asserts afterwards prove
+# no PORTAL cells were written.
+debug 0
+imgui 0
+wait_idle 15 3000
+
+# 1x2 obsidian ring x 30..32, y 70..73, z 30; interior x31, y71..72.
+fill 30 70 30 32 73 30 OBSIDIAN
+wait 5
+fill 31 71 30 31 72 30 AIR
+wait 5
+ignite 31 71 30
+wait 3
+assert_block 31 71 30 AIR
+assert_block 31 72 30 AIR
+assert_block 30 71 30 OBSIDIAN
+
+# Control: the same ring one block wider/taller (2x3 interior) DOES ignite
+# — proves the refusal is the min-size rule, not a broken ignite.
+fill 33 70 30 36 74 30 OBSIDIAN
+wait 5
+fill 34 71 30 35 73 30 AIR
+wait 5
+ignite 34 71 30
+wait 5
+assert_block 34 72 30 PORTAL
+assert_block 33 72 30 OBSIDIAN
+
+echo repgate_neg done
