@@ -12,11 +12,79 @@
 #include "common/ui_layout.hpp"
 #include "common/font_renderer.hpp"
 
+#include <strings.h>
+
+static void chat_complete_reset( ChatUi &chat ) {
+    chat.complete_matches.clear( );
+    chat.complete_idx = -1;
+}
+
+void chat_tab_complete( ChatUi &chat ) {
+    // Mid-cycle: step to the next candidate in place.
+    if ( chat.complete_idx >= 0 && !chat.complete_matches.empty( ) ) {
+        chat.complete_idx = ( chat.complete_idx + 1 ) % static_cast<int>( chat.complete_matches.size( ) );
+        chat.line = chat.line.substr( 0, chat.complete_at ) + chat.complete_matches[ chat.complete_idx ];
+        return;
+    }
+    if ( chat.line.empty( ) || chat.line[ 0 ] != '/' ) {
+        return;
+    }
+    // The token to complete: the command name, or the single argument of
+    // `/help <cmd>` (which names a command too).
+    size_t at = 1;
+    const size_t space = chat.line.find( ' ' );
+    if ( space != std::string::npos ) {
+        if ( strncasecmp( chat.line.c_str( ) + 1, "help", 4 ) != 0 || space != 5 ) {
+            return;
+        }
+        at = chat.line.find_first_not_of( ' ', space );
+        if ( at == std::string::npos ) {
+            at = chat.line.size( );
+        } else if ( chat.line.find( ' ', at ) != std::string::npos ) {
+            return;
+        }
+    }
+    const std::string stem = chat.line.substr( at );
+    std::vector<std::string> matches;
+    for ( const std::string &name : chat_command_names( ) ) {
+        if ( strncasecmp( name.c_str( ), stem.c_str( ), stem.size( ) ) == 0 ) {
+            matches.push_back( name );
+        }
+    }
+    if ( matches.empty( ) ) {
+        return;
+    }
+    const std::string head = chat.line.substr( 0, at );
+    if ( matches.size( ) == 1 ) {
+        chat.line = head + matches[ 0 ] + ' ';
+        return;
+    }
+    size_t lcp = matches[ 0 ].size( );
+    for ( const std::string &m : matches ) {
+        size_t n = 0;
+        while ( n < lcp && n < m.size( ) && m[ n ] == matches[ 0 ][ n ] ) {
+            n++;
+        }
+        lcp = n;
+    }
+    if ( lcp > stem.size( ) ) {
+        chat.line = head + matches[ 0 ].substr( 0, lcp );
+        return;
+    }
+    chat.complete_matches = std::move( matches );
+    chat.complete_at = at;
+    chat.complete_idx = 0;
+    chat.line = head + chat.complete_matches[ 0 ];
+}
+
 // Apply one tick of queued text input to the chat box. Pure (test-driven):
 // reads but does not consume Input's text_* counters. `submitted` receives
 // the line when Enter ends the edit (empty included); the return value
 // says the box should close (Enter or Escape).
 bool chat_edit_apply_input( ChatUi &chat, const Input &in, std::string *submitted ) {
+    if ( in.text_chars_len > 0 || in.text_backspaces > 0 || in.text_ups > 0 || in.text_downs > 0 ) {
+        chat_complete_reset( chat );
+    }
     for ( int i = 0; i < in.text_chars_len; i++ ) {
         const unsigned char c = static_cast<unsigned char>( in.text_chars[ i ] );
         if ( c >= 32 && c <= 126 && chat.line.size( ) < CHAT_TEXT_MAX ) {
@@ -54,6 +122,9 @@ bool chat_edit_apply_input( ChatUi &chat, const Input &in, std::string *submitte
             chat.line = chat.draft;
         }
     }
+    for ( int i = 0; i < in.text_tabs; i++ ) {
+        chat_tab_complete( chat );
+    }
     if ( in.text_enters > 0 ) {
         if ( submitted != nullptr ) {
             *submitted = chat.line;
@@ -80,6 +151,7 @@ void repgame_open_chat( RepGameState &state, const std::string &prefix ) {
     }
     chat.line = prefix;
     chat.history_pos = -1;
+    chat_complete_reset( chat );
     chat.opened_tick = state.tick_number;
     chat.open = true;
     // Releases the pointer (should_lock_pointer) and starts SDL text
@@ -125,6 +197,7 @@ void repgame_tick_chat( RepGameState &state ) {
     in.text_enters = 0;
     in.text_ups = 0;
     in.text_downs = 0;
+    in.text_tabs = 0;
     in.text_escape = false;
     if ( wants_close ) {
         repgame_close_chat( state );

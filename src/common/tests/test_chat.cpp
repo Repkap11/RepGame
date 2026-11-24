@@ -189,6 +189,7 @@ int test_chat( ) {
             in.text_enters = 0;
             in.text_ups = 0;
             in.text_downs = 0;
+            in.text_tabs = 0;
             in.text_escape = false;
             return close;
         };
@@ -223,6 +224,46 @@ int test_chat( ) {
         in.text_downs = 2;
         drain( );
         check_bool( "chat edit: Down past newest restores the draft", chat.line == "draft" && chat.history_pos < 0 );
+
+        // Tab completion over command names + aliases.
+        chat.line = "/gam";
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: unique match completes + space", chat.line == "/gamemode " );
+        chat.line = "/SUM";
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: case-insensitive", chat.line == "/summon " );
+        chat.line = "/te";
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: ambiguous extends to common prefix", chat.line == "/tel" );
+        chat.line = "/f";
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: no common prefix starts the cycle", chat.line == "/fill" );
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: second Tab cycles", chat.line == "/fly" );
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: cycle wraps", chat.line == "/fill" );
+        type( " " );
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: typing ends the cycle; args don't complete", chat.line == "/fill " );
+        chat.line = "/help pe";
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: /help arg completes a command", chat.line == "/help peaceful " );
+        chat.line = "hello /g";
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: plain chat untouched", chat.line == "hello /g" );
+        chat.line = "/zzz";
+        in.text_tabs = 1;
+        drain( );
+        check_bool( "chat tab: no match untouched", chat.line == "/zzz" );
 
         chat.line = "send me";
         in.text_enters = 1;

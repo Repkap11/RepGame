@@ -25,6 +25,15 @@ wait 2
 signkey enter
 wait 2
 assert_chat Unknown command
+# Tab completes a command prefix ("/he" -> "/help ").
+chatopen /
+type he
+wait 2
+signkey tab
+wait 2
+signkey enter
+wait 2
+assert_chat /help <command> for usage.
 # A plain line last, so the bottom log row is white text.
 chatopen
 type white last line

@@ -4,6 +4,7 @@
 // Command output lands in the chat log as client-only INFO/ERROR lines —
 // nothing here touches the wire directly except send_chat/send_player_name.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -572,6 +573,25 @@ const ChatCmd CHAT_COMMANDS_TABLE[ 22 ] = {
     { "msg", "w,tell", "/msg <player> <message...>", "Whisper to one player.", cmd_msg },
     { "me", "", "/me <action...>", "Emote: * <name> <action>.", cmd_me },
 };
+
+const std::vector<std::string> &chat_command_names( ) {
+    static const std::vector<std::string> names = [ ] {
+        std::vector<std::string> out;
+        for ( const ChatCmd &c : CHAT_COMMANDS_TABLE ) {
+            out.emplace_back( c.name );
+            for ( const char *p = c.aliases; *p; ) {
+                const char *comma = strchr( p, ',' );
+                const size_t len = comma ? static_cast<size_t>( comma - p ) : strlen( p );
+                out.emplace_back( p, len );
+                p += len + ( comma ? 1 : 0 );
+            }
+        }
+        std::sort( out.begin( ), out.end( ) );
+        out.erase( std::unique( out.begin( ), out.end( ) ), out.end( ) );
+        return out;
+    }( );
+    return names;
+}
 
 void chat_run_command( RepGameState &state, const std::string &cmdline ) {
     std::vector<std::string> args;

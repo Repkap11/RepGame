@@ -135,6 +135,7 @@ class Input {
     int text_enters = 0;
     int text_ups = 0;   // Up arrow: move to the previous line
     int text_downs = 0; // Down arrow: move to the next line
+    int text_tabs = 0;  // Tab: chat command completion (sign editor ignores it)
     bool text_escape = false;
     // Armed on the chat-open key down edge ('t'/Tab = 1, '/' = 2 for a
     // slash-prefilled box); the chat tick consumes it. Down edge only so

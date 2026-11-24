@@ -4,7 +4,12 @@ The chat box is a one-line editor over the message scrollback, opened by
 `t` or `Tab` (or `/`, which pre-fills a command slash). Enter submits, Escape
 closes, Up/Down recalls previously sent lines
 (`ChatUi::sent`, capped at `CHAT_HISTORY_MAX`, deduped, with the
-in-progress line stashed in `draft`). While open it owns text capture
+in-progress line stashed in `draft`), and Tab completes command names
+(`chat_tab_complete`: a `/` line's first token, or the argument of
+`/help <cmd>`, matched case-insensitively against `chat_command_names` —
+names + aliases. A unique match completes with a trailing space, an
+ambiguous one extends to the longest common prefix, then further Tabs
+cycle the candidates; any other edit ends the cycle). While open it owns text capture
 exactly like the sign editor — `input.text_input_active` releases the
 pointer and key events arrive through the shared `input.text_*`
 counters, drained each tick by `repgame_tick_chat` into the pure
@@ -97,7 +102,7 @@ overrule), and `/time` broadcasts like the PgUp/PgDn keys do.
 ## Testing
 
 - `make tests TESTS=chat` — sanitizer/wrap/format/log units plus
-  `chat_edit_apply_input` and command dispatch
+  `chat_edit_apply_input` (incl. Tab completion) and command dispatch
 - `python3 tools/mp_test.py -k chat` — real-server scenario: names +
   dedupe (`alice` → `alice_2` while `Alice` is online), broadcast,
   whisper routing, unknown-target error (mp-test skill)

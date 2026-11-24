@@ -851,7 +851,7 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
-    // signkey enter|backspace|up|down|escape — one editor key press.
+    // signkey enter|backspace|up|down|tab|escape — one editor key press.
     if ( strcmp( cmd, "signkey" ) == 0 && argc == 2 ) {
         const char *k = argv[ 1 ].c_str( );
         if ( strcmp( k, "enter" ) == 0 ) {
@@ -862,10 +862,12 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
             state.input.text_ups++;
         } else if ( strcmp( k, "down" ) == 0 ) {
             state.input.text_downs++;
+        } else if ( strcmp( k, "tab" ) == 0 ) {
+            state.input.text_tabs++;
         } else if ( strcmp( k, "escape" ) == 0 ) {
             state.input.text_escape = true;
         } else {
-            cmd_error( state, line, "signkey: want enter|backspace|up|down|escape" );
+            cmd_error( state, line, "signkey: want enter|backspace|up|down|tab|escape" );
         }
         return false;
     }

@@ -304,9 +304,16 @@ void repgame_close_chat( RepGameState &state );
 // repgame_tick_sign_editor (they're mutually exclusive).
 void repgame_tick_chat( RepGameState &state );
 // Pure input handling — `submitted` receives the line on Enter; the
-// return value says the box should close (Enter or Escape). rep_tests
-// drive it directly.
+// return value says the box should close (Enter or Escape); Tab runs
+// chat_tab_complete. rep_tests drive it directly.
 bool chat_edit_apply_input( ChatUi &chat, const Input &in, std::string *submitted );
+// One Tab press: completes the command name of a '/' line (or the
+// argument of `/help <cmd>`) against chat_command_names. A unique match
+// completes with a trailing space, an ambiguous one extends to the
+// longest common prefix, and further Tabs cycle through the matches.
+void chat_tab_complete( ChatUi &chat );
+// Every command name and alias, sorted, lowercase (chat_commands.cpp).
+const std::vector<std::string> &chat_command_names( );
 // One submitted line: a leading '/' runs a slash command; anything else
 // goes out as PLAYER chat in multiplayer, or straight into the local log
 // in single player.

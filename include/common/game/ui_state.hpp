@@ -21,6 +21,7 @@
 
 #include <deque>
 #include <string>
+#include <vector>
 
 // Chest container the player currently has open (at most one). Contents
 // live in the owning chunk (World::get_chest_contents); the renderers draw
@@ -111,6 +112,12 @@ struct ChatUi {
     // The draft `line` stashed when history recall begins.
     std::string draft;
     long opened_tick = 0;
+    // Tab-completion cycle: when the token at `complete_at` (an offset in
+    // `line`) is ambiguous, repeated Tabs step `complete_idx` through
+    // `complete_matches`. Any other edit clears it.
+    std::vector<std::string> complete_matches;
+    size_t complete_at = 0;
+    int complete_idx = -1;
 };
 
 // The panel/window layer drawn into the UI pass: inventory grids,

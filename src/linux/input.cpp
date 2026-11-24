@@ -140,6 +140,8 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             this->text_ups++;
         } else if ( key == SDLK_DOWN ) {
             this->text_downs++;
+        } else if ( key == SDLK_TAB ) {
+            this->text_tabs++;
         } else if ( key == SDLK_ESCAPE ) {
             this->text_escape = true;
         }
@@ -384,6 +386,7 @@ void Input::text_input_begin( ) {
     this->text_enters = 0;
     this->text_ups = 0;
     this->text_downs = 0;
+    this->text_tabs = 0;
     this->text_escape = false;
     // Drop held keys so a key held across the open doesn't keep the player
     // moving while the editor is up.

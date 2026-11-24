@@ -16,6 +16,7 @@ void Input::text_input_begin( ) {
     this->text_enters = 0;
     this->text_ups = 0;
     this->text_downs = 0;
+    this->text_tabs = 0;
     this->text_escape = false;
     // Drop held touch controls (joystick, jump, mouse buttons) so they
     // don't keep feeding gameplay input while the chat box is up —

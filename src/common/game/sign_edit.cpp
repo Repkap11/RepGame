@@ -114,6 +114,7 @@ void repgame_tick_sign_editor( RepGameState &state ) {
     in.text_enters = 0;
     in.text_ups = 0;
     in.text_downs = 0;
+    in.text_tabs = 0;
     in.text_escape = false;
     if ( wants_close ) {
         repgame_close_sign_editor( state, true );
