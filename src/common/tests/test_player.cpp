@@ -1238,8 +1238,10 @@ int test_chest_pair( ) {
     const BlockState chest1 = { CHEST, BLOCK_ROTATE_90, 0, CHEST, 0 };
 
     // --- Merge, both directions of the lateral axis (yaw 0: left is -x) ---
+    // Literal offsets pin the world-space direction — deriving them from
+    // chest_pair_left_dir would self-confirm a mirrored table.
     const glm::ivec3 a( 20, 10, 20 );
-    const glm::ivec3 b = a + chest_pair_left_dir( 0 ); // the pair's left cell
+    const glm::ivec3 b = a + glm::ivec3( -1, 0, 0 ); // the pair's left cell
     place( a, chest0 );
     run( 1 );
     failures += check_id( world, "first chest placed single", a, CHEST );
@@ -1269,14 +1271,30 @@ int test_chest_pair( ) {
     failures += check_id( world, "third chest next to a pair stays single", c, CHEST );
     failures += check_id( world, "paired left half untouched", b, DOUBLE_CHEST_LEFT_LATCH );
 
-    // --- Other yaws merge on their own lateral axis (yaw 1: left is +z) ---
+    // --- Other yaws merge on their own lateral axis (yaw 1: left is -z) ---
     const glm::ivec3 d( 30, 10, 20 );
-    const glm::ivec3 e = d + chest_pair_left_dir( 1 ); // +z
+    const glm::ivec3 e = d + glm::ivec3( 0, 0, -1 ); // -z
     place( d, chest1 );
     place( e, chest1 );
     run( 2 );
     failures += check_id( world, "yaw1 left half is LEFT_LATCH", e, DOUBLE_CHEST_LEFT_LATCH );
     failures += check_id( world, "yaw1 right half is RIGHT_LATCH", d, DOUBLE_CHEST_RIGHT_LATCH );
+
+    // Yaw 2 pairs along x with +x on the placer's left, yaw 3 along z
+    // with +z on the left.
+    const BlockState chest2 = { CHEST, BLOCK_ROTATE_180, 0, CHEST, 0 };
+    const BlockState chest3 = { CHEST, BLOCK_ROTATE_270, 0, CHEST, 0 };
+    const glm::ivec3 g2( 20, 10, 40 ), h2 = g2 + glm::ivec3( 1, 0, 0 );
+    const glm::ivec3 i3( 30, 10, 40 ), j3 = i3 + glm::ivec3( 0, 0, 1 );
+    place( g2, chest2 );
+    place( h2, chest2 );
+    place( i3, chest3 );
+    place( j3, chest3 );
+    run( 2 );
+    failures += check_id( world, "yaw2 left half is LEFT_LATCH", h2, DOUBLE_CHEST_LEFT_LATCH );
+    failures += check_id( world, "yaw2 right half is RIGHT_LATCH", g2, DOUBLE_CHEST_RIGHT_LATCH );
+    failures += check_id( world, "yaw3 left half is LEFT_LATCH", j3, DOUBLE_CHEST_LEFT_LATCH );
+    failures += check_id( world, "yaw3 right half is RIGHT_LATCH", i3, DOUBLE_CHEST_RIGHT_LATCH );
 
     // --- No merge: mismatched yaw, front/back neighbour, sneak ---
     const glm::ivec3 f( 40, 10, 20 ), g = f + chest_pair_left_dir( 0 );

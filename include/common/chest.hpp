@@ -75,9 +75,9 @@ static inline bool block_is_chest_half( BlockID id ) {
 static inline glm::ivec3 chest_pair_left_dir( unsigned char rotation ) {
     static const glm::ivec3 dirs[ 4 ] = {
         glm::ivec3( -1, 0, 0 ), // 0: front +z, left half at -x
-        glm::ivec3( 0, 0, 1 ),  // 1: front +x, left half at +z
+        glm::ivec3( 0, 0, -1 ), // 1: front -x, left half at -z
         glm::ivec3( 1, 0, 0 ),  // 2: front -z, left half at +x
-        glm::ivec3( 0, 0, -1 ), // 3: front -x, left half at -z
+        glm::ivec3( 0, 0, 1 ),  // 3: front +x, left half at +z
     };
     return dirs[ rotation & 3 ];
 }
