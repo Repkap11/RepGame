@@ -60,6 +60,7 @@ static std::vector<unsigned int> s_ib_data;
 static unsigned int s_ib_opaque_off[ 64 ], s_ib_opaque_cnt[ 64 ];
 static unsigned int s_ib_water_off[ 4 ], s_ib_water_cnt[ 4 ];
 static unsigned int s_ib_translucent_off[ 2 ]; // [0]=normal, [1]=reflect — 72 elements each
+static unsigned int s_ib_film_off, s_ib_film_cnt;
 static unsigned int s_ib_flowers_off;
 static bool s_ib_tables_ready = false;
 
@@ -117,6 +118,18 @@ static void chunk_ib_init_tables( ) {
         }
         s_ib_water_cnt[ mask ] = n;
     }
+    // Boundary films (order-0 bucket): same fluid shell, but only the
+    // outward winding of each face position — the mirrored copy would
+    // show the neighbour-side viewer a water quad where they should see
+    // the glass itself. Quad indices into ib_data_water, in bit order
+    // front, right, back, left, top, bottom.
+    static const unsigned int film_quads[ 6 ] = { 2, 0, 6, 4, IB_POSITION_WATER_TOP, 8 };
+    s_ib_film_off = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
+    s_ib_film_cnt = 0;
+    for ( int f = 0; f < 6; f++ ) {
+        append_face( ib_data_water + 6 * film_quads[ f ] );
+        s_ib_film_cnt += 6;
+    }
     s_ib_flowers_off = static_cast<unsigned int>( s_ib_data.size( ) ) * sizeof( unsigned int );
     s_ib_data.insert( s_ib_data.end( ), ib_data_flowers, ib_data_flowers + sizeof( ib_data_flowers ) / sizeof( ib_data_flowers[ 0 ] ) );
 }
@@ -160,11 +173,13 @@ void Chunk::calculate_sides( const glm::ivec3 &center_next ) {
     water.ib_count[ 1 ] = 0;
 
     // Order-0 bucket carries the fluid boundary films (chunk_mesh.cpp) —
-    // they are BLOCK_COORDS_FLUID instances, so they share the water cube
-    // and index tables. Drawn after Translucent (see world.cpp).
+    // they are BLOCK_COORDS_FLUID instances, so they share the water cube,
+    // but with the film index table: one winding per face so a film only
+    // draws from the neighbour's side. Drawn after water, before the
+    // translucent pass (see world.cpp).
     RenderLayer &films = this->layers[ RenderOrder_Transparent ];
-    films.ib_offset[ 0 ] = s_ib_water_off[ water_mask ];
-    films.ib_count[ 0 ] = s_ib_water_cnt[ water_mask ];
+    films.ib_offset[ 0 ] = s_ib_film_off;
+    films.ib_count[ 0 ] = s_ib_film_cnt;
     films.ib_offset[ 1 ] = 0;
     films.ib_count[ 1 ] = 0;
 

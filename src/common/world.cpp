@@ -688,9 +688,8 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // right here (same position as the default order), the camera side after
     // water.
     const unsigned order_all = ( 1u << LAST_RENDER_ORDER ) - 1;
-    // Order 0 (Transparent) is the fluid-boundary film bucket (legacy blend
-    // mode only): it draws in its own call after the translucent pass
-    // below, never in these masks.
+    // Order 0 (Transparent) is the fluid-boundary film bucket: it draws in
+    // its own call right after the water pass below, never in these masks.
     const unsigned order_no_water = order_all & ~render_order_bit( RenderOrder_Water ) & ~render_order_bit( RenderOrder_Transparent );
     const TranslucentWaterOrder water_order = translucent_water_order( );
     const float split_y = ( WATER_HEIGHT - 1.0f ) - renderOriginF.y;
@@ -811,6 +810,24 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
     this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Water ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Stencil water
+
+    // Fluid-boundary films (order-0 bucket, chunk_mesh.cpp): the faces a
+    // fluid emits against a translucent block — kept out of the water pass
+    // because the fluid index buffer draws both windings and a quad at the
+    // boundary would render its mirror on the neighbour side, plus its
+    // depth write would eat the coplanar glass face. They draw here
+    // instead — single-sided (chunk_render.cpp's film index table), after
+    // water and before the translucent pass, so the glass still blends
+    // over them like anything else seen through a pane. No depth write:
+    // the glass face shares the boundary plane and must still pass the
+    // depth test. LEQUAL covers the legacy blend mode, where the glass
+    // already wrote depth in the main pass; nothing else ever lands at
+    // that plane, so LESS and LEQUAL are equivalent everywhere else.
+    glDepthMask( GL_FALSE );
+    glDepthFunc( GL_LEQUAL );
+    this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Transparent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Water-boundary films
+    glDepthFunc( GL_LESS );
+    glDepthMask( GL_TRUE );
     this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
 
@@ -834,22 +851,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
     }
 
-    // Fluid-boundary films (order-0 bucket, chunk_mesh.cpp): only populated
-    // when the translucent pass writes depth (legacy blend mode) — there the
-    // coplanar water-pass face is dead, so the mesh emits a copy that draws
-    // after the glass. Same uniforms as the water pass; the bucket uses the
-    // water IB and blends like water.
-    if ( translucent_depth_write( ) ) {
-        this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", allowBlur ? 1 : 0 );
-        this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-        // Films sit exactly on the water|glass boundary; LEQUAL lets them
-        // draw over the glass's own depth write.
-        glDepthFunc( GL_LEQUAL );
-        this->chunkLoader.draw( mvp, this->renderer, blocksTexture, render_order_bit( RenderOrder_Transparent ), false, useFrameBuffer, renderOriginF, camera_pos_rebased, cam_forward ); // Water-boundary films
-        glDepthFunc( GL_LESS );
-        this->chunkLoader.shader.set_uniform1i( "u_FluidAnim", 0 );
-        this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
-    }
+
 
     if ( draw_mouse_selection ) {
         // Second outline draw, composited over water + translucent so the

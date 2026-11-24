@@ -27,8 +27,7 @@ static int occlusion_enabled( ) {
     return enabled;
 }
 
-// TranslucentBlend / translucent_blend_mode / translucent_depth_write
-// live in render_order.cpp — the mesh side needs them too.
+// TranslucentBlend / translucent_blend_mode live in render_order.cpp.
 
 // REPGAME_TRANSLUCENT_AFTER_WATER: world.cpp splits the translucent pass
 // per-fragment at the sea-level water plane ("split", the default), draws it

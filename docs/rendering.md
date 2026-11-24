@@ -252,28 +252,30 @@ the reflection composite). Three values:
 At HIGH+ the water reflection composite may still overlay glass where
 glass covers water pixels. Weighted-blended OIT would be the full fix.
 
-Water emits its boundary faces against translucent neighbours exactly
-like it does against opaque-order `GLASS` — `liquid_boundary` in
-`include/common/mesh_vis_logic.hpp` (and its CPU twin
-`fluid_face_vis_mask` in `chunk_mesh.cpp`) only culls against waterlogged
-cells. The glass then blends over the water quad, tinting it like
-anything else seen through a stained pane: a dry-backed wall or ceiling
-shows tinted water (`tests/scenarios/glass_room_water.rds`,
-`glass_wall_water.rds`), and a block with water on both sides shows the
-boundary surface through the glass
-(`tests/scenarios/glass_in_water.rds`).
+Water emits no faces against translucent neighbours in the water pass
+(`liquid_boundary` in `include/common/mesh_vis_logic.hpp` and its CPU
+twin `fluid_face_vis_mask` in `chunk_mesh.cpp`). The fluid index buffer
+draws both windings so a submerged surface reads from every direction —
+a boundary quad there would also render its mirror on the neighbour
+side, and its depth write would eat the coplanar glass face, unlike
+opaque-order `GLASS` whose own face wins the depth test first.
 
-The one exception is the legacy blend mode: there the translucent pass
-writes depth before the water pass, so a water face coplanar with the
-glass quad is dead on arrival. For that mode only
-(`translucent_depth_write()` in `render_order.cpp`) the mesh additionally
-emits a "film" — a copy of the face in the `RenderOrder_Transparent`
-bucket, never used by meshed blocks — which `World::draw` renders as its
-own pass after Translucent with the water uniforms and `GL_LEQUAL`, so it
-wins against the glass's own depth write (`emit_boundary_films` in
-`chunk_mesh.cpp`; the bucket shares the water cube/IB in
-`chunk_render.cpp`). In the default modes no films are emitted and the
-extra draw call is skipped entirely.
+The replacement is a "film" — a single-sided copy of the face in the
+`RenderOrder_Transparent` bucket, never used by meshed blocks — which
+`World::draw` renders right after the water pass with the water
+uniforms, no depth write, and `GL_LEQUAL` (`emit_boundary_films` in
+`chunk_mesh.cpp`; the bucket shares the water cube but gets its own
+one-winding index table in `chunk_render.cpp`). The translucent pass
+then blends the glass over the film, so a dry-backed wall or ceiling
+shows tinted water (`tests/scenarios/glass_room_water.rds`,
+`glass_wall_water.rds`), a block with water on both sides shows the
+boundary surface through the glass
+(`tests/scenarios/glass_in_water.rds`), and from the water side the film
+is backface-culled so the glass's own face shows through — the
+opaque-glass structure in every blend mode. `GL_LEQUAL` covers the
+legacy mode, where the glass wrote depth at that plane in the main
+pass; no depth write keeps the glass's own face visible beside the
+film's.
 
 Water (`RenderOrder_Water`) still writes depth in every mode: the depth
 snapshot taken after the water pass feeds the X_HIGH water composite/SSR in

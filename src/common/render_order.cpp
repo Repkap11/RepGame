@@ -20,9 +20,6 @@ TranslucentBlend translucent_blend_mode( ) {
     return mode;
 }
 
-bool translucent_depth_write( ) {
-    return translucent_blend_mode( ) == TranslucentBlend_Legacy;
-}
 
 int render_order_ib_size( const RenderOrder renderOrder ) {
     switch ( renderOrder ) {

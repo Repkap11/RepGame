@@ -1,9 +1,11 @@
 # Three window walls holding back a pool, viewed from the dry side:
 # regular GLASS (opaque-order, reference), MAGENTA_STAINED_GLASS and
 # STAINED_GLASS_PANE (Translucent order). The water side faces must draw
-# against all three — liquid_boundary (mesh_vis_logic.hpp) only culls
-# waterlogged cells, so translucent neighbours emit the face and the
-# glass tints it like anything else seen through the pane.
+# against all three — liquid_boundary (mesh_vis_logic.hpp) keeps them out
+# of the water pass and emit_boundary_films (chunk_mesh.cpp) re-emits
+# them single-sided before the translucent pass, so the glass tints them
+# like anything else seen through the pane and the water-side view shows
+# the glass's own face, not a mirrored water quad.
 # flags 9 = lighting off + fog off so the view isn't murk.
 wait_idle 20 6000
 # Basin x1..18 z1..8
@@ -37,4 +39,13 @@ screenshot stained_wall
 camera 14.0 3.5 2.3 180 10
 wait 30
 screenshot pane_wall
+# From inside the pool looking back at the dry room: the boundary film is
+# single-sided, so the water side shows the glass's own face and the room
+# behind it — no mirrored water quad.
+camera 9.0 3.5 6.5 0 10
+wait 30
+screenshot stained_wall_back
+camera 14.0 3.5 6.5 0 10
+wait 30
+screenshot pane_wall_back
 echo glass_wall_water done
