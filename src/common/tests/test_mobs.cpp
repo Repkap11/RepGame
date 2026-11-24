@@ -1020,6 +1020,103 @@ int test_mobs( ) {
         check_bool( "types: all def bone names exist in models", all_ok );
     }
 
+    // --- 12b: mob_bone_local_matrix matches the glm translate/rotate ref ---
+    {
+        // The pre-optimization implementation, kept here as the oracle.
+        auto ref_local = []( const MobBoneDef &bone, const glm::vec3 &anim_rot, const glm::vec3 &anim_offset ) {
+            const glm::vec3 pivot( bone.pivot[ 0 ], bone.pivot[ 1 ], bone.pivot[ 2 ] );
+            const glm::vec3 rot( bone.rest_rot[ 0 ] + anim_rot.x, bone.rest_rot[ 1 ] + anim_rot.y, bone.rest_rot[ 2 ] + anim_rot.z );
+            glm::mat4 m = glm::translate( glm::mat4( 1.0f ), pivot );
+            m = glm::rotate( m, glm::radians( rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
+            m = glm::rotate( m, glm::radians( rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
+            m = glm::rotate( m, glm::radians( rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+            m = glm::translate( m, -pivot );
+            return glm::translate( glm::mat4( 1.0f ), anim_offset ) * m;
+        };
+        const glm::vec3 rots[] = { glm::vec3( 0.0f ),
+                                   glm::vec3( 170.0f, -95.0f, 370.0f ),
+                                   glm::vec3( -45.0f, 30.0f, 12.5f ),
+                                   glm::vec3( 720.0f, -180.0f, 400.0f ) };
+        const glm::vec3 offs[] = { glm::vec3( 0.0f ), glm::vec3( 3.5f, -2.0f, 7.25f ) };
+        float max_diff = 0.0f;
+        for ( int m = 0; m < MOB_MODEL_COUNT; m++ ) {
+            const MobModelDef &model = mob_models[ m ];
+            const int bc = model.bone_count < 32 ? model.bone_count : 32;
+            for ( int b = 0; b < bc; b++ ) {
+                for ( const glm::vec3 &rot : rots ) {
+                    for ( const glm::vec3 &off : offs ) {
+                        const glm::mat4 got = mob_bone_local_matrix( model.bones[ b ], rot, off );
+                        const glm::mat4 want = ref_local( model.bones[ b ], rot, off );
+                        for ( int c = 0; c < 4; c++ ) {
+                            for ( int r = 0; r < 4; r++ ) {
+                                max_diff = fmaxf( max_diff, fabsf( got[ c ][ r ] - want[ c ][ r ] ) );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        check_bool( "bone local: matches glm reference", max_diff < 1e-4f );
+    }
+
+    // --- 12c: the binding table matches a brute strcmp over def names ------
+    {
+        bool all_ok = true;
+        int multi_leg = 0, multi_arm = 0, multi_wing = 0;
+        for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+            const MobTypeDef &def = mob_types[ t ];
+            for ( int slot = 0; slot < 2; slot++ ) {
+                const MobModel model_i =
+                    slot == 1 && def.sheared_model != MOB_MODEL_COUNT ? def.sheared_model : def.model;
+                const MobModelDef &model = mob_models[ model_i ];
+                const MobTypeBindings &tb = mob_bone_bindings( static_cast<MobType>( t ), slot == 1 );
+                const int bc = model.bone_count < 32 ? model.bone_count : 32;
+                int held = -1;
+                for ( int i = 0; i < bc; i++ ) {
+                    const char *name = model.bones[ i ].name;
+                    int leg = -1, arm = -1, wing = -1;
+                    for ( int k = 0; k < 4; k++ ) {
+                        if ( def.bone_legs[ k ] != NULL && strcmp( name, def.bone_legs[ k ] ) == 0 ) {
+                            multi_leg += leg >= 0;
+                            leg = k;
+                        }
+                    }
+                    for ( int k = 0; k < 2; k++ ) {
+                        if ( def.bone_arms[ k ] != NULL && strcmp( name, def.bone_arms[ k ] ) == 0 ) {
+                            multi_arm += arm >= 0;
+                            arm = k;
+                        }
+                        if ( def.bone_wings[ k ] != NULL && strcmp( name, def.bone_wings[ k ] ) == 0 ) {
+                            multi_wing += wing >= 0;
+                            wing = k;
+                        }
+                    }
+                    const int tentacle = strncmp( name, "tentacles_", 10 ) == 0 ? atoi( name + 10 ) : -1;
+                    const int rod = strncmp( name, "upperBodyParts", 14 ) == 0 ? atoi( name + 14 ) : -1;
+                    const int head = def.bone_head != NULL && strcmp( name, def.bone_head ) == 0;
+                    const int body = def.bone_body != NULL && strcmp( name, def.bone_body ) == 0;
+                    const MobBoneBinding &bb = tb.bones[ i ];
+                    if ( bb.leg != leg || bb.arm != arm || bb.wing != wing || bb.tentacle != tentacle ||
+                         bb.rod != rod || bb.head != head || bb.body != body ) {
+                        pr_test( "    %s slot%d bone '%s': binding mismatch", def.name, slot, name );
+                        all_ok = false;
+                    }
+                    if ( held < 0 && def.bone_arms[ 1 ] != NULL && strcmp( name, def.bone_arms[ 1 ] ) == 0 ) {
+                        held = i;
+                    }
+                }
+                if ( tb.held_arm_bone != held ) {
+                    pr_test( "    %s slot%d: held_arm_bone %d want %d", def.name, slot, tb.held_arm_bone, held );
+                    all_ok = false;
+                }
+            }
+        }
+        check_bool( "bindings: roles match brute strcmp", all_ok );
+        // A bone matching the same role slot twice would animate differently
+        // than the old per-match accumulate; none may exist.
+        check_bool( "bindings: no double-bound roles", multi_leg == 0 && multi_arm == 0 && multi_wing == 0 );
+    }
+
     // --- 13: every new non-remote type spawns and settles at floor+1 -------
     // (hoverers settle at floor+1+hover_h and never report standing) --------
     {

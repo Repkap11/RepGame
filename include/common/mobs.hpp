@@ -533,3 +533,22 @@ inline glm::vec3 mob_head_anim( float head_yaw, float head_pitch ) {
 glm::mat4 mob_bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &anim_rot, const glm::vec3 &anim_offset );
 void mob_bone_worlds( const MobModelDef &model, const glm::vec3 *anim_rot, const glm::vec3 *anim_offset, glm::mat4 *out );
 glm::mat4 mob_cube_matrix( const MobBoneDef &bone, const MobCubeDef &cube );
+
+// Bone-name → animator-role bindings, resolved once per (MobType, model)
+// pair in mobs.cpp instead of per-frame strcmp probes. Indices are into the
+// matching MobTypeDef name array (-1 = no match); a bone can hold several
+// roles at once. Exposed for the rep_tests equivalence check.
+struct MobBoneBinding {
+    int8_t leg = -1;      // MobTypeDef::bone_legs[0..3]
+    int8_t arm = -1;      // bone_arms[0..1]
+    int8_t wing = -1;     // bone_wings[0..1]
+    int8_t tentacle = -1; // atoi suffix of "tentacles_N"
+    int8_t rod = -1;      // atoi suffix of "upperBodyPartsN"
+    uint8_t head = 0;     // bone == bone_head
+    uint8_t body = 0;     // bone == bone_body
+};
+struct MobTypeBindings {
+    MobBoneBinding bones[ 32 ]; // only the first min(bone_count, 32) resolve
+    int8_t held_arm_bone = -1;  // bone index matching bone_arms[1]
+};
+const MobTypeBindings &mob_bone_bindings( MobType type, bool sheared );

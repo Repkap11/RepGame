@@ -74,6 +74,7 @@ struct LoaderDebugStats {
 class ChunkLoader {
     friend class World;
     friend void test_setup_world( World &world );
+    friend void test_setup_chunk( World &world, const glm::ivec3 &chunk_pos );
     friend int test_dimension( );
     friend int test_lighting( );
     friend int test_light_stale( );

@@ -181,6 +181,28 @@ int test_signs( ) {
         std::vector<WorldSign> near;
         world.collect_signs_near( glm::ivec3( 4, 5, 4 ), SIGN_TEXT_DRAW_RADIUS, near );
         check_bool( "sign store: collect finds text sign", near.size( ) == 1 && near[ 0 ].pos == sign_pos );
+
+        // A live chunk at negative coords: collect's chunk-box scan must
+        // reach it (floor division), and a sign inside the scanned chunk but
+        // outside the radius is still filtered per-sign.
+        const glm::ivec3 neg_cpos( -1, 0, -1 );
+        test_setup_chunk( world, neg_cpos );
+        const glm::ivec3 neg_sign( -3, 5, -3 );
+        const glm::ivec3 far_sign( -40, 5, -40 ); // same chunk, beyond the radius
+        world.set_loaded_block( neg_sign, { STANDING_SIGN, 0, 0, STANDING_SIGN, 0 } );
+        world.set_loaded_block( far_sign, { STANDING_SIGN, 0, 0, STANDING_SIGN, 0 } );
+        world.set_sign_text( neg_sign, text );
+        world.set_sign_text( far_sign, text );
+        std::vector<WorldSign> near_neg;
+        world.collect_signs_near( glm::ivec3( -1, 5, -1 ), SIGN_TEXT_DRAW_RADIUS, near_neg );
+        bool found_neg = false, found_far = false;
+        for ( const WorldSign &ws : near_neg ) {
+            found_neg |= ws.pos == neg_sign;
+            found_far |= ws.pos == far_sign;
+        }
+        // The (4,5,4) sign is also inside this radius — 2 hits total.
+        check_bool( "sign store: collect reaches negative chunk", near_neg.size( ) == 2 && found_neg );
+        check_bool( "sign store: out-of-radius sign skipped", !found_far );
     }
 
     // --- MapStorage sign side file --------------------------------------------

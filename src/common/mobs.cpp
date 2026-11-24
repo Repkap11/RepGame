@@ -1,6 +1,7 @@
 #include "common/mobs.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <stdlib.h>
@@ -1956,13 +1957,20 @@ void MobManager::tick_spawner( World &world, const glm::dvec3 &player_feet, cons
 // children) in the parent frame.
 glm::mat4 mob_bone_local_matrix( const MobBoneDef &bone, const glm::vec3 &anim_rot, const glm::vec3 &anim_offset ) {
     const glm::vec3 pivot( bone.pivot[ 0 ], bone.pivot[ 1 ], bone.pivot[ 2 ] );
-    const glm::vec3 rot( bone.rest_rot[ 0 ] + anim_rot.x, bone.rest_rot[ 1 ] + anim_rot.y, bone.rest_rot[ 2 ] + anim_rot.z );
-    glm::mat4 m = glm::translate( glm::mat4( 1.0f ), pivot );
-    m = glm::rotate( m, glm::radians( rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
-    m = glm::rotate( m, glm::radians( rot.y ), glm::vec3( 0.0f, 1.0f, 0.0f ) );
-    m = glm::rotate( m, glm::radians( rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-    m = glm::translate( m, -pivot );
-    return glm::translate( glm::mat4( 1.0f ), anim_offset ) * m;
+    const glm::vec3 rot = glm::radians( glm::vec3( bone.rest_rot[ 0 ] + anim_rot.x, bone.rest_rot[ 1 ] + anim_rot.y, bone.rest_rot[ 2 ] + anim_rot.z ) );
+    // Same composition as translate(pivot)·rotate(x)·rotate(y)·rotate(z)·translate(-pivot)
+    // pre-multiplied by translate(anim_offset): R = Rx·Ry·Rz built straight
+    // from sin/cos, with the pivot re-centering folded into the translation.
+    const float cx = cosf( rot.x ), sx = sinf( rot.x );
+    const float cy = cosf( rot.y ), sy = sinf( rot.y );
+    const float cz = cosf( rot.z ), sz = sinf( rot.z );
+    glm::mat4 m;
+    m[ 0 ] = glm::vec4( cy * cz, sx * sy * cz + cx * sz, -cx * sy * cz + sx * sz, 0.0f );
+    m[ 1 ] = glm::vec4( -cy * sz, -sx * sy * sz + cx * cz, cx * sy * sz + sx * cz, 0.0f );
+    m[ 2 ] = glm::vec4( sy, -sx * cy, cx * cy, 0.0f );
+    const glm::vec3 rp = glm::vec3( m[ 0 ] ) * pivot.x + glm::vec3( m[ 1 ] ) * pivot.y + glm::vec3( m[ 2 ] ) * pivot.z;
+    m[ 3 ] = glm::vec4( pivot + anim_offset - rp, 1.0f );
+    return m;
 }
 
 void mob_bone_worlds( const MobModelDef &model, const glm::vec3 *anim_rot, const glm::vec3 *anim_offset, glm::mat4 *out ) {
@@ -1996,6 +2004,87 @@ glm::mat4 mob_cube_matrix( const MobBoneDef &bone, const MobCubeDef &cube ) {
     return cube_m;
 }
 
+namespace {
+
+// Resolved once per (MobType, model): bone_worlds' name probes and
+// update_render's arm-bone / cube-matrix lookups become table reads.
+MobTypeBindings mob_build_bindings( const MobTypeDef &def, const MobModelDef &model ) {
+    MobTypeBindings out;
+    const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
+    for ( int i = 0; i < bone_count; i++ ) {
+        const char *name = model.bones[ i ].name;
+        MobBoneBinding &b = out.bones[ i ];
+        b.head = def.bone_head != NULL && strcmp( name, def.bone_head ) == 0;
+        b.body = def.bone_body != NULL && strcmp( name, def.bone_body ) == 0;
+        for ( int k = 0; k < 4; k++ ) {
+            if ( def.bone_legs[ k ] != NULL && strcmp( name, def.bone_legs[ k ] ) == 0 ) {
+                b.leg = k;
+            }
+        }
+        for ( int k = 0; k < 2; k++ ) {
+            if ( def.bone_arms[ k ] != NULL && strcmp( name, def.bone_arms[ k ] ) == 0 ) {
+                b.arm = k;
+            }
+            if ( def.bone_wings[ k ] != NULL && strcmp( name, def.bone_wings[ k ] ) == 0 ) {
+                b.wing = k;
+            }
+        }
+        if ( strncmp( name, "tentacles_", 10 ) == 0 ) {
+            b.tentacle = atoi( name + 10 );
+        }
+        if ( strncmp( name, "upperBodyParts", 14 ) == 0 ) {
+            b.rod = atoi( name + 14 );
+        }
+        if ( out.held_arm_bone < 0 && def.bone_arms[ 1 ] != NULL && strcmp( name, def.bone_arms[ 1 ] ) == 0 ) {
+            out.held_arm_bone = i;
+        }
+    }
+    return out;
+}
+
+// Slot 0 = MobTypeDef::model, slot 1 = sheared_model (base model again when
+// the type has none — that slot is then never selected anyway).
+std::array<std::array<MobTypeBindings, 2>, MOB_TYPE_COUNT> mob_build_binding_table( ) {
+    std::array<std::array<MobTypeBindings, 2>, MOB_TYPE_COUNT> table;
+    for ( int t = 0; t < MOB_TYPE_COUNT; t++ ) {
+        const MobTypeDef &def = mob_types[ t ];
+        table[ t ][ 0 ] = mob_build_bindings( def, mob_models[ def.model ] );
+        table[ t ][ 1 ] = mob_build_bindings( def, mob_models[ def.sheared_model != MOB_MODEL_COUNT ? def.sheared_model : def.model ] );
+    }
+    return table;
+}
+
+// mob_cube_matrix over every model's (bone, cube) pairs — static generated
+// data keyed by model index, so per-frame calls become lookups.
+std::array<std::vector<std::vector<glm::mat4>>, MOB_MODEL_COUNT> mob_build_cube_mats( ) {
+    std::array<std::vector<std::vector<glm::mat4>>, MOB_MODEL_COUNT> cache;
+    for ( int m = 0; m < MOB_MODEL_COUNT; m++ ) {
+        const MobModelDef &model = mob_models[ m ];
+        const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
+        cache[ m ].resize( bone_count );
+        for ( int b = 0; b < bone_count; b++ ) {
+            const MobBoneDef &bone = model.bones[ b ];
+            cache[ m ][ b ].reserve( bone.cube_count );
+            for ( int c = 0; c < bone.cube_count; c++ ) {
+                cache[ m ][ b ].push_back( mob_cube_matrix( bone, model.cubes[ bone.cube_start + c ] ) );
+            }
+        }
+    }
+    return cache;
+}
+
+} // namespace
+
+const MobTypeBindings &mob_bone_bindings( MobType type, bool sheared ) {
+    static const std::array<std::array<MobTypeBindings, 2>, MOB_TYPE_COUNT> table = mob_build_binding_table( );
+    return table[ type ][ sheared ? 1 : 0 ];
+}
+
+static const std::vector<std::vector<glm::mat4>> &mob_cube_mats( int model ) {
+    static const std::array<std::vector<std::vector<glm::mat4>>, MOB_MODEL_COUNT> cache = mob_build_cube_mats( );
+    return cache[ model ];
+}
+
 void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha, glm::mat4 *out ) {
     // The sheared model shares the woolly one's bone set, so the same anim
     // names resolve — pick whichever the mob is currently wearing.
@@ -2012,28 +2101,25 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
         bone_offset[ i ] = glm::vec3( 0.0f );
     }
     const float phase = glm::radians( mob.walk_dist * MOB_GAIT_UNITS_PER_BLOCK * 38.17f );
+    const MobTypeBindings &bind = mob_bone_bindings( mob.type, mob.sheared != 0 );
     for ( int i = 0; i < bone_count; i++ ) {
-        const MobBoneDef &bone = model.bones[ i ];
-        if ( ( def.anims & MOB_ANIM_HEAD_LOOK ) && def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
+        const MobBoneBinding &bb = bind.bones[ i ];
+        if ( ( def.anims & MOB_ANIM_HEAD_LOOK ) && bb.head ) {
             bone_anim[ i ] = mob_head_anim( mob.head_yaw, mob.head_pitch );
         }
         if ( def.anims & MOB_ANIM_QUADRUPED_WALK ) {
             const float gait_deg = def.gait_scale > 0.0f ? 80.0f * def.gait_scale : 80.0f;
-            for ( int leg = 0; leg < 4; leg++ ) {
-                if ( def.bone_legs[ leg ] != NULL && strcmp( bone.name, def.bone_legs[ leg ] ) == 0 ) {
-                    const float sign = ( leg == 0 || leg == 3 ) ? 1.0f : -1.0f;
-                    bone_anim[ i ].x += sign * gait_deg * cosf( phase ) * mob.leg_amp;
-                }
+            if ( bb.leg >= 0 ) {
+                const float sign = ( bb.leg == 0 || bb.leg == 3 ) ? 1.0f : -1.0f;
+                bone_anim[ i ].x += sign * gait_deg * cosf( phase ) * mob.leg_amp;
             }
         }
         if ( def.anims & MOB_ANIM_WING_FLAP ) {
             // Bedrock animation.chicken.general: wing0 flaps +z, wing1 -z.
             // 20° on the ground, 70° while airborne (gliding).
             const float amp = mob.standing ? 20.0f : 70.0f;
-            for ( int w = 0; w < 2; w++ ) {
-                if ( def.bone_wings[ w ] != NULL && strcmp( bone.name, def.bone_wings[ w ] ) == 0 ) {
-                    bone_anim[ i ].z += ( w == 0 ? 1.0f : -1.0f ) * amp * sinf( mob.wing_phase );
-                }
+            if ( bb.wing >= 0 ) {
+                bone_anim[ i ].z += ( bb.wing == 0 ? 1.0f : -1.0f ) * amp * sinf( mob.wing_phase );
             }
         }
         if ( def.anims & MOB_ANIM_GHAST_TENTACLES ) {
@@ -2042,9 +2128,8 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
             // negative tips the tentacles back so they drag behind),
             // phased ~1 rad apart per tentacle at a ~1 Hz rate — the slow
             // wing_phase reuse keeps the drift gentle.
-            if ( strncmp( bone.name, "tentacles_", 10 ) == 0 ) {
-                const int tentacle = atoi( bone.name + 10 );
-                bone_anim[ i ].x += 11.5f * sinf( mob.wing_phase * 0.11f + static_cast<float>( tentacle ) );
+            if ( bb.tentacle >= 0 ) {
+                bone_anim[ i ].x += 11.5f * sinf( mob.wing_phase * 0.11f + static_cast<float>( bb.tentacle ) );
             }
         }
         if ( def.anims & MOB_ANIM_BLAZE_RODS ) {
@@ -2055,8 +2140,8 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
             // -180°/s — with a fixed y offset (+2, -2, -11 px) and a ±1 px
             // per-rod bob. anim_phase is a constant-rate clock: the orbit
             // speeds are fixed, so wing_phase's state-varying rate won't do.
-            if ( strncmp( bone.name, "upperBodyParts", 14 ) == 0 ) {
-                const int rod = atoi( bone.name + 14 );
+            if ( bb.rod >= 0 ) {
+                const int rod = bb.rod;
                 const int ring = rod / 4;
                 static const float ring_r[ 3 ] = { 9.0f, 7.0f, 5.0f };
                 static const float ring_w[ 3 ] = { -360.0f, 108.0f, -180.0f }; // deg/s
@@ -2074,17 +2159,15 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
             // Bedrock animation.humanoid.move: tcos0 = cos(phase)*57.3°,
             // opposite arm and leg swing together (right leg + left arm).
             const float tcos0 = cosf( phase ) * 57.3f * mob.leg_amp;
-            for ( int limb = 0; limb < 2; limb++ ) {
-                if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
-                    bone_anim[ i ].x += ( limb == 0 ? 1.4f : -1.4f ) * tcos0;
-                    // Seated in a minecart: thighs folded forward at the hip.
-                    if ( mob.seated ) {
-                        bone_anim[ i ].x += 90.0f;
-                    }
+            if ( bb.leg == 0 || bb.leg == 1 ) {
+                bone_anim[ i ].x += ( bb.leg == 0 ? 1.4f : -1.4f ) * tcos0;
+                // Seated in a minecart: thighs folded forward at the hip.
+                if ( mob.seated ) {
+                    bone_anim[ i ].x += 90.0f;
                 }
-                if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
-                    bone_anim[ i ].x += ( limb == 0 ? -1.0f : 1.0f ) * tcos0;
-                }
+            }
+            if ( bb.arm >= 0 ) {
+                bone_anim[ i ].x += ( bb.arm == 0 ? -1.0f : 1.0f ) * tcos0;
             }
         }
     }
@@ -2111,27 +2194,26 @@ void MobManager::bone_worlds( const Mob &mob, const MobTypeDef &def, float alpha
         glm::mat4 s_eff[ 32 ];
         for ( int i = 0; i < bone_count; i++ ) {
             const MobBoneDef &bone = model.bones[ i ];
+            const MobBoneBinding &bb = bind.bones[ i ];
             float angle = 0.0f;
             glm::vec3 off( 0.0f );
             int named = 0;
-            if ( def.bone_body != NULL && strcmp( bone.name, def.bone_body ) == 0 ) {
+            if ( bb.body ) {
                 angle = -28.65f;
                 off.y = -1.5f;
                 named = 1;
-            } else if ( def.bone_head != NULL && strcmp( bone.name, def.bone_head ) == 0 ) {
+            } else if ( bb.head ) {
                 off.y = -2.5f;
                 named = 1;
             } else {
-                for ( int limb = 0; limb < 2; limb++ ) {
-                    if ( def.bone_arms[ limb ] != NULL && strcmp( bone.name, def.bone_arms[ limb ] ) == 0 ) {
-                        angle = -22.9f;
-                        off.y = -1.5f;
-                        named = 1;
-                    }
-                    if ( def.bone_legs[ limb ] != NULL && strcmp( bone.name, def.bone_legs[ limb ] ) == 0 ) {
-                        off.z = 4.0f;
-                        named = 1;
-                    }
+                if ( bb.arm >= 0 ) {
+                    angle = -22.9f;
+                    off.y = -1.5f;
+                    named = 1;
+                }
+                if ( bb.leg == 0 || bb.leg == 1 ) {
+                    off.z = 4.0f;
+                    named = 1;
                 }
             }
             if ( named ) {
@@ -2160,8 +2242,8 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
         // A shorn shearable type renders its sheared model (a smaller cube
         // set sharing the bone names); spare parts allocated for the larger
         // model get a zeroed transform below.
-        const MobModelDef &model =
-            mob.sheared && def.sheared_model != MOB_MODEL_COUNT ? mob_models[ def.sheared_model ] : mob_models[ def.model ];
+        const int model_i = mob.sheared && def.sheared_model != MOB_MODEL_COUNT ? def.sheared_model : def.model;
+        const MobModelDef &model = mob_models[ model_i ];
 
         const glm::dvec3 rpos = glm::mix( mob.prev_pos, mob.pos, static_cast<double>( alpha ) );
         const float ryaw = mob.prev_yaw + wrap_degrees_180( mob.yaw - mob.prev_yaw ) * alpha;
@@ -2229,13 +2311,19 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
 
         int part = 0;
         const int bone_count = model.bone_count < 32 ? model.bone_count : 32;
+        const std::vector<std::vector<glm::mat4>> &cube_mats = mob_cube_mats( model_i );
+        const int held_arm = mob_bone_bindings( mob.type, mob.sheared != 0 ).held_arm_bone;
+        glm::mat4 held_bone_m( 1.0f );
         for ( int i = 0; i < bone_count; i++ ) {
             const MobBoneDef &bone = model.bones[ i ];
+            const glm::mat4 bone_m = base * bone_world[ i ];
+            if ( i == held_arm ) {
+                held_bone_m = bone_m;
+            }
             for ( int c = 0; c < bone.cube_count; c++ ) {
                 const MobCubeDef &cube = model.cubes[ bone.cube_start + c ];
-                const glm::mat4 cube_m = mob_cube_matrix( bone, cube );
                 MobPartInstance &inst = this->render_chain.get_instance( mob.parts[ part++ ] );
-                inst.transform = base * bone_world[ i ] * cube_m;
+                inst.transform = bone_m * cube_mats[ i ][ c ];
                 inst.light = light;
                 inst.uv_a = glm::vec4( cube.uv[ 0 ], cube.uv[ 1 ], cube.size[ 0 ], cube.size[ 1 ] );
                 // uv_b.w < 0 is the red hurt flash; > 0 is the creeper's
@@ -2290,14 +2378,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
             }
         }
         if ( !mob.held_parts.empty( ) && def.bone_arms[ 1 ] != NULL ) {
-            int arm = -1;
-            for ( int i = 0; i < bone_count; i++ ) {
-                if ( strcmp( model.bones[ i ].name, def.bone_arms[ 1 ] ) == 0 ) {
-                    arm = i;
-                    break;
-                }
-            }
-            if ( arm >= 0 ) {
+            if ( held_arm >= 0 ) {
                 // The model's bone names are mirrored (front is -Z, so the
                 // arm named "leftArm" at +X is the character's right hand —
                 // matching MC). Grip pose in model pixels, tunable live in
@@ -2318,7 +2399,7 @@ void MobManager::update_render( float alpha, const ChunkLoader &chunk_loader, He
                 grip = glm::rotate( grip, glm::radians( grip_rot.x ), glm::vec3( 1.0f, 0.0f, 0.0f ) );
                 grip = glm::rotate( grip, glm::radians( grip_rot.z ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
                 grip = glm::scale( grip, glm::vec3( grip_scale ) );
-                const glm::mat4 held_m = base * bone_world[ arm ] * grip;
+                const glm::mat4 held_m = held_bone_m * grip;
                 if ( mob.held_cube ) {
                     const glm::mat4 m = held_m * glm::translate( glm::mat4( 1.0f ), glm::vec3( -0.5f ) );
                     for ( entt::entity e : mob.held_parts ) {

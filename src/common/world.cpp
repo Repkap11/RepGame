@@ -1408,31 +1408,39 @@ bool World::set_sign_text_from_net( const glm::ivec3 &block_pos, const SignText 
 }
 
 void World::collect_signs_near( const glm::ivec3 &center, const int radius, std::vector<WorldSign> &out ) const {
-    // Scan every chunk slot like tick_furnaces: signs are rare, so the
-    // per-slot check is a map-empty test.
-    for ( int i = 0; i < MAX_LOADED_CHUNKS; i++ ) {
-        Chunk &chunk = this->chunkLoader.chunkArray[ i ];
-        if ( chunk.load_state || chunk.containers.signs.empty( ) ) {
-            continue;
-        }
-        const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
-        for ( const auto &pair : chunk.containers.signs ) {
-            const int index = pair.first;
-            const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
-                                           ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
-                                           ( index % CHUNK_SIZE_INTERNAL_Z ) - 1 );
-            const glm::ivec3 block_pos = chunk_origin + internal_pos;
-            const glm::ivec3 d = block_pos - center;
-            if ( abs( d.x ) > radius || abs( d.y ) > radius || abs( d.z ) > radius ) {
-                continue;
+    // Visit only the chunks whose block range overlaps the query box: signs
+    // are rare, and scanning all MAX_LOADED_CHUNKS slots every frame just to
+    // hit each chunk's map-empty test was measurable.
+    const glm::ivec3 lo = glm::ivec3( glm::floor( glm::vec3( center - radius ) / CHUNK_SIZE_F ) );
+    const glm::ivec3 hi = glm::ivec3( glm::floor( glm::vec3( center + radius ) / CHUNK_SIZE_F ) );
+    for ( int cy = lo.y; cy <= hi.y; cy++ ) {
+        for ( int cz = lo.z; cz <= hi.z; cz++ ) {
+            for ( int cx = lo.x; cx <= hi.x; cx++ ) {
+                const glm::ivec3 cpos( cx, cy, cz );
+                Chunk &chunk = this->chunkLoader.chunkArray[ chunk_slot_from_pos( cpos ) ];
+                if ( chunk.chunk_pos != cpos || chunk.load_state != CHUNK_LIVE || chunk.containers.signs.empty( ) ) {
+                    continue;
+                }
+                const glm::ivec3 chunk_origin = chunk.chunk_pos * CHUNK_SIZE_I;
+                for ( const auto &pair : chunk.containers.signs ) {
+                    const int index = pair.first;
+                    const glm::ivec3 internal_pos( ( ( index / CHUNK_SIZE_INTERNAL_Z ) % CHUNK_SIZE_INTERNAL_X ) - 1,
+                                                   ( index / ( CHUNK_SIZE_INTERNAL_Z * CHUNK_SIZE_INTERNAL_X ) ) - 1,
+                                                   ( index % CHUNK_SIZE_INTERNAL_Z ) - 1 );
+                    const glm::ivec3 block_pos = chunk_origin + internal_pos;
+                    const glm::ivec3 d = block_pos - center;
+                    if ( abs( d.x ) > radius || abs( d.y ) > radius || abs( d.z ) > radius ) {
+                        continue;
+                    }
+                    // Drop stale entries whose cell lost its sign without going
+                    // through Chunk::set_block.
+                    const BlockState state = chunk.state_at( index );
+                    if ( !block_is_sign( state.id ) ) {
+                        continue;
+                    }
+                    out.push_back( { block_pos, state, &pair.second } );
+                }
             }
-            // Drop stale entries whose cell lost its sign without going
-            // through Chunk::set_block.
-            const BlockState state = chunk.state_at( index );
-            if ( !block_is_sign( state.id ) ) {
-                continue;
-            }
-            out.push_back( { block_pos, state, &pair.second } );
         }
     }
 }

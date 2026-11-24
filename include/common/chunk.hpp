@@ -343,6 +343,7 @@ class Chunk {
     friend class Multiplayer;
     friend class TntExplodeEvent;
     friend void test_setup_world( World &world );
+    friend void test_setup_chunk( World &world, const glm::ivec3 &chunk_pos );
     friend void light_fill_chunk( Chunk &chunk );
     friend void light_air_mask_set( const Chunk &chunk, int index, BlockID id );
     friend void light_reset_staging( Chunk *chunk );

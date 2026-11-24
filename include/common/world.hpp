@@ -35,6 +35,7 @@ class World {
     friend int test_grass_persist( );
     friend int test_cake( );
     friend void test_setup_world( World &world );
+    friend void test_setup_chunk( World &world, const glm::ivec3 &chunk_pos );
     friend int test_dimension( );
 
     friend int test_lighting( );

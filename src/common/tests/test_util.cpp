@@ -14,6 +14,17 @@ void test_setup_world( World &world ) {
     chunk.cells = chunk_alloc_cells( );
 }
 
+void test_setup_chunk( World &world, const glm::ivec3 &chunk_pos ) {
+    Chunk &chunk = world.chunkLoader.chunkArray[ chunk_slot_from_pos( chunk_pos ) ];
+    auto ring_mod = []( int v, int n ) { return ( ( v % n ) + n ) % n; };
+    chunk.chunk_pos = chunk_pos;
+    chunk.chunk_mod = glm::ivec3( ring_mod( chunk_pos.x, 2 * CHUNK_RADIUS_XZ + 1 ),
+                                  ring_mod( chunk_pos.y, 2 * CHUNK_RADIUS_Y + 1 ),
+                                  ring_mod( chunk_pos.z, 2 * CHUNK_RADIUS_XZ + 1 ) );
+    chunk.load_state = CHUNK_LIVE;
+    chunk.cells = chunk_alloc_cells( );
+}
+
 int check_power( const World &world, const char *name, const glm::ivec3 &pos, int expected, int expected_max ) {
     const int power = world.get_loaded_block( pos ).current_redstone_power;
     const bool ok = expected_max < 0 ? power == expected : ( power >= expected && power <= expected_max );

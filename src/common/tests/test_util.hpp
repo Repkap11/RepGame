@@ -47,6 +47,11 @@ static inline int unsetenv( const char *name ) {
 // outside that chunk read LAST_BLOCK_ID like an unloaded chunk.
 void test_setup_world( World &world );
 
+// Marks an additional chunk live (same as test_setup_world's origin chunk):
+// allocates its cells and sets chunk_pos/chunk_mod. For tests that need
+// loaded blocks outside the origin chunk (e.g. negative coords).
+void test_setup_chunk( World &world, const glm::ivec3 &chunk_pos );
+
 // Checks the power level at a position, printing a line per check. Returns the
 // number of failures.
 int check_power( const World &world, const char *name, const glm::ivec3 &pos, int expected, int expected_max = -1 );
