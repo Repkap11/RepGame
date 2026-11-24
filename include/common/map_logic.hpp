@@ -29,7 +29,9 @@ if ( DIM_IS_NETHER_BY( y ) ) {
     let rep_y = select( y - DIM_BY_MIN_3_LO, y - DIM_BY_MIN_3_HI - 1984, y >= DIM_BY_MIN_3_HI );
     finalBlockId = mg_pick_block( x, rep_y, z, col );
 #else
-    finalBlockId = mg_pick_block( x, repheim_gen_block_y( y ), z, col );
+    // Inlined repheim_gen_block_y (dimension.hpp): that helper is host-only.
+    const int rep_y = y >= DIM_BY_MIN_3_HI ? y - DIM_BY_MIN_3_HI - 1984 : y - DIM_BY_MIN_3_LO;
+    finalBlockId = mg_pick_block( x, rep_y, z, col );
 #endif
 } else {
     finalBlockId = mgl_pick_block( x, y, z, terrainHeight );
