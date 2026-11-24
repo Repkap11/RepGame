@@ -43,8 +43,9 @@ uniform vec3 u_CameraPos;
 // first fog stage.
 uniform vec3 u_FogColor;
 
-// Sea level water surface in absolute world Y: WATER_LEVEL(0) + WATER_HEIGHT - 1.
-const float SEA_SURFACE_Y = -0.125;
+// Sea-level water surface of the camera's dimension in absolute world Y:
+// WATER_HEIGHT - 1 at sea level 0 (overworld), repheim's at its band seam.
+uniform float u_SeaSurfaceY;
 
 
 
@@ -276,7 +277,7 @@ void waterMain(ivec2 multiCoords) {
     // exceeds a tight epsilon within the visible range — distant sea water
     // would otherwise flip between the planar and SSR paths per pixel,
     // striping the ocean with SSR-miss sky color along constant-depth lines.
-    if(abs(waterY - SEA_SURFACE_Y) < 0.5) {
+    if(abs(waterY - u_SeaSurfaceY) < 0.5) {
         // Sea-level fluid: the mirrored-world pass is exact.
         vec4 r = reflectionMultisample(multiCoords + rip);
         reflColor = r.rgb;

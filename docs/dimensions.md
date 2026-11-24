@@ -124,7 +124,11 @@ backend and `map_logic.hpp` dispatches on the band (`DIM_IS_REPHEIM_BY`,
 generators evaluate in a **rep frame** (`repheim_gen_block_y` /
 `repheim_encoded_block_y` in `dimension.hpp`): rep frame y = band-local
 y − 1984, i.e. sea level at 0 just like the overworld — repheim terrain
-and structures are identical to a new-gen overworld at the same x/z.
+and structures are identical to a new-gen overworld at the same x/z. The
+render-side sea plane follows too: `dim_sea_level_block_y(dim)` gives each
+band's sea level in encoded block y, so the mirrored-water reflection pass,
+the fog/murk split and the water composite's planar-vs-SSR pick all use
+repheim's surface at its band seam instead of the overworld's y≈0.
 `StructureGen::place` repoints the structure passes' frame too, so
 trees/decorations/ores land the same way. The repgate (see *Portals*)
 is the in-game path to repheim — gold ring, flint & steel, 1:1 x/z.

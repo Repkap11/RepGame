@@ -56,8 +56,9 @@ class WorldTextRenderer {
     void append_billboard( const glm::vec3 &anchor, const glm::vec3 &right, const glm::vec3 &back, const char *text, int len, float height, float alpha );
     // Fog/water uniforms mirror object_fragment's set so sign text fades
     // and underwater-tints like everything else in the world pass.
+    // sea_surface_y is the dimension's sea surface in absolute world y.
     void flush( const Renderer &renderer, const glm::mat4 &mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin, float fog_near, float fog_far, float water_fog_near, float water_fog_far,
-                const glm::vec3 &sky_avg_color, const glm::vec3 &water_fog_color, int underwater_wash, int opaque_fog, int water_tint_type );
+                const glm::vec3 &sky_avg_color, const glm::vec3 &water_fog_color, int underwater_wash, int opaque_fog, int water_tint_type, float sea_surface_y );
 };
 
 // Signs this many blocks away (chebyshev) get their text drawn — text is

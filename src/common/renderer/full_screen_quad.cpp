@@ -74,12 +74,13 @@ void FullScreenQuad::draw_texture_fog( const Renderer &renderer, const Texture &
     this->render_link_fsq.draw( renderer, this->shader );
 }
 
-void FullScreenQuad::set_water_frame_uniforms( const Texture &depthTexture, const glm::mat4 &inv_mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin ) {
+void FullScreenQuad::set_water_frame_uniforms( const Texture &depthTexture, const glm::mat4 &inv_mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin, const float sea_surface_y ) {
     this->shader.set_uniform1i_texture( "u_DepthTexture", depthTexture );
     this->shader.set_uniform_mat4f( "u_InvMVP", inv_mvp );
     this->shader.set_uniform1f( "u_OriginY", origin.y );
     this->shader.set_uniform2f( "u_OriginXZ", origin.x, origin.z );
     this->shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
+    this->shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
 }
 
 void FullScreenQuad::draw_water( const Renderer &renderer, const Texture &reflectionTexture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture,

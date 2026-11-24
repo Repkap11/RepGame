@@ -246,7 +246,7 @@ void WorldTextRenderer::append_billboard( const glm::vec3 &anchor, const glm::ve
 }
 
 void WorldTextRenderer::flush( const Renderer &renderer, const glm::mat4 &mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin, float fog_near, float fog_far, float water_fog_near, float water_fog_far,
-                               const glm::vec3 &sky_avg_color, const glm::vec3 &water_fog_color, int underwater_wash, int opaque_fog, int water_tint_type ) {
+                               const glm::vec3 &sky_avg_color, const glm::vec3 &water_fog_color, int underwater_wash, int opaque_fog, int water_tint_type, float sea_surface_y ) {
     if ( !this->initialized || this->batch_quads == 0 ) {
         return;
     }
@@ -263,6 +263,7 @@ void WorldTextRenderer::flush( const Renderer &renderer, const glm::mat4 &mvp, c
     shader.set_uniform1i( "u_Underwater", underwater_wash );
     shader.set_uniform1i( "u_OpaqueFog", opaque_fog );
     shader.set_uniform1i( "u_TintUnderWater", water_tint_type );
+    shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
 
     glActiveTexture( GL_TEXTURE0 );
     glBindTexture( GL_TEXTURE_2D, this->font->atlas_texture( ) );

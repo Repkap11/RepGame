@@ -48,7 +48,10 @@ is `docs/chunks.md`; the light model these tunables feed is
   range apply instead (nether: short red-brown — `docs/dimensions.md`).
 
   Water fog splits each view ray at the sea-level plane per fragment
-  (`chunk_fragment.glsl`/`object_fragment.glsl`/`world_text_fragment.glsl`):
+  (`chunk_fragment.glsl`/`object_fragment.glsl`/`world_text_fragment.glsl`).
+  The plane is the camera dimension's sea surface (`u_SeaSurfaceY`, from
+  `dim_sea_level_block_y`): `WATER_HEIGHT - 1` in the overworld, repheim's at
+  its wrapped band seam:
   the above-surface leg fogs over the air range toward the sky average, the
   submerged leg fogs over the short `u_WaterFog*` range toward a
   camera-depth-graded murk (`u_WaterFogColor`), combined as independent
@@ -242,8 +245,8 @@ the reflection composite). Three values:
   disappears from above and glass under water seen from below draws over
   the surface where it shouldn't.
 - `split` (default; also used for unknown values) — translucent fragments are split at the sea-level water plane
-  (`u_SplitY`/`u_SplitSign` in `chunk_vertex`/`chunk_fragment.glsl`, plane
-  at `WATER_HEIGHT - 1` like the reflection plane): fragments on the far
+  (`u_SplitY`/`u_SplitSign` in `chunk_vertex`/`chunk_fragment.glsl`, at the
+  dimension's sea surface like the reflection plane): fragments on the far
   side from the camera draw before water, the camera side after — exact
   for sea-level water. Non-sea water (ponds, raised pools, water side
   faces) still misorders: on the camera's side of sea level it behaves

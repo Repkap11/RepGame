@@ -24,10 +24,12 @@ class FullScreenQuad {
     void draw_texture_fog( const Renderer &renderer, const Texture &texture, const Texture &depthStencilTexture, const Texture &fogTexture, const Texture &skyColorTexture, float extraAlpha, bool blur, bool ignoreStencil, int discardZeroAlpha = 0, float time_s = 0.0f, bool ripple = false,
                            bool underwater = false, const glm::vec3 &underwater_fog_color = glm::vec3( 0.0f ) );
     // Binds the per-frame water/SSR state (depth snapshot, inv_mvp, camera,
-    // render origin). Called once before the compositing block so both the
-    // refraction wobble in draw_texture_fog and draw_water can unproject
-    // pixels into world space. Uniforms persist on the shared program.
-    void set_water_frame_uniforms( const Texture &depthTexture, const glm::mat4 &inv_mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin );
+    // render origin, sea surface). Called once before the compositing block
+    // so both the refraction wobble in draw_texture_fog and draw_water can
+    // unproject pixels into world space. Uniforms persist on the shared
+    // program. sea_surface_y is the camera dimension's sea surface in
+    // absolute world y — draw_water uses it to pick planar vs SSR per pixel.
+    void set_water_frame_uniforms( const Texture &depthTexture, const glm::mat4 &inv_mvp, const glm::vec3 &camera_pos_rebased, const glm::vec3 &origin, float sea_surface_y );
     // Water composite pass for HIGH/X_HIGH: draws the reflection texture
     // (planar for sea-level water, screen-space ray marched for elevated
     // fluids), weighted by fresnel, over stencil==1 pixels. Requires the plain

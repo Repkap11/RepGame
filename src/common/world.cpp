@@ -372,10 +372,14 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     if ( dim_prof->has_sky ) {
         fog_blend_color *= daylight;
     }
+    // The dimension's sea surface in absolute world y: the mirrored
+    // reflection pass, the submerged-leg fog split, and the water
+    // composite's planar-vs-SSR pick all key off this plane.
+    const float sea_surface_y = static_cast<float>( dim_sea_level_block_y( camera_dim ) ) + WATER_HEIGHT - 1.0f;
     // Water murk target: depth-graded by the camera's depth below the
     // surface (light blue at the surface → navy when deep), dimmed by
     // daylight like the sky target.
-    const float depthBelow = ( WATER_HEIGHT - 1.0f ) - y_height; // WATER_LEVEL(0) + WATER_HEIGHT - 1 = surface Y
+    const float depthBelow = sea_surface_y - y_height; // sea level + WATER_HEIGHT - 1 = surface Y
     const float depthF = glm::clamp( depthBelow / 30.0f, 0.0f, 1.0f );
     glm::vec3 water_murk = glm::mix( glm::vec3( 0.045f, 0.13f, 0.46f ), glm::vec3( 0.008f, 0.03f, 0.14f ), depthF );
     if ( dim_prof->has_sky ) {
@@ -396,6 +400,9 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->chunkLoader.shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->chunkLoader.shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    // Absolute world y of the dimension's sea surface — the fog/murk split
+    // and the water-side tint rebase it by u_Origin in the shader.
+    this->chunkLoader.shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     // No-framebuffer fog blends toward the actual sky color (chunk_fragment
     // samples the equirect sky texture at the view direction).
     this->chunkLoader.shader.set_uniform1i_texture( "u_SkyTexture", this->skyBox.get_texture( ) );
@@ -422,6 +429,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->object_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->object_shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    this->object_shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     this->object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->object_shader.set_uniform1f( "u_Daylight", daylight );
     this->object_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
@@ -435,6 +443,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->debris_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->debris_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->debris_shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    this->debris_shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     this->debris_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->debris_shader.set_uniform1f( "u_Daylight", daylight );
     this->debris_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
@@ -450,6 +459,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->heart_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->heart_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->heart_shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    this->heart_shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     this->heart_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->heart_shader.set_uniform1f( "u_Daylight", daylight );
     this->heart_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
@@ -474,6 +484,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->primed_tnt_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->primed_tnt_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->primed_tnt_shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    this->primed_tnt_shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     this->primed_tnt_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->primed_tnt_shader.set_uniform1f( "u_Daylight", daylight );
     this->primed_tnt_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
@@ -488,6 +499,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->block_object_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->block_object_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->block_object_shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    this->block_object_shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     this->block_object_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->block_object_shader.set_uniform1f( "u_Daylight", daylight );
     this->block_object_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
@@ -501,6 +513,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->item_sprite_shader.set_uniform3f( "u_CameraPos", camera_pos_rebased.x, camera_pos_rebased.y, camera_pos_rebased.z );
     this->item_sprite_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->item_sprite_shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    this->item_sprite_shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     this->item_sprite_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->item_sprite_shader.set_uniform1f( "u_Daylight", daylight );
     this->item_sprite_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
@@ -515,6 +528,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->mob_shader.set_uniform3f( "u_Origin", renderOriginF.x, renderOriginF.y, renderOriginF.z );
     this->mob_shader.set_uniform3f( "u_SkyAvgColor", fog_blend_color.r, fog_blend_color.g, fog_blend_color.b );
     this->mob_shader.set_uniform3f( "u_WaterFogColor", water_murk.r, water_murk.g, water_murk.b );
+    this->mob_shader.set_uniform1f( "u_SeaSurfaceY", sea_surface_y );
     this->mob_shader.set_uniform1i( "u_OpaqueFog", useFogBlend ? 1 : 0 );
     this->mob_shader.set_uniform1f( "u_Daylight", daylight );
     this->mob_shader.set_uniform1f( "u_MinAmbient", scene_min_ambient );
@@ -681,7 +695,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_Time", time_s );
     this->chunkLoader.shader.set_uniform3f( "u_DebugScaleOffset", debug_block_scale, debug_block_scale, debug_block_scale );
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", block_water_tint_type );
-    this->chunkLoader.shader.set_uniform1f( "u_ReflectionDotSign", y_height < 0 ? -1.0f : 1.0f );
+    this->chunkLoader.shader.set_uniform1f( "u_ReflectionDotSign", y_height < sea_surface_y ? -1.0f : 1.0f );
     // shader_set_uniform1f( &this->loadedChunks.shader, "u_ReflectionDotSign", 1.0f );
     // REPGAME_TRANSLUCENT_AFTER_WATER moves the translucent order out of the
     // main pass: After = its own draw after the water pass (below); Split =
@@ -693,7 +707,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // its own call right after the water pass below, never in these masks.
     const unsigned order_no_water = order_all & ~render_order_bit( RenderOrder_Water ) & ~render_order_bit( RenderOrder_Transparent );
     const TranslucentWaterOrder water_order = translucent_water_order( );
-    const float split_y = ( WATER_HEIGHT - 1.0f ) - renderOriginF.y;
+    const float split_y = sea_surface_y - renderOriginF.y;
     const bool camera_above = camera_pos_rebased.y >= split_y;
     this->chunkLoader.shader.set_uniform1f( "u_SplitY", split_y );
     this->chunkLoader.shader.set_uniform1f( "u_SplitSign", 0.0f );
@@ -771,7 +785,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             }
         }
         this->worldText.flush( this->renderer, mvp, camera_pos_rebased, renderOriginF, fog_near, fog_far, water_fog_near, water_fog_far,
-                               fog_blend_color, water_murk, underwater_wash, useFogBlend ? 1 : 0, block_water_tint_type );
+                               fog_blend_color, water_murk, underwater_wash, useFogBlend ? 1 : 0, block_water_tint_type, sea_surface_y );
     }
 
     this->chunkLoader.shader.set_uniform1i( "u_TintUnderWater", 0 );
@@ -902,7 +916,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
         glColorMaski( 2, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
         glColorMaski( 3, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 #endif
-        float offset = 1.0 - WATER_HEIGHT;
+        // Clip-plane offset: v_planarDot = worldY + u_ReflectionHeight, so
+        // -sea_surface_y keeps the discard on the camera's side of the
+        // dimension's sea surface (WATER_HEIGHT - 1 in the overworld).
+        float offset = -sea_surface_y;
 
         // Draw the reflected sky FIRST, so reflected terrain blends with the
         // sky in the reflection texture (matching the normal pass order).
@@ -1026,7 +1043,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             // Bind the SSR/water frame state once: the refraction wobble in the
             // fog-composite draw, the water overlay, and the underwater
             // reflection wobble all unproject with it.
-            this->fullScreenQuad.set_water_frame_uniforms( this->depthTexture, inv_mvp, camera_pos_rebased, renderOriginF );
+            this->fullScreenQuad.set_water_frame_uniforms( this->depthTexture, inv_mvp, camera_pos_rebased, renderOriginF, sea_surface_y );
         }
 
         if ( usingReflections && !headInWater ) {
@@ -1059,7 +1076,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             // sea-level fluids, screen-space marched for elevated ones),
             // blended over the scene just drawn.
             this->fullScreenQuad.draw_water( this->renderer, this->reflectionTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, this->blockTexture, this->depthTexture,
-                                             y_height < 0 ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF, camera_pos_rebased, allowBlur, fog_blend_color );
+                                             y_height < sea_surface_y ? 0.4f : 0.6f, time_s, mvp, inv_mvp, renderOriginF, camera_pos_rebased, allowBlur, fog_blend_color );
             glStencilFunc( GL_NOTEQUAL, 1, 0xff ); // If the stencil value isn't 1 allow drawing.
             if ( useFogBlend ) {
                 this->fullScreenQuad.draw_texture_fog( this->renderer, this->blockTexture, this->depthStencilTexture, this->fogTexture, this->skyColorTexture, 1.0, false, headInWater, 0, 0.0f, false,
@@ -1083,7 +1100,7 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
             // X_HIGH wobbles the mirrored fetch, matching the land-side
             // rippled reflections; HIGH keeps it still. Kept faint so the
             // surface doesn't mirror away the world above.
-            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < 0 ? 0.05 : 0.1, allowBlur, headInWater, 1, false, time_s, allowBlur );
+            this->fullScreenQuad.draw_texture( this->renderer, this->reflectionTexture, this->depthStencilTexture, y_height < sea_surface_y ? 0.05 : 0.1, allowBlur, headInWater, 1, false, time_s, allowBlur );
         }
         glEnable( GL_DEPTH_TEST );
     }

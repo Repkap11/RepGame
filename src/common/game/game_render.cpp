@@ -164,6 +164,12 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     // Height of the fluid surface inside the head block (0..1 in the cell);
     // WATER_HEIGHT is the fallback for non-fluid cells.
     const float head_surface_height = headInWater ? fluid_surface_height( globalGameState.world, round_block ) : WATER_HEIGHT;
+    // The planar reflection mirrors the camera across the dimension's sea
+    // surface: the overworld's y = WATER_HEIGHT - 1, repheim's at its wrapped
+    // band seam. head_surface_height shifts the plane the same way it does at
+    // sea level — a head in a lowered/flowing surface cell mirrors across
+    // that cell's surface.
+    const float sea_surface_y = static_cast<float>( dim_sea_level_block_y( dimension_of_pos( render_pos ) ) ) + WATER_HEIGHT - 1.0f;
 
     globalGameState.blocksTexture.bind( );
     glTexParameteri( globalGameState.blocksTexture.target, GL_TEXTURE_WRAP_S, GL_REPEAT );
@@ -213,7 +219,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
             // glm::mat4 flipped_look = rotation * globalGameState.camera.view_look;
             // glm::mat4 flipped_trans = rotation * globalGameState.camera.view_trans;
             // TODO globalGameState.camera.y causes a strange jump, perhaps the vars are updated in the wrong order.
-            const float height_above_water = static_cast<float>( render_pos.y ) + ( 1.0f - head_surface_height );
+            const float height_above_water = static_cast<float>( render_pos.y ) - ( sea_surface_y + head_surface_height - WATER_HEIGHT );
             const float offset = 2.0f * height_above_water;
             const glm::mat4 flipped_trans = glm::translate( render_view_trans, glm::vec3( 0.0, offset, 0.0 ) );
             // glm::mat4 flipped_trans = globalGameState.camera.view_trans;
@@ -240,7 +246,7 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
                 const glm::mat4 mvp_sky = view.proj * view_look;
                 const glm::mat4 mvp = mvp_sky * view_trans;
                 const glm::mat4 flipped_look = view_look * rotation;
-                const float height_above_water = static_cast<float>( eye_pos.y ) + ( 1.0f - head_surface_height );
+                const float height_above_water = static_cast<float>( eye_pos.y ) - ( sea_surface_y + head_surface_height - WATER_HEIGHT );
                 const float offset = 2.0f * height_above_water;
                 const glm::mat4 flipped_trans = glm::translate( view_trans, glm::vec3( 0.0, offset, 0.0 ) );
                 const glm::mat4 mvp_sky_reflect = view.proj * flipped_look;

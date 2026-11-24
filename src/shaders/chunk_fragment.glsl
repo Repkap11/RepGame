@@ -87,6 +87,9 @@ uniform vec3 u_SkyAvgColor;
 // Fog target for the submerged leg of each view ray (depth-graded water
 // murk); u_SkyAvgColor is the target above the surface.
 uniform vec3 u_WaterFogColor;
+// Camera dimension's sea surface in absolute world y — the fog/murk split
+// and water-side tint rebase it by u_Origin per fragment.
+uniform float u_SeaSurfaceY;
 // Sky texture (equirect sphere map, layer 0): lets the no-framebuffer fog
 // path blend toward the actual sky color behind each fragment instead of
 // fading alpha toward an unknown backdrop.
@@ -437,8 +440,8 @@ void main() {
     // submerged seabed stays untinted (the murk does that work).
     if(u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER) {
         float tintAmt = 0.45f;
-        if(v_world_coords.y >= (-0.125f - u_Origin.y - eps)) {
-            float surfY = -0.125f - u_Origin.y;
+        if(v_world_coords.y >= (u_SeaSurfaceY - u_Origin.y - eps)) {
+            float surfY = u_SeaSurfaceY - u_Origin.y;
             float loY = min(u_CameraPos.y, v_world_coords.y);
             float hiY = max(u_CameraPos.y, v_world_coords.y);
             float crossFrac = (clamp(surfY, loY, hiY) - loY) / max(hiY - loY, eps);
@@ -590,7 +593,7 @@ void main() {
     // plane, run the air range on the above-surface leg and the water range
     // on the submerged leg. The seabed murks over when seen from above, and
     // far above-surface terrain stays visible from underwater.
-    float surfY = -0.125f - u_Origin.y;
+    float surfY = u_SeaSurfaceY - u_Origin.y;
     float loY = min(u_CameraPos.y, v_world_coords.y);
     float hiY = max(u_CameraPos.y, v_world_coords.y);
     float waterPath = dist * clamp((clamp(surfY, loY, hiY) - loY) / max(hiY - loY, eps), 0.0f, 1.0f);

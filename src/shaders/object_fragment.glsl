@@ -35,6 +35,11 @@ uniform vec3 u_CameraPos;
 uniform vec3 u_SkyAvgColor;
 // Same as chunk_fragment: fog target for the submerged leg of the view ray.
 uniform vec3 u_WaterFogColor;
+// Camera dimension's sea surface in absolute world y. The sky keeps the
+// -0.125 view-space horizon instead: its dome is camera-centred (u_Origin=0),
+// so "below -0.125" means below the eye line in every dimension.
+uniform float u_SeaSurfaceY;
+#define SEA_PLANE_Y ( ( u_IsSky == 1 ? -0.125f : u_SeaSurfaceY ) - u_Origin.y )
 
 layout( location = 0 ) out vec4 color;
 layout( location = 1 ) out vec4 reflection;
@@ -84,8 +89,8 @@ void main( ) {
     // from a submerged camera — a mob on land still reads through water.
     if ( u_TintUnderWater != TINT_UNDER_WATER_OBJECT_NEVER ) {
         float tintAmt = 0.5f;
-        if ( v_world_coords.y >= ( -0.125f - u_Origin.y - eps ) ) {
-            float surfY = -0.125f - u_Origin.y;
+        if ( v_world_coords.y >= ( SEA_PLANE_Y - eps ) ) {
+            float surfY = SEA_PLANE_Y;
             float loY = min( u_CameraPos.y, v_world_coords.y );
             float hiY = max( u_CameraPos.y, v_world_coords.y );
             float crossFrac = ( clamp( surfY, loY, hiY ) - loY ) / max( hiY - loY, eps );
@@ -127,7 +132,7 @@ void main( ) {
         // above-surface leg of the view ray, the water range on the
         // submerged leg. u_TintUnderWater still gates the tint/alpha
         // handling, not the fog range.
-        float surfY = -0.125f - u_Origin.y;
+        float surfY = SEA_PLANE_Y;
         float loY = min(u_CameraPos.y, v_world_coords.y);
         float hiY = max(u_CameraPos.y, v_world_coords.y);
         float waterPath = dist * clamp((clamp(surfY, loY, hiY) - loY) / max(hiY - loY, eps), 0.0f, 1.0f);

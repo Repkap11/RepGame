@@ -177,6 +177,16 @@ static inline int repheim_encoded_block_y( const int rep_y ) {
     return rep_y >= 0 ? rep_y + DIM_BY_MIN_3_LO : rep_y + DIM_BY_MIN_3_HI + 1984;
 }
 
+// Encoded block y of the dimension's sea level (the top surface of the
+// highest full water cell sits at this y + WATER_HEIGHT - 1): the overworld's
+// water level is y=0; repheim's rep frame puts its sea at the wrapped band
+// seam. The nether/end have no sea — the value only feeds render planes
+// (reflection mirror, fog/murk split, water composite), where the overworld's
+// y=0 preserves the old behaviour.
+static inline int dim_sea_level_block_y( const DimensionId dim ) {
+    return dim == DIM_REPHEIM ? repheim_encoded_block_y( 0 ) : 0;
+}
+
 // Inverse of the locals above: (dimension, local) -> encoded coordinate.
 static inline int dim_world_chunk_y( const DimensionId dim, const int local_cy ) {
     switch ( dim ) {

@@ -21,6 +21,9 @@ uniform int u_OpaqueFog;
 uniform int u_Underwater;
 // TINT_UNDER_WATER_OBJECT_* values from object_fragment.glsl.
 uniform int u_TintUnderWater;
+// Camera dimension's sea surface in absolute world y (same as
+// object_fragment's u_SeaSurfaceY).
+uniform float u_SeaSurfaceY;
 
 in vec2 v_TexCoord;
 in vec4 v_Tint;
@@ -44,7 +47,7 @@ void main() {
     float dist = distance(v_world_coords, u_CameraPos);
     // Same medium-split fog as chunk_fragment: air range on the
     // above-surface leg of the view ray, water range on the submerged leg.
-    float surfY = -0.125f - u_Origin.y;
+    float surfY = u_SeaSurfaceY - u_Origin.y;
     float loY = min(u_CameraPos.y, v_world_coords.y);
     float hiY = max(u_CameraPos.y, v_world_coords.y);
     float waterPath = dist * clamp((clamp(surfY, loY, hiY) - loY) / max(hiY - loY, 0.00001f), 0.0f, 1.0f);
