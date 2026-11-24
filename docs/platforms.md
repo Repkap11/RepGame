@@ -107,6 +107,12 @@ builds share the checked-in `cmake/toolchains/steamframe.cmake`.
   skips loading the game when the page isn't cross-origin isolated
   (embedded previews/iframes can never be) and points at a dedicated tab
   or the missing headers instead of hitting the SAB abort.
+- Startup screen: the play button starts disabled ("Loading RepGame…")
+  and `onModuleReady` enables it. Until then `#load_area` shows a progress
+  bar driven by `Module.setStatus`, which the file packager calls with
+  `RepGame.data` byte progress. The wasm download and runtime init have no
+  byte count, so those phases sweep the bar instead. `Module.onAbort`
+  reports load failures.
 - `make wasm-run` — build + open in Chrome (`WASM_START_COMMAND`).
 - `make wasm-deploy` — rsync `out/wasm/delivery/` to repkap11.com.
 - Touch: `input.touch_ui` defaults on for `matchMedia('(pointer: coarse)')`

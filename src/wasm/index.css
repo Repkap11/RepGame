@@ -59,9 +59,89 @@ body {
     transition: background 0.2s, border-color 0.2s;
 }
 
-#play_button:hover {
+#play_button:hover:enabled {
     background: #1a2745;
     border-color: #8ab4f0;
+}
+
+/* Until the module (RepGame.wasm + RepGame.data) is ready the button can't
+   start the game; #load_area under it shows the download progress. */
+#play_button:disabled {
+    color: #9090a8;
+    border-color: #3a4a66;
+    cursor: progress;
+    text-shadow: none;
+}
+
+/* Both labels share one grid cell so the button is always as wide as the
+   longer one and doesn't resize when loading finishes. */
+#play_button {
+    display: inline-grid;
+}
+
+#play_button > span {
+    grid-area: 1 / 1;
+}
+
+#play_button:disabled #play_label_ready,
+#play_button:enabled #play_label_loading {
+    visibility: hidden;
+}
+
+#load_area {
+    margin-top: 2vh;
+    width: 40vmin;
+    text-align: center;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+}
+
+/* visibility, not display: keep the space reserved so the play button
+   doesn't shift when loading finishes. */
+#load_area.hidden {
+    visibility: hidden;
+}
+
+#load_bar {
+    height: 1.2vmin;
+    min-height: 6px;
+    background: #16213e;
+    border: 1px solid #3a4a66;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+#load_bar_fill {
+    height: 100%;
+    width: 0%;
+    background: #6a9fd9;
+    transition: width 0.2s;
+}
+
+/* No byte count yet (wasm compile, runtime init): sweep the bar instead. */
+#load_bar.indeterminate #load_bar_fill {
+    width: 30%;
+    animation: load_sweep 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes load_sweep {
+    from { margin-left: 0%; }
+    to { margin-left: 70%; }
+}
+
+#load_status {
+    margin-top: 1vh;
+    font-size: 2vmin;
+    color: #c0c0d0;
+    white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+    #load_area {
+        width: 70vmin;
+    }
+    #load_status {
+        font-size: 3vmin;
+    }
 }
 
 /* Sits directly under the play button: reports whether the browser has a

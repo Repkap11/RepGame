@@ -13,7 +13,11 @@
   <body>
     <div id="canvas_holder">
       <div id="startup">
-        <button id="play_button" type="button">Click to play RepGame</button>
+        <button id="play_button" type="button" disabled><span id="play_label_loading">Loading RepGame…</span><span id="play_label_ready">Click to play RepGame</span></button>
+        <div id="load_area">
+          <div id="load_bar"><div id="load_bar_fill"></div></div>
+          <div id="load_status">Downloading game…</div>
+        </div>
         <div id="gpu_status">Checking for WebGPU…</div>
         <div id="browser_status"></div>
         <div id="clear_area">

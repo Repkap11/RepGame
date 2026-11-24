@@ -388,7 +388,42 @@ window.addEventListener("popstate", function() {
   }
 });
 
+// Startup-screen load feedback. The play button stays disabled until
+// onModuleReady; meanwhile emscripten's file packager reports RepGame.data
+// progress through Module.setStatus("Downloading data... (loaded/total)")
+// and the runtime reports outstanding run dependencies. RepGame.wasm has no
+// byte progress, so those phases show an indeterminate bar.
+var moduleReady = false;
+function setLoadProgress(text, fraction) {
+  if (moduleReady) return;
+  var bar = document.getElementById("load_bar");
+  bar.classList.toggle("indeterminate", fraction == null);
+  document.getElementById("load_bar_fill").style.width = fraction == null ? "" : (fraction * 100).toFixed(1) + "%";
+  document.getElementById("load_status").textContent = text;
+}
+function formatMB(bytes) {
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+setLoadProgress("Downloading game…", null);
+
 var Module = {
+  setStatus: function(text) {
+    var m = /\((\d+)\/(\d+)\)/.exec(text || "");
+    if (m) {
+      var loaded = +m[1], total = +m[2];
+      var fraction = total > 0 ? Math.min(loaded / total, 1) : null;
+      setLoadProgress("Downloading game data… " + formatMB(loaded) + " / " + formatMB(total) +
+        (fraction != null ? " (" + Math.floor(fraction * 100) + "%)" : ""), fraction);
+    } else if (text === "Running...") {
+      setLoadProgress("Starting…", null);
+    }
+  },
+  monitorRunDependencies: function(left) {
+    if (left === 0) setLoadProgress("Starting…", null);
+  },
+  onAbort: function(what) {
+    setLoadProgress("Failed to load RepGame" + (what ? ": " + what : "") + " - try reloading the page.", 0);
+  },
   print: function(msg) { console.log(msg); },
   printErr: function(msg) {
     // emscripten_set_main_loop uses a C++ exception to unwind back to the
@@ -438,7 +473,11 @@ function canRunWasmThreads() {
 if (canRunWasmThreads()) {
   var script = document.createElement("script");
   script.src = "RepGame.js";
+  script.onerror = function() { Module.onAbort("couldn't download RepGame.js"); };
   document.body.appendChild(script);
+} else {
+  document.getElementById("play_label_loading").textContent = "Can't run here";
+  document.getElementById("load_area").classList.add("hidden");
 }
 
 function clear_fullscreen_functions() {
@@ -458,6 +497,9 @@ function onModuleReady() {
   console.log("Module ready");
   Module.canvas = document.getElementById("canvas");
   setup_click_handler();
+  moduleReady = true;
+  document.getElementById("load_area").classList.add("hidden");
+  document.getElementById("play_button").disabled = false;
   setup_soft_keyboard(Module.canvas);
   window.onresize = set_canvas_size;
 }
