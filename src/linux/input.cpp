@@ -232,6 +232,8 @@ void Input::keysInput( const SDL_Keycode key, const bool pressed ) {
             break;
 
         case '\'':
+        case SDLK_LSHIFT:
+        case SDLK_RSHIFT:
             down = pressed;
 
             break;

@@ -18,7 +18,7 @@ scripted/debug-only phases (capture, fly, walktest, results, script) in
 |---|---|
 | `W`/`A`/`S`/`D`, arrows (also `o`/`k`/`;`/`l`) | Move — folded into `input.movement` (`angleH`: W=0, D=+90, S=180, A=-90, diagonals ±45/±135; `sizeH` analog magnitude) |
 | `Space` | Jump; fly up; swim up; climb up |
-| `'` (apostrophe) | Sneak; fly down; sink while swimming; hang on climbables; dismount a ridden minecart |
+| `'` (apostrophe) / `Shift` (either) | Sneak; fly down; sink while swimming; hang on climbables; dismount a ridden minecart |
 | `P` (hold) | Sprint |
 | `F` | Toggle flying; with the creative inventory open, opens its item-name search box instead (typing filters the palette, `Enter`/`Esc` closes it) |
 | `C` | Toggle no-clip (`Ctrl+C` exits) |
