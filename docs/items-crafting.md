@@ -83,6 +83,10 @@ spiral pattern) releases an `ARROW` projectile on right-click — see
 `docs/player.md` "Use" for the input. `ARROW` (`arrow` icon) crafts
 flint + stick + feather x4 and doubles as both the ammo drawn by the bow
 and the item a picked-up stuck arrow returns.
+`ENDER_PEARL` throws as a projectile on right-click
+(`repgame_throw_ender_pearl`) — survival consumes the held pearl, creative
+throws free — and teleports the thrower to its first block/mob impact; see
+`docs/entities.md` "Arrows" for the shared projectile sim.
 
 Farm produce items (`WHEAT`, `WHEAT_SEEDS`, `CARROT`, `POTATO`,
 `BEETROOT`, `BEETROOT_SEEDS`, `BREAD`) are ordinary pure items; the

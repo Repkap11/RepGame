@@ -23,6 +23,7 @@ struct MobRemoteTarget; // mobs.hpp — remote-player target info
 #define NET_ARROW_FLAG_ATTACKER_SURVIVAL ( 1u << 1 ) // shooter's mode at fire
 #define NET_ARROW_FLAG_MOB_FIRED ( 1u << 2 )        // mob-fired: hits players, not mob hitboxes
 #define NET_ARROW_FLAG_FIREBALL ( 1u << 3 )         // blaze fireball: flat flight, bursts on impact
+#define NET_ARROW_FLAG_ENDER_PEARL ( 1u << 4 )      // thrown ender pearl: teleports the thrower on impact
 
 // Tick-driven arrow projectiles, modelled on ItemEntities/BlockBodies: a
 // headless CPU simulation (rep_tests run it without GL) with a render chain
@@ -31,6 +32,9 @@ struct MobRemoteTarget; // mobs.hpp — remote-player target info
 // colliding block it reaches (falling free again when that block breaks),
 // damages the first mob hitbox it crosses, and despawns after 5 minutes.
 // Stuck arrows can be walked over to collect them back as ARROW items.
+// Thrown ender pearls share the flight/collision sim but never stick or
+// damage: an impact removes the pearl and reports the landing point so the
+// throwing client teleports its player there.
 //
 // Multiplayer: "causer simulates" like BlockBodies — the shooter's client
 // runs the sim and streams ENTITY_STATE; other clients hold mirrors that
@@ -49,6 +53,9 @@ class ArrowEntities {
     // Flat hit damage in survival; creative firing uses the one-shot
     // 1000.0f the melee path uses.
     static constexpr float ARROW_DAMAGE = 9.0f;
+    // Thrown ender pearls use a lighter lob than a full-draw arrow
+    // (~36 blocks/s at UPS_RATE).
+    static constexpr double ENDER_PEARL_SPEED = 0.25;
 
     struct Arrow {
         uint32_t id = 0; // stable, non-zero; 0 means "no arrow"
@@ -60,6 +67,8 @@ class ArrowEntities {
         int attacker_survival = 1; // shooter's mode at fire: gates kill drops
         int mob_fired = 0;         // mob-shot arrow: targets players, not mob hitboxes
         int fireball = 0;          // blaze fireball: no gravity, bursts on impact, never sticks
+        int ender_pearl = 0;       // thrown ender pearl: teleports on impact, never sticks
+        int teleport_player = 0;   // locally thrown pearl: only the thrower's client may teleport itself
         int stuck = 0;             // parked in a block: no integration
         glm::ivec3 stuck_cell = glm::ivec3( 0 ); // cell the embedded tip rests in
         int age_ticks = 0;
@@ -87,9 +96,16 @@ class ArrowEntities {
         float damage;
         int32_t player_id = -1;
     };
+    // A locally thrown ender pearl reaching its impact point. pos is the
+    // pearl center at contact; the caller turns it into a feet placement.
+    struct EnderPearlLand {
+        glm::dvec3 pos;
+        glm::dvec3 normal = glm::dvec3( 0.0 ); // block-contact normal when known (zero for entity/contact overlap)
+    };
     struct ArrowTickOutput {
         std::vector<ArrowMobHit> mob_hits;
         std::vector<ArrowPlayerHit> player_hits;
+        std::vector<EnderPearlLand> pearl_lands;
     };
 
     void init( const VertexBufferLayout &vbl_object_vertex, const VertexBufferLayout &vbl_item_instance );
@@ -105,7 +121,12 @@ class ArrowEntities {
     // Returns its id (never 0): at the cap the oldest arrow is evicted.
     // mob_fired arrows (skeleton shots) collide with player hitboxes instead
     // of mobs; the flag rides the wire for mirrors/adoption.
-    uint32_t spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, float damage, int attacker_survival, bool mob_fired = false, bool fireball = false, bool from_net = false );
+    uint32_t spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, float damage, int attacker_survival, bool mob_fired = false, bool fireball = false,
+                    bool from_net = false, bool ender_pearl = false );
+    // Player-thrown ender pearl (no damage): only this local spawn carries
+    // the teleport right. Kept as a named entry point so the generic
+    // projectile spawn doesn't grow positional bools at call sites.
+    uint32_t spawn_ender_pearl( const glm::dvec3 &pos, const glm::dvec3 &vel, int attacker_survival );
 
     // Rebuilds the instance buffer for this frame. alpha interpolates
     // prev_pos -> pos; camera_pos rolls each sprite's plane toward the eye.

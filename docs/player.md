@@ -223,7 +223,11 @@ mob pre-empt the block target for left clicks.
   cell). Survival consumes one `ARROW` — hotbar first, then the
   survival inventory (`consumeItem` helpers on both) — and refuses to
   fire empty; creative fires free and one-shots (1000 damage vs the
-  survival `ARROW_DAMAGE`). Block interactions keep precedence — a
+  survival `ARROW_DAMAGE`). A held `ENDER_PEARL` throws one along the
+  same look vector at a lighter lob (`repgame_throw_ender_pearl`);
+  survival consumes the held pearl, creative throws free, and the
+  projectile's first impact teleports the player there with carried
+  motion zeroed. Block interactions keep precedence — a
   right-click aimed at a chest/door still opens/toggles it — and VR's
   use-binding lands here the same way (`vr.haptic_pending`).
 

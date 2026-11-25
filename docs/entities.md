@@ -115,8 +115,9 @@ spawn/state/remove/handover rules.
 ## Arrows
 
 `ArrowEntities` (`include/common/arrows.hpp`, `src/common/arrows.cpp`,
-owned by `World` as `world.arrows`) is the projectile sim for bow arrows —
-a headless CPU tick in the same shape as `ItemEntities`/`BlockBodies`
+owned by `World` as `world.arrows`) is the projectile sim for bow arrows,
+blaze fireballs and thrown ender pearls — a headless CPU tick in the same
+shape as `ItemEntities`/`BlockBodies`
 (`MAX_ARROWS` = 256, oldest evicted at the cap; frozen in capture mode and
 while the center's chunk isn't `CHUNK_LIVE`). `repgame_fire_arrow` (the
 bow's right-click) spawns one at `ARROW_SPEED` (0.42 blocks/tick, ~60
@@ -141,6 +142,17 @@ gravity or medium drag, and lava/fire don't destroy them), they burst
 with a `fizz` on block impact instead of sticking, and they render as a
 camera-facing `FIRE_CHARGE` billboard ~1.2 blocks wide rather than the
 velocity-aligned arrow sprite.
+Thrown ender pearls (`NET_ARROW_FLAG_ENDER_PEARL`, spawned by
+`repgame_throw_ender_pearl`) share the same ballistic collision sim but
+never stick, damage, or become pickupable: the first block or mob impact
+removes the pearl and emits an `ArrowTickOutput::pearl_lands` contact
+point plus hit-face normal. The throwing client turns that into a feet
+placement (`repgame_ender_pearl_teleport`), depenetrating along the
+contact normal on wall hits and zeroing fall/horizontal motion. A pearl
+renders as a camera-facing `ENDER_PEARL` billboard ~0.45 blocks wide.
+Only the original throwing client's locally spawned pearl can teleport
+its player — mirrors never simulate, and an adopted pearl whose thrower
+disconnected carries no teleport right.
 
 A block hit parks the arrow: `stuck` freezes the sim with the tip ~0.1
 inside the hit face (`stuck_cell` is the cell whose collision face stopped

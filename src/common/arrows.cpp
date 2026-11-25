@@ -113,6 +113,10 @@ static void arrow_apply_net_flags( ArrowEntities::Arrow &a, const uint32_t flags
     a.attacker_survival = ( flags & NET_ARROW_FLAG_ATTACKER_SURVIVAL ) ? 1 : 0;
     a.mob_fired = ( flags & NET_ARROW_FLAG_MOB_FIRED ) ? 1 : 0;
     a.fireball = ( flags & NET_ARROW_FLAG_FIREBALL ) ? 1 : 0;
+    a.ender_pearl = ( flags & NET_ARROW_FLAG_ENDER_PEARL ) ? 1 : 0;
+    if ( a.ender_pearl ) {
+        a.stuck = 0;
+    }
     if ( a.stuck ) {
         const glm::dvec3 dir = glm::length( vel ) > 1e-6 ? glm::normalize( vel ) : a.orient;
         a.stuck_cell = glm::ivec3( glm::floor( pos + dir * ( ARROW_LEN * 0.5 ) ) );
@@ -122,6 +126,15 @@ static void arrow_apply_net_flags( ArrowEntities::Arrow &a, const uint32_t flags
 // arrow_hit faded by the shared listener-distance falloff.
 static void arrow_hit_sfx( const RepGameState &state, const glm::dvec3 &pos ) {
     audio_play_sfx_gain( "arrow_hit", audio_distance_gain( glm::length( pos - state.camera.pos ) ) );
+}
+
+// Ender-pearl teleport events are emitted only for pearls thrown by this
+// client. Mirrors never simulate, and a pearl adopted after its thrower
+// disconnected must not teleport the adopting client instead.
+static void ender_pearl_land( ArrowEntities::ArrowTickOutput *out, const ArrowEntities::Arrow &a, const glm::dvec3 &pos, const glm::dvec3 &normal ) {
+    if ( a.teleport_player && out != nullptr ) {
+        out->pearl_lands.push_back( { pos, normal } );
+    }
 }
 
 glm::dvec3 arrow_aim_vel( const glm::dvec3 &from, const glm::dvec3 &to, const double speed ) {
@@ -191,7 +204,8 @@ void ArrowEntities::init( const VertexBufferLayout &vbl_object_vertex, const Ver
     this->render_inited = true;
 }
 
-uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, const float damage, const int attacker_survival, const bool mob_fired, const bool fireball, const bool from_net ) {
+uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, const float damage, const int attacker_survival, const bool mob_fired, const bool fireball,
+                               const bool from_net, const bool ender_pearl ) {
     if ( this->arrows.size( ) >= MAX_ARROWS ) {
         // Evict the oldest arrow (lowest id).
         size_t oldest = 0;
@@ -215,6 +229,8 @@ uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, con
     a.attacker_survival = attacker_survival;
     a.mob_fired = mob_fired ? 1 : 0;
     a.fireball = fireball ? 1 : 0;
+    a.ender_pearl = ender_pearl ? 1 : 0;
+    a.teleport_player = ender_pearl && !from_net ? 1 : 0;
     this->arrows.push_back( a );
     Arrow &back = this->arrows.back( );
     back.net.chunk = net_entity_chunk_of( pos );
@@ -222,6 +238,10 @@ uint32_t ArrowEntities::spawn( const glm::dvec3 &pos, const glm::dvec3 &vel, con
         this->announce_spawn( back );
     }
     return a.id;
+}
+
+uint32_t ArrowEntities::spawn_ender_pearl( const glm::dvec3 &pos, const glm::dvec3 &vel, const int attacker_survival ) {
+    return this->spawn( pos, vel, 0.0f, attacker_survival, false, false, false, true );
 }
 
 void ArrowEntities::remove_arrow( const size_t i ) {
@@ -351,6 +371,13 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
         // already inside a solid (a point-blank release into a wall) would
         // tunnel straight through. Settle it like a face hit where it sits.
         if ( Collision::box_collides( world, amin, amax ) ) {
+            if ( a.ender_pearl ) {
+                ender_pearl_land( out, a, a.pos, glm::dvec3( 0.0 ) );
+                arrow_hit_sfx( state, a.pos );
+                this->send_net_remove( a, NET_REMOVE_DIED );
+                dead.push_back( i );
+                continue;
+            }
             a.pos += dir * ( ARROW_HALF + 0.1 - ARROW_LEN * 0.5 );
             a.stuck = 1;
             const glm::ivec3 tip_cell = glm::ivec3( glm::floor( a.pos + dir * ( ARROW_LEN * 0.5 ) ) );
@@ -407,7 +434,9 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
         if ( mob >= 0 && mob_t <= traveled + 1e-4 ) {
             // The mob's box entry is nearer than whatever stopped the box.
             a.pos = a.pos + dir * mob_t;
-            if ( out != nullptr ) {
+            if ( a.ender_pearl ) {
+                ender_pearl_land( out, a, a.pos, glm::dvec3( 0.0 ) );
+            } else if ( out != nullptr ) {
                 out->mob_hits.push_back( { mob, a.pos, a.damage, a.attacker_survival } );
             }
             arrow_hit_sfx( state, a.pos );
@@ -418,7 +447,9 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
         if ( player != -2 && player_t <= traveled + 1e-4 ) {
             // Same resolution for a mob-fired arrow vs a player hitbox.
             a.pos = a.pos + dir * player_t;
-            if ( out != nullptr ) {
+            if ( a.ender_pearl ) {
+                ender_pearl_land( out, a, a.pos, glm::dvec3( 0.0 ) );
+            } else if ( out != nullptr ) {
                 out->player_hits.push_back( { a.pos, a.damage, player } );
             }
             arrow_hit_sfx( state, a.pos );
@@ -427,6 +458,27 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
             continue;
         }
         a.pos = landed;
+        if ( box_hit && a.ender_pearl ) {
+            // A pearl's flight ends at first contact: report the contact
+            // point for the thrower's teleport instead of sticking.
+            glm::dvec3 hit_normal( 0.0 );
+            int dominant_axis = -1;
+            double dominant_speed = 0.0;
+            for ( int axis = 0; axis < 3; axis++ ) {
+                if ( hit_axis[ axis ] && fabs( a.vel[ axis ] ) > dominant_speed ) {
+                    dominant_speed = fabs( a.vel[ axis ] );
+                    dominant_axis = axis;
+                }
+            }
+            if ( dominant_axis >= 0 ) {
+                hit_normal[ dominant_axis ] = a.vel[ dominant_axis ] > 0.0 ? -1.0 : 1.0;
+            }
+            ender_pearl_land( out, a, landed, hit_normal );
+            arrow_hit_sfx( state, a.pos );
+            this->send_net_remove( a, NET_REMOVE_DIED );
+            dead.push_back( i );
+            continue;
+        }
         if ( box_hit && a.fireball ) {
             // Fireball bursts on contact instead of sticking.
             audio_play_sfx_gain( "fizz", audio_distance_gain( glm::length( a.pos - state.camera.pos ) ) );
@@ -478,7 +530,7 @@ void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_l
         if ( a.entity == entt::null ) {
             const std::pair<entt::entity, ItemSpriteInstance &> data = this->render_chain.create_instance( );
             a.entity = data.first;
-            data.second.tex_layer = item_icon_texture( a.fireball ? FIRE_CHARGE : ARROW );
+            data.second.tex_layer = item_icon_texture( a.ender_pearl ? ENDER_PEARL : a.fireball ? FIRE_CHARGE : ARROW );
         }
         ItemSpriteInstance &inst = this->render_chain.get_instance( a.entity );
         // Velocity-aligned shaft: the sprite's +y is the flight direction
@@ -489,9 +541,9 @@ void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_l
         // edge like a real arrow. Vertical flight degenerates the up
         // reference, so swap in +x for that.
         glm::mat4 m( 0.0f );
-        if ( a.fireball ) {
-            // Camera-facing billboard ~1.2 blocks wide (vanilla's small
-            // fireball renders as an always-facing sprite).
+        if ( a.fireball || a.ender_pearl ) {
+            // Camera-facing billboards: a wide blaze fireball, or the small
+            // round ender pearl item sprite.
             const glm::vec3 cam = glm::vec3( glm::inverse( view_look )[ 3 ] );
             glm::vec3 normal = glm::vec3( rpos ) - cam;
             if ( glm::length( normal ) < 1e-4f ) {
@@ -505,7 +557,7 @@ void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_l
                 fwd = glm::normalize( fwd );
             }
             const glm::vec3 up = glm::normalize( glm::cross( normal, fwd ) );
-            const float s = 1.2f;
+            const float s = a.ender_pearl ? 0.45f : 1.2f;
             m[ 0 ] = glm::vec4( fwd * s, 0.0f );
             m[ 1 ] = glm::vec4( up * s, 0.0f );
             m[ 2 ] = glm::vec4( normal * s, 0.0f );
@@ -576,7 +628,8 @@ void ArrowEntities::announce_spawn( Arrow &a ) {
     rec.health = a.damage;
     rec.age_ticks = a.age_ticks;
     rec.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u ) |
-                ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u ) | ( a.fireball ? NET_ARROW_FLAG_FIREBALL : 0u );
+                ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u ) | ( a.fireball ? NET_ARROW_FLAG_FIREBALL : 0u ) |
+                ( a.ender_pearl ? NET_ARROW_FLAG_ENDER_PEARL : 0u );
     this->net->send_spawn( rec );
 }
 
@@ -770,7 +823,8 @@ void ArrowEntities::collect_net_state( std::vector<NetEntityStateEntry> &out, co
         e.vy = static_cast<float>( wire_vel.y );
         e.vz = static_cast<float>( wire_vel.z );
         e.flags = ( a.stuck ? NET_ARROW_FLAG_STUCK : 0u ) | ( a.attacker_survival ? NET_ARROW_FLAG_ATTACKER_SURVIVAL : 0u ) |
-                  ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u ) | ( a.fireball ? NET_ARROW_FLAG_FIREBALL : 0u );
+                  ( a.mob_fired ? NET_ARROW_FLAG_MOB_FIRED : 0u ) | ( a.fireball ? NET_ARROW_FLAG_FIREBALL : 0u ) |
+                  ( a.ender_pearl ? NET_ARROW_FLAG_ENDER_PEARL : 0u );
         out.push_back( e );
         // The server now applies its boundary hysteresis to this pos. The
         // receiver's prediction runs on eff_vel (0 while stuck).

@@ -430,6 +430,12 @@ void RepGame::tick_entities( ) {
     // Arrow projectiles: ballistic flight, block sticking, mob hits.
     ArrowEntities::ArrowTickOutput arrow_out;
     gs.world.arrows.tick( gs, &arrow_out, &mob_in.remote_targets );
+    // Locally thrown ender pearls teleport this client at their impact
+    // point. Remote mirrors don't simulate, and adopted pearls carry no
+    // teleport right (the original thrower owned that).
+    for ( const ArrowEntities::EnderPearlLand &land : arrow_out.pearl_lands ) {
+        repgame_ender_pearl_teleport( gs, land.pos, land.normal );
+    }
     // Arrow mob hits reuse the melee path: a local mob takes hurt + drops;
     // a remote-owned mob gets the ENTITY_ACTION forwarded to its owner.
     for ( const ArrowEntities::ArrowMobHit &hit : arrow_out.mob_hits ) {
