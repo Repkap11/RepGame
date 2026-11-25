@@ -172,7 +172,7 @@ static int collision_boxes_for_state_impl( World *world, const glm::dvec3 &origi
         BlockBox boxes[ END_PORTAL_FRAME_MAX_BOXES ];
         const int num_boxes = end_portal_frame_boxes( blockState.display_id == END_PORTAL_FRAME_EYE, boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
-            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            mins[ i ] = origin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
             maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
         }
         return num_boxes;
