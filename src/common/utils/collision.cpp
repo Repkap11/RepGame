@@ -28,20 +28,48 @@ static bool aabb_overlap( const glm::dvec3 &min1, const glm::dvec3 &max1, const 
            min1.z < max2.z && max1.z > min2.z;
 }
 
-// Computes the collision AABBs a block with `blockState` has at `block_pos`
-// — also used for a not-yet-placed block, where the live neighbors are
-// exactly what its connection arms will reach. Returns the box count (0 =
-// no collision). Unloaded
-// blocks are treated as solid full blocks so the player can't fall into the
-// unloaded void (matches the previous collide_with_unloaded behavior).
-// Fences emit the post plus full-height bars toward connected sides
-// (fence_collision_boxes); every other type emits exactly one box.
-static int block_collision_boxes_for_state( World &world, const glm::ivec3 &block_pos, const BlockState &blockState,
-                                            glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
+// Contact test for the movement scan in resolve_axis. Overlap is strict
+// except on the perpendicular Y axis, which must overlap by more than SKIN:
+// gravity noise can leave a resting actor a hair inside its support, and a
+// horizontal scan must not read that floor contact as a wall (walking
+// survives it only through step-up, while move_box bodies/pushes glue in
+// place). Horizontal micro-overlaps stay strict — the step-up settle relies
+// on landing on a surface the mover only just barely slid over.
+static bool scan_overlap( const glm::dvec3 &min1, const glm::dvec3 &max1, const glm::dvec3 &min2, const glm::dvec3 &max2, int move_axis ) {
+    bool ok = true;
+    for ( int a = 0; a < 3; a++ ) {
+        const double tol = a == 1 && move_axis != 1 ? SKIN : 0.0;
+        if ( !( min1[ a ] < max2[ a ] - tol && max1[ a ] > min2[ a ] + tol ) ) {
+            ok = false;
+        }
+    }
+    return ok;
+}
+
+// Neighbor state used by shape derivation. Live terrain reads the world;
+// moving bodies read the spawn-time 3x3x3 snapshot so their shape stays
+// stable for the duration of the slide.
+static BlockState collision_neighbor_state( World *world, const glm::ivec3 &cell, const BlockEmitNeighbors *neighbors, int dx, int dy, int dz ) {
+    if ( neighbors != nullptr ) {
+        return neighbors->at( dx, dy, dz );
+    }
+    return world->get_loaded_block( cell + glm::ivec3( dx, dy, dz ) );
+}
+
+// Computes the collision AABBs a block with `blockState` has at `origin` —
+// also used for a not-yet-placed block, where the live neighbors are exactly
+// what its connection arms will reach. Returns the box count (0 = no
+// collision). Unloaded blocks are treated as solid full blocks so the player
+// can't fall into the unloaded void (matches the previous
+// collide_with_unloaded behavior). Fences emit the post plus full-height
+// bars toward connected sides (fence_collision_boxes); stairs/pistons and
+// walls/bars can emit multiple boxes; every other type emits exactly one.
+static int collision_boxes_for_state_impl( World *world, const glm::dvec3 &origin, const glm::ivec3 &cell, const BlockState &blockState,
+                                           const BlockEmitNeighbors *neighbors, glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
     BlockID blockID = blockState.id;
     if ( blockID >= LAST_BLOCK_ID ) {
-        mins[ 0 ] = glm::dvec3( block_pos );
-        maxs[ 0 ] = glm::dvec3( block_pos ) + glm::dvec3( 1.0 );
+        mins[ 0 ] = origin;
+        maxs[ 0 ] = origin + glm::dvec3( 1.0 );
         return 1;
     }
     Block *block = block_definition_get_definition( blockID );
@@ -64,7 +92,7 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
             { 0, -1, FENCE_CONNECT_NEG_Z, 0 },
         };
         for ( int d = 0; d < 4; d++ ) {
-            const BlockState neighbor = world.get_loaded_block( block_pos + glm::ivec3( conn_dir[ d ][ 0 ], 0, conn_dir[ d ][ 1 ] ) );
+            const BlockState neighbor = collision_neighbor_state( world, cell, neighbors, conn_dir[ d ][ 0 ], 0, conn_dir[ d ][ 1 ] );
             if ( neighbor.id != LAST_BLOCK_ID && fence_connects_to( block, neighbor.id, neighbor.rotation, conn_dir[ d ][ 3 ] ) ) {
                 connections |= conn_dir[ d ][ 2 ];
             }
@@ -72,7 +100,7 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         BlockBox boxes[ FENCE_MAX_BOXES ];
         const int num_boxes = fence_collision_boxes( connections, boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
-            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            mins[ i ] = origin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
             maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
         }
         return num_boxes;
@@ -81,12 +109,12 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         // The same mask gather as the mesher (wall_connection_mask), then the
         // rendered boxes stretched to 1.5 blocks tall.
         const unsigned mask = wall_connection_mask( [ & ]( int dx, int dy, int dz ) {
-            return world.get_loaded_block( block_pos + glm::ivec3( dx, dy, dz ) );
+            return collision_neighbor_state( world, cell, neighbors, dx, dy, dz );
         } );
         BlockBox boxes[ FENCE_MAX_BOXES ];
         const int num_boxes = wall_collision_boxes( mask, boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
-            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            mins[ i ] = origin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
             maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
         }
         return num_boxes;
@@ -96,12 +124,12 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         // arm per connected side — MC's outline is the same), from the same
         // mask gather the mesher does.
         const unsigned mask = bars_connection_mask( [ & ]( int dx, int dy, int dz ) {
-            return world.get_loaded_block( block_pos + glm::ivec3( dx, dy, dz ) );
+            return collision_neighbor_state( world, cell, neighbors, dx, dy, dz );
         } );
         BlockBox boxes[ FENCE_MAX_BOXES ];
         const int num_boxes = bars_boxes( mask, boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
-            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            mins[ i ] = origin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
             maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
         }
         return num_boxes;
@@ -116,13 +144,14 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         };
         int stair_rots[ 4 ];
         for ( int d = 0; d < 4; d++ ) {
-            const BlockState neighbor = world.get_loaded_block( block_pos + stair_dirs[ d ] );
+            const glm::ivec3 dir = stair_dirs[ d ];
+            const BlockState neighbor = collision_neighbor_state( world, cell, neighbors, dir.x, dir.y, dir.z );
             stair_rots[ d ] = ( neighbor.id < LAST_BLOCK_ID && block_definition_get_definition( neighbor.id )->is_stairs ) ? neighbor.rotation : -1;
         }
         BlockBox boxes[ STAIRS_MAX_BOXES ];
         const int num_boxes = stairs_collision_boxes( blockState.rotation, stair_rots, boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
-            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            mins[ i ] = origin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
             maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
         }
         return num_boxes;
@@ -133,8 +162,8 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         // this box for a mover whose feet are below the lip top
         // (scaffold_box_active), so the lip can never seal a mover inside
         // the frame.
-        mins[ 0 ] = glm::dvec3( block_pos ) + glm::dvec3( 0.0, PIXEL_TO_FLOAT( 14 ), 0.0 );
-        maxs[ 0 ] = glm::dvec3( block_pos ) + glm::dvec3( 1.0, 1.0, 1.0 );
+        mins[ 0 ] = origin + glm::dvec3( 0.0, PIXEL_TO_FLOAT( 14 ), 0.0 );
+        maxs[ 0 ] = origin + glm::dvec3( 1.0, 1.0, 1.0 );
         return 1;
     }
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
@@ -146,7 +175,7 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         const int num_boxes = block->is_piston_head ? piston_head_boxes( blockState.rotation, boxes ) //
                                                   : piston_base_boxes( blockState.rotation, boxes );
         for ( int i = 0; i < num_boxes; i++ ) {
-            mins[ i ] = glm::dvec3( block_pos ) + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
+            mins[ i ] = origin + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].offset[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].offset[ 2 ] ) );
             maxs[ i ] = mins[ i ] + glm::dvec3( PIXEL_TO_FLOAT( boxes[ i ].scale[ 0 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 1 ] ), PIXEL_TO_FLOAT( boxes[ i ].scale[ 2 ] ) );
         }
         return num_boxes;
@@ -155,8 +184,8 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
     glm::dvec3 &out_max = maxs[ 0 ];
     const unsigned char rot = block_yaw( block, blockState.rotation );
     if ( !block->non_full_size ) {
-        out_min = glm::dvec3( block_pos );
-        out_max = glm::dvec3( block_pos ) + glm::dvec3( 1.0 );
+        out_min = origin;
+        out_max = origin + glm::dvec3( 1.0 );
         return 1;
     }
     // Non-full-size block: apply the same horizontal rotation logic used by
@@ -190,24 +219,42 @@ static int block_collision_boxes_for_state( World &world, const glm::ivec3 &bloc
         // Eaten cake: each bite in rotation removes 2px off the +x edge.
         scale_x = static_cast<short>( scale_x - 2 * blockState.rotation );
     }
-    out_min.x = static_cast<double>( block_pos.x ) + PIXEL_TO_FLOAT( offset_x );
+    out_min.x = origin.x + PIXEL_TO_FLOAT( offset_x );
     out_max.x = out_min.x + PIXEL_TO_FLOAT( scale_x );
-    out_min.z = static_cast<double>( block_pos.z ) + PIXEL_TO_FLOAT( offset_z );
+    out_min.z = origin.z + PIXEL_TO_FLOAT( offset_z );
     out_max.z = out_min.z + PIXEL_TO_FLOAT( scale_z );
-    out_min.y = static_cast<double>( block_pos.y ) + PIXEL_TO_FLOAT( offset_y );
+    out_min.y = origin.y + PIXEL_TO_FLOAT( offset_y );
     out_max.y = out_min.y + PIXEL_TO_FLOAT( scale_y );
     if ( block->is_fence_gate ) {
         // Closed gates collide like fences: 1.5 blocks tall from the cell
         // floor, so nothing hops them or crawls under the 5px bottom gap.
-        out_min.y = static_cast<double>( block_pos.y );
+        out_min.y = origin.y;
         out_max.y = out_min.y + 1.5;
     }
     return 1;
 }
 
-// The collision AABBs of whatever the cell currently holds.
+// Live-world form of collision_boxes_for_state_impl. `cell` is both the box
+// origin and the center cell for neighbor lookups.
+static int block_collision_boxes_for_state( World &world, const glm::ivec3 &block_pos, const BlockState &blockState,
+                                            glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
+    return collision_boxes_for_state_impl( &world, glm::dvec3( block_pos ), block_pos, blockState, nullptr, mins, maxs );
+}
+
+int Collision::shaped_boxes_for_state( const glm::dvec3 &origin, const glm::ivec3 &cell, const BlockState &blockState,
+                                       const BlockEmitNeighbors &neighbors, glm::dvec3 *mins, glm::dvec3 *maxs ) {
+    return collision_boxes_for_state_impl( nullptr, origin, cell, blockState, &neighbors, mins, maxs );
+}
+
+// The collision AABBs of whatever the cell currently holds. A MOVING_PISTON
+// actively represented by a BODY_PISTON mover contributes no static full
+// cube; orphaned cells keep the fallback collision below.
 static int block_collision_boxes( World &world, const glm::ivec3 &block_pos, glm::dvec3 mins[ FENCE_MAX_BOXES ], glm::dvec3 maxs[ FENCE_MAX_BOXES ] ) {
-    return block_collision_boxes_for_state( world, block_pos, world.get_loaded_block( block_pos ), mins, maxs );
+    const BlockState state = world.get_loaded_block( block_pos );
+    if ( state.id == MOVING_PISTON && world.bodies.piston_move_pending( block_pos ) ) {
+        return 0;
+    }
+    return block_collision_boxes_for_state( world, block_pos, state, mins, maxs );
 }
 
 // A scaffold cell's lip box is skipped for a mover whose feet are below the
@@ -235,8 +282,11 @@ double Collision::block_collision_top( World &world, const glm::ivec3 &block_pos
     return top;
 }
 
-// Returns true if the player AABB overlaps any solid block.
-static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax, double feet_y ) {
+// Returns true if the player AABB overlaps any solid block or dynamic body
+// box. `ignore_index` excludes one mover (the piston currently pushing the
+// actor, for example).
+static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax, double feet_y,
+                                 const BodyBox *extra = nullptr, size_t extra_count = 0, int ignore_index = -1 ) {
     const double eps = 1e-4;
     const int x0 = static_cast<int>( floor( amin.x ) );
     const int x1 = static_cast<int>( floor( amax.x - eps ) );
@@ -262,6 +312,11 @@ static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm
             }
         }
     }
+    for ( size_t e = 0; e < extra_count; e++ ) {
+        if ( extra[ e ].index != ignore_index && aabb_overlap( amin, amax, extra[ e ].min, extra[ e ].max ) ) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -276,7 +331,7 @@ static bool aabb_collides_world( World &world, const glm::dvec3 &amin, const glm
 // fails, standing flickers every other tick, and the body never settles.
 static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double delta, bool &hit, bool &standing,
                           const BodyBox *extra = nullptr, size_t extra_count = 0, const BodyBox **hit_extra = nullptr,
-                          bool resticky_down = false ) {
+                          bool resticky_down = false, int ignore_index = -1 ) {
     hit = false;
     if ( delta == 0.0 ) {
         return;
@@ -323,7 +378,7 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
                     // resticky_down also counts a face within SKIN below the
                     // leading edge as contact (a clamped body rests exactly
                     // SKIN above the face, so a sub-SKIN step never overlaps).
-                    const bool overlap = aabb_overlap( amin, amax, bmin, bmax ) ||
+                    const bool overlap = scan_overlap( amin, amax, bmin, bmax, axis ) ||
                                          ( resticky_down && amin.x < bmax.x && amax.x > bmin.x && ( amin.y - SKIN ) < bmax.y &&
                                            amax.y > bmin.y && amin.z < bmax.z && amax.z > bmin.z );
                     if ( !overlap ) {
@@ -357,9 +412,12 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
     // Extra body boxes obey the same clamp rules as terrain; the tightest
     // clamp over both sets wins.
     for ( size_t e = 0; e < extra_count; e++ ) {
+        if ( extra[ e ].index == ignore_index ) {
+            continue;
+        }
         const glm::dvec3 &bmin = extra[ e ].min;
         const glm::dvec3 &bmax = extra[ e ].max;
-        const bool overlap = aabb_overlap( amin, amax, bmin, bmax ) ||
+        const bool overlap = scan_overlap( amin, amax, bmin, bmax, axis ) ||
                              ( resticky_down && amin.x < bmax.x && amax.x > bmin.x && ( amin.y - SKIN ) < bmax.y && amax.y > bmin.y &&
                                amin.z < bmax.z && amax.z > bmin.z );
         if ( !overlap ) {
@@ -408,7 +466,8 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
 // snow layer) that blocked a horizontal move on `axis`. On success the AABB is
 // updated to the stepped-up-and-settled position; on failure it is left as the
 // clamped position produced by resolve_axis.
-static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double requested_delta ) {
+static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double requested_delta,
+                         const BodyBox *extra, size_t extra_count ) {
     const glm::dvec3 clamped_min = amin;
     const glm::dvec3 clamped_max = amax;
 
@@ -417,7 +476,7 @@ static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int a
     glm::dvec3 up_max = amax;
     up_min.y += STEP_HEIGHT;
     up_max.y += STEP_HEIGHT;
-    if ( aabb_collides_world( world, up_min, up_max, up_min.y ) ) {
+    if ( aabb_collides_world( world, up_min, up_max, up_min.y, extra, extra_count ) ) {
         amin = clamped_min;
         amax = clamped_max;
         return;
@@ -428,7 +487,7 @@ static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int a
     glm::dvec3 test_max = up_max;
     test_min[ axis ] += requested_delta;
     test_max[ axis ] += requested_delta;
-    if ( aabb_collides_world( world, test_min, test_max, test_min.y ) ) {
+    if ( aabb_collides_world( world, test_min, test_max, test_min.y, extra, extra_count ) ) {
         amin = clamped_min;
         amax = clamped_max;
         return;
@@ -440,7 +499,7 @@ static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int a
     amax = test_max;
     bool yhit = false;
     bool standing = false;
-    resolve_axis( world, amin, amax, 1, -STEP_HEIGHT, yhit, standing, nullptr, 0, nullptr, false );
+    resolve_axis( world, amin, amax, 1, -STEP_HEIGHT, yhit, standing, extra, extra_count, nullptr, false );
     // resolve_axis can't write back into the caller's standing flag, so we
     // don't propagate it here; the next gravity substep will re-detect ground.
     ( void ) yhit;
@@ -451,26 +510,28 @@ static void try_step_up( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int a
 // i.e. the move leaves the player over a surface they could still step back
 // onto. STEP_HEIGHT matches step-up range, so sneaking can descend slabs and
 // stairs (0.5 drops) but is stopped at drops of a full block or more.
-static bool has_support_below( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax ) {
+static bool has_support_below( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax,
+                               const BodyBox *extra, size_t extra_count ) {
     const glm::dvec3 probe_min( amin.x, amin.y - STEP_HEIGHT, amin.z );
     // The scaffold lip check keys off the mover's real feet (amin.y), not
     // the lowered probe — otherwise the lip they stand on reads "below the
     // feet" and never counts as support.
-    return aabb_collides_world( world, probe_min, amax, amin.y );
+    return aabb_collides_world( world, probe_min, amax, amin.y, extra, extra_count );
 }
 
 // Moves the player AABB by `delta` on a horizontal axis (0=x, 2=z), resolving
 // collisions and attempting a step-up over small ledges. When edge_guard is
 // set and the player is standing, the move is clamped so the AABB never ends
 // fully past the edge of its support (sneak edge protection).
-static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double delta, bool standing, bool edge_guard ) {
+static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int axis, double delta, bool standing, bool edge_guard,
+                                  const BodyBox *extra, size_t extra_count ) {
     if ( delta == 0.0 ) {
         return;
     }
     const glm::dvec3 pre_min = amin;
     const glm::dvec3 pre_max = amax;
     bool hit = false;
-    resolve_axis( world, amin, amax, axis, delta, hit, standing, nullptr, 0, nullptr, false );
+    resolve_axis( world, amin, amax, axis, delta, hit, standing, extra, extra_count, nullptr, false );
     // The clamped (non-stepped) position, kept so a stepped position that
     // turned out to be over a void can be rolled back to it.
     const glm::dvec3 clamped_min = amin;
@@ -478,9 +539,9 @@ static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &am
     if ( standing && hit ) {
         // Step forward by only the unapplied remainder of this substep's
         // move so the total displacement never exceeds what was requested.
-        try_step_up( world, amin, amax, axis, delta - ( amin[ axis ] - pre_min[ axis ] ) );
+        try_step_up( world, amin, amax, axis, delta - ( amin[ axis ] - pre_min[ axis ] ), extra, extra_count );
     }
-    if ( !edge_guard || !standing || has_support_below( world, amin, amax ) ) {
+    if ( !edge_guard || !standing || has_support_below( world, amin, amax, extra, extra_count ) ) {
         return;
     }
     // The move (possibly via step-up) left the player with no support below.
@@ -495,7 +556,7 @@ static void move_horizontal_axis( World &world, glm::dvec3 &amin, glm::dvec3 &am
         glm::dvec3 tmax = pre_max;
         tmin[ axis ] += mid * ( clamped_min[ axis ] - pre_min[ axis ] );
         tmax[ axis ] += mid * ( clamped_max[ axis ] - pre_max[ axis ] );
-        if ( has_support_below( world, tmin, tmax ) ) {
+        if ( has_support_below( world, tmin, tmax, extra, extra_count ) ) {
             lo = mid;
         } else {
             hi = mid;
@@ -697,8 +758,11 @@ bool Collision::unstick_box( World &world, glm::dvec3 &amin, glm::dvec3 &amax ) 
 }
 
 void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
-                            double player_height, double eye_height, bool edge_guard, double half_width ) {
+                            double player_height, double eye_height, bool edge_guard, double half_width,
+                            const std::vector<BodyBox> *extra_boxes ) {
     bool standing = false;
+    const BodyBox *extra = extra_boxes != nullptr ? extra_boxes->data( ) : nullptr;
+    const size_t extra_count = extra_boxes != nullptr ? extra_boxes->size( ) : 0;
 
     glm::dvec3 amin, amax;
     player_aabb( position, player_height, eye_height, half_width, amin, amax );
@@ -717,15 +781,15 @@ void Collision::check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &
         bool hit = false;
         // Resolve Y first so gravity/landing is settled before horizontal
         // moves and so step-up has a stable base to work from.
-        resolve_axis( world, amin, amax, 1, step.y, hit, standing, nullptr, 0, nullptr, false );
+        resolve_axis( world, amin, amax, 1, step.y, hit, standing, extra, extra_count, nullptr, false );
 
         // Step-up only applies when the player is standing on the ground this
         // tick — otherwise jumping/falling next to a wall would launch the
         // player up and over it. Edge guard (sneaking) likewise only clamps
         // while standing: airborne players can drift past edges and land
         // beyond them.
-        move_horizontal_axis( world, amin, amax, 0, step.x, standing, edge_guard );
-        move_horizontal_axis( world, amin, amax, 2, step.z, standing, edge_guard );
+        move_horizontal_axis( world, amin, amax, 0, step.x, standing, edge_guard, extra, extra_count );
+        move_horizontal_axis( world, amin, amax, 2, step.z, standing, edge_guard, extra, extra_count );
     }
 
     // Write back the actual applied displacement (eye-space). The caller adds
@@ -765,7 +829,8 @@ int Collision::terrain_boxes( World &world, const glm::dvec3 &amin, const glm::d
 }
 
 void Collision::move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const glm::dvec3 &delta,
-                          const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing ) {
+                          const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing,
+                          int ignore_index ) {
     hit_axis[ 0 ] = hit_axis[ 1 ] = hit_axis[ 2 ] = false;
     hit_extra_axis[ 0 ] = hit_extra_axis[ 1 ] = hit_extra_axis[ 2 ] = -1;
     *standing = false;
@@ -784,7 +849,7 @@ void Collision::move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const 
         for ( const int axis : axis_order ) {
             bool hit = false;
             const BodyBox *hit_extra = nullptr;
-            resolve_axis( world, min, max, axis, step[ axis ], hit, *standing, extra.data( ), extra.size( ), &hit_extra, axis == 1 );
+            resolve_axis( world, min, max, axis, step[ axis ], hit, *standing, extra.data( ), extra.size( ), &hit_extra, axis == 1, ignore_index );
             if ( hit ) {
                 hit_axis[ axis ] = true;
                 if ( hit_extra != nullptr ) {
@@ -794,4 +859,54 @@ void Collision::move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const 
         }
     }
 
+}
+
+glm::dvec3 Collision::apply_moving_box_push( World &world, const MovingBodyBox &moving, glm::dvec3 &min, glm::dvec3 &max,
+                                             const std::vector<BodyBox> &dynamic ) {
+    if ( !aabb_overlap( min, max, moving.box.min, moving.box.max ) ) {
+        return glm::dvec3( 0.0 );
+    }
+    int axis = 0;
+    double amount = std::fabs( moving.delta.x );
+    if ( std::fabs( moving.delta.y ) > amount ) {
+        axis = 1;
+        amount = std::fabs( moving.delta.y );
+    }
+    if ( std::fabs( moving.delta.z ) > amount ) {
+        axis = 2;
+        amount = std::fabs( moving.delta.z );
+    }
+    if ( amount < 1e-12 ) {
+        return glm::dvec3( 0.0 );
+    }
+
+    // Contact has to be on the leading half of the moving shape. Without
+    // this gate a block moving away from an overlap on its trailing side
+    // would drag the actor backwards — sticky retraction would become a
+    // pull even though no support-carry behavior exists.
+    const double actor_center = ( min[ axis ] + max[ axis ] ) * 0.5;
+    const double box_center = ( moving.box.min[ axis ] + moving.box.max[ axis ] ) * 0.5;
+    if ( ( moving.delta[ axis ] > 0.0 && actor_center < box_center ) ||
+         ( moving.delta[ axis ] < 0.0 && actor_center > box_center ) ) {
+        return glm::dvec3( 0.0 );
+    }
+
+    glm::dvec3 request( 0.0 );
+    if ( moving.delta[ axis ] > 0.0 ) {
+        // Positive motion carries contacts ahead of the leading face.
+        request[ axis ] = moving.box.max[ axis ] - min[ axis ] + SKIN;
+    } else {
+        // Negative motion carries contacts behind its leading (minimum) face.
+        request[ axis ] = moving.box.min[ axis ] - max[ axis ] - SKIN;
+    }
+    if ( request[ axis ] == 0.0 ) {
+        return glm::dvec3( 0.0 );
+    }
+
+    const glm::dvec3 before = min;
+    bool hit_axis[ 3 ];
+    int hit_extra_axis[ 3 ];
+    bool standing = false;
+    move_box( world, min, max, request, dynamic, hit_axis, hit_extra_axis, &standing, moving.box.index );
+    return min - before;
 }

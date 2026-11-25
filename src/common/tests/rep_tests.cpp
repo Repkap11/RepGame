@@ -26,6 +26,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( redstone_clock ),  //
     MK_TEST( lever ),           //
     MK_TEST( piston ),          //
+    MK_TEST( piston_entities ), //
     MK_TEST( rails ),           //
     MK_TEST( minecarts ),       //
     MK_TEST( boats ),           //

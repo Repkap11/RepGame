@@ -93,6 +93,9 @@ class ItemEntities {
     // `radius` — same semantics as BlockBodies::impulse, stronger shove for
     // the lighter items.
     void impulse( const glm::dvec3 &center, double radius, double strength );
+    // Positional piston-contact correction for locally simulated items.
+    // Mirrors and pickup-pending items are not repositioned locally.
+    void push_with_moving_boxes( World &world, const MovingBoxPushSet &push );
 
     // Rebuilds both instance buffers for this frame. alpha interpolates
     // prev_pos -> pos.

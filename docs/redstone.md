@@ -265,8 +265,12 @@ itself is an `is_piston_head` block
 (`PISTON_ARM_COLLISION`/`STICKY_PISTON_ARM_COLLISION`) kept alive by
 `block_can_survive_at`'s base check. Every touched cell queues a
 physics-clock neighbour update, so redstone and support re-evaluate around
-the whole moved chain; the body physics and rendering are in
-`docs/entities.md`.
+the whole moved chain. While the slide is in flight the mover's shaped
+boxes are the collision — a `MOVING_PISTON` cell represented by a live
+mover contributes no static full cube — and direct contact pushes the
+local player plus owned mobs/items/bodies out of the slide's way (no
+support-carrying or pulling); the body physics, pushing and rendering are
+in `docs/entities.md`.
 
 **Doors** are `is_redstone_mechanism` blocks whose power edge queues
 `DoorEvent(SYNC_POWER)` `DOOR_DELAY_GT` (1 gt) out: combined lower|upper

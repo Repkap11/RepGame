@@ -1,0 +1,52 @@
+# Piston entity pushing: a sliding block shoves the local player out of its
+# way — horizontally along the slide and vertically off a rising block.
+# Regression coverage for the piston-push coordinator (direct contact only;
+# no support-carrying). Flat floor is SANDSTONE at y=0; AIR starts at y=1,
+# so feet on the floor put the eye at y=2.62.
+wait_idle 20 6000
+
+# --- Horizontal push ---------------------------------------------------------
+# Piston at (10,1,10) facing +z (rot 0) shoves the stone z=11 -> z=12.
+setblock 10 1 10 PISTON 0
+setblock 10 1 11 STONE
+# Player standing in the slide path: box z spans 12.0-12.6.
+goto 10.5 2.62 12.3
+wait 10
+assert_pos 10.5 2.62 12.3 0.3
+# Fire: the stone slides into the player and carries them ~1 block along +z.
+setblock 10 1 9 REDSTONE_BLOCK
+wait 40
+assert_block 10 1 12 STONE
+assert_pos 10.5 2.62 13.3 0.45
+
+# --- Vertical lift -----------------------------------------------------------
+# Up-facing piston at (20,1,20) lifts the stone y=2 -> y=3 with the player
+# standing on top: the eye rises ~1 block from 4.62 to 5.62.
+setblock 20 1 20 PISTON 4
+setblock 20 2 20 STONE
+goto 20.5 4.62 20.5
+wait 10
+assert_pos 20.5 4.62 20.5 0.3
+setblock 20 1 21 REDSTONE_BLOCK
+wait 40
+assert_block 20 3 20 STONE
+assert_pos 20.5 5.62 20.5 0.45
+
+# --- Sticky retraction does not pull -----------------------------------------
+# Sticky piston at (30,1,30) facing +z pushes its stone to z=32, then the
+# power drops and the stone retracts z=32 -> z=31. The player standing flush
+# against the stone's +z face must stay put: the slide moves away from them
+# and contact pushing is direct only, never a pull.
+setblock 30 1 30 STICKY_PISTON 0
+setblock 30 1 31 STONE
+setblock 30 1 29 REDSTONE_BLOCK
+wait 40
+assert_block 30 1 32 STONE
+goto 30.5 2.62 33.4
+wait 5
+setblock 30 1 29 AIR
+wait 40
+assert_block 30 1 31 STONE
+assert_pos 30.5 2.62 33.4 0.4
+
+screenshot piston_push_end

@@ -89,7 +89,11 @@ void BlockBodies::remove_body( const size_t i ) {
     if ( b.entity != entt::null ) {
         this->render_tnt.remove( b.entity );
     }
+    if ( b.kind == BODY_PISTON && this->piston_body_count > 0 ) {
+        this->piston_body_count--;
+    }
     this->bodies.erase( this->bodies.begin( ) + i );
+    this->piston_boxes_dirty = true;
 }
 
 // Writes the body back into the world at its rest cell when the cell can take
@@ -300,6 +304,8 @@ uint32_t BlockBodies::spawn_piston_mover( const BlockState &state, const glm::iv
     b.fuse_ticks = std::max<long>( 1, std::lround( duration_ticks ) );
     resolve_body_faces( state, b.face );
     this->bodies.push_back( b );
+    this->piston_body_count++;
+    this->piston_boxes_dirty = true;
     this->announce_spawn( this->bodies.back( ) );
     return b.id;
 }
@@ -318,12 +324,107 @@ BlockEmitNeighbors BlockBodies::world_snapshot( const World &world, const glm::i
 }
 
 bool BlockBodies::piston_move_pending( const glm::ivec3 &cell ) const {
+    if ( this->piston_body_count == 0 ) {
+        return false;
+    }
     for ( const Body &b : this->bodies ) {
         if ( b.kind == BODY_PISTON && glm::ivec3( glm::floor( b.to + glm::dvec3( 0.5 ) ) ) == cell ) {
             return true;
         }
     }
     return false;
+}
+
+void BlockBodies::rebuild_piston_collision_boxes( ) {
+    this->piston_boxes.clear( );
+    if ( this->piston_body_count == 0 ) {
+        this->piston_boxes_dirty = false;
+        return;
+    }
+    for ( size_t i = 0; i < this->bodies.size( ); i++ ) {
+        const Body &b = this->bodies[ i ];
+        if ( b.kind != BODY_PISTON ) {
+            continue;
+        }
+        glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+        const int num_boxes = Collision::shaped_boxes_for_state( b.min, glm::ivec3( glm::floor( b.from ) ), b.state, b.nb, mins, maxs );
+        for ( int box = 0; box < num_boxes; box++ ) {
+            this->piston_boxes.push_back( { mins[ box ], maxs[ box ], static_cast<int>( i ) } );
+        }
+    }
+    this->piston_boxes_dirty = false;
+}
+
+const std::vector<BodyBox> &BlockBodies::piston_collision_boxes( ) {
+    if ( this->piston_boxes_dirty ) {
+        this->rebuild_piston_collision_boxes( );
+    }
+    return this->piston_boxes;
+}
+
+void BlockBodies::queue_final_piston_push( const Body &b ) {
+    if ( b.kind != BODY_PISTON ) {
+        return;
+    }
+    const glm::dvec3 delta = b.to - b.min;
+    if ( glm::dot( delta, delta ) < 1e-12 ) {
+        return;
+    }
+    FinalPistonPush push;
+    push.state = b.state;
+    push.nb = b.nb;
+    push.from = b.min;
+    push.to = b.to;
+    this->final_piston_pushes.push_back( push );
+}
+
+void BlockBodies::collect_piston_push_boxes( std::vector<MovingBodyBox> &out ) {
+    const std::vector<BodyBox> &active = this->piston_collision_boxes( );
+    for ( const BodyBox &box : active ) {
+        if ( box.index < 0 || static_cast<size_t>( box.index ) >= this->bodies.size( ) ) {
+            continue;
+        }
+        const Body &b = this->bodies[ box.index ];
+        out.push_back( { box, b.min - b.prev_min } );
+    }
+    for ( size_t i = 0; i < this->final_piston_pushes.size( ); i++ ) {
+        const FinalPistonPush &push = this->final_piston_pushes[ i ];
+        glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+        const int num_boxes = Collision::shaped_boxes_for_state( push.to, glm::ivec3( glm::floor( push.to ) ), push.state, push.nb, mins, maxs );
+        const glm::dvec3 delta = push.to - push.from;
+        for ( int box = 0; box < num_boxes; box++ ) {
+            // Negative indexes can't collide with live body-vector indexes;
+            // they only need to identify this removed mover for ignore logic.
+            out.push_back( { { mins[ box ], maxs[ box ], -1000000 - static_cast<int>( i ) }, delta } );
+        }
+    }
+}
+
+void BlockBodies::consume_final_piston_pushes( ) {
+    this->final_piston_pushes.clear( );
+}
+
+void BlockBodies::push_with_moving_boxes( World &world, const MovingBoxPushSet &push ) {
+    for ( Body &b : this->bodies ) {
+        if ( b.net.mirror || b.kind == BODY_PISTON || !body_chunk_live( world, b ) ) {
+            continue;
+        }
+        glm::dvec3 min = b.min;
+        glm::dvec3 max = min + glm::dvec3( BODY_SIZE );
+        const glm::dvec3 before = min;
+        for ( const MovingBodyBox &moving : push.movers ) {
+            Collision::apply_moving_box_push( world, moving, min, max, push.collision );
+        }
+        const glm::dvec3 applied = min - before;
+        if ( glm::dot( applied, applied ) <= 1e-12 ) {
+            continue;
+        }
+        b.min = min;
+        if ( applied.y > 0.0 && b.vel.y < 0.0 ) {
+            b.vel.y = 0.0;
+        }
+        b.settle_ticks = 0;
+    }
 }
 
 bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
@@ -337,7 +438,9 @@ bool BlockBodies::take( const uint32_t id, glm::dvec3 *center ) {
             }
             if ( this->bodies[ i ].kind == BODY_PISTON ) {
                 // A landing mover keeps drawing at its slide end until the
-                // destination chunk remeshes — avoids a flicker frame.
+                // destination chunk remeshes — avoids a flicker frame. The
+                // remaining fractional slide still pushes entities once.
+                this->queue_final_piston_push( this->bodies[ i ] );
                 this->send_net_remove( this->bodies[ i ], NET_REMOVE_LANDED );
                 Body &b = this->bodies[ i ];
                 if ( this->render_inited ) {
@@ -441,6 +544,7 @@ void BlockBodies::tick( RepGameState &state ) {
     std::sort( order.begin( ), order.end( ), [ this ]( size_t a, size_t b ) { return this->bodies[ a ].min.y < this->bodies[ b ].min.y; } );
 
     std::vector<BodyBox> extra;
+    const std::vector<BodyBox> &piston_boxes = this->piston_collision_boxes( );
     std::vector<size_t> landed_idx;
     std::vector<size_t> expired_idx;
 
@@ -494,6 +598,7 @@ void BlockBodies::tick( RepGameState &state ) {
                 // take(); anything still live at the window's end (a
                 // retracting head sliding into the base) simply expires —
                 // mirrors learn of both through this remove.
+                this->queue_final_piston_push( b );
                 this->send_net_remove( b, NET_REMOVE_LANDED );
                 expired_idx.push_back( oi );
                 continue;
@@ -569,6 +674,9 @@ void BlockBodies::tick( RepGameState &state ) {
                 }
             }
         }
+        // Piston movers are kinematic obstacles: included in the collision
+        // resolution, but excluded from the momentum-exchange broadphase.
+        extra.insert( extra.end( ), piston_boxes.begin( ), piston_boxes.end( ) );
 
         bool hit_axis[ 3 ];
         int hit_extra_axis[ 3 ];
@@ -580,7 +688,8 @@ void BlockBodies::tick( RepGameState &state ) {
             if ( !hit_axis[ axis ] ) {
                 continue;
             }
-            if ( hit_extra_axis[ axis ] >= 0 ) {
+            const bool hit_body = hit_extra_axis[ axis ] >= 0 && this->bodies[ hit_extra_axis[ axis ] ].kind != BODY_PISTON;
+            if ( hit_body ) {
                 // Mass-weighted inelastic exchange: both bodies take the
                 // shared velocity on this axis.
                 Body &other = this->bodies[ hit_extra_axis[ axis ] ];
@@ -655,6 +764,11 @@ void BlockBodies::tick( RepGameState &state ) {
         }
         remove_body( i );
     }
+
+    // Entity movement after BlockBodies::tick sees the movers at their
+    // advanced positions; movement earlier in the tick used the cache left by
+    // the previous tick, matching the historical entity order.
+    this->rebuild_piston_collision_boxes( );
 }
 
 // Emits a body's full block model into the shared batch (block_mesh_emit):
@@ -796,6 +910,10 @@ void BlockBodies::cleanup( ) {
     this->render_tnt.clear( );
     this->bodies.clear( );
     this->landed.clear( );
+    this->final_piston_pushes.clear( );
+    this->piston_boxes.clear( );
+    this->piston_body_count = 0;
+    this->piston_boxes_dirty = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -889,6 +1007,10 @@ bool BlockBodies::spawn_record( const World &world, const NetEntityRecord &rec, 
     resolve_body_faces( b.state, b.face );
     netsync_apply_record( b.net, rec, mirror );
     this->bodies.push_back( b );
+    if ( b.kind == BODY_PISTON ) {
+        this->piston_body_count++;
+        this->piston_boxes_dirty = true;
+    }
     return true;
 }
 
@@ -928,15 +1050,18 @@ void BlockBodies::net_apply_remove( const NetEntityId net_id, const uint8_t reas
         if ( this->bodies[ i ].net.id == net_id && net_id != 0 ) {
             // A landed piston mover parks in the landed list like a local
             // take() — the landing block write remeshes shortly after.
-            if ( this->bodies[ i ].kind == BODY_PISTON && reason == NET_REMOVE_LANDED && this->render_inited ) {
-                const Body &b = this->bodies[ i ];
-                Landed l;
-                l.min = b.min;
-                l.cell = rest_cell( b.min );
-                l.state = b.state;
-                l.full_size = true;
-                l.nb = b.nb;
-                this->landed.push_back( l );
+            if ( this->bodies[ i ].kind == BODY_PISTON && reason == NET_REMOVE_LANDED ) {
+                this->queue_final_piston_push( this->bodies[ i ] );
+                if ( this->render_inited ) {
+                    const Body &b = this->bodies[ i ];
+                    Landed l;
+                    l.min = b.min;
+                    l.cell = rest_cell( b.min );
+                    l.state = b.state;
+                    l.full_size = true;
+                    l.nb = b.nb;
+                    this->landed.push_back( l );
+                }
             }
             remove_body( i );
             return;

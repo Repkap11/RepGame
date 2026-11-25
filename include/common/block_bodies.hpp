@@ -102,6 +102,17 @@ class BlockBodies {
     // `cell` — the cell's MOVING_PISTON is in-flight, not orphaned, so the
     // random-tick rescue must leave it alone.
     bool piston_move_pending( const glm::ivec3 &cell ) const;
+    // Shaped collision AABBs for live BODY_PISTON movers at their current
+    // interpolated positions. Rebuilt lazily after spawns/removals and at the
+    // end of every body tick; empty when no movers are live.
+    const std::vector<BodyBox> &piston_collision_boxes( );
+    // Active piston contact boxes plus any one-shot remaining landing
+    // motions queued when movers were removed. The coordinator consumes the
+    // one-shot records after applying the pass.
+    void collect_piston_push_boxes( std::vector<MovingBodyBox> &out );
+    void consume_final_piston_pushes( );
+    // Positional piston-contact correction for owned non-piston bodies.
+    void push_with_moving_boxes( World &world, const MovingBoxPushSet &push );
     // Removes the body and returns its current center. A BODY_PISTON taken
     // on landing moves to the landed list so it keeps drawing until the
     // destination chunk remeshes. False when the id is not live (id 0 —
@@ -164,6 +175,8 @@ class BlockBodies {
     // excludes the body being landed (still in this->bodies during tick).
     void lift_bodies_above( const glm::ivec3 &cell, uint32_t skip_id );
     void remove_body( size_t i );
+    void rebuild_piston_collision_boxes( );
+    void queue_final_piston_push( const Body &b );
     bool body_chunk_live( World &world, const Body &b ) const;
     // Multiplayer: mint a net id for a just-spawned body and announce it
     // with ENTITY_SPAWN (no-op unbound / net_id already set).
@@ -177,10 +190,23 @@ class BlockBodies {
     bool mp_mode = false;
 
     std::vector<Body> bodies;
+    std::vector<BodyBox> piston_boxes;
+    size_t piston_body_count = 0;
+    bool piston_boxes_dirty = true;
     uint32_t next_id = 1;
     // Latest tick number, recorded in tick() so update_render can compute
     // the fuse age for the flash.
     long now_tick = 0;
+
+    // One-shot remaining slide motion for a piston mover removed by landing
+    // or network removal before its visual interpolation reached `to`.
+    struct FinalPistonPush {
+        BlockState state = BLOCK_STATE_AIR;
+        BlockEmitNeighbors nb = {};
+        glm::dvec3 from = glm::dvec3( 0.0 );
+        glm::dvec3 to = glm::dvec3( 0.0 );
+    };
+    std::vector<FinalPistonPush> final_piston_pushes;
 
     // Bodies that landed but whose target chunk may not have remeshed yet
     // (repop_must budget overflow): still drawn, no longer colliding, dropped

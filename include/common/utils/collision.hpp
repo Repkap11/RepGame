@@ -12,6 +12,7 @@
 class World;
 struct RepGameState;
 struct BlockState;
+struct BlockEmitNeighbors;
 
 // An extra AABB obstacle move_box collides against on top of the voxel
 // world — the other live BlockBodies. index is opaque to collision code;
@@ -21,6 +22,22 @@ struct BodyBox {
     glm::dvec3 min;
     glm::dvec3 max;
     int index;
+};
+
+// A dynamic collision box with the translation it made this tick. Piston
+// movers use these for direct-contact pushing; index matches the underlying
+// collision box so the pushing mover can be ignored while resolving its own
+// contact correction.
+struct MovingBodyBox {
+    BodyBox box;
+    glm::dvec3 delta;
+};
+
+// Boxes participating in one piston-push pass: movers carries the per-box
+// motion, collision carries the same boxes in the form move_box consumes.
+struct MovingBoxPushSet {
+    std::vector<MovingBodyBox> movers;
+    std::vector<BodyBox> collision;
 };
 
 class Collision {
@@ -37,7 +54,8 @@ class Collision {
     // half_width is the AABB's horizontal half-extent (mobs pass their own
     // hitbox width; the player keeps the default).
     static void check_move( World &world, glm::dvec3 &movement_vec, glm::dvec3 &position, int *out_standing,
-                            double player_height, double eye_height, bool edge_guard, double half_width = PLAYER_WIDTH / 2.0 );
+                            double player_height, double eye_height, bool edge_guard, double half_width = PLAYER_WIDTH / 2.0,
+                            const std::vector<BodyBox> *extra = nullptr );
     // Returns 1 if the player AABB at `player` overlaps the collision boxes a
     // block with `blockState` would have at `block` — used by placement
     // validation so thin shapes (panes, fence posts) can be placed in a cell
@@ -45,6 +63,14 @@ class Collision {
     // closed gates — 1.5 tall) still reject.
     static int check_collides_with_block( World &world, const glm::dvec3 &player, const glm::ivec3 &block, const BlockState &blockState,
                                           double player_height, double eye_height, double half_width = PLAYER_WIDTH / 2.0 );
+    // Collision boxes for `blockState` at fractional world origin `origin`,
+    // deriving neighbor-dependent shapes (fence connections, stair corners,
+    // wall/bars masks) from the spawn-time 3x3x3 `neighbors` snapshot rather
+    // than the live world. Used for moving block bodies; ordinary terrain
+    // uses the live-world path internally. `mins`/`maxs` must have room for
+    // FENCE_MAX_BOXES entries. Returns the box count.
+    static int shaped_boxes_for_state( const glm::dvec3 &origin, const glm::ivec3 &cell, const BlockState &blockState,
+                                       const BlockEmitNeighbors &neighbors, glm::dvec3 *mins, glm::dvec3 *maxs );
     // Returns true if the player AABB with the given dimensions at eye
     // position `eye` overlaps any solid block. Used for the headroom check
     // before standing up out of a sneak.
@@ -95,5 +121,14 @@ class Collision {
     static int terrain_boxes( World &world, const glm::dvec3 &amin, const glm::dvec3 &amax,
                               glm::dvec3 *mins, glm::dvec3 *maxs, int max_boxes );
     static void move_box( World &world, glm::dvec3 &min, glm::dvec3 &max, const glm::dvec3 &delta,
-                          const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing );
+                          const std::vector<BodyBox> &extra, bool hit_axis[3], int hit_extra_axis[3], bool *standing,
+                          int ignore_index = -1 );
+    // Direct-contact push from one moving shaped box. If the box overlaps
+    // [min,max], computes the separation needed along the box's translation
+    // axis and resolves it through move_box against terrain plus `dynamic`,
+    // ignoring the pushing box itself. Mutates [min,max] and returns the
+    // actual applied displacement (zero when there is no contact or terrain
+    // fully wedges the actor).
+    static glm::dvec3 apply_moving_box_push( World &world, const MovingBodyBox &moving, glm::dvec3 &min, glm::dvec3 &max,
+                                             const std::vector<BodyBox> &dynamic );
 };

@@ -137,9 +137,18 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   (`STEP_HEIGHT` — slabs, snow layers), writes back the applied
   displacement, and sets `standing_on_solid`. Sneaking adds the edge
   guard: horizontal moves that would walk off a ledge are clamped.
-  `no_clip` skips it entirely. The same move-box core
+  `no_clip` skips it entirely. The scan's contact test requires overlap
+  past `SKIN` on the axes perpendicular to the motion — a resting actor
+  micro-penetrating its support by float noise must not turn the floor
+  into a wall at every cell boundary (walking masked that through
+  step-up; `move_box` bodies and piston pushes glued in place). The same
+  move-box core
   (`Collision::move_box`) collides mobs/items against voxels *and*
-  `BlockBodies` AABBs (`docs/entities.md`). A grounded tick zeroes
+  `BlockBodies` AABBs (`docs/entities.md`), and `check_move` takes the
+  live piston-mover boxes as extra colliders so a sliding block is an
+  ordinary obstacle; the active push that moves entities out of a sliding
+  block's way runs in the post-integration piston-push coordinator
+  (`docs/entities.md`). A grounded tick zeroes
   `y_speed` so a step-up can't launch the player; a blocked axis zeroes
   that velocity component. Mobs and remote avatars are not hard player
   colliders: `MobManager::tick_crowding` computes a soft horizontal

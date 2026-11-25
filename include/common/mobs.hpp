@@ -18,6 +18,7 @@ class ChunkLoader;
 class HeartParticles;
 class NetEntities;
 struct RepGameState;
+struct MovingBoxPushSet;
 
 // Gameplay cap on how many mobs a client may *create* locally (spawns,
 // spawner, natural roll products). It is not a storage/render limit: the
@@ -139,6 +140,7 @@ struct MobSpawnDiag {
 // capture mode freezes AI and physics.
 class MobManager {
     friend int test_mobs( );
+    friend int test_piston_entities( );
     friend int test_net_mobs( );
     friend int test_vitals( );
     struct Mob {
@@ -469,6 +471,10 @@ class MobManager {
     // test mode.
     void adopt_chunk( World &world, Chunk &chunk );
     void tick( World &world, const glm::dvec3 &player_pos, const MobTickInput *in = nullptr, MobTickOutput *out = nullptr );
+    // Positional piston-contact correction for owned live mobs. Mirrors,
+    // remote-owned mobs, dead/seated mobs, no-ai showcases, and mobs in frozen
+    // chunks are not repositioned locally.
+    void push_with_moving_boxes( World &world, const MovingBoxPushSet &push );
     // Per-bone world matrices in model space (pixels) at render alpha: rest
     // pose + walk/head-look animator rotations, then the sneak pose as a
     // model-space pre-multiply. Shared by update_render and rep_tests.

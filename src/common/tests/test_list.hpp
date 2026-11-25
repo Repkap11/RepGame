@@ -14,6 +14,7 @@ int test_repeaters( );
 int test_redstone_clock( );
 int test_lever( );
 int test_piston( );
+int test_piston_entities( );
 int test_rails( );
 int test_minecarts( );
 int test_boats( );

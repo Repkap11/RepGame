@@ -562,6 +562,36 @@ void MobManager::flash_remote_hurt( const uint32_t uid, const glm::dvec3 &listen
     }
 }
 
+// Post-integration piston-contact pass over owned, live mobs: each mover's
+// overlap correction is terrain-resolved (apply_moving_box_push), so a
+// wedged mob stays wedged rather than tunneling. Mirrors, remote-avatar
+// entries, seated/no_ai/dead mobs are the authority of someone (or nothing)
+// else and are never locally repositioned.
+void MobManager::push_with_moving_boxes( World &world, const MovingBoxPushSet &push ) {
+    const glm::dvec3 csize( CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z );
+    for ( Mob &mob : this->mobs ) {
+        if ( mob.death_ticks > 0 || mob.seated || mob.no_ai || mob.net.mirror || mob.uid != 0 ) {
+            continue;
+        }
+        const glm::ivec3 feet_chunk = glm::ivec3( glm::floor( mob.pos / csize ) );
+        const Chunk *chunk = world.chunkLoader.get_chunk( feet_chunk );
+        if ( chunk == nullptr || chunk->load_state != CHUNK_LIVE ) {
+            continue;
+        }
+        const MobTypeDef &def = mob_types[ mob.type ];
+        const double scale = scale_of( mob );
+        const double half = def.hitbox_w * scale * 0.5;
+        const double height = def.hitbox_h * scale;
+        glm::dvec3 min( mob.pos.x - half, mob.pos.y, mob.pos.z - half );
+        glm::dvec3 max( mob.pos.x + half, mob.pos.y + height, mob.pos.z + half );
+        const glm::dvec3 before = min;
+        for ( const MovingBodyBox &moving : push.movers ) {
+            Collision::apply_moving_box_push( world, moving, min, max, push.collision );
+        }
+        mob.pos += min - before;
+    }
+}
+
 // Network-driven pose: ease toward the latest target (snap over 8 blocks),
 // accumulate walk_dist from the applied horizontal motion, drive leg_amp
 // like Java's limbSwingAmount, and keep the head within 50° of the body.
@@ -633,7 +663,8 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
             glm::dvec3 eye = mob.pos + glm::dvec3( 0.0, def.hitbox_h, 0.0 );
             glm::dvec3 move = mob.vel;
             int standing = 0;
-            Collision::check_move( world, move, eye, &standing, def.hitbox_h, def.hitbox_h, false, def.hitbox_w / 2.0 );
+            Collision::check_move( world, move, eye, &standing, def.hitbox_h, def.hitbox_h, false, def.hitbox_w / 2.0,
+                                   &world.bodies.piston_collision_boxes( ) );
             mob.pos += move;
             mob.standing = standing;
             mob.vel.y = standing ? 0.0 : move.y;
@@ -1194,7 +1225,8 @@ void MobManager::tick_mob( World &world, Mob &mob, const MobTypeDef &def, const 
     mob.kb *= 0.85;
     const glm::dvec3 want_move = mob.vel;
     int standing = 0;
-    Collision::check_move( world, move, eye, &standing, def.hitbox_h * box_scale, def.hitbox_h * box_scale, false, def.hitbox_w * box_scale / 2.0 );
+    Collision::check_move( world, move, eye, &standing, def.hitbox_h * box_scale, def.hitbox_h * box_scale, false, def.hitbox_w * box_scale / 2.0,
+                           &world.bodies.piston_collision_boxes( ) );
     mob.pos += move;
     mob.standing = standing;
 

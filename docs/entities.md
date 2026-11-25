@@ -21,12 +21,45 @@ nonzero ids). It integrates three kinds: `BODY_FALLING` (any block with
 slide, spawned by `PistonEvent` — `spawn_piston_mover(from, to, start_gt,
 duration_gt)` lerps the box between the two cells over a redstone-clock
 window, deriving a fractional game tick from `tick_number` for smooth
-per-physics-tick interpolation). `BODY_PISTON` never integrates, collides or
-impulses, doesn't count
+per-physics-tick interpolation). `BODY_PISTON` never integrates or
+impulses (kinematic — no gravity, no momentum), doesn't count
 against the cap's eviction, and expires silently at its slide end (a
 retracting head) unless the landing write `take()`s it first — take() parks
 a taken mover in the `landed` list so it keeps drawing until the destination
-chunk remeshes. It syncs over multiplayer like any other body:
+chunk remeshes.
+
+Movers do collide and push, though. `bodies.piston_collision_boxes()` caches
+the shaped collision AABBs of every live mover at its interpolated position —
+real shapes, not full cubes: `Collision::shaped_boxes_for_state` derives
+slabs/stairs/fences/walls/bars/piston parts from the spawn-time `Body::nb`
+snapshot, so a moving fence keeps the connections it had when the move
+started. Player/mob movement passes them to `Collision::check_move` as extra
+colliders, item entities and non-piston bodies to `Collision::move_box`, so
+the sliding block is an ordinary obstacle for ordinary motion. A
+`MOVING_PISTON` cell actively represented by a mover contributes no static
+full cube (`block_collision_boxes` skips it while `piston_move_pending`) —
+orphaned cells keep the fallback collision.
+
+Collision alone can't push: a sliding block advances into a stationary
+entity that never crosses a face under its own movement. So after entity
+integration, `repgame_piston_push_entities` (game/piston_push.cpp, runs in
+`tick_entities` before entity network sync) applies direct-contact
+corrections: for each mover box overlapping an actor,
+`Collision::apply_moving_box_push` computes the separation along the slide
+axis and resolves it through `move_box` against terrain plus the other mover
+boxes (ignoring the pushing mover itself). Contact must sit on the leading
+half of the moving shape — a retracting sticky piston never pulls an overlap
+on the trailing side, and there is no support-carrying/conveyor behavior.
+The correction is positional only and applies solely to entities this client
+simulates: the local player (velocity/knockback/fall accounting untouched,
+no-clip/riding/dead excluded), owned live mobs, owned item entities and
+owned non-piston bodies. Mirrors and remote avatars constrain nothing here
+and are never locally mutated; no-ai/seated/chunk-frozen entities are
+excluded. A wedged actor simply stays wedged — the terrain-resolved push
+can't tunnel it. Because the redstone clock quantizes the slide start, a
+mover's landing write can arrive mid-slide: `take()`/expiry then queue the
+remaining fractional slide as a one-shot final push
+(`final_piston_pushes`), consumed by the same coordinator on the next tick. It syncs over multiplayer like any other body:
 `spawn_piston_mover` announces it with the slide encoded in the generic
 record fields (pos = the `from` cell, vel = the slide velocity in blocks per
 physics tick, `fuse_ticks` = the slide length in physics ticks), mirrors

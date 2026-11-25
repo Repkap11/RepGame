@@ -3,6 +3,7 @@
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/PressurePlateEvent.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
+#include "common/piston_push.hpp"
 #include "common/repeater.hpp"
 // Redstone mechanics, focused on the redstone torch:
 //
@@ -1165,5 +1166,238 @@ int test_piston( ) {
     world.set_loaded_block( glm::ivec3( 17, 11, 5 ), { MOVING_PISTON, 0, 0, GOLD_BLOCK, 0 } );
     piston_land_cell( gs, glm::ivec3( 17, 11, 5 ) );
     failures += check_id( world, "piston: orphan MOVING_PISTON landed via fallback", glm::ivec3( 17, 11, 5 ), GOLD_BLOCK );
+    return failures;
+}
+
+// Direct-contact piston pushing: shaped movers are dynamic colliders and a
+// post-integration positional pass pushes only locally simulated entities.
+int test_piston_entities( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        pr_test( "  %-55s %s", name, cond ? "PASS" : "FAIL" );
+        if ( !cond ) {
+            failures++;
+        }
+    };
+    RepGameState &gs = *new RepGameState( ); // leaked on purpose — see test_redstone
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+    const BlockState stone = { STONE, 0, 0, STONE, 0 };
+    for ( int x = 0; x < 32; x++ ) {
+        for ( int z = 0; z < 32; z++ ) {
+            world.set_loaded_block( glm::ivec3( x, 10, z ), stone );
+        }
+    }
+    auto spawn_mover = [ & ]( const BlockState &state, const glm::ivec3 &from, const glm::ivec3 &to ) {
+        return world.bodies.spawn_piston_mover( state, from, to, redstone_tick_now( gs ), 2, BlockBodies::world_snapshot( world, from ) );
+    };
+    auto run_ticks = [ & ]( int n ) {
+        for ( int i = 0; i < n; i++ ) {
+            gs.tick_number++;
+            repgame_drain_block_updates( gs );
+            world.bodies.tick( gs );
+            repgame_piston_push_entities( gs );
+        }
+    };
+
+    // --- shaped collision generation from the mover snapshot ------------------
+    {
+        BlockEmitNeighbors nb;
+        for ( int i = 0; i < 27; i++ ) {
+            nb.cells[ i ] = BLOCK_STATE_AIR;
+        }
+        glm::dvec3 mins[ FENCE_MAX_BOXES ], maxs[ FENCE_MAX_BOXES ];
+        const BlockState bottom_slab = { OAK_SLAB, 0, 0, OAK_SLAB, 0 };
+        nb.at( 0, 0, 0 ) = bottom_slab;
+        const glm::dvec3 origin( 1.25, 2.5, 3.75 );
+        int n = Collision::shaped_boxes_for_state( origin, glm::ivec3( 1, 2, 3 ), bottom_slab, nb, mins, maxs );
+        check_bool( "piston push: bottom slab emits one half-height box",
+                    n == 1 && fabs( ( maxs[ 0 ].y - mins[ 0 ].y ) - 0.5 ) < 1e-6 && fabs( mins[ 0 ].y - origin.y ) < 1e-6 );
+        const BlockState fence_state = { FENCE, 0, 0, FENCE, 0 };
+        nb.at( 0, 0, 0 ) = fence_state;
+        nb.at( 1, 0, 0 ) = stone;
+        n = Collision::shaped_boxes_for_state( origin, glm::ivec3( 1, 2, 3 ), fence_state, nb, mins, maxs );
+        double top = 0.0;
+        for ( int i = 0; i < n; i++ ) {
+            top = fmax( top, maxs[ i ].y - origin.y );
+        }
+        check_bool( "piston push: fence snapshot emits connected true shape", n >= 2 && fabs( top - 1.5 ) < 1e-6 );
+    }
+
+    // --- active MOVING_PISTON cells suppress static collision -----------------
+    {
+        const glm::ivec3 moving_cell( 5, 11, 7 );
+        world.set_loaded_block( moving_cell, { MOVING_PISTON, 0, 0, STONE, 0 } );
+        spawn_mover( stone, glm::ivec3( 5, 11, 6 ), moving_cell );
+        const glm::dvec3 probe_min = glm::dvec3( moving_cell ) + glm::dvec3( 0.2 );
+        const glm::dvec3 probe_max = glm::dvec3( moving_cell ) + glm::dvec3( 0.8 );
+        check_bool( "piston push: represented moving cell has no static cube", !Collision::box_collides( world, probe_min, probe_max ) );
+        world.bodies.cleanup( );
+        check_bool( "piston push: orphaned moving cell keeps fallback collision", Collision::box_collides( world, probe_min, probe_max ) );
+        world.set_loaded_block( moving_cell, BLOCK_STATE_AIR );
+    }
+
+    // --- dynamic collision clamps ordinary player movement --------------------
+    {
+        spawn_mover( stone, glm::ivec3( 5, 11, 6 ), glm::ivec3( 5, 11, 7 ) );
+        glm::dvec3 eye( 5.5, 11.0 + PLAYER_EYE_HEIGHT, 7.4 );
+        glm::dvec3 vec( 0.0, 0.0, -0.5 );
+        int standing = 0;
+        Collision::check_move( world, vec, eye, &standing, PLAYER_HEIGHT, PLAYER_EYE_HEIGHT, false, PLAYER_WIDTH / 2.0,
+                               &world.bodies.piston_collision_boxes( ) );
+        eye += vec;
+        check_bool( "piston push: mover collides during player movement", eye.z > 7.25 );
+        world.bodies.cleanup( );
+    }
+
+    // --- horizontal player push ------------------------------------------------
+    {
+        gs.camera.pos = glm::dvec3( 5.5, 11.0 + PLAYER_EYE_HEIGHT, 7.4 );
+        const double start_z = gs.camera.pos.z;
+        spawn_mover( stone, glm::ivec3( 5, 11, 6 ), glm::ivec3( 5, 11, 7 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: horizontal mover pushes player", gs.camera.pos.z - start_z > 0.25 );
+        world.bodies.cleanup( );
+    }
+
+    // --- vertical player lift --------------------------------------------------
+    {
+        gs.camera.pos = glm::dvec3( 8.5, 12.0 + PLAYER_EYE_HEIGHT, 8.5 );
+        const double start_y = gs.camera.pos.y;
+        spawn_mover( stone, glm::ivec3( 8, 11, 8 ), glm::ivec3( 8, 12, 8 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: upward mover lifts player", gs.camera.pos.y - start_y > 0.25 );
+        world.bodies.cleanup( );
+    }
+
+    // --- wedged against terrain: constrained, no tunneling ---------------------
+    {
+        world.set_loaded_block( glm::ivec3( 11, 11, 8 ), stone );
+        world.set_loaded_block( glm::ivec3( 11, 12, 8 ), stone );
+        gs.camera.pos = glm::dvec3( 11.5, 11.0 + PLAYER_EYE_HEIGHT, 7.4 );
+        const double start_z = gs.camera.pos.z;
+        spawn_mover( stone, glm::ivec3( 11, 11, 6 ), glm::ivec3( 11, 11, 7 ) );
+        run_ticks( 12 );
+        check_bool( "piston push: wedged player is still pushed", gs.camera.pos.z - start_z > 0.1 );
+        check_bool( "piston push: wedged player does not tunnel", gs.camera.pos.z + PLAYER_WIDTH * 0.5 < 8.01 );
+        world.set_loaded_block( glm::ivec3( 11, 11, 8 ), BLOCK_STATE_AIR );
+        world.set_loaded_block( glm::ivec3( 11, 12, 8 ), BLOCK_STATE_AIR );
+        world.bodies.cleanup( );
+    }
+
+    // --- true shape: bottom slab moving below the player doesn't push ---------
+    {
+        gs.camera.pos = glm::dvec3( 14.5, 11.55 + PLAYER_EYE_HEIGHT, 7.4 );
+        const double start_z = gs.camera.pos.z;
+        spawn_mover( { OAK_SLAB, 0, 0, OAK_SLAB, 0 }, glm::ivec3( 14, 11, 6 ), glm::ivec3( 14, 11, 7 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: bottom slab uses true shape", fabs( gs.camera.pos.z - start_z ) < 1e-9 );
+        world.bodies.cleanup( );
+    }
+
+    // --- trailing-side overlap doesn't become sticky pulling -------------------
+    {
+        gs.camera.pos = glm::dvec3( 17.5, 11.0 + PLAYER_EYE_HEIGHT, 7.6 );
+        const double start_z = gs.camera.pos.z;
+        spawn_mover( stone, glm::ivec3( 17, 11, 7 ), glm::ivec3( 17, 11, 6 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: retraction does not pull trailing overlap", fabs( gs.camera.pos.z - start_z ) < 1e-9 );
+        world.bodies.cleanup( );
+    }
+
+    // --- final fractional landing push applies once ----------------------------
+    {
+        gs.camera.pos = glm::dvec3( 20.5, 11.0 + PLAYER_EYE_HEIGHT, 7.4 );
+        const uint32_t mover = spawn_mover( stone, glm::ivec3( 20, 11, 6 ), glm::ivec3( 20, 11, 7 ) );
+        run_ticks( 6 );
+        const double before_take = gs.camera.pos.z;
+        glm::dvec3 center;
+        check_bool( "piston push: final mover take succeeds", world.bodies.take( mover, &center ) );
+        run_ticks( 1 );
+        const double after_final = gs.camera.pos.z;
+        check_bool( "piston push: final fractional slide pushes", after_final - before_take > 0.01 );
+        run_ticks( 1 );
+        check_bool( "piston push: final fractional slide applies once", fabs( gs.camera.pos.z - after_final ) < 1e-9 );
+        world.bodies.cleanup( );
+    }
+
+    // --- mob ownership and no-ai rules -----------------------------------------
+    {
+        gs.camera.pos = glm::dvec3( 0.0, 30.0, 0.0 );
+        check_bool( "piston push: pig spawn succeeds", world.mobs.spawn( MOB_PIG, glm::dvec3( 5.5, 11.0, 17.4 ), 0.0f ) );
+        MobManager::Mob &mob = world.mobs.mobs.back( );
+        const double start_z = mob.pos.z;
+        spawn_mover( stone, glm::ivec3( 5, 11, 16 ), glm::ivec3( 5, 11, 17 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: owned pig is pushed", mob.pos.z - start_z > 0.2 );
+        world.bodies.cleanup( );
+
+        mob.pos = glm::dvec3( 8.5, 11.0, 17.4 );
+        mob.net.mirror = true;
+        spawn_mover( stone, glm::ivec3( 8, 11, 16 ), glm::ivec3( 8, 11, 17 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: mirror pig is not locally pushed", fabs( mob.pos.z - 17.4 ) < 1e-9 );
+        world.bodies.cleanup( );
+
+        mob.net.mirror = false;
+        mob.no_ai = true;
+        spawn_mover( stone, glm::ivec3( 8, 11, 16 ), glm::ivec3( 8, 11, 17 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: no-ai pig is not pushed", fabs( mob.pos.z - 17.4 ) < 1e-9 );
+        world.bodies.cleanup( );
+        world.mobs.mobs.clear( );
+    }
+
+    // --- item ownership ---------------------------------------------------------
+    {
+        const uint32_t item_id = world.items.spawn( STONE, 1, glm::dvec3( 11.5, 11.0, 17.4 ), glm::dvec3( 0.0 ), 0 );
+        ItemEntities::ItemEntity &item = world.items.test_items( ).back( );
+        const double start_z = item.pos.z;
+        spawn_mover( stone, glm::ivec3( 11, 11, 16 ), glm::ivec3( 11, 11, 17 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: owned item is pushed", item.pos.z - start_z > 0.2 );
+        world.bodies.cleanup( );
+
+        item.pos = glm::dvec3( 14.5, 11.0, 17.4 );
+        item.net.mirror = true;
+        spawn_mover( stone, glm::ivec3( 14, 11, 16 ), glm::ivec3( 14, 11, 17 ) );
+        run_ticks( 8 );
+        check_bool( "piston push: mirror item is not locally pushed", fabs( item.pos.z - 17.4 ) < 1e-9 );
+        world.bodies.cleanup( );
+        ( void ) item_id;
+        world.items.test_items( ).clear( );
+    }
+
+    // --- non-piston block bodies -------------------------------------------------
+    {
+        const uint32_t body_id = world.bodies.spawn_falling( glm::ivec3( 17, 11, 17 ), stone, glm::dvec3( 0.0 ) );
+        double start_z = 0.0;
+        double end_z = 0.0;
+        bool found_start = false;
+        bool found_end = false;
+        for ( const auto &b : world.bodies.debug_bodies( ) ) {
+            if ( b.id == body_id ) {
+                start_z = b.min.z;
+                found_start = true;
+            }
+        }
+        spawn_mover( stone, glm::ivec3( 17, 11, 16 ), glm::ivec3( 17, 11, 17 ) );
+        run_ticks( 8 );
+        for ( const auto &b : world.bodies.debug_bodies( ) ) {
+            if ( b.id == body_id ) {
+                end_z = b.min.z;
+                found_end = true;
+            }
+        }
+        check_bool( "piston push: falling body survives fixture", found_start && found_end );
+        check_bool( "piston push: falling block body is pushed", found_start && found_end && end_z - start_z > 0.2 );
+        world.bodies.cleanup( );
+    }
+
     return failures;
 }

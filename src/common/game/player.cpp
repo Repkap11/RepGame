@@ -1553,7 +1553,8 @@ void RepGame::process_movement( ) {
                                globalGameState.camera.pos,                                                 //
                                &globalGameState.camera.standing_on_solid,                                  //
                                globalGameState.camera.player_height, globalGameState.camera.eye_height,    //
-                               globalGameState.camera.sneaking != 0 );
+                               globalGameState.camera.sneaking != 0, PLAYER_WIDTH / 2.0,
+                               &globalGameState.world.bodies.piston_collision_boxes( ) );
     }
 
     if ( run_policy( ).walktest ) {

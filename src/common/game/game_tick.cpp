@@ -24,6 +24,7 @@
 #include "common/block_update_events/schedule.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/game/game_internal.hpp"
+#include "common/piston_push.hpp"
 
 void RepGame::tick( ) {
     PROFILE_SCOPE( "tick" );
@@ -464,6 +465,10 @@ void RepGame::tick_entities( ) {
             }
         }
     }
+    // Piston contact is positional-only and runs after ordinary integration
+    // so render interpolation includes the correction. It must precede entity
+    // sync for the owned results to stream this tick.
+    repgame_piston_push_entities( gs );
     // Entity sync: apply pending role grants, advertise the VIEW, stream
     // ENTITY_STATE for owned entities. No-op in single player.
     gs.multiplayer.entities.tick( gs );

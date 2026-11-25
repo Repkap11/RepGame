@@ -322,6 +322,21 @@ void ItemEntities::impulse( const glm::dvec3 &center, const double radius, const
     }
 }
 
+void ItemEntities::push_with_moving_boxes( World &world, const MovingBoxPushSet &push ) {
+    for ( ItemEntity &it : this->items ) {
+        if ( it.net.mirror || it.pickup_pending || !item_chunk_live( world, it ) ) {
+            continue;
+        }
+        glm::dvec3 min = item_min( it );
+        glm::dvec3 max = min + glm::dvec3( ITEM_SIZE );
+        const glm::dvec3 before = min;
+        for ( const MovingBodyBox &moving : push.movers ) {
+            Collision::apply_moving_box_push( world, moving, min, max, push.collision );
+        }
+        it.pos += min - before;
+    }
+}
+
 // Cell-keyed spatial hash for the merge broadphase (same scheme as the
 // BlockBodies one).
 static int64_t item_cell_key( const glm::ivec3 &c ) {
@@ -585,8 +600,7 @@ void ItemEntities::tick( RepGameState &state ) {
         bool hit_axis[ 3 ];
         int hit_extra_axis[ 3 ];
         bool standing = false;
-        static const std::vector<BodyBox> no_extra;
-        Collision::move_box( world, min, max, it.vel, no_extra, hit_axis, hit_extra_axis, &standing );
+        Collision::move_box( world, min, max, it.vel, world.bodies.piston_collision_boxes( ), hit_axis, hit_extra_axis, &standing );
         // A block placed (or piston-pushed, or dropped) into the item's cell
         // leaves the box embedded in solid terrain — move_box's clamps only
         // stop face crossings, so the item would sit underground forever.
