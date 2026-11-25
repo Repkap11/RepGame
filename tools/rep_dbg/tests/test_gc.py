@@ -37,6 +37,14 @@ class GcTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
         self.log = io.StringIO()
 
+    def test_default_keep_days_is_four(self):
+        old = _run_dir(self.root, "old", days_old=5)
+        new = _run_dir(self.root, "new", days_old=3)
+        gc_mod.gc(self.root, max_gb=100, perf_data_hours=24,
+                  wt_days=3, log=self.log)
+        self.assertFalse(os.path.exists(old))
+        self.assertTrue(os.path.exists(new))
+
     def test_old_run_dir_removed(self):
         old = _run_dir(self.root, "a", days_old=30)
         new = _run_dir(self.root, "b", days_old=0)

@@ -174,7 +174,7 @@ overlay in a shot (a script can also toggle it mid-run with `imgui 1`).
   keeps *dirty* worktrees that live outside `<root>/wt/` (hand-made ones
   may hold uncommitted work — `rep-dbg: keeping dirty worktree …`);
   `--all` removes them.
-- `rep-dbg gc [--dry-run] [--keep-days 7] [--max-gb 10]
+- `rep-dbg gc [--dry-run] [--keep-days 4] [--max-gb 10]
   [--perf-data-hours 24] [--wt-days 3] [--mptest-keep-days 2]
   [--mptest-max-gb 2] [--json]` — housekeeping for the root plus retained
   mp-test artifacts: deletes kept `perf.data` older than
