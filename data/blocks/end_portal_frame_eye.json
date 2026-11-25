@@ -1,0 +1,15 @@
+{
+ "casts_shadow": false,
+ "creative": false,
+ "hardness": 0.35,
+ "id": 428,
+ "is_pickable": false,
+ "is_seethrough": true,
+ "name": "END_PORTAL_FRAME_EYE",
+ "no_light": 6815743,
+ "textures": {
+  "bottom": "end_stone",
+  "side": "endframe_side",
+  "top": "endframe_eye_top"
+ }
+}

@@ -359,6 +359,17 @@ static bool exec_line( RepGameState &state, ChunkLoader &loader, const std::vect
         }
         return false;
     }
+    // eye x y z — seat an eye of ender into the END_PORTAL_FRAME at the
+    // cell and run the ring-completion check (the end_portal_insert_eye +
+    // end_portal_complete_ring pair the right-click path drives).
+    if ( strcmp( cmd, "eye" ) == 0 && argc == 4 ) {
+        const glm::ivec3 pos( ivec_arg( 1 ), ivec_arg( 2 ), ivec_arg( 3 ) );
+        if ( !end_portal_insert_eye( state, pos ) ) {
+            cmd_error( state, line, "eye: no eyeless end portal frame here" );
+        }
+        end_portal_complete_ring( state, pos );
+        return false;
+    }
     if ( strcmp( cmd, "goto" ) == 0 && argc == 4 ) {
         dbgcmd::goto_( state, glm::dvec3( farg( 1 ), farg( 2 ), farg( 3 ) ) );
         return false;

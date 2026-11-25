@@ -243,6 +243,9 @@
   "blaze_rod": {
     "source": "textures/items/blaze_rod"
   },
+  "blaze_powder": {
+    "source": "textures/items/blaze_powder"
+  },
   "ghast_tear": {
     "source": "textures/items/ghast_tear"
   },
@@ -1430,11 +1433,29 @@
   "ender_chest_top": {
     "source": "textures/blocks/ender_chest_top"
   },
+  "ender_eye": {
+    "source": "textures/items/ender_eye"
+  },
   "ender_pearl": {
     "source": "textures/items/ender_pearl"
   },
   "endframe_eye": {
     "source": "textures/blocks/endframe_eye"
+  },
+  "endframe_eye_top": {
+    "overlay": {
+      "source": "textures/blocks/endframe_eye"
+    },
+    "source": "textures/blocks/endframe_top"
+  },
+  "endframe_side": {
+    "overlay": {
+      "source": "textures/blocks/endframe_side"
+    },
+    "source": "textures/blocks/end_stone"
+  },
+  "endframe_top": {
+    "source": "textures/blocks/endframe_top"
   },
   "exposed_chiseled_copper": {
     "source": "textures/blocks/exposed_chiseled_copper"

@@ -95,3 +95,5 @@
     "GHAST_TEAR",
     "ENDER_PEARL",
     "ENDERMAN_SPAWN_EGG",
+    "BLAZE_POWDER",
+    "ENDER_EYE",

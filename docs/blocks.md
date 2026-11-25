@@ -13,9 +13,9 @@ saves holding a removed id get the AIR/empty migration paths, but only while
 the id stays undefined: once a new def claims it, those cells become the new
 block, so reuse freed ids only for defs that never reached real saves. The
 16 stub `*_candle_cake` ids freed in 2026-11 are the current reuse pool:
-428, 603, 619, 679, 695, 714, 739, 834, 903, 1013,
-1046, 1368, 1389 — claim one of them in a new `"id"` before taking from the
-top of the range. (The file name
+603, 619, 679, 695, 714, 739, 834, 903, 1013,
+1046, 1368, 1389 (428 is `END_PORTAL_FRAME_EYE`) — claim one of them in a
+new `"id"` before taking from the top of the range. (The file name
 must equal the lowercased `name`.) Face keys in `"textures"`: `all`, `side`,
 `top`, `bottom`, `left`, `right`, `front`, `back` (specific beats `side` beats
 `all`, mapped to the `FACE_*` constants); `"icon"` names the non-isometric

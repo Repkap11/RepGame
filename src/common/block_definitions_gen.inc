@@ -6758,15 +6758,19 @@ block_definitions[ 427 ].renderOrder = RenderOrder_Flowers;
 block_definitions[ 427 ].scale = { 7, 15, 7 };
 block_definitions[ 427 ].tex_offset = { -4, 0, -4 };
 
-// undefined (428)
-block_definitions[ 428 ].textures[ FACE_TOP ] = TEX_AIR;
-block_definitions[ 428 ].textures[ FACE_BOTTOM ] = TEX_AIR;
-block_definitions[ 428 ].textures[ FACE_RIGHT ] = TEX_AIR;
-block_definitions[ 428 ].textures[ FACE_FRONT ] = TEX_AIR;
-block_definitions[ 428 ].textures[ FACE_LEFT ] = TEX_AIR;
-block_definitions[ 428 ].textures[ FACE_BACK ] = TEX_AIR;
-block_definitions[ 428 ].icon_texture = TEX_AIR;
+// END_PORTAL_FRAME_EYE (428)
+block_definitions[ 428 ].textures[ FACE_TOP ] = TEX_ENDFRAME_EYE_TOP;
+block_definitions[ 428 ].textures[ FACE_BOTTOM ] = TEX_END_STONE;
+block_definitions[ 428 ].textures[ FACE_RIGHT ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 428 ].textures[ FACE_FRONT ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 428 ].textures[ FACE_LEFT ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 428 ].textures[ FACE_BACK ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 428 ].icon_texture = TEX_ENDFRAME_EYE_TOP;
+block_definitions[ 428 ].casts_shadow = false;
+block_definitions[ 428 ].hardness = 0.35f;
 block_definitions[ 428 ].is_pickable = false;
+block_definitions[ 428 ].is_seethrough = true;
+block_definitions[ 428 ].no_light = 6815743;
 
 // CYAN_CARPET (429)
 block_definitions[ 429 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
@@ -8580,13 +8584,13 @@ block_definitions[ 550 ].piston_immovable = true;
 block_definitions[ 550 ].scale = { 16, 12, 16 };
 
 // END_PORTAL_FRAME (551)
-block_definitions[ 551 ].textures[ FACE_TOP ] = TEX_ENDFRAME_EYE;
-block_definitions[ 551 ].textures[ FACE_BOTTOM ] = TEX_ENDFRAME_EYE;
-block_definitions[ 551 ].textures[ FACE_RIGHT ] = TEX_ENDFRAME_EYE;
-block_definitions[ 551 ].textures[ FACE_FRONT ] = TEX_ENDFRAME_EYE;
-block_definitions[ 551 ].textures[ FACE_LEFT ] = TEX_ENDFRAME_EYE;
-block_definitions[ 551 ].textures[ FACE_BACK ] = TEX_ENDFRAME_EYE;
-block_definitions[ 551 ].icon_texture = TEX_ENDFRAME_EYE;
+block_definitions[ 551 ].textures[ FACE_TOP ] = TEX_ENDFRAME_TOP;
+block_definitions[ 551 ].textures[ FACE_BOTTOM ] = TEX_END_STONE;
+block_definitions[ 551 ].textures[ FACE_RIGHT ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 551 ].textures[ FACE_FRONT ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 551 ].textures[ FACE_LEFT ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 551 ].textures[ FACE_BACK ] = TEX_ENDFRAME_SIDE;
+block_definitions[ 551 ].icon_texture = TEX_ENDFRAME_TOP;
 block_definitions[ 551 ].casts_shadow = false;
 block_definitions[ 551 ].hardness = 0.35f;
 block_definitions[ 551 ].is_seethrough = true;

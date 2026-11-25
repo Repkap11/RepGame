@@ -856,6 +856,18 @@ int test_crafting( ) {
         report( "synthetic shapeless, backtracking assignment", crafting_recipe_matches( shapeless, grid, 2 ) );
     }
 
+    // Blaze powder and eye of ender: the real shapeless end-chain recipes.
+    {
+        ItemID grid[ 4 ] = { BLAZE_ROD, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect( "blaze rod -> blaze powder x2", grid, 2, BLAZE_POWDER, 2 );
+        ItemID eye[ 4 ] = { ENDER_PEARL, BLAZE_POWDER, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect( "pearl + powder -> ender eye", eye, 2, ENDER_EYE, 1 );
+        ItemID swapped[ 4 ] = { BLAZE_POWDER, LAST_BLOCK_ID, ENDER_PEARL, LAST_BLOCK_ID };
+        expect( "powder + pearl -> ender eye (swapped)", swapped, 2, ENDER_EYE, 1 );
+        ItemID pearl_only[ 4 ] = { ENDER_PEARL, LAST_BLOCK_ID, LAST_BLOCK_ID, LAST_BLOCK_ID };
+        expect_none( "lone pearl -> no match", pearl_only, 2 );
+    }
+
     // Empty grid matches nothing.
     {
         ItemID grid[ 9 ];

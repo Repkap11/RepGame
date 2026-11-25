@@ -170,6 +170,18 @@ bool end_portal_find_frame( World &world, const glm::ivec3 &seed, glm::ivec3 &lo
 // Returns false when no valid ring contains the cell.
 bool end_portal_ignite( RepGameState &state, const glm::ivec3 &seed );
 
+// Seat an eye of ender into the END_PORTAL_FRAME at `pos`: a display-state
+// write flipping display_id to the hidden END_PORTAL_FRAME_EYE render
+// variant (the cell id — and so picks, drops and ring detection — is
+// unchanged). False when the cell isn't an eyeless frame.
+bool end_portal_insert_eye( RepGameState &state, const glm::ivec3 &pos );
+
+// Ignition half of eye insertion: scan every 5x5 window whose ring holds
+// `pos` as a non-corner perimeter cell — twelve eye-filled frames (or
+// bedrock) around an open interior fills the 3x3 with END_PORTAL. True
+// when a ring completed.
+bool end_portal_complete_ring( RepGameState &state, const glm::ivec3 &pos );
+
 // The block_can_survive_at rule for END_PORTAL: bounded END_PORTAL runs
 // along both horizontal axes must reach an END_PORTAL_FRAME or BEDROCK
 // ring cell. Breaking a ring cell pops the pool.

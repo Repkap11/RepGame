@@ -1,0 +1,75 @@
+#! terrain
+#! timeout 300
+# End portal: eyes of ender seat into the frame ring one at a time and the
+# last eye ignites the interior (the unit-level ring scan is in
+# test_dimension; this drives the same end_portal_insert_eye +
+# end_portal_complete_ring pair in a real world). Standing in the pool for
+# PORTAL_TRAVEL_TICKS (80) runs repgame_portal_tick's END_PORTAL branch —
+# no x/z mapping, no destination build: every end portal lands on the
+# central island's obsidian arrival pad beside the fountain.
+wait_idle 20 6000
+debug 0
+imgui 0
+
+# A floating platform at y=69 carries the ring so the player has something
+# to stand on inside the non-colliding pool: sandstone under the frame
+# footprint. The ring is four thin fills (fill writes race each other, so
+# a solid fill + interior clear leaves frames behind) — north/south rows
+# and west/east columns of the x/z 19..23 perimeter at y=70, corners left
+# empty like MC's stronghold frames.
+fill 18 69 18 24 69 24 SANDSTONE
+fill 20 70 19 22 70 19 END_PORTAL_FRAME
+fill 20 70 23 22 70 23 END_PORTAL_FRAME
+fill 19 70 20 19 70 22 END_PORTAL_FRAME
+fill 23 70 20 23 70 22 END_PORTAL_FRAME
+wait 5
+assert_block 20 70 19 END_PORTAL_FRAME
+assert_block 21 70 21 AIR
+
+# The eyeless ring: top faces show the endframe_top socket tile, sides the
+# green frame over end stone.
+camera 21 75 13 180 35
+wait 20
+screenshot ring_unlit
+
+# Eleven eyes seat; the interior must stay open.
+eye 20 70 19
+eye 21 70 19
+eye 22 70 19
+eye 20 70 23
+eye 21 70 23
+eye 22 70 23
+eye 19 70 20
+eye 19 70 21
+eye 19 70 22
+eye 23 70 20
+eye 23 70 21
+wait 5
+assert_block 21 70 21 AIR
+screenshot ring_eyes
+
+# The twelfth eye ignites the pool.
+eye 23 70 22
+wait 5
+assert_block 20 70 20 END_PORTAL
+assert_block 21 70 21 END_PORTAL
+assert_block 22 70 22 END_PORTAL
+assert_block 20 70 19 END_PORTAL_FRAME
+screenshot ring_lit
+
+# Stand in the pool: feet settle on the platform inside the END_PORTAL
+# cells and the dwell trips the fixed-pad trip to the End. The camera pin
+# from the screenshots has to release first — a pinned camera overrides
+# the goto teleport.
+camera release
+goto 21.5 72 21.5
+wait 120
+wait_idle 10 6000
+chatopen /
+type pos
+wait 2
+signkey enter
+wait 2
+assert_chat - end
+screenshot end_pad
+echo end_portal done

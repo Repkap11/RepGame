@@ -1047,15 +1047,30 @@ void RepGame::process_mouse_events( ) {
                 }
             }
         }
-        // Flint & steel: try to light a nether or end portal in the frame
-        // the click aims into first (an obsidian ring or an end-portal ring
-        // around the place cell); failing that, set the place cell alight
-        // like a normal fire strike.
+        // Eye of ender on an end portal frame seats the eye; when that was
+        // the ring's last empty frame the interior ignites. Same interaction
+        // slot as the spawn egg / minecart.
+        if ( globalGameState.hotbar.getSelectedItem( ) == ENDER_EYE && globalGameState.input.click_delay_right == 0 ) {
+            const glm::ivec3 &pos = globalGameState.block_selection.pos_destroy;
+            if ( end_portal_insert_eye( globalGameState, pos ) ) {
+                if ( globalGameState.game_mode == GameMode_Survival ) {
+                    globalGameState.hotbar.consumeSelected( 1 );
+                    globalGameState.ui.overlay.set_holding_item( globalGameState.hotbar.getSelectedItem( ) );
+                }
+                audio_play_sfx( "pop" );
+                if ( end_portal_complete_ring( globalGameState, pos ) ) {
+                    audio_play_sfx( "portal_trigger" );
+                }
+                globalGameState.input.click_delay_right = 30;
+            }
+        }
+        // Flint & steel: try to light a nether portal in the frame the
+        // click aims into first (an obsidian or gold ring around the place
+        // cell); failing that, set the place cell alight like a normal
+        // fire strike. End portals don't light — eyes of ender fill them.
         if ( globalGameState.hotbar.getSelectedItem( ) == FLINT_AND_STEEL && globalGameState.input.click_delay_right == 0 ) {
             if ( portal_ignite( globalGameState, globalGameState.block_selection.pos_create ) ||
-                 portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ||
-                 end_portal_ignite( globalGameState, globalGameState.block_selection.pos_create ) ||
-                 end_portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ) {
+                 portal_ignite( globalGameState, globalGameState.block_selection.pos_destroy ) ) {
                 audio_play_sfx( "fire_ignite" );
                 globalGameState.input.click_delay_right = 30;
             } else {

@@ -242,12 +242,21 @@ interior 1x2).
   generated fountain uses `BEDROCK` in the same role) around a 3x3
   interior, corners ignored — `end_portal_find_frame` /
   `end_portal_ignite` / `end_portal_cell_survives` in `portal.cpp`.
-  Flint & steel on an interior cell lights it. The `END_PORTAL` block
+  Eyes of ender light it, not flint & steel: right-clicking a frame
+  with `ENDER_EYE` seats the eye (`end_portal_insert_eye` — a
+  display-state write flipping `display_id` to the hidden
+  `END_PORTAL_FRAME_EYE` render variant; the cell id never changes, so
+  picks, drops and ring detection are unaffected), and once all twelve
+  frames of a complete ring hold one, `end_portal_complete_ring` fills
+  the interior with `END_PORTAL`. The `END_PORTAL` block
   is MC's 12/16-tall plate (`scale` in `data/blocks/end_portal.json`;
   travel checks the cell, not the box). Bedrock's
   `textures/blocks/end_portal` is a rounded sprite with transparent
   corners, so the `end_portal` entry in `data/textures.json` `extract`s
-  interior patches over them to make the tile opaque.
+  interior patches over them to make the tile opaque. The frame's own
+  tiles are Bedrock's real set — `endframe_top`/`endframe_side` over an
+  `end_stone` bottom and under the side tile's transparent cap rows;
+  the eye variant's top composites `endframe_eye` over the top tile.
 - **End travel**: `repgame_portal_tick`'s `END_PORTAL` branch — standing
   in a pool for `PORTAL_TRAVEL_TICKS` goes to the End's obsidian pad
   (fixed, beside the fountain — no x/z mapping, no destination build,

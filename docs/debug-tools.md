@@ -444,7 +444,9 @@ no length limit:
 | `screenshot <name>` | block until the frame is drawn; writes `screenshots/script_<name>_display.tga` (→ PNG + `artifacts.screenshots`) and emits a `screenshot` event. `name` is `[A-Za-z0-9_-]+`; if no frame draws within `30 * UPS_RATE` ticks it emits `wait_timeout` + a failed assert, then continues |
 | `quality low|medium|high|x_high`, `flags <u_DebugFlags int>`, `rd <n>` | same mechanisms as the capture views |
 | `time <ticks>`, `mode survival|creative`, `peaceful on|off`, `fly on|off` | world time / game mode / hostile-mob targeting / `input.player_flying` (flat worlds spawn flying) |
-| `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells |
+| `setblock x y z <block> [rotation]`, `fill x1 y1 z1 x2 y2 z2 <block>` | normal player edit; setblock takes an optional BlockState rotation; fill is inclusive, max 65536 cells. Same-tick fills can race each other — write disjoint volumes or `wait` between overlapping ones |
+| `ignite x y z` | light the obsidian/gold portal frame containing the cell (the real `portal_ignite` path) |
+| `eye x y z` | seat an eye of ender into the END_PORTAL_FRAME at the cell + run the ring-completion check (the `end_portal_insert_eye` + `end_portal_complete_ring` pair the right-click path drives) |
 | `give <item> [count]`, `slot N` | hotbar add + slot select, refreshing the held-item overlay |
 | `damage <hp>`, `eat`, `respawn` | player vitals (docs/player.md); each emits a `*_result` event with `applied`/`health`/`dead` |
 | `sleep x y z` | `repgame_try_sleep` on the bed cell; emits `sleep_result {slept,time}` |

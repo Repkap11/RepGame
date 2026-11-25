@@ -269,11 +269,13 @@ void portal_build_platform( RepGameState &state, const glm::ivec3 &center, const
 // ---------------------------------------------------------------------------
 // End portals: a horizontal 5x5 ring of END_PORTAL_FRAME cells (BEDROCK
 // counts — the exit fountain's ring is bedrock) around a 3x3 interior of
-// AIR/FIRE/SOUL_FIRE/END_PORTAL; the four corner cells are ignored. Flint
-// & steel on an interior cell fills it with END_PORTAL. Standing inside
-// runs the END_PORTAL branch of repgame_portal_tick: in the End it drops
-// the player on generated overworld ground; anywhere else it lands them
-// on the central island's obsidian arrival pad beside the fountain.
+// AIR/FIRE/SOUL_FIRE/END_PORTAL; the four corner cells are ignored. Eyes of
+// ender fill the frames one at a time (end_portal_insert_eye); once every
+// frame of a complete ring holds an eye the interior ignites into
+// END_PORTAL. Standing inside runs the END_PORTAL branch of
+// repgame_portal_tick: in the End it drops the player on generated
+// overworld ground; anywhere else it lands them on the central island's
+// obsidian arrival pad beside the fountain.
 // ---------------------------------------------------------------------------
 
 static bool end_portal_interior_id( const BlockID id ) {
@@ -324,6 +326,72 @@ bool end_portal_ignite( RepGameState &state, const glm::ivec3 &seed ) {
             portal_write_cell( state, lo + glm::ivec3( dx, 0, dz ), bs );
         }
     }
+    return true;
+}
+
+// A ring cell ready for ignition: a frame already holding its eye, or
+// bedrock — the fountain ring's material can't hold an eye, but a bedrock
+// ring is the pre-lit fountain anyway.
+static bool end_portal_ring_ready( const BlockState &bs ) {
+    if ( bs.id == BEDROCK ) {
+        return true;
+    }
+    return bs.id == END_PORTAL_FRAME && bs.display_id == END_PORTAL_FRAME_EYE;
+}
+
+// Scan every 5x5 window whose ring holds `pos` (a non-corner perimeter
+// cell): twelve eye-filled frames (or bedrock) around an open interior
+// ignites — the 3x3 fills with END_PORTAL. True when a ring completed.
+bool end_portal_complete_ring( RepGameState &state, const glm::ivec3 &pos ) {
+    // Interior origins (ox, oz) put pos at ring offset (rx, rz) in [-1, 3].
+    for ( int ox = pos.x - 3; ox <= pos.x + 1; ox++ ) {
+        for ( int oz = pos.z - 3; oz <= pos.z + 1; oz++ ) {
+            const int rx = pos.x - ox, rz = pos.z - oz;
+            const bool edge_x = rx == -1 || rx == 3;
+            const bool edge_z = rz == -1 || rz == 3;
+            if ( !( edge_x || edge_z ) || ( edge_x && edge_z ) ) {
+                continue; // pos is the window's interior or a corner — not a ring cell
+            }
+            bool ok = true;
+            for ( int dx = -1; dx <= 3 && ok; dx++ ) {
+                for ( int dz = -1; dz <= 3 && ok; dz++ ) {
+                    const bool interior = dx >= 0 && dx <= 2 && dz >= 0 && dz <= 2;
+                    const bool corner = ( dx == -1 || dx == 3 ) && ( dz == -1 || dz == 3 );
+                    if ( corner ) {
+                        continue;
+                    }
+                    const BlockState bs = state.world.get_loaded_block( glm::ivec3( ox + dx, pos.y, oz + dz ) );
+                    ok = interior ? end_portal_interior_id( bs.id ) : end_portal_ring_ready( bs );
+                }
+            }
+            if ( !ok ) {
+                continue;
+            }
+            for ( int dx = 0; dx < 3; dx++ ) {
+                for ( int dz = 0; dz < 3; dz++ ) {
+                    const BlockState bs = { END_PORTAL, 0, 0, END_PORTAL, 0 };
+                    portal_write_cell( state, glm::ivec3( ox + dx, pos.y, oz + dz ), bs );
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+// Right-clicking an END_PORTAL_FRAME with an eye of ender seats the eye —
+// a display-state write: the cell id stays END_PORTAL_FRAME (picks, drops
+// and ring detection all keep working) and only display_id flips to the
+// hidden END_PORTAL_FRAME_EYE render variant. False when the cell isn't an
+// eyeless frame. The caller runs end_portal_complete_ring afterwards.
+bool end_portal_insert_eye( RepGameState &state, const glm::ivec3 &pos ) {
+    const BlockState cur = state.world.get_loaded_block( pos );
+    if ( cur.id != END_PORTAL_FRAME || cur.display_id == END_PORTAL_FRAME_EYE ) {
+        return false;
+    }
+    BlockState next = cur;
+    next.display_id = END_PORTAL_FRAME_EYE;
+    portal_write_cell( state, pos, next );
     return true;
 }
 

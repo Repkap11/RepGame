@@ -58,7 +58,11 @@ advances a crop one `crop_next` stage, consuming one in survival.
 (`textures/items/spawn_eggs/` icons) hatch their mob on right-click —
 see `docs/mobs.md`. `FIRE_CHARGE` (`fireball` icon) supplies the blaze
 fireball's billboard sprite, `BLAZE_ROD` (`blaze_rod` icon) is the
-blaze's kill drop, and `BLAZE_SPAWN_EGG` hatches one.
+blaze's kill drop, and `BLAZE_SPAWN_EGG` hatches one. `BLAZE_POWDER`
+crafts shapeless 1 rod -> 2 powder; `ENDER_EYE` crafts shapeless
+`ENDER_PEARL` + `BLAZE_POWDER` -> 1 and seats into an end portal frame
+on right-click — the end portal's only ignition path
+(`docs/dimensions.md` "End frames").
 `MINECART` (`minecart_normal` icon, `max_stack` 1,
 recipe five iron ingots `"# #"/"###"`) places a minecart on a rail on
 right-click (`docs/entities.md`). The ten boats — `OAK_BOAT` …

@@ -1,6 +1,8 @@
 // Dimension band encoding (dimension.hpp), nether + end generator
 // invariants, and the portal frame detection/travel helpers. The band
 // layout lives in dimension.hpp's header comment.
+#include <vector>
+
 #include "test_util.hpp"
 #include "common/dimension.hpp"
 #include "common/dimension_profile.hpp"
@@ -438,6 +440,50 @@ int test_dimension( ) {
         const BlockState pool = world.get_loaded_block( glm::ivec3( 41, 40, 41 ) );
         world.set_loaded_block( glm::ivec3( 39, 40, 41 ), BLOCK_STATE_AIR );
         check_bool( "broken ring kills pool cell", !end_portal_cell_survives( world, glm::ivec3( 41, 40, 41 ), pool ) );
+    }
+
+    // ---- Eyes of ender: insertion seats the eye display state, and the
+    // ring ignites only once all twelve frames hold one. ----
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        gs.camera.pos = glm::dvec3( 0, 0, 0 );
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        // Same flat 5x5 ring at y=40, interior x/z in 41..43.
+        std::vector<glm::ivec3> ring;
+        for ( int dx = -1; dx <= 3; dx++ ) {
+            for ( int dz = -1; dz <= 3; dz++ ) {
+                const bool corner = ( dx == -1 || dx == 3 ) && ( dz == -1 || dz == 3 );
+                const bool interior = dx >= 0 && dx <= 2 && dz >= 0 && dz <= 2;
+                if ( !corner && !interior ) {
+                    ring.push_back( glm::ivec3( 41 + dx, 40, 41 + dz ) );
+                    world.set_loaded_block( ring.back( ), { END_PORTAL_FRAME, 0, 0, END_PORTAL_FRAME, 0 } );
+                }
+            }
+        }
+        check_bool( "ring has 12 frames", ring.size( ) == 12 );
+        check_bool( "no eye in plain air", !end_portal_insert_eye( gs, glm::ivec3( 41, 40, 41 ) ) );
+        check_bool( "incomplete ring never ignites", !end_portal_complete_ring( gs, ring[ 0 ] ) );
+        bool ignited = false;
+        for ( size_t i = 0; i < ring.size( ); i++ ) {
+            check_bool( "eye seats in frame", end_portal_insert_eye( gs, ring[ i ] ) );
+            check_bool( "eye display state written", world.get_loaded_block( ring[ i ] ).display_id == END_PORTAL_FRAME_EYE );
+            check_bool( "frame id unchanged by eye", world.get_loaded_block( ring[ i ] ).id == END_PORTAL_FRAME );
+            check_bool( "re-insertion refused", !end_portal_insert_eye( gs, ring[ i ] ) );
+            ignited = end_portal_complete_ring( gs, ring[ i ] );
+            if ( i + 1 < ring.size( ) ) {
+                check_bool( "ring incomplete before the last eye", !ignited );
+            }
+        }
+        check_bool( "last eye ignites the ring", ignited );
+        bool all_pool = true;
+        for ( int dx = 0; dx <= 2; dx++ ) {
+            for ( int dz = 0; dz <= 2; dz++ ) {
+                all_pool = all_pool && world.get_loaded_block( glm::ivec3( 41 + dx, 40, 41 + dz ) ).id == END_PORTAL;
+            }
+        }
+        check_bool( "eye ignition fills the interior", all_pool );
     }
 
     // ---- /dimension end travels; repheim travels too. ----
