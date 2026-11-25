@@ -268,16 +268,10 @@ void RepGame::initializeGameState( const char *world_name ) {
 
 MK_TEXTURE( blocks, 384, BLOCK_TEXTURE_ATLAS_ROWS * 16, 16, 16 );
 
-static bool globalSupportsAnisotropic;
-
-bool RepGame::supportsAnisotropic( ) {
-    return globalSupportsAnisotropic;
-}
-
 RepGameState *RepGame::init( const char *world_name, const bool connect_multi, const char *host, const bool supportsAnisotropicFiltering ) {
     globalGameState.screen.width = DEFAULT_WINDOW_WIDTH;
     globalGameState.screen.height = DEFAULT_WINDOW_HEIGHT;
-    globalSupportsAnisotropic = supportsAnisotropicFiltering;
+    texture_set_anisotropic_supported( supportsAnisotropicFiltering );
 
     // Flat-world marker (`<world>/world_type` = "flat") must be read before
     // any chunk generation starts — the map storage init happens later.

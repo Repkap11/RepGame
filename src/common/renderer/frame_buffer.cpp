@@ -1,5 +1,7 @@
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include "common/Logging.hpp"
 #include "common/renderer/frame_buffer.hpp"
+#include "common/renderer/texture.hpp"
 
 // The "display" framebuffer id — 0 (the window backbuffer) in flat mode; a
 // per-eye swapchain FBO while a VR view is being drawn (RepGame::draw_frame).

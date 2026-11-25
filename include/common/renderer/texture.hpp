@@ -73,3 +73,6 @@ class Texture {
 
 // Reserve a texture unit with no associated Texture object (see texture.cpp).
 int texture_reserve_unit( );
+
+void texture_set_anisotropic_supported( bool supported );
+bool texture_anisotropic_supported( );

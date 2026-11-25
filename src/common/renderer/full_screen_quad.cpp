@@ -1,4 +1,6 @@
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include "common/Logging.hpp"
+#include "common/constants.hpp"
 #include "common/renderer/full_screen_quad.hpp"
 
 #define FSQ_VERTEX_COUNT 4

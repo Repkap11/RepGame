@@ -3,6 +3,7 @@
 #include "test_util.hpp"
 #include "common/utils/angles.hpp"
 #include "common/harness/run_policy.hpp"
+#include "common/world_draw_quality.hpp"
 
 // A symmetric ±45° horizontal/vertical FOV through the off-axis OpenXR
 // projection helper must equal glm::perspective(90°, 1, n, f).
@@ -38,6 +39,26 @@ int test_min_ambient_step( ) {
     check_near( "min_ambient_step: 0% -1 clamps at 0%", min_ambient_step( 0.0f, -1 ), 0.0f );
     check_near( "min_ambient_step: 100% +1 clamps at 100%", min_ambient_step( 1.0f, 1 ), 1.0f );
     check_near( "min_ambient_step: off-grid 7% +1 -> 10%", min_ambient_step( 0.07f, 1 ), 0.10f );
+    return failures;
+}
+
+// Draw-quality stepping wraps in both directions within the platform's
+// supported quality count (framebuffer-less platforms expose LOW only).
+int test_world_draw_quality_step( ) {
+    int failures = 0;
+    auto check = [ & ]( const char *name, WorldDrawQuality actual, WorldDrawQuality expected ) {
+        const bool ok = actual == expected;
+        pr_test( "  %-55s value=%-9d expected=%-9d  %s", name, static_cast<int>( actual ), static_cast<int>( expected ), ok ? "PASS" : "FAIL" );
+        if ( !ok ) {
+            failures++;
+        }
+    };
+    const WorldDrawQuality last_supported = static_cast<WorldDrawQuality>( WORLD_DRAW_QUALITY_COUNT - 1 );
+    const WorldDrawQuality after_low = WORLD_DRAW_QUALITY_COUNT > 1 ? WorldDrawQuality::MEDIUM : WorldDrawQuality::LOW;
+    check( "draw quality: LOW +1", world_draw_quality_step( WorldDrawQuality::LOW, 1 ), after_low );
+    check( "draw quality: LOW -1 wraps", world_draw_quality_step( WorldDrawQuality::LOW, -1 ), last_supported );
+    check( "draw quality: last +1 wraps", world_draw_quality_step( last_supported, 1 ), WorldDrawQuality::LOW );
+    check( "draw quality: large negative wraps", world_draw_quality_step( WorldDrawQuality::LOW, -WORLD_DRAW_QUALITY_COUNT ), WorldDrawQuality::LOW );
     return failures;
 }
 

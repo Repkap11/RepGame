@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common/utils/file_utils.hpp"
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include "common/Logging.hpp"
 
 #define SHADER_BLOCK_SIZE 512
 #define FULL_PATH_SIZE 8192

@@ -4,11 +4,23 @@
 #define GL_GLEXT_PROTOTYPES
 #include "common/utils/env_config.hpp"
 
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include "common/Logging.hpp"
+#include "common/constants.hpp"
 #include "common/renderer/texture.hpp"
 #include "common/vendor/stb_image.hpp"
 
 #define BYTES_PER_PIXEL 4
+
+static bool g_texture_anisotropic_supported = false;
+
+void texture_set_anisotropic_supported( const bool supported ) {
+    g_texture_anisotropic_supported = supported;
+}
+
+bool texture_anisotropic_supported( ) {
+    return g_texture_anisotropic_supported;
+}
 
 // The embedded/file bytes are PNGs decoded here. The upload loop below keeps
 // the old BMP convention (row 0 = image bottom), so the decode flips
@@ -324,7 +336,7 @@ void Texture::loadTexture( const TextureSourceData &texture_source, int blur_mag
 
     // pr_debug( "Max ani:%f", max_ani );
     stbi_image_free( data );
-    if ( RepGame::supportsAnisotropic( ) ) {
+    if ( texture_anisotropic_supported( ) ) {
         float max_ani;
         glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
         glTexParameterf( this->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );
@@ -374,7 +386,7 @@ void Texture::init_empty_base( int blur_mag, int target, int internalFormat, int
         }
         glTexParameteri( this->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         glTexParameteri( this->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        if ( RepGame::supportsAnisotropic( ) ) {
+        if ( texture_anisotropic_supported( ) ) {
             float max_ani;
             glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_ani );
             glTexParameterf( this->target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_ani );

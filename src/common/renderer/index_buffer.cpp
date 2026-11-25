@@ -1,4 +1,5 @@
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include "common/Logging.hpp"
 #include "common/renderer/index_buffer.hpp"
 
 void IndexBuffer::init( ) {

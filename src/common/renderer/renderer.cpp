@@ -1,4 +1,5 @@
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include "common/Logging.hpp"
 #include "common/renderer/renderer.hpp"
 
 void Renderer::draw( const VertexArray &vertexArray, const IndexBuffer &indexBuffer, const Shader &shader, unsigned int num_instances ) const {

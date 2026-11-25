@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/world.hpp" // WorldDrawQuality (worldDrawQuality field)
+#include "common/world_draw_quality.hpp"
 #if defined( REPGAME_LINUX ) || defined( REPGAME_WINDOWS ) || defined( REPGAME_WASM )
 #include "common/RepGameSDL2.hpp" // SDL_Keycode (keysInput)
 #endif

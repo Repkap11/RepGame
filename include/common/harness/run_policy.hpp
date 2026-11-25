@@ -3,7 +3,9 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "common/world.hpp" // WorldDrawQuality, DAY_LENGTH_TICKS, UPS_RATE
+#include "common/constants.hpp" // UPS_RATE
+#include "common/light.hpp"     // DAY_LENGTH_TICKS
+#include "common/world_draw_quality.hpp"
 
 // Env-driven run policy: every REPGAME_* harness/debug switch that steers the
 // simulation without touching gameplay defaults, parsed once on first access.

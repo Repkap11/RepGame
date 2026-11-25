@@ -100,7 +100,9 @@ See `docs/models.md`.
 ## Repo map
 
 - `src/common/` — platform-independent game code (world, mobs, items,
-  bodies, crafting, light, net sync)
+  bodies, crafting, light, net sync). World implementation lives in
+  `src/common/world/` and mob implementation in `src/common/mobs/`, each
+  split by concern
 - `src/common/game/` — the `RepGame` member-function implementation,
   split by concern (player input/physics, inventory+crafting UI, tick +
   game_harness.cpp for the scripted/debug tick phases, init/save, render,

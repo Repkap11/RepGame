@@ -7,6 +7,7 @@
 
 int test_vr_projection( );
 int test_min_ambient_step( );
+int test_world_draw_quality_step( );
 int test_angle_wrap( );
 int test_teleport_parse( );
 int test_redstone( );

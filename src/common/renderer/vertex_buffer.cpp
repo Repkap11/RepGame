@@ -1,4 +1,5 @@
-#include "common/RepGame.hpp"
+#include "common/Platforms.hpp"
+#include "common/Logging.hpp"
 #include "common/renderer/vertex_buffer.hpp"
 
 void VertexBuffer::init( ) {

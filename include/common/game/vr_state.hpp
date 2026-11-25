@@ -11,7 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "common/world.hpp" // WorldDrawQuality
+#include "common/world_draw_quality.hpp"
 
 // One render target view (a VR eye). Flat rendering passes views==nullptr to
 // draw_frame, which uses screen.proj and the interpolated camera instead.
