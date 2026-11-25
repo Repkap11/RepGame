@@ -228,7 +228,8 @@ mob pre-empt the block target for left clicks.
   survival consumes the held pearl, creative throws free, and the
   projectile's first impact teleports the player there with carried
   motion zeroed. Throws use the `ender_pearl_throw` pool and impacts the
-  `ender_pearl_teleport` pool. Block interactions keep precedence — a
+  `ender_pearl_teleport` pool, both at half gain. Block interactions keep
+  precedence — a
   right-click aimed at a chest/door still opens/toggles it — and VR's
   use-binding lands here the same way (`vr.haptic_pending`).
 
