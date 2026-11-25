@@ -559,7 +559,7 @@ bool repgame_throw_ender_pearl( RepGameState &state ) {
     }
     const glm::dvec3 dir = glm::dvec3( state.camera.look );
     state.world.arrows.spawn_ender_pearl( state.camera.pos + dir * 0.4, dir * ArrowEntities::ENDER_PEARL_SPEED, survival ? 1 : 0 );
-    audio_play_sfx( "bow_shoot" );
+    audio_play_sfx( "ender_pearl_throw" );
     state.vr.haptic_pending = true;
     return true;
 }
@@ -592,7 +592,7 @@ void repgame_ender_pearl_teleport( RepGameState &state, const glm::dvec3 &feet_t
     state.camera.y_speed = 0.0;
     state.camera.horizontal_vel = glm::dvec2( 0.0 );
     state.vitals.fall_dist = 0.0;
-    audio_play_sfx_gain( "pop", 0.8f );
+    audio_play_sfx( "ender_pearl_teleport" );
     state.vr.haptic_pending = true;
 }
 

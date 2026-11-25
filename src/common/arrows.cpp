@@ -543,22 +543,14 @@ void ArrowEntities::update_render( const float alpha, const ChunkLoader &chunk_l
         glm::mat4 m( 0.0f );
         if ( a.fireball || a.ender_pearl ) {
             // Camera-facing billboards: a wide blaze fireball, or the small
-            // round ender pearl item sprite.
-            const glm::vec3 cam = glm::vec3( glm::inverse( view_look )[ 3 ] );
-            glm::vec3 normal = glm::vec3( rpos ) - cam;
-            if ( glm::length( normal ) < 1e-4f ) {
-                normal = glm::vec3( 0.0f, 0.0f, 1.0f );
-            }
-            normal = glm::normalize( normal );
-            glm::vec3 fwd = glm::vec3( 0.0f, 1.0f, 0.0f ) - normal * normal.y;
-            if ( fabsf( normal.y ) > 0.999f ) {
-                fwd = glm::vec3( 1.0f, 0.0f, 0.0f );
-            } else {
-                fwd = glm::normalize( fwd );
-            }
-            const glm::vec3 up = glm::normalize( glm::cross( normal, fwd ) );
+            // round ender pearl item sprite. view_look is rotation-only, so
+            // its rows are the camera basis; view-space +z faces backward
+            // toward the viewer.
+            const glm::vec3 right( view_look[ 0 ][ 0 ], view_look[ 1 ][ 0 ], view_look[ 2 ][ 0 ] );
+            const glm::vec3 up( view_look[ 0 ][ 1 ], view_look[ 1 ][ 1 ], view_look[ 2 ][ 1 ] );
+            const glm::vec3 normal( view_look[ 0 ][ 2 ], view_look[ 1 ][ 2 ], view_look[ 2 ][ 2 ] );
             const float s = a.ender_pearl ? 0.45f : 1.2f;
-            m[ 0 ] = glm::vec4( fwd * s, 0.0f );
+            m[ 0 ] = glm::vec4( right * s, 0.0f );
             m[ 1 ] = glm::vec4( up * s, 0.0f );
             m[ 2 ] = glm::vec4( normal * s, 0.0f );
         } else {
