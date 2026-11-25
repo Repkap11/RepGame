@@ -20,6 +20,13 @@ ImGuiDebugVars &imgui_overlay_get_imgui_debug_vars( ) {
         // REPGAME_MIN_AMBIENT is the absolute light floor (caves).
         debug_vars.night_ambient = env_float( "REPGAME_NIGHT_AMBIENT", debug_vars.night_ambient );
         debug_vars.min_ambient = env_float( "REPGAME_MIN_AMBIENT", debug_vars.min_ambient );
+        debug_vars.water_fog = env_bool( "REPGAME_WATER_FOG", debug_vars.water_fog );
+        debug_vars.water_opacity_boost = env_float( "REPGAME_WATER_OPACITY_BOOST", debug_vars.water_opacity_boost );
+        debug_vars.water_darken = env_float( "REPGAME_WATER_DARKEN", debug_vars.water_darken );
+        debug_vars.water_distance_start = env_float( "REPGAME_WATER_DISTANCE_START", debug_vars.water_distance_start );
+        debug_vars.water_distance_end = env_float( "REPGAME_WATER_DISTANCE_END", debug_vars.water_distance_end );
+        debug_vars.water_distance_darken = env_float( "REPGAME_WATER_DISTANCE_DARKEN", debug_vars.water_distance_darken );
+        debug_vars.water_distance_opacity = env_float( "REPGAME_WATER_DISTANCE_OPACITY", debug_vars.water_distance_opacity );
     }
     return debug_vars;
 }
@@ -311,6 +318,25 @@ void imgui_overlay_draw( ImGuiOverlay *imgui_overlay, Input &input, RepGameState
 
         if ( imgui_live_tune( ) ) {
             ImGui::Separator( );
+            if ( ImGui::CollapsingHeader( "Water", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+                bool water_dirty = false;
+                water_dirty |= ImGui::Checkbox( "Dry-view fog", &debug_vars.water_fog );
+                water_dirty |= ImGui::SliderFloat( "Opacity boost", &debug_vars.water_opacity_boost, 0.0f, 1.0f, "%.2f" );
+                water_dirty |= ImGui::SliderFloat( "Darken", &debug_vars.water_darken, 0.0f, 1.0f, "%.2f" );
+                water_dirty |= ImGui::SliderFloat( "Distance start", &debug_vars.water_distance_start, 0.0f, 256.0f, "%.0f" );
+                water_dirty |= ImGui::SliderFloat( "Distance end", &debug_vars.water_distance_end, 0.0f, 256.0f, "%.0f" );
+                water_dirty |= ImGui::SliderFloat( "Distance opacity", &debug_vars.water_distance_opacity, 0.0f, 1.0f, "%.2f" );
+                water_dirty |= ImGui::SliderFloat( "Distance darken", &debug_vars.water_distance_darken, 0.0f, 1.0f, "%.2f" );
+                static bool water_pending_log = false;
+                water_pending_log |= water_dirty;
+                if ( ImGui::Button( "Log water" ) || ( water_pending_log && ImGui::IsMouseReleased( ImGuiMouseButton_Left ) ) ) {
+                    water_pending_log = false;
+                    pr_debug( "water tuning: REPGAME_WATER_FOG=%d REPGAME_WATER_OPACITY_BOOST=%.2f REPGAME_WATER_DARKEN=%.2f REPGAME_WATER_DISTANCE_START=%.0f REPGAME_WATER_DISTANCE_END=%.0f REPGAME_WATER_DISTANCE_OPACITY=%.2f REPGAME_WATER_DISTANCE_DARKEN=%.2f",
+                              debug_vars.water_fog ? 1 : 0, debug_vars.water_opacity_boost, debug_vars.water_darken,
+                              debug_vars.water_distance_start, debug_vars.water_distance_end,
+                              debug_vars.water_distance_opacity, debug_vars.water_distance_darken );
+                }
+            }
             // Live tuning for the in-hand poses (see draw_ui_pass); usable
             // only while the cursor is free. Edits log once the mouse
             // button comes up; "Log pose" dumps the current values on

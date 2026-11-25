@@ -116,6 +116,12 @@ uniform int u_EndSky;
 // RenderOrder_Water).
 uniform float u_Time;
 uniform int u_FluidAnim;
+uniform float u_WaterOpacityBoost;
+uniform float u_WaterDarken;
+uniform float u_WaterDistanceStart;
+uniform float u_WaterDistanceEnd;
+uniform float u_WaterDistanceDarken;
+uniform float u_WaterDistanceOpacity;
 
 // Capture-mode A/B debug toggles (REPGAME_CAPTURE per-view flags bitmask);
 // 0 in normal play except bit 32, which the C++ side also sets when the
@@ -177,6 +183,7 @@ layout(location = 3) out vec4 skyColor;
 // layout( location = 0 ) out vec4 reflection;
 
 void main() {
+    float dist = distance(v_world_coords, u_CameraPos);
     // Mip/aniso selection must use derivatives of the continuous quad UV:
     // the per-cell random rotation below makes `working` jump at every block
     // boundary inside a greedy-merged quad, and implicit derivatives across
@@ -357,6 +364,19 @@ void main() {
                 texColor.rgb *= 0.96f + 0.07f * sin(u_Time * 1.3f + (wpos.x + wpos.y) * 0.6f);
             }
         }
+    }
+    if(v_blockID == uint(TEX_WATER_STILL) || v_blockID == uint(TEX_WATER_FLOW)) {
+        float water_rgb_scale = 1.0f - clamp(u_WaterDarken, 0.0f, 1.0f);
+        float distance_f = 0.0f;
+        if(u_TintUnderWater == TINT_UNDER_WATER_OBJECT_NEVER) {
+            float distance_start = max(u_WaterDistanceStart, 0.0f);
+            float distance_end = max(u_WaterDistanceEnd, distance_start + 0.001f);
+            distance_f = smoothstep(distance_start, distance_end, dist);
+            water_rgb_scale *= 1.0f - clamp(u_WaterDistanceDarken, 0.0f, 1.0f) * distance_f;
+        }
+        texColor.rgb *= water_rgb_scale;
+        texColor.a = mix(texColor.a, 1.0f, clamp(u_WaterOpacityBoost, 0.0f, 1.0f));
+        texColor.a = mix(texColor.a, 1.0f, clamp(u_WaterDistanceOpacity, 0.0f, 1.0f) * distance_f);
     }
     // Alpha-tested passes (opaque + flowers): hashed alpha test. Cutout
     // tiles' mips store box-averaged alpha (texture.cpp), so sampled alpha is
@@ -625,7 +645,6 @@ void main() {
     // so terrain is fully fog-colored before it blends with the sky.
     // The fog color is sampled from the sky texture at the horizon in the
     // view direction, so it matches the actual sky color behind the terrain.
-    float dist = distance(v_world_coords, u_CameraPos);
     // Fog follows the medium each part of the view ray travels through, not
     // the camera alone: split the camera->fragment segment at the sea-level
     // plane, run the air range on the above-surface leg and the water range

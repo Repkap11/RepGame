@@ -10,6 +10,7 @@
 #include "common/tree_grow.hpp"
 #include "common/light.hpp"
 #include "common/fluid.hpp"
+#include "common/imgui_overlay.hpp"
 #include "common/block_update_events/FluidUpdateEvent.hpp"
 #include "common/block_update_events/PistonEvent.hpp"
 
@@ -353,8 +354,10 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     // plane fogs over this much shorter range. Evaluated per fragment in
     // the shaders, so the seabed murks over when viewed from above and
     // above-surface terrain stays visible from underwater.
-    const float water_fog_near = 8.0f;
-    const float water_fog_far = 90.0f;
+    const ImGuiDebugVars &debug_vars = imgui_overlay_get_imgui_debug_vars( );
+    const bool water_fog_active = debug_vars.water_fog || headInWater;
+    const float water_fog_near = water_fog_active ? 8.0f : 1000000.0f;
+    const float water_fog_far = water_fog_active ? 90.0f : 2000000.0f;
     // The fog blend's in-shader phase targets the sky average; the
     // submerged share of each ray targets the water murk instead (per
     // fragment via waterShare, and per pixel in the composite through the
@@ -391,6 +394,12 @@ void World::draw( const Texture &blocksTexture, const glm::mat4 &mvp, const glm:
     this->chunkLoader.shader.set_uniform1f( "u_FogFar", fog_far );
     this->chunkLoader.shader.set_uniform1f( "u_WaterFogNear", water_fog_near );
     this->chunkLoader.shader.set_uniform1f( "u_WaterFogFar", water_fog_far );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterOpacityBoost", debug_vars.water_opacity_boost );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterDarken", debug_vars.water_darken );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterDistanceStart", debug_vars.water_distance_start );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterDistanceEnd", debug_vars.water_distance_end );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterDistanceDarken", debug_vars.water_distance_darken );
+    this->chunkLoader.shader.set_uniform1f( "u_WaterDistanceOpacity", debug_vars.water_distance_opacity );
     // Framebuffer tiers apply the underwater blue wash in the composite pass;
     // LOW renders forward, so the object/chunk shaders apply it in-shader
     // instead. Same uniform name on purpose: only one of the two is ever

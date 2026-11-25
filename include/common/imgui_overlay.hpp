@@ -29,6 +29,15 @@ struct ImGuiDebugVars {
     // night_ambient is a floor on the daylight factor, i.e. "moonlight".
     float min_ambient = MIN_AMBIENT_DEFAULT;
     float night_ambient = 0.20f;
+    // Experimental water-surface/fog controls, initialized from the
+    // REPGAME_WATER_* environment variables and tunable live in the overlay.
+    bool water_fog = false;
+    float water_opacity_boost = 0.20f;
+    float water_darken = 0.10f;
+    float water_distance_start = 0.0f;
+    float water_distance_end = 30.0f;
+    float water_distance_darken = 0.35f;
+    float water_distance_opacity = 0.75f;
     // Chunk-loading and lighting queue depths, refreshed once per frame by
     // RepGame::draw (see LoaderDebugStats in chunk_loader.hpp).
     LoaderDebugStats loader;

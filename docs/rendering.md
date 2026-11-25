@@ -89,9 +89,27 @@ is `docs/chunks.md`; the light model these tunables feed is
   would open a sky-colored hole through the silhouette, since the sky
   pass drew first.
   Cameras below
-  the plane in air (dry caves, the nether) skip the split — the plane
-  crossing is geometric, so a view from above ground into dry
-  below-sea-level air (open shafts, ravines) still murks.
+  the plane in air (dry caves, the nether) skip the split. The plane
+  crossing is geometric, so the legacy dry-camera effect cannot tell real
+  water from dry below-sea-level air in open shafts and ravines. That
+  legacy dry-camera fog is off by default; `REPGAME_WATER_FOG=1` restores
+  it. The normal water fog remains while the player's head is underwater,
+  as does the underwater screen wash/tint.
+- `REPGAME_WATER_FOG` — initial geometric water-fog state. The default `0`
+  disables only the dry-camera submerged-leg fog; `1` restores the legacy
+  effect, including its false murk in dry shafts.
+- `REPGAME_WATER_OPACITY_BOOST` / `REPGAME_WATER_DARKEN` /
+  `REPGAME_WATER_DISTANCE_START` / `REPGAME_WATER_DISTANCE_END` /
+  `REPGAME_WATER_DISTANCE_DARKEN` / `REPGAME_WATER_DISTANCE_OPACITY` —
+  water-surface appearance controls. The strength controls are
+  clamped to 0..1; distance start/end are the camera-distance ramp in blocks
+  (default 0–30). Opacity boost mixes water alpha toward fully opaque;
+  darken scales the water texture rgb down before lighting; the distance
+  controls apply additional rgb scaling and opacity over the ramp only
+  while the camera is not underwater. Together with
+  `REPGAME_WATER_FOG`, these are the initial values for the overlay's live
+  Water controls: set `REPGAME_IMGUI_TUNE=1`, toggle the overlay with `g`,
+  then open the inventory or pause menu to move the sliders.
 - `REPGAME_RENDER_DISTANCE` — initial horizontal render distance in chunks
   (1..`CHUNK_RADIUS_XZ`, default `CHUNK_RADIUS_XZ_DEFAULT`; both are
 per-platform defines in `chunk_dimensions.hpp`). The chunk torus is always allocated

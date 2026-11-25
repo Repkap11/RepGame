@@ -40,7 +40,7 @@ the index, not the reference.
 | `REPGAME_FOG_RANGE` | 96 | all | width of the distance-fog band in blocks (capped at 38% of render distance) | docs/rendering.md |
 | `REPGAME_GIT` | unset | all | `<sha>` stamped into the `REPGAME_RESULTS` header record (set by rep-dbg) | docs/debug-tools.md |
 | `REPGAME_IMGUI` | `player.dat` `show_imgui` (else 0, `SHOW_IMGUI`) | desktop | initial state of the ImGui debug overlay; overrides the saved value ('g' toggles at runtime). rep-dbg sets `0` so run screenshots are overlay-free — `--env REPGAME_IMGUI=1` opts back in | docs/ui.md |
-| `REPGAME_IMGUI_TUNE` | 0 | desktop | `1` makes the ImGui overlay interactive while the cursor is free and shows the held-pose tuning controls (first-person + avatar/bow) | docs/ui.md |
+| `REPGAME_IMGUI_TUNE` | 0 | desktop | `1` makes the ImGui overlay interactive while the cursor is free and shows the water and held-pose tuning controls (first-person + avatar/bow) | docs/ui.md |
 | `REPGAME_ITEM_TEST` | unset | all | `"name,x,y,z[,count][;...]"` deterministic non-persistent item spawns at init | docs/items-crafting.md |
 | `REPGAME_LIGHT_CLAIM_RADIUS` | 1 | all | `1..4`: Chebyshev claim-conflict radius between light-job center columns | docs/rendering.md |
 | `REPGAME_LIGHT_MIPMAPS` | 1 | all | `0`/`1`: mipmapped light volume vs flat RG8 volume | docs/rendering.md |
@@ -100,6 +100,13 @@ the index, not the reference.
 | `REPGAME_VR_UI_WIDTH` | 1.0 | OpenXR | UI quad width in meters | docs/vr.md |
 | `REPGAME_WALKTEST` | unset | all | when set: scripted forward walk each tick + `WT ...` movement logging to stderr | capture skill |
 | `REPGAME_WALKTEST_TICKS` | 0 (run forever) | all | quit after n ticks through the normal exit path (walktest only) | capture skill |
+| `REPGAME_WATER_DARKEN` | 0.10 | all | initial water-surface rgb darkening amount, clamped to 0..1; live-tunable in the ImGui Water controls | docs/rendering.md |
+| `REPGAME_WATER_DISTANCE_START` | 0 | all | initial start of the water-surface distance-effect ramp in blocks; live-tunable in the ImGui Water controls | docs/rendering.md |
+| `REPGAME_WATER_DISTANCE_END` | 30 | all | initial end of the water-surface distance-effect ramp in blocks; live-tunable in the ImGui Water controls | docs/rendering.md |
+| `REPGAME_WATER_DISTANCE_DARKEN` | 0.35 | all | initial extra water-surface rgb darkening over the configurable camera-distance ramp while not underwater, clamped to 0..1; live-tunable in the ImGui Water controls | docs/rendering.md |
+| `REPGAME_WATER_DISTANCE_OPACITY` | 0.75 | all | initial extra water-surface opacity over the configurable camera-distance ramp while not underwater, clamped to 0..1; live-tunable in the ImGui Water controls | docs/rendering.md |
+| `REPGAME_WATER_FOG` | 0 | all | initial geometric water-fog state; `1` restores legacy dry-camera submerged-leg fog while normal fog always remains underwater, as does the underwater wash/tint; live-tunable in the ImGui Water controls | docs/rendering.md |
+| `REPGAME_WATER_OPACITY_BOOST` | 0.20 | all | initial mix of water-surface alpha toward opaque, clamped to 0..1; live-tunable in the ImGui Water controls | docs/rendering.md |
 | `REPGAME_WEBGPU` | 0 | WASM | `1` opts into the WebGPU terrain-gen/mesh backend | docs/rendering.md |
 | `REPGAME_WINDOW_MSAA` | on (`MSAA_SAMPLES`) | desktop (SDL3) | `0` requests a non-multisampled window | docs/rendering.md |
 | `REPGAME_WINDOW_SIZE` | fullscreen | desktop (SDL3) | `"WxH"` opens a windowed window at that size; under `SDL_VIDEODRIVER=offscreen` it also sets the drawable size, so rep-dbg `screenshot` is faithful at any aspect (pair with the `resize` verb for mid-run layout checks) | docs/debug-tools.md |
