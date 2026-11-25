@@ -698,6 +698,58 @@ int test_creative( ) {
         free( cir.slots_entities );
         free( ci.slots );
     }
+
+    // Creative hotbar/cursor interaction: palette clicks fill the hotbar
+    // while it has room, overflow onto the cursor when full, hotbar clicks
+    // pick up/place/swap normally, and the palette or a shift-click is the
+    // creative-mode delete sink.
+    {
+        RepGameState &gs = *new RepGameState( );
+        test_setup_inventories( gs );
+        InventorySlot bar[ HOTBAR_WIDTH * HOTBAR_HEIGHT ];
+
+        repgame_creative_click_palette( gs, STONE );
+        gs.hotbar.saveInventory( bar );
+        check_bool( "creative click: empty hotbar takes item", bar[ 0 ].item_id == STONE && bar[ 0 ].quantity == 1 );
+        check_bool( "creative click: selected after insert", gs.hotbar.getSelectedItem( ) == STONE );
+        check_bool( "creative click: cursor empty after insert", !gs.ui.holding_slot );
+
+        repgame_creative_click_hotbar( gs, 0, false );
+        gs.hotbar.saveInventory( bar );
+        check_bool( "creative hotbar: click picks up", bar[ 0 ].item_id == LAST_BLOCK_ID && gs.ui.holding_slot && gs.ui.held_slot.item_id == STONE );
+        repgame_creative_click_hotbar( gs, 0, false );
+        gs.hotbar.saveInventory( bar );
+        check_bool( "creative hotbar: click places back", bar[ 0 ].item_id == STONE && !gs.ui.holding_slot );
+
+        for ( int i = 0; i < HOTBAR_WIDTH * HOTBAR_HEIGHT; i++ ) {
+            gs.hotbar.setSlotContents( i, { COBBLESTONE, MAX_STACK_SIZE } );
+        }
+        repgame_creative_click_palette( gs, DIRT );
+        gs.hotbar.saveInventory( bar );
+        bool full_bar_unchanged = true;
+        for ( const InventorySlot &slot : bar ) {
+            full_bar_unchanged = full_bar_unchanged && slot.item_id == COBBLESTONE && slot.quantity == MAX_STACK_SIZE;
+        }
+        check_bool( "creative click: full hotbar not overwritten", full_bar_unchanged );
+        check_bool( "creative click: full hotbar overflows to cursor", gs.ui.holding_slot && gs.ui.held_slot.item_id == DIRT && gs.ui.held_slot.quantity == 1 );
+
+        repgame_creative_click_hotbar( gs, 3, false );
+        gs.hotbar.saveInventory( bar );
+        check_bool( "creative hotbar: cursor swaps manually", bar[ 3 ].item_id == DIRT && bar[ 3 ].quantity == 1 && gs.ui.holding_slot && gs.ui.held_slot.item_id == COBBLESTONE && gs.ui.held_slot.quantity == MAX_STACK_SIZE );
+
+        repgame_creative_click_palette( gs, GRASS );
+        gs.hotbar.saveInventory( bar );
+        bool no_grass = true;
+        for ( const InventorySlot &slot : bar ) {
+            no_grass = no_grass && slot.item_id != GRASS;
+        }
+        check_bool( "creative palette: held stack deleted", !gs.ui.holding_slot && gs.ui.held_slot.item_id == LAST_BLOCK_ID );
+        check_bool( "creative palette: delete does not take clicked item", no_grass );
+
+        repgame_creative_click_hotbar( gs, 3, true );
+        gs.hotbar.saveInventory( bar );
+        check_bool( "creative hotbar: shift-click deletes", bar[ 3 ].item_id == LAST_BLOCK_ID && bar[ 3 ].quantity == 0 );
+    }
     return failures;
 }
 

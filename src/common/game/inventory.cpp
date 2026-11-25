@@ -1232,6 +1232,51 @@ static void throw_held_cursor_stack( RepGameState &state, const bool whole ) {
     }
 }
 
+// Creative palette clicks are both an infinite source and a sink. With an
+// empty cursor the clicked item goes to the hotbar when that can happen
+// without overwriting a full hotbar slot; otherwise it rides the cursor so
+// the player can swap it into the bar manually. Clicking the palette with a
+// cursor stack discards that stack.
+void repgame_creative_click_palette( RepGameState &state, ItemID item ) {
+    if ( state.ui.holding_slot ) {
+        state.ui.held_slot.item_id = LAST_BLOCK_ID;
+        state.ui.held_slot.quantity = 0;
+        state.ui.holding_slot = false;
+        return;
+    }
+    if ( !item_id_valid( item ) ) {
+        return;
+    }
+    const bool already_on_bar = state.hotbar.findSlotWithItem( item, false ) >= 0;
+    if ( already_on_bar || state.hotbar.spaceFor( item ) > 0 ) {
+        if ( state.hotbar.addItem( true, item ) ) {
+            state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+        }
+        return;
+    }
+    state.ui.held_slot.item_id = item;
+    state.ui.held_slot.quantity = 1;
+    state.ui.holding_slot = true;
+}
+
+// Creative mode has no visible survival grid to shift-move hotbar items
+// into: the palette is the destination, so shift-click deletes the stack.
+// Unshifted clicks use the ordinary cursor pickup/merge/swap semantics.
+void repgame_creative_click_hotbar( RepGameState &state, int slot, bool shift ) {
+    if ( slot < 0 || slot >= HOTBAR_WIDTH * HOTBAR_HEIGHT ) {
+        return;
+    }
+    if ( shift ) {
+        state.hotbar.setSlotContents( slot, { LAST_BLOCK_ID, 0 } );
+    } else {
+        state.hotbar.pickupOrSwapSlot( slot, state.ui.held_slot, state.ui.holding_slot );
+        // The creative screen historically let clicks select hotbar slots;
+        // keep that convenience after the slot mutation.
+        state.hotbar.setSelectedSlot( slot );
+    }
+    state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+}
+
 // Non-mutating twin of give_item_to_player: how many of `item` the hotbar +
 // survival inventory could accept right now. Used as `room` in multiplayer
 // PICKUP_REQUESTs.
@@ -1614,17 +1659,14 @@ void RepGame::process_inventory_events( ) {
                     }
                 }
             } else if ( globalGameState.game_mode == GameMode_Creative && !craft_ui ) {
-                ItemID itemId = globalGameState.ui.creative.whichItemClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
-                // pr_debug( "Clicked on %d %d itemId:%d", globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y, itemId );
-                if ( itemId != LAST_BLOCK_ID ) {
-                    add_to_hotbar( true, itemId );
+                const int mx = globalGameState.input.mouse.absPosition.x;
+                const int my = globalGameState.input.mouse.absPosition.y;
+                if ( globalGameState.ui.creative.inventory_renderer.containsItemsPoint( mx, my ) ) {
+                    repgame_creative_click_palette( globalGameState, globalGameState.ui.creative.whichItemClicked( mx, my ) );
                 } else {
-                    // Clicks on the visible hotbar select its slots too.
-                    const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( globalGameState.input.mouse.absPosition.x, globalGameState.input.mouse.absPosition.y );
+                    const int hotbar_slot = globalGameState.hotbar.inventory_renderer.whichSlotClicked( mx, my );
                     if ( hotbar_slot >= 0 ) {
-                        globalGameState.hotbar.setSelectedSlot( hotbar_slot );
-                        const ItemID selectedBlock = globalGameState.hotbar.getSelectedItem( );
-                        globalGameState.ui.overlay.set_holding_item( selectedBlock );
+                        repgame_creative_click_hotbar( globalGameState, hotbar_slot, globalGameState.input.shift_held );
                     }
                 }
             } else {

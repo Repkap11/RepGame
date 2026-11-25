@@ -91,6 +91,15 @@ scratch across each new target cell. Mouse presses remember where they
 began (`input.mouse.buttons.*_pressed_in_ui`) so drags crossing the
 UI/world boundary don't double-fire (`docs/player.md`).
 
+In the standalone creative screen the palette is both an infinite source
+and a delete sink (`repgame_creative_click_palette` /
+`repgame_creative_click_hotbar`). With an empty cursor, clicking a palette
+item sends it to the hotbar when it fits without overwriting a full bar;
+otherwise it rides the cursor so it can be swapped into a hotbar slot.
+Hotbar slots use the normal left-click pickup/merge/swap semantics there
+(and still select the clicked slot). Clicking the palette with a cursor
+stack discards that stack, as does shift-clicking a hotbar slot.
+
 The creative palette has a search box (`CreativeInventory::search_text`):
 `f` while the palette is open flips `input.search_focused` (armed as
 `search_toggle` in `keysInput`, applied by `process_inventory_events`),

@@ -187,6 +187,16 @@ class RepGame {
 // the container's position for anyone to pick up.
 void repgame_loot_container( RepGameState &state, const glm::ivec3 &pos, const InventorySlot *slots, int count );
 
+// Creative palette click semantics (src/common/game/inventory.cpp). A
+// palette click with an empty cursor sends the item to the hotbar when it
+// fits there without overwriting a slot, otherwise onto the cursor; a
+// palette click while holding a cursor stack discards that stack. A hotbar
+// shift-click discards the slot; an unshifted click uses the normal
+// pickup/merge/swap slot semantics. Free functions so rep_tests can drive
+// them without a live GL UI.
+void repgame_creative_click_palette( RepGameState &state, ItemID item );
+void repgame_creative_click_hotbar( RepGameState &state, int slot, bool shift );
+
 // Right-click use of a bucket item (BUCKET/WATER_BUCKET/LAVA_BUCKET) on the
 // current block selection: an empty bucket scoops the fluid source under
 // fluidSelectionInBounds; a filled one pours its fluid at pos_fluid (a
