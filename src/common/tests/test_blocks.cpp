@@ -3149,3 +3149,117 @@ int test_coral( ) {
 
     return failures;
 }
+
+// End portal frames are 13px-tall base slabs; filling one adds the centred
+// 8x3x8 eye cube. The same two boxes drive rendering, picking, selection
+// outlines, and collision.
+int test_end_portal_frame( ) {
+    if ( block_definitions == nullptr ) {
+        block_definitions_initilize_definitions( nullptr );
+    }
+    RepGameState &gs = *new RepGameState( );
+    gs.tick_number = 0;
+    gs.camera.pos = glm::dvec3( 0, 0, 0 );
+    test_setup_world( gs.world );
+    World &world = gs.world;
+
+    int failures = 0;
+    auto check_bool = [ & ]( const char *name, bool cond ) {
+        if ( !cond ) {
+            failures++;
+        }
+        pr_test( "  %-58s %s", name, cond ? "PASS" : "FAIL" );
+    };
+
+    const Block *frame_def = block_definition_get_definition( END_PORTAL_FRAME );
+    const Block *eye_def = block_definition_get_definition( END_PORTAL_FRAME_EYE );
+    check_bool( "end portal def: both variants use the frame shape",
+                frame_def->is_end_portal_frame && eye_def->is_end_portal_frame && frame_def->scale.y == 13 &&
+                    frame_def->tex_offset.y == -3 );
+
+    BlockBox frame_boxes[ END_PORTAL_FRAME_MAX_BOXES ];
+    check_bool( "end portal boxes: empty frame is one 13px base",
+                end_portal_frame_boxes( false, frame_boxes ) == 1 && frame_boxes[ 0 ].scale[ 0 ] == 16 &&
+                    frame_boxes[ 0 ].scale[ 1 ] == 13 && frame_boxes[ 0 ].scale[ 2 ] == 16 && frame_boxes[ 0 ].offset[ 1 ] == 0 );
+    check_bool( "end portal boxes: filled frame adds the protruding eye",
+                end_portal_frame_boxes( true, frame_boxes ) == 2 && frame_boxes[ 1 ].scale[ 0 ] == 8 &&
+                    frame_boxes[ 1 ].scale[ 1 ] == 3 && frame_boxes[ 1 ].scale[ 2 ] == 8 && frame_boxes[ 1 ].offset[ 0 ] == 4 &&
+                    frame_boxes[ 1 ].offset[ 1 ] == 13 && frame_boxes[ 1 ].offset[ 2 ] == 4 &&
+                    ( frame_boxes[ 1 ].skip_faces & ( 1u << FACE_BOTTOM ) ) != 0 );
+
+    {
+        const BlockState empty_state = { END_PORTAL_FRAME, 0, 0, END_PORTAL_FRAME, 0 };
+        const BlockState eye_state = { END_PORTAL_FRAME, 0, 0, END_PORTAL_FRAME_EYE, 0 };
+        BlockEmitParams emit = {};
+        emit.block = frame_def;
+        emit.state = &eye_state;
+        emit.mesh_x = emit.mesh_y = emit.mesh_z = 1;
+        for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+            emit.packed_lighting[ f ] = NO_LIGHT_BRIGHT;
+        }
+        emit.cull_against_neighbors = false;
+        struct EmitBuf {
+            BlockCoords buf[ 3 ];
+            int n = 0;
+        } own_out, cross_out;
+        auto buf_alloc = []( void *ctx ) -> BlockCoords * {
+            EmitBuf &b = *static_cast<EmitBuf *>( ctx );
+            return b.n < 3 ? &b.buf[ b.n++ ] : nullptr;
+        };
+        const BlockEmitSink sink = { &own_out, buf_alloc, &cross_out, buf_alloc };
+        int extra = -1;
+        check_bool( "end portal emit: filled frame has two solid boxes", block_emit_count( emit, &extra ) == 2 && extra == 0 );
+        block_emit_cell( emit, sink );
+        bool eye_faces = own_out.n == 2;
+        for ( int f = 0; f < NUM_FACES_IN_CUBE && eye_faces; f++ ) {
+            eye_faces = own_out.buf[ 1 ].face[ f ] == TEX_ENDFRAME_EYE;
+        }
+        check_bool( "end portal emit: base is short and samples the frame band",
+                    own_out.n == 2 && own_out.buf[ 0 ].scale_y == 13 && own_out.buf[ 0 ].tex_offset_y == -3 &&
+                        own_out.buf[ 0 ].face[ FACE_TOP ] == TEX_ENDFRAME_TOP && own_out.buf[ 0 ].face[ FACE_RIGHT ] == TEX_ENDFRAME_SIDE );
+        check_bool( "end portal emit: eye uses its strip and skips the buried bottom",
+                    eye_faces && own_out.buf[ 1 ].scale_x == 8 && own_out.buf[ 1 ].scale_y == 3 && own_out.buf[ 1 ].scale_z == 8 &&
+                        own_out.buf[ 1 ].offset_x == 4 && own_out.buf[ 1 ].offset_y == 13 && own_out.buf[ 1 ].offset_z == 4 &&
+                        own_out.buf[ 1 ].tex_offset_x == -4 && own_out.buf[ 1 ].tex_offset_y == -13 && own_out.buf[ 1 ].tex_offset_z == -4 &&
+                        own_out.buf[ 1 ].packed_lighting[ FACE_BOTTOM ] == NO_LIGHT_NO_DRAW &&
+                        own_out.buf[ 1 ].packed_lighting[ FACE_TOP ] != NO_LIGHT_NO_DRAW );
+
+        emit.state = &empty_state;
+        own_out.n = cross_out.n = 0;
+        check_bool( "end portal emit: empty frame has only the base", block_emit_count( emit, &extra ) == 1 && extra == 0 );
+        block_emit_cell( emit, sink );
+        check_bool( "end portal emit: empty frame emits one instance", own_out.n == 1 && cross_out.n == 0 );
+    }
+
+    const glm::ivec3 pos( 30, 11, 40 );
+    glm::ivec3 out( -1, -1, -1 );
+    int which_face = -1;
+    double hit_t = -1.0;
+    world.set_loaded_block( pos, { END_PORTAL_FRAME, 0, 0, END_PORTAL_FRAME, 0 } );
+    check_bool( "end portal ray: empty frame hit through the base",
+                RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.5, 40.5 ), glm::dvec3( 32.5, 11.5, 40.5 ), out, &which_face ) &&
+                    out == pos );
+    check_bool( "end portal ray: empty frame clears the eye height",
+                !RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.9, 40.5 ), glm::dvec3( 32.5, 11.9, 40.5 ), out, &which_face ) );
+    check_bool( "end portal ray: downward ray stops on the 13px base top",
+                RayTraversal::find_block_from_to( world, glm::dvec3( 30.5, 12.5, 40.5 ), glm::dvec3( 30.5, 10.5, 40.5 ), out, &which_face, 0,
+                                                  &hit_t ) &&
+                    out == pos && which_face == FACE_TOP && fabs( hit_t - 0.6875 ) < 0.001 );
+    check_bool( "end portal collision: empty frame top is 13px",
+                fabs( Collision::block_collision_top( world, pos ) - ( 11.0 + 13.0 / 16.0 ) ) < 0.001 );
+
+    world.set_loaded_block( pos, { END_PORTAL_FRAME, 0, 0, END_PORTAL_FRAME_EYE, 0 } );
+    check_bool( "end portal ray: filled frame hits the protruding eye",
+                RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.9, 40.5 ), glm::dvec3( 32.5, 11.9, 40.5 ), out, &which_face ) &&
+                    out == pos );
+    check_bool( "end portal ray: ray beside the eye still misses",
+                !RayTraversal::find_block_from_to( world, glm::dvec3( 28.5, 11.9, 40.9 ), glm::dvec3( 32.5, 11.9, 40.9 ), out, &which_face ) );
+    check_bool( "end portal ray: downward ray stops on the eye top",
+                RayTraversal::find_block_from_to( world, glm::dvec3( 30.5, 12.5, 40.5 ), glm::dvec3( 30.5, 10.5, 40.5 ), out, &which_face, 0,
+                                                  &hit_t ) &&
+                    out == pos && which_face == FACE_TOP && fabs( hit_t - 0.5 ) < 0.001 );
+    check_bool( "end portal collision: filled frame reaches the cell top",
+                fabs( Collision::block_collision_top( world, pos ) - 12.0 ) < 0.001 );
+
+    return failures;
+}

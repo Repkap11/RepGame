@@ -84,6 +84,9 @@ static int emit_shape_boxes( const BlockEmitParams &p, BlockBox boxes[ FENCE_GAT
     if ( block->is_end_rod ) {
         return end_rod_boxes( boxes );
     }
+    if ( block->is_end_portal_frame ) {
+        return end_portal_frame_boxes( blockState.display_id == END_PORTAL_FRAME_EYE, boxes );
+    }
     if ( block->is_lever ) {
         // Base + stick per mount; powered throws the stick.
         return lever_boxes( blockState.rotation, blockState.current_redstone_power != 0, boxes );
@@ -744,6 +747,23 @@ int block_emit_cell( const BlockEmitParams &p, const BlockEmitSink &sink ) {
             // the cap tile (planks cover them).
             if ( ( block->is_standing_sign || block->is_hanging_sign ) && i == 0 ) {
                 boxCoord->tex_offset_z = 0;
+            }
+            if ( block->is_end_portal_frame ) {
+                if ( i == 0 ) {
+                    // The frame side tile carries 3 backing rows above the
+                    // 13 rows of frame side; the base cuboid samples only
+                    // the frame band (Java's side UV [0,3]-[16,16]).
+                    boxCoord->tex_offset_y = -3;
+                } else {
+                    // The eye cube's side quads sample the strip's top 3
+                    // authored rows. GL rows are bottom-up, so that window
+                    // is rows 13-16 in sampled space. Its top cap samples
+                    // the 8x8 square below the strip through the x/z offsets.
+                    boxCoord->tex_offset_y = -13;
+                    for ( int f = 0; f < NUM_FACES_IN_CUBE; f++ ) {
+                        boxCoord->face[ f ] = TEX_ENDFRAME_EYE;
+                    }
+                }
             }
             boxCoord->face_shift = yaw;
             // The lever's base (box 0) takes the def's cobblestone faces;

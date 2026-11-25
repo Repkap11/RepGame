@@ -797,6 +797,31 @@ int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] ) {
     return 2;
 }
 
+int end_portal_frame_boxes( bool has_eye, BlockBox out[ END_PORTAL_FRAME_MAX_BOXES ] ) {
+    // Base: full footprint, 13px tall — the frame's side tile samples rows
+    // 3..16 at emit time so the stone backing rows stay off the frame.
+    out[ 0 ].scale[ 0 ] = 16;
+    out[ 0 ].scale[ 1 ] = 13;
+    out[ 0 ].scale[ 2 ] = 16;
+    out[ 0 ].offset[ 0 ] = 0;
+    out[ 0 ].offset[ 1 ] = 0;
+    out[ 0 ].offset[ 2 ] = 0;
+    out[ 0 ].skip_faces = 0;
+    if ( !has_eye ) {
+        return 1;
+    }
+    // Eye: an 8x3x8 cube centred on the base's top (y 13..16). Its bottom
+    // cap is coplanar with the base top and inside it.
+    out[ 1 ].scale[ 0 ] = 8;
+    out[ 1 ].scale[ 1 ] = 3;
+    out[ 1 ].scale[ 2 ] = 8;
+    out[ 1 ].offset[ 0 ] = 4;
+    out[ 1 ].offset[ 1 ] = 13;
+    out[ 1 ].offset[ 2 ] = 4;
+    out[ 1 ].skip_faces = 1u << FACE_BOTTOM;
+    return 2;
+}
+
 // Lever model, in the mount's own pixel space. rotation 0-3 return the
 // canonical wall model — the base plate against the -z wall, the stick
 // poking out +z — for the mesher's face_shift / pick-time block_rotate_box

@@ -286,8 +286,9 @@ interior 1x2).
   corners, so the `end_portal` entry in `data/textures.json` `extract`s
   interior patches over them to make the tile opaque. The frame's own
   tiles are Bedrock's real set — `endframe_top`/`endframe_side` over an
-  `end_stone` bottom and under the side tile's transparent cap rows;
-  the eye variant's top composites `endframe_eye` over the top tile.
+  `end_stone` bottom and backing rows. The frame geometry is the 13/16
+  base plus the seated eye cube on the display variant, whose protruding
+  box samples the direct `endframe_eye` tile (see `docs/blocks.md`).
 - **End travel**: `repgame_portal_tick`'s `END_PORTAL` branch — standing
   in a pool for `PORTAL_TRAVEL_TICKS` goes to the End's obsidian pad
   (fixed, beside the fountain — no x/z mapping, no destination build,

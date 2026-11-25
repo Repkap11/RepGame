@@ -301,6 +301,19 @@ boxes (14x2x14 and 16x3x16). Carpets template off SPRUCE_PRESSURE_PLATE
 too but keep a flat icon through the entry's `"icon_is_isometric": false`
 override.
 
+End portal frames (`is_end_portal_frame`) are another multi-box model:
+`end_portal_frame_boxes` emits the 16x13x16 base plus, only when the cell's
+`display_id` is `END_PORTAL_FRAME_EYE`, an 8x3x8 eye cube centred on top
+(pixel rows 13-16). The def geometry stays the empty-frame box, so the
+creative item icon is the base without an eye. At emit time the base side
+quads sample rows 3-16 of the composed `endframe_side` tile while the eye
+box samples the direct `endframe_eye` tile — the top cap reads the centred
+8x8 eye square and the side quads read the 3-row strip above it (authored
+rows 0-3, which the bottom-up GL tile space addresses as rows 13-16); the
+eye's buried bottom cap is skipped. The same display-dependent boxes drive ray
+picking, the mouse-selection outline and collision, so an empty frame tops
+out at 13/16 of a block while a filled frame's eye reaches the cell top.
+
 Signs are thin boxes whose faces sample the Bedrock entity/item sprites.
 A `*_STANDING_SIGN` (`is_standing_sign`) renders as two boxes
 (`standing_sign_boxes` in block.cpp, emitted through the same multi-box

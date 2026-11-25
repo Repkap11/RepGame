@@ -437,7 +437,7 @@
     "ender_chest_top",
     "ender_eye",
     "ender_pearl",
-    "endframe_eye_top",
+    "endframe_eye",
     "endframe_side",
     "endframe_top",
     "exposed_chiseled_copper",

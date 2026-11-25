@@ -1440,13 +1440,8 @@
     "source": "textures/items/ender_pearl"
   },
   "endframe_eye": {
+    "keep": true,
     "source": "textures/blocks/endframe_eye"
-  },
-  "endframe_eye_top": {
-    "overlay": {
-      "source": "textures/blocks/endframe_eye"
-    },
-    "source": "textures/blocks/endframe_top"
   },
   "endframe_side": {
     "overlay": {

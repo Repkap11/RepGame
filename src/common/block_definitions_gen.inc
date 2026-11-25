@@ -6759,18 +6759,21 @@ block_definitions[ 427 ].scale = { 7, 15, 7 };
 block_definitions[ 427 ].tex_offset = { -4, 0, -4 };
 
 // END_PORTAL_FRAME_EYE (428)
-block_definitions[ 428 ].textures[ FACE_TOP ] = TEX_ENDFRAME_EYE_TOP;
+block_definitions[ 428 ].textures[ FACE_TOP ] = TEX_ENDFRAME_TOP;
 block_definitions[ 428 ].textures[ FACE_BOTTOM ] = TEX_END_STONE;
 block_definitions[ 428 ].textures[ FACE_RIGHT ] = TEX_ENDFRAME_SIDE;
 block_definitions[ 428 ].textures[ FACE_FRONT ] = TEX_ENDFRAME_SIDE;
 block_definitions[ 428 ].textures[ FACE_LEFT ] = TEX_ENDFRAME_SIDE;
 block_definitions[ 428 ].textures[ FACE_BACK ] = TEX_ENDFRAME_SIDE;
-block_definitions[ 428 ].icon_texture = TEX_ENDFRAME_EYE_TOP;
+block_definitions[ 428 ].icon_texture = TEX_ENDFRAME_TOP;
 block_definitions[ 428 ].casts_shadow = false;
 block_definitions[ 428 ].hardness = 0.35f;
+block_definitions[ 428 ].is_end_portal_frame = true;
 block_definitions[ 428 ].is_pickable = false;
 block_definitions[ 428 ].is_seethrough = true;
 block_definitions[ 428 ].no_light = 6815743;
+block_definitions[ 428 ].scale = { 16, 13, 16 };
+block_definitions[ 428 ].tex_offset = { 0, -3, 0 };
 
 // CYAN_CARPET (429)
 block_definitions[ 429 ].textures[ FACE_TOP ] = TEX_WOOL_COLORED_CYAN;
@@ -8593,8 +8596,11 @@ block_definitions[ 551 ].textures[ FACE_BACK ] = TEX_ENDFRAME_SIDE;
 block_definitions[ 551 ].icon_texture = TEX_ENDFRAME_TOP;
 block_definitions[ 551 ].casts_shadow = false;
 block_definitions[ 551 ].hardness = 0.35f;
+block_definitions[ 551 ].is_end_portal_frame = true;
 block_definitions[ 551 ].is_seethrough = true;
 block_definitions[ 551 ].no_light = 6815743;
+block_definitions[ 551 ].scale = { 16, 13, 16 };
+block_definitions[ 551 ].tex_offset = { 0, -3, 0 };
 
 // END_STONE (552)
 block_definitions[ 552 ].textures[ FACE_TOP ] = TEX_END_STONE;

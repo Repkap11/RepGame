@@ -260,6 +260,10 @@ typedef struct {
     // box stays the pick/collision column and the boxes are also the
     // isometric icon.
     bool is_end_rod;
+    // End portal frames draw as the 13px base box plus, on the
+    // END_PORTAL_FRAME_EYE display variant, the 8x3x8 seated eye that
+    // rises to the cell top (end_portal_frame_boxes in block.cpp).
+    bool is_end_portal_frame;
     // Bamboo draws its def box (a thin stalk) into its own render order
     // plus, when BlockState::rotation is a leaf tier (0 none, 1 small,
     // 2 large — MC's leaves property, kept by bamboo_grow_try), a leaf

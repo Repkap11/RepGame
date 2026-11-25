@@ -651,6 +651,15 @@ int lightning_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 // isometric item icon.
 int end_rod_boxes( BlockBox out[ ROD_MAX_BOXES ] );
 
+// ---- End portal frames -------------------------------------------------------
+// The frame model (MC's end_portal_frame): box 0 is the full-footprint
+// 16x13x16 base. With an eye seated (the END_PORTAL_FRAME_EYE display
+// variant) box 1 is the 8x3x8 eye cube centred on top, rising from y 13
+// to the cell top; its bottom cap is skipped. The same boxes are the
+// collision/pick/outline model.
+#define END_PORTAL_FRAME_MAX_BOXES 2
+int end_portal_frame_boxes( bool has_eye, BlockBox out[ END_PORTAL_FRAME_MAX_BOXES ] );
+
 // ---- Levers -----------------------------------------------------------------
 // The two-box lever model (cobblestone base + wood stick). rotation encodes
 // the mount, not a plain yaw: 0-3 are wall yaws on the canonical -z-wall

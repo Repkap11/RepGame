@@ -161,6 +161,10 @@ void MouseSelection::set_block( const World &world, const glm::ivec3 &pos, const
         // Lantern: body + lid/bail union; rods: rendered pair — the pick
         // model; axisymmetric, so no yaw remap.
         num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : block->is_lightning_rod ? lightning_rod_boxes( boxes ) : end_rod_boxes( boxes );
+    } else if ( block->is_end_portal_frame ) {
+        // Base box plus the protruding eye when seated — the same boxes
+        // the raycast hits; axisymmetric, so no yaw remap.
+        num_boxes = end_portal_frame_boxes( blockState.display_id == END_PORTAL_FRAME_EYE, boxes );
     } else if ( block->is_lever ) {
         // Base + stick — the same boxes the raycast hits, world-baked by
         // lever_pick_boxes for the mount.

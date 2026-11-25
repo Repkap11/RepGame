@@ -36,6 +36,7 @@ constexpr Test all_tests[] = {  //
     MK_TEST( sneak ),           //
     MK_TEST( climb ),           //
     MK_TEST( scaffolding ),     //
+    MK_TEST( end_portal_frame ), //
     MK_TEST( vitals ),          //
     MK_TEST( sleep ),           //
     MK_TEST( bed_pair ),        //

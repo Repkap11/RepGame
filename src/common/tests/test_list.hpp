@@ -24,6 +24,7 @@ int test_player_placement_valid( );
 int test_sneak( );
 int test_climb( );
 int test_scaffolding( );
+int test_end_portal_frame( );
 int test_vitals( );
 int test_sleep( );
 int test_bed_pair( );

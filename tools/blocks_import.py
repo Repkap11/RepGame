@@ -82,7 +82,7 @@ BOOL_FIELDS = {
     "is_piston_head", "is_tnt", "is_inverse_tnt", "piston_immovable",
     "is_fence", "is_fence_gate", "is_wall", "is_bars", "falls_with_gravity", "spine_shell",
     "is_stairs", "is_standing_sign", "is_hanging_sign", "is_lantern",
-    "is_lightning_rod", "is_end_rod", "climbable", "is_cake", "is_scaffolding",
+    "is_lightning_rod", "is_end_rod", "is_end_portal_frame", "climbable", "is_cake", "is_scaffolding",
     "is_bed", "is_bed_head",
     "is_door", "is_door_upper", "door_redstone_only", "is_rail",
     "is_tall_plant_upper",
@@ -1504,7 +1504,7 @@ def main():
     # runtime-sliced shapes) — the window math doesn't describe them.
     WINDOW_CHECK_SKIP = ("is_stairs", "is_fence", "is_fence_gate", "is_wall",
                          "is_bars", "is_cake", "is_lantern", "is_lightning_rod",
-                         "is_end_rod", "is_piston", "is_piston_head", "spine_shell")
+                         "is_end_rod", "is_end_portal_frame", "is_piston", "is_piston_head", "spine_shell")
     for bid, b in sorted(blocks.items()):
         if any(b.get(k) for k in WINDOW_CHECK_SKIP):
             continue

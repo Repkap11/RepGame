@@ -3,13 +3,24 @@
  "creative": false,
  "hardness": 0.35,
  "id": 428,
+ "is_end_portal_frame": true,
  "is_pickable": false,
  "is_seethrough": true,
  "name": "END_PORTAL_FRAME_EYE",
  "no_light": 6815743,
+ "scale": [
+  16,
+  13,
+  16
+ ],
+ "tex_offset": [
+  0,
+  -3,
+  0
+ ],
  "textures": {
   "bottom": "end_stone",
   "side": "endframe_side",
-  "top": "endframe_eye_top"
+  "top": "endframe_top"
  }
 }

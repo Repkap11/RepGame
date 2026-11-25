@@ -246,7 +246,7 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
                                              : false;
     const bool result = block->is_pickable || block->is_door || block_is_tall_plant( block ) || block->is_piston_head || block->is_bed || fluid_pick;
     const bool piston_extended = block->is_piston && blockState.current_redstone_power > 0;
-    if ( result && ( block->is_stairs || block->is_fence || block->is_wall || block->is_bars || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign || block->is_lantern || block->is_lightning_rod || block->is_end_rod || block->is_lever || block->is_scaffolding || block_is_fire( blockID ) ) ) {
+    if ( result && ( block->is_stairs || block->is_fence || block->is_wall || block->is_bars || block->is_piston_head || piston_extended || block->is_standing_sign || block->is_hanging_sign || block->is_lantern || block->is_lightning_rod || block->is_end_rod || block->is_end_portal_frame || block->is_lever || block->is_scaffolding || block_is_fire( blockID ) ) ) {
         // Pick against the block's real boxes — stairs use their collision
         // boxes (slab + step, with the neighbor-derived corner shape),
         // fences the post + merged rail bars (the two rendered rails merged
@@ -272,6 +272,10 @@ static int contains_block( World &world, const glm::dvec3 &dir, const glm::dvec3
             // Lantern's pick model (body + lid/bail union), rods' rendered
             // boxes; axisymmetric — def space is world space.
             num_boxes = block->is_lantern ? lantern_pick_boxes( boxes ) : block->is_lightning_rod ? lightning_rod_boxes( boxes ) : end_rod_boxes( boxes );
+        } else if ( block->is_end_portal_frame ) {
+            // Base box plus the protruding eye when the display variant
+            // shows one — the rendered model, axisymmetric.
+            num_boxes = end_portal_frame_boxes( blockState.display_id == END_PORTAL_FRAME_EYE, boxes );
         } else if ( block->is_lever ) {
             // Base + stick, world-baked by lever_pick_boxes — aiming at the
             // thrown stick selects the lever.
