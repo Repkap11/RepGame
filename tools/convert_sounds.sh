@@ -42,11 +42,22 @@ case "${1:-}" in
         quality=3
         [ "$type" = sfx ] && quality=4
         mkdir -p "$outdir"
+        filters=()
+        pitch=""
+        case "$name" in
+            # Vanilla ender-pearl throws reuse the bow sample at 1/3–1/2 speed.
+            ender_pearl_throw_1) pitch=0.333333 ;;
+            ender_pearl_throw_2) pitch=0.5 ;;
+        esac
+        if [ -n "$pitch" ]; then
+            rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=noprint_wrappers=1:nokey=1 "$src")
+            pitched_rate=$(awk -v r="$rate" -v p="$pitch" 'BEGIN { printf "%d", r * p + 0.5 }')
+            filters+=( "asetrate=$pitched_rate" "aresample=$rate" )
+        fi
         # The pack's recordings span ~20dB between pools (gravel steps are
         # way hotter than grass). Normalize step_* and dig_* clips to a
         # shared loudness target via volumedetect's mean volume, clamped so
         # the gain never pushes the peak past -1.5dBFS.
-        af=()
         target=""
         case "$name" in
             step_*) target=-40 ;;
@@ -65,7 +76,12 @@ case "${1:-}" in
             peak=$(echo "$stats" | awk '/max_volume/ { print $5 }')
             gain=$(awk -v t="$target" -v m="${mean:-0}" -v p="${peak:-0}" \
                 'BEGIN { g = t - m; lim = -1.5 - p; if ( g > lim ) g = lim; printf "%.2f", g }')
-            af=( -af "volume=${gain}dB" )
+            filters+=( "volume=${gain}dB" )
+        fi
+        af=()
+        if [ "${#filters[@]}" -gt 0 ]; then
+            filter_chain=$(printf '%s,' "${filters[@]}")
+            af=( -af "${filter_chain%,}" )
         fi
         ffmpeg -y -v error -i "$src" -vn -map_metadata -1 "${af[@]}" -q:a "$quality" "$outdir/$name.ogg"
         ;;

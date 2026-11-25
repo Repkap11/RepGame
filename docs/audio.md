@@ -12,7 +12,8 @@ Pipeline (mirrors the bitmap blobs): `tools/sounds_manifest.txt` lists
 `name|source|type|title` per sound (`source` is a file under `sounds/`,
 which is gitignored — the music is copyrighted and stays local). `make`
 runs `tools/convert_sounds.sh convert <name>` per entry (ffmpeg →
-`out/sounds/<name>.ogg`, needs the `ffmpeg` package), embeds each as a
+`out/sounds/<name>.ogg`, applying per-entry loudness normalization or pitch
+shifting, needs the `ffmpeg` package), embeds each as a
 `MK_BLOB(out_sounds, <name>, ogg)` object (WASM instead copies it into the
 `out/wasm/fs/sounds/` preload tree), and regenerates
 `out/include/sounds_manifest.hpp` (music/sfx tables included by

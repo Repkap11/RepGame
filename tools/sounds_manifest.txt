@@ -276,8 +276,8 @@ fall_small_1|mc_pack/damage/fallsmall.wav|sfx|Small fall damage
 fall_big_1|mc_pack/damage/fallbig.wav|sfx|Big fall damage
 pop_1|mc_pack/random/pop.wav|sfx|Item pickup
 bow_shoot_1|mc_pack/random/bow.wav|sfx|Bow shoot
-ender_pearl_throw_1|mc_pack/entity/endereye/endereye_launch1.wav|sfx|Ender pearl throw
-ender_pearl_throw_2|mc_pack/entity/endereye/endereye_launch2.wav|sfx|Ender pearl throw
+ender_pearl_throw_1|mc_pack/random/bow.wav|sfx|Ender pearl throw
+ender_pearl_throw_2|mc_pack/random/bow.wav|sfx|Ender pearl throw
 ender_pearl_teleport_1|mc_pack/mob/endermen/portal.wav|sfx|Ender pearl teleport
 ender_pearl_teleport_2|mc_pack/mob/endermen/portal2.wav|sfx|Ender pearl teleport
 arrow_hit_1|mc_pack/random/bowhit1.wav|sfx|Arrow hit

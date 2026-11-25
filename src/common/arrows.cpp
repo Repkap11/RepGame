@@ -373,7 +373,6 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
         if ( Collision::box_collides( world, amin, amax ) ) {
             if ( a.ender_pearl ) {
                 ender_pearl_land( out, a, a.pos, glm::dvec3( 0.0 ) );
-                arrow_hit_sfx( state, a.pos );
                 this->send_net_remove( a, NET_REMOVE_DIED );
                 dead.push_back( i );
                 continue;
@@ -436,10 +435,12 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
             a.pos = a.pos + dir * mob_t;
             if ( a.ender_pearl ) {
                 ender_pearl_land( out, a, a.pos, glm::dvec3( 0.0 ) );
-            } else if ( out != nullptr ) {
-                out->mob_hits.push_back( { mob, a.pos, a.damage, a.attacker_survival } );
+            } else {
+                if ( out != nullptr ) {
+                    out->mob_hits.push_back( { mob, a.pos, a.damage, a.attacker_survival } );
+                }
+                arrow_hit_sfx( state, a.pos );
             }
-            arrow_hit_sfx( state, a.pos );
             this->send_net_remove( a, NET_REMOVE_DIED );
             dead.push_back( i );
             continue;
@@ -449,10 +450,12 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
             a.pos = a.pos + dir * player_t;
             if ( a.ender_pearl ) {
                 ender_pearl_land( out, a, a.pos, glm::dvec3( 0.0 ) );
-            } else if ( out != nullptr ) {
-                out->player_hits.push_back( { a.pos, a.damage, player } );
+            } else {
+                if ( out != nullptr ) {
+                    out->player_hits.push_back( { a.pos, a.damage, player } );
+                }
+                arrow_hit_sfx( state, a.pos );
             }
-            arrow_hit_sfx( state, a.pos );
             this->send_net_remove( a, NET_REMOVE_DIED );
             dead.push_back( i );
             continue;
@@ -474,7 +477,6 @@ void ArrowEntities::tick( RepGameState &state, ArrowTickOutput *out, const std::
                 hit_normal[ dominant_axis ] = a.vel[ dominant_axis ] > 0.0 ? -1.0 : 1.0;
             }
             ender_pearl_land( out, a, landed, hit_normal );
-            arrow_hit_sfx( state, a.pos );
             this->send_net_remove( a, NET_REMOVE_DIED );
             dead.push_back( i );
             continue;
