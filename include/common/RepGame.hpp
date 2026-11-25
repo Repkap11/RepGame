@@ -212,6 +212,18 @@ bool repgame_scaffold_place_target( RepGameState &state, const glm::ivec3 &click
 // could fly. A free function so rep_tests can drive it.
 bool repgame_fire_arrow( RepGameState &state );
 
+// Right-click with an ender pearl held: throws one along the camera look
+// direction. Survival consumes the held pearl; creative throws free. False
+// when the held item isn't an ender pearl (or the survival stack is empty).
+// A free function so rep_tests can drive it.
+bool repgame_throw_ender_pearl( RepGameState &state );
+
+// Teleport the local player so their feet land at `feet_target` after a
+// thrown ender pearl impacts. `hit_normal` (when nonzero) is the impacted
+// block face normal and guides depenetration; the jump snaps the render
+// interpolation origin and zeroes carried motion.
+void repgame_ender_pearl_teleport( RepGameState &state, const glm::dvec3 &feet_target, const glm::dvec3 &hit_normal );
+
 // Right-click with a food item held (item_food_heal > 0) and health below
 // max: eats one — heals `food_heal` half-hearts instantly (beta-style, no
 // eat animation), consumes one in survival, plays the eat sound. False

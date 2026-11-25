@@ -17,6 +17,7 @@
 #include "common/multiplayer.hpp"
 #include "common/mp_test.hpp"
 #include "common/harness/run_policy.hpp"
+#include "common/harness/debug_commands.hpp"
 #include "common/block_update_events/PlayerBlockPlacedEvent.hpp"
 #include "common/block_update_events/BlockNextToChangeEvent.hpp"
 #include "common/block_update_events/DoorEvent.hpp"
@@ -541,6 +542,60 @@ bool repgame_fire_arrow( RepGameState &state ) {
     return true;
 }
 
+// Right-click with an ender pearl held: lob one along the look direction.
+// Survival consumes the held pearl; creative throws free. The projectile
+// itself is part of the arrow sim (NET_ARROW_FLAG_ENDER_PEARL) and reports
+// its impact back as an ender-pearl landing.
+bool repgame_throw_ender_pearl( RepGameState &state ) {
+    if ( state.hotbar.getSelectedItem( ) != ENDER_PEARL ) {
+        return false;
+    }
+    const bool survival = state.game_mode == GameMode_Survival;
+    if ( survival && !state.hotbar.consumeSelected( 1 ) ) {
+        return false;
+    }
+    if ( survival ) {
+        state.ui.overlay.set_holding_item( state.hotbar.getSelectedItem( ) );
+    }
+    const glm::dvec3 dir = glm::dvec3( state.camera.look );
+    state.world.arrows.spawn_ender_pearl( state.camera.pos + dir * 0.4, dir * ArrowEntities::ENDER_PEARL_SPEED, survival ? 1 : 0 );
+    audio_play_sfx( "bow_shoot" );
+    state.vr.haptic_pending = true;
+    return true;
+}
+
+// Move the local player so their feet land at `feet_target`, depenetrating
+// the body when the pearl ended flush against a wall/ceiling. Motion state
+// is zeroed like other teleports so the jump doesn't carry velocity across.
+void repgame_ender_pearl_teleport( RepGameState &state, const glm::dvec3 &feet_target, const glm::dvec3 &hit_normal ) {
+    glm::dvec3 eye( feet_target.x, feet_target.y + state.camera.eye_height, feet_target.z );
+    if ( Collision::collides_at( state.world, eye, state.camera.player_height, state.camera.eye_height ) ) {
+        bool resolved = false;
+        if ( glm::length( hit_normal ) > 0.5 ) {
+            // A side hit starts with the pearl center only ARROW_HALF off the
+            // face, while the player hull is much wider. Walk back out along
+            // the contact normal instead of letting unstick climb the wall's
+            // cell lattice and moving the player upward.
+            for ( double push = 0.05; push <= 0.8 && !resolved; push += 0.05 ) {
+                const glm::dvec3 candidate = eye + hit_normal * push;
+                if ( !Collision::collides_at( state.world, candidate, state.camera.player_height, state.camera.eye_height ) ) {
+                    eye = candidate;
+                    resolved = true;
+                }
+            }
+        }
+        if ( !resolved ) {
+            Collision::unstick( state.world, eye, state.camera.player_height, state.camera.eye_height );
+        }
+    }
+    dbgcmd::goto_( state, eye );
+    state.camera.y_speed = 0.0;
+    state.camera.horizontal_vel = glm::dvec2( 0.0 );
+    state.vitals.fall_dist = 0.0;
+    audio_play_sfx_gain( "pop", 0.8f );
+    state.vr.haptic_pending = true;
+}
+
 // Throws `count` of `item` out of the player as an item entity: spawned just
 // ahead of the eye, tossed along the look direction with a little lift, and
 void RepGame::process_mouse_events( ) {
@@ -1029,6 +1084,9 @@ void RepGame::process_mouse_events( ) {
         // still opens), outside the placement path (the bow is a pure item
         // and fires at air too).
         if ( globalGameState.hotbar.getSelectedItem( ) == BOW && repgame_fire_arrow( globalGameState ) ) {
+            globalGameState.input.click_delay_right = 30;
+        }
+        if ( globalGameState.input.click_delay_right == 0 && repgame_throw_ender_pearl( globalGameState ) ) {
             globalGameState.input.click_delay_right = 30;
         }
     }

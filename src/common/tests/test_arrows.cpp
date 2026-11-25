@@ -402,6 +402,49 @@ int test_arrows( ) {
         gs.game_mode = GameMode_Survival;
     }
 
+    // --- ender pearl throw: consumes one, impacts without sticking, teleports ---
+    {
+        ArrowEntities &arrows = world.arrows;
+        arrows.cleanup( );
+        test_setup_inventories( gs );
+        gs.hotbar.addItemWithQuantity( ENDER_PEARL, 2 );
+        gs.game_mode = GameMode_Survival;
+        gs.camera.pos = glm::dvec3( 10.5, 20.0, 10.5 );
+        gs.camera.look = glm::vec3( 1.0f, 0.0f, 0.0f );
+        gs.camera.y_speed = 0.4;
+        gs.camera.horizontal_vel = glm::dvec2( 0.2, -0.1 );
+        check_bool( "pearl: survival throw spawns", repgame_throw_ender_pearl( gs ) && arrows.count( ) == 1 );
+        const int pearl_slot = gs.hotbar.findSlotWithItem( ENDER_PEARL, false );
+        check_bool( "pearl: one consumed", pearl_slot >= 0 && gs.hotbar.getSlotContents( pearl_slot ).quantity == 1 );
+        check_bool( "pearl: projectile flagged", arrows.debug_arrows( )[ 0 ].ender_pearl == 1 && arrows.debug_arrows( )[ 0 ].teleport_player == 1 );
+
+        ArrowEntities::ArrowTickOutput out;
+        for ( int i = 0; i < 100 && out.pearl_lands.empty( ); i++ ) {
+            gs.tick_number++;
+            arrows.tick( gs, &out );
+        }
+        check_bool( "pearl: impact reported", out.pearl_lands.size( ) == 1 );
+        check_bool( "pearl: consumed on impact", arrows.count( ) == 0 );
+        check_bool( "pearl: no arrow damage hit", out.mob_hits.empty( ) && out.player_hits.empty( ) );
+        if ( !out.pearl_lands.empty( ) ) {
+            const glm::dvec3 feet = out.pearl_lands[ 0 ].pos;
+            repgame_ender_pearl_teleport( gs, feet, out.pearl_lands[ 0 ].normal );
+            check_near( "pearl: teleports to impact x", gs.camera.pos.x, feet.x, 0.35 );
+            check_near( "pearl: feet land at impact y", gs.camera.pos.y, feet.y + PLAYER_EYE_HEIGHT, 0.01 );
+            check_near( "pearl: teleports to impact z", gs.camera.pos.z, feet.z, 0.35 );
+            check_bool( "pearl: destination depenetrated", !Collision::collides_at( world, gs.camera.pos, gs.camera.player_height, gs.camera.eye_height ) );
+            check_bool( "pearl: motion zeroed", gs.camera.y_speed == 0.0 && gs.camera.horizontal_vel == glm::dvec2( 0.0 ) );
+        }
+
+        test_setup_inventories( gs );
+        check_bool( "pearl: empty hand refuses", !repgame_throw_ender_pearl( gs ) && arrows.count( ) == 0 );
+        gs.hotbar.addItemWithQuantity( ENDER_PEARL, 1 );
+        gs.game_mode = GameMode_Creative;
+        check_bool( "pearl: creative throws free", repgame_throw_ender_pearl( gs ) && gs.hotbar.getSelectedQuantity( ) == 1 );
+        arrows.cleanup( );
+        gs.game_mode = GameMode_Survival;
+    }
+
     // --- multiplayer: mirror spawn/state/remove, transfer, disconnect -------------
     {
         Multiplayer mp;
@@ -513,6 +556,22 @@ int test_arrows( ) {
         }
         check_bool( "net adopt: stays parked on the wall", by_id( rec4.id ).stuck == 1 );
         arrows.net_apply_remove( rec4.id );
+
+        // Ender-pearl mirrors carry their kind on the wire, never stick,
+        // and never gain the thrower's local teleport right.
+        NetEntityRecord pearlrec{};
+        pearlrec.id = ( static_cast<NetEntityId>( 8 ) << 32 ) | 5;
+        pearlrec.kind = NetEntityKind::ARROW;
+        pearlrec.x = 10.5;
+        pearlrec.y = 25.0;
+        pearlrec.z = 10.5;
+        pearlrec.vx = 0.3f;
+        pearlrec.flags = NET_ARROW_FLAG_ENDER_PEARL | NET_ARROW_FLAG_STUCK;
+        arrows.net_apply_spawn( pearlrec, /*mirror*/ true );
+        check_bool( "net pearl: kind flag applied", by_id( pearlrec.id ).ender_pearl == 1 );
+        check_bool( "net pearl: never stuck", by_id( pearlrec.id ).stuck == 0 );
+        check_bool( "net pearl: no local teleport right", by_id( pearlrec.id ).teleport_player == 0 );
+        arrows.net_apply_remove( pearlrec.id );
 
         // Disconnect: mirrors drop, owned arrows keep flying locally.
         arrows.net_apply_spawn( rec, /*mirror*/ true );
