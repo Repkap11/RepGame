@@ -348,6 +348,13 @@ def _do_ab(opts):
             return 3
         trees[cfg["tree_spec"]] = tree
 
+    cfgs_audio = {cfg["name"]: build_mod.audio_compiled(trees[cfg["tree_spec"]],
+                                                      opts.build)
+                  for cfg in cfgs}
+    audio_warn = ab_mod.audio_mismatch(cfgs_audio)
+    if audio_warn:
+        print(audio_warn, file=sys.stderr)
+
     run_dir, ab_id = runner_mod.new_run_dir(opts.root, opts.name)
     started = time.time()
     rep_runs = {cfg["name"]: [] for cfg in cfgs}
@@ -422,9 +429,11 @@ def _do_ab(opts):
         "status": "failed" if any_bad else "ok",
         "git": build_mod.git_info(build_mod.REPO),
         "build": opts.build,
+        "audio": cfgs_audio,
         "scenario": opts.scenario or (" ".join(opts.extra) if opts.extra else None),
         "cfg_order": [c["name"] for c in cfgs],
-        "cfgs": {c["name"]: {"spec": c["spec"], "tree": trees[c["tree_spec"]], "env": c["env"]}
+        "cfgs": {c["name"]: {"spec": c["spec"], "tree": trees[c["tree_spec"]],
+                            "env": c["env"], "audio": cfgs_audio[c["name"]]}
                  for c in cfgs},
         "reps": opts.reps,
         "metrics": metrics,
@@ -434,6 +443,8 @@ def _do_ab(opts):
         "artifacts": {"summary": "summary.md"},
     }
     md = ab_mod.summary_md(result)
+    if audio_warn:
+        md += "\n%s\n" % audio_warn
     with open(os.path.join(run_dir, "summary.md"), "w") as f:
         f.write(md)
     with open(os.path.join(run_dir, "result.json"), "w") as f:

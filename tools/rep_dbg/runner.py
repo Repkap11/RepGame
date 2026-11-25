@@ -81,7 +81,8 @@ def run(opts, log):
     binary = build_mod.ensure_built(tree, opts.build, log)
     if binary is None:
         run_dir, run_id = new_run_dir(root, opts.name)
-        result = _result_base(run_id, opts, info, run_dir, build=opts.build)
+        result = _result_base(run_id, opts, info, run_dir, build=opts.build,
+                              tree=tree)
         result["status"] = "build_failed"
         _finish(run_dir, result)
         return result, run_dir
@@ -137,7 +138,8 @@ def run(opts, log):
     for k in sorted(repgame_env):
         print("rep-dbg:   %s=%s" % (k, repgame_env[k]), file=log)
 
-    result = _result_base(run_id, opts, info, run_dir, build=opts.build)
+    result = _result_base(run_id, opts, info, run_dir, build=opts.build,
+                          tree=tree)
     result["cmd"] = argv
     result["env"] = repgame_env
     result["binary"] = binary
@@ -307,7 +309,7 @@ def _window_result(result, run_dir, info, timed_out):
     result["window"] = win
 
 
-def _result_base(run_id, opts, info, run_dir, build):
+def _result_base(run_id, opts, info, run_dir, build, tree=None):
     result = {
         "schema": SCHEMA,
         "id": run_id,
@@ -316,6 +318,10 @@ def _result_base(run_id, opts, info, run_dir, build):
         "status": None,
         "git": info,
         "build": build,
+        # The compiled REPGAME_AUDIO setting of the tree actually built —
+        # a rev worktree without sounds/ compiles audio out, which skews
+        # A/B timings (see ab's mismatch warning).
+        "audio": build_mod.audio_compiled(tree or build_mod.REPO, build),
         "source": "results",
     }
     for key in ("ab_id", "cfg"):

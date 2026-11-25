@@ -54,9 +54,11 @@ for humans (`stdout.log`); the only sanctioned scraping is
 - Run dir: `<root>/<name>/<YYYYmmdd-HHMMSS>-<n>/` with `result.json`,
   `results.jsonl`, `stdout.log`, `home/` (isolated `$HOME` — safe to run
   copies in parallel, even same world name), `screenshots/`.
-- `--rev <ref>` builds `<root>/wt/<sha>` once (`imgui_build`/`entt_build`
-  symlinked in); pre-results revs get `"source":"log-shim"` results built
-  from FLYMET log lines — the stats/compare pipeline still works.
+- `--rev <ref>` builds `<root>/wt/<sha>` once (`imgui_build`/`entt_build`/
+  `sounds` symlinked in — sounds keeps `REPGAME_AUDIO` matching the main
+  checkout); pre-results revs get `"source":"log-shim"` results built
+  from FLYMET log lines — the stats/compare pipeline still works. Each
+  result.json records `"audio"`, and `ab` warns when cfgs differ on it.
 - Every run sets `REPGAME_IMGUI=0`: screenshots are free of the ImGui
   debug overlay by default. `--env REPGAME_IMGUI=1` (or an `imgui 1`
   script line) includes it.

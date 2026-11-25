@@ -56,6 +56,21 @@ def resolve_tree(tree_spec, root, log):
     raise ValueError("bad cfg tree %r (want current|rev:<ref>|worktree:<path>)" % tree_spec)
 
 
+def audio_mismatch(cfgs_audio):
+    """cfgs_audio: {cfg_name: True|False|None} from build.audio_compiled.
+    Returns a loud warning string when the known compiled-audio states
+    differ (a rev worktree without sounds/ builds REPGAME_AUDIO=0 and its
+    per-call timings aren't comparable); None when they agree or there is
+    nothing to compare — None entries are unknown, never a mismatch."""
+    known = {name: v for name, v in cfgs_audio.items() if v is not None}
+    if len(set(known.values())) <= 1:
+        return None
+    states = ", ".join("%s=%s" % (name, {True: "on", False: "off"}.get(v, "unknown"))
+                       for name, v in cfgs_audio.items())
+    return ("rep-dbg: WARNING: cfgs differ in compiled audio (%s); "
+            "per-call timings are not comparable" % states)
+
+
 def interleave_order(cfg_names, reps):
     """rep-major, cfg-minor: rep1 A,B,C; rep2 A,B,C ..."""
     return [(rep, name) for rep in range(reps) for name in cfg_names]

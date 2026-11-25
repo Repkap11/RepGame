@@ -3,8 +3,8 @@
 Last use is tracked by touching <root>/wt/.used/<sha> on every ensure()
 (create and reuse) — nothing inside the checkout is dirtied. Removal goes
 through `git worktree remove --force` for registered worktrees and a
-symlink-safe rmtree for orphans (checkouts symlink imgui_build/entt_build
-into the main repo, so rmtree must never descend into them).
+symlink-safe rmtree for orphans (checkouts symlink untracked dep dirs into
+the main repo — see SYMLINK_DIRS — so rmtree must never descend into them).
 """
 
 import os
@@ -14,12 +14,17 @@ import time
 from . import build as build_mod
 
 # Untracked build dependencies a fresh checkout needs (see `make install`);
-# symlinked from the main tree like /tmp/repgame-temp was set up.
-# sounds/ deliberately absent: REPGAME_AUDIO defaults to 0 without it, so
-# worktree builds don't need the converted .ogg assets. sqlite_build is the
-# vendored amalgamation CMake hard-requires (CMakeLists:96) — same contents
-# for every rev, so symlinking the main tree's copy is safe.
-SYMLINK_DIRS = ["imgui_build", "entt_build", "sqlite_build"]
+# symlinked from the main tree like /tmp/repgame-temp was set up. sounds/ is
+# linked so worktree builds compile the same audio as the main checkout:
+# common.mk defaults REPGAME_AUDIO to 1 only when sounds/ exists, and a
+# worktree without it builds a no-audio binary whose timings aren't
+# comparable to `current`. out/sounds is deliberately NOT linked — a fresh
+# worktree's sounds_manifest.txt mtime would re-convert all the .ogg files
+# into the main tree's copy; each worktree converts into its own
+# out/sounds once instead. sqlite_build is the vendored amalgamation CMake
+# hard-requires (CMakeLists:96) — same contents for every rev, so
+# symlinking the main tree's copy is safe.
+SYMLINK_DIRS = ["imgui_build", "entt_build", "sqlite_build", "sounds"]
 
 
 def wt_root(root):
@@ -58,17 +63,25 @@ def ensure(root, sha, log):
     dest = os.path.join(wt_root(root), sha)
     touch_used(root, sha)
     if os.path.isdir(dest):
+        _link_deps(dest)
         return dest
     os.makedirs(wt_root(root), exist_ok=True)
     print("rep-dbg: creating worktree %s" % dest, file=log)
     subprocess.check_call(["git", "-C", build_mod.REPO, "worktree", "add", "--detach", dest, sha])
+    _link_deps(dest)
+    return dest
+
+
+def _link_deps(dest):
+    """Symlink each SYMLINK_DIRS entry that exists in the main repo into
+    `dest` (no-op when already linked). Runs on creation and on every
+    reuse so cached worktrees backfill deps added later (e.g. sounds/)."""
     for d in SYMLINK_DIRS:
         src = os.path.join(build_mod.REPO, d)
         dst = os.path.join(dest, d)
-        if os.path.exists(src) and not os.path.exists(dst):
+        if os.path.exists(src) and not os.path.lexists(dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             os.symlink(src, dst)
-    return dest
 
 
 def _registered(root):

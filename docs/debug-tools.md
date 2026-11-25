@@ -137,7 +137,10 @@ stderr line of a run is `rep-dbg: <status> <run-dir>`.
   runs never collide and `player.dat` writes stay local. `--flat` writes
   `world_type=flat`; `--rev` builds a cached worktree at
   `<root>/wt/<sha>` (`make linux` inside it) so old commits run through the
-  same pipeline.
+  same pipeline. Worktrees symlink `imgui_build`/`entt_build`/
+  `sqlite_build`/`sounds` from the main checkout — `sounds/` in particular
+  keeps `REPGAME_AUDIO=1` so the worktree binary compiles the same audio
+  (each worktree converts into its own `out/sounds`).
 - `rep-dbg fly` — the run presets for `REPGAME_FLY`:
   `--spec "x,y,z,yaw,pitch[,speed]"` (default `0.5,80,0.5,0,0,8`),
   `--ticks` (FLY_TICKS, default 400), `--settle`, `--settle-timeout`,
@@ -197,7 +200,10 @@ overlay in a shot (a script can also toggle it mid-run with `imgui 1`).
   commas. E.g. `base=current`, `smooth=current:REPGAME_LIGHT_SMOOTH=1`,
   `old=rev:HEAD~3`. Each distinct tree is built once up front, then reps
   interleave (rep1 A,B,C; rep2 A,B,C …) so drift affects all cfgs
-  equally. Each rep is a normal indexed run (`kind:"ab-rep"`, plus
+  equally. Every run's result.json records `"audio"` — the compiled
+  `REPGAME_AUDIO` setting of the tree actually built — and `ab` warns
+  loudly (stderr + under the results table) when cfgs differ on it.
+  Each rep is a normal indexed run (`kind:"ab-rep"`, plus
   `ab_id`/`cfg` in result.json). The ab run dir `<root>/ab/<ts>-<n>/`
   holds its own indexed `result.json` (`kind:"ab"` with the cfg
   definitions, rep run ids, and aggregates) and a `summary.md` table

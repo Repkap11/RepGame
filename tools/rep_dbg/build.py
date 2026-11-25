@@ -27,6 +27,23 @@ def binary_path(tree, build):
     return os.path.join(tree, "out", "linux", BUILD_DIRS[build], "RepGame")
 
 
+def audio_compiled(tree, build):
+    """REPGAME_AUDIO as compiled into <tree>'s <build>: True/False, or None
+    when the CMake cache is missing or has no such line (never configured).
+    A worktree without a sounds/ symlink configures REPGAME_AUDIO=0 and
+    every audio_play_sfx_* is an inline no-op — ab must surface that."""
+    path = os.path.join(tree, "out", "linux", "cmake-%s" % BUILD_DIRS[build],
+                        "CMakeCache.txt")
+    try:
+        with open(path) as f:
+            for line in f:
+                if line.startswith("REPGAME_AUDIO:"):
+                    return line.strip().rsplit("=", 1)[-1] == "1"
+    except OSError:
+        pass
+    return None
+
+
 def ensure_built(tree, build, log):
     """Run the make wrapper in `tree`; returns the binary path or None."""
     if subprocess.call(["make", MAKE_TARGETS[build]], cwd=tree, stdout=log, stderr=subprocess.STDOUT) != 0:
