@@ -378,7 +378,9 @@ void RepGame::tick_entities( ) {
     MobTickInput mob_in;
     mob_in.player_targetable = RepGame::player_targetable( gs );
     mob_in.world_time = gs.world_time;
-    mob_in.player_eye_height = PLAYER_EYE_HEIGHT - ( gs.input.movement.sneakPressed ? PLAYER_SNEAK_EYE_DROP : 0.0f );
+    mob_in.player_eye_height = static_cast<float>( gs.camera.eye_height );
+    mob_in.player_height = static_cast<float>( gs.camera.player_height );
+    mob_in.player_pushable = !gs.input.no_clip && gs.camera.riding_vehicle == 0 && !gs.vitals.dead && !gs.spawn_pending;
     // The held item tempts breedable livestock toward the player.
     mob_in.player_no_clip = gs.input.no_clip;
     mob_in.held_item = gs.hotbar.getSelectedItem( );
@@ -389,6 +391,10 @@ void RepGame::tick_entities( ) {
     }
     MobTickOutput mob_out;
     gs.world.mobs.tick( gs.world, gs.camera.pos, &mob_in, &mob_out );
+    // Crowd collision is positional only: MobManager terrain-resolves the
+    // push, while camera state remains owned here. It intentionally does not
+    // feed horizontal_vel or fall damage.
+    gs.camera.pos += mob_out.player_push;
     // A mob that landed on farmland tramples it back to dirt — the crop on
     // top pops through the neighbour-update kill path. Grazing sheep leave
     // the same grass→dirt conversion (their wool regrows on the finish).

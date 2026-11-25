@@ -244,7 +244,7 @@ overlay in a shot (a script can also toggle it mid-run with `imgui 1`).
     `REPGAME_PROFILE=1` and the same `fly_settled` window. Its default
     metrics (`scenarios.SCENARIO_WINDOW_METRICS`) add the `mobs_tick`,
     `mobs_render`, `mobs_draw`, `world_draw` and `arrows_tick` window
-    scopes and `stats.metric.mobs.{total,frozen}.mean`. Sweep the
+    scopes plus `mobs_crowding`, and `stats.metric.mobs.{total,frozen}.mean`. Sweep the
     population per cfg (commas survive the cfg spec):
     `rep-dbg ab --cfg n100=current:REPGAME_MOB_WORLD=100
     --cfg n1000=current:REPGAME_MOB_WORLD=1000

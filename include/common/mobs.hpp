@@ -40,6 +40,11 @@ struct MobTickInput {
     bool player_targetable;
     long world_time;
     float player_eye_height; // player_pos is the eye; feet = pos - eye_height
+    // Current physical pose height for crowding collision (sneaking is
+    // shorter than PLAYER_HEIGHT). player_pushable includes the player as a
+    // soft crowd participant; targetability is a separate combat/AI flag.
+    float player_height = PLAYER_HEIGHT;
+    bool player_pushable = false;
     // Tempting ignores a no-clipping player — a spectator-style camera
     // shouldn't pull livestock.
     bool player_no_clip = false;
@@ -76,6 +81,9 @@ struct MobTickOutput {
     std::vector<MobPlayerHit> player_hits;
     std::vector<MobArrowShot> arrow_shots;
     std::vector<glm::dvec3> explosions;
+    // Terrain-resolved horizontal crowding displacement for the local player.
+    // MobManager computes but never applies it; RepGame owns camera state.
+    glm::dvec3 player_push = glm::dvec3( 0.0 );
     std::vector<glm::ivec3> tramples;
     // Grass cells a grazing sheep finished eating (converted to dirt by the
     // caller, which owns the world write — same hand-off as tramples).
@@ -157,6 +165,9 @@ class MobManager {
         float head_pitch;
         int persistent;   // REPGAME_MOB_TEST spawns are non-persistent
         int no_ai = 0;    // block-world showcase: no AI/physics/sounds, only hurt flash + death
+        // Soft crowding participation. Remote avatars clear this while the
+        // sender no-clips or is dead; ordinary mobs keep it set.
+        int crowd_collides = 1;
         int say_ticks;    // ambient "say" countdown
         float step_acc;   // horizontal distance since the last step sound
         glm::dvec3 kb;    // knockback impulse, decays ~x0.85/tick
@@ -284,11 +295,42 @@ class MobManager {
     bool stress_ai = true;
     long stress_next = 0;
     long stress_ticks = 0;
+    // Reused crowding-pass storage. The cell table uses epoch tags rather than
+    // clearing every bucket each tick; it grows to the densest crowd seen.
+    struct CrowdAgent {
+        glm::dvec3 min;
+        glm::dvec3 max;
+        double width;
+        double height;
+        int mob_index;
+        bool resolvable;
+        bool apply_here;
+        size_t first_insert;
+        int x0, x1, z0, z1;
+    };
+    struct CrowdCellInsert {
+        uint64_t key;
+        int agent;
+        int next;
+        size_t slot;
+    };
+    std::vector<CrowdAgent> crowd_agents;
+    std::vector<CrowdCellInsert> crowd_inserts;
+    std::vector<glm::dvec2> crowd_pushes;
+    std::vector<uint32_t> crowd_pair_seen;
+    std::vector<uint64_t> crowd_cell_keys;
+    std::vector<int> crowd_cell_heads;
+    std::vector<uint32_t> crowd_cell_epochs;
+    uint32_t crowd_epoch = 0;
     void stress_spawn_one( );
     void stress_rebalance( );
 
     void tick_mob( World &world, Mob &mob, const MobTypeDef &def, const glm::dvec3 &player_pos,
                    const MobTickInput *in, MobTickOutput *out );
+    // Soft horizontal crowd separation between mobs and the local player.
+    // Repositions only locally owned mobs; the player's resolved displacement
+    // is handed back through MobTickOutput::player_push.
+    void tick_crowding( World &world, const glm::dvec3 &player_pos, const MobTickInput *in, MobTickOutput *out );
     void tick_remote( Mob &mob );
     void tick_mirror( Mob &mob, const glm::dvec3 &player_pos );
     void poll_owned( World &world );
@@ -357,6 +399,9 @@ class MobManager {
     uint32_t spawn_remote( MobType type );
     void set_remote_pose( uint32_t uid, const glm::dvec3 &eye_pos, float look_yaw_deg, float look_pitch_deg,
                           float eye_height = PLAYER_EYE_HEIGHT );
+    // Whether the remote avatar participates in soft crowding collision
+    // (false while the sender no-clips or is dead).
+    void set_remote_crowd_collides( uint32_t uid, bool collides );
     // The remote player's selected hotbar item (from NetPlayerPayload);
     // drawn in the avatar's right hand when the model has arm bones.
     void set_remote_held_item( uint32_t uid, ItemID item );

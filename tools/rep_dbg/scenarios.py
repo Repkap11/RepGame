@@ -62,6 +62,7 @@ WINDOW_METRICS = [
 SCENARIO_WINDOW_METRICS = {
     "mob-stress": WINDOW_METRICS + [
         "window.prof.mobs_tick.us_per_call",
+        "window.prof.mobs_crowding.us_per_call",
         "window.prof.mobs_render.us_per_call",
         "window.prof.mobs_draw.us_per_call",
         "window.prof.world_draw.us_per_call",

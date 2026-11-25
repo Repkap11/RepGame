@@ -116,7 +116,8 @@ void RepGame::draw_frame( float alpha, const RenderView *views, int num_views ) 
     // eye height consistently with the rest of the packet.
     const float send_eye_height = run_policy().capture.enabled ? static_cast<float>( globalGameState.camera.eye_height )
                                                     : static_cast<float>( globalGameState.camera.eye_height_render );
-    const uint8_t send_flags = RepGame::player_targetable( globalGameState ) ? NET_PLAYER_FLAG_TARGETABLE : 0;
+    const uint8_t send_flags = ( RepGame::player_targetable( globalGameState ) ? NET_PLAYER_FLAG_TARGETABLE : 0 ) |
+                               ( globalGameState.input.no_clip ? NET_PLAYER_FLAG_NO_CLIP : 0 );
     if ( !globalGameState.spawn_pending ) {
         const Vehicles::Vehicle *ridden =
             globalGameState.camera.riding_vehicle != 0 ? globalGameState.world.vehicles.find( globalGameState.camera.riding_vehicle ) : nullptr;

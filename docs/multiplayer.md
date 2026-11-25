@@ -122,9 +122,11 @@ The client's side after that is driven by data it already produces:
   position/rotation/eye_height/flags/health/held_item changed. On
   receipt, other clients update the avatar
   (`world.multiplayer_avatars`, `src/common/multiplayer_avatars.cpp`).
-  The `flags` byte carries `NET_PLAYER_FLAG_TARGETABLE` (survival &&
-  !no_clip) for mob targeting. `health` is client-authoritative: a drop
-  between updates flashes that player's avatar red
+  The `flags` byte carries `NET_PLAYER_FLAG_TARGETABLE` (not peaceful &&
+  !no_clip && !dead) for mob targeting and `NET_PLAYER_FLAG_NO_CLIP` so a
+  no-clipping avatar is excluded from soft entity crowding; zero health
+  excludes it too. `health` is client-authoritative: a drop between
+  updates flashes that player's avatar red
   (`MobManager::flash_remote_hurt`, the same `hurt_ticks` timer as local
   mobs) and plays a distance-faded hurt sound. `held_item` is the
   sender's selected hotbar item (`hotbar.getSelectedItem()`): the avatar

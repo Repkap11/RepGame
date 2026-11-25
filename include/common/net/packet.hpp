@@ -190,8 +190,10 @@ enum NetEntityAction : uint8_t {
     NET_ACTION_DISMOUNT = 4,
 };
 
-// NetPlayerPayload flags (bit0: targetable = !peaceful && !no_clip).
+// NetPlayerPayload flags (bit0: targetable = !peaceful && !no_clip && !dead;
+// bit1: the sender is no-clipping and skips soft entity crowding).
 static constexpr uint8_t NET_PLAYER_FLAG_TARGETABLE = 0x1;
+static constexpr uint8_t NET_PLAYER_FLAG_NO_CLIP = 0x2;
 
 // NetEntityRecord.flags / NetEntityStateEntry.flags bits for MOB entities.
 // Low bits are live anim state (not persisted); the high bits are spawn

@@ -55,6 +55,7 @@ void MultiplayerAvatars::update_position( const int player_id, const float x, co
     float yaw = 0.0f, pitch = 0.0f;
     mob_look_from_camera_rotation( rotation, &yaw, &pitch );
     this->mobs->set_remote_pose( uid, glm::dvec3( x, y, z ), yaw, pitch, eye_height );
+    this->mobs->set_remote_crowd_collides( uid, ( flags & NET_PLAYER_FLAG_NO_CLIP ) == 0 && health != 0.0f );
     this->mobs->set_remote_held_item( uid, held_item );
 }
 

@@ -294,15 +294,17 @@ static void resolve_axis( World &world, glm::dvec3 &amin, glm::dvec3 &amax, int 
     amin[ axis ] += delta;
     amax[ axis ] += delta;
 
-    const double eps = 1e-4;
     const int x0 = static_cast<int>( floor( amin.x ) );
-    const int x1 = static_cast<int>( floor( amax.x - eps ) );
+    // Scan the positive-side boundary cell without an epsilon margin: a small
+    // move can otherwise enter a wall by less than the margin, after which the
+    // face-crossing test no longer recognizes it as a collision.
+    const int x1 = static_cast<int>( floor( amax.x ) );
     // One extra layer below: 1.5-block-tall collision boxes (fences, closed
     // gates) reach above their own cell.
     const int y0 = static_cast<int>( floor( amin.y ) ) - 1;
-    const int y1 = static_cast<int>( floor( amax.y - eps ) );
+    const int y1 = static_cast<int>( floor( amax.y ) );
     const int z0 = static_cast<int>( floor( amin.z ) );
-    const int z1 = static_cast<int>( floor( amax.z - eps ) );
+    const int z1 = static_cast<int>( floor( amax.z ) );
 
     double best = delta > 0.0 ? NO_CLAMP_POS : NO_CLAMP_NEG;
     bool found = false;

@@ -13,8 +13,8 @@ class Vehicles;
 class MultiplayerAvatars {
     MobManager *mobs;
     uint32_t uid_map[ MAX_CLIENT_FDS ];
-    // Last received NET_PLAYER_FLAG_* per player (bit0: targetable —
-    // survival && !no_clip). Stored for the mob-sync phase.
+    // Last received NET_PLAYER_FLAG_* per player (targetable + no_clip).
+    // Stored for the mob-sync phase.
     uint8_t flags_map[ MAX_CLIENT_FDS ];
     // Last received eye position/height per player, for hostile-AI remote
     // targets (mob phase of entity sync).

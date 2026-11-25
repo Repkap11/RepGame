@@ -368,7 +368,7 @@ int test_net_entities( ) {
     { // NetPlayerPayload flags + health survive.
         NetPlayerPayload out;
         memset( &out, 0, sizeof( out ) );
-        out.flags = NET_PLAYER_FLAG_TARGETABLE;
+        out.flags = NET_PLAYER_FLAG_TARGETABLE | NET_PLAYER_FLAG_NO_CLIP;
         out.health = 13.5f;
         PacketWriter w;
         net_serialize_player( w, out );
@@ -376,7 +376,7 @@ int test_net_entities( ) {
         NetPlayerPayload in;
         memset( &in, 0, sizeof( in ) );
         report( "net entities: player flags+health round trip",
-                net_deserialize_player( r, in ) && in.flags == NET_PLAYER_FLAG_TARGETABLE && in.health == 13.5f );
+                net_deserialize_player( r, in ) && in.flags == ( NET_PLAYER_FLAG_TARGETABLE | NET_PLAYER_FLAG_NO_CLIP ) && in.health == 13.5f );
     }
     { // Trailing riding_vehicle (ridden cart net id) round trips, and an old
       // payload without it decodes to 0.

@@ -19,6 +19,25 @@ hops a blocked mob over a wall only when the wall's real collision top
 fences and closed gates occupy one cell but collide 1.5 high, so a mob
 pressing against one waits instead of hopping forever.
 
+Entity crowding is soft and horizontal-only. After ordinary mob physics,
+`MobManager::tick_crowding` broadphases hitboxes through a unit-cell x/z
+spatial hash, applies a bounded positional separation impulse along the
+shallower overlapping horizontal axis (`MOB_CROWD_RESPONSE`,
+`MOB_CROWD_PAIR_MAX`, `MOB_CROWD_TOTAL_MAX`), and terrain-resolves that
+motion with `Collision::move_box`. There is no vertical entity collision:
+vertically overlapping hitboxes separate only in x/z, so mobs can still
+share a column rather than acting as solid cylinders. Only locally owned,
+live, non-seated mobs are repositioned. Mirrors and remote player avatars
+act as constraints whose owning client applies that entity's share; the
+resulting positions propagate through ordinary entity sync. `no_ai` and
+chunk-frozen mobs are immovable constraints, while dying/seated mobs and
+avatars whose sender no-clips or is dead (`crowd_collides`) are ignored.
+The local player participates when physically pushable; MobManager returns
+the terrain-resolved displacement as `MobTickOutput::player_push` and
+`RepGame::tick_entities` applies it directly to the camera, so the push is
+not input velocity, knockback momentum, or fall distance. Capture/frozen
+mode skips crowding to keep scripted poses exact.
+
 Wandering is a pick-align-commit cycle: an idle mob (`ai_state == 0`,
 2–6 s) picks a ground column within ±8 blocks — validated against terrain
 the mob can actually cross, so the random walk doesn't ratchet uphill.

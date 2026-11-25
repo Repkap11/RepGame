@@ -141,7 +141,13 @@ Tick-rate physics at `UPS_RATE` (144 Hz). The player is an AABB
   (`Collision::move_box`) collides mobs/items against voxels *and*
   `BlockBodies` AABBs (`docs/entities.md`). A grounded tick zeroes
   `y_speed` so a step-up can't launch the player; a blocked axis zeroes
-  that velocity component.
+  that velocity component. Mobs and remote avatars are not hard player
+  colliders: `MobManager::tick_crowding` computes a soft horizontal
+  separation and returns `MobTickOutput::player_push`, which
+  `tick_entities` applies as terrain-resolved positional displacement
+  after player movement. That channel bypasses `horizontal_vel`,
+  knockback momentum and fall-distance accounting; no-clipping, riding or
+  dead players do not participate (`docs/mobs.md`).
 - **Feel.** Footsteps accumulate collision-resolved ground distance and
   play the underfoot block's step sound; the water-entry splash scales
   its gain by entry speed (walking in is a lap, a real fall is the heavy

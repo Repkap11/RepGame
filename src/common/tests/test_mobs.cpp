@@ -356,6 +356,144 @@ int test_mobs( ) {
         }
     }
 
+    // --- 2h: crowd collision separates mobs/players without wall tunneling --
+    {
+        // Two overlapped idle pigs: positional crowd correction closes almost
+        // all of the .9-wide hitbox separation without changing their height.
+        {
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.9, 11.0, 10.5 ), 0.0f, 1 );
+            for ( int i = 0; i < 2; i++ ) {
+                mobs.mobs[ i ].ai_state = 0;
+                mobs.mobs[ i ].ai_ticks = 100000;
+            }
+            for ( int i = 0; i < 240; i++ ) {
+                mobs.tick( world, player_pos );
+            }
+            const double dist = std::hypot( mobs.mobs[ 1 ].pos.x - mobs.mobs[ 0 ].pos.x, mobs.mobs[ 1 ].pos.z - mobs.mobs[ 0 ].pos.z );
+            check_bool( "crowd: overlapped pigs separate", dist > 0.85 );
+            check_near( "crowd: separated pigs stay on floor", mobs.mobs[ 0 ].pos.y, 11.0, 0.01 );
+            check_near( "crowd: other pig stays on floor", mobs.mobs[ 1 ].pos.y, 11.0, 0.01 );
+        }
+
+        // The same correction is terrain-resolved: pressure toward a stone
+        // wall clamps at the wall instead of tunneling the pig through it.
+        {
+            for ( int y = 11; y <= 13; y++ ) {
+                for ( int z = 9; z <= 11; z++ ) {
+                    world.set_loaded_block( glm::ivec3( 14, y, z ), stone );
+                }
+            }
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( 13.0, 11.0, 10.5 ), 0.0f, 1 );
+            mobs.spawn( MOB_PIG, glm::dvec3( 13.4, 11.0, 10.5 ), 0.0f, 1 );
+            for ( int i = 0; i < 2; i++ ) {
+                mobs.mobs[ i ].ai_state = 0;
+                mobs.mobs[ i ].ai_ticks = 100000;
+            }
+            const double start_dist = mobs.mobs[ 1 ].pos.x - mobs.mobs[ 0 ].pos.x;
+            for ( int i = 0; i < 120; i++ ) {
+                mobs.tick( world, player_pos );
+            }
+            const glm::dvec3 &p = mobs.mobs[ 1 ].pos;
+            const glm::dvec3 bmin( p.x - 0.45, p.y, p.z - 0.45 );
+            const glm::dvec3 bmax( p.x + 0.45, p.y + 0.9, p.z + 0.45 );
+            check_bool( "crowd: wall still separates pigs", mobs.mobs[ 1 ].pos.x - mobs.mobs[ 0 ].pos.x > start_dist );
+            check_bool( "crowd: wall pressure does not embed pig", !Collision::box_collides( world, bmin, bmax ) );
+            check_bool( "crowd: pig never tunnels through wall", p.x + 0.45 < 14.0 );
+            for ( int y = 11; y <= 13; y++ ) {
+                for ( int z = 9; z <= 11; z++ ) {
+                    world.set_loaded_block( glm::ivec3( 14, y, z ), BLOCK_STATE_AIR );
+                }
+            }
+        }
+
+        // The local player is a symmetric crowd participant: the pig moves
+        // west, the returned player displacement points east, and applying it
+        // each tick opens the .75-wide pig/player separation.
+        {
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+            mobs.mobs[ 0 ].ai_state = 0;
+            mobs.mobs[ 0 ].ai_ticks = 100000;
+            glm::dvec3 player_eye( 10.7, 11.0 + PLAYER_EYE_HEIGHT, 10.5 );
+            MobTickInput in = { false, DAY_LENGTH_TICKS / 4, PLAYER_EYE_HEIGHT };
+            in.player_pushable = true;
+            const double start_dist = std::fabs( player_eye.x - mobs.mobs[ 0 ].pos.x );
+            glm::dvec3 first_push( 0.0 );
+            for ( int i = 0; i < 120; i++ ) {
+                MobTickOutput out;
+                mobs.tick( world, player_eye, &in, &out );
+                if ( i == 0 ) {
+                    first_push = out.player_push;
+                }
+                player_eye += out.player_push;
+            }
+            const double end_dist = std::fabs( player_eye.x - mobs.mobs[ 0 ].pos.x );
+            check_bool( "crowd: pig moves away from player", mobs.mobs[ 0 ].pos.x < 10.5 );
+            check_bool( "crowd: player push points away from pig", first_push.x > 0.0 );
+            check_bool( "crowd: player/pig separation opens", end_dist > 0.65 && end_dist > start_dist );
+        }
+
+        // Mirrors belong to another client: they constrain the owned mob but
+        // are never repositioned by the local crowding pass.
+        {
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.8, 11.0, 10.5 ), 0.0f, 1 );
+            for ( int i = 0; i < 2; i++ ) {
+                mobs.mobs[ i ].ai_state = 0;
+                mobs.mobs[ i ].ai_ticks = 100000;
+            }
+            mobs.mobs[ 1 ].net.mirror = true;
+            const glm::dvec3 mirror_pos = mobs.mobs[ 1 ].pos;
+            mobs.tick( world, player_pos );
+            check_bool( "crowd: owned mob moves off mirror", mobs.mobs[ 0 ].pos.x < 10.5 );
+            check_bool( "crowd: mirror is not locally mutated", mobs.mobs[ 1 ].pos == mirror_pos );
+        }
+
+        // Remote player avatars are external constraints like mirrors. A
+        // no-clipping/dead sender clears crowd_collides and the avatar stops
+        // constraining owned mobs at all.
+        {
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+            mobs.mobs[ 0 ].ai_state = 0;
+            mobs.mobs[ 0 ].ai_ticks = 100000;
+            const uint32_t uid = mobs.spawn_remote( MOB_PLAYER );
+            mobs.set_remote_pose( uid, glm::dvec3( 10.8, 11.0 + PLAYER_EYE_HEIGHT, 10.5 ), 0.0f, 0.0f );
+            mobs.tick( world, player_pos );
+            check_bool( "crowd: owned mob moves off remote avatar", mobs.mobs[ 0 ].pos.x < 10.5 );
+            check_near( "crowd: remote avatar is not locally mutated", mobs.mobs[ 1 ].pos.x, 10.8, 1e-9 );
+
+            MobManager ghosts;
+            ghosts.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+            ghosts.mobs[ 0 ].ai_state = 0;
+            ghosts.mobs[ 0 ].ai_ticks = 100000;
+            const uint32_t ghost_uid = ghosts.spawn_remote( MOB_PLAYER );
+            ghosts.set_remote_pose( ghost_uid, glm::dvec3( 10.8, 11.0 + PLAYER_EYE_HEIGHT, 10.5 ), 0.0f, 0.0f );
+            ghosts.set_remote_crowd_collides( ghost_uid, false );
+            ghosts.tick( world, player_pos );
+            check_bool( "crowd: non-colliding avatar is ignored", ghosts.mobs[ 0 ].pos.x == 10.5 );
+        }
+
+        // no_ai showcase mobs stay exactly fixed, but live mobs treat them as
+        // immovable crowd constraints rather than overlapping them.
+        {
+            MobManager mobs;
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.5, 11.0, 10.5 ), 0.0f, 1 );
+            mobs.spawn( MOB_PIG, glm::dvec3( 10.8, 11.0, 10.5 ), 0.0f, 1 );
+            mobs.mobs[ 0 ].no_ai = 1;
+            mobs.mobs[ 1 ].ai_state = 0;
+            mobs.mobs[ 1 ].ai_ticks = 100000;
+            const glm::dvec3 fixed_pos = mobs.mobs[ 0 ].pos;
+            mobs.tick( world, player_pos );
+            check_bool( "crowd: no_ai mob stays fixed", mobs.mobs[ 0 ].pos == fixed_pos );
+            check_bool( "crowd: live mob moves off no_ai mob", mobs.mobs[ 1 ].pos.x > 10.8 );
+        }
+    }
+
     // --- 3: half slab step-up ----------------------------------------------
     {
         MobManager mobs;
