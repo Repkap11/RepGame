@@ -196,7 +196,8 @@ interior 1x2).
 - **Ignition**: `portal_ignite` validates the ring and fills the interior
   with the kind's portal cells — each a `PlayerBlockPlacedEvent`, so
   ignition syncs in multiplayer. Flint & steel use calls it; a fire
-  spread can too.
+  spread can too. An obsidian frame in repheim never ignites; use a
+  repgate there.
 - **Survival**: `portal_cell_survives` (the `block_can_survive_at` rule)
   requires runs to the kind's ring through its own interior cells along
   both in-plane horizontal directions and vertically — breaking any

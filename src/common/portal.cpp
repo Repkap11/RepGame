@@ -133,6 +133,9 @@ bool portal_ignite( RepGameState &state, const glm::ivec3 &seed ) {
     if ( !portal_find_frame( state.world, seed, frame ) ) {
         return false;
     }
+    if ( frame.kind == PORTAL_KIND_NETHER && dimension_of_pos( seed ) == DIM_REPHEIM ) {
+        return false;
+    }
     const BlockID interior = PORTAL_KINDS[frame.kind].interior;
     const unsigned char rot = static_cast<unsigned char>( frame.axis );
     for ( int y = frame.lo.y; y <= frame.hi.y; y++ ) {

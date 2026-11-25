@@ -766,6 +766,29 @@ int test_dimension( ) {
         check_bool( "overworld x/z scaled by 8", gs.portal.dst_center.x == 32 && gs.portal.dst_center.z == 48 );
     }
 
+    {
+        RepGameState &gs = *new RepGameState( );
+        gs.tick_number = 0;
+        test_setup_world( gs.world );
+        World &world = gs.world;
+        const int ry = repheim_encoded_block_y( 200 );
+        make_chunk_live( world, glm::ivec3( glm::floor( glm::vec3( 10, ry, 10 ) / glm::vec3( CHUNK_SIZE_I ) ) ), 1 );
+        const glm::ivec3 o( 10, ry, 10 );
+        for ( int dx = 0; dx < 4; dx++ ) {
+            for ( int dy = 0; dy < 5; dy++ ) {
+                const bool edge = dx == 0 || dx == 3 || dy == 0 || dy == 4;
+                if ( edge ) {
+                    world.set_loaded_block( o + glm::ivec3( dx, dy, 0 ), { OBSIDIAN, 0, 0, OBSIDIAN, 0 } );
+                }
+            }
+        }
+        PortalFrame frame;
+        check_bool( "repheim obsidian frame detects as nether kind", portal_find_frame( world, glm::ivec3( 11, ry + 1, 10 ), frame ) &&
+                                                                          frame.kind == PORTAL_KIND_NETHER );
+        check_bool( "repheim nether portal ignition refused", !portal_ignite( gs, glm::ivec3( 11, ry + 1, 10 ) ) );
+        check_bool( "repheim obsidian interior stays air", world.get_loaded_block( glm::ivec3( 11, ry + 1, 10 ) ).id == AIR );
+    }
+
     // ---- Repgate: gold-block ring + REPHEIM_PORTAL interior, 1x2 min ----
     {
         RepGameState &gs = *new RepGameState( );
