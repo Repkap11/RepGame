@@ -259,7 +259,7 @@ int repgame_sdl2_main( const char *world_path, const char *host, const bool conn
 
 // Called from JS (index.js) when the user exits via ESC pointer-lock loss or
 // the mobile back button — routes those exits through the normal C++ exit
-// path so cleanup() saves the world before the page reloads.
+// path so cleanup() saves the client-side player state before the page reloads.
 extern "C" EMSCRIPTEN_KEEPALIVE void repgame_wasm_request_exit( ) {
     if ( globalGameState ) {
         globalGameState->input.exitGame = true;

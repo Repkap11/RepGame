@@ -3,9 +3,10 @@ set_canvas_size();
 
 // Report WebGPU availability on the startup screen. Same probe the C++ side
 // uses (navigator.gpu + requestAdapter), so the message predicts whether the
-// GPU mapgen backend will activate or chunks fall back to CPU. The backend is
-// opt-in (?REPGAME_WEBGPU=1, matching getenv() in webgpu_mapgen.cpp) — when it
-// isn't requested, don't touch WebGPU at all.
+// GPU mapgen backend can activate or chunks fall back to CPU. The backend is
+// opt-in (?REPGAME_WEBGPU=1, matching getenv() in webgpu_mapgen.cpp), but the
+// probe runs either way so systems without a usable adapter don't get a
+// misleading hint that enabling it would help.
 (function gpuStatusProbe() {
   var el = document.getElementById("gpu_status");
   if (!el) return;
@@ -13,31 +14,31 @@ set_canvas_size();
     el.textContent = text;
     el.className = unavailable ? "gpu-unavailable" : "";
   }
-  var webgpuParam = parseInt(new URLSearchParams(location.search).get("REPGAME_WEBGPU"), 10);
-  if (!(webgpuParam > 0)) {
-    show("GPU-accelerated terrain gen disabled (add ?REPGAME_WEBGPU=1 to enable)", true);
-    return;
-  }
   if (!navigator.gpu || !navigator.gpu.requestAdapter) {
     show("WebGPU not supported by this browser - terrain gen will use the CPU", true);
     return;
   }
+  var webgpuParam = parseInt(new URLSearchParams(location.search).get("REPGAME_WEBGPU"), 10);
   navigator.gpu.requestAdapter().then(function(adapter) {
-    if (adapter) {
-      var name = "";
-      try {
-        var info = adapter.info || {};
-        name = info.device || info.description || info.vendor || "";
-      } catch (e) {}
-      if (adapter.isFallbackAdapter) {
-        // Chrome's software fallback is SwiftShader (its sanitized vendor
-        // string is "google") - Vulkan emulated on the CPU, not a real GPU.
-        show("WebGPU available - software adapter (SwiftShader), terrain gen runs on the CPU", true);
-      } else {
-        show("WebGPU available - GPU-accelerated terrain gen" + (name ? " (" + name + ")" : ""), false);
-      }
-    } else {
+    if (!adapter) {
       show("WebGPU adapter unavailable - terrain gen will use the CPU", true);
+      return;
+    }
+    if (!(webgpuParam > 0)) {
+      show("GPU-accelerated terrain gen disabled (add ?REPGAME_WEBGPU=1 to enable)", true);
+      return;
+    }
+    var name = "";
+    try {
+      var info = adapter.info || {};
+      name = info.device || info.description || info.vendor || "";
+    } catch (e) {}
+    if (adapter.isFallbackAdapter) {
+      // Chrome's software fallback is SwiftShader (its sanitized vendor
+      // string is "google") - Vulkan emulated on the CPU, not a real GPU.
+      show("WebGPU available - software adapter (SwiftShader), terrain gen runs on the CPU", true);
+    } else {
+      show("WebGPU available - GPU-accelerated terrain gen" + (name ? " (" + name + ")" : ""), false);
     }
   }).catch(function() {
     show("WebGPU adapter unavailable - terrain gen will use the CPU", true);
@@ -146,7 +147,8 @@ function show_exit_screen() {
 }
 
 // Ask the game to exit: sets exitGame so the main loop runs cleanup()
-// (saving world + player data to OPFS) and then calls show_exit_screen().
+// (saving the client-side player state to OPFS) and then calls
+// show_exit_screen().
 function request_exit() {
   Module.ccall("repgame_wasm_request_exit");
 }
@@ -184,13 +186,14 @@ function wantsText() {
 }
 
 // The wasmfs OPFS backend mounts the browser's OPFS root at /repgame_wasm, so
-// the saved world (/repgame_wasm/World1 - chunk_* files plus player.dat)
-// appears as a top-level "World1" directory in OPFS. Deleting it recursively
-// resets the world exactly like `rm -rf World1` on the native build. This can
-// run before the module even loads since it talks to OPFS directly.
-async function clearSavedWorld() {
+// the per-world directory appears as a top-level "World1" directory in OPFS.
+// WASM no longer persists chunk state — current saves are player.dat, though
+// older versions may have left chunk_* files behind. Removing the directory
+// clears all client-side saved state. This can run before the module even
+// loads since it talks to OPFS directly.
+async function clearSavedState() {
   var status = document.getElementById("clear_status");
-  if (!window.confirm("Delete the saved world and player data? This cannot be undone.")) {
+  if (!window.confirm("Delete the saved state? This cannot be undone.")) {
     return;
   }
   if (!navigator.storage || !navigator.storage.getDirectory) {
@@ -200,21 +203,21 @@ async function clearSavedWorld() {
   try {
     var root = await navigator.storage.getDirectory();
     await root.removeEntry("World1", { recursive: true });
-    status.textContent = "Saved world deleted.";
-    console.log("Deleted OPFS World1");
+    status.textContent = "Saved state deleted.";
+    console.log("Deleted OPFS World1 saved state");
   } catch (e) {
     if (e && e.name === "NotFoundError") {
-      status.textContent = "No saved world found.";
+      status.textContent = "No saved state found.";
     } else {
       status.textContent = "Clear failed: " + e.message;
-      showError("clearSavedWorld: " + (e && e.message ? e.message : e));
+      showError("clearSavedState: " + (e && e.message ? e.message : e));
     }
   }
 }
 
 document.getElementById("clear_button").addEventListener("click", function(e) {
   e.stopPropagation(); // Never let this count as a play gesture.
-  clearSavedWorld();
+  clearSavedState();
 });
 
 // Multiplayer server as a WebSocket URL. Override with ?server=ws://host:port/
