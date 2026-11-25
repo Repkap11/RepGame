@@ -250,7 +250,7 @@ int test_player_data( ) {
     {
         // Point the map root at a throwaway dir under /tmp (getRepGamePath
         // reads $HOME): no writes land in a real world.
-        ScopedTempHome temp_home( "/tmp/repgame_test_player_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_player_home" );
         MapStorage storage;
         storage.init( "TestPlayerData" );
         storage.write_player_data( in );

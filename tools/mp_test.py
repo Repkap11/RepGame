@@ -21,6 +21,8 @@ import sys
 import tempfile
 import time
 
+from rep_dbg import gc as rep_dbg_gc
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERVER = os.path.join(ROOT, "out/server/RepGameServer")
 CLIENT = os.path.join(ROOT, "out/linux/release/RepGame")
@@ -155,9 +157,11 @@ class Client:
 class Run:
     def __init__(self, name, keep=False):
         self.name = name
-        scratch = os.path.join(tempfile.gettempdir(), "repgame")
+        scratch = rep_dbg_gc.mptest_scratch()
         os.makedirs(scratch, exist_ok=True)
         self.dir = tempfile.mkdtemp(prefix="mptest_%s_" % name, dir=scratch)
+        with open(os.path.join(self.dir, rep_dbg_gc.MPTEST_ACTIVE), "w") as f:
+            f.write(str(os.getpid()))
         self.keep = keep
         self.port = free_port()
         self.server = None
@@ -248,6 +252,10 @@ class Run:
                 self.server_log.close()
             except Exception:
                 pass
+        try:
+            os.unlink(os.path.join(self.dir, rep_dbg_gc.MPTEST_ACTIVE))
+        except OSError:
+            pass
         if failed or self.keep:
             print("  artifacts kept: %s" % self.dir)
         else:
@@ -1876,17 +1884,30 @@ SCENARIOS = [
 ]
 
 
+def prune_artifacts():
+    if os.environ.get("REP_DBG_AUTO_GC") == "0":
+        return
+    try:
+        rep_dbg_gc.gc_mptest(log=sys.stderr, **rep_dbg_gc.mptest_env_kwargs())
+    except Exception as e:
+        print("mp-test: artifact gc failed: %s" % e, file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-k", dest="filt", default=None, help="run scenarios matching substring")
     ap.add_argument("--list", action="store_true")
-    ap.add_argument("--keep", action="store_true", help="keep all artifact dirs")
+    ap.add_argument("--keep", action="store_true",
+                    help="keep all artifact dirs for this invocation (later gc retention still applies)")
     args = ap.parse_args()
 
     if args.list:
         for name, _ in SCENARIOS:
             print(name)
         return 0
+
+    prune_artifacts()
+
     for p in (SERVER, CLIENT):
         if not os.path.exists(p):
             print("missing binary: %s (run make linux server first, or make mp-test)" % p)
@@ -1921,6 +1942,8 @@ def main():
             traceback.print_exc()
         finally:
             run.teardown(failed)
+    if not args.keep:
+        prune_artifacts()
     if fails:
         print("\n%d scenario(s) failed:" % len(fails))
         for n, e in fails:

@@ -230,12 +230,14 @@ def _parser():
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
-    p = sub.add_parser("gc", help="reclaim the run root (old runs, perf.data, worktrees)")
+    p = sub.add_parser("gc", help="reclaim the run root, worktrees, and mp-test artifacts")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--keep-days", type=float)
     p.add_argument("--max-gb", type=float)
     p.add_argument("--perf-data-hours", type=float)
     p.add_argument("--wt-days", type=float)
+    p.add_argument("--mptest-keep-days", type=float)
+    p.add_argument("--mptest-max-gb", type=float)
     p.add_argument("--json", action="store_true")
     p.add_argument("--root", default=None)
 
@@ -1137,7 +1139,10 @@ def main(argv):
             out = gc_mod.gc(opts.root, dry_run=opts.dry_run,
                             keep_days=opts.keep_days, max_gb=opts.max_gb,
                             perf_data_hours=opts.perf_data_hours,
-                            wt_days=opts.wt_days)
+                            wt_days=opts.wt_days,
+                            mptest_keep_days=opts.mptest_keep_days,
+                            mptest_max_gb=opts.mptest_max_gb,
+                            mptest_scratch=gc_mod.mptest_scratch())
         except ValueError as e:
             print("rep-dbg: %s" % e, file=sys.stderr)
             return 4

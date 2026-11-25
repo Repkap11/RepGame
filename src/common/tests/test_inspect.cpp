@@ -23,7 +23,7 @@ int test_inspect( ) {
 
     // World pos (10,50,10) in chunk (0,0,0), local (10,50,10). TNT can't
     // appear in natural terrain, so it's a safe saved-edit marker.
-    ScopedTempHome temp_home( "/tmp/repgame_test_inspect_home" );
+    ScopedTempHome temp_home( "/tmp/repgame/test_inspect_home" );
     {
         MapStorage storage;
         storage.init( "TestInspect" );

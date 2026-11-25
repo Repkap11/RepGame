@@ -246,7 +246,7 @@ int test_boats( ) {
 
     // --- persistence round trip keeps the type -------------------------------------
     {
-        ScopedTempHome temp_home( "/tmp/repgame_test_boats_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_boats_home" );
         MapStorage storage;
         storage.init( "TestBoats" );
         Vehicles store_vehicles;

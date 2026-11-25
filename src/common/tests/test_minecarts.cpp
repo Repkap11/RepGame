@@ -314,7 +314,7 @@ int test_minecarts( ) {
 
     // --- persistence: adopt restores a record, persist writes it back -----------------
     {
-        ScopedTempHome temp_home( "/tmp/repgame_test_carts_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_carts_home" );
         MapStorage storage;
         storage.init( "TestCarts" );
         Vehicles store_carts;

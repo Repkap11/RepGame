@@ -658,8 +658,8 @@ int test_mobs( ) {
     {
         // Point the map root at a throwaway dir under /tmp (getRepGamePath
         // reads $HOME): no writes land in a real world.
-        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
-        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        std::filesystem::remove_all( "/tmp/repgame/test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_mobs_home" );
         MapStorage storage;
         storage.init( "TestMobs" );
         const glm::ivec3 chunk_pos( 0, 0, 0 );
@@ -731,8 +731,8 @@ int test_mobs( ) {
 
     // --- 6b: pristine naturals leave no file; hurt -> record + tombstone ---
     {
-        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
-        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        std::filesystem::remove_all( "/tmp/repgame/test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_mobs_home" );
         MapStorage storage;
         storage.init( "TestMobs" );
         // A chunk outside every section's reach (x 310..371).
@@ -794,8 +794,8 @@ int test_mobs( ) {
             check_bool( "roll: records carry natural ids",
                         net_is_natural_mob_id( rolled[ 0 ].net_id ) && net_natural_mob_home( rolled[ 0 ].net_id ) == found_pos &&
                             ( rolled[ 0 ].flags & NET_MOB_FLAG_NATURAL ) != 0 );
-            std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
-            ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+            std::filesystem::remove_all( "/tmp/repgame/test_mobs_home" );
+            ScopedTempHome temp_home( "/tmp/repgame/test_mobs_home" );
             MapStorage storage;
             storage.init( "TestMobs" );
             // Record 0 is the (touched) survivor; its index is tombstoned.
@@ -1022,7 +1022,7 @@ int test_mobs( ) {
 
         // ...never persisted...
         {
-            ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+            ScopedTempHome temp_home( "/tmp/repgame/test_mobs_home" );
             MapStorage storage;
             storage.init( "TestMobs" );
             mobs.init_storage( &storage );
@@ -1451,7 +1451,7 @@ int test_mobs( ) {
 
     // --- 18: despawnable mobs are never persisted ----------------------------
     {
-        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_mobs_home" );
         MapStorage storage;
         storage.init( "TestMobs" );
         MobManager mobs;
@@ -1720,8 +1720,8 @@ int test_mobs( ) {
 
     // --- 24: grow_ticks persists the baby/cooldown state ---------------------
     {
-        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
-        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        std::filesystem::remove_all( "/tmp/repgame/test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_mobs_home" );
         MapStorage storage;
         storage.init( "TestMobs" );
         // Chunk 4 covers x 248..309 (CHUNK_SIZE_X stride).
@@ -1825,8 +1825,8 @@ int test_mobs( ) {
 
     // --- 26: the sheared flag persists through the mobs file ---------------
     {
-        std::filesystem::remove_all( "/tmp/repgame_test_mobs_home" );
-        ScopedTempHome temp_home( "/tmp/repgame_test_mobs_home" );
+        std::filesystem::remove_all( "/tmp/repgame/test_mobs_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_mobs_home" );
         MapStorage storage;
         storage.init( "TestMobs" );
         MobManager mobs;

@@ -483,7 +483,7 @@ int test_item_entities( ) {
 
     // --- persistence: record round trip, invalid records, adopt/persist ------
     {
-        ScopedTempHome temp_home( "/tmp/repgame_test_items_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_items_home" );
         MapStorage storage;
         storage.init( "TestItems" );
 

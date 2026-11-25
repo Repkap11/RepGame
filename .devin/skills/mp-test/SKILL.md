@@ -22,10 +22,19 @@ python3 tools/mp_test.py [-k substr] [--list] [--keep]
 
 - `-k <substr>` — run only scenarios whose name matches.
 - `--list` — print scenario names.
-- `--keep` — keep every artifact dir (failure keeps them regardless).
+- `--keep` — keep every artifact dir for the current invocation (failure
+  keeps its own regardless); retained dirs are still subject to later gc.
 
 Artifacts land in `/tmp/repgame/mptest_<scenario>_*` and contain `server.log` plus
-`client_<X>/{stderr.log,dump.jsonl,ctl.txt}` per client.
+`client_<X>/{stderr.log,dump.jsonl,ctl.txt}` per client. Because these
+artifacts can be hundreds of MiB and `/tmp` is tmpfs, mp-test prunes them
+before and after normal runs, and `rep-dbg gc` applies the same rules:
+completed dirs older than 2 days are deleted, the completed total is capped
+at 2 GiB (oldest first, always preserving the newest completed dir), and
+active artifact dirs are never touched. Override with
+`REP_DBG_MPTEST_KEEP_DAYS` / `REP_DBG_MPTEST_MAX_GB` or
+`rep-dbg gc --mptest-keep-days N --mptest-max-gb N`;
+`REP_DBG_AUTO_GC=0` disables mp-test's automatic pruning.
 
 ## Architecture
 

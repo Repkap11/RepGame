@@ -43,7 +43,7 @@ for humans (`stdout.log`); the only sanctioned scraping is
 | IPC / cache misses | `rep-dbg perf stat stream-flight`, or `rep-dbg ab --perf-stat --metric perf.stat.ipc ...` |
 | List / export runs | `rep-dbg runs [--status failed] [--last N]`, `rep-dbg export <ids...> --csv` |
 | Old worktrees piling up | `rep-dbg wt list` / `rep-dbg wt prune [--older-than D] [--all] [--dry-run]` |
-| /tmp filling up | `rep-dbg gc [--dry-run]` — old run dirs, stale perf.data, size cap, idle worktrees; auto-runs hourly (REP_DBG_AUTO_GC=0 off) |
+| /tmp filling up | `rep-dbg gc [--dry-run]` — old run dirs, stale perf.data, size cap, idle worktrees, and retained `/tmp/repgame/mptest_*` artifacts (2 days / 2 GiB cap, active dirs untouched); auto-runs hourly (REP_DBG_AUTO_GC=0 off) |
 
 ## Conventions
 

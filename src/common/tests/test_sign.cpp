@@ -208,7 +208,7 @@ int test_signs( ) {
     // --- MapStorage sign side file --------------------------------------------
     {
         // $HOME under /tmp so the sign files land in a throwaway world.
-        ScopedTempHome temp_home( "/tmp/repgame_test_sign_home" );
+        ScopedTempHome temp_home( "/tmp/repgame/test_sign_home" );
         MapStorage storage;
         storage.init( "TestSigns" );
         const glm::ivec3 chunk_off( 0, 0, 0 );

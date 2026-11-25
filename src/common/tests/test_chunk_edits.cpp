@@ -66,7 +66,7 @@ int test_chunk_edits( ) {
         return n;
     };
 
-    ScopedTempHome temp_home( "/tmp/repgame_test_chunk_edits_home" );
+    ScopedTempHome temp_home( "/tmp/repgame/test_chunk_edits_home" );
 
     // --- 1. codec ------------------------------------------------------------
     {

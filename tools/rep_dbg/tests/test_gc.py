@@ -116,6 +116,112 @@ class GcTest(unittest.TestCase):
             gc_mod.gc(build_mod.REPO, log=self.log)
 
 
+def _mptest_dir(scratch, name, days_old=0, size_bytes=0):
+    d = os.path.join(scratch, "mptest_" + name)
+    os.makedirs(d)
+    payload = os.path.join(d, "server.log")
+    with open(payload, "wb") as f:
+        f.write(b"x" * size_bytes)
+    old = time.time() - days_old * 86400
+    os.utime(payload, (old, old))
+    os.utime(d, (old, old))
+    return d
+
+
+class MpTestGcTest(unittest.TestCase):
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.scratch = os.path.join(self.root, "repgame")
+        os.makedirs(self.scratch)
+        self.log = io.StringIO()
+
+    def test_old_removed_new_kept(self):
+        old = _mptest_dir(self.scratch, "old", days_old=3)
+        new = _mptest_dir(self.scratch, "new", days_old=0)
+        gc_mod.gc_mptest(self.scratch, keep_days=2, max_gb=100, log=self.log)
+        self.assertFalse(os.path.exists(old))
+        self.assertTrue(os.path.exists(new))
+
+    def test_dry_run(self):
+        old = _mptest_dir(self.scratch, "old", days_old=3)
+        out = gc_mod.gc_mptest(self.scratch, dry_run=True, keep_days=2,
+                               max_gb=100, log=self.log)
+        self.assertTrue(os.path.exists(old))
+        self.assertIn(old, out["removed"])
+
+    def test_size_cap(self):
+        small = _mptest_dir(self.scratch, "small", days_old=0.1, size_bytes=1)
+        big = _mptest_dir(self.scratch, "big", days_old=0.2, size_bytes=2000)
+        gc_mod.gc_mptest(self.scratch, keep_days=100, max_gb=0.000001,
+                         log=self.log)
+        self.assertFalse(os.path.exists(big))
+        self.assertTrue(os.path.exists(small))
+
+    def test_cap_preserves_newest_completed(self):
+        young = _mptest_dir(self.scratch, "young", days_old=0, size_bytes=2000)
+        gc_mod.gc_mptest(self.scratch, keep_days=100, max_gb=0.000001,
+                         log=self.log)
+        self.assertTrue(os.path.exists(young))
+
+    def test_cap_deletes_older_young_completed(self):
+        older = _mptest_dir(self.scratch, "older", days_old=0, size_bytes=2000)
+        newest = _mptest_dir(self.scratch, "newest", days_old=0, size_bytes=2000)
+        gc_mod.gc_mptest(self.scratch, keep_days=100, max_gb=0.000001,
+                         log=self.log)
+        self.assertFalse(os.path.exists(older))
+        self.assertTrue(os.path.exists(newest))
+
+    def test_active_artifact_untouched(self):
+        active = _mptest_dir(self.scratch, "active", days_old=3, size_bytes=2000)
+        marker = os.path.join(active, gc_mod.MPTEST_ACTIVE)
+        with open(marker, "w") as f:
+            f.write(str(os.getpid()))
+        old = time.time() - 3 * 86400
+        os.utime(marker, (old, old))
+        gc_mod.gc_mptest(self.scratch, keep_days=2, max_gb=0, log=self.log)
+        self.assertTrue(os.path.exists(active))
+
+    def test_active_size_does_not_count_toward_completed_cap(self):
+        active = _mptest_dir(self.scratch, "active", days_old=0, size_bytes=2000)
+        with open(os.path.join(active, gc_mod.MPTEST_ACTIVE), "w") as f:
+            f.write(str(os.getpid()))
+        older = _mptest_dir(self.scratch, "older", days_old=0.01, size_bytes=500)
+        newer = _mptest_dir(self.scratch, "newer", days_old=0, size_bytes=500)
+        gc_mod.gc_mptest(self.scratch, keep_days=100, max_gb=0.0000015,
+                         log=self.log)
+        self.assertTrue(os.path.exists(older))
+        self.assertTrue(os.path.exists(newer))
+
+    def test_nested_write_refreshes_artifact_age(self):
+        d = _mptest_dir(self.scratch, "active", days_old=3)
+        nested = os.path.join(d, "server_home", ".repgame")
+        os.makedirs(nested)
+        with open(os.path.join(nested, "world.db"), "w") as f:
+            f.write("current")
+        gc_mod.gc_mptest(self.scratch, keep_days=2, max_gb=100, log=self.log)
+        self.assertTrue(os.path.exists(d))
+
+    def test_non_mptest_and_symlink_untouched(self):
+        plain = os.path.join(self.scratch, "plain")
+        os.makedirs(plain)
+        outside = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
+        with open(os.path.join(outside, "keep.me"), "w") as f:
+            f.write("precious")
+        os.symlink(outside, os.path.join(self.scratch, "mptest_link"))
+        gc_mod.gc_mptest(self.scratch, keep_days=0, max_gb=0, log=self.log)
+        self.assertTrue(os.path.exists(plain))
+        self.assertTrue(os.path.exists(os.path.join(outside, "keep.me")))
+
+    def test_rep_dbg_gc_integrates_mptest_scratch(self):
+        old = _mptest_dir(self.scratch, "old", days_old=3)
+        gc_mod.gc(self.root, keep_days=7, max_gb=100, perf_data_hours=24,
+                  wt_days=3, mptest_keep_days=2, mptest_max_gb=100,
+                  mptest_scratch=self.scratch, log=self.log)
+        self.assertFalse(os.path.exists(old))
+
+
 class _Repo:
     """A temp git repo used as build_mod.REPO for worktree tests."""
 

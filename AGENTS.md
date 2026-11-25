@@ -70,14 +70,19 @@ cmake earlier in PATH gets baked into custom commands via
   with per-run `result.json`/`results.jsonl` under `~/.repgame/rep-dbg`;
   `rep-dbg inspect <world|run> <sub>` reads saved worlds offline
   (block/slice/chunk/entities/player); `rep-dbg gc` reclaims old
-  runs/perf.data/worktrees;
+  runs/perf.data/worktrees plus retained mp-test artifacts;
   `python3 -m unittest discover tools/rep_dbg/tests` covers the Python
   side. See docs/debug-tools.md and the `debug-tools` skill
-- Scratch files from ad-hoc debugging (screenshots, `.rds` scripts,
-  patches, logs, temp homes) go under `/tmp/repgame/` — never loose in
-  `/tmp` or the repo; tmpfs wipes it on reboot. Persistent rep-dbg run
-  output lives under `~/.repgame/rep-dbg`; mp-test failure artifacts
-  land in `/tmp/repgame/mptest_*`
+- ALL agent-created `/tmp` files and directories belong under
+  `/tmp/repgame/` — screenshots, `.rds` scripts, patches, logs, temp
+  homes, build/test scratch, and explicit `tempfile` dirs alike. Never
+  write loose `/tmp/tmp*` or other paths directly in `/tmp` or the repo;
+  pass `dir=/tmp/repgame` to tempfile APIs, and if a tool forces a loose
+  path, move or clean it in the same command. `/tmp` is tmpfs (RAM/swap),
+  so large scratch must also be deleted as soon as it is no longer needed.
+  Persistent rep-dbg run output lives under `~/.repgame/rep-dbg`; mp-test
+  failure artifacts land in `/tmp/repgame/mptest_*` and are reclaimed by
+  mp-test/`rep-dbg gc` retention
 - Capture-diff caveat: `capture_0` flat captures are bistable run-to-run —
   rerun a diff once before treating it as a regression (see the `capture`
   skill).

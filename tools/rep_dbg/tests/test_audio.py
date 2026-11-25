@@ -1,5 +1,6 @@
 import io
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -60,6 +61,8 @@ class TestWorktreeBackfill(unittest.TestCase):
         worktree-add subprocess)."""
         repo = tempfile.mkdtemp()
         root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, repo, ignore_errors=True)
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
         sha = "deadbeef" * 5
         dest = os.path.join(worktree.wt_root(root), sha)
         os.makedirs(dest)

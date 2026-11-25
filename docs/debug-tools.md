@@ -175,17 +175,26 @@ overlay in a shot (a script can also toggle it mid-run with `imgui 1`).
   may hold uncommitted work — `rep-dbg: keeping dirty worktree …`);
   `--all` removes them.
 - `rep-dbg gc [--dry-run] [--keep-days 7] [--max-gb 10]
-  [--perf-data-hours 24] [--wt-days 3] [--json]` — housekeeping for the
-  root: deletes kept `perf.data` older than `--perf-data-hours` (marks
-  `perf.data_deleted` in result.json), run dirs older than `--keep-days`,
-  oldest run dirs over the `--max-gb` total cap (never younger than 1 h),
-  and worktrees idle `--wt-days` — then rebuilds the index. Safety: only
-  deletes realpaths inside the root, refuses `/`, `$HOME` and the repo,
-  and never descends into symlinks. Run-creating commands first call the
-  same gc automatically at most once/hour (stamp `<root>/.gc-stamp`);
-  defaults overridable via `REP_DBG_KEEP_DAYS`, `REP_DBG_MAX_GB`,
-  `REP_DBG_PERF_DATA_HOURS`, `REP_DBG_WT_DAYS`, and `REP_DBG_AUTO_GC=0`
-  disables it (one stderr line, only when it removed something).
+  [--perf-data-hours 24] [--wt-days 3] [--mptest-keep-days 2]
+  [--mptest-max-gb 2] [--json]` — housekeeping for the root plus retained
+  mp-test artifacts: deletes kept `perf.data` older than
+  `--perf-data-hours` (marks `perf.data_deleted` in result.json), run dirs
+  older than `--keep-days`, oldest run dirs over the `--max-gb` total cap
+  (never younger than 1 h), and worktrees idle `--wt-days` — then rebuilds
+  the index. It also reclaims `<TMPDIR>/repgame/mptest_*`: completed
+  artifact dirs older than `--mptest-keep-days` are deleted, and the
+  completed total over `--mptest-max-gb` is pruned oldest first while
+  preserving the newest completed dir; active artifact dirs are never
+  touched. mp-test runs the same pruning before and after normal
+  invocations unless `REP_DBG_AUTO_GC=0`. Safety: only deletes realpaths
+  inside each root, refuses
+  `/`, `$HOME` and the repo, and never descends into symlinks. Run-creating
+  commands first call the same gc automatically at most once/hour (stamp
+  `<root>/.gc-stamp`); defaults overridable via `REP_DBG_KEEP_DAYS`,
+  `REP_DBG_MAX_GB`, `REP_DBG_PERF_DATA_HOURS`, `REP_DBG_WT_DAYS`,
+  `REP_DBG_MPTEST_KEEP_DAYS`, `REP_DBG_MPTEST_MAX_GB`, and
+  `REP_DBG_AUTO_GC=0` disables it (one stderr line, only when it removed
+  something).
 - `rep-dbg metrics <run|results.jsonl|stdout.log> [--fields a,b] [--csv]
   [--plot a,b] [--after-settle]` — per-field stats table for one run;
   `--csv` dumps flattened per-tick metric rows, `--plot` writes a PNG line
@@ -623,10 +632,12 @@ to verify `--gdb` and sanitizer report collection.
   shim exists only for old revs).
 - Don't use checked-in image baselines — diffs are always run-vs-run or
   rev-vs-rev (`rep-dbg diff`, `shot --revs`).
-- Don't drop ad-hoc debug scratch (screenshots, `.rds` scripts, patches,
-  logs, temp homes) loose in `/tmp` — use `/tmp/repgame/`; it's tmpfs
-  and clears on reboot. Persistent run output lives under
-  `~/.repgame/rep-dbg`.
+- All agent-created `/tmp` files and directories belong under
+  `/tmp/repgame/` — screenshots, `.rds` scripts, patches, logs, temp
+  homes, build/test scratch, and explicit tempfile dirs alike. Never drop
+  loose entries directly in `/tmp`; `/tmp` is tmpfs (RAM/swap), so large
+  scratch must also be deleted as soon as it is no longer needed.
+  Persistent run output lives under `~/.repgame/rep-dbg`.
 - Don't `sudo` anything — the only root knob is the perf sysctl, and the
   preflight tells you exactly what to ask the user to run.
 - Don't `rm` worlds under `~/.repgame` — rep-dbg runs are isolated
